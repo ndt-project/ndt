@@ -548,10 +548,17 @@ int main(int argc, char *argv[])
 	    	printf("read %d octets '%s'\n", inlth, buff);
 	    if (inlth <= 0)
 		break;
-	    if ((inlth > 1) && (buff[0] == '0')) {
+	    if ((inlth > 6) && (buff[0] == '0')) {
 		port3 = 1;
 		break;
 	    }
+
+	    if ((strchr(buff, ' ') != NULL) && (inlth > 6)) {
+                printf("Information: The server '%s' does not support this command line client\n",
+			host);
+                exit(0);
+            }
+
 	    xwait = atoi(buff);
 	    /* fprintf(stderr, "wait flag received = %d\n", xwait); */
 	    if (xwait == 0)
@@ -573,6 +580,11 @@ int main(int argc, char *argv[])
 	    inlth = read(ctlSocket, buff, 100);
 	    if (debug > 2)
 	        fprintf(stderr, "Test port numbers not received, read 2nd packet to get them\n");
+            if (inlth == 0) {
+                printf("Information: The server '%s' does not support this command line client\n",
+			host);
+                exit(0);
+            }
 	}
 
 	port3 = atoi(strtok(buff, " "));
