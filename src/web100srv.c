@@ -1417,7 +1417,7 @@ char	*argv[];
 				fclose(fp);
 			    }
 			    tmp_ptr = head_ptr->next;
-			    kill(head_ptr->pid, 0);
+			    kill(head_ptr->pid, SIGKILL);
 			    free(head_ptr);
 			    head_ptr = tmp_ptr;
 		        }
