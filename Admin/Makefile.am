@@ -37,8 +37,15 @@ Admin_SOURCES	= Admin.java
 am_Admin_OBJECTS = Admin.java
 Admin_LDADD = 
 
+Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
+	@rm -f Admin$(EXEEXT)
+	@if test ! -s "classAdmin.stamp"; then \
+	    $(GCJLINK) $(Admin_LDFLAGS) $(Admin_OBJECTS) $(Admin_LDADD) $(LIBS); \
+	    echo timestamp > classAdmin.stamp; \
+	else :; fi
+
 classAdmin.stamp: $(Admin_JAVA)
-	@if test -n "$?"; then \
+	if test -n "$?"; then \
 	    echo '$(GCJ) $?' ; \
 	    $(GCJ) $?; \
 	else :; fi

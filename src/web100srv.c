@@ -526,7 +526,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	char spds[4][256], buff2[32], tmpstr[256];
 	char logstr1[4096], logstr2[1024];
 
-	int maxseg=1456, largewin=128*1024;
+	int maxseg=1456, largewin=16*1024*1024;
 	int sock2, sock3, sock4; 
 	int n,sockfd, midsockfd, recvsfd, xmitsfd, clilen, childpid, servlen, one=1;
 	int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
@@ -542,6 +542,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	int spd_sock, spd_sock2, spdfd, j, i, rc;
 	int mon_pid1, mon_pid2, totalcnt, spd, stime;
 	int seg_size, win_size;
+	int autotune, rbuff, sbuff;
 
 	double loss, rttsec, bw, rwin, swin, cwin, speed;
 	double rwintime, cwndtime, sendtime;
@@ -576,6 +577,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		spds[spd_index][ret] = 0x00;
 	spd_index = 0;
 
+	autotune = web100_autotune(ctlsockfd, agent, debug);
+
 	if ( (sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		err_sys("server: can't open stream socket");
 	setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
@@ -593,6 +596,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	if (set_buff > 0) {
 	    setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
 	    setsockopt(sock2, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+	}
+	if (autotune > 0) {
+	    setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+	    setsockopt(sock2, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
 	}
 	if (debug > 0)
 	    fprintf(stderr, "listening for Inet connection on sock2, fd=%d\n", sock2);
@@ -632,6 +639,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 */
 	setsockopt(sock3, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
 	if (set_buff > 0) {
+	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+	    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+	}
+	if (autotune > 0) {
 	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
 	    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
 	}
@@ -692,6 +703,25 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    fprintf(stderr, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d\n",
 			    mon_pipe1[0], mon_pipe1[1]);
 	}
+
+	/* Check, and if needed, set the web100 autotuning function on.  This improves
+	 * performance without requiring the entire system be re-configured.  Returned
+	 * value is true if set is done, so admin knows if system default should be changed
+	 *
+	 * 11/22/04, the sBufMode and rBufMode per connection autotuning variables are being
+	 * depricated, so this is another attempt at making this work.  If window scaling is
+	 * enabled, then scale the buffer size to the correct value.  This will also help
+	 * when reporting the buffer / RTT limit.
+	 */
+	/* autotune = web100_autotune(recvsfd, agent, debug);
+	 * if (debug > 3)
+	 *     fprintf(stderr, "C2S Test Autotune = %d Recv Buff now %d, Send Buff now %d\n",
+	 * 	autotune, rbuff, sbuff);
+	 */
+
+	if (autotune > 0) 
+	    web100_setbuff(recvsfd, agent, autotune, debug);
+
 	write(ctlsockfd, buff, strlen(buff));  
 
 	/* ok, We are now read to start the throughput tests.  First
@@ -762,6 +792,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
 	    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
 	}
+	if (autotune > 0) {
+	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+	    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+	}
 	if (debug > 0)
 	    fprintf(stderr, "listening for Inet connection on sock3, fd=%d\n", sock3);
 	listen(sock3, 2); 
@@ -804,6 +838,24 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	            printf("error & exit");
 	    }
 
+	    /* Check, and if needed, set the web100 autotuning function on.  This improves
+	     * performance without requiring the entire system be re-configured.  Returned
+	     * value is true if set is done, so admin knows if system default should be changed
+	     *
+	     * 11/22/04, the sBufMode and rBufMode per connection autotuning variables are being
+	     * depricated, so this is another attempt at making this work.  If window scaling is
+	     * enabled, then scale the buffer size to the correct value.  This will also help
+	     * when reporting the buffer / RTT limit.
+	     */
+	    /* autotune = web100_autotune(xmitsfd, agent, debug);
+	     * if (debug > 3)
+	     *     fprintf(stderr, "S2C Test Autotune = %d Recv Buff now %d, Send Buff now %d\n",
+	     * 	    autotune, rbuff, sbuff);
+	     */
+
+	    if (autotune > 0) 
+		web100_setbuff(xmitsfd, agent, autotune, debug);
+
 	    write(ctlsockfd, buff, strlen(buff));  
 	    if (debug > 4) {
 	        fprintf(stderr, "S2C test Parent thinks pipe() returned fd0=%d, fd1=%d\n",
@@ -822,6 +874,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    /* Kludge way of nuking Linux route cache.  This should be done
 	     * using the sysctl interface.
 	     */
+	    /* system("/sbin/sysctl -w sys.net.ipv4.route.flush=1"); */
 	    system("echo 1 > /proc/sys/net/ipv4/route/flush");
 
 	    bytes = 0;
@@ -1005,7 +1058,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    /* loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut); */
 	    loss2 = (double)CongestionSignals/PktsOut;
 	    if (loss2 == 0)
-    		loss2 = .000001;	/* set to 10^-6 for now */
+		if (c2sdata > 5)
+		    loss2 = .0000000001;	/* set to 10^-10 for links faster than FastE */
+		else
+    		    loss2 = .000001;		/* set to 10^-6 for now */
 
 	    oo_order = (double)DupAcksIn/AckPktsIn;
 	    bw2 = (CurrentMSS / (rttsec * sqrt(loss2))) * 8 / 1024 / 1024;
@@ -1015,7 +1071,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    if (RcvWinScale > 15)
 		RcvWinScale = 0;
 	    /* MaxRwinRcvd <<= RcvWinScale; */
-	    if ((SndWinScale > 0) && (RcvWinScale > 0) && (RcvWinScale < 15))
+	    if ((SndWinScale > 0) && (RcvWinScale > 0))
 	        Sndbuf = (64 * 1024) << RcvWinScale;
 	    /* MaxCwnd <<= RcvWinScale; */
 
@@ -1115,8 +1171,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
  	        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
        	    fprintf(fp,"%d,%d,%d,%d,%d",
   	        link, mismatch, bad_cable, half_duplex, congestion);
-	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d\n", c2sdata, c2sack, s2cdata, s2cack,
-		    CongestionSignals, PktsOut, MinRTT, RcvWinScale);
+	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d\n", c2sdata, c2sack, s2cdata, s2cack,
+		    CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
        	    fclose(fp);
 	}
 	if (usesyslog == 1) {
