@@ -16,6 +16,10 @@ server for later analysis.
 
 Rich Carlson	6/7/02
 
+7/15/04 - ndt v3.0.17
+  fakewww.c
+	The server now writes redirect messages to the log file.
+
 7/14/04 - ndt v3.0.16
   web100clt.c
 	added in code to recognize old servers, those that don't

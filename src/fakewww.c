@@ -344,6 +344,18 @@ dowww(sd, cli_addr, port, LogFileName, debug, fed_mode, max_ttl)
 				     srv_addr & 0xff, (srv_addr >> 8) & 0xff,
 				    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
 			    }
+			    i = time(0);
+			    if (LogFileName != NULL) {
+		   		lfd = fopen(LogFileName, "a");
+		   		if (lfd != NULL) {
+			            fprintf(lfd, "%15.15s [%s] redirected to remote server [%u.%u.%u.%u:%d]\n",
+			    	         ctime(&i)+4, inet_ntoa(cli_addr.sin_addr),
+				         srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+				        (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
+
+				fclose(lfd);
+		    		}
+			    }
 			    continue;
 		    }
 		}
