@@ -1412,8 +1412,8 @@ char	*argv[];
 			    /* process is stuck at the front of the queue. */
         		    fp = fopen(LogFileName,"a");
 			        if (fp != NULL) {
-			        fprintf(fp, "Killing off stuck process %d at %15.15s\n", 
-					head_ptr->pid, ctime(&c)+4);
+			        fprintf(fp, "%d children waiting in queue, Killing off stuck process %d at %15.15s\n", 
+					waiting, head_ptr->pid, ctime(&c)+4);
 				fclose(fp);
 			    }
 			    tmp_ptr = head_ptr->next;
@@ -1421,7 +1421,8 @@ char	*argv[];
 			    free(head_ptr);
 			    head_ptr = tmp_ptr;
 			    testing = 0;
-			    waiting--;
+			    if (waiting > 0)
+				waiting--;
 		        }
 		    }
 		}
