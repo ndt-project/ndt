@@ -620,6 +620,7 @@ int main(int argc, char *argv[])
 	}
 
 	printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+	fflush(stdout);
 	tmpstr2[0] = '\0';
 	i = 0;
 	for (;;) {
@@ -650,6 +651,7 @@ int main(int argc, char *argv[])
 	srv2.sin_port = htons(port3);
 
 	printf("running 10s outbound test (client to server) . . . . . ");
+	fflush(stdout);
 
 	/* inlth = read(ctlSocket, buff, 100);  */
 		
@@ -695,7 +697,7 @@ int main(int argc, char *argv[])
 	    printf(" %0.2f Mb/s\n", spdout/1000);
 
 	printf("running 10s inbound test (server to client) . . . . . . ");
-
+	fflush(stdout);
 	
 	inlth = read(ctlSocket, buff, 100); 
 	inSocket = socket(PF_INET, SOCK_STREAM, 0);
