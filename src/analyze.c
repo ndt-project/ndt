@@ -46,10 +46,10 @@
 	int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
 	int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
 	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
-	int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut;
+	int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut, RcvWinScale;
 	int link=0, mismatch=0, bad_cable=0, half_duplex=0, congestion=0, totaltime;
 	int i, spd, ret;
-	double order;
+	double order, idle, cpu_idle1, cpu_idle2;
 	char *name, ip_addr[64], ip_addr2[64];
 	FILE *fp;
 	int indx, links[4][16], max, total;
@@ -60,6 +60,7 @@
 	char *str, tmpstr[32];
 	float run_ave[4];
 	int c2sspd, s2cspd, iponly;
+	int linkcnt, mismatch2;
 
 extern int errno;
 
@@ -87,7 +88,7 @@ void calculate()
 	    max = 0;
 	    indx = 0;
 	    total = 0;
-	    for (j=0; j<10; j++) {
+	    for (j=0; j<linkcnt-1; j++) {
 		total += links[i][j];
 		if (max < links[i][j]) {
 		    max = links[i][j];
@@ -174,21 +175,54 @@ void calculate()
 			    sprintf(btlneck, "a 'DSL' connection");
 		     }
 		     break;
-	    case 3:  sprintf(btlneck, "an 'Ethernet' subnet");
+	    case 3:  if (linkcnt == 16)
+			sprintf(btlneck, "a T1 + subnet");
+		     else
+			sprintf(btlneck, "an 'Ethernet' subnet");
 		     break;
-	    case 4:  sprintf(btlneck, "a 'T3/DS-3' subnet");
+	    case 4:  if (linkcnt == 16)
+			sprintf(btlneck, "a IEEE 802.11b Wifi subnet");
+		     else
+			sprintf(btlneck, "a 'T3/DS-3' subnet");
 		     break;
-	    case 5:  sprintf(btlneck, "a 'FastEthernet' subnet");
+	    case 5:  if (linkcnt == 16)
+			sprintf(btlneck, "a Wifi + subnet");
+		     else
+			sprintf(btlneck, "a 'FastEthernet' subnet");
 		     break;
-	    case 6:  sprintf(btlneck, "an 'OC-12' subnet");
+	    case 6:  if (linkcnt == 16)
+			sprintf(btlneck, "a Ethernet subnet");
+		     else
+			sprintf(btlneck, "an 'OC-12' subnet");
 		     break;
-	    case 7:  sprintf(btlneck, "a 'Gigabit Ethernet' subnet");
+	    case 7:  if (linkcnt == 16)
+			sprintf(btlneck, "a T3/DS3 subnet");
+		     else
+			sprintf(btlneck, "a 'Gigabit Ethernet' subnet");
 		     break;
-	    case 8:  sprintf(btlneck, "an 'OC-48' subnet");
+	    case 8:  if (linkcnt == 16)
+			sprintf(btlneck, "a FastEthernet subnet");
+		     else
+			sprintf(btlneck, "an 'OC-48' subnet");
 		     break;
-	    case 9:  sprintf(btlneck, "a '10 Gigabit Enet' subnet");
+	    case 9:  if (linkcnt == 16)
+			sprintf(btlneck, "a OC-12 subnet");
+		     else
+			sprintf(btlneck, "a '10 Gigabit Enet' subnet");
 		     break;
-	    case 10: sprintf(btlneck, "Retransmissions");
+	    case 10: if (linkcnt == 16)
+			sprintf(btlneck, "a Gigabit Ethernet subnet");
+		     else
+			sprintf(btlneck, "Retransmissions");
+	    case 11: 
+			sprintf(btlneck, "an 'OC-48' subnet");
+		     break;
+	    case 12:
+			sprintf(btlneck, "a '10 Gigabit Enet' subnet");
+		     break;
+	    case 13:
+			sprintf(btlneck, "Retransmissions");
+		     break;
 	}
 	/* Calculate some values */
 	avgrtt = (double) SumRTT/CountRTT;
@@ -196,9 +230,9 @@ void calculate()
 	loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut);
 	loss2 = (double)CongestionSignals/PktsOut;
 	if (loss == 0)
-    		loss = .000001;	/* set to 10^-6 for now */
+    		loss = .0000000001;	/* set to 10^-6 for now */
 	if (loss2 == 0)
-    		loss2 = .000001;	/* set to 10^-6 for now */
+    		loss2 = .0000000001;	/* set to 10^-6 for now */
 
 	order = (double)DupAcksIn/AckPktsIn;
 	bw = (CurrentMSS / (rttsec * sqrt(loss))) * 8 / 1024 / 1024;
@@ -208,6 +242,7 @@ void calculate()
 	cwndtime = (double)SndLimTimeCwnd/totaltime;
 	sendtime = (double)SndLimTimeSender/totaltime;
 	timesec = totaltime/1000000;
+	idle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
 
 	recvbwd = ((MaxRwinRcvd*8)/avgrtt)/1000;
 	cwndbwd = ((CurrentCwnd*8)/avgrtt)/1000;
@@ -215,15 +250,18 @@ void calculate()
 
 	spd = ((double)DataBytesOut / (double)totaltime) * 8;
 
-	if ((cwndtime > .9) && (bw > 2) && (PktsRetrans/timesec > 2) &&
-	    (MaxSsthresh > 0)) {
-  		mismatch = 1;
+	mismatch2 = 0;
+	if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
+	    (MaxSsthresh > 0)  && (idle > .01)) {
+/*    (MaxSsthresh > 0)) { */
+/*    (MaxSsthresh > 0)  && (idle > 1)) { */
+  		mismatch2 = 1;
     		link = 0;
   	}
 
 	/* test for uplink with duplex mismatch condition */
 	if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss < .01)) {
-    		mismatch = 2;
+    		mismatch2 = 2;
     		link = 0;
 	}
 
@@ -254,7 +292,7 @@ void calculate()
 		    (SndLimTransSender/timesec > 30)) || (link <= 10))
   		half_duplex = 1;
 
-	if ((cwndtime > .02) && (mismatch == 0) && (cwndbwd < recvbwd))
+	if ((cwndtime > .02) && (mismatch2 == 0) && (cwndbwd < recvbwd))
     		congestion2 = 1;
 
 	if (iponly == 0) {
@@ -305,8 +343,8 @@ void calculate()
 		SndLimTransRwin/timesec, SndLimTransCwnd/timesec, SndLimTransSender/timesec);
 	printf("\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SlowStart = %d\n", 
 		(float) PktsRetrans/timesec, (float) Timeouts/timesec, MaxSsthresh);
-	printf("\tMismatch = %d, Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
-		mismatch, bad_cable, congestion2, half_duplex);
+	printf("\tMismatch = %d (%d), Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
+		mismatch, mismatch2, bad_cable, congestion2, half_duplex);
 
 	/* if (c2sdata != c2sack)
 	 *    fprintf(stderr, "Warning, client to server test produced unusual results: %d != %d\n",
@@ -359,10 +397,16 @@ char	*argv[];
 	    if (strncmp(buff, "spds", 4) == 0) {
 	    	str = strchr(buff, 0x27);
 		str++;
-	        sscanf(str, "%d %d %d %d %d %d %d %d %d %d %d %d %f", &links[n][0],
-			    &links[n][1], &links[n][2], &links[n][3], &links[n][4],
-			    &links[n][5], &links[n][6], &links[n][7], &links[n][8],
-			    &links[n][9], &links[n][10], &links[n][11], &runave[n]);
+	        linkcnt = sscanf(str, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %f",
+			&links[n][0], &links[n][1], &links[n][2], &links[n][3], &links[n][4],
+			&links[n][5], &links[n][6], &links[n][7], &links[n][8],
+			&links[n][9], &links[n][10], &links[n][11], &links[n][12],
+			&links[n][13], &links[n][14], &runave[n]);
+		if (linkcnt != 16) 
+	            linkcnt = sscanf(str, "%d %d %d %d %d %d %d %d %d %d %d %d %f",
+			&links[n][0], &links[n][1], &links[n][2], &links[n][3], &links[n][4],
+			&links[n][5], &links[n][6], &links[n][7], &links[n][8],
+			&links[n][9], &links[n][10], &links[n][11], &runave[n]);
 		n++;
 		continue;
 	    }
@@ -378,6 +422,12 @@ char	*argv[];
 		continue;
 	    }
 	    if ((str = strchr(buff, 'p')) != NULL) {
+		if ((strncmp(buff, "Apr", 3) == 0) || (strncmp(buff, "Sep", 3) == 0)) {
+		    str++;
+		    str = strchr(str, 'p');
+		    if (str == NULL)
+			goto skip1;
+		}
 		if (strncmp(str, "port", 4) != 0)
 		    goto skip1;
 		sscanf(buff, "%*s %*s %*s %s %*s", &ip_addr);
@@ -401,123 +451,153 @@ skip1:
 		if ((str = strchr(str, ',')) == NULL)
 		    continue;
 		str++;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		s2cspd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		c2sspd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		Timeouts = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SumRTT = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		CountRTT = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		PktsRetrans = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		FastRetran = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		DataPktsOut = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		AckPktsOut = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		CurrentMSS = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		DupAcksIn = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		AckPktsIn = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		MaxRwinRcvd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		Sndbuf = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		CurrentCwnd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SndLimTimeRwin = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SndLimTimeCwnd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SndLimTimeSender = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		DataBytesOut = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SndLimTransRwin = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SndLimTransCwnd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		SndLimTransSender = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		MaxSsthresh = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		CurrentRTO = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		CurrentRwinRcvd = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		link = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		mismatch = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		bad_cable = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		half_duplex = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		congestion = atoi(tmpstr);
 
 		str = strchr(str, ',');
@@ -526,19 +606,23 @@ skip1:
 		    goto display;
 		}
 		str += 1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		c2sdata = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		c2sack = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		s2cdata = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		s2cack = atoi(tmpstr);
 
 		str = strchr(str, ',');
@@ -547,20 +631,61 @@ skip1:
 		    goto display;
 		}
 		str += 1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		CongestionSignals = atoi(tmpstr);
 
 		str = strchr(str, ',') +1;
-		sscanf(str, "%[^,]s", tmpstr);
+		if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    goto display;
 		PktsOut = atoi(tmpstr);
 
 		str = strchr(str, ',');
-		if (str == NULL)
+		if (str == NULL) {
 		    MinRTT = -1;
+		    goto display;
+		}
 		else {
 		    str += 1;
-		    sscanf(str, "%[^,]s", tmpstr);
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
 		    MinRTT = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    RcvWinScale = -1;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    RcvWinScale = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    cpu_idle1 = -1;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    cpu_idle1 = atol(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    cpu_idle2 = -1;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    cpu_idle2 = atol(tmpstr);
 		}
 
 display:
