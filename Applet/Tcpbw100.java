@@ -122,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.3c\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.3d\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -683,11 +683,13 @@ public class Tcpbw100 extends Applet implements ActionListener
 				emailText += "Information: Other network traffic is congesting the link\n%0A";
 			}
 			if ((rwin*2/rttsec) < mylink) {
-				j = (float)(mylink * avgrtt) * 1000;
-				results.append("Information: The receive buffer should be " + j/8/1024 + 
-				" Kbytes to maximize throughput\n");
-				emailText += "Information: The receive buffer should be " + j/8/1024 + 
-				" Kbytes to maximize throughput\n";
+			    j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
+			    if ((int)j < MaxRwinRcvd) {
+				results.append("Information: The receive buffer should be " +
+				prtdbl(j) + " Kbytes to maximize throughput\n");
+				emailText += "Information: The receive buffer should be " +
+				prtdbl(j) + " Kbytes to maximize throughput\n";
+			    }
 			}
 
 			statistics.append("\n\t------  Client System Details  ------\n");

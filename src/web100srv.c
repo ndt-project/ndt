@@ -82,6 +82,7 @@ int port=PORT, record_reverse=0;
 int testing, waiting;
 int experimental=0;
 int old_mismatch=0;	/* use the old duplex mismatch detection heuristic */
+int sig1, sig2, sig17;
 
 extern int errno;
 
@@ -94,11 +95,13 @@ char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
 
-static pcap_t *pd;
+/* static pcap_t *pd; */
+pcap_t *pd;
 pcap_dumper_t *pdump;
 float run_ave[4];
 
 struct ndtchild *head_ptr;
+int ndtpid;
 
 /* This routine does the main work of reading packets from the network
  * interface.  It should really be in the web100-pcap.c file, but it uses
@@ -107,7 +110,8 @@ struct ndtchild *head_ptr;
  * and calculates the link speed between each packet pair.  It then
  * increments the proper link bin.
  */
-pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
+/* pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) */
+int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
 
 	u_int caplen=h->caplen;
@@ -122,6 +126,52 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 
 	if (dumptrace == 1)
 	    pcap_dump((u_char *)pdump, h, p);
+
+	if (pd == NULL) {
+		fprintf(stderr, "!#!#!#!# Error, trying to process IF data, but pcap fd closed\n");
+		return;
+	}
+
+	if ((sig1 == 1) || (sig2 == 1)) {
+		if (debug > 0)
+			fprintf(stderr, "Receied SIGUSRx signal terminating data collection loop for pid=%d\n", getpid());
+		if (sig1 == 1) {
+			if (debug > 3) {
+	    	      	    fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
+			    	mon_pipe1[0], mon_pipe1[1]);
+				fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+					fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+			}
+			print_bins(&fwd, mon_pipe1, LogFileName, debug);
+			print_bins(&rev, mon_pipe1, LogFileName, debug);
+			if (pd != NULL)
+				pcap_close(pd);
+			if (dumptrace == 1)
+		    		pcap_dump_close(pdump);
+			sig1 = 2;
+		}
+
+		if (sig2 == 1) {
+			if (debug > 3) {
+	    	      	    fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
+			    	mon_pipe2[0], mon_pipe2[1]);
+				fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+					fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+			}
+			print_bins(&fwd, mon_pipe2, LogFileName, debug);
+			print_bins(&rev, mon_pipe2, LogFileName, debug);
+			if (pd != NULL)
+				pcap_close(pd);
+			if (dumptrace == 1)
+				pcap_dump_close(pdump);
+			sig2 = 2;
+		}
+		if (debug > 5)
+			fprintf(stderr, "Finished reading data from network, process %d should terminate now\n", getpid());
+		/* exit(0); */
+		return;
+
+	}
 
 	current.sec = h->ts.tv_sec;
 	current.usec = h->ts.tv_usec;
@@ -169,7 +219,7 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 		calculate_spd(&current, &fwd, port2, port3);
 	    else if (current.sport == port3)
 		calculate_spd(&current, &fwd, port2, port3);
-	    if (debug > 5)
+	    if (debug > 15)
 		fprintf(stderr, "Fault: forward packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -178,7 +228,7 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 		calculate_spd(&current, &rev, port2, port3);
 	    else if (current.dport == port3)
 		calculate_spd(&current, &rev, port2, port3);
-	    if (debug > 5)
+	    if (debug > 15)
 		fprintf(stderr, "Fault: reverse packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -199,10 +249,13 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	u_char * pcap_userdata;
 	struct bpf_program fcode;
 	char errbuf[PCAP_ERRBUF_SIZE];
-	int cnt, pflag;
-	pcap_t *pd;
+	int rc, cnt, pflag;
+	/* pcap_t *pd; */
+	char c;
 
 	cnt = -1;	/* read forever, or until end of file */
+	sig1 = 0;
+	sig2 = 0;
 	/* device = NULL; */
 
 	init_vars(&fwd);
@@ -269,93 +322,42 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	/* kill process off if parent doesn't send a signal. */
 	alarm(45);
 
+	/* rc = pcap_loop(pd, cnt, printer, pcap_userdata);
+	 * printf("pcap_loop() returned %d\n", rc);
+	 * if (rc < 0) {
+	 */
 	if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
 	    if (debug > 4)
 		fprintf(stderr, "pcap_loop failed %s\n", pcap_geterr(pd));
-	    exit(0);
+	    /* exit(0); */
 	}
+	if (sig1 == 2) {
+		read(mon_pipe1[0], &c, 1);
+		close(mon_pipe1[0]);
+		close(mon_pipe1[1]);
+		sig1 = 0;
+	}
+	if (sig2 == 2) {
+		read(mon_pipe2[0], &c, 1);
+		close(mon_pipe2[0]);
+		close(mon_pipe2[1]);
+		sig2 = 0;
+	}
+
+	if (debug > 7)
+		fprintf(stderr, "Finally Finished reading data from network, process %d should terminate now\n", getpid());
+	/* exit(0); */
 }
 
-/* Catch termination signal(s) and print message in log file */
-void cleanup(int signo)
+/* Process a SIGCHLD signal */
+void child_sig(void)
 {
+
 	char c;
 	FILE *fp;
         int pid, status, i;
 	struct ndtchild *tmp1, *tmp2;
 
-	if (debug > 0)
-	    fprintf(stderr, "Kill signal %d received from process %d\n", signo, getpid());
-	switch (signo) {
-	    case SIGUSR1:
-			  if (debug > 1) {
-	    		      fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
-				    mon_pipe1[0], mon_pipe1[1]);
-				fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-					fwd.saddr, fwd.sport, rev.saddr, rev.sport);
-			  }
-			  print_bins(&fwd, mon_pipe1, LogFileName, debug);
-			  print_bins(&rev, mon_pipe1, LogFileName, debug);
-			  pcap_close(pd);
-			  if (dumptrace == 1)
-			    pcap_dump_close(pdump);
-			  read(mon_pipe1[0], &c, 1);
-			  close(mon_pipe1[0]);
-			  close(mon_pipe1[1]);
-			  break;
-
-	    case SIGUSR2:
-			  if (debug > 1) {
-	    		      fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
-				    mon_pipe2[0], mon_pipe2[1]);
-				fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-					fwd.saddr, fwd.sport, rev.saddr, rev.sport);
-			  }
-			  print_bins(&fwd, mon_pipe2, LogFileName, debug);
-			  print_bins(&rev, mon_pipe2, LogFileName, debug);
-			  pcap_close(pd);
-			  if (dumptrace == 1)
-			    pcap_dump_close(pdump);
-			  read(mon_pipe2[0], &c, 1);
-			  close(mon_pipe2[0]);
-			  close(mon_pipe2[1]);
-			  break;
-			  
-	    case SIGALRM:
-	    case SIGPIPE:
-			  pid = getpid();
-  			  fp = fopen(LogFileName,"a");
-
-			  if (fp == NULL)
-			      fprintf(stderr, "Unable to open log file '%s', continuing on without logging\n",
-					    LogFileName);
-			  else {
-			      if (signo == SIGALRM) {
-  			          fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
-			  	        pid);
-			      } else {
-  			          fprintf(fp,"Received SIGPIPE signal: terminating active web100srv process [%d]\n",
-				        pid);
-			      }
-			      fclose(fp);
-			  }
-			  exit(0);
-
-	    case SIGHUP:
-	  		/* Initialize Web100 structures */
-			  count_vars = web100_init(VarFileName, debug);
-
-			/* The administrator view automatically generates a usage page for the
-	 		 * NDT server.  This page is then accessable to the general public.
-	 		 * At this point read the existing log file and generate the necessary
-	 		 * data.  This data is then updated at the end of each test.
-	 		 * RAC 3/11/04
-	 		 */
-			  if (admin_view == 1)
-	    		    view_init(LogFileName, debug);
-			  break;
-
-	    case SIGCHLD:
 	        /*
 		 * avoid zombies, since we run forever
 	         * Use the wait3() system call with the WNOHANG option.
@@ -425,6 +427,89 @@ void cleanup(int signo)
 				    fprintf(stderr, "SIGCHLD routine finished!\n");
 				return;
 			  }
+
+
+}
+
+/* Catch termination signal(s) and print message in log file */
+void cleanup(int signo)
+{
+	FILE *fp;
+        int pid;
+
+	if (debug > 0) {
+	    fprintf(stderr, "Signal %d received from process %d\n", signo, getpid());
+
+	    fp = fopen(LogFileName,"a");
+	    if (fp != NULL)
+	        fprintf(fp, "Signal %d received from process %d\n", signo, getpid());
+	    fclose(fp);
+	}
+	switch (signo) {
+	    default:
+  			fp = fopen(LogFileName,"a");
+			fprintf(fp, "Unexpected signal (%d) received, process (%d) may terminate\n",
+				signo, getpid());
+			fclose(fp);
+			break;
+	    case SIGINT:
+	    case SIGTERM:
+			exit(0);
+	    case SIGUSR1:
+			  if (debug > 5)
+			      fprintf(stderr, "DEBUG, caught SIGUSR1, setting sig1 flag to force exit\n");
+			  sig1 = 1;
+			  break;
+
+	    case SIGUSR2:
+			  sig2 = 1;
+			  break;
+			  
+	    case SIGALRM:
+	    case SIGPIPE:
+			  pid = getpid();
+  			  fp = fopen(LogFileName,"a");
+
+			  if (fp == NULL)
+			      fprintf(stderr, "Unable to open log file '%s', continuing on without logging\n",
+					    LogFileName);
+			  else {
+			      if (signo == SIGALRM) {
+  			          fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
+			  	        pid);
+			      } else {
+  			          fprintf(fp,"Received SIGPIPE signal: terminating active web100srv process [%d]\n",
+				        pid);
+			      }
+			      fclose(fp);
+			  }
+			  if (getpid() == ndtpid)
+				return;
+			  exit(0);
+
+	    case SIGHUP:
+	  		/* Initialize Web100 structures */
+			  count_vars = web100_init(VarFileName, debug);
+
+			/* The administrator view automatically generates a usage page for the
+	 		 * NDT server.  This page is then accessable to the general public.
+	 		 * At this point read the existing log file and generate the necessary
+	 		 * data.  This data is then updated at the end of each test.
+	 		 * RAC 3/11/04
+	 		 */
+			  if (admin_view == 1)
+	    		    view_init(LogFileName, debug);
+			  break;
+
+	    case SIGCHLD:
+				/* moved actions to child_sig() routine on 3/10/05  RAC
+				 * Now all we do here is set a flag and return the flag
+				 * is checked near the top of the main wait loop, so it
+				 * will only be accessed once and only the testing proces
+				 * will attempt to do something with it.
+				 */
+			  sig17 = 1;
+			  break;
 	}
 }
 
@@ -696,9 +781,12 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		if (debug > 1)
 		    fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli_addr);
 	        init_pkttrace(&cli_addr, mon_pipe1, device);
+		exit(0);		/* Packet trace finished, terminate gracefully */
 	    }
-	    if (read(mon_pipe1[0], tmpstr, 64) <= 0)
+	    if (read(mon_pipe1[0], tmpstr, 64) <= 0) {
 	        printf("error & exit");
+		exit(0);
+	    }
 	}
 
 	if (debug > 4) {
@@ -852,9 +940,12 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		    if (debug > 1)
 		        fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli_addr);
 	            init_pkttrace(&cli_addr, mon_pipe2, device);
+		    exit(0);		/* Packet trace finished, terminate gracefully */
 	        }
-	        if (read(mon_pipe2[0], tmpstr, 64) <= 0)
+	        if (read(mon_pipe2[0], tmpstr, 64) <= 0) {
 	            printf("error & exit");
+		    exit(0);
+	        }
 	    }
 
 	    /* Check, and if needed, set the web100 autotuning function on.  This improves
@@ -1396,12 +1487,21 @@ char	*argv[];
 
 	memset(&new, 0, sizeof(new));
 	new.sa_handler = cleanup;
-	sigaction(SIGUSR1, &new, NULL);
-	sigaction(SIGUSR2, &new, NULL);
-	sigaction(SIGALRM, &new, NULL);
-	sigaction(SIGPIPE, &new, NULL);
-	sigaction(SIGCHLD, &new, NULL);
-	sigaction(SIGHUP, &new, NULL);
+	/* sigaction(SIGUSR1, &new, NULL);
+	 * sigaction(SIGUSR2, &new, NULL);
+	 * sigaction(SIGALRM, &new, NULL);
+	 * sigaction(SIGPIPE, &new, NULL);
+	 * sigaction(SIGCHLD, &new, NULL);
+	 * sigaction(SIGHUP, &new, NULL);
+	 */
+
+	/* Grap all signals and run them through my cleanup routine.  2/24/05 */
+	for (i=1; i<32; i++) {
+	    if ((i == SIGKILL) || (i == SIGSTOP))
+		continue;		/* these signals can't be caught */
+	    sigaction(i, &new, NULL);
+	}
+
 
 	/*
 	 * Bind our local address so that the client can send to us.
@@ -1438,14 +1538,15 @@ char	*argv[];
 	    view_init(LogFileName, debug);
 
 	/* create a log file entry every time the web100srv process starts up. */
+	ndtpid = getpid();
         c = time(0);
         fp = fopen(LogFileName,"a");
 	if (fp == NULL)
 	    fprintf(stderr, "Unable to open log file '%s', continuing on without logging\n",
 			    LogFileName);
 	else {
-            fprintf(fp, "Web100srv (ver %s) process started %15.15s\n",
-        	VERSION, ctime(&c)+4);
+            fprintf(fp, "Web100srv (ver %s) process (%d) started %15.15s\n",
+        	VERSION, ndtpid, ctime(&c)+4);
             fclose(fp);
 	}
 	if (usesyslog == 1)
@@ -1465,6 +1566,7 @@ char	*argv[];
 	waiting = 0;
 	loopcnt = 0;
 	head_ptr = NULL;
+	sig17 = 0;
 	for(;;){
 		int i, ret;
 		char *name;
@@ -1482,6 +1584,11 @@ char	*argv[];
 		    else
 		        fprintf(stderr, "Queue pointer = %d, testing = %d, waiting = %d\n",
 			    head_ptr->pid, testing, waiting);
+
+		if (sig17 == 1) {
+		    child_sig();
+		    sig17 = 0;
+		}
 
 		FD_ZERO(&rfd);
 		FD_SET(sockfd, &rfd);

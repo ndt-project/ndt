@@ -160,9 +160,11 @@ void testResults(char *tmpstr) {
 	    printf("Information: Other network traffic is congesting the link\n");
 	  }
 	  if ((rwin*2/rttsec) < mylink) {
-		j = (float)(mylink * avgrtt)*1000;
-		printf("Information: The receive buffer should be %d Kbytes to maximize throughput\n",
-		((int)(j/8/1024)));
+		j = (float)((mylink * avgrtt)*1000) / 8 / 1024;
+		if ((int)j < MaxRwinRcvd) {
+		    printf("Information: The receive buffer should be %0.0f ", j);
+		    printf("Kbytes to maximize throughput\n");
+		}
 	  }
 
 	if (msglvl > 0) {
@@ -556,7 +558,7 @@ int main(int argc, char *argv[])
 	/* This is part of the server queuing process.  The server will now send
 	 * a integer value over to the client before testing will begin.  If queuing
 	 * is enabled, the server will send a positive value.  Zero indicated that
-	 * testing can begin, and -1 indicates that queuing is disabled and the 
+	 * testing can begin, and 9999 indicates that queuing is disabled and the 
 	 * user should try again later.
 	 */
 		
@@ -580,14 +582,14 @@ int main(int argc, char *argv[])
 
 	    xwait = atoi(buff);
 	    /* fprintf(stderr, "wait flag received = %d\n", xwait); */
-	    if (xwait == 0)
+	    if (xwait == 0)	/* signal from ver 3.0.x NDT servers */
 		break;
 	    if (xwait == 9999) {
 		fprintf(stderr, "Server Busy: Please wait 60 seconds for the current test to finish\n");
 		exit(0);
 	    }
 	    
-	    /* Each test should take less than 30 seconds, so tell them 45 sec * numer of 
+	    /* Each test should take less than 30 seconds, so tell them 45 sec * number of 
 	     * tests in the queue.
 	     */
 	    xwait = (xwait * 45);
@@ -609,7 +611,7 @@ int main(int argc, char *argv[])
 	port3 = atoi(strtok(buff, " "));
 	port2 = atoi(strtok(NULL, " "));
 	if (debug > 2)
-	    fprintf(stderr, "Testing will begin using port %d and %d\n", port3, port3);
+	    fprintf(stderr, "Testing will begin using port %d and %d\n", port2, port3);
 
 	/* now look for middleboxes (firewalls, NATs, and other boxes that
 	 * muck with TCP's end-to-end priciples
