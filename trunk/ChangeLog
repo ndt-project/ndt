@@ -21,6 +21,24 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 8/17/04
 
+11/13/04 - NDT v3.0.23
+  web100srv.c
+	bug fix.  Changed ',' (comma) character to ':' (colon) in
+	error message.  The ',' is the seperator for the send string
+	of web100 vars, and it may confuse the admin view generation
+	routine.
+	bug fix. The date of the latest test was not being updated.
+	the 'date[32]' variable was moved to a local var and it was
+	not being passed to the calculate() and gen_html() routines.
+	It is now passed into the calculate() routine, and it is a global
+	in the web100-admin.c file.
+
+  web100-admin.c
+	bug fix.  Pick-up change from web100srv.c above.  The current date
+	is now passed into the calcualte() routine and then copied to the
+	global date[32] variable.  This var is used in the admin.html file
+	to show the date of the latest test.
+
 10/25/04 - ndt v3.0.22
   web100srv.c
 	bug fix.  The kill() signal below works, but the testing and

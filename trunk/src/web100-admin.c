@@ -25,7 +25,7 @@ double bw2, avgrtt, timesec, loss2;
 double bwin, bwout;
 
 
-int calculate(int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
+int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
 		int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin,
 		int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd,
 		int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd,
@@ -193,6 +193,7 @@ int calculate(int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
         }
 
 	/* Calculate some values */
+	strcpy(date, now);
 	avgrtt = (double) SumRTT/CountRTT;
 	rttsec = avgrtt * .001;
 	loss2 = (double)CongestionSignals/PktsOut;
@@ -606,7 +607,7 @@ view_init(char *LogFileName, int debug)
 display:
 		if (debug > 3)
 		    fprintf(stderr, "Web100 variables line received\n\n");
-		totalcnt = calculate(SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
+		totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
 			CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
 			MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
 			c2sspd, s2cspd, c2sdata, s2cack, view_flag, debug);

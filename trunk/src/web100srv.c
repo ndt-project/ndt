@@ -1147,7 +1147,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 * updated.  Otherwise the changes are lost when the client terminates.
 	 */
 	if (admin_view == 1) {
-	    totalcnt = calculate(SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
+	    totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
 			CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
 			MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
 			(int)bwout, (int)bwin, c2sdata, s2cack, 1, debug);
@@ -1412,7 +1412,7 @@ char	*argv[];
 			    /* process is stuck at the front of the queue. */
         		    fp = fopen(LogFileName,"a");
 			        if (fp != NULL) {
-			        fprintf(fp, "%d children waiting in queue, Killing off stuck process %d at %15.15s\n", 
+			        fprintf(fp, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
 					waiting, head_ptr->pid, ctime(&c)+4);
 				fclose(fp);
 			    }
