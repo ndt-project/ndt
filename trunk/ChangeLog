@@ -21,6 +21,14 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 8/17/04
 
+1/28/05 - NDT v3.1.1
+  tr-mkmap.c
+	Bug fix.  gcc version 3.4.2 (and possibly others) don't
+	like my use of the goto label; statement.  It was an easy
+	way to jump around some code for error handling.  The
+	fix is to use more conventional break, continue, and if()
+	statements.
+
 1/24/05 - NDT v3.1.0
   web100srv.c
 	Modified code to use new duplex mismatch algorighm.  The

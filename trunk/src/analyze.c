@@ -58,9 +58,9 @@
 	int j;
 	char spds[4][256], buff2[32];
 	char *str, tmpstr[32];
-	float run_ave[4];
+	float run_ave[4], mmorder;
 	int c2sspd, s2cspd, iponly;
-	int linkcnt, mismatch2;
+	int linkcnt, mismatch2, mismatch3;
 
 extern int errno;
 
@@ -81,7 +81,7 @@ void calculate()
 	int congestion2=0;
 	struct hostent *hp;
 	unsigned addr;
-	double acks, aspeed;
+	double acks, aspeed, pureacks;
 
 	tail[0] = tail[1] = tail[2] = tail[3] = 0;
 	head[0] = head[1] = head[2] = head[3] = 0;
@@ -252,15 +252,27 @@ void calculate()
 	spd = ((double)DataBytesOut / (double)totaltime) * 8;
 
 	mismatch2 = 0;
+	mismatch3 = 0;
+	mmorder = (float)(DataPktsOut - PktsRetrans - FastRetran) / DataPktsOut;
+
 	/* new test based on analysis of TCP behavior in duplex mismatch condition. */
 
 	acks = (double) AckPktsIn / (double) DataPktsOut;
+	pureacks = (double) (AckPktsIn - DupAcksIn) / (double) DataPktsOut;
 	aspeed = (double)c2sspd / (double)s2cspd;
 	printf("Acks = %0.4f,  async speed = %0.4f\n", acks, aspeed);
-	if ((((order > .2) && (acks > .7)) || (acks < .35)) && ((aspeed > 3.0) || (aspeed < 0.005))
-		) {
+	/* if ((((order > .2) && (acks > .7)) || (acks < .35)) && ((aspeed > 3.0) || (aspeed < 0.005)) */
+	if ((order > .2) && ((acks > .7) || (acks < .35)) && (c2sdata > 2)) {
 		/* && (acks < .99)) { */
 		mismatch2 = 1;
+	}
+	/* if ((c2sdata > 2) && (((order > .2) && (acks > .7)) || (pureacks < .40))) {
+	 * 	mismatch3 = 1;
+	 * } 
+	 */
+	/* if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((acks > .7) || (acks < .35))) { */
+	if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((bw2*1000) > s2cspd)) {
+		mismatch3 = 1;
 	}
 /* 	if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
  *	    (MaxSsthresh > 0)  && (idle > .01)) {
@@ -357,7 +369,7 @@ void calculate()
 		SndLimTransRwin/timesec, SndLimTransCwnd/timesec, SndLimTransSender/timesec);
 	printf("\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SlowStart = %d\n", 
 		(float) PktsRetrans/timesec, (float) Timeouts/timesec, MaxSsthresh);
-	printf("\tMismatch = %d (%d)", mismatch, mismatch2);
+	printf("\tMismatch = %d (%d:%d[%0.2f])", mismatch, mismatch2, mismatch3, mmorder);
 	if (mismatch2 == 1) {
 	    if (aspeed < 1)
 		printf(" [H=F, S=H],");

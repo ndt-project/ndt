@@ -318,23 +318,28 @@ int main (int argc, char *argv[])
 		else {
 		    if ((current == root) && (current->ip_addr == new->ip_addr)) {
 			free(new);
-			goto loop1;
+			continue;	 /* goto loop1; */
 		    }
 		    for (i=0; i<current->branches; i++) {
 			if (current->branch[i]->ip_addr == new->ip_addr) {
 			    current = current->branch[i];
 			    free(new);
-			    goto loop1;
+			    new = NULL;
+			    break;	 /* goto loop1; */
 			}
 		    }
-		    i = 0;
-		    while (current->branch[i] != NULL)
-			i++;
-		    current->branch[i] = new;
-		    current->branches++;
+		    if (new == NULL) {
+			continue;
+		     } else {
+		        i = 0;
+		        while (current->branch[i] != NULL)
+			    i++;
+		        current->branch[i] = new;
+		        current->branches++;
+		    }
 		}
 		current = new;
-	loop1:
+	/* loop1: */
 	    }
 	    sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE);
 	    fp = fopen(tmpstr, "wb");
