@@ -101,18 +101,23 @@ void testResults(char *tmpstr) {
 	      printf("Your host is connected to a ");
 	      if (c2sData == 1) {
 		printf("Dial-up Modem\n");
+		mylink = .064;
 	      } else {
 		printf("Cable/DSL modem\n");
+		mylink = 2;
 	      }
 	    }
 	  } else {
 	    printf("The slowest link in the end-to-end path is a ");
 	    if (c2sData == 3) {
 	      printf("10 Mbps Ethernet subnet\n");
+	      mylink = 10;
 	    } else if (c2sData == 4) {
 	      printf("45 Mbps T3/DS3 subnet\n");
+	      mylink = 45;
 	    } else if (c2sData == 5) {
 	      printf("100 Mbps ");
+	      mylink = 100;
 		if (half_duplex == 0) {
 		  printf("Full duplex Fast Ethernet subnet\n");
 		} else {
@@ -120,12 +125,16 @@ void testResults(char *tmpstr) {
 		}
 	    } else if (c2sData == 6) {
 	      printf("a 622 Mbps OC-12 subnet\n");
+	      mylink = 622;
 	    } else if (c2sData == 7) {
 	      printf("1.0 Gbps Gigabit Ethernet subnet\n");
+	      mylink = 1000;
 	    } else if (c2sData == 8) {
 	      printf("2.4 Gbps OC-48 subnet\n");
+	      mylink = 2400;
 	    } else if (c2sData == 9) {
 	      printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
+	      mylink = 10000;
 	    }
 	  }
 
@@ -148,6 +157,11 @@ void testResults(char *tmpstr) {
 	  }
 	  if (congestion == 1) {
 	    printf("Information: Other network traffic is congesting the link\n");
+	  }
+	  if ((rwin*2/rttsec) < mylink) {
+		j = (float)(mylink * avgrtt)*1000;
+		printf("Information: The receive buffer should be %d Kbytes to maximize throughput\n",
+		((int)(j/8/1024)));
 	  }
 
 	if (msglvl > 0) {
@@ -680,10 +694,10 @@ int main(int argc, char *argv[])
 	    setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
 	    getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
 	    if (debug > 4)
-	        printf("Changed buffer sizes: Send buffer set to %d, ", set_size);
+	        printf("Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
 	    getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
 	    if (debug > 4)
-	        printf("Receive buffer set to %d\n", set_size);
+	        printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
 	}
 	if ((ret = connect(outSocket, (struct sockaddr *) &srv2, sizeof(srv2))) < 0) {
 	    perror("Connect() for client to server failed");
@@ -725,10 +739,10 @@ int main(int argc, char *argv[])
 	    setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
 	    getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
 	    if (debug > 4)
-	        printf("Changed buffer sizes: Send buffer set to %d, ", set_size);
+	        printf("Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
 	    getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
 	    if (debug > 4)
-	        printf("Receive buffer set to %d\n", set_size);
+	        printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
 	}
 	if ((ret = connect(inSocket, (struct sockaddr *) &srv1, sizeof(srv1))) < 0) {
 	    perror("Connect() for Server to Client failed");

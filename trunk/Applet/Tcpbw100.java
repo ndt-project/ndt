@@ -108,7 +108,8 @@ public class Tcpbw100 extends Applet implements ActionListener
 	String emailText;
 	double spdin, spdout;
 
-	int half_duplex, link, congestion, bad_cable, mismatch;
+	int half_duplex, congestion, bad_cable, mismatch;
+	double mylink;
 	double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 
@@ -120,7 +121,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	  failed = false ;
 	  Randomize = false;
 	  cancopy = false;
-	  results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.2b\n",15,70);
+	  results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.3a\n",15,70);
 	  results.setEditable(false);
 	  add(results);
 	  results.append("click START to begin\n");
@@ -517,14 +518,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	int i=0;
 	String sysvar, strval;
 	int sysval, Zero=0, bwdelay, minwin;
-	double sysval2;
-	// float order, timesec;
-	// double rttsec, sysval2;
-	// double bw, rwin, swin, cwin, spd;
-	// double rwintime, cwndtime, sendtime, waitsec;
-	// int totaltime, perf=2;
-	// int link=100;
-	// int mismatch=0, bad_cable=0, half_duplex=0, congestion=0;
+	double sysval2, j;
         String osName, osArch, osVer, javaVer, javaVendor, client;
 
         tokens = new StringTokenizer(tmpstr);
@@ -563,79 +557,10 @@ public class Tcpbw100 extends Applet implements ActionListener
 	    client = "Workstation";
 
 // Calculate some variables and determine path conditions
+// Note: calculations now done in server and the results are shipped
+//    back to the client for printing.
 
  	if(CountRTT>0) {
-	  // avgrtt = (double) SumRTT/CountRTT;
-	  // rttsec = avgrtt * .001;
-
-	  // loss = (float)(PktsRetrans-FastRetran)/(float)(DataPktsOut-AckPktsOut);
-	  // loss = (float)CongestionSignals/PktsOut;
-	  // if (loss ==0)
-	  //    loss = .000001;	// set to 10^-6 for now
-
-	  // bw = (CurrentMSS / (rttsec * Math.sqrt((double)loss))) * 8 / 1024 / 1024;
-	  // order = (float) DupAcksIn/AckPktsIn;
-
-	  // rwin = (double)MaxRwinRcvd * 8 / 1024 / 1024;
-	  // swin = (double)Sndbuf * 8 / 1024 / 1024;
-	  // cwin = (double)MaxCwnd * 8 / 1024 / 1024;
-
-	  // totaltime = SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender;
-	  // rwintime = (double) SndLimTimeRwin / (double) totaltime;
-	  // cwndtime = (double) SndLimTimeCwnd / (double) totaltime;
-	  // sendtime = (double) SndLimTimeSender / (double) totaltime;
-	  // timesec = totaltime/1000000;
-
-	  // spd = ((double)DataBytesOut / (double)totaltime) * 8;
-	  // waitsec = (double)(CurrentRTO * Timeouts)/1000;
-
-	  // if ((cwndtime > .9) && (bw > 2) && (PktsRetrans/timesec > 2) && (MaxSsthresh > 0)
-	// 	&& (c2sData > 2))
-	  //   { mismatch = 1;
-	  //     link = 0;
-	  //   }
-
-        // test for uplink with duplex mismatch condition
-          // if ((spd > 50) && (spdout < 5) && (rwintime > .9) && (loss < .01)) {
-          //     mismatch = 2;
-          //     link = 0;
-          // }
-
-	// Speed greater than estimate, something is wrong.
-	  // if (bw < spd)
-	  //   link = 0;
-
-	  // if (((loss*100)/timesec > 15) && (cwndtime/timesec > .6) &&
-	// 	(loss < .01) && (MaxSsthresh > 0))
-	  //   bad_cable = 1;
-
-
-// Tests for link type can be eliminated, now using packet-pair timings received from
-// server via c2sData variable
-
-	// test for Ethernet link (assume Fast E.)
-	//  if ((bw < 25) && (loss < .01) && (rwin/rttsec < 25) && (link > 0))
-	  // if ((spd < 9.5) && (spd > 3.0) && (spdout < 9.5) && (loss < .01) && 
-	// 	( order < .035) && (link > 0))
-	  //   link = 10;
-
-	// test for wireless link
-	  // if ((sendtime == 0) && (spd < 5) && (bw > 50) &&
-	   //    ((SndLimTransRwin/SndLimTransCwnd) == 1) &&
-	  //     (rwintime > .90) && (link > 0))
-	   //  link = 3;
-
-	// test for DSL/Cable modem link
-	  // if ((sendtime == 0) && (SndLimTransSender == 0) && (spd < 2) && 
-	  //     (spd < bw) && (link > 0))
-	  //   link = 2;
-
-	  // if (((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
-	// 	(SndLimTransSender/timesec > 30)) || (link <= 10))
-	  //   half_duplex = 1;
-
-	  // if ((cwndtime > .02) && (mismatch == 0) && ((cwin/rttsec) < (rwin/rttsec)))
-	  //   congestion = 1;
 
 // Now write some messages to the screen
 
@@ -649,9 +574,11 @@ public class Tcpbw100 extends Applet implements ActionListener
 	      if (c2sData == 1) {
 		results.append("Dial-up Modem\n");
 		emailText += "Dial-up Modem\n%0A";
+		mylink = .064;
 	      } else {
 		results.append("Cable/DSL modem\n");
 		emailText += "Cable/DSL modem\n%0A";
+		mylink = 3;
 	      }
 	    }
 	  } else {
@@ -660,12 +587,15 @@ public class Tcpbw100 extends Applet implements ActionListener
 	    if (c2sData == 3) {
 	      results.append("10 Mbps Ethernet subnet\n");
 	      emailText += "10 Mbps Ethernet subnet\n%0A";
+	      mylink = 10;
 	    } else if (c2sData == 4) {
 	      results.append("45 Mbps T3/DS3 subnet\n");
 	      emailText += "45 Mbps T3/DS3 subnet\n%0A";
+	      mylink = 45;
 	    } else if (c2sData == 5) {
 	      results.append("100 Mbps ");
 	      emailText += "100 Mbps ";
+	      mylink = 100;
 		if (half_duplex == 0) {
 		  results.append("Full duplex Fast Ethernet subnet\n");
 		  emailText += "Full duplex Fast Ethernet subnet\n%0A";
@@ -676,22 +606,26 @@ public class Tcpbw100 extends Applet implements ActionListener
 	    } else if (c2sData == 6) {
 	      results.append("a 622 Mbps OC-12 subnet\n");
 	      emailText += "a 622 Mbps OC-12 subnet\n%0A";
+	      mylink = 622;
 	    } else if (c2sData == 7) {
 	      results.append("1.0 Gbps Gigabit Ethernet subnet\n");
 	      emailText += "1.0 Gbps Gigabit Ethernet subnet\n%0A";
+	      mylink = 1000;
 	    } else if (c2sData == 8) {
 	      results.append("2.4 Gbps OC-48 subnet\n");
 	      emailText += "2.4 Gbps OC-48 subnet\n%0A";
+	      mylink = 2400;
 	    } else if (c2sData == 9) {
 	      results.append("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
 	      emailText += "10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n%0A";
+	      mylink = 10000;
 	    }
 	  }
 
 	  if (mismatch == 1) {
 	    results.append("Alarm: Duplex mismatch condition exists: ");
 	    emailText += "Alarm: Duplex mismatch condition exists: ";
-	      if ((spd < 5) && (link == 100)) {
+	      if ((spd < 5) && (mylink == 100)) {
 		results.append("Host set to FD and Switch set to HD\n");
 		emailText += "Host set to FD and Switch set to HD\n%0A";
 	      }
@@ -715,6 +649,13 @@ public class Tcpbw100 extends Applet implements ActionListener
 	    results.append("Information: Other network traffic is congesting the link\n");
 	    emailText += "Information: Other network traffic is congesting the link\n%0A";
 	  }
+	  if ((rwin*2/rttsec) < mylink) {
+	    j = (float)(mylink * avgrtt) * 1000;
+	    results.append("Information: The receive buffer should be " + j/8/1024 + 
+			" Kbytes to maximize throughput\n");
+	    emailText += "Information: The receive buffer should be " + j/8/1024 + 
+			" Kbytes to maximize throughput\n";
+	  }
 
 	  statistics.append("\n\t------  Client System Details  ------\n");
           statistics.append("OS data: Name = " + osName + ", Architecture = " + osArch);
@@ -723,16 +664,6 @@ public class Tcpbw100 extends Applet implements ActionListener
           // statistics.append(" java.class.version=" + System.getProperty("java.class.version") + "\n");
 
 	  statistics.append("\n\t------  Web100 Detailed Analysis  ------\n");
-	  // if (link == 100)
-	    // statistics.append("100 Mbps FastEthernet link found.\n");
-	  // else if (link == 10)
-	    // statistics.append("10 Mbps Ethernet link found.\n");
-	  // else if (link == 3)
-	    // statistics.append("Wireless network link found.\n");
-	  // else if (link == 2)
-	    // statistics.append("DSL/Cable Modem link found.\n");
-	  // else
-	    // statistics.append("Unknown network link discovered.\n");
 	  if (c2sData == -2)
 	    statistics.append("Insufficent data collected to determine link type.\n");
 	  else if (c2sData == -1)
@@ -825,7 +756,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		"% of the time.\n");
             emailText += "This connection is receiver limited " + prtdbl(rwintime*100) +
 		"% of the time.\n%0A";
-	    if ((2*(rwin/rttsec)) < link)
+	    if ((2*(rwin/rttsec)) < mylink)
               statistics.append("  Increasing the current receive buffer (" + prtdbl(MaxRwinRcvd/1024) +
 		" KB) will improve performance\n");
           }
@@ -834,7 +765,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		"% of the time.\n");
             emailText += "This connection is sender limited " + prtdbl(sendtime*100) +
 		"% of the time.\n%0A";
-	    if ((2*(swin/rttsec)) < link)
+	    if ((2*(swin/rttsec)) < mylink)
               statistics.append("  Increasing the current send buffer (" + prtdbl(Sndbuf/1024) +
 		" KB) will improve performance\n");
           }
@@ -904,23 +835,23 @@ public class Tcpbw100 extends Applet implements ActionListener
 	  diagnosis.append("Checking for 10 Mbps link\n\t(speed < 9.5) [" +
 	    prtdbl(spd) + "<9.5], (speed > 3.0) [" + prtdbl(spd) + ">3.0]\n\t" +
 	    "(xmitspeed < 9.5) [" + prtdbl(spdout) + "<9.5] " +
-	    "(loss < .01) [" + prtdbl(loss) + "<.01], (link > 0) [" + link + ">0]\n");
+	    "(loss < .01) [" + prtdbl(loss) + "<.01], (mylink > 0) [" + mylink + ">0]\n");
 
 	  diagnosis.append("Checking for Wireless link\n\t(sendtime = 0) [" +
 	    prtdbl(sendtime) + "=0], (speed < 5) [" + prtdbl(spd) + "<5]\n\t" +
 	    "(Estimate > 50 [" + prtdbl(estimate) + ">50], (Rwintime > 90) [" + 
 	    prtdbl(rwintime) + ">.90]\n\t (RwinTrans/CwndTrans = 1) [" + SndLimTransRwin +
-	    "/" + SndLimTransCwnd + "=1], (link > 0) [" + link + ">0]\n");
+	    "/" + SndLimTransCwnd + "=1], (mylink > 0) [" + mylink + ">0]\n");
 
 	  diagnosis.append("Checking for DSL/Cable Modem link\n\t(speed < 2) [" +
 	    prtdbl(spd) + "<2], " +
 	    "(SndLimTransSender = 0) [" + SndLimTransSender + "=0]\n\t " +
-	    "(SendTime = 0) [" + sendtime + "=0], (link > 0) [" + link + ">0]\n");
+	    "(SendTime = 0) [" + sendtime + "=0], (mylink > 0) [" + mylink + ">0]\n");
 
 	  diagnosis.append("Checking for half-duplex condition\n\t(rwintime > .95) [" +
 	    prtdbl(rwintime) + ">.95], (RwinTrans/sec > 30) [" +
 	    prtdbl(SndLimTransRwin/timesec) + ">30],\n\t (SenderTrans/sec > 30) [" +
-	    prtdbl(SndLimTransSender/timesec) + ">30], OR (link <= 10) [" + link +
+	    prtdbl(SndLimTransSender/timesec) + ">30], OR (mylink <= 10) [" + mylink +
 	    "<=10]\n");
 
 	  diagnosis.append("Checking for congestion\n\t(cwndtime > .02) [" +
