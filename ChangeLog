@@ -21,6 +21,36 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 8/17/04
 
+11/28/04 - NDT v3.0.24
+  web100srv.c
+	Added in some autotuning code.  The web100 kernel patch 
+	provides some autotuning of the TCP connection.  This function
+	is enabled/disabled on a per connection basis based on the 
+	setting of the web100_{r|s}bufmode variable.  If true (1) then
+	a window scale factor of 7 (web100_default_wscale) is used and the
+	TCP send/recv buffer is set to 64 KB << 7.  If false (0) then no
+	autotuning is performed.  Unfortunatly, this function has been
+	depreciated by the web100 design team, and the server program
+	may not autotune the connection to use large buffers.  This version
+	now looks at the web100_{r|s}bufmode settings and if false, does
+	it's own version of autotuning.  First it sets the TCP send/receive
+	buffer to a large value using the setsockopt() call.  Then it limits
+	the max value to something less than this using the LimCwnd and LimRwin
+	web100 variables.  This probably needs some more work.
+  web100-util.c
+	Implemented the autotuning functions noted above.  Three new functions
+	are created (1) web100_setbuff() sets the LimCwnd and LimRwin variables
+	to (64*1024)<< scale factor (64 KBytes shifted by scale factor.  (2) 
+	web100_autotune() checks to see if web100_{r|s}bufmode is true or false.
+	(3) web100_rtt() returns the average rtt for the control connection.  This
+	should give us a baseline on the RTT and may be useful in autotuning.
+
+  Applet/Makefile.am and Admin/Makefile.am
+	Finally fixed an annoying bug in the build process.  The javac compiler was
+	always called, even if there was nothing to do.  A new routine in the Makefile
+	now tests to see if the timestamp file exists, and skips the compile if true.
+	(there is probably a better way, but this works for now.)
+
 11/13/04 - NDT v3.0.23
   web100srv.c
 	bug fix.  Changed ',' (comma) character to ':' (colon) in
