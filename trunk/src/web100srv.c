@@ -1420,6 +1420,8 @@ char	*argv[];
 			    kill(head_ptr->pid, SIGKILL);
 			    free(head_ptr);
 			    head_ptr = tmp_ptr;
+			    testing = 0;
+			    waiting--;
 		        }
 		    }
 		}

@@ -21,6 +21,13 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 8/17/04
 
+10/25/04 - ndt v3.0.22
+  web100srv.c
+	bug fix.  The kill() signal below works, but the testing and
+	waiting flags were not being changed.  This caused the server
+	to believe that non-existant clients were waiting in the FIFO
+	queue.
+
 10/4/04 - ndt v3.0.21
   web100srv.c
 	Bug fix.  The kill() function was sending the wrong signal
