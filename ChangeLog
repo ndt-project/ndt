@@ -1,5 +1,5 @@
-This file contains a list of changes to the ANL Network
-Configuration test tool.  There are 3 programs that are used
+This file contains a list of changes to the ANL/Internet2 Network
+Diagnostic Tool (NDT) tester.  There are 4 programs that are used
 for this tester.  
 
 1) the Tcpbw100.java program, downloads to the users desktop. 
@@ -14,7 +14,21 @@ Java applet, runs the throughput tests, and gathers the web100
 data.  It also writes some of the data out to a log file on the
 server for later analysis.
 
-Rich Carlson	6/7/02
+4) the web100clt.c program.  This process is a command line version
+of the client code.  It augments the Tcpbw100.java program, allowing
+the user to pre-install a version of the client code.  This allows
+non-browser based clients, helpful for remote access testing.
+
+Rich Carlson	6/7/02  Modified 8/17/04
+
+8/18/04 - ndt v3.0.20
+  web100srv.c
+	Added code to process "disable_FIFO", "syslog", and "Debug"
+	options via the ndt.conf file.  The debug option requires
+	a value, the debug message level, while the other 2 are boolean
+	flags.  
+  ndt.conf.man
+	added in text to describe how these options are specified.
 
 8/16/04	- ndt v3.0.19
   web100clt.c

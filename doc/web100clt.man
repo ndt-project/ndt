@@ -28,42 +28,42 @@ web100clt \- NDT command line client.
 [\fIoptions\fR] destination
 .SH DESCRIPTION
 The \fBNetwork Diagnostic Tester\fR (NDT) tool is a client/server program that
-provides network configuration and performance testing to a users desktop or laptop
-computers.  The system is composed of a client program (\fIcommand line\fR or \fIjava applet\fR)
+provides network configuration and performance testing to a user's desktop or laptop
+computer. The system is composed of a client program (\fIcommand line\fR or \fIjava applet\fR)
 and a pair of server programs (a webserver and a testing/analysis engine).  
 .PP
-The command line client \fBweb100clt(1)\fR connect directly to the NDT \fBweb100srv(8)\fR
-testing and analysis engine.  It bypasses the web server front end (note this
-will be an option in a future release).  The client communicates with the
+The command line client \fBweb100clt(1)\fR connects directly to the NDT \fBweb100srv(8)\fR
+testing and analysis engine. It bypasses the web server front end (Note: this
+will be an option in a future release). The client communicates with the
 server process to perform a series of tests of the network path and the clients
-network configuration parameters.  A multi-level series of messages are
+network configuration. A multi-level series of messages are
 displayed on the user's console.
 .PP
-The command line client may share a server with other \fIcommand line\fR or \fIJava
-based\fR clients.  By default the server will handle incoming requests in a
+The command line client may share a server with other \fIcommand line\fR or
+\fIJava-based\fR clients. By default, the server will handle incoming requests in a
 FIFO manner and the server does not distinguish between command line or
-Java based clients.  If the server administrator has disable FIFO processing,
+Java-based clients. If the NDT server administrator has disable FIFO processing,
 the web100clt program will terminate gracefully.
 .SH OPTIONS
 .TP
 \fB\-d\fR 
-Print debugging information.  This option increments the internal
-debugging flag allowing the display of run time diagnostic messages. 
+Print debugging information. This option increments the internal
+debugging flag, allowing the display of run-time diagnostic messages. 
 Repeated use of this option increases the amount of debugging
-information that will be displayed.  Note: the debugging information
-prints to the stderr.
+information that will be displayed. Note: debugging information
+prints on stderr.
 .TP
 \fB\-h\fR 
 Print a simple usage page and exit.
 .TP
 \fB\-l\fR 
-Increment the diagnostic message level.  Repeatd use of this
+Increment the diagnostic message level. Repeated use of this
 option increases the amount of diagnostic results that will
 appear on the screen.
 .TP
 \fB\-b\fR \fIbuffer_size\fR
-Set the TCP send and receive buffer size.  This option uses the
-\fBsetsockopt(2)\fR function to set the TCP buffer size.  Values
+Set the TCP send and receive buffer size. This option uses the
+\fBsetsockopt(2)\fR function to set the TCP buffer size. Values
 larger than 64 Kbytes will result in large windows if the RFC1323
 window scaling option is enabled on the client host.
 .SH LIMITATIONS
@@ -77,10 +77,9 @@ accuracy and reliability of this service.
 Run an NDT test between this host and the remote server on
 somehost.example.com.
 .SH SEE ALSO
-web100srv(8), fakewww(8), setsockopt(2) and the \%http://e2epi.internet2.edu/ndt/
-web site.
+The \%http://e2epi.internet2.edu/ndt/ web site, web100srv(8), fakewww(8), and setsockopt(2).
 .SH ACKNOWLEDGMENTS
-This material is based in part on work supported by the National Science
-Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings and
+This material is based, in part on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings,
 conclusions or recommendations expressed in this material are those of
 the author(s) and do not necessarily reflect the views of the NSF.

@@ -35,9 +35,9 @@ of server programs (a webserver and a testing/analysis engine).
 .PP
 The \fBfakewww\fR server provides a simple web server program to
 handle Web based \fIJava clients\fR.  This program eliminated the
-need to install and configure a full fledged web server.  It also
+need to install and configure a full-fledged web server.  It also
 provides \fIserver\fR discovery functions when operated in \fIfederated
-mode\fR (see options).  By default the server listens for incoming
+mode\fR (see options).  By default, the server listens for incoming
 Web client requests on TCP port 7123 (see options to change this
 port number).  Once a TCP connection is received, the \fBfakewww\fR
 server \fBfork(2)\fR's a child process off to handle the request
@@ -70,7 +70,7 @@ together to handle client requests.  The federated servers form a
 contains a \fBtraceroute\fR map to all servers in the \fBfederation\fR. 
 When a client connects to a server, the server performs a \fBtraceroute\fR
 back to the client.  The server then dynamically creates a new web
-page that redirects the client to the appropriate server.  By default
+page that redirects the client to the appropriate server.  By default,
 this will be the server \fIcloset\fR to the ingress point of the
 \fBmeasurement domain\fR.
 .TP
@@ -79,7 +79,7 @@ Create a log file and log client activity.
 Set the TCP send and receive buffer size.  This option uses the
 .TP
 \fB\-p\fR \fIport number\fR
-Specify a different TCP port number to listed for client requests.
+Specify a different TCP port number to listen for client requests.
 .TP
 \fB\-t\fR \fInumber\fR
 Specify the maximum number of hops that traceroute should follow. 
@@ -100,8 +100,7 @@ Run a fakewww server on TCP port 7123 and log the results in the
 .IP
 Run a fakewww server on the standard TCP web services port.
 .SH SEE ALSO
-web100srv(8), web100clt(1), setsockopt(2) and the \%http://e2epi.internet2.edu/ndt/
-web site.
+The \%http://e2epi.internet2.edu/ndt/ web site, web100srv(8), web100clt(1), and setsockopt(2).
 .SH ACKNOWLEDGMENTS
 This material is based in part on work supported by the National Science
 Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings and
