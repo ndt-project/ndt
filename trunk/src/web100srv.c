@@ -533,7 +533,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	double loss, rttsec, bw, rwin, swin, cwin, speed;
 	double rwintime, cwndtime, sendtime;
 	double oo_order, waitsec;
-	double bw2, avgrtt, timesec, loss2;
+	double bw2, avgrtt, timesec, loss2, RTOidle;
 	double bwin, bwout;
  	double s, t, secs();
 	float runave;
@@ -1015,12 +1015,13 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    cwndtime = (double)SndLimTimeCwnd/totaltime;
 	    sendtime = (double)SndLimTimeSender/totaltime;
 	    timesec = totaltime/1000000;
+	    RTOidle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
 
 	    spd = ((double)DataBytesOut / (double)totaltime) * 8;
 	    waitsec = (double) (CurrentRTO * Timeouts)/1000;
 
 	    if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-	        (MaxSsthresh > 0) && (c2sdata > 2))
+	        (MaxSsthresh > 0) && (RTOidle > .01))
   	    {	mismatch = 1;
     		    link = 0;
   	    }
