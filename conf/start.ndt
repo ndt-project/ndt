@@ -8,5 +8,5 @@ endif
 
 set cnt = `ps auxw | grep fakewww | grep -v grep | wc -l`
 if ($cnt == 0) then
-	/usr/local/sbin/fakewww >& /dev/null &
+	/usr/local/sbin/fakewww -l/var/log/fakewww.log >& /dev/null &
 endif
