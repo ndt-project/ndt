@@ -29,6 +29,17 @@ Rich Carlson	6/7/02  Modified 8/17/04
 	flags.  
   ndt.conf.man
 	added in text to describe how these options are specified.
+  conf/ndt
+	A simple startup script that will allow the NDT server processes
+	to start at boot time.  Thanks to Pete Bertoncini <pjb@anl.gov> 
+	for this script.
+  conf/autostart.sh
+	This simple scritp automates the installation of the conf/ndt
+	script.  The conf/ndt script is moved into the /etc/init.d
+	system directory and the /sbin.chkconfig --add ndt command is
+	run to automatically create the rc?.d slinks.  The conf/autostart.sh
+	script should be run once, when the NDT package is first installed
+	on a system.
 
 8/16/04	- ndt v3.0.19
   web100clt.c
