@@ -21,6 +21,17 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 8/17/04
 
+10/4/04 - ndt v3.0.21
+  web100srv.c
+	Bug fix.  The kill() function was sending the wrong signal
+	when a stuck process was detected.  The stuck process detection
+	was sending a sig=0 signal (log the action, but don't actually
+	do it).  This was changed to send the SIGKILL (9) signal.  It
+	appears that the parent process occasionally misses an interrupt
+	signal, probably due to it being masked by a second signal, and
+	a child process gets stuck.  This condition is detected and it
+	should be handled properly now.
+
 8/18/04 - ndt v3.0.20
   web100srv.c
 	Added code to process "disable_FIFO", "syslog", and "Debug"
