@@ -19,5 +19,5 @@
 #	Description:	constructing ndt conf files from templates
 #		This doesn't really do this yet - it just provides
 #		examples.
-noinst_DATA	= ndt.conf create-html.sh start.ndt
+noinst_DATA	= ndt.conf create-html.sh start.ndt ndt autostart.sh
 EXTRA_DIST	= $(noinst_DATA)
