@@ -29,6 +29,7 @@ int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
 int winssent, winsrecv, msglvl=0, debug=0;
 double spdin, spdout;
+double aspd;
 
 int half_duplex, mylink, congestion, bad_cable, mismatch;
 double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
@@ -140,11 +141,11 @@ void testResults(char *tmpstr) {
 
 	  if (mismatch == 1) {
 	    printf("Alarm: Duplex mismatch condition exists: ");
-	      if (order < 0.1) {
-		printf("Host set to FD and Switch set to HD\n");
+	      if (aspd < 1) {
+		printf("Host set to Full and Switch set to Half duplex\n");
 	      }
 	      else {
-		printf("Host set to HD and Switch set to FD\n");
+		printf("Host set to Half and Switch set to Full duplex\n");
 	      }
 	  }
           if (mismatch == 2) {
@@ -478,6 +479,8 @@ save_dbl_values(char *sysvar, float *sysval) {
 	    cwin = *sysval;
 	else if (strcmp(sysvar, "spd:") == 0)
 	    spd = *sysval;
+	else if (strcmp(sysvar, "aspd:") == 0)
+	    aspd = *sysval;
 
 }
 
