@@ -166,7 +166,7 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 		calculate_spd(&current, &fwd, port2, port3);
 	    else if (current.sport == port3)
 		calculate_spd(&current, &fwd, port2, port3);
-	    else if (debug > 0)
+	    else if (debug > 3)
 		fprintf(stderr, "Fault: forward packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -175,7 +175,7 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 		calculate_spd(&current, &rev, port2, port3);
 	    else if (current.dport == port3)
 		calculate_spd(&current, &rev, port2, port3);
-	    else if (debug > 0)
+	    else if (debug > 3)
 		fprintf(stderr, "Fault: reverse packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -214,8 +214,8 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	}
 
 	/* special check for localhost, set device accordingly */
- 	if (strcmp(inet_ntoa(sock_addr->sin_addr), "127.0.0.1") == 0)
- 	    strcpy(device, "lo");
+	if (strcmp(inet_ntoa(sock_addr->sin_addr), "127.0.0.1") == 0)
+	    strcpy(device, "lo");
 
 	if (debug > 0)
 	    fprintf(stderr, "Opening network interface '%s' for packet-pair timing\n", device);
@@ -261,7 +261,8 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	}
 
 	printer = (pcap_handler) print_speed;
-	write(monitor_pipe[1], "Ready", 64);
+	if (write(monitor_pipe[1], "Ready", 64) < 0)
+	    fprintf(stderr, "write() failed telling client 'Ready'\n");
 
 	/* kill process off if parent doesn't send a signal. */
 	alarm(45);
@@ -318,8 +319,8 @@ void cleanup(int signo)
 			  close(mon_pipe2[1]);
 			  break;
 			  
-	    case SIGALRM:
 	    case SIGPIPE:
+	    case SIGALRM:
 			  pid = getpid();
   			  fp = fopen(LogFileName,"a");
 
@@ -330,11 +331,13 @@ void cleanup(int signo)
 			      if (signo == SIGALRM) {
   			          fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
 			  	        pid);
+			          fclose(fp);
 			      } else {
   			          fprintf(fp,"Received SIGPIPE signal: terminating active web100srv process [%d]\n",
 				        pid);
+				  fclose(fp);
+				  return;
 			      }
-			      fclose(fp);
 			  }
 			  exit(0);
 
@@ -432,6 +435,13 @@ err_sys(s) char *s;
 	exit(1);
 }
 
+double msecs()
+{
+        struct timeval ru;
+        gettimeofday(&ru, (struct timezone *)0);
+        return((ru.tv_sec*1000) + ((double)ru.tv_usec)/1000);
+}
+
 double secs()
 {
         struct timeval ru;
@@ -512,9 +522,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	char date[32], *ctime();
 	char spds[4][256], buff2[32], tmpstr[256];
+	char rbuff[RECLTH], wbuff[RECLTH];
 
 	int maxseg=1456, largewin=128*1024;
-	int sock2, sock3, sock4, bytes=0;
+	int sock2, sock3, sock4;
 	int n,sockfd, midsockfd, recvsfd, xmitsfd, clilen, childpid, servlen, one=1;
 	int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
 	int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
@@ -529,20 +540,25 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	int spd_sock, spd_sock2, spdfd, j, i, rc;
 	int mon_pid1, mon_pid2, totalcnt, spd, stime;
 	int seg_size, win_size;
+	int sum1, sum2, u_ticks1, u_ticks2, n_ticks1, n_ticks2, s_ticks1, s_ticks2;
+	int i_ticks1, i_ticks2, u_time, s_time, cu_time, cs_time;
+
+	u_int32_t bytes=0, rbytes, wbytes;
 
 	double loss, rttsec, bw, rwin, swin, cwin, speed;
 	double rwintime, cwndtime, sendtime;
 	double oo_order, waitsec;
 	double bw2, avgrtt, timesec, loss2, RTOidle;
 	double bwin, bwout;
- 	double s, t, secs();
+ 	double s, t, tt, secs();
+	double ms, idle, b_idle, s_idle, r_idle, msnow;
 	float runave;
 
 	struct sockaddr_in spd_addr, spd_addr2, spd_cli;
 	struct sockaddr_in cli_addr, cli2_addr, srv2_addr, srv3_addr, srv4_addr, serv_addr;
 	struct timeval sel_tv;
 	fd_set rfd, wfd, efd;
-	FILE *fp;
+	FILE *fp, *fp1, *fp2;
 
 	/* experimental code to capture and log multiple copies of the the
 	 * web100 variables using the web100_snap() & log() functions.
@@ -612,7 +628,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	if (debug > 0)
 	    fprintf(stderr, "server ports %d %d\n", port2, port3);
 	sprintf(buff, "%d %d", port2, port3);
-	write(ctlsockfd, buff, strlen(buff));  
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending server ports to client\n");  
 
 	/* set mss to 1456 (strange value), and large snd/rcv buffers
 	 * should check to see if server supports window scale ?
@@ -642,6 +659,144 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
 	/* printf("Accepted new middlebox connection\n"); */
 	web100_middlebox(midsockfd, agent, debug);
+	if (write(midsockfd, "\n", 1) < 0)
+	    fprintf(stderr, "write() failed sending middlebox termination char to client\n");
+
+	if (experimental > 1) {
+	    /* set up a bi-directional test and let it run for 10 seconds.  Us the
+	     * timer value in the select function to regulate the time.  Use the 
+	     * rfd and wfd arrays to determine if a read or write should occur.
+	     */
+	    if (experimental == 3) {
+		sprintf(logname, "/tmp/bidir-snaplog-%s.%d", inet_ntoa(cli2_addr.sin_addr),
+					ntohs(cli2_addr.sin_port));
+		conn = web100_connection_from_socket(agent, midsockfd);
+		group = web100_group_find(agent, "read");
+		snap = web100_snapshot_alloc(group, conn);
+		log = web100_log_open_write(logname, conn, group);
+
+ 		fp1 = fopen("/proc/stat", "r");
+  		fscanf(fp1, "cpu %d %d %d %d\n", &u_ticks1, &n_ticks1, &s_ticks1, &i_ticks1);
+  		sum1 = u_ticks1 + n_ticks1 + s_ticks1 + i_ticks1;
+		fclose(fp1);
+  
+		/* sprintf(tmpstr, "/proc/%d/stat", getpid());
+		 * fp2 = fopen(tmpstr, "r");
+		 * printf("trying to open file %s at 0x%x\n", tmpstr, fp2);
+		 * if (fscanf(fp2, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %d %d %d %d %*d %*d %*u %*u %*d %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %*u\n",
+		 * 	u_time, s_time, cu_time, cs_time) != 4)
+		 *     printf("fscanf() failed!\n");
+		 *
+		 * n = fscanf(fp2, " %d \n", u_time);
+		 * printf("fscanf() read %d variables, u_time=%d, s_time=%d\n", n, u_time, s_time);
+		 * fclose(fp2);
+		 */
+
+	    }
+
+	    /* make the socket non-blocking so it doesn't hang on a read() */
+	    fcntl(midsockfd, F_SETFL, O_NONBLOCK);
+	    wbytes = 0;
+	    rbytes = 0;
+	    b_idle = 100;
+	    t = secs();
+	    ms = t + 1.0;
+	    s = t + 10.0;
+	    if (debug > 5)
+		fprintf(stderr, "Set ms=%0.2f, will write snap data at %0.2f\n", ms, ms+1);
+	    system("echo 1 > /proc/sys/net/ipv4/route/flush");
+	    for (j=0; j++; j<RECLTH)
+	        wbuff[j] = j && 0x7f;
+
+	    wbytes = write(midsockfd, wbuff, RECLTH);
+	    if (wbytes < 0)
+		fprintf(stderr, "write() failed on initial bi-directional send\n");
+	    while ((tt = secs()) < s) {
+		if (debug > 6)
+		    fprintf(stderr, "now=%0.5f, stop at %0.5f\n", tt, s);
+		n = read(midsockfd, rbuff, sizeof(rbuff));
+		if (n > 0)
+		     rbytes += n;
+		n = write(midsockfd, wbuff, RECLTH);
+		if (n > 0)
+		     wbytes += n;
+		if ((n < 0) && (errno == EPIPE)) {
+		    fprintf(stderr, "write() failed while sending bi-dir test data\n");
+		    break;
+		}
+		if ((experimental == 3) && (tt >= ms)) {
+		    ms = tt + 1;
+	    	    if (debug > 5)
+			    fprintf(stderr, "reset ms=%0.2f, will write next data at %0.2f\n", ms, ms+1);
+		    web100_snap(snap);
+		    web100_log_write(log, snap);
+ 		    if ((fp1 = fopen("/proc/stat", "r")) != NULL) {
+		        fscanf(fp1, "cpu %d %d %d %d\n", &u_ticks2, &n_ticks2, &s_ticks2, &i_ticks2);
+		        sum2 = u_ticks2 + n_ticks2 + s_ticks2 + i_ticks2;
+		        idle = ((float) (i_ticks2 - i_ticks1) * 100) / (sum2 - sum1);
+		        if (debug > 7) {
+			    fprintf(stderr, "Calculating idle time as %0.2f%%\n", idle);
+			    fprintf(stderr, "i_ticks1 = %d, i_ticks2 = %d, sum1 = %d, sum2 = %d\n",
+				    i_ticks1, i_ticks2, sum1, sum2);
+		        }
+		        if (idle < b_idle)
+		   	    b_idle = idle;
+		        sum1 = sum2;
+		        u_ticks1 = u_ticks2;
+		        n_ticks1 = n_ticks2;
+		        s_ticks1 = s_ticks2;
+		        i_ticks1 = i_ticks2;
+		        fclose(fp1);
+		    }
+		}
+	    }
+	
+	    t = secs() - t;
+	    bwin = (double) (8 * rbytes) / (t * 1000);
+	    bwout = (double) (8 * wbytes) / (t * 1000);
+	    if (experimental == 3) {
+		web100_snapshot_free(snap);
+		web100_log_close_write(log);
+	    }
+	    if (debug > 0) {
+		fprintf(stderr, "Bi-directional test ran for %0.1f seconds\n", t);
+		fprintf(stderr, "read %d bytes at %0.2f Mbps and wrote %d bytes at %0.2f Mbps\n",
+			rbytes, bwin/1000, wbytes, bwout/1000);
+	    }
+
+	    rc = web100_get_data(midsockfd, 0, agent, count_vars, debug);
+	    web100_logvars(&Timeouts, &SumRTT, &CountRTT,
+		&PktsRetrans, &FastRetran, &DataPktsOut,
+		&AckPktsOut, &CurrentMSS, &DupAcksIn,
+		&AckPktsIn, &MaxRwinRcvd, &Sndbuf,
+		&CurrentCwnd, &SndLimTimeRwin, &SndLimTimeCwnd,
+		&SndLimTimeSender, &DataBytesOut,
+		&SndLimTransRwin, &SndLimTransCwnd,
+		&SndLimTransSender, &MaxSsthresh,
+		&CurrentRTO, &CurrentRwinRcvd, &MaxCwnd, &CongestionSignals,
+		&PktsOut, &MinRTT, count_vars, &RcvWinScale, &SndWinScale);
+       	    fp = fopen(LogFileName,"a");
+	    if (fp == NULL)
+	        fprintf(stderr, "Unable to open log file '%s', continuing on without logging\n",
+			    LogFileName);
+	    else {
+	        sprintf(date,"%15.15s", ctime(&stime)+4);
+	        fprintf(fp, "%s;", date);
+       	        fprintf(fp,"%s;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;",
+      	            rmt_host,(int)bwin,(int)bwout, Timeouts, SumRTT, CountRTT, PktsRetrans,
+ 	            FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
+       	        fprintf(fp,"%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;",
+ 	            MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
+ 	            SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
+ 	            SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
+       	        fprintf(fp,"%d;%d;%d;%d;%d",
+  	            link, mismatch, bad_cable, half_duplex, congestion);
+	        fprintf(fp, ";%d;%d;%d;%d;%d;%d;%d;%d;%0.2f\n", c2sdata, c2sack, s2cdata, s2cack,
+		        CongestionSignals, PktsOut, MinRTT, RcvWinScale, b_idle);
+       	        fclose(fp);
+	    }
+	}
+
 	close(midsockfd);
 	close(sock3);
 
@@ -652,7 +807,9 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 * the client another signal, via the control channel
 	 * when server is ready to go.
 	 */
-	write(ctlsockfd, buff, strlen(buff));  
+	strcpy(buff, "Start c2s test");
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed start c2s test message\n");  
 	if (debug > 0)
 	    fprintf(stderr, "Sent 'GO' signal, waiting for incoming connection on sock2\n");
 	recvsfd = accept(sock2, (struct sockaddr *) &cli_addr, &clilen);
@@ -679,16 +836,47 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    fprintf(stderr, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d\n",
 			    mon_pipe1[0], mon_pipe1[1]);
 	}
-	write(ctlsockfd, buff, strlen(buff));  
+	strcpy(buff, "Pipe ready, stream data");
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending c2s test begins msg\n");  
 
 	/* ok, We are now read to start the throughput tests.  First
 	 * the client will stream data to the server for 10 seconds.
 	 * Data will be processed by the read loop below.
 	 */
-	t = secs();
-	while((n = read(recvsfd, buff, sizeof(buff))) > 0)
-	       bytes += n;
-	t = secs()-t;
+ 	fp1 = fopen("/proc/stat", "r");
+  	fscanf(fp1, "cpu %d %d %d %d\n", &u_ticks1, &n_ticks1, &s_ticks1, &i_ticks1);
+  	sum1 = u_ticks1 + n_ticks1 + s_ticks1 + i_ticks1;
+	fclose(fp1);
+  
+	s = secs();
+	ms = s + 1.0;
+	r_idle = 100;
+	while((n = read(recvsfd, buff, sizeof(buff))) > 0) {
+	    bytes += n;
+	    tt = secs();
+	    if (tt >= ms) {
+		ms = tt + 1.0;;
+ 	        fp1 = fopen("/proc/stat", "r");
+	        fscanf(fp1, "cpu %d %d %d %d\n", &u_ticks2, &n_ticks2, &s_ticks2, &i_ticks2);
+	        sum2 = u_ticks2 + n_ticks2 + s_ticks2 + i_ticks2;
+	        idle = ((float) (i_ticks2 - i_ticks1) * 100) / (sum2 - sum1);
+	        if (debug > 7) {
+		    fprintf(stderr, "Calculating idle time as %0.2f%%\n", idle);
+		    fprintf(stderr, "i_ticks1 = %d, i_ticks2 = %d, sum1 = %d, sum2 = %d\n",
+			    i_ticks1, i_ticks2, sum1, sum2);
+	        }
+	        if (idle < r_idle)
+	   	    r_idle = idle;
+	        sum1 = sum2;
+	        u_ticks1 = u_ticks2;
+	        n_ticks1 = n_ticks2;
+	        s_ticks1 = s_ticks2;
+	        i_ticks1 = i_ticks2;
+	        fclose(fp1);
+	    }
+	}
+	t = secs() - s;
 	bwout = (8.e-3 * bytes) / t;
 	sprintf(buff, "%6.0f Kbs outbound", bwout);
 	if (debug > 0)
@@ -704,7 +892,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 */
 
 	if (getuid() == 0) {
-	    if (debug > 0)
+	    if (debug > 4)
 	        fprintf(stderr, "Signal USR1(%d) sent to child [%d]\n", SIGUSR1, mon_pid1);
 	    kill(mon_pid1, SIGUSR1);
 	    FD_ZERO(&rfd);
@@ -713,24 +901,24 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    sel_tv.tv_usec = 100000;
 	    if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
                 if ((ret = read(mon_pipe1[0], spds[spd_index], 64)) < 0)
-	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	        if (debug > 0) {
 	            fprintf(stderr, "%d bytes read ", ret);
 	            fprintf(stderr, "'%s' from monitor pipe\n", spds[spd_index]);
 		}
 	        spd_index++;
                 if ((ret = read(mon_pipe1[0], spds[spd_index], 64)) < 0)
-	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	        if (debug > 0)
 	            fprintf(stderr, "%d bytes read '%s' from monitor pipe\n", ret, spds[spd_index]);
 	        spd_index++;
 	    } else {
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	    }
 	} else {
-	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	}
 
 	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -754,7 +942,9 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	listen(sock3, 2); 
 
 	/* Data received from speed-chk, tell applet to start next test */
-	write(ctlsockfd, buff, strlen(buff));
+	strcpy(buff, "Start s2c Test");
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending s2c test message\n");
 
 	/* ok, await for connect on 3rd port
 	 * This is the second throughput test, with data streaming from
@@ -779,7 +969,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		    close(ctlsockfd);
 		    close(sock3);
 		    close(xmitsfd);
-		    if (debug > 4) {
+		    if (debug > 0) {
 		        fprintf(stderr, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d\n",
 				    mon_pipe2[0], mon_pipe2[1]);
 		    }
@@ -791,7 +981,9 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	            printf("error & exit");
 	    }
 
-	    write(ctlsockfd, buff, strlen(buff));  
+	    strcpy(buff, "pipe ready stream S2C data now");
+	    if (write(ctlsockfd, buff, strlen(buff)) < 0)
+		fprintf(stderr, "write() failed sending pipe established for s2c test msg\n");  
 	    if (debug > 4) {
 	        fprintf(stderr, "S2C test Parent thinks pipe() returned fd0=%d, fd1=%d\n",
 			    mon_pipe2[0], mon_pipe2[1]);
@@ -809,22 +1001,52 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    /* Kludge way of nuking Linux route cache.  This should be done
 	     * using the sysctl interface.
 	     */
+ 	    fp1 = fopen("/proc/stat", "r");
+  	    fscanf(fp1, "cpu %d %d %d %d\n", &u_ticks1, &n_ticks1, &s_ticks1, &i_ticks1);
+  	    sum1 = u_ticks1 + n_ticks1 + s_ticks1 + i_ticks1;
+	    fclose(fp1);
+  
 	    system("echo 1 > /proc/sys/net/ipv4/route/flush");
 
 	    bytes = 0;
 	    t = secs();
 	    s = t + 10.0;
-	    while(secs() < s){ 
+	    s_idle = 100;
+	    ms = t + 1.0;
+	    while((tt = secs()) < s){ 
 	        if (randomize)
 		    for(j=0; j<RECLTH; j++)
 	                buff[j] = rand() >> 24; /* defeat compression */
 	        n = write(xmitsfd, buff, RECLTH);
-	        if (n < 0 )
+	        if (n < 0 ) {
+		    fprintf(stderr, "write() failed during s2c testing\n");
 		    break;
+		}
 	        bytes += n;
-		if (experimental == 1) {
+		if ((experimental == 1) && (ms < msecs())) {
+		    ms = msecs() + 100;
 		    web100_snap(snap);
 		    web100_log_write(log, snap);
+		}
+		if (tt >= ms) {
+		    ms = tt + 1.0;
+ 		    fp1 = fopen("/proc/stat", "r");
+		    fscanf(fp1, "cpu %d %d %d %d\n", &u_ticks2, &n_ticks2, &s_ticks2, &i_ticks2);
+		    sum2 = u_ticks2 + n_ticks2 + s_ticks2 + i_ticks2;
+		    idle = ((float) (i_ticks2 - i_ticks1) * 100) / (sum2 - sum1);
+		    if (debug > 7) {
+			fprintf(stderr, "Calculating idle time as %0.2f%%\n", idle);
+			fprintf(stderr, "i_ticks1 = %d, i_ticks2 = %d, sum1 = %d, sum2 = %d\n",
+				i_ticks1, i_ticks2, sum1, sum2);
+		    }
+		    if (idle < s_idle)
+		   	s_idle = idle;
+		    sum1 = sum2;
+		    u_ticks1 = u_ticks2;
+		    n_ticks1 = n_ticks2;
+		    s_ticks1 = s_ticks2;
+		    i_ticks1 = i_ticks2;
+		    fclose(fp1);
 		}
 	    }
 	    /* shutdown(xmitsfd,1); */  /* end of write's */
@@ -851,22 +1073,22 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	        sel_tv.tv_usec = 100000;
 	        if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
                     if ((ret = read(mon_pipe2[0], spds[spd_index], 64)) < 0)
-	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	            if (debug > 0)
 	                fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
 	            spd_index++;
                     if ((ret = read(mon_pipe2[0], spds[spd_index], 64)) < 0)
-	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	            if (debug > 0)
 	                fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
 	            spd_index++;
 	        } else {
-	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	        }
 	    } else {
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
 	    }
 
 	    if (debug > 0)
@@ -883,13 +1105,14 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    fprintf(stderr, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps\n",
 			    bwout/1000, bwin/1000);
 	for (n=0; n<spd_index; n++) {
-	    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %0.2f", &links[0],
+	    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %0.2f", &links[0],
 		    &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
-		    &links[7], &links[8], &links[9], &links[10], &links[11], &runave);
+		    &links[7], &links[8], &links[9], &links[10], &links[11], 
+		    &links[12], &links[13], &links[14], &runave);
 	    max = 0;
 	    index = 0;
 	    total = 0;
-	    for (j=0; j<10; j++) {
+	    for (j=0; j<13; j++) {
 		total += links[j];
 		if (max < links[j]) {
 		    max = links[j];
@@ -963,10 +1186,12 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 * write(ctlsockfd, buff, strlen(buff));
 	 */
 	if (getuid() == 0) {
-	    write(mon_pipe1[1], "", 1);
+	    if (write(mon_pipe1[1], "", 1) < 0)
+		fprintf(stderr, "write() failed sending data on mon_pipe1\n");
 	    close(mon_pipe1[0]);
 	    close(mon_pipe1[1]);
-	    write(mon_pipe2[1], "", 1);
+	    if (write(mon_pipe2[1], "", 1) < 0)
+		fprintf(stderr, "write() failed sending data on mon_pipe2\n");
 	    close(mon_pipe2[0]);
 	    close(mon_pipe2[1]);
 	}
@@ -992,18 +1217,16 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    /* loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut); */
 	    loss2 = (double)CongestionSignals/PktsOut;
 	    if (loss2 == 0)
-    		loss2 = .000001;	/* set to 10^-6 for now */
+    		loss2 = NOLOSS;	/* set to 10^-10 for now */
 
 	    oo_order = (double)DupAcksIn/AckPktsIn;
 	    bw2 = (CurrentMSS / (rttsec * sqrt(loss2))) * 8 / 1024 / 1024;
 
-	    if (SndWinScale > 15)
-		SndWinScale = 0;
 	    if (RcvWinScale > 15)
 		RcvWinScale = 0;
 	    /* MaxRwinRcvd <<= RcvWinScale; */
-	    if ((SndWinScale > 0) && (RcvWinScale > 0) && (RcvWinScale < 15))
-	        Sndbuf = (64 * 1024) << RcvWinScale;
+	    if (RcvWinScale > 0)
+	    	Sndbuf = (64 * 1024) << RcvWinScale; 
 	    /* MaxCwnd <<= RcvWinScale; */
 
 	    rwin = (double)MaxRwinRcvd * 8 / 1024 / 1024;
@@ -1068,23 +1291,28 @@ void run_test(web100_agent* agent, int ctlsockfd) {
     
 	sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n",
 		c2sdata, c2sack, s2cdata, s2cack);
-	write(ctlsockfd, buff, strlen(buff));
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending test results block 1 to client\n");
 	/* fprintf(stderr, "%s", buff); */
 	sprintf(buff, "half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\nmismatch: %d\nspd: %0.2f\n",
 		half_duplex, link, congestion, bad_cable, mismatch, spd);
-	write(ctlsockfd, buff, strlen(buff));
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending test results block 2 to client\n");
 
 	sprintf(buff, "bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\ntimesec: %0.2f\norder: %0.4f\n",
 		bw2, loss2, avgrtt, waitsec, timesec, oo_order);
-	write(ctlsockfd, buff, strlen(buff));
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending test results block 3 to client\n");
 
 	sprintf(buff, "rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\nrwin: %0.4f\nswin: %0.4f\n",
 		rwintime, sendtime, cwndtime, rwin, swin);
-	write(ctlsockfd, buff, strlen(buff));
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending test results block 4 to client\n");
 
 	sprintf(buff, "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\n",
 		cwin, rttsec, Sndbuf);
-	write(ctlsockfd, buff, strlen(buff));
+	if (write(ctlsockfd, buff, strlen(buff)) < 0)
+	    fprintf(stderr, "write() failed sending test results block 5 to client\n");
 	
        	fp = fopen(LogFileName,"a");
 	if (fp == NULL)
@@ -1102,8 +1330,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
  	        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
        	    fprintf(fp,"%d,%d,%d,%d,%d",
   	        link, mismatch, bad_cable, half_duplex, congestion);
-	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d\n", c2sdata, c2sack, s2cdata, s2cack,
-		    CongestionSignals, PktsOut, MinRTT, RcvWinScale);
+	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%0.2f,%0.2f\n", c2sdata, c2sack, s2cdata, s2cack,
+		    CongestionSignals, PktsOut, MinRTT, RcvWinScale, r_idle, s_idle);
        	    fclose(fp);
 	}
 	/* send web100 results for xmitsfd */
@@ -1124,9 +1352,6 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 			debug);
 	}
 
-	/* printf("Saved data to log file\n"); */
-
-	/* exit(0); */
 }
 
 main(argc, argv)
@@ -1232,7 +1457,7 @@ char	*argv[];
 			set_buff = 1;
 			break;
 		case 'x':
-			experimental = 1;
+			experimental++;
 			break;
 		case 'd':
 			debug++;
@@ -1447,7 +1672,8 @@ char	*argv[];
 			if ((testing == 1) && (queue == 0)) {
 			    if (debug > 2)
 				fprintf(stderr, "queuing disabled and testing in progress, tell client no\n");
-			    write(ctlsockfd, "9999", 4);
+			    if (write(ctlsockfd, "9999", 4) < 0)
+				fprintf(stderr, "write() failed sending multi-client msg\n");
 			    free(new_child);
 			    continue;
 			}
@@ -1489,7 +1715,8 @@ char	*argv[];
 					(waiting-1), tmp_ptr->pid, (waiting-1));
 
 			    sprintf(tmpstr, "%d", (waiting-1));
-			    write(ctlsockfd, tmpstr, strlen(tmpstr));
+			    if (write(ctlsockfd, tmpstr, strlen(tmpstr)) < 0)
+				fprintf(stderr, "Write() failed while telling client FIFO queue position\n");
 			}
 			if (testing == 1) 
 			    continue;
@@ -1507,7 +1734,8 @@ char	*argv[];
 					(waiting-1), tmp_ptr->pid, (waiting-i));
 
 			        sprintf(tmpstr, "%d", (waiting-i));
-			        write(tmp_ptr->ctlsockfd, tmpstr, strlen(tmpstr));
+			        if (write(tmp_ptr->ctlsockfd, tmpstr, strlen(tmpstr)) < 0)
+				    fprintf(stderr, "Write() failed while telling client FIFO queue position\n");
 				tmp_ptr = tmp_ptr->next;
 				i--;
 			    }
@@ -1532,14 +1760,18 @@ char	*argv[];
 
 		      multi_client:
 			if (multiple == 1) {
-			    write(ctlsockfd, "0", 1);
-			    write(chld_pipe[1], "go", 2);
+			    if (write(ctlsockfd, "0", 1) < 0)
+				fprintf(stderr, "write() failed telling client to proceed\n");
+			    if (write(chld_pipe[1], "go", 2) < 0)
+				fprintf(stderr, "write() failed on pile to child\n");
 			    close(chld_pipe[1]);
 			    close(ctlsockfd);
 			}
 			else {
-			    write(head_ptr->ctlsockfd, "0", 1);
-			    write(head_ptr->pipe, "go", 2);
+			    if (write(head_ptr->ctlsockfd, "0", 1) < 0)
+				fprintf(stderr, "write() failed telling client to proceed\n");
+			    if (write(head_ptr->pipe, "go", 2) < 0)
+				fprintf(stderr, "write() failed on pile to child\n");
 			    close(head_ptr->pipe);
 			    close(head_ptr->ctlsockfd);
 			}

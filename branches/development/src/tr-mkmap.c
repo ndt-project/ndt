@@ -239,18 +239,17 @@ int main (int argc, char *argv[])
 	struct sockaddr_in address;
 	struct hostent *hp;
 
-	flag = 'b';
 	while (( c = getopt(argc, argv, "bhpc:f:")) != -1) {
 	    switch (c) {
 		case 'b' :
 			if (flag_set == 0) {
-			    flag = 'b';
+			    flag = c;
 			    flag_set = 1;
 			}
 			break;
 		case 'c' :
 			if (flag_set == 0) {
-			    flag = 'c';
+			    flag = c;
 			    cmp_ip = optarg;
 			    flag_set = 1;
 			}
@@ -260,7 +259,7 @@ int main (int argc, char *argv[])
 			inputfile = optarg;
 			break;
 		case 'p':
-			flag = 'p';
+			flag = c;
 			break;
 		default :
 			printf("Unknown option entered\n");
@@ -271,7 +270,6 @@ int main (int argc, char *argv[])
 			printf("\t-f fn \tSpecify the name of the input file\n");
 			printf("\t\tNote: -b and -c are mutually exclusive\n");
 			printf("\t-h \tPrint this help message\n");
-			printf("\t-p \tPrint out the current traceroute map\n");
 			exit(0);
 	    }
 	}

@@ -12,8 +12,11 @@
 #include	<signal.h>
 #include	<sys/timeb.h>
 #include	<netdb.h>
+#include	<fcntl.h>
 
 extern int h_errno;
+
+#define RECLTH 8192
 
 int Randomize, failed, cancopy;
 int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
@@ -27,14 +30,34 @@ int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
 int PktsOut, CongestionSignals, RcvWinScale;
 int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
-int winssent, winsrecv, msglvl=0, debug=0;
+int winssent, winsrecv, msglvl=0, debug=0, experimental=0; 
 double spdin, spdout;
 
 int half_duplex, mylink, congestion, bad_cable, mismatch;
 double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 
-    
+double secs(void) { 
+
+	struct timeval ru;
+
+	gettimeofday(&ru, (struct timezone *) 0);
+	return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
+}
+
+void cleanup(int signo)
+{
+
+	switch (signo) {
+
+				/* SIGPIPE can occur when write()ing to a closed socket. */
+		case SIGPIPE:
+				if (debug > 5)
+				    printf("SIGPIPE signal ignored");
+				return;
+	}
+}
+
 void printVariables(char *tmpstr) {
 
 	int i, j, k;
@@ -94,39 +117,44 @@ void testResults(char *tmpstr) {
 
  	if(CountRTT > 0) {
 
-	  if (c2sData < 3) {
+	  if (c2sData < 6) {
 	    if (c2sData < 0) {
 	      printf("Server unable to determine bottleneck link type.\n");
 	    } else {
 	      printf("Your host is connected to a ");
-	      if (c2sData == 1) {
-		printf("Dial-up Modem\n");
-	      } else {
-		printf("Cable/DSL modem\n");
-	      }
+	      if (c2sData == 1) 
+		  printf("Dial-up Modem\n");
+	      else if (c2sData == 2)
+		  printf("Cable/DSL modem\n");
+	      else if (c2sData == 3)
+		  printf("T1+ link\n");
+	      else if (c2sData == 4)
+		  printf("IEEE 802.11 wireless\n");
+	      else if (c2sData == 5)
+		  printf("IEEE 802.11 wireless+\n");
 	    }
 	  } else {
 	    printf("The slowest link in the end-to-end path is a ");
-	    if (c2sData == 3) {
-	      printf("10 Mbps Ethernet subnet\n");
-	    } else if (c2sData == 4) {
-	      printf("45 Mbps T3/DS3 subnet\n");
-	    } else if (c2sData == 5) {
-	      printf("100 Mbps ");
-		if (half_duplex == 0) {
-		  printf("Full duplex Fast Ethernet subnet\n");
-		} else {
-		  printf("Half duplex Fast Ethernet subnet\n");
-		}
-	    } else if (c2sData == 6) {
-	      printf("a 622 Mbps OC-12 subnet\n");
-	    } else if (c2sData == 7) {
-	      printf("1.0 Gbps Gigabit Ethernet subnet\n");
-	    } else if (c2sData == 8) {
-	      printf("2.4 Gbps OC-48 subnet\n");
-	    } else if (c2sData == 9) {
-	      printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
+	    if (c2sData == 6)
+	        printf("10 Mbps Ethernet subnet\n");
+	    else if (c2sData == 7)
+	        printf("45 Mbps T3/DS3 subnet\n");
+	    else if (c2sData == 8) {
+	        printf("100 Mbps ");
+		if (half_duplex == 0)
+		    printf("Full duplex Fast Ethernet subnet\n");
+		else
+		    printf("Half duplex Fast Ethernet subnet\n");
 	    }
+	    else if (c2sData == 9)
+	        printf("a 622 Mbps OC-12 subnet\n");
+	    else if (c2sData == 10)
+	        printf("1.0 Gbps Gigabit Ethernet subnet\n");
+	    else if (c2sData == 11)
+	        printf("2.4 Gbps OC-48 subnet\n");
+	    else if (c2sData == 12)
+	        printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
+	    
 	  }
 
 	  if (mismatch == 1) {
@@ -150,87 +178,85 @@ void testResults(char *tmpstr) {
 	    printf("Information: Other network traffic is congesting the link\n");
 	  }
 
-	if (msglvl > 0) {
-	    printf("\n\t------  Web100 Detailed Analysis  ------\n");
+	  printf("\n\t------  Web100 Detailed Analysis  ------\n");
 
-	    printf("\nWeb100 reports the Round trip time = %0.2f msec;", avgrtt);
+	  printf("\nWeb100 reports the Round trip time = %0.2f msec;", avgrtt);
 
-            printf("the Packet size = %d Bytes; and \n", CurrentMSS);
-            if (PktsRetrans > 0) {
-                printf("There were %d packets retransmitted", PktsRetrans);
-                printf(", %d duplicate acks received", DupAcksIn);
-                printf(", and %d SACK blocks received\n", SACKsRcvd);
-	        if (order > 0)
-                    printf("Packets arrived out-of-order %0.2f%% of the time.\n", order*100);
-                if (Timeouts > 0)
-                    printf("The connection stalled %d times due to packet loss.\n", Timeouts);
-	        if (waitsec > 0)
-	            printf("The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
+          printf("the Packet size = %d Bytes; and \n", CurrentMSS);
+          if (PktsRetrans > 0) {
+            printf("There were %d packets retransmitted", PktsRetrans);
+            printf(", %d duplicate acks received", DupAcksIn);
+            printf(", and %d SACK blocks received\n", SACKsRcvd);
+	    if (order > 0)
+              printf("Packets arrived out-of-order %0.2f%% of the time.\n", order*100);
+            if (Timeouts > 0)
+              printf("The connection stalled %d times due to packet loss.\n", Timeouts);
+	    if (waitsec > 0)
+	      printf("The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
 			 waitsec, (100*waitsec/timesec));
-            } else if (DupAcksIn > 0) {
-                printf("No packet loss - ");
-	        if (order > 0)
-                    printf("but packets arrived out-of-order %0.2f%% of the time.\n", order*100);
-	        else
-		    printf("\n");
-            } else {
-                printf("No packet loss was observed.\n");
-            }
+          } else if (DupAcksIn > 0) {
+            printf("No packet loss - ");
+	    if (order > 0)
+              printf("but packets arrived out-of-order %0.2f%% of the time.\n", order*100);
+	    else
+		printf("\n");
+          } else {
+            printf("No packet loss was observed.\n");
+          }
 
-            if (rwintime > .015) {
-                printf("This connection is receiver limited %0.2f%% of the time.\n", rwintime*100);
-	        if ((2*(rwin/rttsec)) < mylink)
-                    printf("  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
+          if (rwintime > .015) {
+            printf("This connection is receiver limited %0.2f%% of the time.\n", rwintime*100);
+	    if ((2*(rwin/rttsec)) < mylink)
+              printf("  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
 			      (float) MaxRwinRcvd/1024);
-            }
-            if (sendtime > .015) {
-                printf("This connection is sender limited %0.2f%% of the time.\n", sendtime*100);
-	        if ((2*(swin/rttsec)) < mylink)
-                    printf("  Increasing the current send buffer (%0.2f KB) will improve performance\n",
+          }
+          if (sendtime > .015) {
+            printf("This connection is sender limited %0.2f%% of the time.\n", sendtime*100);
+	    if ((2*(swin/rttsec)) < mylink)
+              printf("  Increasing the current send buffer (%0.2f KB) will improve performance\n",
 			      (float) Sndbuf/1024);
-            }
-            if (cwndtime > .005) {
-                printf("This connection is network limited %0.2f%% of the time.\n", cwndtime*100);
-                if (cwndtime > .15)
-                    printf("  Contact your local network administrator to report a network problem\n");
-                if (order > .15)
-                    printf("  Contact your local network admin and report excessive packet reordering\n");
-            }
-	    if ((spd < 4) && (loss > .01)) {
-                printf("Excessive packet loss is impacting your performance, check the ");
-                printf("auto-negotiate function on your local PC and network switch\n");
-            }
-	    printf("\n    Web100 reports TCP negotiated the optional Performance Settings to: \n");
-	    printf("RFC 2018 Selective Acknowledgment: ");
-	    if(SACKEnabled == Zero)
-	       printf("OFF\n");
-	    else
-	       printf("ON\n");
-  
-	    printf("RFC 896 Nagle Algorithm: ");
-	    if(NagleEnabled == Zero)
-	       printf("OFF\n");
-	    else
-	       printf("ON\n");
+          }
+          if (cwndtime > .005) {
+            printf("This connection is network limited %0.2f%% of the time.\n", cwndtime*100);
+            if (cwndtime > .15)
+              printf("  Contact your local network administrator to report a network problem\n");
+            if (order > .15)
+              printf("  Contact your local network admin and report excessive packet reordering\n");
+          }
+	  if ((spd < 4) && (loss > .01)) {
+            printf("Excessive packet loss is impacting your performance, check the ");
+            printf("auto-negotiate function on your local PC and network switch\n");
+          }
+	  printf("\n    Web100 reports TCP negotiated the optional Performance Settings to: \n");
+	  printf("RFC 2018 Selective Acknowledgment: ");
+	  if(SACKEnabled == Zero)
+	     printf("OFF\n");
+	  else
+	     printf("ON\n");
 
-	    printf("RFC 3168 Explicit Congestion Notification: ");
-	    if(ECNEnabled == Zero)
-	       printf("OFF\n");
-	    else
-	       printf("ON\n");
+	  printf("RFC 896 Nagle Algorithm: ");
+	  if(NagleEnabled == Zero)
+	     printf("OFF\n");
+	  else
+	     printf("ON\n");
 
-	    printf("RFC 1323 Time Stamping: ");
-	    if(TimestampsEnabled == 0)
-	       printf("OFF\n");
-	    else
-	       printf("ON\n");
+	  printf("RFC 3168 Explicit Congestion Notification: ");
+	  if(ECNEnabled == Zero)
+	     printf("OFF\n");
+	  else
+	     printf("ON\n");
+
+	  printf("RFC 1323 Time Stamping: ");
+	  if(TimestampsEnabled == 0)
+	     printf("OFF\n");
+	  else
+	     printf("ON\n");
   
-	    printf("RFC 1323 Window Scaling: ");
-	    if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
-	       printf("OFF\n");
-	    else
-	       printf("ON; Scaling Factors - Server=%d, Client=%d\n",
-			WinScaleSent, WinScaleRcvd);
+	  printf("RFC 1323 Window Scaling: ");
+	  if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
+	     printf("OFF\n");
+	  else
+	     printf("ON, Scaling Factor Server=%d, Client=%d\n", WinScaleSent, WinScaleRcvd);
 
 	    if ((RcvWinScale == 0)&& (Sndbuf > 65535))
 		    Sndbuf = 65535;
@@ -250,7 +276,6 @@ void testResults(char *tmpstr) {
 		c2sData, c2sAck);
 	    printf("Server Data reports link is '%3d', Server Acks report link is '%3d'\n", 
 		s2cData, s2cAck);
-	  }
 	}
 }
 
@@ -489,8 +514,16 @@ int main(int argc, char *argv[])
 	int buf_size=0, set_size, k;
 	uint32_t local_addr, peer_addr;
 
+	int j;
+	fd_set rfd, wfd;
+	struct timeval sel_tv;
+	char rbuff[RECLTH], wbuff[RECLTH];
+	double s, t, secs();
+
+	struct sigaction new;
+
 	host = argv[argc-1];
-	while ((c = getopt(argc, argv, "b:dhl")) != -1) {
+	while ((c = getopt(argc, argv, "b:dhlx")) != -1) {
 	    switch (c) {
 		case 'h':
 			printf("Usage: %s {options} server\n", argv[0]);
@@ -508,16 +541,21 @@ int main(int argc, char *argv[])
 		case 'l':
 			msglvl++;
 			break;
-		default:
-			exit(0);
+		case 'x':
+			experimental++;
+			break;
 	    }
 	}
 	failed = 0;
 	hp = (struct hostent *) gethostbyname(host);
 	if (hp == NULL) {
-	    printf("Error, NDT server name/address not supplied\n");
+	    printf("Error, remote host name/address missing\n");
 	    exit (-5);
 	}
+
+	memset(&new, 0, sizeof(new));
+	new.sa_handler = cleanup;
+	sigaction(SIGPIPE, &new, NULL);
 
 	printf("Testing network path for configuration and performance problems\n");
 	bzero(&server, sizeof(server));
@@ -552,13 +590,10 @@ int main(int argc, char *argv[])
 		port3 = 1;
 		break;
 	    }
-
 	    if ((strchr(buff, ' ') != NULL) && (inlth > 6)) {
-                printf("Information: The server '%s' does not support this command line client\n",
-			host);
-                exit(0);
-            }
-
+		printf("Information: Server does not support this command line client\n");
+		exit(0);
+	    }
 	    xwait = atoi(buff);
 	    /* fprintf(stderr, "wait flag received = %d\n", xwait); */
 	    if (xwait == 0)
@@ -580,11 +615,10 @@ int main(int argc, char *argv[])
 	    inlth = read(ctlSocket, buff, 100);
 	    if (debug > 2)
 	        fprintf(stderr, "Test port numbers not received, read 2nd packet to get them\n");
-            if (inlth == 0) {
-                printf("Information: The server '%s' does not support this command line client\n",
-			host);
-                exit(0);
-            }
+	    if (inlth == 0) {
+	        printf("Information: Server does not support this command line client\n");
+	        exit(0);
+	    }
 	}
 
 	port3 = atoi(strtok(buff, " "));
@@ -633,29 +667,61 @@ int main(int argc, char *argv[])
 
 	printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
 	fflush(stdout);
+
 	tmpstr2[0] = '\0';
 	i = 0;
 	for (;;) {
 	    inlth = read(in2Socket, buff, 512);
 	    if (inlth <= 0) {
-		/* printf("read %d buffers into tmpstr2\n", i); */
+		if (debug > 0)
+		    printf("read %d buffers into tmpstr2\n", i); 
 		break;
 	    }
 	    i++;
-	    /* printf("%d characters read into buff = '%s'\n", inlth, buff); */
+	    if (debug > 5)
+		printf("%d characters read into buff = '%s'\n", inlth, buff);
 	    strncat(tmpstr2, buff, inlth);
-	    /* printf("tmpstr = '%s'\n", tmpstr2); */
+	    if (strchr(tmpstr2, '\n')) {
+		tmpstr2[strlen(tmpstr2)-1] = '\0';
+		break;
+	    }
+	    if (debug > 5)
+		printf("tmpstr2 = '%s'\n", tmpstr2);
 	}
+	if (debug > 3)
+	    printf("tmpstr2 = '%s'\n", tmpstr2);
+	if (experimental == 2) {
+	    /* set up a bi-directional test and stream data in both directions
+	     * server will log stuff, but not the client.
+	     */
+
+	    t = secs();
+	    s = t + 10.0;
+
+	    fcntl(in2Socket, F_SETFL, O_NONBLOCK);
+	    for (j=0; j++; j<RECLTH)
+		wbuff[j] = j && 0x7f;
+	    write(in2Socket, wbuff, RECLTH);
+	    while (secs() < s) {
+		read(in2Socket, rbuff, sizeof(rbuff));
+		write(in2Socket, wbuff, RECLTH);
+	    }
+	}
+
+	if (debug > 1)
+	    fprintf(stderr, "Finished bi-directional test\n");
 	printf("Done\n");
 
-        close(in2Socket);
-
 	inlth = read(ctlSocket, buff, 100); 
+	if (debug > 3)
+	    fprintf(stderr, "finished bi-dir test, received %s from server\n",
+			buff);
 	if (inlth <= 0) {  
 	    fprintf(stderr, "read failed read 'Go' flag\n");
 	    exit(-4);
 	}
 	
+        close(in2Socket);
 
 	bzero(&srv2, sizeof(srv2));
 	srv2.sin_family = AF_INET;
@@ -665,8 +731,6 @@ int main(int argc, char *argv[])
 	printf("running 10s outbound test (client to server) . . . . . ");
 	fflush(stdout);
 
-	/* inlth = read(ctlSocket, buff, 100);  */
-		
 	outSocket = socket(PF_INET, SOCK_STREAM, 0);
 	setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
@@ -689,6 +753,13 @@ int main(int argc, char *argv[])
 	    perror("Connect() for client to server failed");
 	    exit(-11);
 	}
+
+	/* open connection and wait for signal from server to begin reading data */
+	inlth = read(ctlSocket, buff, 100);
+	if (debug > 3)
+	    fprintf(stderr, "ready to start c2s test, received %s from server\n",
+			buff);
+
 	pkts = 0;
 	for (i=0; i<8192; i++)
 	    buff[i] = i % 0x7f;
@@ -702,7 +773,9 @@ int main(int argc, char *argv[])
         close(outSocket);
 	spdout = ((8.0 * pkts * lth) / 1000) / sec;
 
-	inlth = read(ctlSocket, buff, 100); 
+	if (debug > 3)
+	    fprintf(stderr, "finished c2s test, received %s from server\n",
+			buff);
 	if (spdout < 1000) 
 	    printf(" %0.2f Kb/s\n", spdout);
 	else
@@ -710,8 +783,12 @@ int main(int argc, char *argv[])
 
 	printf("running 10s inbound test (server to client) . . . . . . ");
 	fflush(stdout);
-	
+
 	inlth = read(ctlSocket, buff, 100); 
+	if (debug > 3)
+	    fprintf(stderr, "Ready to start s2c test, received %s from server\n",
+			buff);
+
 	inSocket = socket(PF_INET, SOCK_STREAM, 0);
 	setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
@@ -735,6 +812,12 @@ int main(int argc, char *argv[])
 	    exit(-15);
 	}
 
+	/* open connection and wait for signal from server to begin streaming data */
+	inlth = read(ctlSocket, buff, 100);
+	if (debug > 3)
+	    fprintf(stderr, "ready to start c2s test, received %s from server\n",
+			buff);
+
 	bytes = 0;
         sec = time(0);
 
@@ -743,7 +826,6 @@ int main(int argc, char *argv[])
         }
         sec =  time(0) - sec;
 	spdin = ((8.0 * bytes) / 1000) / sec;
-	/* inlth = read(ctlSocket, buff, 512); */
 
 	if (spdin < 1000)
 	    printf("%0.2f kb/s\n", spdin);
@@ -776,7 +858,7 @@ int main(int argc, char *argv[])
 	strcpy(varstr, tmpstr);
 	testResults(tmpstr);
 	middleboxResults(tmpstr2, local_addr, peer_addr);
-	if (msglvl > 1)
+	if (msglvl > 0)
 	    printVariables(varstr);
 
 }

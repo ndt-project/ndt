@@ -100,23 +100,29 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 			break;
 	    	case 2:	fprintf(fp, "link=T1; ");
 			break;
-	    	case 3:	fprintf(fp, "link=Enet; ");
+	    	case 3:	fprintf(fp, "link=T1+; ");
 			break;
-	    	case 4:	fprintf(fp, "link=T3; ");
+	    	case 4:	fprintf(fp, "link=wireless; ");
 			break;
-	    	case 5:	fprintf(fp, "link=FastE; ");
+	    	case 5:	fprintf(fp, "link=wireless+; ");
 			break;
-	    	case 6:	fprintf(fp, "link=OC-12; ");
+	    	case 6:	fprintf(fp, "link=Enet; ");
 			break;
-	    	case 7:	fprintf(fp, "link=GigE; ");
+	    	case 7:	fprintf(fp, "link=T3; ");
 			break;
-	    	case 8:	fprintf(fp, "link=OC-48; ");
+	    	case 8:	fprintf(fp, "link=FastE; ");
 			break;
-	    	case 9:	fprintf(fp, "link=10 GigE; ");
+	    	case 9:	fprintf(fp, "link=OC-12; ");
 			break;
-	    	case 10:	fprintf(fp, "retransmission; ");
+	    	case 10:	fprintf(fp, "link=GigE; ");
 			break;
-	    	case 11:	fprintf(fp, "link=unknown; ");
+	    	case 11:	fprintf(fp, "link=OC-48; ");
+			break;
+	    	case 12:	fprintf(fp, "link=10 GigE; ");
+			break;
+	    	case 13:	fprintf(fp, "retransmission; ");
+			break;
+	    	case 14:	fprintf(fp, "link=unknown; ");
 			break;
 	    }
 
@@ -136,10 +142,10 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 	}
 	fclose(fp);
 
-	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f\0", cur->links[0], cur->links[1],
+	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %0.2f\0", cur->links[0], cur->links[1],
 		cur->links[2], cur->links[3], cur->links[4], cur->links[5], cur->links[6],
 		cur->links[7], cur->links[8], cur->links[9], cur->links[10], cur->links[11],
-		cur->totalspd2);
+		cur->links[12], cur->links[13], cur->links[14], cur->totalspd2);
 	i = write(monitor_pipe[1], buff, 64);
 	/* i = write(monitor_pipe[1], buff, 256); */
 	if (debug > 0)
@@ -172,24 +178,30 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int por
 	    cur2->links[1]++;
 	if ((spd > 0.064) && (spd <= 1.5))
 	    cur2->links[2]++;
-	else if ((spd > 1.5) && (spd <= 10))
+	else if ((spd > 1.5) && (spd <= 3.5))
 	    cur2->links[3]++;
-	else if ((spd > 10) && (spd <=40))
+	else if ((spd > 3.5) && (spd <= 5.5))
 	    cur2->links[4]++;
-	else if ((spd > 40) && (spd <=100))
+	else if ((spd > 5.5) && (spd <=7.5))
 	    cur2->links[5]++;
-	else if ((spd > 100) && (spd <= 622))
+	else if ((spd > 7.5) && (spd <= 10))
 	    cur2->links[6]++;
-	else if ((spd > 622) && (spd <= 1000))
+	else if ((spd > 10) && (spd <=40))
 	    cur2->links[7]++;
-	else if ((spd > 1000) && (spd <= 2400))
+	else if ((spd > 40) && (spd <=100))
 	    cur2->links[8]++;
-	else if ((spd > 2400) && (spd <= 10000))
+	else if ((spd > 100) && (spd <= 622))
 	    cur2->links[9]++;
-	else if (spd == 0)
+	else if ((spd > 622) && (spd <= 1000))
 	    cur2->links[10]++;
-	else 
+	else if ((spd > 1000) && (spd <= 2400))
 	    cur2->links[11]++;
+	else if ((spd > 2400) && (spd <= 10000))
+	    cur2->links[12]++;
+	else if (spd == 0)
+	    cur2->links[13]++;
+	else 
+	    cur2->links[14]++;
 	cur2->seq = cur->seq;
 	cur2->ack = cur->ack;
 	cur2->win = cur->win;

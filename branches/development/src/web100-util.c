@@ -202,9 +202,12 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
 	    web100_perror("web100_raw_read");
         continue;
     }
-    sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
-    sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
-    write(ctlsock, line, strlen(line));
+        sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
+        sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
+    if (ctlsock > 0) {
+        write(ctlsock, line, strlen(line));
+    }
+
     if (debug > 5)
       printf("%s", line);
   }
@@ -219,7 +222,7 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
   int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin,
   int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh,
   int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
-  int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale) {
+  int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale) {
 
   int i;
     
@@ -282,8 +285,6 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
 	*MinRTT = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "RcvWinScale") == 0)
 	*RcvWinScale = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndWinScale") == 0)
-	*SndWinScale = atoi(web_vars[i].value);
   }
 
   return(0);

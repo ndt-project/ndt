@@ -52,8 +52,6 @@ int found_node;
 /* Compare tree sub-routine.  Sets global found_node flag to 
  * indicate completion status
  */
-
-/*
 compare_tree(struct tr_tree *tmp, uint32_t ip_addr)
 {
 
@@ -72,7 +70,6 @@ compare_tree(struct tr_tree *tmp, uint32_t ip_addr)
 	if ((tmp->ip_addr > ip_addr) && (found_node == 0))
 	    compare_tree(tmp->right, ip_addr);
 }
-*/
 
 /* Restore the default tree, stored by the save tree routine above.
  * Once restored, the comparison can take place.
@@ -118,8 +115,7 @@ u_int32_t find_compare (u_int32_t IPlist[], int cnt, int debug)
 	root = NULL;
 	current = NULL;
 
-	sprintf(buff, "%s/%s", BASEDIR, DFLT_TREE);
-	fp = fopen(buff, "rb");
+	fp = fopen(DFLT_TREE, "rb");
 	if (fp == NULL) {
 	    if (debug > 4) 
 	        fprintf(stderr, "Error: Can't read default tree, exiting restore_tree()\n");
@@ -160,40 +156,17 @@ u_int32_t find_compare (u_int32_t IPlist[], int cnt, int debug)
 			    ((current->branch[j]->ip_addr >> 8) & 0xff),
                 	    ((current->branch[j]->ip_addr >> 16) & 0xff), 
 			    (current->branch[j]->ip_addr >> 24));
-			fprintf(stderr, "to client node [%u.%u.%u.%u], cnt = %d\n",
+			fprintf(stderr, "to client node [%u.%u.%u.%u]\n",
 			    (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
-                	    ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24), i);
+                	    ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
 		    }
 
-		    if (current->branch[j]->ip_addr == IPlist[i]) {
+		    if ((current->branch[j]->ip_addr == IPlist[i])
+			 		&& (current->branch[j] != NULL)) {
 			current = current->branch[j];
-			found_node = 0;
 			break;
 		    }
-		    found_node = -1;
 		}
-		if (found_node == -1)
-		    break;
-	}
-
-	if (current->ip_addr == IPlist[cnt])
-	    found_node = 1;
-	if (found_node == -1) {
-	    if (debug > 5)
-		fprintf(stderr, "Broke out of compare loop, setting current pointer\n");
-	    if (current->branches == 1) {
-		current = current->branch[0];
-		if (current->branches == 0)
-		    found_node = 2;
-		else {
-		    found_node = 4;
-		    current = root;
-		}
-	    }
-	    else {
-		found_node = 3;
-		current = root;
-	    }
 	}
 
 	hp = gethostbyaddr((char *) &IPlist[i], 4, AF_INET);
@@ -205,19 +178,18 @@ u_int32_t find_compare (u_int32_t IPlist[], int cnt, int debug)
 	if (found_node == 1) {
 	    if (debug > 4)
 		fprintf(stderr, "Host %s [%u.%u.%u.%u] is remote eNDT server!\n",
-			c_name, (IPlist[cnt] & 0xff), ((IPlist[cnt] >> 8) & 0xff),
-                	((IPlist[cnt] >> 16) & 0xff),  (IPlist[cnt] >> 24));
-	    return(IPlist[cnt]);
+			c_name, (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
+                	((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
+	    return(ip_addr);
 	}
 	if (debug > 5)
-	    fprintf(stderr, "New Server Node found!  found_node set to %d\n", found_node);
-	/* for (j=0; j<current->branches; j++) {
+	    fprintf(stderr, "Leaf Node found!\n");
+	for (j=0; j<current->branches; j++) {
 		if (current->branch[j]->branches == 0) {
 		    current = current->branch[j];
 		    break;
 		}
 	}
-	*/
 	hp = (struct hostent *)gethostbyaddr((char *) &current->ip_addr, 4, AF_INET);
 	if (hp == NULL)
 		strcpy(h_name, "Unknown Host");

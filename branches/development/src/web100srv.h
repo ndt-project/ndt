@@ -39,6 +39,7 @@
 /* #define VERSION   "3.0.7" */		/* version number */
 #define BUFFSIZE  8192
 #define RECLTH    8192
+#define NOLOSS	0.0000000001
 
 #define LOGFILE "web100srv.log"
 static char lgfn[256];
