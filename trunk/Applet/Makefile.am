@@ -43,8 +43,15 @@ Tcpbw100_jar_SOURCES = Tcpbw100.jar
 am_Tcpbw100_OBJECTS = Tcpbw100.java
 Tcpbw100_LDADD = 
 
+Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
+	@rm -f Tcpbw100$(EXEEXT)
+	@if test ! -s "classTcpbw100.stamp"; then \
+	    $(GCJLINK) $(Tcpbw100_LDFLAGS) $(Tcpbw100_OBJECTS) $(Tcpbw100_LDADD) $(LIBS); \
+	    echo timestamp > classTcpbw100.stamp; \
+	else :; fi
+
 classTcpbw100stamp: $(Tcpbw100_JAVA)
-	@if test -n "$?"; then \
+	if test -n "$?"; then \
 	    echo '$(GCJ) $?' ; \
 	    $(GCJ) $?; \
 	else :; fi

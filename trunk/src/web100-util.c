@@ -145,7 +145,7 @@ void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int 
 
     if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
         if (debug > 1)
-	    web100_perror("web100_raw_read");
+	    web100_perror("web100_raw_read()");
         continue;
     }
     if (ok == 1) {
@@ -199,7 +199,7 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
 
     if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
         if (debug > 1)
-	    web100_perror("web100_raw_read");
+	    web100_perror("web100_raw_read()");
         continue;
     }
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
@@ -210,6 +210,135 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
   }
   return(0);
 
+}
+
+int web100_rtt(int sock, web100_agent* agent, int debug) {
+
+	web100_var* var;
+	web100_connection* cn;
+	char buf[32], line[64];
+	web100_group* group;
+	double count, sum;
+
+	cn = local_find_connection(sock, agent, debug);
+	if (cn == NULL)
+	    return(-10);
+
+	if ((web100_agent_find_var_and_group(agent, "CountRTT", &group, &var)) != WEB100_ERR_SUCCESS)
+	    return(-24);
+	if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
+	    return(-25);
+	}
+	count = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+
+	if ((web100_agent_find_var_and_group(agent, "SumRTT", &group, &var)) != WEB100_ERR_SUCCESS)
+	    return(-24);
+	if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
+	    return(-25);
+	}
+	sum = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+	return(sum/count);
+}
+
+int web100_autotune(int sock, web100_agent* agent, int debug) {
+
+	web100_var* var;
+	web100_connection* cn;
+	char buf[32], line[64];
+	web100_group* group;
+	int i, j=0;
+
+	cn = local_find_connection(sock, agent, debug);
+	if (cn == NULL)
+	    return(10);
+
+	if ((web100_agent_find_var_and_group(agent, "X_SBufMode", &group, &var)) != WEB100_ERR_SUCCESS)
+	    return(22);
+	if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
+	    if (debug > 3)
+		fprintf(stderr, "Web100_raw_read(X_SBufMode) failed with errorno=%d\n", errno);
+	    return(23);
+	}
+	i = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+
+	/* OK, the variable i now holds the value of the sbufmode autotune parm.  If it
+	 * is 0, autotuning is turned off, so we turn it on for this socket.
+	 */
+	if (i == 0)
+	    j |= 0x01;
+
+	/* OK, the variable i now holds the value of the rbufmode autotune parm.  If it
+	 * is 0, autotuning is turned off, so we turn it on for this socket.
+	 */
+	if ((web100_agent_find_var_and_group(agent, "X_RBufMode", &group, &var)) != WEB100_ERR_SUCCESS)
+	    return(22);
+	if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
+	    if (debug > 3)
+		fprintf(stderr, "Web100_raw_read(X_RBufMode) failed with errorno=%d\n", errno);
+	    return(23);
+	}
+	i = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+
+	if (i == 0) 
+	    j |= 0x02;
+	return(j);
+}
+
+int web100_setbuff(int sock, web100_agent* agent, int autotune, int debug) {
+
+	web100_var* var;
+	web100_connection* cn;
+	char buf[32];
+	web100_group* group;
+	int buff;
+	int sScale, rScale;
+
+	cn = local_find_connection(sock, agent, debug);
+	if (cn == NULL)
+	    return(10);
+
+	if ((web100_agent_find_var_and_group(agent, "SndWinScale", &group, &var)) != WEB100_ERR_SUCCESS)
+	    return(24);
+	if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
+	    return(25);
+	}
+	sScale = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+	if (sScale > 15)
+	    sScale = 0;
+
+	if ((web100_agent_find_var_and_group(agent, "RcvWinScale", &group, &var)) != WEB100_ERR_SUCCESS)
+	    return(34);
+	if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
+	    return(35);
+	}
+	rScale = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+	if (rScale > 15)
+	    rScale = 0;
+
+	if ((sScale > 0) && (rScale > 0)) {
+	    buff = (64 * 1024) << sScale;
+	    if (autotune & 0x01) {
+	        if ((web100_agent_find_var_and_group(agent, "LimCwnd", &group, &var)) != WEB100_ERR_SUCCESS)
+	            return(22);
+	        if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
+	            if (debug > 3)
+		        fprintf(stderr, "Web100_raw_write(LimCwnd) failed with errorno=%d\n", errno);
+	            return(23);
+	        }
+	    }
+	    buff = (64 * 1024) << rScale;
+	    if (autotune & 0x02) {
+	        if ((web100_agent_find_var_and_group(agent, "LimRwin", &group, &var)) != WEB100_ERR_SUCCESS)
+	            return(22);
+	        if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
+	            if (debug > 3)
+		        fprintf(stderr, "Web100_raw_write(LimCwnd) failed with errorno=%d\n", errno);
+	            return(23);
+	        }
+	    }
+	}
+
+	return(0);
 }
 
 int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, 
