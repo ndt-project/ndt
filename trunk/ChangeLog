@@ -21,6 +21,60 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 8/17/04
 
+1/24/05 - NDT v3.1.0
+  web100srv.c
+	Modified code to use new duplex mismatch algorighm.  The
+	current heuristic can be used by selecting the '-o' option.
+	The new algorithm use the ratio of ack pkts to data packets
+	plus the ratio of send vs receive speed.  This algorithm
+	came from the analytical analysis done in late 04 and early
+	05.  
+
+  web100clt.c
+	Modified code to use new asymmeteric speed to print out
+	mismatch direction (NIC = full or half).  The existing
+	code simply accepts the mismatch variable from the server
+	so no other change was needed.
+
+  Tcpbw100.java v5.3.3c
+	Same as above, lets the applet print the right direction
+	message.
+
+1/24/05 - Tcpbw100.java v5.3.3b
+	David Richter <richterd@citi.umich.edu> reformated the 
+	raw java file, making it MUCH easier to understand what
+	is going on.
+
+1/19/05 - NDT v3.1.0
+  analyze.c
+	Bug fix to handle letter 'p' in host name.  The word
+	'port' signifizes the start of a new test.  The code
+	uses the strchr() function to find the letter 'p' in
+	the input string.  Code would fail if hostname contained
+	the letter 'p'.
+
+	Added code to calculate and report mismatch state based
+	on new mismatch algorithm using ack to data packet ratio
+	and upload to download speed ratio.  
+
+12/14/04 - NDT v3.0.24
+  web100srv.c
+	Modified data receive loop to use timer to prevent
+	routine from hanging in read loop forever.  Used
+	select() with 12 second wait time.  Test should run
+	for 10 seconds so loop should exit normally.  If not
+	then loop is killed after 12 seconds.  Note: Linux updates
+	the time value everytime select() exits - due to r/w
+	signal on socket.  This means you don't need to re-insert
+	a new time.  BSD does not work this way and needs a different
+	mechanism (see web100clt code).
+
+12/8/04 - NDT v3.0.24
+  web100clt.c
+	Modified data receive loop to use timer to prevent
+	routine from hanging in read state forever.  Used Select()
+	to run 12 second timers.
+
 11/28/04 - NDT v3.0.24
   web100srv.c
 	Added in some autotuning code.  The web100 kernel patch 

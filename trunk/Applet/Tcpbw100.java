@@ -112,6 +112,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	double mylink;
 	double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
+	double aspd;
 
 
 
@@ -121,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.3b\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.3c\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -657,13 +658,13 @@ public class Tcpbw100 extends Applet implements ActionListener
 			if (mismatch == 1) {
 				results.append("Alarm: Duplex mismatch condition exists: ");
 				emailText += "Alarm: Duplex mismatch condition exists: ";
-				if ((spd < 5) && (mylink == 100)) {
-					results.append("Host set to FD and Switch set to HD\n");
-					emailText += "Host set to FD and Switch set to HD\n%0A";
+				if (order < 1) {
+					results.append("Host set to Full and Switch set to Half duplex\n");
+					emailText += "Host set to Full and Switch set to Half duplex\n%0A";
 				}
 				else {
-					results.append("Host set to HD and Switch set to FD\n");
-					emailText += "Host set to HD and Switch set to FD\n%0A";
+					results.append("Host set to Half and Switch set to Full duplex\n");
+					emailText += "Host set to Half and Switch set to Full duplex\n%0A";
 				}
 			}
  			if (mismatch == 2) {
@@ -740,10 +741,10 @@ public class Tcpbw100 extends Applet implements ActionListener
 				statistics.append("Normal duplex operation found.\n");
 			else if (mismatch == 1) {
 				statistics.append("Alarm: Duplex mismatch condition found:  ");
-				if (order < 0.1)
-					statistics.append("Host set to FD and Switch set to HD\n");
+				if (order < 1)
+					statistics.append("Host set to Full and Switch set to Half duplexD\n");
 				else
-					statistics.append("Host set to HD and Switch set to FD\n");
+					statistics.append("Host set to Half and Switch set to Full duplexD\n");
 			}
 			else if (mismatch == 2) {
 				statistics.append("Alarm: Duplex Mismatch condition on switch-to-switch uplink! ");
@@ -790,8 +791,12 @@ public class Tcpbw100 extends Applet implements ActionListener
 				"% of the time.\n");
 				emailText += "This connection is receiver limited " + prtdbl(rwintime*100) +
 				"% of the time.\n%0A";
+
+			// I think there is a bug here, it sometimes tells you to increase the buffer
+			// size, but the new size is smaller than the current.
+
 				if ((2*(rwin/rttsec)) < mylink) {
-					statistics.append("  Increasing the current receive buffer (" + prtdbl(MaxRwinRcvd/1024) +
+					statistics.append("  Increasing the the client's receive buffer (" + prtdbl(MaxRwinRcvd/1024) +
 					" KB) will improve performance\n");
 				}
 			}
@@ -801,17 +806,17 @@ public class Tcpbw100 extends Applet implements ActionListener
 				emailText += "This connection is sender limited " + prtdbl(sendtime*100) +
 				"% of the time.\n%0A";
 				if ((2*(swin/rttsec)) < mylink) {
-					statistics.append("  Increasing the current send buffer (" + prtdbl(Sndbuf/1024) +
+					statistics.append("  Increasing the NDT server's send buffer (" + prtdbl(Sndbuf/1024) +
 					" KB) will improve performance\n");
 				}
 			}
 			if (cwndtime > .005) {
 				statistics.append("This connection is network limited " + prtdbl(cwndtime*100) + "% of the time.\n");
 				emailText += "This connection is network limited " + prtdbl(cwndtime*100) + "% of the time.\n%0A";
-				if (cwndtime > .15)
-					statistics.append("  Contact your local network administrator to report a network problem\n");
-				if (order > .15)
-					statistics.append("  Contact your local network admin and report excessive packet reordering\n");
+				// if (cwndtime > .15)
+				//	statistics.append("  Contact your local network administrator to report a network problem\n");
+				// if (order > .15)
+				//	statistics.append("  Contact your local network admin and report excessive packet reordering\n");
 			}
 			if ((spd < 4) && (loss > .01)) {
 				statistics.append("Excessive packet loss is impacting your performance, check the ");
@@ -851,10 +856,10 @@ public class Tcpbw100 extends Applet implements ActionListener
 			diagnosis.append("\n");
 
 
-			diagnosis.append("Checking for mismatch condition\n\t(cwndtime > .3) " +
-				"[" + prtdbl(cwndtime) + ">.3], (MaxSsthresh > 0) [" + MaxSsthresh +
-				">0],\n\t (PktsRetrans/sec > 2) [" + prtdbl(PktsRetrans/timesec) + ">2], " +
-				"(estimate > 2) [" + prtdbl(estimate) + ">2]\n");
+			// diagnosis.append("Checking for mismatch condition\n\t(cwndtime > .3) " +
+			//	"[" + prtdbl(cwndtime) + ">.3], (MaxSsthresh > 0) [" + MaxSsthresh +
+			//	">0],\n\t (PktsRetrans/sec > 2) [" + prtdbl(PktsRetrans/timesec) + ">2], " +
+			//	"(estimate > 2) [" + prtdbl(estimate) + ">2]\n");
 
 			diagnosis.append("Checking for mismatch on uplink\n\t(speed > 50 [" +
 				prtdbl(spd) + ">50], (xmitspeed < 5) [" + prtdbl(spdout) +
@@ -1080,6 +1085,8 @@ public class Tcpbw100 extends Applet implements ActionListener
 			cwin = sysval;
 		else if(sysvar.equals("spd:")) 
 			spd = sysval;
+		else if(sysvar.equals("aspd:")) 
+			aspd = sysval;
 	} // save_dbl_values()
 
 

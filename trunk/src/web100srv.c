@@ -81,6 +81,7 @@ int view_flag=0;
 int port=PORT, record_reverse=0;
 int testing, waiting;
 int experimental=0;
+int old_mismatch=0;	/* use the old duplex mismatch detection heuristic */
 
 extern int errno;
 
@@ -550,6 +551,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	double bw2, avgrtt, timesec, loss2, RTOidle;
 	double bwin, bwout, bytes=0;
  	double s, t, secs();
+	double acks, aspd;
 	float runave;
 
 	struct sockaddr_in spd_addr, spd_addr2, spd_cli;
@@ -1106,16 +1108,25 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    spd = ((double)DataBytesOut / (double)totaltime) * 8;
 	    waitsec = (double) (CurrentRTO * Timeouts)/1000;
 
-	    if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-	        (MaxSsthresh > 0) && (RTOidle > .01))
-  	    {	mismatch = 1;
-    		    link = 0;
-  	    }
+	    if (old_mismatch == 1) {
+	        if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
+	            (MaxSsthresh > 0) && (RTOidle > .01))
+  	        {	mismatch = 1;
+    		        link = 0;
+  	        }
 
-	    /* test for uplink with duplex mismatch condition */
-	    if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss2 < .01)) {
-    		mismatch = 2;
-    		link = 0;
+	        /* test for uplink with duplex mismatch condition */
+	        if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss2 < .01)) {
+    		    mismatch = 2;
+    		    link = 0;
+	        }
+	    } else {
+	        acks = (double) AckPktsIn / (double) DataPktsOut;
+	        aspd = (double) bwin / (double) bwout;
+	        if ((((oo_order > 0.2) && (acks > 0.7)) || (acks < 0.35))
+		        && ((aspd > 3.0) || (aspd < 0.005))) {
+		    mismatch = 1;
+	        }
 	    }
 
 	    /* estimate is less than throughput, something is wrong */
@@ -1168,8 +1179,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		rwintime, sendtime, cwndtime, rwin, swin);
 	write(ctlsockfd, buff, strlen(buff));
 
-	sprintf(buff, "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\n",
-		cwin, rttsec, Sndbuf);
+	sprintf(buff, "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\n",
+		cwin, rttsec, Sndbuf, aspd);
 	write(ctlsockfd, buff, strlen(buff));
 	
        	fp = fopen(LogFileName,"a");
@@ -1255,7 +1266,7 @@ char	*argv[];
 
 
 	opterr = 0;
-	while ((c = getopt(argc, argv, "adxhmqrstvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "adxhmoqrstvb:c:p:f:i:l:")) != -1){
 	    switch (c) {
 		case 'c':
 			ConfigFileName = optarg;
@@ -1281,7 +1292,7 @@ char	*argv[];
 	LoadConfig(&lbuf, &lbuf_max);
 	debug = 0;
 
-	while ((c = getopt(argc, argv, "adxhmqrstvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "adxhmoqrstvb:c:p:f:i:l:")) != -1){
 	    switch (c) {
 		case 'r':
 			record_reverse = 1;
@@ -1293,6 +1304,7 @@ char	*argv[];
 			printf("\t\tNote: add multiple d's (-ddd) for more details\n");
 			printf("\t-h \tprint help message (this message)\n");
 			printf("\t-m \tselect single or multi-test mode\n");
+			printf("\t-o \tuse old Duplex Mismatch heuristic\n");
 			printf("\t-q \tdisable FIFO queuing of client requests\n");
 			printf("\t-r \trecord client to server Web100 variables\n");
 			printf("\t-s \texport Web100 data via the syslog() LOG_LOCAL0 facility\n");
@@ -1322,6 +1334,9 @@ char	*argv[];
 			break;
 		case 'l':
 			LogFileName = optarg;
+			break;
+		case 'o':
+			old_mismatch = 1;
 			break;
 		case 'm':
 			multiple = 1;
