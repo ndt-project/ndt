@@ -483,6 +483,11 @@ static void LoadConfig(char **lbuf, size_t *lbuf_max)
 		break;
 	    }
 
+	    else if (strncasecmp(key, "debug", 5) == 0) {
+		debug = atoi(val);
+		break;
+	    }
+
 	    else if (strncasecmp(key, "variable_file", 6) == 0) {
 		VarFileName = val;
 		break;
@@ -503,7 +508,12 @@ static void LoadConfig(char **lbuf, size_t *lbuf_max)
 		break;
 	    }
 
-	    else if (strncasecmp(key, "noqueueing", 3) == 0) {
+	    else if (strncasecmp(key, "syslog", 6) == 0) {
+		usesyslog = 1;
+		break;
+	    }
+
+	    else if (strncasecmp(key, "disable_FIFO", 5) == 0) {
 		queue = 0;
 		break;
 	    }
