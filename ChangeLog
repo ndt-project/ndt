@@ -16,6 +16,30 @@ server for later analysis.
 
 Rich Carlson	6/7/02
 
+8/16/04	- ndt v3.0.19
+  web100clt.c
+	bugfix.  The mylink variable was not being set, so buffer
+	size recommendation messages were not being given.  
+
+	Added code to print an information message if the receive
+	buffer could more than double throughput.  New message will
+	calcualte the buffer size required to maximize throughput.
+	Note value can be verified by using the -b# option.
+
+  Tcpbw100.java v5.3.3a
+	Same changes were made to the applet version.  
+
+8/9/04 - ndt v3.0.19
+  web100srv.c
+	bugfix.  change byte descriptor from int to double to prevent
+	overrunning at greater than gigabit rates (caused negative
+	throughput rates to be reported).
+
+	Added in new "-s" for syslog, option.  This option causes
+	the server to write usage statistics using the syslog
+	facility at local0 levels.  This will allow the data to be
+	sent to a remote host for archival purposes.
+
 7/28/04 - ndt v3.0.18
   tcpbw100.template
 	This file is modified by the create-html.sh script creating

@@ -18,6 +18,7 @@
 #include  <string.h>
 #include  <unistd.h>
 #include  <fcntl.h>
+#include  <syslog.h>
 
 #include  <sys/types.h>
 #include  <sys/socket.h>
@@ -40,10 +41,12 @@
 #define BUFFSIZE  8192
 #define RECLTH    8192
 
-#define LOGFILE "web100srv.log"
+#define LOGFILE "web100srv.log"		/* Name of log file */
 static char lgfn[256];
-#define WEB100_VARS 128	/*number of web100 variables you want to access*/
-#define WEB100_FILE "web100_variables"  /*names of the variables to access*/
+#define WEB100_VARS 128			/* number of web100 variables you want to access*/
+#define WEB100_FILE "web100_variables"  /* names of the variables to access*/
+#define LOG_FACILITY LOG_LOCAL0		/* Syslog facility to log at */
+
 static char wvfn[256];
 
 /* this file needs to be fixed, as fakewww needs to export it */
@@ -62,6 +65,7 @@ struct ndtchild {
 	char addr[64];
 	char host[256];
 	int stime;
+	int qtime;
 	int pipe;
 	int ctlsockfd;
 	struct ndtchild *next;

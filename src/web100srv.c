@@ -70,6 +70,7 @@ int randomize=0;
 int count_vars=0;
 int debug=0;
 int dumptrace=0;
+int usesyslog=0;
 int multiple=0;
 int set_buff=0;
 int port2, port3;
@@ -85,6 +86,7 @@ extern int errno;
 
 char *VarFileName=NULL;
 char *LogFileName=NULL;
+char *ProcessName={"web100srv"};
 char *ConfigFileName=NULL;
 char buff[BUFFSIZE+1];
 char *rmt_host;
@@ -166,7 +168,7 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 		calculate_spd(&current, &fwd, port2, port3);
 	    else if (current.sport == port3)
 		calculate_spd(&current, &fwd, port2, port3);
-	    else if (debug > 0)
+	    if (debug > 5)
 		fprintf(stderr, "Fault: forward packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -175,7 +177,7 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 		calculate_spd(&current, &rev, port2, port3);
 	    else if (current.dport == port3)
 		calculate_spd(&current, &rev, port2, port3);
-	    else if (debug > 0)
+	    if (debug > 5)
 		fprintf(stderr, "Fault: reverse packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -512,9 +514,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	char date[32], *ctime();
 	char spds[4][256], buff2[32], tmpstr[256];
+	char logstr1[4096], logstr2[1024];
 
 	int maxseg=1456, largewin=128*1024;
-	int sock2, sock3, sock4, bytes=0;
+	int sock2, sock3, sock4; 
 	int n,sockfd, midsockfd, recvsfd, xmitsfd, clilen, childpid, servlen, one=1;
 	int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
 	int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
@@ -534,7 +537,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	double rwintime, cwndtime, sendtime;
 	double oo_order, waitsec;
 	double bw2, avgrtt, timesec, loss2, RTOidle;
-	double bwin, bwout;
+	double bwin, bwout, bytes=0;
  	double s, t, secs();
 	float runave;
 
@@ -1106,6 +1109,25 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		    CongestionSignals, PktsOut, MinRTT, RcvWinScale);
        	    fclose(fp);
 	}
+	if (usesyslog == 1) {
+       	    sprintf(logstr1,"client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
+      	        rmt_host, bwin, bwout, Timeouts, SumRTT, CountRTT, PktsRetrans,
+ 	        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
+       	    sprintf(logstr2,"MaxRwinRcvd=%d,Sndbuf=%d,MaxCwnd=%d,SndLimTimeRwin=%d,SndLimTimeCwnd=%d,SndLimTimeSender=%d,DataBytesOut=%d,SndLimTransRwin=%d,SndLimTransCwnd=%d,SndLimTransSender=%d,MaxSsthresh=%d,CurrentRTO=%d,CurrentRwinRcvd=%d,",
+ 	        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
+ 	        SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
+ 	        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
+	    strcat(logstr1, logstr2);
+       	    sprintf(logstr2,"link=%d,mismatch=%d,bad_cable=%d,half_duplex=%d,congestion=%d,c2sdata=%d,c2sack=%d,s2cdata=%d,s2cack=%d,CongestionSignals=%d,PktsOut=%d,MinRTT=%d,RcvWinScale=%d\n",
+  	        link, mismatch, bad_cable, half_duplex, congestion,
+ 		c2sdata, c2sack, s2cdata, s2cack,
+		CongestionSignals, PktsOut, MinRTT, RcvWinScale);
+	    strcat(logstr1, logstr2);
+	    syslog(LOG_FACILITY|LOG_INFO, "%s", logstr1);
+	    closelog();
+	    if (debug > 3)
+	        fprintf(stderr, "%s", logstr1);
+	}
 	/* send web100 results for xmitsfd */
 	close(xmitsfd); 
 	close(sock3); 
@@ -1150,7 +1172,7 @@ char	*argv[];
 
 
 	opterr = 0;
-	while ((c = getopt(argc, argv, "adxhmqrtvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "adxhmqrstvb:c:p:f:i:l:")) != -1){
 	    switch (c) {
 		case 'c':
 			ConfigFileName = optarg;
@@ -1176,7 +1198,7 @@ char	*argv[];
 	LoadConfig(&lbuf, &lbuf_max);
 	debug = 0;
 
-	while ((c = getopt(argc, argv, "adxhmqrtvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "adxhmqrstvb:c:p:f:i:l:")) != -1){
 	    switch (c) {
 		case 'r':
 			record_reverse = 1;
@@ -1190,6 +1212,7 @@ char	*argv[];
 			printf("\t-m \tselect single or multi-test mode\n");
 			printf("\t-q \tdisable FIFO queuing of client requests\n");
 			printf("\t-r \trecord client to server Web100 variables\n");
+			printf("\t-s \texport Web100 data via the syslog() LOG_LOCAL0 facility\n");
 			printf("\t-t \twrite tcpdump formatted file to disk\n");
 			printf("\t-x \tenable any experimental code\n");
 			printf("\t-v \tprint version number\n");
@@ -1222,6 +1245,9 @@ char	*argv[];
 			break;
 		case 'q':
 			queue = 0;
+			break;
+		case 's':
+			usesyslog = 1;
 			break;
 		case 't':
 			dumptrace = 1;
@@ -1257,9 +1283,14 @@ char	*argv[];
 		sprintf(wvfn, "%s/%s", BASEDIR, WEB100_FILE);
 		VarFileName = wvfn;
 	}
+	/* if (usesyslog == 1) {
+	 * 	openlog(NULL, LOG_CONS, LOG_FACILITY|LOG_NOTICE);
+	 * }
+	 */
 	if (debug > 0) {
 	    fprintf(stderr, "ANL/Internet2 NDT ver %s\n", VERSION);
 	    fprintf(stderr, "\tVariables file = %s\n\tlog file = %s\n", VarFileName, LogFileName);
+	    fprintf(stderr, "\tDebug level set to %d\n", debug);
 	}
 
 	if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -1319,7 +1350,9 @@ char	*argv[];
         	VERSION, ctime(&c)+4);
             fclose(fp);
 	}
-
+	if (usesyslog == 1)
+	    syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started\n",
+                VERSION);
 	/*
 	 * Wait at accept() for a new connection from a client process.
 	 */
@@ -1345,7 +1378,7 @@ char	*argv[];
                  * }
 		 */
 
-		if (debug > 4)
+		if (debug > 2)
 		    if (head_ptr == NULL)
 			fprintf(stderr, "nothing in queue\n");
 		    else
@@ -1360,6 +1393,25 @@ char	*argv[];
 		    if (debug > 2)
 			fprintf(stderr, "Waiting for new connection, timer running\n");
 		    rc = select(sockfd+1, &rfd, NULL, NULL, &sel_tv);
+		    c = time(0);
+		    if (head_ptr != NULL) {
+		        if (debug > 2) 
+			    fprintf(stderr, "now = %d Process started at %d, run time = %d\n", 
+					c, head_ptr->stime, (c - head_ptr->stime));
+		        if (c - head_ptr->stime > 60) {
+			    /* process is stuck at the front of the queue. */
+        		    fp = fopen(LogFileName,"a");
+			        if (fp != NULL) {
+			        fprintf(fp, "Killing off stuck process %d at %15.15s\n", 
+					head_ptr->pid, ctime(&c)+4);
+				fclose(fp);
+			    }
+			    tmp_ptr = head_ptr->next;
+			    kill(head_ptr->pid, 0);
+			    free(head_ptr);
+			    head_ptr = tmp_ptr;
+		        }
+		    }
 		}
 		else {
 		    if (debug > 2)
@@ -1439,7 +1491,8 @@ char	*argv[];
 			new_child->pid = chld_pid;
 			strcpy(new_child->addr, rmt_host);
 			strcpy(new_child->host, name);
-			new_child->stime = i;
+			new_child->stime = i + (waiting*45);
+			new_child->qtime = i;
 			new_child->pipe = chld_pipe[1];
 			new_child->ctlsockfd = ctlsockfd;
 			new_child->next = NULL;
@@ -1530,6 +1583,7 @@ char	*argv[];
 			 * request.
 			 */
 
+		      head_ptr->stime = time(0);
 		      multi_client:
 			if (multiple == 1) {
 			    write(ctlsockfd, "0", 1);
