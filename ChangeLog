@@ -16,6 +16,24 @@ server for later analysis.
 
 Rich Carlson	6/7/02
 
+7/9/06 - ndt v3.0.15
+  web100clt.c
+	Added fflush() commands to code following "running xxx to yyy"
+	test message.  This allows the message to appear on the screen
+	now, instead of when the test results are obtained
+
+  tr-tree.c
+	Changes and bug fixes to the Federation mode's traceroute
+	comparison routines.  Bug fix corrects the problem where
+	the map file (Default.tree) contained an incomplete path.
+	prepended BASEDIR variable to file name.
+	New comparison logic to detemine when route to client 
+	diverges from route to a remote NDT server.  Handles
+	cases where remote client is NDT server, and when
+	paths diverge early.  (Note: local NDT servers's IP
+	address MUST be root node in the map.  This is achieved
+	by making the 1st traceroute to `uanme -n`.
+
 7/6/04 - analyze.c
   Bug fixes.  The analyze program allows you to review the data
     found in the web100srv.log file.  These changes include making
