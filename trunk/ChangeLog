@@ -16,6 +16,14 @@ server for later analysis.
 
 Rich Carlson	6/7/02
 
+7/28/04 - ndt v3.0.18
+  tcpbw100.template
+	This file is modified by the create-html.sh script creating
+	the main NDT web page (tcpbw100.html).  The applet code now
+	resides in a table, allowing the applet to appear in the
+	center of the window, and not randomly aligned.  The list of
+	public servers was also modified to include the new NSF server.
+
 7/15/04 - ndt v3.0.17
   fakewww.c
 	The server now writes redirect messages to the log file.

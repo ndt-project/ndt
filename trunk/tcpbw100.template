@@ -21,12 +21,14 @@ It can also identify 2 serious error conditions:
      is the username.  The 'subject' line overwrites the default message
      built into the java program.  -->
 
+<table align=center><tr><td>
 <applet code=Tcpbw100.class ARCHIVE="Tcpbw100.jar"
    width=580 height=300>
   <PARAM NAME="H" VALUE="YOURDOMAIN">
   <PARAM NAME="U" VALUE="YOUREMAIL">
   <PARAM NAME="subject" VALUE="YOURSUBJECT">
 </applet>
+</td></tr></table>
 
 <br>
 <a href="mailto:YOUREMAIL@YOURDOMAIN?subject=YOURSUBJECT
@@ -87,6 +89,7 @@ and Research Network (Switzerland)</a>
 <li><a href=http://nitro.ucsc.edu/>University of California - Santa Cruz CA (USA)</a>
 <li><a href=http://netspeed.stanford.edu/>Stanford University - Palo Alto CA (USA)</a>
 <li><a href=http://jlab4.jlab.org:7123>Thomas Jefferson National Accelerator Facility - VA (USA)</a>
+<li><a href=http://ciseweb100.cise-nsf.gov:7123>National Science Foundation - VA (USA)</a>
 </ul>
 <br><br>
 <h3>Other bandwidth testing sites:</h3>
