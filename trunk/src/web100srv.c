@@ -729,8 +729,25 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 * Data will be processed by the read loop below.
 	 */
 	t = secs();
-	while((n = read(recvsfd, buff, sizeof(buff))) > 0)
-	       bytes += n;
+	sel_tv.tv_sec = 12;
+	sel_tv.tv_usec = 0;
+	FD_ZERO(&rfd);
+	FD_SET(recvsfd, &rfd);
+	for (;;) {
+	    ret = select(recvsfd+1, &rfd, NULL, NULL, &sel_tv);
+	    if (ret > 0) {
+		n = read(recvsfd, buff, sizeof(buff));
+		if (n == 0)
+		    break;
+		bytes += n;
+		continue;
+	    }
+	    break;
+	}
+
+	/* while((n = read(recvsfd, buff, sizeof(buff))) > 0)
+	 *       bytes += n;
+	 */
 	t = secs()-t;
 	bwout = (8.e-3 * bytes) / t;
 	sprintf(buff, "%6.0f Kbs outbound", bwout);

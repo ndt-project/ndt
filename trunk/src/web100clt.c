@@ -502,6 +502,8 @@ int main(int argc, char *argv[])
 	char *host;
 	int buf_size=0, set_size, k;
 	uint32_t local_addr, peer_addr;
+	struct timeval sel_tv;
+	fd_set rfd;
 
 	host = argv[argc-1];
 	while ((c = getopt(argc, argv, "b:dhl")) != -1) {
@@ -752,9 +754,26 @@ int main(int argc, char *argv[])
 	bytes = 0;
         sec = time(0);
 
-        while ((inlth = read(inSocket, buff, sizeof(buff))) > 0) {
-                bytes += inlth;
-        }
+        /* 
+	 * while ((inlth = read(inSocket, buff, sizeof(buff))) > 0) {
+         *         bytes += inlth;
+         * }
+	 */
+	sel_tv.tv_sec = 12;
+	sel_tv.tv_usec = 0;
+	FD_ZERO(&rfd);
+	FD_SET(inSocket, &rfd);
+	for (;;) {
+	    ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
+	    if (ret > 0) {
+		inlth = read(inSocket, buff, sizeof(buff));
+		if (inlth == 0)
+		    break;
+		bytes += inlth;
+		continue;
+	    }
+	    break;
+	}
         sec =  time(0) - sec;
 	spdin = ((8.0 * bytes) / 1000) / sec;
 	/* inlth = read(ctlSocket, buff, 512); */

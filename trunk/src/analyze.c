@@ -81,6 +81,7 @@ void calculate()
 	int congestion2=0;
 	struct hostent *hp;
 	unsigned addr;
+	double acks, aspeed;
 
 	tail[0] = tail[1] = tail[2] = tail[3] = 0;
 	head[0] = head[1] = head[2] = head[3] = 0;
@@ -251,19 +252,32 @@ void calculate()
 	spd = ((double)DataBytesOut / (double)totaltime) * 8;
 
 	mismatch2 = 0;
-	if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-	    (MaxSsthresh > 0)  && (idle > .01)) {
+	/* new test based on analysis of TCP behavior in duplex mismatch condition. */
+
+	acks = (double) AckPktsIn / (double) DataPktsOut;
+	aspeed = (double)c2sspd / (double)s2cspd;
+	printf("Acks = %0.4f,  async speed = %0.4f\n", acks, aspeed);
+	if ((((order > .2) && (acks > .7)) || (acks < .35)) && ((aspeed > 3.0) || (aspeed < 0.005))
+		) {
+		/* && (acks < .99)) { */
+		mismatch2 = 1;
+	}
+/* 	if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
+ *	    (MaxSsthresh > 0)  && (idle > .01)) {
+ */
 /*    (MaxSsthresh > 0)) { */
 /*    (MaxSsthresh > 0)  && (idle > 1)) { */
-  		mismatch2 = 1;
-    		link = 0;
-  	}
+/*   		mismatch2 = 1;
+ *    		link = 0;
+ *  	}
+ */
 
 	/* test for uplink with duplex mismatch condition */
-	if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss < .01)) {
-    		mismatch2 = 2;
-    		link = 0;
-	}
+/* 	if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss < .01)) {
+ *   		mismatch2 = 2;
+ *    		link = 0;
+ *	}
+ */
 
 	/* estimate is less than throughput, something is wrong */
 	if (bw < spd)
@@ -343,8 +357,17 @@ void calculate()
 		SndLimTransRwin/timesec, SndLimTransCwnd/timesec, SndLimTransSender/timesec);
 	printf("\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SlowStart = %d\n", 
 		(float) PktsRetrans/timesec, (float) Timeouts/timesec, MaxSsthresh);
-	printf("\tMismatch = %d (%d), Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
-		mismatch, mismatch2, bad_cable, congestion2, half_duplex);
+	printf("\tMismatch = %d (%d)", mismatch, mismatch2);
+	if (mismatch2 == 1) {
+	    if (aspeed < 1)
+		printf(" [H=F, S=H],");
+	    else
+		printf(" [H=H, S=F],");
+	}
+	else
+		printf(",");
+	printf(" Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
+		 bad_cable, congestion2, half_duplex);
 
 	/* if (c2sdata != c2sack)
 	 *    fprintf(stderr, "Warning, client to server test produced unusual results: %d != %d\n",
@@ -423,13 +446,14 @@ char	*argv[];
 	    }
 	    if ((str = strchr(buff, 'p')) != NULL) {
 		if ((strncmp(buff, "Apr", 3) == 0) || (strncmp(buff, "Sep", 3) == 0)) {
+skip2:
 		    str++;
 		    str = strchr(str, 'p');
 		    if (str == NULL)
 			goto skip1;
 		}
 		if (strncmp(str, "port", 4) != 0)
-		    goto skip1;
+		    goto skip2;
 		sscanf(buff, "%*s %*s %*s %s %*s", &ip_addr);
 		if (debug > 0)
 		    printf("Start of New Packet trace\n");
