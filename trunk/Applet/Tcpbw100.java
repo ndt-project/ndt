@@ -120,7 +120,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	  failed = false ;
 	  Randomize = false;
 	  cancopy = false;
-	  results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.2a\n",15,70);
+	  results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.2b\n",15,70);
 	  results.setEditable(false);
 	  add(results);
 	  results.append("click START to begin\n");
@@ -777,7 +777,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	    statistics.append("Normal duplex operation found.\n");
 	  else if (mismatch == 1) {
 	    statistics.append("Alarm: Duplex mismatch condition found:  ");
-		if ((spd < 5) && (link == 100))
+		if (order < 0.1)
 		  statistics.append("Host set to FD and Switch set to HD\n");
 	 	else
 		  statistics.append("Host set to HD and Switch set to FD\n");
@@ -1210,6 +1210,14 @@ public class Tcpbw100 extends Applet implements ActionListener
 	s2cAck = sysval;
     else if(sysvar.equals("PktsOut:"))
 	PktsOut = sysval;
+    else if(sysvar.equals("mismatch:"))
+	mismatch = sysval;
+    else if(sysvar.equals("congestion:"))
+	congestion = sysval;
+    else if(sysvar.equals("bad_cable:"))
+	bad_cable = sysval;
+    else if(sysvar.equals("half_duplex:"))
+	half_duplex = sysval;
     else if(sysvar.equals("CongestionSignals:"))
 	CongestionSignals = sysval;
     else if(sysvar.equals("RcvWinScale:"))

@@ -16,6 +16,35 @@ server for later analysis.
 
 Rich Carlson	6/7/02
 
+7/6/04 - analyze.c
+  Bug fixes.  The analyze program allows you to review the data
+    found in the web100srv.log file.  These changes include making
+    the program more robust in the face of errors in the log file.
+    One fix was to handle the months "Apr" and "Sep", these strings
+    were confusing the detection of the "port" string, which indicates
+    the start of a new test.  A second fix changed the number of
+    variables found in the link detection algorithm.  The program now
+    accounts for 2 different counts.  Finally, a new duplex detection
+    algorithm was implemented and it compares this algorithm to the
+    original algorithm.
+
+7/6/04 - web100srv.c v3.0.14
+  New duplex mismatch detection algorithm implemented.  This change
+    removed the test for a specific link type and addes in a test for
+    the amount of idle time due to Timeouts replaces this condition.
+    This change eliminates the false positives in my local tests.  
+
+7/6/04 - web100clt.c
+  Bug fix.  Added in missing tests to capture 4 variables (mismatch
+    half_duplex, congestion, and bad_cable) passed over from the server.
+    These use to be calculated here, but now come from the server.
+
+  Added new condition to determine if switch or host is in HD mode.  Now
+    use the out-of-order value instead of throughput rate.
+
+7/6/04 - tcpbw100.java b5.3.2b
+  Same changes as applies to web100clt.c (listed above).
+
 6/14/04 - web100srv.c v3.0.13
   bug fix to window scale detection logic.  Incorrectly applied
     winscale factor to servers send buffer.  Correct action is to

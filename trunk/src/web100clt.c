@@ -131,7 +131,7 @@ void testResults(char *tmpstr) {
 
 	  if (mismatch == 1) {
 	    printf("Alarm: Duplex mismatch condition exists: ");
-	      if ((spd < 5) && (mylink == 100)) {
+	      if (order < 0.1) {
 		printf("Host set to FD and Switch set to HD\n");
 	      }
 	      else {
@@ -416,6 +416,14 @@ save_int_values(char *sysvar, int sysval) {
 	s2cAck = sysval;
     else if(strcmp("PktsOut:", sysvar) == 0)
 	PktsOut = sysval;
+    else if(strcmp("mismatch:", sysvar) == 0)
+	mismatch = sysval;
+    else if(strcmp("bad_cable:", sysvar) == 0)
+	bad_cable = sysval;
+    else if(strcmp("congestion:", sysvar) == 0)
+	congestion = sysval;
+    else if(strcmp("half_duplex:", sysvar) == 0)
+	half_duplex = sysval;
     else if(strcmp("CongestionSignals:", sysvar) == 0)
 	CongestionSignals = sysval;
     else if(strcmp("RcvWinScale:", sysvar) == 0) {
