@@ -16,7 +16,15 @@ server for later analysis.
 
 Rich Carlson	6/7/02
 
-7/9/06 - ndt v3.0.15
+7/14/04 - ndt v3.0.16
+  web100clt.c
+	added in code to recognize old servers, those that don't
+	support queuing, and exit gracefully.  Old servers relied
+	on the client to analyze the connection data, new servers
+	perform the analysis and pass the results back to the 
+	client.
+
+7/9/04 - ndt v3.0.15
   web100clt.c
 	Added fflush() commands to code following "running xxx to yyy"
 	test message.  This allows the message to appear on the screen
