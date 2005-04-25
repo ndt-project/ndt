@@ -84,6 +84,11 @@ struct spdpair {
 	u_int32_t usec;
 	u_int32_t st_sec;
 	u_int32_t st_usec;
+	u_int32_t inc_cnt;
+	u_int32_t dec_cnt;
+	u_int32_t same_cnt;
+	u_int32_t timeout;
+	u_int32_t dupack;
 	double time;
 	double totalspd;
 	double totalspd2;

@@ -111,10 +111,10 @@ void testResults(char *tmpstr) {
 	  } else {
 	    printf("The slowest link in the end-to-end path is a ");
 	    if (c2sData == 3) {
-	      printf("10 Mbps Ethernet subnet\n");
+	      printf("10 Mbps Ethernet or WiFi 11b subnet\n");
 	      mylink = 10;
 	    } else if (c2sData == 4) {
-	      printf("45 Mbps T3/DS3 subnet\n");
+	      printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
 	      mylink = 45;
 	    } else if (c2sData == 5) {
 	      printf("100 Mbps ");
@@ -139,32 +139,50 @@ void testResults(char *tmpstr) {
 	    }
 	  }
 
-	  if (mismatch == 1) {
-	    printf("Alarm: Duplex mismatch condition exists: ");
-	      if (aspd < 1) {
-		printf("Host set to Full and Switch set to Half duplex\n");
-	      }
-	      else {
-		printf("Host set to Half and Switch set to Full duplex\n");
-	      }
-	  }
-          if (mismatch == 2) {
-            printf("Alarm: Duplex Mismatch condition on switch-to-switch uplink! ");
-            printf("Contact your network administrator.\n");
-          }
+	  /* if (mismatch == 1) {
+	   *  printf("Alarm: Duplex mismatch condition exists: ");
+	   *    if (aspd < 1) {
+	   * 	printf("Host set to Full and Switch set to Half duplex\n");
+	   *      }
+	   *     else {
+	   * 	printf("Host set to Half and Switch set to Full duplex\n");
+	   *      }
+	   * }
+           * if (mismatch == 2) {
+           *  printf("Alarm: Duplex Mismatch condition on switch-to-switch uplink! ");
+           *  printf("Contact your network administrator.\n");
+           * }
+	   */
+	  switch(mismatch) {
+		case 1 : printf("Warning: Old Duplex-Mismatch condition detected.\n");
+			 break;
 
-	  if (bad_cable == 1) {
-	    printf("Alarm: Excessive errors, check network cable(s).\n");
+		case 2 : printf("Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+			 break;
+		case 4 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+			 break;
+
+		case 3 : printf("Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+			 break;
+		case 5 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+			 break;
 	  }
-	  if (congestion == 1) {
-	    printf("Information: Other network traffic is congesting the link\n");
-	  }
-	  if ((rwin*2/rttsec) < mylink) {
-		j = (float)((mylink * avgrtt)*1000) / 8 / 1024;
-		if ((int)j < MaxRwinRcvd) {
-		    printf("Information: The receive buffer should be %0.0f ", j);
-		    printf("Kbytes to maximize throughput\n");
-		}
+
+
+	  if (mismatch == 0) {
+	      if (bad_cable == 1) {
+	          printf("Alarm: Excessive errors, check network cable(s).\n");
+	      }
+	      if (congestion == 1) {
+	          printf("Information: Other network traffic is congesting the link\n");
+	      }
+	      if ((rwin*2/rttsec) < mylink) {
+		  j = (float)((mylink * avgrtt)*1000) / 8;
+		  if ((int)j < MaxRwinRcvd) {
+		      printf("Information: The receive buffer should be %0.0f ", j);
+		      printf("Kbytes to maximize throughput\n");
+		  }
+	      }
 	  }
 
 	if (msglvl > 0) {
@@ -208,10 +226,11 @@ void testResults(char *tmpstr) {
             }
             if (cwndtime > .005) {
                 printf("This connection is network limited %0.2f%% of the time.\n", cwndtime*100);
-                if (cwndtime > .15)
-                    printf("  Contact your local network administrator to report a network problem\n");
-                if (order > .15)
-                    printf("  Contact your local network admin and report excessive packet reordering\n");
+                /* if (cwndtime > .15)
+                 *    printf("  Contact your local network administrator to report a network problem\n");
+                 * if (order > .15)
+                 *    printf("  Contact your local network admin and report excessive packet reordering\n");
+		 */
             }
 	    if ((spd < 4) && (loss > .01)) {
                 printf("Excessive packet loss is impacting your performance, check the ");
@@ -691,10 +710,10 @@ int main(int argc, char *argv[])
 	outSocket = socket(PF_INET, SOCK_STREAM, 0);
 	setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
-	if (debug > 4)
+	if (debug > 8)
 	    printf("\nSend buffer set to %d, ", set_size);
 	getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
-	if (debug > 4)
+	if (debug > 8)
 	    printf("Receive buffer set to %d\n", set_size);
 	if (buf_size > 0) {
 	    setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
@@ -711,8 +730,12 @@ int main(int argc, char *argv[])
 	    exit(-11);
 	}
 	pkts = 0;
-	for (i=0; i<8192; i++)
-	    buff[i] = i % 0x7f;
+	k = 0;
+	for (i=0; i<8192; i++) {
+	    while (!isprint(k&0x7f))
+		k++;
+	    buff[i] = (k++ % 0x7f);
+	}
 	sec = time(0);
 	stop_time = sec + 10; 
         do {
@@ -733,6 +756,13 @@ int main(int argc, char *argv[])
 	fflush(stdout);
 	
 	inlth = read(ctlSocket, buff, 100); 
+
+	/* Cygwin seems to want/need this extra getsockopt() function
+	 * call.  It certainly doesn't do anything, but the S2C test fails
+	 * at the connect() call if it's not there.  4/14/05 RAC
+	 */
+	getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+
 	inSocket = socket(PF_INET, SOCK_STREAM, 0);
 	setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
@@ -763,13 +793,29 @@ int main(int argc, char *argv[])
 	 * while ((inlth = read(inSocket, buff, sizeof(buff))) > 0) {
          *         bytes += inlth;
          * }
+	 *
+	 * Linux updates the sel_tv time values everytime select returns.  This
+	 * means that eventually the timer will reach 0 seconds and select will
+	 * exit with a timeout signal.  Other OS's don't do that so they need
+	 * another method for detecting a long-running process.  The check below
+	 * will cause the loop to terminate if select says there is something
+	 * to read and the loop has been active for over 14 seconds.  This usually
+	 * happens when there is a problem (duplex mismatch) and there is data
+	 * queued up on the server.
 	 */
-	sel_tv.tv_sec = 12;
-	sel_tv.tv_usec = 0;
+
+	
+	sel_tv.tv_sec = 13;
+	sel_tv.tv_usec = 500000;
 	FD_ZERO(&rfd);
 	FD_SET(inSocket, &rfd);
 	for (;;) {
 	    ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
+	    if ((time(0)-sec) > 14) {
+		if (debug > 4)
+		    fprintf(stderr, "Receive test running long, break out of read loop\n");
+		break;
+	    }
 	    if (ret > 0) {
 		inlth = read(inSocket, buff, sizeof(buff));
 		if (inlth == 0)
@@ -777,6 +823,8 @@ int main(int argc, char *argv[])
 		bytes += inlth;
 		continue;
 	    }
+	    if (debug > 5)
+		perror("s2c read loop exiting:");
 	    break;
 	}
         sec =  time(0) - sec;
@@ -810,6 +858,7 @@ int main(int argc, char *argv[])
 	    /* printf("tmpstr = '%s'\n", tmpstr); */
 	}
 
+        /* close(inSocket); */
         close(ctlSocket);
 	strcpy(varstr, tmpstr);
 	testResults(tmpstr);

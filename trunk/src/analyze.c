@@ -47,6 +47,9 @@
 	int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
 	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
 	int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut, RcvWinScale;
+	int CongestionOverCount, CongAvoid, SlowStart, MaxRTT, OtherReductions;
+	int CurTimeouts, AbruptTimeouts, SendStall, SubsequentTimeouts;
+	int autotune, ThruBytesAcked;
 	int link=0, mismatch=0, bad_cable=0, half_duplex=0, congestion=0, totaltime;
 	int i, spd, ret;
 	double order, idle, cpu_idle1, cpu_idle2;
@@ -82,6 +85,8 @@ void calculate()
 	struct hostent *hp;
 	unsigned addr;
 	double acks, aspeed, pureacks;
+	float cong, retrn, increase, touts, fr_ratio;
+	float retransec;
 
 	tail[0] = tail[1] = tail[2] = tail[3] = 0;
 	head[0] = head[1] = head[2] = head[3] = 0;
@@ -244,6 +249,8 @@ void calculate()
 	sendtime = (double)SndLimTimeSender/totaltime;
 	timesec = totaltime/1000000;
 	idle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
+	retrn = (float)PktsRetrans / PktsOut;
+	increase = (float)CongAvoid / PktsOut;
 
 	recvbwd = ((MaxRwinRcvd*8)/avgrtt)/1000;
 	cwndbwd = ((CurrentCwnd*8)/avgrtt)/1000;
@@ -254,25 +261,57 @@ void calculate()
 	mismatch2 = 0;
 	mismatch3 = 0;
 	mmorder = (float)(DataPktsOut - PktsRetrans - FastRetran) / DataPktsOut;
+	cong = (float)(CongestionSignals - CongestionOverCount) / PktsOut;
+	touts = (float)Timeouts / PktsOut;
+	if (PktsRetrans > 0)
+	    fr_ratio = (float)FastRetran / PktsRetrans;
+	retransec = (float)PktsRetrans / timesec;
 
 	/* new test based on analysis of TCP behavior in duplex mismatch condition. */
 
 	acks = (double) AckPktsIn / (double) DataPktsOut;
 	pureacks = (double) (AckPktsIn - DupAcksIn) / (double) DataPktsOut;
-	aspeed = (double)c2sspd / (double)s2cspd;
-	printf("Acks = %0.4f,  async speed = %0.4f\n", acks, aspeed);
+	if (s2cspd < c2sspd)
+	    aspeed = (double)c2sspd / (double)s2cspd;
+	else
+	    aspeed = (double)s2cspd / (double)c2sspd;
+	printf("Acks = %0.4f,  async speed = %0.4f, mismatch3 = %0.4f, CongOver = %d\n", acks, aspeed, cong, CongestionOverCount);
+	printf("idle = %0.4f, timeout/pkts = %0.4f, %%retranmissions = %0.2f, %%increase = %0.2f\n", idle, 
+		touts, retrn*100, increase*100);
+	printf("FastRetrans/Total = %0.4f, Fast/Retrans = %0.4f, Retrans/sec = %0.4f\n", retrn, fr_ratio, retransec);
 	/* if ((((order > .2) && (acks > .7)) || (acks < .35)) && ((aspeed > 3.0) || (aspeed < 0.005)) */
-	if ((order > .2) && ((acks > .7) || (acks < .35)) && (c2sdata > 2)) {
-		/* && (acks < .99)) { */
+	/* if ((order > .2) && ((acks > .7) || (acks < .35)) && (c2sdata > 2)) { */
+	/* if (((4*c2sspd) < s2cspd) && (acks > 0.6) && ((c2sspd*4) < runave[0])) { */
+	/* if (((4*c2sspd) < s2cspd) && (order > 0.2) && (loss2 < 0.005)) { */
+	/* if (((20*c2sspd) < s2cspd) && (order > 0.35) && (loss2 < 0.0005)) { */
+	/* if ((retrn < 0.0020) && (fr_ratio > 0.5) && (order > 0.35)) { */
+	/* if ((retransec > 0.02) && (fr_ratio > 0.5)) { */
+	/* if ((acks < 0.97) && (order > 0.3) && (fr_ratio > 0.3) && (c2sdata > 2)) { */
+	/* if ((acks < 0.97) && (order > 0.3) && (fr_ratio > 0.3) && (aspeed < 0.0035)) { */
+	/* if ((CongestionSignals > 10) && (order > 0.3) && (cong < 0.02) && (retransec > 2.5)) { */
+	if (((acks > 0.7) || (acks < 0.3)) && (retrn > 0.03) && (CongAvoid > SlowStart)) {
+	    if ((2*CurrentMSS) == MaxSsthresh) {
 		mismatch2 = 1;
+		mismatch3 = 0;
+	    } else if (aspeed > 15){
+		mismatch2 = 2;
+	    }
 	}
-	/* if ((c2sdata > 2) && (((order > .2) && (acks > .7)) || (pureacks < .40))) {
-	 * 	mismatch3 = 1;
-	 * } 
-	 */
+	/* if ((c2sdata > 2) && (((order > .2) && (acks > .7)) || (pureacks < .40))) { */
 	/* if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((acks > .7) || (acks < .35))) { */
-	if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((bw2*1000) > s2cspd)) {
+	/* if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((bw2*1000) > s2cspd)) { */
+	/* if (cong > 0.025) { */
+	/* if ((cwndtime > 0.9) && (retrn > 0.075)) { */
+	/* if ((loss2 > 0.01) && (increase > 0.05) && (c2sdata > 2)) { */
+	/* if ((idle > 0.75) && (touts < 0.1) && (c2sspd > (4*s2cspd))) { */
+	/* if ((idle > 0.75) && (touts < 0.4) && (c2sspd > (4*s2cspd))) { */
+	if ((idle > 0.65) && (touts < 0.4)) {
+	    if (MaxSsthresh == (2*CurrentMSS)) {
+		mismatch2 = 0;
 		mismatch3 = 1;
+	    } else {
+		mismatch3 = 2;
+	    }
 	}
 /* 	if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
  *	    (MaxSsthresh > 0)  && (idle > .01)) {
@@ -306,9 +345,11 @@ void calculate()
   		link = 10;
 
 	/* test for wireless link */
+/* 
 	if ((SndLimTimeSender < 15000) && (spd < 5) && (bw > 50) &&
 		    ((SndLimTransRwin/SndLimTransCwnd) == 1) && (rwintime > .90) && (link > 0))
   		link = 3;
+ */
 
 	/* test for DSL/Cable modem link */
 	if ((SndLimTimeSender < 15000) && (spd < 2) && (spd < bw) && (link > 0))
@@ -367,18 +408,14 @@ void calculate()
 	printf("\tbw*delay = {r=%0.2f, c=%0.2f, s=%0.2f}, Transitions/sec = {r=%0.1f, c=%0.1f, s=%0.1f}\n",
 		recvbwd, cwndbwd, sendbwd,
 		SndLimTransRwin/timesec, SndLimTransCwnd/timesec, SndLimTransSender/timesec);
-	printf("\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SlowStart = %d\n", 
+	printf("\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SSThreshold = %d\n", 
 		(float) PktsRetrans/timesec, (float) Timeouts/timesec, MaxSsthresh);
 	printf("\tMismatch = %d (%d:%d[%0.2f])", mismatch, mismatch2, mismatch3, mmorder);
-	if (mismatch2 == 1) {
-	    if (aspeed < 1)
-		printf(" [H=F, S=H],");
-	    else
-		printf(" [H=H, S=F],");
-	}
-	else
-		printf(",");
-	printf(" Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
+	if (mismatch3 == 1)
+		printf(" [H=F, S=H]");
+	if (mismatch2 == 1)
+		printf(" [H=H, S=F]");
+	printf(", Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
 		 bad_cable, congestion2, half_duplex);
 
 	/* if (c2sdata != c2sack)
@@ -698,6 +735,138 @@ skip1:
 		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
 		    	goto display;
 		    RcvWinScale = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    autotune = -1;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    autotune = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    CongAvoid = -1;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    CongAvoid = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    CongestionOverCount = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    CongestionOverCount = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    MaxRTT = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    MaxRTT = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    OtherReductions = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    OtherReductions = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    CurTimeouts = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    CurTimeouts = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    AbruptTimeouts = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    AbruptTimeouts = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    SendStall = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    SendStall = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    SlowStart = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    SlowStart = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    SubsequentTimeouts = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    SubsequentTimeouts = atoi(tmpstr);
+		}
+
+		str = strchr(str, ',');
+		if (str == NULL) {
+		    ThruBytesAcked = 0;
+		    goto display;
+		}
+		else {
+		    str += 1;
+		    if (sscanf(str, "%[^,]s", tmpstr) < 1)
+		    	goto display;
+		    ThruBytesAcked = atoi(tmpstr);
 		}
 
 		str = strchr(str, ',');

@@ -136,14 +136,17 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 	}
 	fclose(fp);
 
-	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f\0", cur->links[0], cur->links[1],
+	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d\0", cur->links[0], cur->links[1],
 		cur->links[2], cur->links[3], cur->links[4], cur->links[5], cur->links[6],
 		cur->links[7], cur->links[8], cur->links[9], cur->links[10], cur->links[11],
-		cur->totalspd2);
-	i = write(monitor_pipe[1], buff, 64);
+		cur->totalspd2, cur->inc_cnt, cur->dec_cnt, cur->same_cnt, cur->timeout, cur->dupack);
+	i = write(monitor_pipe[1], buff, 128);
 	/* i = write(monitor_pipe[1], buff, 256); */
-	if (debug > 0)
+	if (debug > 5) {
 	    fprintf(stderr, "wrote %d bytes: link counters are '%s'\n", i, buff);
+	    fprintf(stderr, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d\n",
+			cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
+	}
 
 }
 
@@ -159,11 +162,22 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int por
 		bits = (cur->seq - cur2->seq) * 8;
 	    else
 		bits = 0;
+	    if (time > 200000) {
+	        cur2->timeout++;
+	    }
 	} else  {
-	    if (cur->ack >= cur2->ack)
+	    if (cur->ack > cur2->ack)
 		bits = (cur->ack - cur2->ack) * 8;
+	    else if (cur->ack == cur2->ack)
+		cur2->dupack++;
 	    else
 		bits = 0;
+	    if (cur->win > cur2->win)
+		cur2->inc_cnt++;
+	    if (cur->win == cur2->win)
+		cur2->same_cnt++;
+	    if (cur->win < cur2->win)
+		cur2->dec_cnt++;
 	}
 	spd = (bits/time);			/* convert to mbits/sec) */
 	if ((spd > 0) && (spd <= 0.01))
