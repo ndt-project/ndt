@@ -122,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4c\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4d\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -691,9 +691,9 @@ public class Tcpbw100 extends Applet implements ActionListener
 				results.append("Information: Other network traffic is congesting the link\n");
 				emailText += "Information: Other network traffic is congesting the link\n%0A";
 			    }
-			    if ((2*s2cspd) < mylink) {
+			    if (((2*rwin)/rttsec) < mylink) {
 			        j = (float)((mylink * avgrtt) * 1000) / 8;
-			        if (j < (float)MaxRwinRcvd) {
+			        if (j > (float)MaxRwinRcvd) {
 				    results.append("Information: The receive buffer should be " +
 				    prtdbl(j) + " Kbytes to maximize throughput\n");
 				    emailText += "Information: The receive buffer should be " +
@@ -808,7 +808,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 			// I think there is a bug here, it sometimes tells you to increase the buffer
 			// size, but the new size is smaller than the current.
 
-				if ((2*(rwin/rttsec)) < mylink) {
+				if (((2*rwin)/rttsec) < mylink) {
 					statistics.append("  Increasing the the client's receive buffer (" + prtdbl(MaxRwinRcvd/1024) +
 					" KB) will improve performance\n");
 				}
@@ -862,6 +862,8 @@ public class Tcpbw100 extends Applet implements ActionListener
 				statistics.append ("ON\n");
 
 			statistics.append("RFC 1323 Window Scaling: ");
+			if (MaxRwinRcvd < 65535)
+			    WinScaleRcvd = 0;
 			if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
 				statistics.append ("OFF\n");
 			else
