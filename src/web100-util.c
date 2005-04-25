@@ -348,7 +348,10 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
   int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin,
   int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh,
   int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
-  int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale) {
+  int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale,
+  int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions,
+  int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart,
+  int *SubsequentTimeouts, int *ThruBytesAcked) {
 
   int i;
     
@@ -413,7 +416,89 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
 	*RcvWinScale = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "SndWinScale") == 0)
 	*SndWinScale = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "CongAvoid") == 0)
+	*CongAvoid = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "CongestionOverCount") == 0)
+	*CongestionOverCount = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "MaxRTT") == 0)
+	*MaxRTT = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "OtherReductions") == 0)
+	*OtherReductions = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "CurTimeoutCount") == 0)
+	*CurTimeoutCount = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "AbruptTimeouts") == 0)
+	*AbruptTimeouts = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "SendStall") == 0)
+	*SendStall = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "SlowStart") == 0)
+	*SlowStart = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "SubsequentTimeouts") == 0)
+	*SubsequentTimeouts = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "ThruBytesAcked") == 0)
+	*ThruBytesAcked = atoi(web_vars[i].value);
   }
 
   return(0);
+}
+
+
+/* Routine to read snaplog file and determine the number of times the
+ * congestion window is reduced.
+ */
+
+int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt,
+		int *same_cnt, int *inc_cnt, int debug) {
+
+	web100_var* var;
+	char buff[256];
+	web100_snapshot* snap;
+	int s1, s2, cnt, rt;
+	web100_log* log;
+	web100_group* group;
+	web100_agent* agnt;
+
+	if ((log = web100_log_open_read(logname)) == NULL)
+		return(0);
+	if ((snap = web100_snapshot_alloc_from_log(log)) == NULL)
+		return(-1);
+	if ((agnt = web100_get_log_agent(log)) == NULL)
+		return(-1);
+	if ((group = web100_get_log_group(log)) == NULL)
+		return(-1);
+ 	if (web100_agent_find_var_and_group(agnt, "CurCwnd", &group, &var) != WEB100_ERR_SUCCESS)
+		return(-1);
+	s2 = 0;
+	/* 
+	ec_cnt = 0;
+	inc_cnt = 0;
+	same_cnt = 0;
+	*/
+	cnt = 0;
+	while (web100_snap_from_log(snap, log) == 0) {
+		if (cnt++ == 0)
+			continue;
+		s1 = s2;
+		rt = web100_snap_read(var, snap, buff);
+		s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
+		if ((debug > 6) && (cnt < 20)) {
+			fprintf(stderr, "Reading snaplog 0x%x (%d), var = %s\n", snap, cnt, var);
+			fprintf(stderr, "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d\n", 
+				rt, s1, s2, web100_value_to_text(web100_get_var_type(var), buff), *dec_cnt);
+		}
+		if (s2 < s1)
+			(*dec_cnt)++;
+		if (s2 == s1)
+			(*same_cnt)++;
+		if (s2 > s1)
+			(*inc_cnt)++;
+
+		if (rt != WEB100_ERR_SUCCESS)
+			break;
+	}
+	web100_snapshot_free(snap);
+	web100_log_close_read(log);
+	if (debug > 1)
+		fprintf(stderr, "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d\n",
+			*inc_cnt, *dec_cnt, *same_cnt);
+	return(0);
 }

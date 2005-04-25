@@ -133,8 +133,8 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	}
 
 	if ((sig1 == 1) || (sig2 == 1)) {
-		if (debug > 0)
-			fprintf(stderr, "Receied SIGUSRx signal terminating data collection loop for pid=%d\n", getpid());
+		if (debug > 4)
+			fprintf(stderr, "Received SIGUSRx signal terminating data collection loop for pid=%d\n", getpid());
 		if (sig1 == 1) {
 			if (debug > 3) {
 	    	      	    fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
@@ -167,8 +167,7 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 			sig2 = 2;
 		}
 		if (debug > 5)
-			fprintf(stderr, "Finished reading data from network, process %d should terminate now\n", getpid());
-		/* exit(0); */
+			fprintf(stderr, "Finished reading pkt-pair data from network, process %d should terminate now\n", getpid());
 		return;
 
 	}
@@ -211,15 +210,47 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	    rev.dport = current.sport;
 	    rev.st_sec = current.sec;
 	    rev.st_usec = current.usec;
+	    fwd.dec_cnt = 0;
+	    fwd.inc_cnt = 0;
+	    fwd.same_cnt = 0;
+	    fwd.timeout = 0;
+	    fwd.dupack = 0;
+	    rev.dec_cnt = 0;
+	    rev.inc_cnt = 0;
+	    rev.same_cnt = 0;
+	    rev.timeout = 0;
+	    rev.dupack = 0;
 	    return;
 	}
 
+	if (current.sport == port2) {
+			calculate_spd(&current, &rev, port2, port3);
+			return;
+	}
+	if (current.sport == port3) {
+			calculate_spd(&current, &fwd, port2, port3);
+			return;
+	}
+	if (current.dport == port2) {
+			calculate_spd(&current, &fwd, port2, port3);
+			return;
+	}
+	if (current.dport == port3) {
+			calculate_spd(&current, &rev, port2, port3);
+			return;
+	}
+	
+	if (debug > 5)
+		fprintf(stderr, "Fault: unknown packet received with src/dst port = %d/%d\n,", 
+				current.sport, current.dport);
+
+/* 
 	if (fwd.saddr == current.saddr) {
 	    if (current.dport == port2)
 		calculate_spd(&current, &fwd, port2, port3);
 	    else if (current.sport == port3)
 		calculate_spd(&current, &fwd, port2, port3);
-	    if (debug > 15)
+	    if ((current.sport != port2) && (debug > 15))
 		fprintf(stderr, "Fault: forward packet received with dst port = %d\n", current.dport);
 	    return;
 	}
@@ -228,10 +259,12 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		calculate_spd(&current, &rev, port2, port3);
 	    else if (current.dport == port3)
 		calculate_spd(&current, &rev, port2, port3);
-	    if (debug > 15)
+	    else if (debug > 15)
 		fprintf(stderr, "Fault: reverse packet received with dst port = %d\n", current.dport);
 	    return;
 	}
+*/
+
 }
 
 /* This routine performs the open and initialization functions needed by the
@@ -265,7 +298,6 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	    device = pcap_lookupdev(errbuf);
 	    if (device == NULL) {
 		fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
-		/* exit (0); */
 	    }
 	}
 
@@ -278,7 +310,6 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	
 	if ((pd = pcap_open_live(device, 68, !pflag, 1000, errbuf)) == NULL) {
 	    fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
-	    /* exit (0); */
 	}
 
 	if (debug > 1)
@@ -297,12 +328,10 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 
 	if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
 	    fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
-	    /* exit(0); */
 	}
 	
 	if (pcap_setfilter(pd, &fcode) < 0) {
 	    fprintf(stderr, "pcap_setfiler failed %s\n", pcap_geterr(pd));
-	    /* exit (0); */
 	}
 
 	if (dumptrace == 1) {
@@ -317,7 +346,7 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	}
 
 	printer = (pcap_handler) print_speed;
-	write(monitor_pipe[1], "Ready", 64);
+	write(monitor_pipe[1], "Ready", 128);
 
 	/* kill process off if parent doesn't send a signal. */
 	alarm(45);
@@ -329,8 +358,10 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
 	    if (debug > 4)
 		fprintf(stderr, "pcap_loop failed %s\n", pcap_geterr(pd));
-	    /* exit(0); */
 	}
+	if (debug > 4)
+		fprintf(stderr, "Pkt-Pair data collection ended, waiting for signal to terminate process\n");
+
 	if (sig1 == 2) {
 		read(mon_pipe1[0], &c, 1);
 		close(mon_pipe1[0]);
@@ -338,7 +369,8 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 		sig1 = 0;
 	}
 	if (sig2 == 2) {
-		read(mon_pipe2[0], &c, 1);
+		while ((read(mon_pipe2[0], &c, 1)) < 0)
+		    ;
 		close(mon_pipe2[0]);
 		close(mon_pipe2[1]);
 		sig2 = 0;
@@ -346,7 +378,6 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 
 	if (debug > 7)
 		fprintf(stderr, "Finally Finished reading data from network, process %d should terminate now\n", getpid());
-	/* exit(0); */
 }
 
 /* Process a SIGCHLD signal */
@@ -438,11 +469,11 @@ void cleanup(int signo)
         int pid;
 
 	if (debug > 0) {
-	    fprintf(stderr, "Signal %d received from process %d\n", signo, getpid());
+	    fprintf(stderr, "Signal %d received by process %d\n", signo, getpid());
 
 	    fp = fopen(LogFileName,"a");
 	    if (fp != NULL)
-	        fprintf(fp, "Signal %d received from process %d\n", signo, getpid());
+	        fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
 	    fclose(fp);
 	}
 	switch (signo) {
@@ -452,6 +483,9 @@ void cleanup(int signo)
 				signo, getpid());
 			fclose(fp);
 			break;
+	    case SIGSEGV:
+			if (debug > 5)
+			    fprintf(stderr, "DEBUG, caught SIGSEGV signal and terminated process (%d)\n", getpid());
 	    case SIGINT:
 	    case SIGTERM:
 			exit(0);
@@ -463,29 +497,26 @@ void cleanup(int signo)
 
 	    case SIGUSR2:
 			  sig2 = 1;
+			  if (debug > 5)
+			      fprintf(stderr, "DEBUG, caught SIGUSR2, setting sig2 flag to force exit\n");
 			  break;
 			  
 	    case SIGALRM:
-	    case SIGPIPE:
-			  pid = getpid();
   			  fp = fopen(LogFileName,"a");
-
-			  if (fp == NULL)
-			      fprintf(stderr, "Unable to open log file '%s', continuing on without logging\n",
-					    LogFileName);
-			  else {
-			      if (signo == SIGALRM) {
-  			          fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
-			  	        pid);
-			      } else {
+  			  if (fp  != NULL) {
+				fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
+			  	        getpid());
+				fclose(fp);
+			  }
+			  exit(0);
+	    case SIGPIPE:
+  			  fp = fopen(LogFileName,"a");
+			  if (fp != NULL) {
   			          fprintf(fp,"Received SIGPIPE signal: terminating active web100srv process [%d]\n",
-				        pid);
-			      }
+				        getpid());
 			      fclose(fp);
 			  }
-			  if (getpid() == ndtpid)
-				return;
-			  exit(0);
+			  break;
 
 	    case SIGHUP:
 	  		/* Initialize Web100 structures */
@@ -620,6 +651,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
 	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
 	int CurrentRTO, CurrentRwinRcvd, MaxCwnd, CongestionSignals, PktsOut, MinRTT;
+	int CongAvoid, CongestionOverCount, MaxRTT, OtherReductions, CurTimeoutCount;
+	int AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts, ThruBytesAcked;
 	int RcvWinScale, SndWinScale;
 	int link=100, mismatch=0, bad_cable=0, half_duplex=0, congestion=0, totaltime;
 	int spdi, direction=0, ret, spd_index;
@@ -628,15 +661,16 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	int spd_sock, spd_sock2, spdfd, j, i, rc;
 	int mon_pid1, mon_pid2, totalcnt, spd, stime;
 	int seg_size, win_size;
-	int autotune, rbuff, sbuff;
+	int autotune, rbuff, sbuff, k;
+	int dec_cnt, same_cnt, inc_cnt, timeout, dupack;
 
 	double loss, rttsec, bw, rwin, swin, cwin, speed;
 	double rwintime, cwndtime, sendtime;
 	double oo_order, waitsec;
 	double bw2, avgrtt, timesec, loss2, RTOidle;
-	double bwin, bwout, bytes=0;
+	double s2cspd, c2sspd, bytes=0;
  	double s, t, secs();
-	double acks, aspd;
+	double acks, aspd, tmouts, rtran;
 	float runave;
 
 	struct sockaddr_in spd_addr, spd_addr2, spd_cli;
@@ -783,7 +817,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	        init_pkttrace(&cli_addr, mon_pipe1, device);
 		exit(0);		/* Packet trace finished, terminate gracefully */
 	    }
-	    if (read(mon_pipe1[0], tmpstr, 64) <= 0) {
+	    if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
 	        printf("error & exit");
 		exit(0);
 	    }
@@ -839,8 +873,8 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 *       bytes += n;
 	 */
 	t = secs()-t;
-	bwout = (8.e-3 * bytes) / t;
-	sprintf(buff, "%6.0f Kbs outbound", bwout);
+	c2sspd = (8.e-3 * bytes) / t;
+	sprintf(buff, "%6.0f Kbs outbound", c2sspd);
 	if (debug > 0)
 	    fprintf(stderr, "%s\n", buff);
 	/* get receiver side Web100 stats and write them to the log file */
@@ -862,25 +896,27 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    sel_tv.tv_sec = 1;
 	    sel_tv.tv_usec = 100000;
 	    if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
-                if ((ret = read(mon_pipe1[0], spds[spd_index], 64)) < 0)
-	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+                if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
+	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	        if (debug > 0) {
 	            fprintf(stderr, "%d bytes read ", ret);
 	            fprintf(stderr, "'%s' from monitor pipe\n", spds[spd_index]);
 		}
 	        spd_index++;
-                if ((ret = read(mon_pipe1[0], spds[spd_index], 64)) < 0)
-	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+                if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
+	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	        if (debug > 0)
 	            fprintf(stderr, "%d bytes read '%s' from monitor pipe\n", ret, spds[spd_index]);
 	        spd_index++;
 	    } else {
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+		if (debug > 3)
+		    fprintf(stderr, "Failed to read pkt-pair data from C2S flow, reason = %d\n", errno);
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	    }
 	} else {
-	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
+	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	}
 
 	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -942,7 +978,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	            init_pkttrace(&cli_addr, mon_pipe2, device);
 		    exit(0);		/* Packet trace finished, terminate gracefully */
 	        }
-	        if (read(mon_pipe2[0], tmpstr, 64) <= 0) {
+	        if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
 	            printf("error & exit");
 		    exit(0);
 	        }
@@ -984,16 +1020,19 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    /* Kludge way of nuking Linux route cache.  This should be done
 	     * using the sysctl interface.
 	     */
-	    /* system("/sbin/sysctl -w sys.net.ipv4.route.flush=1"); */
+	    /* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
 	    system("echo 1 > /proc/sys/net/ipv4/route/flush");
 
 	    bytes = 0;
+	    k = 0;
+	    for (j=0; j<=BUFFSIZE; j++) {
+		while (!isprint(k & 0x7f))
+		    k++;
+		buff[j] = (k++ & 0x7f);
+	    }
 	    t = secs();
 	    s = t + 10.0;
 	    while(secs() < s){ 
-	        if (randomize)
-		    for(j=0; j<RECLTH; j++)
-	                buff[j] = rand() >> 24; /* defeat compression */
 	        n = write(xmitsfd, buff, RECLTH);
 	        if (n < 0 )
 		    break;
@@ -1005,13 +1044,17 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    }
 	    /* shutdown(xmitsfd,1); */  /* end of write's */
 	    t = secs() - t;
-	    bwin = (8.e-3 * bytes) / t;
+	    s2cspd = (8.e-3 * bytes) / t;
 	    if (experimental == 1) {
 		web100_snapshot_free(snap);
 		web100_log_close_write(log);
+		/* dec_cnt = CwndDecrease(agent, logname, debug); */
 	    }
 
-	    if (debug > 0)
+	    /* printf("debug: xmit socket fd = %d\n", xmitsfd); */
+	     /* web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug); */
+
+	    if (debug > 10)
 	        fprintf(stderr, "sent %d bytes to client in %0.2f seconds\n", bytes, t);
 	    /* Next send speed-chk a flag to retrieve the data it collected.
 	     * Skip this step if speed-chk isn't running.
@@ -1025,43 +1068,47 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	        FD_SET(mon_pipe2[0], &rfd);
 	        sel_tv.tv_sec = 1;
 	        sel_tv.tv_usec = 100000;
-	        if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
-                    if ((ret = read(mon_pipe2[0], spds[spd_index], 64)) < 0)
-	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	        if (ret = (select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
+                    if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
+	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	            if (debug > 0)
 	                fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
 	            spd_index++;
-                    if ((ret = read(mon_pipe2[0], spds[spd_index], 64)) < 0)
-	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+                    if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
+	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	            if (debug > 0)
 	                fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
 	            spd_index++;
 	        } else {
-	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+		    if (debug > 3)
+			fprintf(stderr, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d\n", ret, errno);
+	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
+	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	        }
 	    } else {
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
-	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
+	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	    }
 
 	    if (debug > 0)
-	        fprintf(stderr, "%6.0f Kbps inbound\n", bwin);
+	        fprintf(stderr, "%6.0f Kbps inbound\n", s2cspd);
 	}
 
-	/* printf("debug: xmit socket fd = %d\n", xmitsfd); */
-	rc = web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug);
+	printf("debug: xmit socket fd = %d\n", xmitsfd);
+	web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug); 
+
 	shutdown(xmitsfd, 1);  /* end of write's */
 	/* now when client closes other end, read will fail */
-	read(xmitsfd, buff, 1);  /* read fail/complete */
+	/* read(xmitsfd, buff, 1); */  /* read fail/complete */ 
 
 	if (debug > 3)
 	    fprintf(stderr, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps\n",
-			    bwout/1000, bwin/1000);
+			    c2sspd/1000, s2cspd/1000);
 	for (n=0; n<spd_index; n++) {
-	    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %0.2f", &links[0],
+	    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d", &links[0],
 		    &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
-		    &links[7], &links[8], &links[9], &links[10], &links[11], &runave);
+		    &links[7], &links[8], &links[9], &links[10], &links[11], &runave,
+		    &inc_cnt, &dec_cnt, &same_cnt, &timeout, &dupack);
 	    max = 0;
 	    index = 0;
 	    total = 0;
@@ -1130,14 +1177,6 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    }
 	}
 
-
-	/* send web100 results for xmitsfd */
-	/* close(xmitsfd);  */
-	/* close(sock3);  */
-	/* sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n",
-	 *	c2sdata, c2sack, s2cdata, s2cack);
-	 * write(ctlsockfd, buff, strlen(buff));
-	 */
 	if (getuid() == 0) {
 	    write(mon_pipe1[1], "", 1);
 	    close(mon_pipe1[0]);
@@ -1150,6 +1189,14 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	/* get some web100 vars */
 	/* printf("Going to get some web100 data\n"); */
+	if (experimental > 0) {
+		dec_cnt = inc_cnt = same_cnt = 0;
+		CwndDecrease(agent, logname, &dec_cnt, &same_cnt, &inc_cnt, debug);
+		if (debug > 1)
+			fprintf(stderr, "####### decreases = %d, increases = %d, no change = %d\n",
+				dec_cnt, inc_cnt, same_cnt);
+	}
+
 	web100_logvars(&Timeouts, &SumRTT, &CountRTT,
 		&PktsRetrans, &FastRetran, &DataPktsOut,
 		&AckPktsOut, &CurrentMSS, &DupAcksIn,
@@ -1159,9 +1206,12 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		&SndLimTransRwin, &SndLimTransCwnd,
 		&SndLimTransSender, &MaxSsthresh,
 		&CurrentRTO, &CurrentRwinRcvd, &MaxCwnd, &CongestionSignals,
-		&PktsOut, &MinRTT, count_vars, &RcvWinScale, &SndWinScale);
+		&PktsOut, &MinRTT, count_vars, &RcvWinScale, &SndWinScale,
+		&CongAvoid, &CongestionOverCount, &MaxRTT, &OtherReductions,
+		&CurTimeoutCount, &AbruptTimeouts, &SendStall, &SlowStart, 
+		&SubsequentTimeouts, &ThruBytesAcked);
 
-	if (rc == 0) {
+	/* if (rc == 0) { */
 	    /* Calculate some values */
 	    avgrtt = (double) SumRTT/CountRTT;
 	    rttsec = avgrtt * .001;
@@ -1195,6 +1245,9 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    sendtime = (double)SndLimTimeSender/totaltime;
 	    timesec = totaltime/1000000;
 	    RTOidle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
+	    tmouts = (double)Timeouts / PktsOut;
+	    rtran = (double)PktsRetrans / PktsOut;
+	    acks = (double)AckPktsIn / PktsOut;
 
 	    spd = ((double)DataBytesOut / (double)totaltime) * 8;
 	    waitsec = (double) (CurrentRTO * Timeouts)/1000;
@@ -1207,17 +1260,36 @@ void run_test(web100_agent* agent, int ctlsockfd) {
   	        }
 
 	        /* test for uplink with duplex mismatch condition */
-	        if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss2 < .01)) {
+	        if (((s2cspd/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss2 < .01)) {
     		    mismatch = 2;
     		    link = 0;
 	        }
 	    } else {
-	        acks = (double) AckPktsIn / (double) DataPktsOut;
-	        aspd = (double) bwin / (double) bwout;
-	        if ((((oo_order > 0.2) && (acks > 0.7)) || (acks < 0.35))
-		        && ((aspd > 3.0) || (aspd < 0.005))) {
-		    mismatch = 1;
-	        }
+		link = 0;
+		if ((CongAvoid > DupAcksIn) && (rtran > 0.3) && ((acks > 0.7) || (acks < 0.3))) {
+		    if (debug > 2) {
+			fprintf(stderr, "CongAvoid(%d) > DupAcksIn(%d), AND ", CongAvoid, DupAcksIn);
+			fprintf(stderr, "packets retransmitted (%0.2f > 30%%, AND ", 100*rtran);
+			fprintf(stderr, "70% < acks/data packets(%0.2f) < 30%%\n", 100*acks);
+		    }
+		    if ((2*CurrentMSS) == MaxSsthresh)
+			mismatch = 2;
+		    else
+			mismatch = 4;
+		}
+	        if ((RTOidle > 0.65) && (tmouts < 0.4)) {
+		    if (debug > 2) {
+		        fprintf(stderr, "Using new Duplex mismatch algorithms: idle=%0.4f, ", RTOidle);
+		        fprintf(stderr, "SSThreshold=%d, 2*MSS=%d, ", MaxSsthresh, CurrentMSS);
+		        fprintf(stderr, "Timeouts/pkt=%0.4f, c2sspd=%0.2f, 4*s2cspd=%.02f\n", tmouts,
+				    c2sspd, 4*s2cspd);
+		    }
+		    if (MaxSsthresh == (2*CurrentMSS)) {
+		        mismatch = 3;
+	            } else {
+		        mismatch = 5;
+		    }
+		}
 	    }
 
 	    /* estimate is less than throughput, something is wrong */
@@ -1230,7 +1302,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	    /* test for Ethernet link (assume Fast E.) */
 	    /* if ((bw2 < 25) && (loss2 < .01) && (rwin/rttsec < 25) && (link > 0)) */
-	    if ((spd < 9.5) && (spd > 3.0) && ((bwin/1000) < 9.5) &&
+	    if ((spd < 9.5) && (spd > 3.0) && ((s2cspd/1000) < 9.5) &&
 	        (loss2 < .01) && (oo_order < .035) && (link > 0))
   		    link = 10;
 
@@ -1252,7 +1324,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	    if ((cwndtime > .02) && (mismatch == 0) && ((cwin/rttsec) < (rwin/rttsec)))
     		    congestion = 1;
-	}    
+	/* }     */
     
 	sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n",
 		c2sdata, c2sack, s2cdata, s2cack);
@@ -1282,7 +1354,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    sprintf(date,"%15.15s", ctime(&stime)+4);
 	    fprintf(fp, "%s,", date);
        	    fprintf(fp,"%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
-      	        rmt_host,(int)bwin,(int)bwout, Timeouts, SumRTT, CountRTT, PktsRetrans,
+      	        rmt_host,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
  	        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
        	    fprintf(fp,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
  	        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
@@ -1290,13 +1362,16 @@ void run_test(web100_agent* agent, int ctlsockfd) {
  	        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
        	    fprintf(fp,"%d,%d,%d,%d,%d",
   	        link, mismatch, bad_cable, half_duplex, congestion);
-	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d\n", c2sdata, c2sack, s2cdata, s2cack,
+	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
 		    CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
+	    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", CongAvoid, CongestionOverCount, MaxRTT, 
+			OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
+			SubsequentTimeouts, ThruBytesAcked);
        	    fclose(fp);
 	}
 	if (usesyslog == 1) {
        	    sprintf(logstr1,"client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
-      	        rmt_host, bwin, bwout, Timeouts, SumRTT, CountRTT, PktsRetrans,
+      	        rmt_host, s2cspd, c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
  	        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
        	    sprintf(logstr2,"MaxRwinRcvd=%d,Sndbuf=%d,MaxCwnd=%d,SndLimTimeRwin=%d,SndLimTimeCwnd=%d,SndLimTimeSender=%d,DataBytesOut=%d,SndLimTransRwin=%d,SndLimTransCwnd=%d,SndLimTransSender=%d,MaxSsthresh=%d,CurrentRTO=%d,CurrentRwinRcvd=%d,",
  	        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
@@ -1325,15 +1400,14 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
 			CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
 			MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
-			(int)bwout, (int)bwin, c2sdata, s2cack, 1, debug);
-	    gen_html((int)bwout, (int)bwin, MinRTT, PktsRetrans, Timeouts,
+			(int)c2sspd, (int)s2cspd, c2sdata, s2cack, 1, debug);
+	    gen_html((int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
 			Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
 			debug);
 	}
 
 	/* printf("Saved data to log file\n"); */
 
-	/* exit(0); */
 }
 
 main(argc, argv)

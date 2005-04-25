@@ -106,7 +106,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	private String TARGET1 = "U";
 	private String TARGET2 = "H";
 	String emailText;
-	double spdin, spdout;
+	double s2cspd, c2sspd;
 
 	int half_duplex, congestion, bad_cable, mismatch;
 	double mylink;
@@ -122,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.3d\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4c\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -382,12 +382,18 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		OutputStream out = outSocket.getOutputStream();
 		Random rng = new Random();
+		byte c = '0';
+		for (i=0; i<8192; i++) {
+			if (c == 'z')
+			    c = '0';
+			buff[i] = c++;
+		}
 		outSocket.setSoTimeout(15000); 
 		pkts = 0;
 		t = System.currentTimeMillis();
 		stop_time = t + 10000; // ten seconds
 		do {
-			if (Randomize) rng.nextBytes(buff);
+			// if (Randomize) rng.nextBytes(buff);
 			out.write(buff,0,lth);
 			pkts++;
 		} while (System.currentTimeMillis() < stop_time);
@@ -396,7 +402,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		out.close();
 		outSocket.close();
 		//	System.out.println((8.0 * pkts * lt)h / t + " Kb/s outbound");
-		spdout = ((8.0 * pkts * lth) / 1000) / t;
+		c2sspd = ((8.0 * pkts * lth) / 1000) / t;
 
 		inlth= ctlin.read(buff, 0, buff.length); 
 		if (inlth <= 0) {  
@@ -408,15 +414,15 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		String srvresult = new String(buff,0,inlth);
 		System.out.println(srvresult + " got " + inlth );
-		if (spdout < 1.0) {
-			results.append(prtdbl(spdout*1000) + "Kb/s\n");
-			statistics.append(prtdbl(spdout*1000) + "Kb/s\n");
-			emailText += prtdbl(spdout*1000) + "Kb/s\n%0A";
+		if (c2sspd < 1.0) {
+			results.append(prtdbl(c2sspd*1000) + "Kb/s\n");
+			statistics.append(prtdbl(c2sspd*1000) + "Kb/s\n");
+			emailText += prtdbl(c2sspd*1000) + "Kb/s\n%0A";
 		} 
 		else {
-			results.append(prtdbl(spdout) + "Mb/s\n");
-			statistics.append(prtdbl(spdout) + "Mb/s\n");
-			emailText += prtdbl(spdout) + "Mb/s\n%0A";
+			results.append(prtdbl(c2sspd) + "Mb/s\n");
+			statistics.append(prtdbl(c2sspd) + "Mb/s\n");
+			emailText += prtdbl(c2sspd) + "Mb/s\n%0A";
 		}
 
 
@@ -467,15 +473,15 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		t =  System.currentTimeMillis() - t;
 		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
-		spdin = ((8.0 * bytes) / 1000) / t;
-		if (spdin < 1.0) {
-			results.append(prtdbl(spdin*1000) + "kb/s\n");
-			statistics.append(prtdbl(spdin*1000) + "kb/s\n");
-			emailText += prtdbl(spdin*1000) + "kb/s\n%0A";
+		s2cspd = ((8.0 * bytes) / 1000) / t;
+		if (s2cspd < 1.0) {
+			results.append(prtdbl(s2cspd*1000) + "kb/s\n");
+			statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
+			emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
 		} else {
-			results.append(prtdbl(spdin) + "Mb/s\n");
-			statistics.append(prtdbl(spdin) + "Mb/s\n");
-			emailText += prtdbl(spdin) + "Mb/s\n%0A";
+			results.append(prtdbl(s2cspd) + "Mb/s\n");
+			statistics.append(prtdbl(s2cspd) + "Mb/s\n");
+			emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
 		}
 
 		srvin.close();
@@ -656,39 +662,43 @@ public class Tcpbw100 extends Applet implements ActionListener
 			}
 
 			if (mismatch == 1) {
-				results.append("Alarm: Duplex mismatch condition exists: ");
-				emailText += "Alarm: Duplex mismatch condition exists: ";
-				if (order < 1) {
-					results.append("Host set to Full and Switch set to Half duplex\n");
-					emailText += "Host set to Full and Switch set to Half duplex\n%0A";
-				}
-				else {
-					results.append("Host set to Half and Switch set to Full duplex\n");
-					emailText += "Host set to Half and Switch set to Full duplex\n%0A";
-				}
+				results.append("Warning: Old Duplex mismatch condition detected: ");
+				emailText += "Warning: Old Duplex mismatch condition detected: ";
 			}
- 			if (mismatch == 2) {
-				results.append("Alarm: Duplex Mismatch condition on switch-to-switch uplink! ");
-				results.append("Contact your network administrator.\n");
-				emailText += "Alarm: Duplex Mismatch condition on switch-to-switch uplink! ";
-				emailText += "Contact your network administrator.\n%0A";
+ 			else if (mismatch == 2) {
+				results.append("Alarm: Duplex Mismatch condition detected Switch=Full and Host=half\n ");
+				emailText += "Alarm: Duplex Mismatch condition detected Switch=Full and Host=half\n%0A ";
+			}
+ 			else if (mismatch == 4) {
+				results.append("Alarm: Possible Duplex Mismatch condition detected Switch=Full and Host=half\n ");
+				emailText += "Alarm: Possible Duplex Mismatch condition detected Switch=Full and Host=half\n%0A ";
+			}
+ 			else if (mismatch == 3) {
+				results.append("Alarm: Duplex Mismatch condition detected Switch=half and Host=full\n ");
+				emailText += "Alarm: Duplex Mismatch condition detected Switch=half and Host=full\n%0A ";
+			}
+ 			else if (mismatch == 5) {
+				results.append("Alarm: Possible Duplex Mismatch condition detected Switch=half and Host=full\n ");
+				emailText += "Alarm: Possible Duplex Mismatch condition detected Switch=half and Host=full\n%0A ";
 			}
 
-			if (bad_cable == 1) {
+			if (mismatch == 0) {
+			    if (bad_cable == 1) {
 				results.append("Alarm: Excessive errors, check network cable(s).\n");
 				emailText += "Alarm: Excessive errors, check network cable(s).\n%0A";
-			}
-			if (congestion == 1) {
+			    }
+			    if (congestion == 1) {
 				results.append("Information: Other network traffic is congesting the link\n");
 				emailText += "Information: Other network traffic is congesting the link\n%0A";
-			}
-			if ((rwin*2/rttsec) < mylink) {
-			    j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
-			    if ((int)j < MaxRwinRcvd) {
-				results.append("Information: The receive buffer should be " +
-				prtdbl(j) + " Kbytes to maximize throughput\n");
-				emailText += "Information: The receive buffer should be " +
-				prtdbl(j) + " Kbytes to maximize throughput\n";
+			    }
+			    if ((2*s2cspd) < mylink) {
+			        j = (float)((mylink * avgrtt) * 1000) / 8;
+			        if (j < (float)MaxRwinRcvd) {
+				    results.append("Information: The receive buffer should be " +
+				    prtdbl(j) + " Kbytes to maximize throughput\n");
+				    emailText += "Information: The receive buffer should be " +
+				    prtdbl(j) + " Kbytes to maximize throughput\n";
+			        }
 			    }
 			}
 
@@ -742,15 +752,16 @@ public class Tcpbw100 extends Applet implements ActionListener
 			if (mismatch == 0)
 				statistics.append("Normal duplex operation found.\n");
 			else if (mismatch == 1) {
-				statistics.append("Alarm: Duplex mismatch condition found:  ");
-				if (order < 1)
-					statistics.append("Host set to Full and Switch set to Half duplexD\n");
-				else
-					statistics.append("Host set to Half and Switch set to Full duplexD\n");
+				statistics.append("Warning: Old Duplex mismatch condition detected: ");
+				emailText += "Warning: Old Duplex mismatch condition detected: ";
 			}
-			else if (mismatch == 2) {
-				statistics.append("Alarm: Duplex Mismatch condition on switch-to-switch uplink! ");
-				statistics.append("Contact your network administrator.\n");
+ 			else if (mismatch == 2) {
+				statistics.append("Alarm: Duplex Mismatch condition detected Switch=Full and Host=half\n ");
+				emailText += "Alarm: Duplex Mismatch condition detected Switch=Full and Host=half\n%0A ";
+			}
+ 			else if (mismatch == 3) {
+				statistics.append("Alarm: Duplex Mismatch condition detected Switch=half and Host=full\n ");
+				emailText += "Alarm: Duplex Mismatch condition detected Switch=half and Host=full\n%0A ";
 			}
 
 			statistics.append("\nWeb100 reports the Round trip time = " + prtdbl(avgrtt) + " msec; ");
@@ -864,7 +875,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 			//	"(estimate > 2) [" + prtdbl(estimate) + ">2]\n");
 
 			diagnosis.append("Checking for mismatch on uplink\n\t(speed > 50 [" +
-				prtdbl(spd) + ">50], (xmitspeed < 5) [" + prtdbl(spdout) +
+				prtdbl(spd) + ">50], (xmitspeed < 5) [" + prtdbl(c2sspd) +
 				"<5]\n\t(rwintime > .9) [" + prtdbl(rwintime) + ">.9], (loss < .01) [" +
 				prtdbl(loss) + "<.01]\n");
 
@@ -876,7 +887,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 			diagnosis.append("Checking for 10 Mbps link\n\t(speed < 9.5) [" +
 				prtdbl(spd) + "<9.5], (speed > 3.0) [" + prtdbl(spd) + ">3.0]\n\t" +
-				"(xmitspeed < 9.5) [" + prtdbl(spdout) + "<9.5] " +
+				"(xmitspeed < 9.5) [" + prtdbl(c2sspd) + "<9.5] " +
 				"(loss < .01) [" + prtdbl(loss) + "<.01], (mylink > 0) [" + mylink + ">0]\n");
 
 			diagnosis.append("Checking for Wireless link\n\t(sendtime = 0) [" +
