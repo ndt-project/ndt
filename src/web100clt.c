@@ -31,9 +31,10 @@ int winssent, winsrecv, msglvl=0, debug=0;
 double spdin, spdout;
 double aspd;
 
-int half_duplex, mylink, congestion, bad_cable, mismatch;
+int half_duplex, congestion, bad_cable, mismatch;
 double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
+double mylink;
 
     
 void printVariables(char *tmpstr) {
@@ -83,12 +84,14 @@ void testResults(char *tmpstr) {
 	    if (index(sysval, '.') == NULL) {
 	        i = atoi(sysval);
 	    	save_int_values(sysvar, i);
-		/* printf("Stored %d [%s] in %s\n", i, sysval, sysvar); */
+		if (debug > 6)
+		    printf("Stored %d [%s] in %s\n", i, sysval, sysvar);
 	    }
 	    else {
 		j = atof(sysval);
 		save_dbl_values(sysvar, &j);
-		/* printf("Stored %0.2f (%s) in %s\n", j, sysval, sysvar); */
+		if (debug > 6)
+		    printf("Stored %0.2f (%s) in %s\n", j, sysval, sysvar);
 	    }
 	/* printf("Read '%s' %s\n", sysvar, sysval); */
         }
@@ -176,10 +179,14 @@ void testResults(char *tmpstr) {
 	      if (congestion == 1) {
 	          printf("Information: Other network traffic is congesting the link\n");
 	      }
-	      if ((rwin*2/rttsec) < mylink) {
+	      if (debug > 2) {
+		  fprintf(stderr, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ", ((rwin*2)/rttsec), mylink);
+		  fprintf(stderr, "AND j (%0.4f) > MaxRwinRcvd (%d)\n", (float)((mylink * avgrtt)*1000)/8, MaxRwinRcvd);
+	      }
+	      if (((rwin*2)/rttsec) < mylink) {
 		  j = (float)((mylink * avgrtt)*1000) / 8;
-		  if ((int)j < MaxRwinRcvd) {
-		      printf("Information: The receive buffer should be %0.0f ", j);
+		  if ((int)j > MaxRwinRcvd) {
+		      printf("Information: The receive buffer should be %0.0f ", j/1024);
 		      printf("Kbytes to maximize throughput\n");
 		  }
 	      }
@@ -262,13 +269,16 @@ void testResults(char *tmpstr) {
 	       printf("ON\n");
   
 	    printf("RFC 1323 Window Scaling: ");
+            if (MaxRwinRcvd < 65535)
+                WinScaleRcvd = 0;
+
 	    if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
 	       printf("OFF\n");
 	    else
 	       printf("ON; Scaling Factors - Server=%d, Client=%d\n",
 			WinScaleSent, WinScaleRcvd);
 
-	    if ((RcvWinScale == 0)&& (Sndbuf > 65535))
+	    if ((RcvWinScale == 0) && (Sndbuf > 65535))
 		    Sndbuf = 65535;
 
             printf("The theoretical network limit is %0.2f Mbps\n", estimate);
@@ -287,6 +297,10 @@ void testResults(char *tmpstr) {
 	    printf("Server Data reports link is '%3d', Server Acks report link is '%3d'\n", 
 		s2cData, s2cAck);
 	  }
+	} else {
+	    printf("No Web100 data collected!  Possible Duplex Mismatch condition caused ");
+	    printf("Server to client test to run long.\nCheck for host=Full and switch=Half ");
+	    printf("mismatch condition\n");
 	}
 }
 
@@ -805,13 +819,13 @@ int main(int argc, char *argv[])
 	 */
 
 	
-	sel_tv.tv_sec = 13;
-	sel_tv.tv_usec = 500000;
+	sel_tv.tv_sec = 15;
+	sel_tv.tv_usec = 5;
 	FD_ZERO(&rfd);
 	FD_SET(inSocket, &rfd);
 	for (;;) {
 	    ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
-	    if ((time(0)-sec) > 14) {
+	    if ((time(0)-sec) > 15) {
 		if (debug > 4)
 		    fprintf(stderr, "Receive test running long, break out of read loop\n");
 		break;
@@ -855,7 +869,8 @@ int main(int argc, char *argv[])
 	    i++;
 	    /* printf("%d characters read into buff = '%s'\n", inlth, buff); */
 	    strncat(tmpstr, buff, inlth);
-	    /* printf("tmpstr = '%s'\n", tmpstr); */
+	    if (debug > 5)
+	        printf("tmpstr = '%s'\n", tmpstr);
 	}
 
         /* close(inSocket); */

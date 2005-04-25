@@ -1095,9 +1095,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	}
 
 	printf("debug: xmit socket fd = %d\n", xmitsfd);
-	web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug); 
+	ret = web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug); 
 
-	shutdown(xmitsfd, 1);  /* end of write's */
+	shutdown(xmitsfd, 1); 
+	/* end of write's */
 	/* now when client closes other end, read will fail */
 	/* read(xmitsfd, buff, 1); */  /* read fail/complete */ 
 
@@ -1226,9 +1227,9 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    oo_order = (double)DupAcksIn/AckPktsIn;
 	    bw2 = (CurrentMSS / (rttsec * sqrt(loss2))) * 8 / 1024 / 1024;
 
-	    if (SndWinScale > 15)
+	    if ((SndWinScale > 15) || (Sndbuf < 65535))
 		SndWinScale = 0;
-	    if (RcvWinScale > 15)
+	    if ((RcvWinScale > 15) || (MaxRwinRcvd < 65535))
 		RcvWinScale = 0;
 	    /* MaxRwinRcvd <<= RcvWinScale; */
 	    if ((SndWinScale > 0) && (RcvWinScale > 0))
@@ -1266,9 +1267,9 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	        }
 	    } else {
 		link = 0;
-		if ((CongAvoid > DupAcksIn) && (rtran > 0.3) && ((acks > 0.7) || (acks < 0.3))) {
+		if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))) {
 		    if (debug > 2) {
-			fprintf(stderr, "CongAvoid(%d) > DupAcksIn(%d), AND ", CongAvoid, DupAcksIn);
+			fprintf(stderr, "CongAvoid(%d) > SlowStart(%d), AND ", CongAvoid, SlowStart);
 			fprintf(stderr, "packets retransmitted (%0.2f > 30%%, AND ", 100*rtran);
 			fprintf(stderr, "70% < acks/data packets(%0.2f) < 30%%\n", 100*acks);
 		    }
@@ -1277,6 +1278,14 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		    else
 			mismatch = 4;
 		}
+		/* This is a special case.  For some reason we did not get any Web100 data and the
+		 * variable ret was set to -1 by the get_web100_data() call.  This is probably due
+		 * to the s2c test running long and the connection being closed when we got around to
+		 * looking at it.  In this case report a possible duplex mismatch.
+		 */
+		if ((10000 > s2cspd) && (ret = -1))
+		    mismatch = 5;
+
 	        if ((RTOidle > 0.65) && (tmouts < 0.4)) {
 		    if (debug > 2) {
 		        fprintf(stderr, "Using new Duplex mismatch algorithms: idle=%0.4f, ", RTOidle);
