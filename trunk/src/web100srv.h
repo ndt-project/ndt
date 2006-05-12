@@ -32,6 +32,7 @@
 #include  <netinet/in.h>
 #include  <netinet/tcp.h>
 #include  <netinet/ip.h>
+#include  <netinet/ip6.h>
 #include  <net/ethernet.h>
 #include  <arpa/inet.h>
 
@@ -68,17 +69,21 @@ struct ndtchild {
 	int qtime;
 	int pipe;
 	int ctlsockfd;
+	int family;
 	struct ndtchild *next;
 };
 
 struct spdpair {
 	u_int32_t saddr;
 	u_int32_t daddr;
+	struct in6_addr s6addr;
+	struct in6_addr d6addr;
 	u_int16_t sport;
 	u_int16_t dport;
 	u_int32_t seq;
 	u_int32_t ack;
 	u_int32_t win;
+	int family;
 	int links[16];
 	u_int32_t sec;
 	u_int32_t usec;
@@ -101,5 +106,11 @@ struct web100_variables {
 	char name[256];
 	char value[256];
 } web_vars[WEB100_VARS];
+
+struct sockRFD {
+	int sockfd;
+	int family;
+	size_t len;
+};
 
 int32_t gmt2local(time_t);

@@ -48,7 +48,7 @@ viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_SOURCES	= web100clt.c
 web100clt_LDADD = 
 
-tr_mkmap_SOURCES	= tr-mkmap.c
+tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c
 tr_mkmap_LDADD = $(NDTLIBS)
 tr_mkmap_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
