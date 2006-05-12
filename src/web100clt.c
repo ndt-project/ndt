@@ -536,12 +536,12 @@ int main(int argc, char *argv[])
 	struct hostent *hp;
 	struct sockaddr_in server, srv1, srv2, local;
 	struct sockaddr_in6 server6, srv61, srv62, local6;
-	struct addrinfo hints, *ai;
+	struct addrinfo hints, *ai, *ai2;
 	int largewin;
 	char buff[8192], buff2[256];
 	struct timeb *tp;
 	time_t sec;
-	char *host;
+	char *host, ctlpt[8];
 	int buf_size=0, set_size, k;
 	uint32_t local_addr, peer_addr;
 	struct timeval sel_tv;
@@ -549,7 +549,7 @@ int main(int argc, char *argv[])
 	int v4only=0, v6only=0, af_family;
 
 	host = argv[argc-1];
-	while ((c = getopt(argc, argv, "46b:dhl")) != -1) {
+	while ((c = getopt(argc, argv, "46b:dhlp:")) != -1) {
 	    switch (c) {
 		case '4':
 			v4only = 1;
@@ -561,10 +561,13 @@ int main(int argc, char *argv[])
 			break;
 		case 'h':
 			printf("Usage: %s {options} server\n", argv[0]);
+			printf("\t-4 \tUse IPv4 addresses only\n");
+			printf("\t-6 \tUse IPv6 addresses only\n");
 			printf("\t-b # \tSet send/receive buffer to value\n");
 			printf("\t-d \tIncrease debug level details\n");
 			printf("\t-h \tPrint this help message\n");
 			printf("\t-l \tIncrease message level details\n");
+			printf("\t-p # \tSpecify port server is listening on\n");
 			exit(0);
 		case 'b':
 			buf_size = atoi(optarg);
@@ -574,6 +577,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'l':
 			msglvl++;
+			break;
+		case 'p':
+			ctlport = atoi(optarg);
 			break;
 		default:
 			exit(0);
@@ -600,38 +606,40 @@ int main(int argc, char *argv[])
 	if (v4only == 1)
 	    hints.ai_family = AF_INET;
 
-	if ((i = getaddrinfo(host, NULL, &hints, &ai)) < 0) {
+	sprintf(ctlpt, "%d", ctlport);
+	if ((i = getaddrinfo(host, ctlpt, &hints, &ai)) < 0) {
 	    if (ai != NULL) 
 		freeaddrinfo(ai);
 	    printf("Server failed, Name or IP address of remote server '%s' not found\n", host);
 	    exit (-5);
 	}
 
-	printf("Testing network path for configuration and performance problems\n");
+	printf("Testing network path for configuration and performance problems  --  ");
         while (ai != NULL) {
-            if (ai->ai_family == AF_INET) {
-                af_family = AF_INET;
-                bzero((char *) &server, sizeof(server));
-                server.sin_family = AF_INET;
-                server.sin_addr.s_addr = htonl(INADDR_ANY);
-                server.sin_port = htons(ctlport);
-		break;
+	    af_family = ai->ai_family;
+            if ((ctlSocket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
+		if (debug > 3)
+                    printf("Client Failed: cannot open socket");
+	        continue;
             }
-            if (ai->ai_family == AF_INET6) {
-                af_family = AF_INET6;
-                bzero((char *) &server6, sizeof(server6));
-                server6.sin6_port = htons(ctlport);
-                setsockopt(ctlSocket, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+	    if ((ret = connect(ctlSocket, ai->ai_addr, ai->ai_addrlen)) < 0) {
+		if (debug > 3)
+	            perror("Connect() for control socket failed ");
+	    }
+	    if (ret == 0)
 		break;
-            }
-            ai = ai->ai_next;
+	    ai = ai->ai_next;
 
-        }
-        if ((ctlSocket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-            freeaddrinfo(ai);
-            printf("Client Failed: cannot open socket");
-	    exit (-4);
-        }
+	}
+	if (ret < 0) {
+		printf("Client failed to connect to server on Any available address\n");
+		exit(-4);
+	}
+
+	if (af_family == AF_INET)
+	    printf("Using IPv4 addresses\n");
+	else
+	    printf("Using IPv6 addresses\n");
 
 /* Old IPv4 only code 8/23/05 RAC
  *
@@ -721,9 +729,12 @@ int main(int argc, char *argv[])
  */
 
 	if (af_family == AF_INET) {
-	    bzero(&srv1, sizeof(srv1));
-	    srv1.sin_family = AF_INET;
-	    bcopy(&server.sin_addr.s_addr, &srv1.sin_addr.s_addr, 4);
+	    int ii=sizeof(srv1);
+	    /* bzero(&srv1, sizeof(srv1)); */
+	    if (getpeername(ctlSocket, (struct sockaddr *)&srv1, &ii) < 0)
+		printf("getpeername() failed with %d\n", errno);
+ 	    srv1.sin_port = htons(port2);
+	    peer_addr = srv1.sin_addr.s_addr;
 	} else {
 	    bzero(&srv61, sizeof(srv61));
 	    srv61.sin6_family = AF_INET6;
@@ -733,7 +744,8 @@ int main(int argc, char *argv[])
 	    
 	system("sleep 2");
 
-	/* printf("connecting to %s:%d\n", inet_ntoa(srv1.sin_addr), ntohs(srv1.sin_port)); */
+	if (debug > 4)
+	    printf("connecting to %s:%d\n", inet_ntoa(srv1.sin_addr), ntohs(srv1.sin_port));
 	largewin = 128*1024;
 	k = sizeof(set_size);
 	setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
@@ -769,26 +781,70 @@ int main(int argc, char *argv[])
 	fflush(stdout);
 	tmpstr2[0] = '\0';
 	i = 0;
-	for (;;) {
-	    inlth = read(in2Socket, buff, 512);
-	    if (inlth <= 0) {
-		/* printf("read %d buffers into tmpstr2\n", i); */
-		break;
+	/* 
+	 * for (;;) {
+	 *     inlth = read(in2Socket, buff, 512);
+	 *     if (inlth <= 0) {
+	 * 	break;
+	 *     }
+	 *     i++;
+	 *     strncat(tmpstr2, buff, inlth);
+	 * 
+	 * }
+	 */
+	    bytes = 0;
+            sec = time(0);
+	    sel_tv.tv_sec = 6;
+	    sel_tv.tv_usec = 5;
+	    FD_ZERO(&rfd);
+	    FD_SET(in2Socket, &rfd);
+	    for (;;) {
+		if (time(0) > (sec+5.0))
+		    break;
+	        ret = select(in2Socket+1, &rfd, NULL, NULL, &sel_tv);
+	        if (ret > 0) {
+		    inlth = read(in2Socket, buff, sizeof(buff));
+		    if (inlth == 0)
+		        break;
+		    bytes += inlth;
+		    continue;
+	        }
+		if (ret < 0) {
+		printf("nothing to read, exiting read loop\n");
+		    break;
+		}
+		if (ret == 0) {
+		printf("timer expired, exiting read loop\n");
+		    break;
+		}
 	    }
-	    i++;
-	    /* printf("%d characters read into buff = '%s'\n", inlth, buff); */
-	    strncat(tmpstr2, buff, inlth);
-	    /* printf("tmpstr = '%s'\n", tmpstr2); */
-	}
+ 	shutdown(in2Socket, SHUT_RD);
+        sec =  time(0) - sec;
+	spdin = ((8.0 * bytes) / 1000) / sec;
+
+	inlth = read(ctlSocket, buff, 512);
+	strncat(tmpstr2, buff, inlth);
+
+	for (i=0; i<128; i++)
+	    buff[i] = '\0';
+	sprintf(buff, "%0.0f", spdin);
+	if (debug > 3)
+	    fprintf(stderr, "CWND limited speed = %0.2f Kbps\n", spdin);
+	write(ctlSocket, buff, strlen(buff));
 	printf("Done\n");
 
         close(in2Socket);
+/*   End of Middlebox test  */
 
-	inlth = read(ctlSocket, buff, 100); 
+
+	buff[0] = '\0';
+	inlth = read(ctlSocket, buff, 512); 
 	if (inlth <= 0) {  
 	    fprintf(stderr, "read failed read 'Go' flag\n");
 	    exit(-4);
 	}
+	if (debug > 2)
+	    fprintf(stderr, "Read '%s' from server\n", buff);
 	
 
 /* 
@@ -799,9 +855,10 @@ int main(int argc, char *argv[])
  */
 
 	if (af_family == AF_INET) {
+	    int ii=sizeof(srv2);
 	    bzero(&srv2, sizeof(srv2));
-	    srv1.sin_family = AF_INET;
-	    bcopy(&server.sin_addr.s_addr, &srv2.sin_addr.s_addr, 4);
+	    getpeername(ctlSocket, (struct sockaddr *)&srv2, &ii);
+	    srv2.sin_port = htons(port3);
 	} else {
 	    bzero(&srv62, sizeof(srv62));
 	    srv62.sin6_family = AF_INET6;
@@ -813,8 +870,6 @@ int main(int argc, char *argv[])
 	printf("running 10s outbound test (client to server) . . . . . ");
 	fflush(stdout);
 
-	/* inlth = read(ctlSocket, buff, 100);  */
-		
 	/* outSocket = socket(PF_INET, SOCK_STREAM, 0); */
 	setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
@@ -844,6 +899,10 @@ int main(int argc, char *argv[])
 	        exit(-11);
 	    }
 	}
+	inlth = read(ctlSocket, buff, 32); 
+	if (debug > 2)
+	    fprintf(stderr, "Read '%s' from server\n", buff);
+	
 	pkts = 0;
 	k = 0;
 	for (i=0; i<8192; i++) {
@@ -861,7 +920,6 @@ int main(int argc, char *argv[])
         close(outSocket);
 	spdout = ((8.0 * pkts * lth) / 1000) / sec;
 
-	inlth = read(ctlSocket, buff, 100); 
 	if (spdout < 1000) 
 	    printf(" %0.2f Kb/s\n", spdout);
 	else
@@ -870,7 +928,9 @@ int main(int argc, char *argv[])
 	printf("running 10s inbound test (server to client) . . . . . . ");
 	fflush(stdout);
 	
-	inlth = read(ctlSocket, buff, 100); 
+	inlth = read(ctlSocket, buff, 32); 
+	if (debug > 2)
+	    fprintf(stderr, "Read '%s' from server\n", buff);
 
 	/* Cygwin seems to want/need this extra getsockopt() function
 	 * call.  It certainly doesn't do anything, but the S2C test fails
@@ -927,6 +987,9 @@ int main(int argc, char *argv[])
 	 * queued up on the server.
 	 */
 
+	inlth = read(ctlSocket, buff, 32); 
+	if (debug > 2)
+	    fprintf(stderr, "Read '%s' from server\n", buff);
 	
 	sel_tv.tv_sec = 15;
 	sel_tv.tv_usec = 5;
@@ -961,6 +1024,9 @@ int main(int argc, char *argv[])
 
         close(inSocket);
 
+	sprintf(buff, "%0.0f", spdin);
+	write(ctlSocket, buff, 32);
+
 	/* system("sleep 1"); */
 	i = sizeof(local);
 	getsockname(ctlSocket, (struct sockaddr *) &local, &i); 
@@ -989,5 +1055,11 @@ int main(int argc, char *argv[])
 	middleboxResults(tmpstr2, local_addr, peer_addr);
 	if (msglvl > 1)
 	    printVariables(varstr);
+
+	ai2 = ai;
+	while (ai2 != NULL) {
+	    ai2 = ai->ai_next;
+	    freeaddrinfo(ai);
+	} 
 
 }

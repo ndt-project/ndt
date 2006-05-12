@@ -92,40 +92,109 @@ web100_connection* local_find_connection(int sock, web100_agent* agent, int fami
   	return(cn);
 }
 
-void web100_middlebox(int sock, web100_agent* agent, int family, int debug) {
+void web100_middlebox(int sock, web100_agent* agent, char *results, int family, int debug) {
 
-  web100_var* var;
-  web100_connection* cn;
-  web100_group* group;
-  char buf[32], line[256];
-  int i;
-  static char vars[][255] = {
-        "LocalAddress",
-        "RemAddress",
-        "CurMSS",
-        "WinScaleSent",
-        "WinScaleRecv",
-  };
+ 	web100_var* var;
+ 	web100_connection* cn;
+ 	web100_group* group;
+	web100_snapshot* snap;
+ 	char buff[8192], line[256];
+ 	int i, j, k, octets=0;
+	int SndMax=0, SndUna=0;
+	fd_set wfd;
+	struct timeval sel_tv;
+	int ret;
 
-  cn = local_find_connection(sock, agent, family, debug);
-  /* cn = web100_connection_from_socket(agent, sock); */
-  if (cn == NULL)
-	fprintf(stderr, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d\n", errno);
+	double s, t, secs();
+ 	static char vars[][255] = {
+            "LocalAddress",
+            "RemAddress",
+            "CurMSS",
+            "WinScaleSent",
+            "WinScaleRecv",
+ 	};
 
-  for (i=0; i<5; i++) {
-    web100_agent_find_var_and_group(agent, vars[i], &group, &var);
-    web100_raw_read(var, cn, buf);
-    sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buf));
-    if (strcmp(line, "4294967295;") == 0)
-      sprintf(line, "%d;", -1);
-    write(sock, line, strlen(line));
-    if (debug > 2) 
-      fprintf(stderr, "%s",  line);
-  }
+ 	cn = local_find_connection(sock, agent, family, debug);
+ 	/* cn = web100_connection_from_socket(agent, sock); */
+ 	if (cn == NULL) {
+	    fprintf(stderr, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d\n", errno);
+	    exit(-1);
+ 	}
 
-  if (debug > 2)
-    fprintf(stderr, "\n");
+ 	for (i=0; i<5; i++) {
+	    web100_agent_find_var_and_group(agent, vars[i], &group, &var);
+	    web100_raw_read(var, cn, buff);
+	    if (strcmp(vars[i], "CurMSS") == 0)
+	        octets = atoi(web100_value_to_text(web100_get_var_type(var), buff));
+	    sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buff));
+	    if (strcmp(line, "4294967295;") == 0)
+	        sprintf(line, "%d;", -1);
+	    strcat(results, line);
+	    /* write(sock, line, strlen(line)); */
+	    if (debug > 2) 
+	        fprintf(stderr, "%s",  line);
+ 	}
 
+	 if (debug > 2)
+	     fprintf(stderr, "\n");
+	printf("Sending %d Byte packets over the network\n", octets);
+
+/* The initial check has been completed, now stream data to the remote client
+ * for 5 seconds with very limited buffer space.  The idea is to see if there
+ * is a difference between this test and the later s2c speed test.  If so, then
+ * it may be due to a duplex mismatch condition.
+ * RAC 2/28/06
+ */
+
+        web100_var *LimCwnd;
+        u_int32_t limcwnd_val;
+
+	if (debug > 4)
+            fprintf(stderr, "Setting Cwnd Limit");
+        web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
+        limcwnd_val = 2 * octets;
+        web100_raw_write(LimCwnd, cn, &limcwnd_val);
+	if (debug > 4)
+	    fprintf(stderr, " to %d octets\n", limcwnd_val);
+
+        if (getuid() == 0) {
+            system("echo 1 > /proc/sys/net/ipv4/route/flush");
+        }
+	printf("Sending %d Byte packets over the network\n", octets);
+	k=0;
+        for (j=0; j<=octets; j++) {
+            while (!isprint(k & 0x7f))
+                k++;
+            buff[j] = (k++ & 0x7f);
+        }
+	
+	group = web100_group_find(agent, "read");
+	snap = web100_snapshot_alloc(group, cn);
+
+	/* s = secs() + 3.0;
+         * while(secs() < s) {
+	 */
+	FD_ZERO(&wfd);
+	FD_SET(sock, &wfd);
+	sel_tv.tv_sec = 5;
+	sel_tv.tv_usec = 0;
+	while ((ret = select(sock+1, NULL, &wfd, NULL, &sel_tv)) > 0) {
+            web100_snap(snap);
+            web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
+            web100_snap_read(var, snap, line);
+            SndMax = atoi(web100_value_to_text(web100_get_var_type(var), line));
+            web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+            web100_snap_read(var, snap, line);
+            SndUna = atoi(web100_value_to_text(web100_get_var_type(var), line));
+            if ((octets<<4) < (SndMax - SndUna - 1)) {
+                continue;
+            }
+
+            k = write(sock, buff, octets);
+            if (k < 0 )
+                break;
+	}
+	web100_snapshot_free(snap);
 }
  
 void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int family, int debug) {

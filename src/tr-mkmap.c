@@ -424,9 +424,9 @@ int main (int argc, char *argv[])
 
 	    hp = gethostbyaddr((char *) &ip_addr, 4, AF_INET);
 	    if (hp == NULL)
-		strcpy(c_name, "Unknown Host");
+		strncpy(c_name, "Unknown Host", 13);
 	    else
-		strcpy(c_name, hp->h_name);
+		strncpy(c_name, hp->h_name, strlen(hp->h_name));
 
 	    if (found_node == 1) {
 		printf("Host %s [%u.%u.%u.%u] is remote eNDT server!\n",
@@ -443,9 +443,9 @@ int main (int argc, char *argv[])
 	    }
 	    hp = (struct hostent *)gethostbyaddr((char *) &current->ip_addr, 4, AF_INET);
 	    if (hp == NULL)
-		strcpy(h_name, "Unknown Host");
+		strncpy(h_name, "Unknown Host", 13);
 	    else
-		strcpy(h_name, hp->h_name);
+		strncpy(h_name, hp->h_name, strlen(hp->h_name));
 
 	    printf("\tThe eNDT server %s [%u.%u.%u.%u] is closest to host %s [%u.%u.%u.%u]\n",
 		h_name, (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),

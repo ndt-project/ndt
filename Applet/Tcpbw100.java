@@ -122,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4g\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.5a\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -186,6 +186,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		int ctlport = 3001,  outport, inport, inlth, bytes;
 		int midport = 3004;
 		byte buff[] = new byte[8192];
+		byte buff2[] = new byte[8192];
 		double stop_time, wait2;
 		int sbuf, rbuf;
 		int i, wait;
@@ -213,6 +214,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		*/
 
 		InputStream ctlin = ctlSocket.getInputStream();
+		OutputStream ctlout = ctlSocket.getOutputStream();
 
 		try {  
 			while ((inlth = ctlin.read(buff,0,buff.length)) > 0) {
@@ -283,38 +285,34 @@ public class Tcpbw100 extends Applet implements ActionListener
 		OutputStream srvout2 = in2Socket.getOutputStream();
 
 		int largewin = 128*1024;
-		// try {
-		//   System.err.println("default recv buff = " + in2Socket.getReceiveBufferSize());
-		// } catch (NoSuchMethodError e) {
-		//   results.append("Unable to run in2Socket.getReceiveBufferSize()\n");
-		// }
 
-		// try {
-		//   in2Socket.setReceiveBufferSize(largewin);
-		// } catch (SocketException e) {
-		//   results.append ("Unable to set Receive Buffer Size\n");
-		// } catch (NoSuchMethodError e) {
-		//   System.err.println("Unable to call in2Socket.setReceiveBufferSize(largewin)");
-		//   results.append("Unable to set Receive buffer size, using system default\n");
-		// }
+		in2Socket.setSoTimeout(6500);
+		bytes = 0;
+		t = System.currentTimeMillis();
 
-		// try {
-		// in2Socket.setSendBufferSize(largewin);
-		// } catch (SocketException e) {
-		//   results.append ("Unable to set Send Buffer Size\n");
-		// }
-		// results.append("sndbuf=" + in2Socket.getSendBufferSize() +
-		// 	"recvbuf=" + in2Socket.getReceiveBufferSize() + "\n");
-		// InputStream srvin2 = in2Socket.getInputStream();
-		// OutputStream srvout2 = in2Socket.getOutputStream();
-
-		String tmpstr2 = new String(buff, 0, 512);
-		tmpstr2 = "";
 		try {  
-			while ((inlth=srvin2.read(buff, 0, buff.length)) > 0) {
-				tmpstr2 += new String(buff, 0, inlth);
+			while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
+   			    bytes += inlth;
+			    if ((System.currentTimeMillis() - t) > 5500)
+				break;
 			}
-		} catch (IOException e) {}
+		} 
+		catch (IOException e) {}
+
+		t =  System.currentTimeMillis() - t;
+		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
+		s2cspd = ((8.0 * bytes) / 1000) / t;
+
+		buff = Double.toString(s2cspd*1000).getBytes();
+		String tmpstr4 = new String(buff, 0, buff.length);
+		System.out.println("Sending '" + tmpstr4 + "' back to server");
+		ctlout.write(buff, 0, buff.length);
+
+		String tmpstr2 = new String(buff2, 0, 512);
+		tmpstr2 = "";
+		inlth = ctlin.read(buff2, 0, 512);
+		tmpstr2 += new String(buff2, 0, inlth);
+			System.out.println("read tmpstr2 = '" + tmpstr2 + "' from remote server");
 		
 		results.append("Done\n");
 		statistics.append("Done\n");
@@ -342,13 +340,15 @@ public class Tcpbw100 extends Applet implements ActionListener
 		srvout2.close();
 		in2Socket.close();
 
-		inlth = ctlin.read(buff,0,buff.length); 
+		inlth = ctlin.read(buff2,0,buff2.length); 
 		if (inlth <= 0) {  
-			System.err.println("read failed read 'Go' flag");
-			errmsg = "Server failed: 'Go' flag not received\n" ;
+			System.err.println("read failed read 'C2S Open-Connection' flag");
+			errmsg = "Server failed: 'C2S Open-Connection' flag not received\n" ;
 			failed = true;
 			return;
 		}
+		String tmpstr5 = new String(buff2, 0, inlth);
+		System.err.println("read string'" + tmpstr5 +"' from server, C2S Open-Connection message");
 
 		////
 		//   OUTBOUND
@@ -371,46 +371,43 @@ public class Tcpbw100 extends Applet implements ActionListener
 		statistics.append("running 10s outbound test (client to server) . . . . . ");
 		emailText += "running 10s outbound test (client to server) . . . . . ";
 
+		OutputStream out = outSocket.getOutputStream();
+
 		// wait here for signal from server application 
+		// This signal tells the client to start pumping out data
 		inlth = ctlin.read(buff,0,buff.length); 
 		if (inlth <= 0) {  
-			System.err.println("read failed read 'Go' flag");
-			errmsg = "Server failed: 'Go' flag not received\n" ;
+			System.err.println("read failed read 'Start' flag");
+			errmsg = "Server failed: 'Start' flag not received\n" ;
 			failed = true;
 			return;
 		}
+		tmpstr5 = new String(buff, 0, inlth);
+		System.err.println("read string '" + tmpstr5 + "' from server, starting C2S test");
 
-		OutputStream out = outSocket.getOutputStream();
 		Random rng = new Random();
 		byte c = '0';
-		for (i=0; i<8192; i++) {
+		for (i=0; i<lth; i++) {
 			if (c == 'z')
 			    c = '0';
-			buff[i] = c++;
+			buff2[i] = c++;
 		}
+		System.err.println("Send buffer size =" + i);
 		outSocket.setSoTimeout(15000); 
 		pkts = 0;
 		t = System.currentTimeMillis();
 		stop_time = t + 10000; // ten seconds
 		do {
-			// if (Randomize) rng.nextBytes(buff);
-			out.write(buff,0,lth);
+			// if (Randomize) rng.nextBytes(buff2);
+			out.write(buff2, 0, buff2.length);
 			pkts++;
 		} while (System.currentTimeMillis() < stop_time);
 		
 		t =  System.currentTimeMillis() - t;
 		out.close();
 		outSocket.close();
-		//	System.out.println((8.0 * pkts * lt)h / t + " Kb/s outbound");
+			System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
 		c2sspd = ((8.0 * pkts * lth) / 1000) / t;
-
-		inlth= ctlin.read(buff, 0, buff.length); 
-		if (inlth <= 0) {  
-			System.err.println("2nd connection failed");
-			errmsg = "Server Failed while sending data\n" ;
-			failed = true;
-			return;
-		}
 
 		String srvresult = new String(buff,0,inlth);
 		System.out.println(srvresult + " got " + inlth );
@@ -431,6 +428,17 @@ public class Tcpbw100 extends Applet implements ActionListener
 		////
 		showStatus("Tcpbw100 inbound test...");
 
+		inlth= ctlin.read(buff2, 0, buff2.length); 
+		if (inlth <= 0) {  
+			System.err.println("2nd connection failed");
+			errmsg = "Server Failed while sending data\n" ;
+			failed = true;
+			return;
+		}
+		tmpstr5 = new String(buff2, 0, inlth);
+		System.err.println("read string '" + tmpstr5 + "' from server, open new connecion");
+
+
 		try {
 			inSocket = new Socket(host, inport);
 		} 
@@ -447,6 +455,9 @@ public class Tcpbw100 extends Applet implements ActionListener
 			return;
 		}
 
+		InputStream srvin = inSocket.getInputStream();
+		bytes = 0;
+
 		results.append("running 10s inbound test (server to client) . . . . . . ");
 		statistics.append("running 10s inbound test (server to client) . . . . . . ");
 		emailText += "running 10s inbound test (server to client) . . . . . . ";
@@ -459,9 +470,9 @@ public class Tcpbw100 extends Applet implements ActionListener
 			failed = true;
 			return;
 		}
+		tmpstr5 = new String(buff, 0, inlth);
+		System.err.println("read string '" + tmpstr5 + "' from server, starting next test");
 
-		InputStream srvin = inSocket.getInputStream();
-		bytes = 0;
 		inSocket.setSoTimeout(15000);
 		t = System.currentTimeMillis();
 
@@ -489,6 +500,11 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		srvin.close();
 		inSocket.close();
+
+		buff = Double.toString(s2cspd*1000).getBytes();
+		tmpstr4 = new String(buff, 0, buff.length);
+		System.out.println("Sending '" + tmpstr4 + "' back to server");
+		ctlout.write(buff, 0, buff.length);
 
 		/* get web100 variables from server */
 		tmpstr = "";
@@ -542,6 +558,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	// 	} catch (IOException e) {}
 
 		ctlin.close();
+		ctlout.close();
 		ctlSocket.close();
 
 		// System.err.println("tmpstr2 is '" + tmpstr2 + "'\n");
