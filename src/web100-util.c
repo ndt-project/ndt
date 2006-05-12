@@ -39,39 +39,62 @@ int web100_init(char *VarFileName, int debug)  {
   return(count_vars);
 }
 
-web100_connection* local_find_connection(int sock, web100_agent* agent, int debug) {
+web100_connection* local_find_connection(int sock, web100_agent* agent, int family, int debug) {
 
-  web100_connection* cn;
-  struct web100_connection_spec spec;
-  struct sockaddr_in localaddr, peeraddr;
-  int addrlen=sizeof(localaddr), lport, rport;
-  char buf[32], line[256];
+  	web100_connection* cn;
+  	struct web100_connection_spec spec;
+	struct web100_connection_spec_v6 spec6;
+  	struct sockaddr_in localaddr, peeraddr;
+  	struct sockaddr_in6 local6addr, peer6addr;
+  	int addrlen=sizeof(localaddr), lport, rport, addr6len=sizeof(local6addr);
+  	char buf[32], line[256];
 
-  /* printf("web100_middlebox(): getting socket info\n"); */
-  getsockname(sock, (struct sockaddr *)&localaddr, &addrlen);
-  getpeername(sock, (struct sockaddr *)&peeraddr, &addrlen);
-  spec.src_addr = localaddr.sin_addr.s_addr;
-  spec.dst_addr = peeraddr.sin_addr.s_addr;
-  spec.src_port = ntohs(localaddr.sin_port);
-  spec.dst_port = ntohs(peeraddr.sin_port);
-  if (debug > 1) {
-    fprintf(stderr, "socket info src=%s:%d, ", inet_ntoa(localaddr.sin_addr), spec.src_port);
-    fprintf(stderr, "dst=%s:%d\n", inet_ntoa(peeraddr.sin_addr), spec.dst_port);
-  }
+	if (family == AF_INET) {
+	    /* printf("web100_middlebox(): getting socket info\n"); */
+	    getsockname(sock, (struct sockaddr *)&localaddr, &addrlen);
+	    getpeername(sock, (struct sockaddr *)&peeraddr, &addrlen);
+	    spec.src_addr = localaddr.sin_addr.s_addr;
+	    spec.dst_addr = peeraddr.sin_addr.s_addr;
+	    spec.src_port = ntohs(localaddr.sin_port);
+	    spec.dst_port = ntohs(peeraddr.sin_port);
+	    if (debug > 1) {
+	      fprintf(stderr, "socket info src=%s:%d, ", inet_ntoa(localaddr.sin_addr), spec.src_port);
+	      fprintf(stderr, "dst=%s:%d\n", inet_ntoa(peeraddr.sin_addr), spec.dst_port);
+	    }
 
-  if ((cn = web100_connection_find(agent, &spec)) == NULL) {
-    if (debug > 1) {
-      fprintf(stderr, "Failed to find connection for src=%s:%d, ", inet_ntoa(localaddr.sin_addr),
-        ntohs(localaddr.sin_port));
-      fprintf(stderr, "dst=%s:%d\n", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
-    }
-    return(NULL);
-  }
+	    if ((cn = web100_connection_find(agent, &spec)) == NULL) {
+	      if (debug > 1) {
+	        fprintf(stderr, "Failed to find connection for src=%s:%d, ", inet_ntoa(localaddr.sin_addr),
+	          ntohs(localaddr.sin_port));
+	        fprintf(stderr, "dst=%s:%d\n", inet_ntoa(peeraddr.sin_addr), ntohs(peeraddr.sin_port));
+	      }
+	      return(NULL);
+	    }
+	}
+	if (family == AF_INET6) {
+	    getsockname(sock, (struct sockaddr*)&local6addr, &addr6len);
+	    getpeername(sock, (struct sockaddr*)&peer6addr, &addr6len);
+	    memcpy(&spec6.src_addr, &local6addr.sin6_addr, 16);
+	    spec6.src_port = ntohs(local6addr.sin6_port);
+	    memcpy(&spec6.dst_addr, &peer6addr.sin6_addr, 16);
+	    spec6.dst_port = ntohs(peer6addr.sin6_port);
+	    if ((cn = web100_connection_find_v6(agent, &spec6)) == NULL) {
+		if (debug > 1) {
+		    fprintf(stderr, "IPv6 connection failed! Src: addr=%x, port=%d\n",
+				local6addr.sin6_addr.s6_addr, ntohs(local6addr.sin6_port));
+		    fprintf(stderr, "IPv6 connection failed! Dst: addr=%x, port=%d\n",
+				peer6addr.sin6_addr.s6_addr, ntohs(peer6addr.sin6_port));
+		}
+		return(NULL);
+	    }
+	}
+fprintf(stderr, ",,,,,,,,,,,,,,,,,,,,, Returning web100 connection pointer %x\n", cn);
 
-  return(cn);
+
+  	return(cn);
 }
 
-void web100_middlebox(int sock, web100_agent* agent, int debug) {
+void web100_middlebox(int sock, web100_agent* agent, int family, int debug) {
 
   web100_var* var;
   web100_connection* cn;
@@ -86,7 +109,10 @@ void web100_middlebox(int sock, web100_agent* agent, int debug) {
         "WinScaleRecv",
   };
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent, family, debug);
+  /* cn = web100_connection_from_socket(agent, sock); */
+  if (cn == NULL)
+	fprintf(stderr, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d\n", errno);
 
   for (i=0; i<5; i++) {
     web100_agent_find_var_and_group(agent, vars[i], &group, &var);
@@ -104,7 +130,7 @@ void web100_middlebox(int sock, web100_agent* agent, int debug) {
 
 }
  
-void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int debug) {
+void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int family, int debug) {
 
   int i, j, ok;
   web100_var* var;
@@ -113,7 +139,8 @@ void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int 
   web100_group* group;
   FILE *fp;
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent, family, debug);
+  /* cn = web100_connection_from_socket(agent, sock); */
 
   /* printf("Web100_get_data_recv(): going to get %d variables\n", count_vars); */
   /* sprintf(line, "RemoteIPaddress: %s\n", inet_ntoa(peeraddr.sin_addr));
@@ -166,7 +193,7 @@ void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int 
 
 }
 
-int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, int debug) {
+int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, int family, int debug) {
 
   int i, j;
   u_int16_t k;
@@ -175,7 +202,8 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
   char buf[32], line[256];
   web100_group* group;
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent, family, debug);
+  /* cn = web100_connection_from_socket(agent, sock); */
 
   /* printf("Web100_get_data(): going to get %d variables\n", count_vars);
    * web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
@@ -212,7 +240,7 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
 
 }
 
-int web100_rtt(int sock, web100_agent* agent, int debug) {
+int web100_rtt(int sock, web100_agent* agent, int family, int debug) {
 
 	web100_var* var;
 	web100_connection* cn;
@@ -220,7 +248,8 @@ int web100_rtt(int sock, web100_agent* agent, int debug) {
 	web100_group* group;
 	double count, sum;
 
-	cn = local_find_connection(sock, agent, debug);
+	cn = local_find_connection(sock, agent, family, debug);
+	/* cn = web100_connection_from_socket(agent, sock); */
 	if (cn == NULL)
 	    return(-10);
 
@@ -240,7 +269,7 @@ int web100_rtt(int sock, web100_agent* agent, int debug) {
 	return(sum/count);
 }
 
-int web100_autotune(int sock, web100_agent* agent, int debug) {
+int web100_autotune(int sock, web100_agent* agent, int family, int debug) {
 
 	web100_var* var;
 	web100_connection* cn;
@@ -248,7 +277,8 @@ int web100_autotune(int sock, web100_agent* agent, int debug) {
 	web100_group* group;
 	int i, j=0;
 
-	cn = local_find_connection(sock, agent, debug);
+	cn = local_find_connection(sock, agent, family, debug);
+	/* cn = web100_connection_from_socket(agent, sock); */
 	if (cn == NULL)
 	    return(10);
 
@@ -284,7 +314,7 @@ int web100_autotune(int sock, web100_agent* agent, int debug) {
 	return(j);
 }
 
-int web100_setbuff(int sock, web100_agent* agent, int autotune, int debug) {
+int web100_setbuff(int sock, web100_agent* agent, int autotune, int family, int debug) {
 
 	web100_var* var;
 	web100_connection* cn;
@@ -293,7 +323,8 @@ int web100_setbuff(int sock, web100_agent* agent, int autotune, int debug) {
 	int buff;
 	int sScale, rScale;
 
-	cn = local_find_connection(sock, agent, debug);
+	cn = local_find_connection(sock, agent, family, debug);
+	/* cn = web100_connection_from_socket(agent, sock); */
 	if (cn == NULL)
 	    return(10);
 

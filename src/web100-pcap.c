@@ -60,7 +60,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 		max = cur->links[i];
 	    }
 	}
-	if (debug > 2) {
+	if ((debug > 2) && (cur->family == AF_INET)) {
 	    fprintf(fp, "%u.%u.%u.%u:%d -->", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
 		((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
 	    fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
