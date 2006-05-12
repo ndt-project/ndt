@@ -399,6 +399,7 @@ void init_pkttrace(struct sockaddr_in *sock_addr, struct sockaddr_in6 *sock6_add
 	if (sig2 == 2) {
 		while ((read(mon_pipe2[0], &c, 1)) < 0)
 		    ;
+		sleep(5);
 		close(mon_pipe2[0]);
 		close(mon_pipe2[1]);
 		sig2 = 0;
@@ -691,6 +692,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	int seg_size, win_size;
 	int autotune, rbuff, sbuff, k;
 	int dec_cnt, same_cnt, inc_cnt, timeout, dupack;
+	int cli_c2sspd, cli_s2cspd;
 
 	double loss, rttsec, bw, rwin, swin, cwin, speed;
 	double rwintime, cwndtime, sendtime;
@@ -712,8 +714,13 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	 * web100 variables using the web100_snap() & log() functions.
 	 */
 	web100_group* group;
+	web100_group* tgroup;
+	web100_group* rgroup;
 	web100_connection* conn;
+	web100_connection* xconn;
 	web100_snapshot* snap;
+	web100_snapshot* tsnap;
+	web100_snapshot* rsnap;
 	web100_log* log;
 	char logname[128];
 
@@ -847,7 +854,11 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 
 	if (debug > 0)
 	    fprintf(stderr, "server ports %d %d\n", port2, port3);
+	alarm(30);  /* reset alarm() signal to gain another 30 seconds */
 	sprintf(buff, "%d %d", port2, port3);
+	/* This write kicks off the whole test cycle.  The client will start the
+	 * middlebox test after receiving this string
+	 */
 	write(ctlsockfd, buff, strlen(buff));  
 
 	if (family == AF_INET) {
@@ -908,7 +919,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	 * the client another signal, via the control channel
 	 * when server is ready to go.
 	 */
-	write(ctlsockfd, buff, strlen(buff));  
+	/* write(ctlsockfd, buff, strlen(buff));  */
+	write(ctlsockfd, "abcdefghijklmnop", 20);  
 	if (debug > 0)
 	    fprintf(stderr, "Sent 'GO' signal, waiting for incoming connection on sock2\n");
 	if (family == AF_INET)
@@ -966,14 +978,20 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	if (autotune > 0) 
 	    web100_setbuff(recvsfd, agent, autotune, family, debug);
 
-	write(ctlsockfd, buff, strlen(buff));  
+	/* This write kicks off the server to client speed test.
+	 * it shouldn't!!!
+	 */
+	/* write(ctlsockfd, buff, strlen(buff)); */
+	write(ctlsockfd, "1234567890", 12);
+	alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
+		     * is generated.  */
 
 	/* ok, We are now read to start the throughput tests.  First
 	 * the client will stream data to the server for 10 seconds.
 	 * Data will be processed by the read loop below.
 	 */
 	t = secs();
-	sel_tv.tv_sec = 12;
+	sel_tv.tv_sec = 11;
 	sel_tv.tv_usec = 0;
 	FD_ZERO(&rfd);
 	FD_SET(recvsfd, &rfd);
@@ -1000,6 +1018,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	/* get receiver side Web100 stats and write them to the log file */
 	if (record_reverse == 1)
 	        web100_get_data_recv(recvsfd, agent, LogFileName, count_vars, family, debug);
+	shutdown(recvsfd, SHUT_RD);
 	close(recvsfd);
 	close(sock2);
 
@@ -1015,6 +1034,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    FD_SET(mon_pipe1[0], &rfd);
 	    sel_tv.tv_sec = 1;
 	    sel_tv.tv_usec = 100000;
+	read3:
 	    if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
                 if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
 	    	    sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
@@ -1029,6 +1049,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	            fprintf(stderr, "%d bytes read '%s' from monitor pipe\n", ret, spds[spd_index]);
 	        spd_index++;
 	    } else {
+		if (errno == EINTR)
+		    goto read3;
 		if (debug > 3)
 		    fprintf(stderr, "Failed to read pkt-pair data from C2S flow, reason = %d\n", errno);
 	        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
@@ -1091,7 +1113,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	listen(sock3, 2); 
 
 	/* Data received from speed-chk, tell applet to start next test */
-	write(ctlsockfd, buff, strlen(buff));
+	write(ctlsockfd, "a1-b2-c3-d4", 15);
+	alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
+		     * is generated.  */
 
 	/* ok, await for connect on 3rd port
 	 * This is the second throughput test, with data streaming from
@@ -1165,11 +1189,20 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    if (autotune > 0) 
 		web100_setbuff(xmitsfd, agent, autotune, family, debug);
 
-	    write(ctlsockfd, buff, strlen(buff));  
-	    if (debug > 4) {
-	        fprintf(stderr, "S2C test Parent thinks pipe() returned fd0=%d, fd1=%d\n",
-			    mon_pipe2[0], mon_pipe2[1]);
+	    /* write(ctlsockfd, buff, strlen(buff));   */
+	    FD_ZERO(&rfd);
+	    FD_SET(ctlsockfd, &rfd);
+	    sel_tv.tv_sec = 6;
+	    sel_tv.tv_usec = 500000;
+	    ret = select(ctlsockfd+1, &rfd, NULL, NULL, &sel_tv);
+		if (ret == 0)
+		    fprintf(stderr, "!!!!!!!!!!!  Timer expired, old clients getting bad results\n");
+		if (ret > 0) {
+                    read(ctlsockfd, buff, 32);
+	    	    sscanf(buff, "%0.2f *%s", cli_c2sspd);
+		fprintf(stderr, "+++++++++ read '%s' from client parsed to [%0.2f]\n", buff, cli_c2sspd);
 	    }
+	    write(ctlsockfd, buff, strlen(buff));
 
 	    if (experimental == 1) {
 		sprintf(logname, "snaplog-%s.%d", inet_ntoa(cli_addr.sin_addr),
@@ -1183,8 +1216,15 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    /* Kludge way of nuking Linux route cache.  This should be done
 	     * using the sysctl interface.
 	     */
-	    /* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
-	    system("echo 1 > /proc/sys/net/ipv4/route/flush");
+	    if (getuid() == 0) {
+	    	/* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
+	    	system("echo 1 > /proc/sys/net/ipv4/route/flush");
+	    }
+	    xconn = web100_connection_from_socket(agent, xmitsfd);
+	    rgroup = web100_group_find(agent, "read");
+	    rsnap = web100_snapshot_alloc(rgroup, xconn);
+	    tgroup = web100_group_find(agent, "tune");
+	    tsnap = web100_snapshot_alloc(tgroup, xconn);
 
 	    bytes = 0;
 	    k = 0;
@@ -1205,6 +1245,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		    web100_log_write(log, snap);
 		}
 	    }
+	    shutdown(xmitsfd, SHUT_WR);
 	    /* shutdown(xmitsfd,1); */  /* end of write's */
 	    t = secs() - t;
 	    s2cspd = (8.e-3 * bytes) / t;
@@ -1215,7 +1256,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    }
 
 	    /* printf("debug: xmit socket fd = %d\n", xmitsfd); */
-	     /* web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, family, debug); */
+	      /* web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, family, debug);  */
+	    web100_snap(rsnap);
+	    web100_snap(tsnap);
 
 	    if (debug > 10)
 	        fprintf(stderr, "sent %d bytes to client in %0.2f seconds\n", bytes, t);
@@ -1231,20 +1274,23 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	        FD_SET(mon_pipe2[0], &rfd);
 	        sel_tv.tv_sec = 1;
 	        sel_tv.tv_usec = 100000;
-	        if (ret = (select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
+	read2:
+	        if (ret = (select(mon_pipe2[0]+1, &rfd, NULL, NULL, &sel_tv)) > 0) {
                     if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
-	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
+	                sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	            if (debug > 0)
 	                fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
 	            spd_index++;
                     if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
-	    	        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
+	                sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	            if (debug > 0)
 	                fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
 	            spd_index++;
-	        } else {
+		} else {
 		    if (debug > 3)
 			fprintf(stderr, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d\n", ret, errno);
+		    if (errno == EINTR)
+			goto read2;
 	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	            sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	        }
@@ -1257,13 +1303,18 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	        fprintf(stderr, "%6.0f Kbps inbound\n", s2cspd);
 	}
 
+	alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
+		     * is generated.  */
 	printf("debug: xmit socket fd = %d\n", xmitsfd);
-	ret = web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, family, debug); 
+	ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars, family, debug);
+	web100_snapshot_free(tsnap);
+	ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars, family, debug);
+	web100_snapshot_free(rsnap);
 
-	shutdown(xmitsfd, 1); 
+	/* shutdown(xmitsfd, SHUT_WR); */
 	/* end of write's */
 	/* now when client closes other end, read will fail */
-	/* read(xmitsfd, buff, 1); */  /* read fail/complete */ 
+	/* read(xmitsfd, buff, 1);  */ /* read fail/complete */ 
 
 	if (debug > 3)
 	    fprintf(stderr, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps\n",
@@ -1429,7 +1480,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
     		    link = 0;
 	        }
 	    } else {
-		if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))) {
+		if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))
+			&& (s2cspd > bw2)) {
 		    if (debug > 2) {
 			fprintf(stderr, "CongAvoid(%d) > SlowStart(%d), AND ", CongAvoid, SlowStart);
 			fprintf(stderr, "packets retransmitted (%0.2f > 30%%, AND ", 100*rtran);
@@ -1580,6 +1632,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 			Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
 			debug);
 	}
+	shutdown(ctlsockfd, SHUT_RDWR);
 
 	/* printf("Saved data to log file\n"); */
 
@@ -2222,7 +2275,9 @@ char	*argv[];
 			close(chld_pipe[0]);
 			buff[0] = buff[2];
 			buff[1] = buff[3];
-			alarm(60);  /* die in 60 seconds */
+			/* alarm(60);   die in 60 seconds */
+			alarm(30);  /* die in 30 seconds, but only if a test doesn't get started 
+				     * reset alarm() before every test */
 
 			run_test(agent, ctlsockfd, atoi(buff));
 		
