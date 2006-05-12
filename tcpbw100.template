@@ -127,16 +127,19 @@ so you may be able to request more than 64 KB.
 and the network interface is 100 Mbs.)
 <p>
 
-The NDT software (source and compiled programs) is available via the anonymous FTP service
-at <a href="ftp://achilles.ctd.anl.gov/pub/web100/web100-tools.tar.gz">achilles.ctd.anl.gov/pub/web100</a>. 
-This FTP site also contains
-a web100 patched version of the NLANR Iperf tool.
+The NDT software (source and compiled programs) is available via the Internet2
+End2End Performance Initiative web server
+at <a href="http://e2epi.internet2.edu/ndt/download.html">e2epi.internet2.edu/ndt/download.html</a>. 
+You can also learn more about the NDT system by subscribing to the 
+<a href="https://mail.internet2.edu/wws/info/ndt-users">NDT user discussion</a>
+or <a href="https://mail.internet2.edu/wws/info/ndt-announce>NDT announcement</a>
+lists hosted by Internet2.  
 <p>
 This java applet was originally developed by ORNL and has been extensively modified
 at ANL.
 <br>
 Complete University of Chicago <a href="copyright.html">Copyright Notice</a>
 <hr noshade width=90% size-4>
-Comments to <a href=mailto:RACarlson@anl.gov> Rich Carlson </a> email:RACarlson@anl.gov
+Comments to <a href=mailto:RCarlson@internet2.edu> Rich Carlson </a> email:RCarlson@internet2.edu
 <br><i>Created: April 4, 2002 by Rich Carlson
-<br>Last Updated: March 20, 2003 by Rich Carlson </i>
+<br>Last Updated: June 8, 2005 by Rich Carlson </i>

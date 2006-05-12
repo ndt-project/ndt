@@ -1266,7 +1266,6 @@ void run_test(web100_agent* agent, int ctlsockfd) {
     		    link = 0;
 	        }
 	    } else {
-		link = 0;
 		if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))) {
 		    if (debug > 2) {
 			fprintf(stderr, "CongAvoid(%d) > SlowStart(%d), AND ", CongAvoid, SlowStart);
@@ -1277,14 +1276,15 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 			mismatch = 2;
 		    else
 			mismatch = 4;
+		    link = 0;
 		}
 		/* This is a special case.  For some reason we did not get any Web100 data and the
 		 * variable ret was set to -1 by the get_web100_data() call.  This is probably due
 		 * to the s2c test running long and the connection being closed when we got around to
 		 * looking at it.  In this case report a possible duplex mismatch.
 		 */
-		if ((10000 > s2cspd) && (ret = -1))
-		    mismatch = 5;
+		if ((10000 > s2cspd) && (ret == -1))
+		    mismatch = 7;
 
 	        if ((RTOidle > 0.65) && (tmouts < 0.4)) {
 		    if (debug > 2) {
@@ -1293,11 +1293,11 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		        fprintf(stderr, "Timeouts/pkt=%0.4f, c2sspd=%0.2f, 4*s2cspd=%.02f\n", tmouts,
 				    c2sspd, 4*s2cspd);
 		    }
-		    if (MaxSsthresh == (2*CurrentMSS)) {
+		    if (MaxSsthresh == (2*CurrentMSS))
 		        mismatch = 3;
-	            } else {
+	            else
 		        mismatch = 5;
-		    }
+		    link = 0;
 		}
 	    }
 
@@ -1327,8 +1327,11 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	        (spd < bw2) && (link > 0))
   		    link = 2;
 
-	    if (((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
-	        (SndLimTransSender/timesec > 30)) || (link <= 10))
+	    /* if (((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
+	     *    (SndLimTransSender/timesec > 30)) || (link <= 10))
+	     */
+	    if ((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
+	        (SndLimTransSender/timesec > 30))
   		    half_duplex = 1;
 
 	    if ((cwndtime > .02) && (mismatch == 0) && ((cwin/rttsec) < (rwin/rttsec)))

@@ -122,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4d\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4e\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -462,11 +462,14 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		InputStream srvin = inSocket.getInputStream();
 		bytes = 0;
+		inSocket.setSoTimeout(15000);
 		t = System.currentTimeMillis();
 
 		try {  
 			while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
-   			 bytes += inlth;
+   			    bytes += inlth;
+			    if ((System.currentTimeMillis() - t) > 14500)
+				break;
 			}
 		} 
 		catch (IOException e) {}
@@ -486,10 +489,16 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		srvin.close();
 		inSocket.close();
+		if (t > 13750)
+		    results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
+
 
 		/* get web100 variables from server */
 		tmpstr = "";
 		i = 0;
+
+		// Try setting a 5 second timer here to break out if the read fails.
+		ctlSocket.setSoTimeout(5000);
 		try {  
 			for (;;) {
 				inlth = ctlin.read(buff, 0, buff.length);
@@ -680,6 +689,10 @@ public class Tcpbw100 extends Applet implements ActionListener
  			else if (mismatch == 5) {
 				results.append("Alarm: Possible Duplex Mismatch condition detected Switch=half and Host=full\n ");
 				emailText += "Alarm: Possible Duplex Mismatch condition detected Switch=half and Host=full\n%0A ";
+			}
+ 			else if (mismatch == 7) {
+				results.append("Warning: Possible Duplex Mismatch condition detected Switch=half and Host=full\n ");
+				emailText += "Warning: Possible Duplex Mismatch condition detected Switch=half and Host=full\n%0A ";
 			}
 
 			if (mismatch == 0) {
