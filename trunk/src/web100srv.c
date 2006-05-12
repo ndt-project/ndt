@@ -1472,7 +1472,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    old_mismatch = 1;
 	    if (old_mismatch == 1) {
 	        if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-	            (MaxSsthresh > 0) && (RTOidle > .01))
+	            (MaxSsthresh > 0) && (RTOidle > .01) && (link > 2))
   	        {	if (s2cspd < c2sspd)
 			    mismatch = 1;
 			else
