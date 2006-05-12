@@ -73,7 +73,7 @@ int dumptrace=0;
 int usesyslog=0;
 int multiple=0;
 int set_buff=0;
-int port2, port3;
+int port2=PORT2, port3=PORT3;
 int mon_pipe1[2], mon_pipe2[2];
 int admin_view=0;
 int queue=1;
@@ -83,6 +83,7 @@ int testing, waiting;
 int experimental=0;
 int old_mismatch=0;	/* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
+int maxsockfd;
 
 extern int errno;
 
@@ -119,10 +120,11 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	u_int32_t sec, usec;
 	struct ether_header *enet;
 	const struct ip *ip;
+	const struct ip6_hdr *ip6;
 	const struct tcphdr *tcp;
 	struct spdpair current;
 	/* float bits, spd, time; */
-	int i;
+	int i, v4_or_v6=0;
 
 	if (dumptrace == 1)
 	    pcap_dump((u_char *)pdump, h, p);
@@ -179,11 +181,29 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 	enet = (struct ether_header *)p;
 	p += sizeof(struct ether_header); 	/* move packet pointer past ethernet fields */
 
-	ip = (const struct ip *)p;
-	p += (ip->ip_hl) * 4;
+	v4_or_v6 = ((*p & 0xF0) >> 4);
+
+	/* fprintf(stderr, "::::::::::: IP version number = %d\n", v4_or_v6); */
+
+	if (v4_or_v6 == 4) {
+	    ip = (const struct ip *)p;
+	    p += (ip->ip_hl) * 4;
+	} else {
+	    ip6 = (const struct ip6_hdr *)p;
+	    if (ip6->ip6_nxt == IPPROTO_TCP)
+		p += 64 * 5;	/* IPv6 header is 2 128 bit addresses + 64 bits of other stuff */
+	}
+
 	tcp = (const struct tcphdr *)p;
-	current.saddr = ip->ip_src.s_addr;
-	current.daddr = ip->ip_dst.s_addr;
+
+	if (v4_or_v6 == 4) {
+	    current.saddr = ip->ip_src.s_addr;
+	    current.daddr = ip->ip_dst.s_addr;
+	} else {
+	    /* memcpy(&current.s6addr, &ip->ip6_src, 16);
+	     * memcpy(&current.d6addr, &ip->ip6_dst, 16);
+	     */
+	}
 
 	/* printf("Data received from src[%s]/", inet_ntoa(current.saddr));
 	 * printf("dst[%s] socket\n", inet_ntoa(current.daddr));
@@ -200,12 +220,16 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 		fprintf(stderr, "New packet trace started -- initializing counters\n");
 	    fwd.saddr = current.saddr;
 	    fwd.daddr = current.daddr;
+	    memcpy(&fwd.s6addr, &current.s6addr, 16);
+	    memcpy(&fwd.d6addr, &current.d6addr, 16);
 	    fwd.sport = current.sport;
 	    fwd.dport = current.dport;
 	    fwd.st_sec = current.sec;
 	    fwd.st_usec = current.usec;
 	    rev.saddr = current.daddr;
 	    rev.daddr = current.saddr;
+	    memcpy(&rev.s6addr, &current.d6addr, 16);
+	    memcpy(&rev.d6addr, &current.s6addr, 16);
 	    rev.sport = current.dport;
 	    rev.dport = current.sport;
 	    rev.st_sec = current.sec;
@@ -245,25 +269,25 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 				current.sport, current.dport);
 
 /* 
-	if (fwd.saddr == current.saddr) {
-	    if (current.dport == port2)
-		calculate_spd(&current, &fwd, port2, port3);
-	    else if (current.sport == port3)
-		calculate_spd(&current, &fwd, port2, port3);
-	    if ((current.sport != port2) && (debug > 15))
-		fprintf(stderr, "Fault: forward packet received with dst port = %d\n", current.dport);
-	    return;
-	}
-	    if (rev.saddr == current.saddr) {
-	    if (current.sport == port2)
-		calculate_spd(&current, &rev, port2, port3);
-	    else if (current.dport == port3)
-		calculate_spd(&current, &rev, port2, port3);
-	    else if (debug > 15)
-		fprintf(stderr, "Fault: reverse packet received with dst port = %d\n", current.dport);
-	    return;
-	}
-*/
+ * 	if (fwd.saddr == current.saddr) {
+ * 	    if (current.dport == port2)
+ * 		calculate_spd(&current, &fwd, port2, port3);
+ * 	    else if (current.sport == port3)
+ * 		calculate_spd(&current, &fwd, port2, port3);
+ * 	    if ((current.sport != port2) && (debug > 15))
+ * 		fprintf(stderr, "Fault: forward packet received with dst port = %d\n", current.dport);
+ * 	    return;
+ * 	}
+ * 	    if (rev.saddr == current.saddr) {
+ * 	    if (current.sport == port2)
+ * 		calculate_spd(&current, &rev, port2, port3);
+ * 	    else if (current.dport == port3)
+ * 		calculate_spd(&current, &rev, port2, port3);
+ * 	    else if (debug > 15)
+ * 		fprintf(stderr, "Fault: reverse packet received with dst port = %d\n", current.dport);
+ * 	    return;
+ * 	}
+ */
 
 }
 
@@ -274,7 +298,8 @@ int print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * above, it's here for now.  Maybe some day it will move back to where it
  * belongs.
  */
-void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *device)
+void init_pkttrace(struct sockaddr_in *sock_addr, struct sockaddr_in6 *sock6_addr,
+	int monitor_pipe[2], char *device, int family)
 {
 
 	char cmdbuf[256];
@@ -282,6 +307,7 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	u_char * pcap_userdata;
 	struct bpf_program fcode;
 	char errbuf[PCAP_ERRBUF_SIZE];
+	char tmpstr[64];
 	int rc, cnt, pflag;
 	/* pcap_t *pd; */
 	char c;
@@ -315,11 +341,13 @@ void init_pkttrace(struct sockaddr_in *sock_addr, int monitor_pipe[2], char *dev
 	if (debug > 1)
 	    fprintf(stderr, "pcap_open_live() returned pointer 0x%x\n", pd);
 
-	sprintf(cmdbuf, "host %s and port %d\0", inet_ntoa(sock_addr->sin_addr),
+	if (family == AF_INET)
+	    sprintf(cmdbuf, "host %s and port %d\0", inet_ntoa(sock_addr->sin_addr),
 		 ntohs(sock_addr->sin_port));
-	/* fprintf(fp, "%u.%u.%u.%u:%d -->", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
-	 * 	((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
-	 */
+	else {
+	    inet_ntop(family, &sock6_addr->sin6_addr, tmpstr, 46);
+	    sprintf(cmdbuf, "host %s and port %d\0", tmpstr, ntohs(sock6_addr->sin6_port));
+	}
 
 	if (debug > 0) {
 	    fprintf(stderr, "installing pkt filter for '%s'\n", cmdbuf);
@@ -637,7 +665,7 @@ static void LoadConfig(char **lbuf, size_t *lbuf_max)
 	}
 	fclose(conf);
 }
-void run_test(web100_agent* agent, int ctlsockfd) {
+void run_test(web100_agent* agent, int ctlsockfd, int family) {
 
 	char date[32], *ctime();
 	char spds[4][256], buff2[32], tmpstr[256];
@@ -645,7 +673,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	int maxseg=1456, largewin=16*1024*1024;
 	int sock2, sock3, sock4; 
-	int n,sockfd, midsockfd, recvsfd, xmitsfd, clilen, childpid, servlen, one=1;
+	int n, sockfd, midsockfd, recvsfd, xmitsfd, clilen, childpid, servlen, one=1;
 	int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
 	int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
 	int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
@@ -675,6 +703,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 
 	struct sockaddr_in spd_addr, spd_addr2, spd_cli;
 	struct sockaddr_in cli_addr, cli2_addr, srv2_addr, srv3_addr, srv4_addr, serv_addr;
+	struct sockaddr_in6 serv6_addr, srv62_addr, srv63_addr, cli6_addr, cli62_addr;
 	struct timeval sel_tv;
 	fd_set rfd, wfd, efd;
 	FILE *fp;
@@ -698,21 +727,53 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		spds[spd_index][ret] = 0x00;
 	spd_index = 0;
 
-	autotune = web100_autotune(ctlsockfd, agent, debug);
+	autotune = web100_autotune(ctlsockfd, agent, family, debug);
 
-	if ( (sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		err_sys("server: can't open stream socket");
-	setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	bzero((char *) &srv2_addr, sizeof(srv2_addr));
-	srv2_addr.sin_family = AF_INET;
-	srv2_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (multiple == 1)
-	    srv2_addr.sin_port = 0;  /* any */
-	else
-    	    srv2_addr.sin_port = htons(PORT2);  /* fixed */
+	if ((sock2 = socket(family, SOCK_STREAM, 0)) < 0)
+	    err_sys("Server Failed: cannot open socket");
 
-	if (bind(sock2, (struct sockaddr *) &srv2_addr, sizeof(serv_addr)) < 0)
-		err_sys("server: can't bind local address");
+	if (family == AF_INET) {
+	    /* if ((sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	     *   err_sys("Server Failed: cannot open socket");
+	     */
+	    bzero((char *) &srv2_addr, sizeof(srv2_addr));
+	    srv2_addr.sin_family = AF_INET;
+	    srv2_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	    if (multiple == 1)
+	        srv2_addr.sin_port = 0; 
+	    else
+	        srv2_addr.sin_port = htons(port2);
+	    setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock2, (struct sockaddr *) &srv2_addr, sizeof(srv2_addr)) < 0)
+		    err_sys("Server fault: (Test engine port2) can't bind to IPv4 address");
+	}
+	else if (family == AF_INET6) {
+	    bzero((char *) &serv6_addr, sizeof(serv6_addr));
+	    if (multiple == 1)
+	        srv62_addr.sin6_port = 0;  /* any */
+	    else
+	        srv62_addr.sin6_port = htons(port2);
+	    setsockopt(sock2, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+	    setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock2, (struct sockaddr *) &srv62_addr, sizeof(srv62_addr)) < 0)
+		err_sys("Server fault: (Test engine port2) can't bind to IPv6 address");
+	}
+
+/*
+ *	if ( (sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+ *		err_sys("server: can't open stream socket");
+ *	setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+ *	bzero((char *) &srv2_addr, sizeof(srv2_addr));
+ *	srv2_addr.sin_family = AF_INET;
+ *	srv2_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+ *	if (multiple == 1)
+ *	    srv2_addr.sin_port = 0;  
+ *	else
+ *   	    srv2_addr.sin_port = htons(port2);  
+ *
+ *	if (bind(sock2, (struct sockaddr *) &srv2_addr, sizeof(serv_addr)) < 0)
+ *		err_sys("server: can't bind local address");
+ */
 
 	if (set_buff > 0) {
 	    setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
@@ -726,34 +787,81 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    fprintf(stderr, "listening for Inet connection on sock2, fd=%d\n", sock2);
 	listen(sock2, 2);
 
-	/* send 2nd server port to client */
-	clilen = sizeof(cli_addr);
-	getsockname(sock2, (struct sockaddr *) &cli_addr, &clilen);
-	port2 = ntohs(cli_addr.sin_port);
+	if (family == AF_INET) {
+	    /* send 2nd server port to client */
+	    clilen = sizeof(cli_addr);
+	    getsockname(sock2, (struct sockaddr *) &cli_addr, &clilen);
+	    port2 = ntohs(cli_addr.sin_port);
+	}
+	if (family == AF_INET6) {
+	    /* do IPv6 stuff here. */
+	    clilen = sizeof(cli6_addr);
+	    getsockname(sock2, (struct sockaddr *) &cli6_addr, &clilen);
+	    port2 = ntohs(cli6_addr.sin6_port);
+	}
 
-	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		err_sys("server: can't open stream socket");
-	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	bzero((char *) &srv3_addr, sizeof(srv3_addr));
-	srv3_addr.sin_family = AF_INET;
-	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (multiple == 1)
-	    srv3_addr.sin_port = 0;  /* any */
-	else
-	    srv3_addr.sin_port = htons(PORT3);  /* fixed */
-
-	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
-		err_sys("server: can't bind local address");
+/* 
+ * 	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+ * 		err_sys("server: can't open stream socket");
+ * 	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+ * 	bzero((char *) &srv3_addr, sizeof(srv3_addr));
+ * 	srv3_addr.sin_family = AF_INET;
+ * 	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+ * 	if (multiple == 1)
+ * 	    srv3_addr.sin_port = 0;
+ * 	else
+ * 	    srv3_addr.sin_port = htons(port3);
+ * 
+ * 	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
+ * 		err_sys("server: can't bind local address");
+ */
 
 	/* send server ports to client */
-	clilen = sizeof(cli_addr);
-	getsockname(sock3, (struct sockaddr *) &cli_addr, &clilen);
-	port3 = ntohs(cli_addr.sin_port);
+
+	if ( (sock3 = socket(family, SOCK_STREAM, 0)) < 0)
+		err_sys("server: can't open stream socket");
+
+	if (family == AF_INET) {
+	    bzero((char *) &srv3_addr, sizeof(srv3_addr));
+	    srv3_addr.sin_family = AF_INET;
+	    srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	    if (multiple == 1)
+	        srv3_addr.sin_port = 0;  /* any */
+	    else
+	        srv3_addr.sin_port = htons(port3);
+	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(srv3_addr)) < 0)
+		    err_sys("Server fault: (Test engine port3) can't bind to IPv4 address");
+	    }
+	else if (family == AF_INET6) {
+	    bzero((char *) &serv6_addr, sizeof(serv6_addr));
+	    if (multiple == 1)
+	        srv63_addr.sin6_port = 0;  /* any */
+	    else
+	        srv63_addr.sin6_port = htons(port3);
+	    setsockopt(sock3, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock3, (struct sockaddr *) &srv63_addr, sizeof(srv63_addr)) < 0)
+		err_sys("Server fault: (Test engine port3) can't bind to IPv6 address");
+	}
 
 	if (debug > 0)
 	    fprintf(stderr, "server ports %d %d\n", port2, port3);
 	sprintf(buff, "%d %d", port2, port3);
 	write(ctlsockfd, buff, strlen(buff));  
+
+	if (family == AF_INET) {
+	    /* send 3rd server port to client */
+	    clilen = sizeof(cli_addr);
+	    getsockname(sock3, (struct sockaddr *) &cli_addr, &clilen);
+	    port3 = ntohs(cli_addr.sin_port);
+	}
+	if (family == AF_INET6) {
+	    /* do IPv6 stuff here. */
+	    clilen = sizeof(cli6_addr);
+	    getsockname(sock3, (struct sockaddr *) &cli6_addr, &clilen);
+	    port3 = ntohs(cli6_addr.sin6_port);
+	}
 
 	/* set mss to 1456 (strange value), and large snd/rcv buffers
 	 * should check to see if server supports window scale ?
@@ -784,9 +892,12 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 * will be done in the future.
 	 */
 	/* printf("Trying to accept new connection for middlebox test\n"); */
-	midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
+	if (family == AF_INET)
+	    midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
+	if (family == AF_INET6)
+	    midsockfd = accept(sock3, (struct sockaddr *) &cli62_addr, &clilen);
 	/* printf("Accepted new middlebox connection\n"); */
-	web100_middlebox(midsockfd, agent, debug);
+	web100_middlebox(midsockfd, agent, family, debug);
 	close(midsockfd);
 	close(sock3);
 
@@ -800,7 +911,10 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	write(ctlsockfd, buff, strlen(buff));  
 	if (debug > 0)
 	    fprintf(stderr, "Sent 'GO' signal, waiting for incoming connection on sock2\n");
-	recvsfd = accept(sock2, (struct sockaddr *) &cli_addr, &clilen);
+	if (family == AF_INET)
+	    recvsfd = accept(sock2, (struct sockaddr *) &cli_addr, &clilen);
+	else
+	    recvsfd = accept(sock2, (struct sockaddr *) &cli6_addr, &clilen);
 
 	if (getuid() == 0) {
 	    pipe(mon_pipe1);
@@ -812,9 +926,15 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		    fprintf(stderr, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d\n",
 				    mon_pipe1[0], mon_pipe1[1]);
 		}
-		if (debug > 1)
-		    fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli_addr);
-	        init_pkttrace(&cli_addr, mon_pipe1, device);
+		if (family == AF_INET) {
+		    if (debug > 1)
+		        fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli_addr);
+	            init_pkttrace(&cli_addr, NULL, mon_pipe1, device, family);
+		} else {
+		    if (debug > 1)
+		        fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli6_addr);
+	            init_pkttrace(NULL, &cli6_addr, mon_pipe1, device, family);
+		}
 		exit(0);		/* Packet trace finished, terminate gracefully */
 	    }
 	    if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
@@ -837,14 +957,14 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	 * enabled, then scale the buffer size to the correct value.  This will also help
 	 * when reporting the buffer / RTT limit.
 	 */
-	/* autotune = web100_autotune(recvsfd, agent, debug);
+	/* autotune = web100_autotune(recvsfd, agent, family, debug);
 	 * if (debug > 3)
 	 *     fprintf(stderr, "C2S Test Autotune = %d Recv Buff now %d, Send Buff now %d\n",
 	 * 	autotune, rbuff, sbuff);
 	 */
 
 	if (autotune > 0) 
-	    web100_setbuff(recvsfd, agent, autotune, debug);
+	    web100_setbuff(recvsfd, agent, autotune, family, debug);
 
 	write(ctlsockfd, buff, strlen(buff));  
 
@@ -879,7 +999,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    fprintf(stderr, "%s\n", buff);
 	/* get receiver side Web100 stats and write them to the log file */
 	if (record_reverse == 1)
-	        web100_get_data_recv(recvsfd, agent, LogFileName, count_vars, debug);
+	        web100_get_data_recv(recvsfd, agent, LogFileName, count_vars, family, debug);
 	close(recvsfd);
 	close(sock2);
 
@@ -919,17 +1039,44 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	}
 
-	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		err_sys("server: can't open stream socket");
-	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	bzero((char *) &srv3_addr, sizeof(srv3_addr));
-	srv3_addr.sin_family = AF_INET;
-	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	srv3_addr.sin_port        = htons(port3);  /* re-use port number */
-	/* srv3_addr.sin_port        = htons(PORT3); */  /* fixed */
+/* old v4 only code
+ * 	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+ * 		err_sys("server: can't open stream socket");
+ * 	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+ * 	bzero((char *) &srv3_addr, sizeof(srv3_addr));
+ * 	srv3_addr.sin_family = AF_INET;
+ * 	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+ * 
+ * 	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
+ * 		err_sys("server: can't bind local address");
+ */
 
-	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
-		err_sys("server: can't bind local address");
+	if ((sock3 = socket(family, SOCK_STREAM, 0)) < 0)
+	    err_sys("Server Failed: cannot open socket");
+
+	if (family == AF_INET) {
+	    bzero((char *) &srv3_addr, sizeof(srv3_addr));
+	    srv3_addr.sin_family = AF_INET;
+	    srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	    if (multiple == 1)
+	        srv3_addr.sin_port = 0;  /* any */
+	    else
+	        srv3_addr.sin_port = htons(port3);
+	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(srv3_addr)) < 0)
+		    err_sys("Server fault: (Test engine port3) can't bind to IPv4 address");
+	    }
+	else if (family == AF_INET6) {
+	    bzero((char *) &serv6_addr, sizeof(serv6_addr));
+	    if (multiple == 1)
+	        srv63_addr.sin6_port = 0;  /* any */
+	    else
+	        srv63_addr.sin6_port = htons(port3);
+	    setsockopt(sock3, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock3, (struct sockaddr *) &srv63_addr, sizeof(srv63_addr)) < 0)
+		err_sys("Server fault: (Test engine port3) can't bind to IPv6 address");
+	}
 
 	if (set_buff > 0) {
 	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
@@ -954,7 +1101,15 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    fprintf(stderr, "waiting for data on sock3\n");
 
 	j = 0;
-	while ((xmitsfd = accept(sock3, (struct sockaddr *) &cli_addr, &clilen)) == -1) {
+	for (;;) {
+	    if (family == AF_INET) {
+		if ((xmitsfd = accept(sock3, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+		    break;
+	    } else {
+		if ((xmitsfd = accept(sock3, (struct sockaddr *) &cli6_addr, &clilen)) > 0)
+		    break;
+	    }
+	
 	    sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
 	    if (debug > 1)
 		perror(tmpstr);
@@ -975,7 +1130,15 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 		    }
 		    if (debug > 1)
 		        fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli_addr);
-	            init_pkttrace(&cli_addr, mon_pipe2, device);
+		    if (family == AF_INET) {
+		        if (debug > 1)
+		            fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli_addr);
+	                init_pkttrace(&cli_addr, NULL, mon_pipe2, device, family);
+		    } else {
+		        if (debug > 1)
+		            fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli6_addr);
+	                init_pkttrace(NULL, &cli6_addr, mon_pipe2, device, family);
+		    }
 		    exit(0);		/* Packet trace finished, terminate gracefully */
 	        }
 	        if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
@@ -993,14 +1156,14 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	     * enabled, then scale the buffer size to the correct value.  This will also help
 	     * when reporting the buffer / RTT limit.
 	     */
-	    /* autotune = web100_autotune(xmitsfd, agent, debug);
+	    /* autotune = web100_autotune(xmitsfd, agent, family, debug);
 	     * if (debug > 3)
 	     *     fprintf(stderr, "S2C Test Autotune = %d Recv Buff now %d, Send Buff now %d\n",
 	     * 	    autotune, rbuff, sbuff);
 	     */
 
 	    if (autotune > 0) 
-		web100_setbuff(xmitsfd, agent, autotune, debug);
+		web100_setbuff(xmitsfd, agent, autotune, family, debug);
 
 	    write(ctlsockfd, buff, strlen(buff));  
 	    if (debug > 4) {
@@ -1052,7 +1215,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	    }
 
 	    /* printf("debug: xmit socket fd = %d\n", xmitsfd); */
-	     /* web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug); */
+	     /* web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, family, debug); */
 
 	    if (debug > 10)
 	        fprintf(stderr, "sent %d bytes to client in %0.2f seconds\n", bytes, t);
@@ -1095,7 +1258,7 @@ void run_test(web100_agent* agent, int ctlsockfd) {
 	}
 
 	printf("debug: xmit socket fd = %d\n", xmitsfd);
-	ret = web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, debug); 
+	ret = web100_get_data(xmitsfd, ctlsockfd, agent, count_vars, family, debug); 
 
 	shutdown(xmitsfd, 1); 
 	/* end of write's */
@@ -1427,23 +1590,28 @@ int	argc;
 char	*argv[];
 {
 	int chld_pid, rc;
-	int n,sockfd, midsockfd, recvsfd, xmitsfd, ctlsockfd, clilen, servlen, one=1;
+	int n, midsockfd, recvsfd, xmitsfd, ctlsockfd, clilen, servlen, one=1;
 	int c, chld_pipe[2];
 	int i, loopcnt;
 	struct sockaddr_in cli_addr, cli2_addr, srv2_addr, srv3_addr, srv4_addr, serv_addr;
+	struct sockaddr_in6 serv6_addr, cli6_addr;
 	struct sigaction new;
 	web100_agent* agent;
 	char view_string[256], *lbuf=NULL, *ctime();
-	char buff[32], tmpstr[256];
+	char buff[32], tmpstr[256], *tmp2str;
 	FILE *fp;
 	size_t lbuf_max=0;
 	fd_set rfd;
 	struct timeval sel_tv;
 	struct ndtchild *tmp_ptr, *new_child;
 
+	int v4only=0, v6only=0, af_family;
+	struct addrinfo hints, *ai;
+	struct sockRFD sock_rfd[12];
+
 
 	opterr = 0;
-	while ((c = getopt(argc, argv, "adxhmoqrstvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:")) != -1){
 	    switch (c) {
 		case 'c':
 			ConfigFileName = optarg;
@@ -1469,8 +1637,16 @@ char	*argv[];
 	LoadConfig(&lbuf, &lbuf_max);
 	debug = 0;
 
-	while ((c = getopt(argc, argv, "adxhmoqrstvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:")) != -1){
 	    switch (c) {
+		case '4':
+			v4only = 1;
+			v6only = 0;
+			break;
+		case '6':
+			v6only = 1;
+			v4only = 0;
+			break;
 		case 'r':
 			record_reverse = 1;
 			break;
@@ -1499,6 +1675,8 @@ char	*argv[];
 			exit(0);
 		case 'p':
 			port = atoi(optarg);
+			port2 = port + 1;
+			port3 = port + 2;
 			break;
 		case 'a':
 			admin_view = 1;
@@ -1568,9 +1746,6 @@ char	*argv[];
 	    fprintf(stderr, "\tDebug level set to %d\n", debug);
 	}
 
-	if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		err_sys("server: can't open stream socket");
-
 	memset(&new, 0, sizeof(new));
 	new.sa_handler = cleanup;
 	/* sigaction(SIGUSR1, &new, NULL);
@@ -1581,7 +1756,7 @@ char	*argv[];
 	 * sigaction(SIGHUP, &new, NULL);
 	 */
 
-	/* Grap all signals and run them through my cleanup routine.  2/24/05 */
+	/* Grab all signals and run them through my cleanup routine.  2/24/05 */
 	for (i=1; i<32; i++) {
 	    if ((i == SIGKILL) || (i == SIGSTOP))
 		continue;		/* these signals can't be caught */
@@ -1592,21 +1767,83 @@ char	*argv[];
 	/*
 	 * Bind our local address so that the client can send to us.
 	 */
+	/* 
+	 * if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	 * 	err_sys("server: can't open stream socket");
+	 * 
+	 * bzero((char *) &serv_addr, sizeof(serv_addr));
+	 * serv_addr.sin_family = AF_INET;
+	 * serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	 * serv_addr.sin_port        = htons(port);
+	 *
+	 * setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	 * if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+	 *	  err_sys("server: can't bind local address");
+	 *
+	 * if (set_buff > 0) {
+	 *   setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+	 *   setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+	 * }
+	 * listen(sockfd, 5);
+	 */
 
-	bzero((char *) &serv_addr, sizeof(serv_addr));
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	serv_addr.sin_port        = htons(port);
+	/* first attempt at IPv6 port  8/16/05 RAC	*/
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
 
-	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-		err_sys("server: can't bind local address");
+	if (v6only == 1)
+	    hints.ai_family = AF_INET6;
+	if (v4only == 1)
+	    hints.ai_family = AF_INET;
 
-	if (set_buff > 0) {
-	    setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-	    setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+	sprintf(tmpstr, "%d", port);
+	if (i = (getaddrinfo(NULL, tmpstr, &hints, &ai)) < 0) {
+	    if (ai == NULL) {
+	        freeaddrinfo(ai);
+	        err_sys("Server failed: cannot find usable IP v4 or v6 address");
+	    }
 	}
-	listen(sockfd, 5);
+
+	i = 0;
+	while (ai != NULL) {
+	    if ((sock_rfd[i].sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
+		freeaddrinfo(ai);
+		err_sys("Server Failed: cannot open socket");
+	    }
+	    if (ai->ai_family == AF_INET) {
+		sock_rfd[i].family = AF_INET;
+	        bzero((char *) &serv_addr, sizeof(serv_addr));
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+		serv_addr.sin_port = htons(port);
+		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+		if (bind(sock_rfd[i].sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+		    err_sys("Server fault: can't bind to IPv4 address");
+	    }
+	    if (ai->ai_family == AF_INET6) {
+		sock_rfd[i].family = AF_INET6;
+	        bzero((char *) &serv6_addr, sizeof(serv6_addr));
+		serv6_addr.sin6_port = htons(port);
+		setsockopt(sock_rfd[i].sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+		if (bind(sock_rfd[i].sockfd, (struct sockaddr *) &serv6_addr, sizeof(serv6_addr)) < 0)
+		    err_sys("Server fault: can't bind to IPv6 address");
+	    }
+	    if (set_buff > 0) {
+		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+	    }
+	    /* sock_rfd[i].len = ai->ai_addrlen; */
+	    sock_rfd[i].len = INET6_ADDRSTRLEN;
+	    listen(sock_rfd[i].sockfd, 5);
+	    maxsockfd = sock_rfd[i].sockfd;
+	    i++;
+	    ai = ai->ai_next;
+
+	}
+
 	/* signal(SIGCLD,reap); */		/* get rid of zombies */
 	if (debug > 0)
 	    fprintf(stderr, "server ready on port %d\n",port);
@@ -1677,13 +1914,17 @@ char	*argv[];
 		}
 
 		FD_ZERO(&rfd);
-		FD_SET(sockfd, &rfd);
+		for (i=0; ;i++) {
+		    FD_SET(sock_rfd[i].sockfd, &rfd);
+		    if (sock_rfd[i].sockfd == maxsockfd)
+			break;
+		}
 		if (waiting > 0) {
 		    sel_tv.tv_sec = 3;
 		    sel_tv.tv_usec = 0;
 		    if (debug > 2)
 			fprintf(stderr, "Waiting for new connection, timer running\n");
-		    rc = select(sockfd+1, &rfd, NULL, NULL, &sel_tv);
+		    rc = select(maxsockfd+1, &rfd, NULL, NULL, &sel_tv);
 		    c = time(0);
 		    if (head_ptr != NULL) {
 		        if (debug > 2) 
@@ -1710,7 +1951,7 @@ char	*argv[];
 		else {
 		    if (debug > 2)
 			fprintf(stderr, "Timer not running, waiting for new connection\n");
-		    rc = select(sockfd+1, &rfd, NULL, NULL, NULL);
+		    rc = select(maxsockfd+1, &rfd, NULL, NULL, NULL);
 		}
 
 		if (rc < 0) {
@@ -1737,7 +1978,36 @@ char	*argv[];
 			    fprintf(stderr, "New connection received, waiting for accept() to complete\n");
 		    }
 		    clilen = sizeof(cli_addr);
-		    ctlsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+		    for (i=0; ;i++) {
+			if (FD_ISSET(sock_rfd[i].sockfd, &rfd))
+			    break;
+			if (sock_rfd[i].sockfd > maxsockfd)
+			    continue;
+		    }
+		    if (sock_rfd[i].family == AF_INET) {
+		        clilen = sizeof(cli_addr);
+		        ctlsockfd = accept(sock_rfd[i].sockfd, (struct sockaddr *) &cli_addr, &clilen);
+			if ((inet_ntop(sock_rfd[i].family, &cli_addr.sin_addr, tmpstr, sock_rfd[i].len)) == NULL)
+			    fprintf(stderr, "inet_ntop() failed: rc=%d, family=%d, addr_len=%d IP=%x\n", errno, sock_rfd[i].family,
+					sock_rfd[i].len, cli_addr.sin_addr.s_addr);
+			if (debug > 3)
+			    fprintf(stderr, "New IPv4 connection received from [%s].\n", tmpstr);
+		    }
+		    else if (sock_rfd[i].family == AF_INET6) {
+		        clilen = sizeof(cli6_addr);
+		        ctlsockfd = accept(sock_rfd[i].sockfd, (struct sockaddr *) &cli6_addr, &clilen);
+			/* if ((inet_ntop(sock_rfd[i].family, &cli6_addr.sin6_addr, tmpstr, 46)) == NULL) */
+			if ((inet_ntop(sock_rfd[i].family, &cli6_addr.sin6_addr, tmpstr, sock_rfd[i].len)) == NULL)
+			    fprintf(stderr, "inet_ntop() failed: rc=%d, family=%d, addr_len=%d IP=%x:%x:%x\n", errno,
+						sock_rfd[i].family, sock_rfd[i].len, cli6_addr.sin6_addr.s6_addr,
+						cli6_addr.sin6_addr.s6_addr16, cli6_addr.sin6_addr.s6_addr32);
+			if (debug > 3)
+			    fprintf(stderr, "New IPv6 connection received from [%s].\n", tmpstr);
+		    }
+		    else {
+			perror("Connection received with unknown protocol address");
+			continue;
+		    }
 		    if (ctlsockfd < 0){
 			if (errno == EINTR)
 			    continue; /*sig child */
@@ -1746,9 +2016,17 @@ char	*argv[];
 		    }
 		    new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
                     i = time(0);
-                    hp = gethostbyaddr(&cli_addr.sin_addr, sizeof(struct in_addr), AF_INET);
-                    name =  (hp == NULL) ? inet_ntoa(cli_addr.sin_addr) : hp->h_name;
-		    rmt_host = inet_ntoa(cli_addr.sin_addr);
+                    /*
+		     * hp = gethostbyaddr(&cli_addr.sin_addr, sizeof(struct in_addr), AF_INET);
+                     * name =  (hp == NULL) ? inet_ntoa(cli_addr.sin_addr) : hp->h_name;
+		     * rmt_host = inet_ntoa(cli_addr.sin_addr);
+		     */
+
+		    if ((getaddrinfo(tmpstr, NULL, NULL, &ai)) < 0) {
+			perror("getaddrinfo() failed! ");
+		    }
+		    name = (ai->ai_canonname == NULL) ? tmpstr : ai->ai_canonname;
+		    rmt_host = tmpstr;
 
 		    /* At this point we have received a connection from a client, meaning that
 		     * a test is being requested.  At this point we should apply any policy 
@@ -1789,6 +2067,7 @@ char	*argv[];
 			new_child->qtime = i;
 			new_child->pipe = chld_pipe[1];
 			new_child->ctlsockfd = ctlsockfd;
+			new_child->family = ai->ai_family;
 			new_child->next = NULL;
 
 			if ((testing == 1) && (queue == 0)) {
@@ -1878,16 +2157,17 @@ char	*argv[];
 			 */
 
 		      head_ptr->stime = time(0);
+		      sprintf(tmpstr, "go%d", head_ptr->family);
 		      multi_client:
 			if (multiple == 1) {
 			    write(ctlsockfd, "0", 1);
-			    write(chld_pipe[1], "go", 2);
+			    write(chld_pipe[1], tmpstr, 3);
 			    close(chld_pipe[1]);
 			    close(ctlsockfd);
 			}
 			else {
 			    write(head_ptr->ctlsockfd, "0", 1);
-			    write(head_ptr->pipe, "go", 2);
+			    write(head_ptr->pipe, tmpstr, 3);
 			    close(head_ptr->pipe);
 			    close(head_ptr->ctlsockfd);
 			}
@@ -1901,7 +2181,13 @@ char	*argv[];
 			    fprintf(stderr, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d\n",
 					    chld_pipe[0], chld_pipe[1], chld_pid);
 			}
-			close(sockfd);
+			int j;
+			for (j=0; ;j++) {
+			    if (sock_rfd[j].sockfd == maxsockfd)
+				break;
+			    close(sock_rfd[j].sockfd);
+			}
+			close(sock_rfd[j].sockfd);
 			close(chld_pipe[1]);
 			if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL, NULL)) == NULL) {
 	                    web100_perror("web100_attach");
@@ -1934,9 +2220,11 @@ char	*argv[];
                 	    fclose(fp);
 			}
 			close(chld_pipe[0]);
+			buff[0] = buff[2];
+			buff[1] = buff[3];
 			alarm(60);  /* die in 60 seconds */
 
-			run_test(agent, ctlsockfd);
+			run_test(agent, ctlsockfd, atoi(buff));
 		
 			if (debug > 2)
 			    fprintf(stderr, "Successfully returned from run_test() routine\n");
