@@ -122,7 +122,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4e\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.4g\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -489,9 +489,6 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		srvin.close();
 		inSocket.close();
-		if (t > 13750)
-		    results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
-
 
 		/* get web100 variables from server */
 		tmpstr = "";
@@ -508,8 +505,12 @@ public class Tcpbw100 extends Applet implements ActionListener
 					break;
 				}
 				tmpstr += new String(buff, 0, inlth);
+				i++;
 			}
 		} catch (IOException e) {}
+
+		if (i == 0)
+		    results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
 		
 		System.err.println("Calling InetAddress.getLocalHost() twice");
 		try {
@@ -528,17 +529,17 @@ public class Tcpbw100 extends Applet implements ActionListener
 
 		
 		/// XXX TODO -- this code doesn't do anything  dmr
-		try {  
-			for (;;) {
-				inlth = ctlin.read(buff, 0, buff.length);
-				//results.append("Read " + inlth + " bytes from ctl socket\n");
-				if (inlth < 0) {
-					// System.err.println("Finished reading calculated data");
-					break;
-				}
-				tmpstr += new String(buff, 0, inlth);
-			}
-		} catch (IOException e) {}
+	// 	try {  
+	// 		for (;;) {
+	// 			inlth = ctlin.read(buff, 0, buff.length);
+	// 			//results.append("Read " + inlth + " bytes from ctl socket\n");
+	// 			if (inlth < 0) {
+	// 				// System.err.println("Finished reading calculated data");
+	// 				break;
+	// 			}
+	// 			tmpstr += new String(buff, 0, inlth);
+	// 		}
+	// 	} catch (IOException e) {}
 
 		ctlin.close();
 		ctlSocket.close();
@@ -705,7 +706,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 				emailText += "Information: Other network traffic is congesting the link\n%0A";
 			    }
 			    if (((2*rwin)/rttsec) < mylink) {
-			        j = (float)((mylink * avgrtt) * 1000) / 8;
+			        j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
 			        if (j > (float)MaxRwinRcvd) {
 				    results.append("Information: The receive buffer should be " +
 				    prtdbl(j) + " Kbytes to maximize throughput\n");
@@ -832,7 +833,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 				emailText += "This connection is sender limited " + prtdbl(sendtime*100) +
 				"% of the time.\n%0A";
 				if ((2*(swin/rttsec)) < mylink) {
-					statistics.append("  Increasing the NDT server's send buffer (" + prtdbl(Sndbuf/1024) +
+					statistics.append("  Increasing the NDT server's send buffer (" + prtdbl(Sndbuf/2048) +
 					" KB) will improve performance\n");
 				}
 			}
@@ -931,9 +932,9 @@ public class Tcpbw100 extends Applet implements ActionListener
 			diagnosis.append("The theoretical network limit is " + prtdbl(estimate) + " Mbps\n");
 			emailText += "The theoretical network limit is " + prtdbl(estimate) + " Mbps\n%0A";
 
-			diagnosis.append("The NDT server has a " + prtdbl(Sndbuf/1024) + 
+			diagnosis.append("The NDT server has a " + prtdbl(Sndbuf/2048) + 
 				" KByte buffer which limits the throughput to " + prtdbl(swin/rttsec) + " Mbps\n");
-			emailText += "The NDT server has a " + prtdbl(Sndbuf/1024) + 
+			emailText += "The NDT server has a " + prtdbl(Sndbuf/2048) + 
 				" KByte buffer which limits the throughput to " + prtdbl(swin/rttsec) + " Mbps\n%0A";
 
 			diagnosis.append("Your PC/Workstation has a " + prtdbl(MaxRwinRcvd/1024) +
