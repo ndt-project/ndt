@@ -85,6 +85,9 @@ int old_mismatch=0;	/* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
 int maxsockfd;
 
+/* experimental limit code, can remove later */
+u_int32_t limit=0;
+
 extern int errno;
 
 char *VarFileName=NULL;
@@ -329,7 +332,7 @@ void init_pkttrace(struct sockaddr_in *sock_addr, struct sockaddr_in6 *sock6_add
 
 	/* special check for localhost, set device accordingly */
  	if (strcmp(inet_ntoa(sock_addr->sin_addr), "127.0.0.1") == 0)
- 	    strcpy(device, "lo");
+ 	    strncpy(device, "lo", 3);
 
 	if (debug > 0)
 	    fprintf(stderr, "Opening network interface '%s' for packet-pair timing\n", device);
@@ -605,63 +608,63 @@ static void LoadConfig(char **lbuf, size_t *lbuf_max)
 	while ((rc = I2ReadConfVar(conf, rc, key, val, 256, lbuf, lbuf_max)) > 0) {
 	    if (strncasecmp(key, "administrator_view", 5) == 0) {
 		admin_view = 1;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "multiple_clients", 5) == 0) {
 		multiple = 1;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "record_reverse", 6) == 0) {
 		record_reverse = 1;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "write_trace", 5) == 0) {
 		dumptrace = 1;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "TCP_Buffer_size", 3) == 0) {
 		window = atoi(val);
 		set_buff = 1;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "debug", 5) == 0) {
 		debug = atoi(val);
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "variable_file", 6) == 0) {
 		VarFileName = val;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "log_file", 3) == 0) {
 		LogFileName = val;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "device", 5) == 0) {
 		device = val;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "port", 4) == 0) {
 		port = atoi(val);
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "syslog", 6) == 0) {
 		usesyslog = 1;
-		break;
+		continue;
 	    }
 
 	    else if (strncasecmp(key, "disable_FIFO", 5) == 0) {
 		queue = 0;
-		break;
+		continue;
 	    }
 	}
 	fclose(conf);
@@ -698,9 +701,10 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	double rwintime, cwndtime, sendtime;
 	double oo_order, waitsec;
 	double bw2, avgrtt, timesec, loss2, RTOidle;
-	double s2cspd, c2sspd, bytes=0;
+	double x2cspd, s2cspd, c2sspd, bytes=0;
+	double s2c2spd;
  	double s, t, secs();
-	double acks, aspd, tmouts, rtran;
+	double acks, aspd, tmouts, rtran, dack;
 	float runave;
 
 	struct sockaddr_in spd_addr, spd_addr2, spd_cli;
@@ -739,51 +743,19 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 
 	autotune = web100_autotune(ctlsockfd, agent, family, debug);
 
-	if ((sock2 = socket(family, SOCK_STREAM, 0)) < 0)
-	    err_sys("Server Failed: cannot open socket");
-
-	if (family == AF_INET) {
-	    /* if ((sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	     *   err_sys("Server Failed: cannot open socket");
-	     */
-	    bzero((char *) &srv2_addr, sizeof(srv2_addr));
-	    srv2_addr.sin_family = AF_INET;
-	    srv2_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	    if (multiple == 1)
-	        srv2_addr.sin_port = 0; 
-	    else
-	        srv2_addr.sin_port = htons(port2);
-	    setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock2, (struct sockaddr *) &srv2_addr, sizeof(srv2_addr)) < 0)
-		    err_sys("Server fault: (Test engine port2) can't bind to IPv4 address");
-	}
-	else if (family == AF_INET6) {
-	    bzero((char *) &serv6_addr, sizeof(serv6_addr));
-	    if (multiple == 1)
-	        srv62_addr.sin6_port = 0;  /* any */
-	    else
-	        srv62_addr.sin6_port = htons(port2);
-	    setsockopt(sock2, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
-	    setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock2, (struct sockaddr *) &srv62_addr, sizeof(srv62_addr)) < 0)
-		err_sys("Server fault: (Test engine port2) can't bind to IPv6 address");
-	}
-
-/*
- *	if ( (sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
- *		err_sys("server: can't open stream socket");
- *	setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
- *	bzero((char *) &srv2_addr, sizeof(srv2_addr));
- *	srv2_addr.sin_family = AF_INET;
- *	srv2_addr.sin_addr.s_addr = htonl(INADDR_ANY);
- *	if (multiple == 1)
- *	    srv2_addr.sin_port = 0;  
- *	else
- *   	    srv2_addr.sin_port = htons(port2);  
- *
- *	if (bind(sock2, (struct sockaddr *) &srv2_addr, sizeof(serv_addr)) < 0)
- *		err_sys("server: can't bind local address");
- */
+ 	if ( (sock2 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+ 		err_sys("server: can't open stream socket");
+ 	setsockopt(sock2, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+ 	bzero((char *) &srv2_addr, sizeof(srv2_addr));
+ 	srv2_addr.sin_family = AF_INET;
+ 	srv2_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+ 	if (multiple == 1)
+ 	    srv2_addr.sin_port = 0;  
+ 	else
+    	    srv2_addr.sin_port = htons(port2);  
+ 
+ 	if (bind(sock2, (struct sockaddr *) &srv2_addr, sizeof(serv_addr)) < 0)
+ 		err_sys("server: can't bind local address");
 
 	if (set_buff > 0) {
 	    setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
@@ -797,107 +769,68 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    fprintf(stderr, "listening for Inet connection on sock2, fd=%d\n", sock2);
 	listen(sock2, 2);
 
-	if (family == AF_INET) {
-	    /* send 2nd server port to client */
-	    clilen = sizeof(cli_addr);
-	    getsockname(sock2, (struct sockaddr *) &cli_addr, &clilen);
-	    port2 = ntohs(cli_addr.sin_port);
-	}
-	if (family == AF_INET6) {
-	    /* do IPv6 stuff here. */
-	    clilen = sizeof(cli6_addr);
-	    getsockname(sock2, (struct sockaddr *) &cli6_addr, &clilen);
-	    port2 = ntohs(cli6_addr.sin6_port);
-	}
-
-/* 
- * 	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
- * 		err_sys("server: can't open stream socket");
- * 	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
- * 	bzero((char *) &srv3_addr, sizeof(srv3_addr));
- * 	srv3_addr.sin_family = AF_INET;
- * 	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
- * 	if (multiple == 1)
- * 	    srv3_addr.sin_port = 0;
- * 	else
- * 	    srv3_addr.sin_port = htons(port3);
- * 
- * 	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
- * 		err_sys("server: can't bind local address");
- */
+  	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+  		err_sys("server: can't open stream socket");
+  	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+  	bzero((char *) &srv3_addr, sizeof(srv3_addr));
+  	srv3_addr.sin_family = AF_INET;
+  	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  	if (multiple == 1)
+  	    srv3_addr.sin_port = 0;
+  	else
+  	    srv3_addr.sin_port = htons(port3);
+  
+  	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
+  		err_sys("server: can't bind local address");
 
 	/* send server ports to client */
 
 	if ( (sock3 = socket(family, SOCK_STREAM, 0)) < 0)
 		err_sys("server: can't open stream socket");
 
-	if (family == AF_INET) {
-	    bzero((char *) &srv3_addr, sizeof(srv3_addr));
-	    srv3_addr.sin_family = AF_INET;
-	    srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	    if (multiple == 1)
-	        srv3_addr.sin_port = 0;  /* any */
-	    else
-	        srv3_addr.sin_port = htons(port3);
-	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(srv3_addr)) < 0)
-		    err_sys("Server fault: (Test engine port3) can't bind to IPv4 address");
-	    }
-	else if (family == AF_INET6) {
-	    bzero((char *) &serv6_addr, sizeof(serv6_addr));
-	    if (multiple == 1)
-	        srv63_addr.sin6_port = 0;  /* any */
-	    else
-	        srv63_addr.sin6_port = htons(port3);
-	    setsockopt(sock3, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
-	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock3, (struct sockaddr *) &srv63_addr, sizeof(srv63_addr)) < 0)
-		err_sys("Server fault: (Test engine port3) can't bind to IPv6 address");
-	}
+	bzero((char *) &srv3_addr, sizeof(srv3_addr));
+	srv3_addr.sin_family = AF_INET;
+	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	if (multiple == 1)
+	    srv3_addr.sin_port = 0;  /* any */
+	else
+	    srv3_addr.sin_port = htons(port3);
+	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(srv3_addr)) < 0)
+	    err_sys("Server fault: (Test engine port3) can't bind to IPv4 address");
 
 	if (debug > 0)
 	    fprintf(stderr, "server ports %d %d\n", port2, port3);
 	alarm(30);  /* reset alarm() signal to gain another 30 seconds */
 	sprintf(buff, "%d %d", port2, port3);
+
 	/* This write kicks off the whole test cycle.  The client will start the
 	 * middlebox test after receiving this string
 	 */
 	write(ctlsockfd, buff, strlen(buff));  
 
-	if (family == AF_INET) {
-	    /* send 3rd server port to client */
-	    clilen = sizeof(cli_addr);
-	    getsockname(sock3, (struct sockaddr *) &cli_addr, &clilen);
-	    port3 = ntohs(cli_addr.sin_port);
-	}
-	if (family == AF_INET6) {
-	    /* do IPv6 stuff here. */
-	    clilen = sizeof(cli6_addr);
-	    getsockname(sock3, (struct sockaddr *) &cli6_addr, &clilen);
-	    port3 = ntohs(cli6_addr.sin6_port);
-	}
+	/* send 3rd server port to client */
+	clilen = sizeof(cli_addr);
+	getsockname(sock3, (struct sockaddr *) &cli_addr, &clilen);
+	port3 = ntohs(cli_addr.sin_port);
 
 	/* set mss to 1456 (strange value), and large snd/rcv buffers
 	 * should check to see if server supports window scale ?
 	 */
 	setsockopt(sock3, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
-	if (set_buff > 0) {
-	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-	    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
-	}
-	if (autotune > 0) {
-	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-	    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-	}
+	setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+	setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
 	if (debug > 0)
 	    fprintf(stderr, "listening for Inet connection on sock3, fd=%d\n", sock3);
 	listen(sock3, 2);
-	if (debug > 0) {
+	if (debug > 1) {
 	    fprintf(stderr, "Middlebox test, Port %d waiting for incoming connection\n", port3);
 	    i = sizeof(seg_size);
 	    getsockopt(sock3, SOL_TCP, TCP_MAXSEG, &seg_size, &i);
 	    getsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &win_size, &i);
-	    fprintf(stderr, "Set MSS to %d, Window size set to %dKB\n", seg_size, win_size);
+	    fprintf(stderr, "Set MSS to %d, Receiving Window size set to %dKB\n", seg_size, win_size);
+	    getsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &win_size, &i);
+	    fprintf(stderr, "Sending Window size set to %dKB\n", seg_size, win_size);
 	}
 
 	/* Post a listen on port 3003.  Client will connect here to run the 
@@ -906,12 +839,18 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	 * will be done in the future.
 	 */
 	/* printf("Trying to accept new connection for middlebox test\n"); */
-	if (family == AF_INET)
-	    midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
-	if (family == AF_INET6)
-	    midsockfd = accept(sock3, (struct sockaddr *) &cli62_addr, &clilen);
+	midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
+
 	/* printf("Accepted new middlebox connection\n"); */
-	web100_middlebox(midsockfd, agent, family, debug);
+	buff[0] = '\0';
+	web100_middlebox(midsockfd, agent, buff, family, debug);
+	write(ctlsockfd, buff, strlen(buff));  
+	ret = read(ctlsockfd, buff, 32);  
+	buff[ret] = '\0';
+	s2c2spd = atof(buff);
+	if (debug > 3)
+	    fprintf(stderr, "CWND limited throubhput = %0.0f kbps (%s)\n", s2c2spd, buff);
+	shutdown(midsockfd, SHUT_WR);
 	close(midsockfd);
 	close(sock3);
 
@@ -923,13 +862,13 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	 * when server is ready to go.
 	 */
 	/* write(ctlsockfd, buff, strlen(buff));  */
-	write(ctlsockfd, "abcdefghijklmnop", 20);  
+
 	if (debug > 0)
-	    fprintf(stderr, "Sent 'GO' signal, waiting for incoming connection on sock2\n");
-	if (family == AF_INET)
-	    recvsfd = accept(sock2, (struct sockaddr *) &cli_addr, &clilen);
-	else
-	    recvsfd = accept(sock2, (struct sockaddr *) &cli6_addr, &clilen);
+	    fprintf(stderr, "Sending 'GO' signal, to tell client to head for the next test\n");
+
+	write(ctlsockfd, "Open-c2s-connection", 21);  
+
+	recvsfd = accept(sock2, (struct sockaddr *) &cli_addr, &clilen);
 
 	if (getuid() == 0) {
 	    pipe(mon_pipe1);
@@ -941,15 +880,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		    fprintf(stderr, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d\n",
 				    mon_pipe1[0], mon_pipe1[1]);
 		}
-		if (family == AF_INET) {
-		    if (debug > 1)
-		        fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli_addr);
-	            init_pkttrace(&cli_addr, NULL, mon_pipe1, device, family);
-		} else {
-		    if (debug > 1)
-		        fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli6_addr);
-	            init_pkttrace(NULL, &cli6_addr, mon_pipe1, device, family);
-		}
+		if (debug > 1)
+		    fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", cli_addr);
+	        init_pkttrace(&cli_addr, NULL, mon_pipe1, device, family);
 		exit(0);		/* Packet trace finished, terminate gracefully */
 	    }
 	    if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
@@ -981,18 +914,38 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	if (autotune > 0) 
 	    web100_setbuff(recvsfd, agent, autotune, family, debug);
 
-	/* This write kicks off the server to client speed test.
-	 * it shouldn't!!!
-	 */
-	/* write(ctlsockfd, buff, strlen(buff)); */
-	write(ctlsockfd, "1234567890", 12);
-	alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
-		     * is generated.  */
-
 	/* ok, We are now read to start the throughput tests.  First
 	 * the client will stream data to the server for 10 seconds.
 	 * Data will be processed by the read loop below.
 	 */
+
+/* experimental code, delete when finished */
+	web100_var *LimRwin, *yar;
+	u_int32_t limrwin_val;
+	char yuff[32];
+	
+	if (limit > 0) {
+	    fprintf(stderr, "Setting Cwnd limit - ");
+	    if ((conn = web100_connection_from_socket(agent, recvsfd)) != NULL) {
+		web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
+		web100_raw_read(yar, conn, yuff);
+		fprintf(stderr, "MSS = %s, multiplication factor = %d\n",
+			web100_value_to_text(web100_get_var_type(yar), yuff), limit);
+		limrwin_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
+		web100_agent_find_var_and_group(agent, "LimRwin", &group, &LimRwin);
+		fprintf(stderr, "now write %d to limit the Receive window", limrwin_val);
+		web100_raw_write(LimRwin, conn, &limrwin_val);
+		fprintf(stderr, "  ---  Done\n");
+	    }
+	}
+
+/* End of test code */
+
+	write(ctlsockfd, "Start-c2s-test", 15);
+	alarm(45);  /* reset alarm() again, this 10 sec test should finish before this signal
+		     * is generated.  */
+
+
 	t = secs();
 	sel_tv.tv_sec = 11;
 	sel_tv.tv_usec = 0;
@@ -1064,44 +1017,45 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
 	}
 
-/* old v4 only code
+/* old v4 only code */
+/*
  * 	if ( (sock3 = socket(AF_INET, SOCK_STREAM, 0)) < 0)
  * 		err_sys("server: can't open stream socket");
  * 	setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
  * 	bzero((char *) &srv3_addr, sizeof(srv3_addr));
  * 	srv3_addr.sin_family = AF_INET;
  * 	srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
- * 
- * 	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
- * 		err_sys("server: can't bind local address");
+ *  
+ *  	if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(serv_addr)) < 0)
+ *  		err_sys("server: can't bind local address");
  */
 
-	if ((sock3 = socket(family, SOCK_STREAM, 0)) < 0)
-	    err_sys("Server Failed: cannot open socket");
+        if ((sock3 = socket(family, SOCK_STREAM, 0)) < 0)
+            err_sys("Server Failed: cannot open socket");
 
-	if (family == AF_INET) {
-	    bzero((char *) &srv3_addr, sizeof(srv3_addr));
-	    srv3_addr.sin_family = AF_INET;
-	    srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	    if (multiple == 1)
-	        srv3_addr.sin_port = 0;  /* any */
-	    else
-	        srv3_addr.sin_port = htons(port3);
-	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(srv3_addr)) < 0)
-		    err_sys("Server fault: (Test engine port3) can't bind to IPv4 address");
-	    }
-	else if (family == AF_INET6) {
-	    bzero((char *) &serv6_addr, sizeof(serv6_addr));
-	    if (multiple == 1)
-	        srv63_addr.sin6_port = 0;  /* any */
-	    else
-	        srv63_addr.sin6_port = htons(port3);
-	    setsockopt(sock3, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
-	    setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock3, (struct sockaddr *) &srv63_addr, sizeof(srv63_addr)) < 0)
-		err_sys("Server fault: (Test engine port3) can't bind to IPv6 address");
-	}
+        if (family == AF_INET) {
+            bzero((char *) &srv3_addr, sizeof(srv3_addr));
+            srv3_addr.sin_family = AF_INET;
+            srv3_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+            if (multiple == 1)
+                srv3_addr.sin_port = 0;  /* any */
+            else
+                srv3_addr.sin_port = htons(port3);
+            setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+            if (bind(sock3, (struct sockaddr *) &srv3_addr, sizeof(srv3_addr)) < 0)
+                    err_sys("Server fault: (Test engine port3) can't bind to IPv4 address");
+            }
+        else if (family == AF_INET6) {
+            bzero((char *) &serv6_addr, sizeof(serv6_addr));
+            if (multiple == 1)
+                srv63_addr.sin6_port = 0;  /* any */
+            else
+                srv63_addr.sin6_port = htons(port3);
+            setsockopt(sock3, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+            setsockopt(sock3, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+            if (bind(sock3, (struct sockaddr *) &srv63_addr, sizeof(srv63_addr)) < 0)
+                err_sys("Server fault: (Test engine port3) can't bind to IPv6 address");
+        }
 
 	if (set_buff > 0) {
 	    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
@@ -1116,9 +1070,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	listen(sock3, 2); 
 
 	/* Data received from speed-chk, tell applet to start next test */
-	write(ctlsockfd, "a1-b2-c3-d4", 15);
-	alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
-		     * is generated.  */
+	write(ctlsockfd, "Open-s2c-connection", 21);
 
 	/* ok, await for connect on 3rd port
 	 * This is the second throughput test, with data streaming from
@@ -1129,13 +1081,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 
 	j = 0;
 	for (;;) {
-	    if (family == AF_INET) {
-		if ((xmitsfd = accept(sock3, (struct sockaddr *) &cli_addr, &clilen)) > 0)
-		    break;
-	    } else {
-		if ((xmitsfd = accept(sock3, (struct sockaddr *) &cli6_addr, &clilen)) > 0)
-		    break;
-	    }
+	    if ((xmitsfd = accept(sock3, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+		break;
 	
 	    sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
 	    if (debug > 1)
@@ -1157,15 +1104,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		    }
 		    if (debug > 1)
 		        fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli_addr);
-		    if (family == AF_INET) {
-		        if (debug > 1)
-		            fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli_addr);
-	                init_pkttrace(&cli_addr, NULL, mon_pipe2, device, family);
-		    } else {
-		        if (debug > 1)
-		            fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli6_addr);
-	                init_pkttrace(NULL, &cli6_addr, mon_pipe2, device, family);
-		    }
+		    if (debug > 1)
+		        fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", cli_addr);
+	            init_pkttrace(&cli_addr, NULL, mon_pipe2, device, family);
 		    exit(0);		/* Packet trace finished, terminate gracefully */
 	        }
 	        if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
@@ -1194,20 +1135,22 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 
 	    /* write(ctlsockfd, buff, strlen(buff));   */
 
-	    FD_ZERO(&rfd);
-	    FD_SET(ctlsockfd, &rfd);
-	    sel_tv.tv_sec = 2;
-	    sel_tv.tv_usec = 500000;
-	    ret = select(ctlsockfd+1, &rfd, NULL, NULL, &sel_tv);
-	/* 	if (ret == 0)
-	 * 	    fprintf(stderr, "!!!!!!!!!!!  Timer expired, old clients getting bad results\n");
-	 */
-		if (ret > 0) {
-                    read(ctlsockfd, buff, 32);
-	    	    sscanf(buff, "%0.2f *%s", cli_c2sspd);
-		fprintf(stderr, "+++++++++ read '%s' from client parsed to [%0.2f]\n", buff, cli_c2sspd);
+/* experimental code, delete when finished */
+	web100_var *LimCwnd;
+	u_int32_t limcwnd_val;
+	
+	if (limit > 0) {
+	    fprintf(stderr, "Setting Cwnd Limit\n");
+	    if ((conn = web100_connection_from_socket(agent, xmitsfd)) != NULL) {
+		web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
+		web100_raw_read(yar, conn, yuff);
+		web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
+		limcwnd_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
+		web100_raw_write(LimCwnd, conn, &limcwnd_val);
 	    }
-	     write(ctlsockfd, buff, strlen(buff));
+	}
+
+/* End of test code */
 
 	    if (experimental > 0) {
 		sprintf(logname, "snaplog-%s.%d", inet_ntoa(cli_addr.sin_addr),
@@ -1239,32 +1182,42 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		    k++;
 		buff[j] = (k++ & 0x7f);
 	    }
+
+	    write(ctlsockfd, "Start-s2c-test", 15);
+	    alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
+	        	 * is generated.  */
 	    t = secs();
 	    s = t + 10.0;
-            if (experimental > 0) {
-                web100_snap(snap);
-                if (experimental > 1)
-                    web100_log_write(log, snap);
-                web100_agent_find_var_and_group(agent, "SndMax", &group, &var);
-                web100_snap_read(var, snap, tmpstr);
-                SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-                web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-                web100_snap_read(var, snap, tmpstr);
-                SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-            }
+	/* 
+         *    if (experimental > 0) {
+         *        web100_snap(snap);
+         *        if (experimental > 1)
+         *            web100_log_write(log, snap);
+         *        web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
+         *        web100_snap_read(var, snap, tmpstr);
+         *        SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+         *        web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+         *        web100_snap_read(var, snap, tmpstr);
+         *        SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+         *    }
+	 */
  
+	    int c3=0;
 	    while(secs() < s) { 
+		c3++;
                 if (experimental > 0) {
-                    if ((4*RECLTH) < SndMax - SndUna) {
                         web100_snap(snap);
                         if (experimental > 1)
                             web100_log_write(log, snap);
-                        web100_agent_find_var_and_group(agent, "SndMax", &group, &var);
+                        web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
                         web100_snap_read(var, snap, tmpstr);
                         SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
                         web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
                         web100_snap_read(var, snap, tmpstr);
                         SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+		}
+                if (experimental > 0) {
+                    if ((RECLTH<<2) < (SndMax - SndUna - 1)) {
                         c1++;
                         continue;
                     }
@@ -1276,23 +1229,13 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	        bytes += n;
 
                 if (experimental > 0) {
-                    web100_snap(snap);
-                    if (experimental > 1)
-                        web100_log_write(log, snap);
-                    web100_snap_read(var, snap, tmpstr);
-                    web100_agent_find_var_and_group(agent, "SndMax", &group, &var);
-                    web100_snap_read(var, snap, tmpstr);
-                    SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-                    web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-                    web100_snap_read(var, snap, tmpstr);
-                    SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
                     c2++;
                 }
             }
 
             shutdown(xmitsfd, SHUT_WR);  /* end of write's */
             s = secs() - t;
-            s2cspd = (8.e-3 * bytes) / s;
+            x2cspd = (8.e-3 * bytes) / s;
             if (experimental > 0) {
                 web100_snapshot_free(snap);
                 if (experimental > 1)
@@ -1304,9 +1247,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    web100_snap(rsnap);
 	    web100_snap(tsnap);
 
-	    if (debug > 6) {
+	    if (debug > 0) {
 	        fprintf(stderr, "sent %d bytes to client in %0.2f seconds\n", bytes, t);
-		fprintf(stderr, "Buffer control counters decreasing = %d, increasing = %d\n", c1, c2);
+		fprintf(stderr, "Buffer control counters Total = %d, new data = %d, Draining Queue = %d\n", c3, c2, c1);
 	    }
 	    /* Next send speed-chk a flag to retrieve the data it collected.
 	     * Skip this step if speed-chk isn't running.
@@ -1346,7 +1289,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    }
 
 	    if (debug > 0)
-	        fprintf(stderr, "%6.0f Kbps inbound\n", s2cspd);
+	        fprintf(stderr, "%6.0f Kbps inbound\n", x2cspd);
 	}
 
 	alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
@@ -1361,6 +1304,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	/* end of write's */
 	/* now when client closes other end, read will fail */
 	/* read(xmitsfd, buff, 1);  */ /* read fail/complete */ 
+	read(ctlsockfd, buff, 32);  
+	s2cspd = atoi(buff);
 
 	if (debug > 3)
 	    fprintf(stderr, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps\n",
@@ -1510,9 +1455,18 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    tmouts = (double)Timeouts / PktsOut;
 	    rtran = (double)PktsRetrans / PktsOut;
 	    acks = (double)AckPktsIn / PktsOut;
+	    dack = (double)DupAcksIn / (double)AckPktsIn;
 
 	    spd = ((double)DataBytesOut / (double)totaltime) * 8;
 	    waitsec = (double) (CurrentRTO * Timeouts)/1000;
+	    if (debug > 1) {
+		fprintf(stderr, "CWND limited test = %0.2f while unlimited = %0.2f\n", s2c2spd, s2cspd);
+		if (s2c2spd > s2cspd) 
+			fprintf(stderr, "Better throughput when CWND is limited, may be duplex mismatch\n");
+		else
+			fprintf(stderr, "Better throughput without CWND limits - normal operation\n");
+	    }
+
 
 	    if (old_mismatch == 1) {
 	        if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
@@ -1528,13 +1482,16 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	        }
 	    } else {
 		/* if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))) { */
-		if ((CongAvoid > SlowStart) && (rtran > 0.10) && ((acks > 0.7) || (acks < 0.3))) {
+		/* if ((CongAvoid > SlowStart) && (rtran > 0.10) && ((acks > 0.7) || (acks < 0.3))) { */
+		/* if ((CongAvoid > SlowStart) && (dack > 0.10) && (cwndtime > 0.5)) { */
 		    if (debug > 2) {
-			fprintf(stderr, "CongAvoid(%d) > SlowStart(%d), AND ", CongAvoid, SlowStart);
-			fprintf(stderr, "packets retransmitted (%0.2f > 30%%, AND ", 100*rtran);
-			fprintf(stderr, "70% < acks/data packets(%0.2f) < 30%%\n", 100*acks);
+			fprintf(stderr, "++++++++++ Trying new mismatch algorithm for FD-HD\n");
+			fprintf(stderr, "s2cspd(%0.2f) > c2sspd(%0.2f), AND ", s2cspd, c2sspd);
+			fprintf(stderr, "Dup Acks (%0.2f > 10%%, AND ", 100*dack);
+			fprintf(stderr, "CWND time(%0.2f) < 30%%\n", 100*cwndtime);
 		    }
-		    if ((2*CurrentMSS) == MaxSsthresh)
+		if ((s2cspd > c2sspd) && (dack > 0.10) && (cwndtime > 0.5)) {
+		    if ((4*CurrentMSS) <= MaxSsthresh)
 			mismatch = 2;
 		    else
 			mismatch = 4;
@@ -1548,14 +1505,15 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		if ((10000 > s2cspd) && (ret == -1))
 		    mismatch = 7;
 
-	        if ((RTOidle > 0.65) && (tmouts < 0.4)) {
 		    if (debug > 2) {
+			fprintf(stderr, "++++++++++ Trying new mismatch algorithm for HD-FD\n");
 		        fprintf(stderr, "Using new Duplex mismatch algorithms: idle=%0.4f, ", RTOidle);
-		        fprintf(stderr, "SSThreshold=%d, 2*MSS=%d, ", MaxSsthresh, CurrentMSS);
-		        fprintf(stderr, "Timeouts/pkt=%0.4f, c2sspd=%0.2f, 4*s2cspd=%.02f\n", tmouts,
-				    c2sspd, 4*s2cspd);
+		        fprintf(stderr, "Timeouts: (%0.2f <40%%), c2sspd=%0.2f > s2cspd=%.02f\n", tmouts, c2sspd, s2cspd);
+		        fprintf(stderr, "SSThreshold=%d >= 4*MSS=%d\n", MaxSsthresh, 4*CurrentMSS);
 		    }
-		    if (MaxSsthresh == (2*CurrentMSS))
+	        /* if ((RTOidle > 0.65) && (tmouts < 0.4)) { */
+	        if ((RTOidle > 0.65) && (tmouts < 0.2) && (s2cspd < c2sspd)) {
+		    if (MaxSsthresh >= (4*CurrentMSS))
 		        mismatch = 3;
 	            else
 		        mismatch = 5;
@@ -1616,8 +1574,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		rwintime, sendtime, cwndtime, rwin, swin);
 	write(ctlsockfd, buff, strlen(buff));
 
-	sprintf(buff, "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\n",
-		cwin, rttsec, Sndbuf, aspd);
+	sprintf(buff, "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\nCWND-Limited: %0.2f\n",
+		cwin, rttsec, Sndbuf, aspd, s2c2spd);
 	write(ctlsockfd, buff, strlen(buff));
 	
        	fp = fopen(LogFileName,"a");
@@ -1627,8 +1585,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	else {
 	    sprintf(date,"%15.15s", ctime(&stime)+4);
 	    fprintf(fp, "%s,", date);
-       	    fprintf(fp,"%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
-      	        rmt_host,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
+       	    fprintf(fp,"%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+      	        rmt_host,(int)s2c2spd,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
  	        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
        	    fprintf(fp,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
  	        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
@@ -1711,7 +1669,7 @@ char	*argv[];
 
 
 	opterr = 0;
-	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:")) != -1){
 	    switch (c) {
 		case 'c':
 			ConfigFileName = optarg;
@@ -1737,7 +1695,7 @@ char	*argv[];
 	LoadConfig(&lbuf, &lbuf_max);
 	debug = 0;
 
-	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:")) != -1){
+	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:")) != -1){
 	    switch (c) {
 		case '4':
 			v4only = 1;
@@ -1815,6 +1773,9 @@ char	*argv[];
 			break;
 		case 'd':
 			debug++;
+			break;
+		case 'y':
+			limit = atoi(optarg);
 			break;
 	    }
 	}
@@ -1912,31 +1873,19 @@ char	*argv[];
 		freeaddrinfo(ai);
 		err_sys("Server Failed: cannot open socket");
 	    }
-	    if (ai->ai_family == AF_INET) {
-		sock_rfd[i].family = AF_INET;
-	        bzero((char *) &serv_addr, sizeof(serv_addr));
-		serv_addr.sin_family = AF_INET;
-		serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-		serv_addr.sin_port = htons(port);
-		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-		if (bind(sock_rfd[i].sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-		    err_sys("Server fault: can't bind to IPv4 address");
-	    }
-	    if (ai->ai_family == AF_INET6) {
-		sock_rfd[i].family = AF_INET6;
-	        bzero((char *) &serv6_addr, sizeof(serv6_addr));
-		serv6_addr.sin6_port = htons(port);
-		setsockopt(sock_rfd[i].sockfd, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
-		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-		if (bind(sock_rfd[i].sockfd, (struct sockaddr *) &serv6_addr, sizeof(serv6_addr)) < 0)
-		    err_sys("Server fault: can't bind to IPv6 address");
-	    }
+	    sock_rfd[i].family = AF_INET;
+	    bzero((char *) &serv_addr, sizeof(serv_addr));
+	    serv_addr.sin_family = AF_INET;
+	    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	    serv_addr.sin_port = htons(port);
+	    setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+	    if (bind(sock_rfd[i].sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+		err_sys("Server fault: new routine can't bind to IPv4 address");
 	    if (set_buff > 0) {
 		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
 		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
 	    }
-	    /* sock_rfd[i].len = ai->ai_addrlen; */
-	    sock_rfd[i].len = INET6_ADDRSTRLEN;
+	    sock_rfd[i].len = ai->ai_addrlen;
 	    listen(sock_rfd[i].sockfd, 5);
 	    maxsockfd = sock_rfd[i].sockfd;
 	    i++;
@@ -2084,30 +2033,13 @@ char	*argv[];
 			if (sock_rfd[i].sockfd > maxsockfd)
 			    continue;
 		    }
-		    if (sock_rfd[i].family == AF_INET) {
-		        clilen = sizeof(cli_addr);
-		        ctlsockfd = accept(sock_rfd[i].sockfd, (struct sockaddr *) &cli_addr, &clilen);
-			if ((inet_ntop(sock_rfd[i].family, &cli_addr.sin_addr, tmpstr, sock_rfd[i].len)) == NULL)
-			    fprintf(stderr, "inet_ntop() failed: rc=%d, family=%d, addr_len=%d IP=%x\n", errno, sock_rfd[i].family,
-					sock_rfd[i].len, cli_addr.sin_addr.s_addr);
-			if (debug > 3)
-			    fprintf(stderr, "New IPv4 connection received from [%s].\n", tmpstr);
-		    }
-		    else if (sock_rfd[i].family == AF_INET6) {
-		        clilen = sizeof(cli6_addr);
-		        ctlsockfd = accept(sock_rfd[i].sockfd, (struct sockaddr *) &cli6_addr, &clilen);
-			/* if ((inet_ntop(sock_rfd[i].family, &cli6_addr.sin6_addr, tmpstr, 46)) == NULL) */
-			if ((inet_ntop(sock_rfd[i].family, &cli6_addr.sin6_addr, tmpstr, sock_rfd[i].len)) == NULL)
-			    fprintf(stderr, "inet_ntop() failed: rc=%d, family=%d, addr_len=%d IP=%x:%x:%x\n", errno,
-						sock_rfd[i].family, sock_rfd[i].len, cli6_addr.sin6_addr.s6_addr,
-						cli6_addr.sin6_addr.s6_addr16, cli6_addr.sin6_addr.s6_addr32);
-			if (debug > 3)
-			    fprintf(stderr, "New IPv6 connection received from [%s].\n", tmpstr);
-		    }
-		    else {
-			perror("Connection received with unknown protocol address");
-			continue;
-		    }
+		    clilen = sizeof(cli_addr);
+		    ctlsockfd = accept(sock_rfd[i].sockfd, (struct sockaddr *) &cli_addr, &clilen);
+		    if ((inet_ntop(sock_rfd[i].family, &cli_addr.sin_addr, tmpstr, sock_rfd[i].len)) == NULL)
+			fprintf(stderr, "inet_ntop() failed: rc=%d, family=%d, addr_len=%d IP=%x\n", errno, sock_rfd[i].family,
+				sock_rfd[i].len, cli_addr.sin_addr.s_addr);
+		    if (debug > 3)
+			fprintf(stderr, "New IPv4 connection received from [%s].\n", tmpstr);
 		    if (ctlsockfd < 0){
 			if (errno == EINTR)
 			    continue; /*sig child */
@@ -2161,8 +2093,8 @@ char	*argv[];
 			    goto multi_client;
 
 			new_child->pid = chld_pid;
-			strcpy(new_child->addr, rmt_host);
-			strcpy(new_child->host, name);
+			strncpy(new_child->addr, rmt_host, strlen(rmt_host));
+			strncpy(new_child->host, name, strlen(name));
 			new_child->stime = i + (waiting*45);
 			new_child->qtime = i;
 			new_child->pipe = chld_pipe[1];

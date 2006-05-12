@@ -376,7 +376,7 @@ dowww(sd, cli_addr, port, LogFileName, debug, fed_mode, max_ttl)
 		}
 		ok = 0;
 		if (strcmp(filename, "/") == 0)
-		    strcpy(filename, "/tcpbw100.html");
+		    strncpy(filename, "/tcpbw100.html", 15);
 		for(i=0; okfile[i]; i++) {
 		  /* restrict file access */
 		    if (strcmp(okfile[i], filename) == 0) {

@@ -215,9 +215,9 @@ u_int32_t find_compare (u_int32_t IPlist[], int cnt, int debug)
 
 	hp = gethostbyaddr((char *) &IPlist[i], 4, AF_INET);
 	if (hp == NULL)
-		strcpy(c_name, "Unknown Host");
+		strncpy(c_name, "Unknown Host", 13);
 	else
-		strcpy(c_name, hp->h_name);
+		strncpy(c_name, hp->h_name, strlen(hp->h_name));
 
 	if (found_node == 1) {
 	    if (debug > 4)
@@ -237,9 +237,9 @@ u_int32_t find_compare (u_int32_t IPlist[], int cnt, int debug)
 	*/
 	hp = (struct hostent *)gethostbyaddr((char *) &current->ip_addr, 4, AF_INET);
 	if (hp == NULL)
-		strcpy(h_name, "Unknown Host");
+		strncpy(h_name, "Unknown Host", 13);
 	else
-		strcpy(h_name, hp->h_name);
+		strncpy(h_name, hp->h_name, strlen(hp->h_name));
 
 	if (debug > 5)
 	    fprintf(stderr, "\tThe eNDT server %s [%u.%u.%u.%u] is closest to %s [%u.%u.%u.%u]\n",

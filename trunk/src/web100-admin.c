@@ -138,11 +138,11 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int
 
 	    str = strchr(str, ',') +1;
 	    sscanf(str, "%[^,]s", tmpstr);
-	    strcpy(maxdate, tmpstr);
+	    strncpy(maxdate, tmpstr, strlen(tmpstr));
 
 	    str = strchr(str, ',') +1;
 	    sscanf(str, "%[^,]s", tmpstr);
-	    strcpy(mindate, tmpstr);
+	    strncpy(mindate, tmpstr, strlen(tmpstr));
 
 	    for (i=0; i<strlen(mindate); i++)
 		if (mindate[i] == '\n')
@@ -193,7 +193,7 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int
         }
 
 	/* Calculate some values */
-	strcpy(date, now);
+	strncpy(date, now, strlen(now));
 	avgrtt = (double) SumRTT/CountRTT;
 	rttsec = avgrtt * .001;
 	loss2 = (double)CongestionSignals/PktsOut;
@@ -220,25 +220,25 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int
 	    mins2cspd = s2cspd;
 	    maxc2sspd = c2sspd;
 	    maxs2cspd = s2cspd;
-	    strcpy(startdate, date);
-	    strcpy(maxdate, date);
-	    strcpy(mindate, date);
+	    strncpy(startdate, date, strlen(date));
+	    strncpy(maxdate, date, strlen(date));
+	    strncpy(mindate, date, strlen(date));
 	}
 	if (c2sspd > maxc2sspd) {
 	    maxc2sspd = c2sspd;
-	    strcpy(maxdate, date);
+	    strncpy(maxdate, date, strlen(date));
 	}
 	if (s2cspd > maxs2cspd) {
 	    maxs2cspd = s2cspd;
-	    strcpy(maxdate, date);
+	    strncpy(maxdate, date, strlen(date));
 	}
 	if (c2sspd < minc2sspd) {
 	    minc2sspd = c2sspd;
-	    strcpy(mindate, date);
+	    strncpy(mindate, date, strlen(date));
 	}
 	if (s2cspd < mins2cspd) {
 	    mins2cspd = s2cspd;
-	    strcpy(mindate, date);
+	    strncpy(mindate, date, strlen(date));
 	}
 
 	if (debug > 0) 
