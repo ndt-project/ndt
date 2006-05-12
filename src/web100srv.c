@@ -1468,10 +1468,15 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    }
 
 
+	    /* remove the following line when the new detection code is ready for release */
+	    old_mismatch = 1;
 	    if (old_mismatch == 1) {
 	        if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
 	            (MaxSsthresh > 0) && (RTOidle > .01))
-  	        {	mismatch = 1;
+  	        {	if (s2cspd < c2sspd)
+			    mismatch = 1;
+			else
+			    mismatch = 2;
     		        link = 0;
   	        }
 
@@ -1481,44 +1486,11 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
     		    link = 0;
 	        }
 	    } else {
-		/* if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))) { */
-		/* if ((CongAvoid > SlowStart) && (rtran > 0.10) && ((acks > 0.7) || (acks < 0.3))) { */
-		/* if ((CongAvoid > SlowStart) && (dack > 0.10) && (cwndtime > 0.5)) { */
-		    if (debug > 2) {
-			fprintf(stderr, "++++++++++ Trying new mismatch algorithm for FD-HD\n");
-			fprintf(stderr, "s2cspd(%0.2f) > c2sspd(%0.2f), AND ", s2cspd, c2sspd);
-			fprintf(stderr, "Dup Acks (%0.2f > 10%%, AND ", 100*dack);
-			fprintf(stderr, "CWND time(%0.2f) < 30%%\n", 100*cwndtime);
-		    }
-		if ((s2cspd > c2sspd) && (dack > 0.10) && (cwndtime > 0.5)) {
-		    if ((4*CurrentMSS) <= MaxSsthresh)
-			mismatch = 2;
-		    else
-			mismatch = 4;
-		    link = 0;
-		}
-		/* This is a special case.  For some reason we did not get any Web100 data and the
-		 * variable ret was set to -1 by the get_web100_data() call.  This is probably due
-		 * to the s2c test running long and the connection being closed when we got around to
-		 * looking at it.  In this case report a possible duplex mismatch.
+		/* This section of code is being held up for non-technical reasons.
+		 * Once those issues are resolved a new mismatch detection algorim 
+		 * will be placed here.
+		 *  RAC 5-11-06
 		 */
-		if ((10000 > s2cspd) && (ret == -1))
-		    mismatch = 7;
-
-		    if (debug > 2) {
-			fprintf(stderr, "++++++++++ Trying new mismatch algorithm for HD-FD\n");
-		        fprintf(stderr, "Using new Duplex mismatch algorithms: idle=%0.4f, ", RTOidle);
-		        fprintf(stderr, "Timeouts: (%0.2f <40%%), c2sspd=%0.2f > s2cspd=%.02f\n", tmouts, c2sspd, s2cspd);
-		        fprintf(stderr, "SSThreshold=%d >= 4*MSS=%d\n", MaxSsthresh, 4*CurrentMSS);
-		    }
-	        /* if ((RTOidle > 0.65) && (tmouts < 0.4)) { */
-	        if ((RTOidle > 0.65) && (tmouts < 0.2) && (s2cspd < c2sspd)) {
-		    if (MaxSsthresh >= (4*CurrentMSS))
-		        mismatch = 3;
-	            else
-		        mismatch = 5;
-		    link = 0;
-		}
 	    }
 
 	    /* estimate is less than throughput, something is wrong */
