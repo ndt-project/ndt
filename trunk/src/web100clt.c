@@ -169,6 +169,8 @@ void testResults(char *tmpstr) {
 			 break;
 		case 5 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
 			 break;
+		case 7 : printf("Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+			 break;
 	  }
 
 

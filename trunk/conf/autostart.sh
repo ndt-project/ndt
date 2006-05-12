@@ -19,6 +19,7 @@ else
 	if (-e conf/ndt) set FILE = conf/ndt
     else
 	set FILE = ""
+    endif
 endif
 
 # Now check to see what state we are in.
