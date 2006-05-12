@@ -723,6 +723,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	web100_snapshot* rsnap;
 	web100_log* log;
 	char logname[128];
+	web100_var* var;
+	int SndMax=0, SndUna=0;
+	int c1=0, c2=0;
 
 
 	stime = time(0);
@@ -1190,27 +1193,30 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 		web100_setbuff(xmitsfd, agent, autotune, family, debug);
 
 	    /* write(ctlsockfd, buff, strlen(buff));   */
+
 	    FD_ZERO(&rfd);
 	    FD_SET(ctlsockfd, &rfd);
-	    sel_tv.tv_sec = 6;
+	    sel_tv.tv_sec = 2;
 	    sel_tv.tv_usec = 500000;
 	    ret = select(ctlsockfd+1, &rfd, NULL, NULL, &sel_tv);
-		if (ret == 0)
-		    fprintf(stderr, "!!!!!!!!!!!  Timer expired, old clients getting bad results\n");
+	/* 	if (ret == 0)
+	 * 	    fprintf(stderr, "!!!!!!!!!!!  Timer expired, old clients getting bad results\n");
+	 */
 		if (ret > 0) {
                     read(ctlsockfd, buff, 32);
 	    	    sscanf(buff, "%0.2f *%s", cli_c2sspd);
 		fprintf(stderr, "+++++++++ read '%s' from client parsed to [%0.2f]\n", buff, cli_c2sspd);
 	    }
-	    write(ctlsockfd, buff, strlen(buff));
+	     write(ctlsockfd, buff, strlen(buff));
 
-	    if (experimental == 1) {
+	    if (experimental > 0) {
 		sprintf(logname, "snaplog-%s.%d", inet_ntoa(cli_addr.sin_addr),
 					ntohs(cli_addr.sin_port));
 		conn = web100_connection_from_socket(agent, xmitsfd);
 		group = web100_group_find(agent, "read");
 		snap = web100_snapshot_alloc(group, conn);
-		log = web100_log_open_write(logname, conn, group);
+		if (experimental > 1)
+		    log = web100_log_open_write(logname, conn, group);
 	    }
 
 	    /* Kludge way of nuking Linux route cache.  This should be done
@@ -1235,24 +1241,62 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    }
 	    t = secs();
 	    s = t + 10.0;
-	    while(secs() < s){ 
+            if (experimental > 0) {
+                web100_snap(snap);
+                if (experimental > 1)
+                    web100_log_write(log, snap);
+                web100_agent_find_var_and_group(agent, "SndMax", &group, &var);
+                web100_snap_read(var, snap, tmpstr);
+                SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+                web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+                web100_snap_read(var, snap, tmpstr);
+                SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            }
+ 
+	    while(secs() < s) { 
+                if (experimental > 0) {
+                    if ((4*RECLTH) < SndMax - SndUna) {
+                        web100_snap(snap);
+                        if (experimental > 1)
+                            web100_log_write(log, snap);
+                        web100_agent_find_var_and_group(agent, "SndMax", &group, &var);
+                        web100_snap_read(var, snap, tmpstr);
+                        SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+                        web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+                        web100_snap_read(var, snap, tmpstr);
+                        SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+                        c1++;
+                        continue;
+                    }
+                }
+
 	        n = write(xmitsfd, buff, RECLTH);
 	        if (n < 0 )
 		    break;
 	        bytes += n;
-		if (experimental == 1) {
-		    web100_snap(snap);
-		    web100_log_write(log, snap);
-		}
-	    }
-	    shutdown(xmitsfd, SHUT_WR);
-	    /* shutdown(xmitsfd,1); */  /* end of write's */
-	    t = secs() - t;
-	    s2cspd = (8.e-3 * bytes) / t;
-	    if (experimental == 1) {
-		web100_snapshot_free(snap);
-		web100_log_close_write(log);
-		/* dec_cnt = CwndDecrease(agent, logname, debug); */
+
+                if (experimental > 0) {
+                    web100_snap(snap);
+                    if (experimental > 1)
+                        web100_log_write(log, snap);
+                    web100_snap_read(var, snap, tmpstr);
+                    web100_agent_find_var_and_group(agent, "SndMax", &group, &var);
+                    web100_snap_read(var, snap, tmpstr);
+                    SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+                    web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+                    web100_snap_read(var, snap, tmpstr);
+                    SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+                    c2++;
+                }
+            }
+
+            shutdown(xmitsfd, SHUT_WR);  /* end of write's */
+            s = secs() - t;
+            s2cspd = (8.e-3 * bytes) / s;
+            if (experimental > 0) {
+                web100_snapshot_free(snap);
+                if (experimental > 1)
+                    web100_log_close_write(log);
 	    }
 
 	    /* printf("debug: xmit socket fd = %d\n", xmitsfd); */
@@ -1260,8 +1304,10 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    web100_snap(rsnap);
 	    web100_snap(tsnap);
 
-	    if (debug > 10)
+	    if (debug > 6) {
 	        fprintf(stderr, "sent %d bytes to client in %0.2f seconds\n", bytes, t);
+		fprintf(stderr, "Buffer control counters decreasing = %d, increasing = %d\n", c1, c2);
+	    }
 	    /* Next send speed-chk a flag to retrieve the data it collected.
 	     * Skip this step if speed-chk isn't running.
 	     */
@@ -1404,7 +1450,7 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 
 	/* get some web100 vars */
 	/* printf("Going to get some web100 data\n"); */
-	if (experimental > 0) {
+	if (experimental > 2) {
 		dec_cnt = inc_cnt = same_cnt = 0;
 		CwndDecrease(agent, logname, &dec_cnt, &same_cnt, &inc_cnt, debug);
 		if (debug > 1)
@@ -1446,8 +1492,9 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	    if ((RcvWinScale > 15) || (MaxRwinRcvd < 65535))
 		RcvWinScale = 0;
 	    /* MaxRwinRcvd <<= RcvWinScale; */
-	    if ((SndWinScale > 0) && (RcvWinScale > 0))
-	        Sndbuf = (64 * 1024) << RcvWinScale;
+	    /* if ((SndWinScale > 0) && (RcvWinScale > 0))
+	     *    Sndbuf = (64 * 1024) << RcvWinScale;
+	     */
 	    /* MaxCwnd <<= RcvWinScale; */
 
 	    rwin = (double)MaxRwinRcvd * 8 / 1024 / 1024;
@@ -1480,8 +1527,8 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
     		    link = 0;
 	        }
 	    } else {
-		if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))
-			&& (s2cspd > bw2)) {
+		/* if ((CongAvoid > SlowStart) && (rtran > 0.03) && ((acks > 0.7) || (acks < 0.3))) { */
+		if ((CongAvoid > SlowStart) && (rtran > 0.10) && ((acks > 0.7) || (acks < 0.3))) {
 		    if (debug > 2) {
 			fprintf(stderr, "CongAvoid(%d) > SlowStart(%d), AND ", CongAvoid, SlowStart);
 			fprintf(stderr, "packets retransmitted (%0.2f > 30%%, AND ", 100*rtran);
@@ -1764,7 +1811,7 @@ char	*argv[];
 			set_buff = 1;
 			break;
 		case 'x':
-			experimental = 1;
+			experimental++;
 			break;
 		case 'd':
 			debug++;
