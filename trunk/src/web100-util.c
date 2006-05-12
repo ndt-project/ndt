@@ -88,8 +88,6 @@ web100_connection* local_find_connection(int sock, web100_agent* agent, int fami
 		return(NULL);
 	    }
 	}
-fprintf(stderr, ",,,,,,,,,,,,,,,,,,,,, Returning web100 connection pointer %x\n", cn);
-
 
   	return(cn);
 }
@@ -193,7 +191,8 @@ void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int 
 
 }
 
-int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, int family, int debug) {
+/* int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, int family, int debug) { */
+int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars, int family, int debug) {
 
   int i, j;
   u_int16_t k;
@@ -202,7 +201,7 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
   char buf[32], line[256];
   web100_group* group;
 
-  cn = local_find_connection(sock, agent, family, debug);
+  /* cn = local_find_connection(sock, agent, family, debug); */
   /* cn = web100_connection_from_socket(agent, sock); */
 
   /* printf("Web100_get_data(): going to get %d variables\n", count_vars);
@@ -220,14 +219,16 @@ int web100_get_data(int sock, int ctlsock, web100_agent* agent, int count_vars, 
         continue;
     }
 
-    if (cn == NULL) {
+    /* if (cn == NULL) { */
+    if (snap == NULL) {
 	fprintf(stderr, "Web100_get_data() failed, return to testing routine\n");
 	return(-1);
     }
 
-    if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-        if (debug > 1)
-	    web100_perror("web100_raw_read()");
+    /* if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) { */
+    if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
+        if (debug > 4)
+	    web100_perror("web100_snap_read()");
         continue;
     }
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
