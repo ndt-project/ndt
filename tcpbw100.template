@@ -79,6 +79,11 @@ or dslreports.com <a href=http://www.dslreports.com/tweaks/>tweaks</a>
 or <a href=http://www.psc.edu/networking/perf_tune.html>UNIX and
 Windows TCP/IP tuning tips</a>.
 <hr width=95% noshade>
+<h3>REN accessable NDT servers:</h3>
+<p>A list of servers known to the Researh and Education Network (REN) community is
+   located on the <a href=http://e2epi.internet2.edu/ndt/ndt-server-list.html>Internet2
+   e2epi web page</a>.  Note: that not all of these REN servers will be publicly
+   accesible.
 <h3>Other publicly accessible NDT servers:</h3>
 <ul>
 <li><a href=http://miranda.ctd.anl.gov:7123>Argonne National Laboratory - IL (USA)</a>

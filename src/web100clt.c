@@ -535,6 +535,8 @@ int main(int argc, char *argv[])
 	int ret, i, xwait, one=1;
 	struct hostent *hp;
 	struct sockaddr_in server, srv1, srv2, local;
+	struct sockaddr_in6 server6, srv61, srv62, local6;
+	struct addrinfo hints, *ai;
 	int largewin;
 	char buff[8192], buff2[256];
 	struct timeb *tp;
@@ -544,10 +546,19 @@ int main(int argc, char *argv[])
 	uint32_t local_addr, peer_addr;
 	struct timeval sel_tv;
 	fd_set rfd;
+	int v4only=0, v6only=0, af_family;
 
 	host = argv[argc-1];
-	while ((c = getopt(argc, argv, "b:dhl")) != -1) {
+	while ((c = getopt(argc, argv, "46b:dhl")) != -1) {
 	    switch (c) {
+		case '4':
+			v4only = 1;
+			v6only = 0;
+			break;
+		case '6':
+			v4only = 0;
+			v6only = 1;
+			break;
 		case 'h':
 			printf("Usage: %s {options} server\n", argv[0]);
 			printf("\t-b # \tSet send/receive buffer to value\n");
@@ -569,26 +580,73 @@ int main(int argc, char *argv[])
 	    }
 	}
 	failed = 0;
-	hp = (struct hostent *) gethostbyname(host);
-	if (hp == NULL) {
-	    printf("Error, NDT server name/address not supplied\n");
+
+/* Old IPv4 only code
+ *
+ * 	hp = (struct hostent *) gethostbyname(host);
+ * 	if (hp == NULL) {
+ * 	    printf("Error, NDT server name/address not supplied\n");
+ * 	    exit (-5);
+ * 	}
+ */
+
+	memset(&hints, 0, sizeof(struct addrinfo));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE;
+
+	if (v6only == 1)
+	    hints.ai_family = AF_INET6;
+	if (v4only == 1)
+	    hints.ai_family = AF_INET;
+
+	if ((i = getaddrinfo(host, NULL, &hints, &ai)) < 0) {
+	    if (ai != NULL) 
+		freeaddrinfo(ai);
+	    printf("Server failed, Name or IP address of remote server '%s' not found\n", host);
 	    exit (-5);
 	}
 
 	printf("Testing network path for configuration and performance problems\n");
-	bzero(&server, sizeof(server));
-	server.sin_family = AF_INET;
-	bcopy(hp->h_addr_list[0], &server.sin_addr.s_addr, hp->h_length);
-	/* server.sin_addr.s_addr = (uint32_t) *hp->h_addr_list[0]; */
-	server.sin_port = htons(ctlport);
-	peer_addr = server.sin_addr.s_addr;
+        while (ai != NULL) {
+            if (ai->ai_family == AF_INET) {
+                af_family = AF_INET;
+                bzero((char *) &server, sizeof(server));
+                server.sin_family = AF_INET;
+                server.sin_addr.s_addr = htonl(INADDR_ANY);
+                server.sin_port = htons(ctlport);
+		break;
+            }
+            if (ai->ai_family == AF_INET6) {
+                af_family = AF_INET6;
+                bzero((char *) &server6, sizeof(server6));
+                server6.sin6_port = htons(ctlport);
+                setsockopt(ctlSocket, IPPROTO_IPV6, IPV6_V6ONLY, &one, sizeof(one));
+		break;
+            }
+            ai = ai->ai_next;
 
-	/* printf("connecting to %s:%d\n", inet_ntoa(server.sin_addr), ntohs(server.sin_port)); */
-	ctlSocket = socket(PF_INET, SOCK_STREAM, 0);
-	if ((ret = connect(ctlSocket, (struct sockaddr *) &server, sizeof(server))) < 0) {
-	    perror("Connect() for control socket failed ");
-	    exit(-4);
-	}
+        }
+        if ((ctlSocket = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
+            freeaddrinfo(ai);
+            printf("Client Failed: cannot open socket");
+	    exit (-4);
+        }
+
+/* Old IPv4 only code 8/23/05 RAC
+ *
+ *	bzero(&server, sizeof(server));
+ *	server.sin_family = AF_INET;
+ *	bcopy(hp->h_addr_list[0], &server.sin_addr.s_addr, hp->h_length);
+ *	server.sin_port = htons(ctlport);
+ *	peer_addr = server.sin_addr.s_addr;
+ *
+ *	ctlSocket = socket(PF_INET, SOCK_STREAM, 0);
+ *	if ((ret = connect(ctlSocket, (struct sockaddr *) &server, sizeof(server))) < 0) {
+ *	    perror("Connect() for control socket failed ");
+ *	    exit(-4);
+ *	}
+ */
 
 	/* This is part of the server queuing process.  The server will now send
 	 * a integer value over to the client before testing will begin.  If queuing
@@ -653,13 +711,26 @@ int main(int argc, char *argv[])
 	 *
 	 */
 
-	bzero(&srv1, sizeof(srv1));
-	srv1.sin_family = AF_INET;
-	bcopy(hp->h_addr_list[0], &srv1.sin_addr.s_addr, hp->h_length);
-	srv1.sin_port = htons(port2);
+/* 
+ * 	bzero(&srv1, sizeof(srv1));
+ * 	srv1.sin_family = AF_INET;
+ * 	bcopy(hp->h_addr_list[0], &srv1.sin_addr.s_addr, hp->h_length);
+ * 	srv1.sin_port = htons(port2);
+ * 
+ * 	in2Socket = socket(PF_INET, SOCK_STREAM, 0);
+ */
 
-	in2Socket = socket(PF_INET, SOCK_STREAM, 0);
-
+	if (af_family == AF_INET) {
+	    bzero(&srv1, sizeof(srv1));
+	    srv1.sin_family = AF_INET;
+	    bcopy(&server.sin_addr.s_addr, &srv1.sin_addr.s_addr, 4);
+	} else {
+	    bzero(&srv61, sizeof(srv61));
+	    srv61.sin6_family = AF_INET6;
+	    bcopy(&server6.sin6_addr.s6_addr, &srv61.sin6_addr.s6_addr, 16);
+	}
+	in2Socket = socket(af_family, SOCK_STREAM, 0);
+	    
 	system("sleep 2");
 
 	/* printf("connecting to %s:%d\n", inet_ntoa(srv1.sin_addr), ntohs(srv1.sin_port)); */
@@ -682,9 +753,16 @@ int main(int argc, char *argv[])
 	    if (debug > 4)
 	        printf("Receive buffer set to %d\n", set_size);
 	}
-	if ((ret = connect(in2Socket, (struct sockaddr *) &srv1, sizeof(srv1))) < 0) {
-	    perror("Connect() for middlebox failed");
-	    exit(-10);
+	if (af_family == AF_INET) {
+	    if ((ret = connect(in2Socket, (struct sockaddr *) &srv1, sizeof(srv1))) < 0) {
+	        perror("Connect() for middlebox failed");
+	        exit(-10);
+	    }
+	} else {
+	    if ((ret = connect(in2Socket, (struct sockaddr *) &srv61, sizeof(srv61))) < 0) {
+	        perror("Connect() for middlebox failed");
+	        exit(-10);
+	    }
 	}
 
 	printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
@@ -713,17 +791,31 @@ int main(int argc, char *argv[])
 	}
 	
 
-	bzero(&srv2, sizeof(srv2));
-	srv2.sin_family = AF_INET;
-	bcopy(hp->h_addr_list[0], &srv2.sin_addr.s_addr, hp->h_length);
-	srv2.sin_port = htons(port3);
+/* 
+ *	bzero(&srv2, sizeof(srv2));
+ *	srv2.sin_family = AF_INET;
+ *	bcopy(hp->h_addr_list[0], &srv2.sin_addr.s_addr, hp->h_length);
+ *	srv2.sin_port = htons(port3);
+ */
+
+	if (af_family == AF_INET) {
+	    bzero(&srv2, sizeof(srv2));
+	    srv1.sin_family = AF_INET;
+	    bcopy(&server.sin_addr.s_addr, &srv2.sin_addr.s_addr, 4);
+	} else {
+	    bzero(&srv62, sizeof(srv62));
+	    srv62.sin6_family = AF_INET6;
+	    bcopy(&server6.sin6_addr.s6_addr, &srv62.sin6_addr.s6_addr, 16);
+	}
+	outSocket = socket(af_family, SOCK_STREAM, 0);
+	    
 
 	printf("running 10s outbound test (client to server) . . . . . ");
 	fflush(stdout);
 
 	/* inlth = read(ctlSocket, buff, 100);  */
 		
-	outSocket = socket(PF_INET, SOCK_STREAM, 0);
+	/* outSocket = socket(PF_INET, SOCK_STREAM, 0); */
 	setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
 	if (debug > 8)
@@ -741,9 +833,16 @@ int main(int argc, char *argv[])
 	    if (debug > 4)
 	        printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
 	}
-	if ((ret = connect(outSocket, (struct sockaddr *) &srv2, sizeof(srv2))) < 0) {
-	    perror("Connect() for client to server failed");
-	    exit(-11);
+	if (af_family == AF_INET) {
+	    if ((ret = connect(outSocket, (struct sockaddr *) &srv2, sizeof(srv2))) < 0) {
+	        perror("Connect() for client to server failed");
+	        exit(-11);
+	    }
+	} else {
+	    if ((ret = connect(outSocket, (struct sockaddr *) &srv62, sizeof(srv62))) < 0) {
+	        perror("Connect() for client to server failed");
+	        exit(-11);
+	    }
 	}
 	pkts = 0;
 	k = 0;
@@ -779,7 +878,8 @@ int main(int argc, char *argv[])
 	 */
 	getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
 
-	inSocket = socket(PF_INET, SOCK_STREAM, 0);
+	/* inSocket = socket(PF_INET, SOCK_STREAM, 0); */
+	inSocket = socket(af_family, SOCK_STREAM, 0);
 	setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 	getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
 	if (debug > 4)
@@ -797,9 +897,16 @@ int main(int argc, char *argv[])
 	    if (debug > 4)
 	        printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
 	}
-	if ((ret = connect(inSocket, (struct sockaddr *) &srv1, sizeof(srv1))) < 0) {
-	    perror("Connect() for Server to Client failed");
-	    exit(-15);
+	if (af_family == AF_INET) {
+	    if ((ret = connect(inSocket, (struct sockaddr *) &srv1, sizeof(srv1))) < 0) {
+	        perror("Connect() for Server to Client failed");
+	        exit(-15);
+	    }
+	} else {
+	    if ((ret = connect(inSocket, (struct sockaddr *) &srv61, sizeof(srv61))) < 0) {
+	        perror("Connect() for Server to Client failed");
+	        exit(-15);
+	    }
 	}
 
 	bytes = 0;

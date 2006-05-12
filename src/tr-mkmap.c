@@ -175,7 +175,7 @@ void save_tree(struct tr_tree *cur, FILE *fp)
 /* Restore the default tree, stored by the save tree routine above.
  * Once restored, the comparison can take place.
  */
-void restore_tree(struct tr_tree *tmp, FILE *fp)
+void restore_tree2(struct tr_tree *tmp, FILE *fp)
 {
 	struct tr_tree *new;
 	int i, j;
@@ -230,8 +230,8 @@ int main (int argc, char *argv[])
 {
 
 	struct tr_tree *root, *current, *new;
-	int i;
-	uint32_t ip_addr;
+	int i, debug=0;
+	uint32_t ip_addr, IPlist[64];
 	char h_name[256], c_name[256], buff[256], *cmp_ip=NULL, *tmpbuff;
 	char tmpstr[256], *inputfile=NULL;
 	int c, flag, flag_set=0;
@@ -240,7 +240,7 @@ int main (int argc, char *argv[])
 	struct hostent *hp;
 
 	flag = 'b';
-	while (( c = getopt(argc, argv, "bhpc:f:")) != -1) {
+	while (( c = getopt(argc, argv, "dbhpc:f:")) != -1) {
 	    switch (c) {
 		case 'b' :
 			if (flag_set == 0) {
@@ -261,6 +261,9 @@ int main (int argc, char *argv[])
 			break;
 		case 'p':
 			flag = 'p';
+			break;
+		case 'd':
+			debug++;
 			break;
 		default :
 			printf("Unknown option entered\n");
@@ -380,6 +383,7 @@ int main (int argc, char *argv[])
 	    }
 	    found_node = 0;
 	    current = root;
+	    i = 0;
 	    while ((fgets(buff, 256, fp)) != NULL) {
 		tmpbuff = strtok(buff, "\n");
 	    	/* if ((i = inet_aton(tmpbuff, &address.sin_addr)) == -1) {
@@ -388,20 +392,35 @@ int main (int argc, char *argv[])
 	    	 * }
 	    	 * ip_addr = address.sin_addr.s_addr;
 		 */
-		ip_addr = get_addr(tmpbuff);
-		if (found_node != 0)
-		    continue;
-		if ((current == root) && (current->ip_addr == ip_addr))
-		    continue;
-		for (i=0; i<current->branches; i++) {
-		    if ((current->branch[i]->ip_addr == ip_addr) && (current->branch[i] != NULL)) {
-			current = current->branch[i];
-			break;
-		    }
-		    if (current->branches == 0)
-		        found_node = 2;
-		}
+		IPlist[i] = get_addr(tmpbuff);
+		if (debug > 4)
+		    printf("IPlist[%d] = %u.%u.%u.%u \n", (i),
+			(IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
+                	((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
+		i++;
+
 	    }
+
+	    ip_addr = find_compare(IPlist, --i, debug);
+
+/*
+ *  Change this to use the same routine used by the fakewww server - find_compare() 9/2/05 RAC
+ *
+ *		ip_addr = get_addr(tmpbuff);
+ *		if (found_node != 0)
+ *		    continue;
+ *		if ((current == root) && (current->ip_addr == ip_addr))
+ *		    continue;
+ *		for (i=0; i<current->branches; i++) {
+ *		    if ((current->branch[i]->ip_addr == ip_addr) && (current->branch[i] != NULL)) {
+ *			current = current->branch[i];
+ *			break;
+ *		    }
+ *		    if (current->branches == 0)
+ *		        found_node = 2;
+ *		}
+ *	    }
+ */
 
 	    hp = gethostbyaddr((char *) &ip_addr, 4, AF_INET);
 	    if (hp == NULL)

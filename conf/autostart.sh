@@ -25,6 +25,7 @@ endif
 # Now check to see what state we are in.
 if ($FILE == "") then
     echo "Unable to continue.  'ndt' startup script not found."
+    exit
 else
 # First copy the startup script over to the system directory
     /bin/cp  $FILE /etc/rc.d/init.d/ndt
