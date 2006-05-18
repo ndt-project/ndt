@@ -205,6 +205,7 @@ void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int 
   char buf[32], line[256], *ctime();
   web100_group* group;
   FILE *fp;
+  time_t tt;
 
   cn = local_find_connection(sock, agent, family, debug);
   /* cn = web100_connection_from_socket(agent, sock); */
@@ -213,9 +214,9 @@ void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int 
   /* sprintf(line, "RemoteIPaddress: %s\n", inet_ntoa(peeraddr.sin_addr));
    * write(ctlsock, line, strlen(line));
    */
-  i=time(0);
+  tt=time(0);
   fp=fopen(LogFileName,"a");
-  fprintf(fp,"%15.15s;", ctime(&i)+4);
+  fprintf(fp,"%15.15s;", ctime(&tt)+4);
   web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
   web100_raw_read(var, cn, buf);
   sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buf));
