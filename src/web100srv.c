@@ -691,11 +691,13 @@ void run_test(web100_agent* agent, int ctlsockfd, int family) {
 	int index, links[16], max, total;
 	int c2sdata, c2sack, s2cdata, s2cack;
 	int spd_sock, spd_sock2, spdfd, j, i, rc;
-	int mon_pid1, mon_pid2, totalcnt, spd, stime;
+	int mon_pid1, mon_pid2, totalcnt, spd;
 	int seg_size, win_size;
 	int autotune, rbuff, sbuff, k;
 	int dec_cnt, same_cnt, inc_cnt, timeout, dupack;
 	int cli_c2sspd, cli_s2cspd;
+
+	time_t stime;
 
 	double loss, rttsec, bw, rwin, swin, cwin, speed;
 	double rwintime, cwndtime, sendtime;
@@ -1634,6 +1636,7 @@ char	*argv[];
 	fd_set rfd;
 	struct timeval sel_tv;
 	struct ndtchild *tmp_ptr, *new_child;
+	time_t tt;
 
 	int v4only=0, v6only=0, af_family;
 	struct addrinfo hints, *ai;
@@ -1883,14 +1886,14 @@ char	*argv[];
 
 	/* create a log file entry every time the web100srv process starts up. */
 	ndtpid = getpid();
-        c = time(0);
+        tt = time(0);
         fp = fopen(LogFileName,"a");
 	if (fp == NULL)
 	    fprintf(stderr, "Unable to open log file '%s', continuing on without logging\n",
 			    LogFileName);
 	else {
             fprintf(fp, "Web100srv (ver %s) process (%d) started %15.15s\n",
-        	VERSION, ndtpid, ctime(&c)+4);
+        	VERSION, ndtpid, ctime(&tt)+4);
             fclose(fp);
 	}
 	if (usesyslog == 1)
@@ -1946,17 +1949,17 @@ char	*argv[];
 		    if (debug > 2)
 			fprintf(stderr, "Waiting for new connection, timer running\n");
 		    rc = select(maxsockfd+1, &rfd, NULL, NULL, &sel_tv);
-		    c = time(0);
+		    tt = time(0);
 		    if (head_ptr != NULL) {
 		        if (debug > 2) 
 			    fprintf(stderr, "now = %d Process started at %d, run time = %d\n", 
-					c, head_ptr->stime, (c - head_ptr->stime));
-		        if (c - head_ptr->stime > 60) {
+					tt, head_ptr->stime, (tt - head_ptr->stime));
+		        if (tt - head_ptr->stime > 60) {
 			    /* process is stuck at the front of the queue. */
         		    fp = fopen(LogFileName,"a");
 			        if (fp != NULL) {
 			        fprintf(fp, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
-					waiting, head_ptr->pid, ctime(&c)+4);
+					waiting, head_ptr->pid, ctime(&tt)+4);
 				fclose(fp);
 			    }
 			    tmp_ptr = head_ptr->next;
@@ -2019,7 +2022,7 @@ char	*argv[];
 			continue;
 		    }
 		    new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
-                    i = time(0);
+                    tt = time(0);
                     /*
 		     * hp = gethostbyaddr(&cli_addr.sin_addr, sizeof(struct in_addr), AF_INET);
                      * name =  (hp == NULL) ? inet_ntoa(cli_addr.sin_addr) : hp->h_name;
@@ -2067,8 +2070,8 @@ char	*argv[];
 			new_child->pid = chld_pid;
 			strncpy(new_child->addr, rmt_host, strlen(rmt_host));
 			strncpy(new_child->host, name, strlen(name));
-			new_child->stime = i + (waiting*45);
-			new_child->qtime = i;
+			new_child->stime = tt + (waiting*45);
+			new_child->qtime = tt;
 			new_child->pipe = chld_pipe[1];
 			new_child->ctlsockfd = ctlsockfd;
 			new_child->family = ai->ai_family;
@@ -2220,7 +2223,7 @@ char	*argv[];
 					    LogFileName);
 			else {
                 	    fprintf(fp,"%15.15s  %s port %d\n",
-                  		ctime(&i)+4, name, ntohs(cli_addr.sin_port));
+                  		ctime(&tt)+4, name, ntohs(cli_addr.sin_port));
                 	    fclose(fp);
 			}
 			close(chld_pipe[0]);

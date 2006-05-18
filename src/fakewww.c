@@ -18,6 +18,7 @@
 /* #include	<getopt.h> */
 #include	<unistd.h>
 /* #include	<config.h> */
+#include	<time.h>
 
 
 #define PORT 7123
@@ -56,6 +57,7 @@ char	*argv[];
 	int reap(), c;
 	int n, sockfd, newsockfd, clilen, childpid, servlen;
 	int federated=0, debug=0, max_ttl=10, i;
+	time_t tt;
 
 	char *LogFileName=NULL, *ctime();
 	struct sockaddr_in	cli_addr, serv_addr;
@@ -110,10 +112,10 @@ char	*argv[];
 
 	clilen = sizeof(cli_addr);
 	getsockname(sockfd, (struct sockaddr *)&cli_addr, &clilen);
-	i = time(0);
+	tt = time(0);
 	if (debug > 0) {
 	    fprintf(stderr, "%15.15s server started, listening on port %d",
-			    ctime(&i)+4, ntohs(cli_addr.sin_port));
+			    ctime(&tt)+4, ntohs(cli_addr.sin_port));
 	    if (federated == 1)
 		fprintf(stderr, ", operating in Federated mode");
 	    fprintf(stderr, "\n");
@@ -122,7 +124,7 @@ char	*argv[];
 	    fp = fopen(LogFileName, "a");
 	    if (fp != NULL) {
 	        fprintf(fp, "%15.15s server started, listening on port %d",
-				ctime(&i)+4, ntohs(cli_addr.sin_port));
+				ctime(&tt)+4, ntohs(cli_addr.sin_port));
 	        if (federated == 1)
 		    fprintf(fp, ", operating in Federated mode");
 	        fprintf(fp, "\n");
@@ -254,6 +256,7 @@ dowww(sd, cli_addr, port, LogFileName, debug, fed_mode, max_ttl)
 	u_int32_t IPlist[64], srv_addr;
 	FILE *lfd;
 	struct sockaddr_in serv_addr;
+	time_t tt;
 	
 	while ((n = readline(sd, buff, sizeof(buff))) > 0){
 		buff[n] = '\0';
@@ -344,12 +347,12 @@ dowww(sd, cli_addr, port, LogFileName, debug, fed_mode, max_ttl)
 				     srv_addr & 0xff, (srv_addr >> 8) & 0xff,
 				    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
 			    }
-			    i = time(0);
+			    tt = time(0);
 			    if (LogFileName != NULL) {
 		   		lfd = fopen(LogFileName, "a");
 		   		if (lfd != NULL) {
 			            fprintf(lfd, "%15.15s [%s] redirected to remote server [%u.%u.%u.%u:%d]\n",
-			    	         ctime(&i)+4, inet_ntoa(cli_addr.sin_addr),
+			    	         ctime(&tt)+4, inet_ntoa(cli_addr.sin_addr),
 				         srv_addr & 0xff, (srv_addr >> 8) & 0xff,
 				        (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
 
@@ -361,15 +364,15 @@ dowww(sd, cli_addr, port, LogFileName, debug, fed_mode, max_ttl)
 		}
 
 		/* try to open and give em what they want */
-		i = time(0);
+		tt = time(0);
 		writen(sd, MsgOK, strlen(MsgOK));
 		if (debug > 2)
-		    fprintf(stderr, "%15.15s [%s] requested file '%s' - ", ctime(&i)+4,
+		    fprintf(stderr, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4,
 				inet_ntoa(cli_addr.sin_addr), filename);
 		if (LogFileName != NULL) {
 		    lfd = fopen(LogFileName, "a");
 		    if (lfd != NULL) {
-		        fprintf(lfd, "%15.15s [%s] requested file '%s' - ", ctime(&i)+4,
+		        fprintf(lfd, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4,
 				inet_ntoa(cli_addr.sin_addr), filename);
 			fclose(lfd);
 		    }

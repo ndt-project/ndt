@@ -65,8 +65,8 @@ struct ndtchild {
 	int pid;
 	char addr[64];
 	char host[256];
-	int stime;
-	int qtime;
+	time_t stime;
+	time_t qtime;
 	int pipe;
 	int ctlsockfd;
 	int family;
