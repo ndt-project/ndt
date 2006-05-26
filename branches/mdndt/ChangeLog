@@ -1,0 +1,821 @@
+This file contains a list of changes to the ANL/Internet2 Network
+Diagnostic Tool (NDT) tester.  There are 4 programs that are used
+for this tester.  
+
+1) the Tcpbw100.java program, downloads to the users desktop. 
+The web100 variables are shipped to this process for analysis
+on the desktop. 
+
+2) the fakewww.c program.  This process runs on the server and
+listens for new connections from user desktop's.  
+
+3) the web100srv.c program.  This process communicates with the
+Java applet, runs the throughput tests, and gathers the web100
+data.  It also writes some of the data out to a log file on the
+server for later analysis.
+
+4) the web100clt.c program.  This process is a command line version
+of the client code.  It augments the Tcpbw100.java program, allowing
+the user to pre-install a version of the client code.  This allows
+non-browser based clients, helpful for remote access testing.
+
+Rich Carlson	6/7/02  Modified 8/17/04
+
+1/28/05 - NDT v3.1.1
+  tr-mkmap.c
+	Bug fix.  gcc version 3.4.2 (and possibly others) don't
+	like my use of the goto label; statement.  It was an easy
+	way to jump around some code for error handling.  The
+	fix is to use more conventional break, continue, and if()
+	statements.
+
+1/24/05 - NDT v3.1.0
+  web100srv.c
+	Modified code to use new duplex mismatch algorighm.  The
+	current heuristic can be used by selecting the '-o' option.
+	The new algorithm use the ratio of ack pkts to data packets
+	plus the ratio of send vs receive speed.  This algorithm
+	came from the analytical analysis done in late 04 and early
+	05.  
+
+  web100clt.c
+	Modified code to use new asymmeteric speed to print out
+	mismatch direction (NIC = full or half).  The existing
+	code simply accepts the mismatch variable from the server
+	so no other change was needed.
+
+  Tcpbw100.java v5.3.3c
+	Same as above, lets the applet print the right direction
+	message.
+
+1/24/05 - Tcpbw100.java v5.3.3b
+	David Richter <richterd@citi.umich.edu> reformated the 
+	raw java file, making it MUCH easier to understand what
+	is going on.
+
+1/19/05 - NDT v3.1.0
+  analyze.c
+	Bug fix to handle letter 'p' in host name.  The word
+	'port' signifizes the start of a new test.  The code
+	uses the strchr() function to find the letter 'p' in
+	the input string.  Code would fail if hostname contained
+	the letter 'p'.
+
+	Added code to calculate and report mismatch state based
+	on new mismatch algorithm using ack to data packet ratio
+	and upload to download speed ratio.  
+
+12/14/04 - NDT v3.0.24
+  web100srv.c
+	Modified data receive loop to use timer to prevent
+	routine from hanging in read loop forever.  Used
+	select() with 12 second wait time.  Test should run
+	for 10 seconds so loop should exit normally.  If not
+	then loop is killed after 12 seconds.  Note: Linux updates
+	the time value everytime select() exits - due to r/w
+	signal on socket.  This means you don't need to re-insert
+	a new time.  BSD does not work this way and needs a different
+	mechanism (see web100clt code).
+
+12/8/04 - NDT v3.0.24
+  web100clt.c
+	Modified data receive loop to use timer to prevent
+	routine from hanging in read state forever.  Used Select()
+	to run 12 second timers.
+
+11/28/04 - NDT v3.0.24
+  web100srv.c
+	Added in some autotuning code.  The web100 kernel patch 
+	provides some autotuning of the TCP connection.  This function
+	is enabled/disabled on a per connection basis based on the 
+	setting of the web100_{r|s}bufmode variable.  If true (1) then
+	a window scale factor of 7 (web100_default_wscale) is used and the
+	TCP send/recv buffer is set to 64 KB << 7.  If false (0) then no
+	autotuning is performed.  Unfortunatly, this function has been
+	depreciated by the web100 design team, and the server program
+	may not autotune the connection to use large buffers.  This version
+	now looks at the web100_{r|s}bufmode settings and if false, does
+	it's own version of autotuning.  First it sets the TCP send/receive
+	buffer to a large value using the setsockopt() call.  Then it limits
+	the max value to something less than this using the LimCwnd and LimRwin
+	web100 variables.  This probably needs some more work.
+  web100-util.c
+	Implemented the autotuning functions noted above.  Three new functions
+	are created (1) web100_setbuff() sets the LimCwnd and LimRwin variables
+	to (64*1024)<< scale factor (64 KBytes shifted by scale factor.  (2) 
+	web100_autotune() checks to see if web100_{r|s}bufmode is true or false.
+	(3) web100_rtt() returns the average rtt for the control connection.  This
+	should give us a baseline on the RTT and may be useful in autotuning.
+
+  Applet/Makefile.am and Admin/Makefile.am
+	Finally fixed an annoying bug in the build process.  The javac compiler was
+	always called, even if there was nothing to do.  A new routine in the Makefile
+	now tests to see if the timestamp file exists, and skips the compile if true.
+	(there is probably a better way, but this works for now.)
+
+11/13/04 - NDT v3.0.23
+  web100srv.c
+	bug fix.  Changed ',' (comma) character to ':' (colon) in
+	error message.  The ',' is the seperator for the send string
+	of web100 vars, and it may confuse the admin view generation
+	routine.
+	bug fix. The date of the latest test was not being updated.
+	the 'date[32]' variable was moved to a local var and it was
+	not being passed to the calculate() and gen_html() routines.
+	It is now passed into the calculate() routine, and it is a global
+	in the web100-admin.c file.
+
+  web100-admin.c
+	bug fix.  Pick-up change from web100srv.c above.  The current date
+	is now passed into the calcualte() routine and then copied to the
+	global date[32] variable.  This var is used in the admin.html file
+	to show the date of the latest test.
+
+10/25/04 - ndt v3.0.22
+  web100srv.c
+	bug fix.  The kill() signal below works, but the testing and
+	waiting flags were not being changed.  This caused the server
+	to believe that non-existant clients were waiting in the FIFO
+	queue.
+
+10/4/04 - ndt v3.0.21
+  web100srv.c
+	Bug fix.  The kill() function was sending the wrong signal
+	when a stuck process was detected.  The stuck process detection
+	was sending a sig=0 signal (log the action, but don't actually
+	do it).  This was changed to send the SIGKILL (9) signal.  It
+	appears that the parent process occasionally misses an interrupt
+	signal, probably due to it being masked by a second signal, and
+	a child process gets stuck.  This condition is detected and it
+	should be handled properly now.
+
+8/18/04 - ndt v3.0.20
+  web100srv.c
+	Added code to process "disable_FIFO", "syslog", and "Debug"
+	options via the ndt.conf file.  The debug option requires
+	a value, the debug message level, while the other 2 are boolean
+	flags.  
+  ndt.conf.man
+	added in text to describe how these options are specified.
+  conf/ndt
+	A simple startup script that will allow the NDT server processes
+	to start at boot time.  Thanks to Pete Bertoncini <pjb@anl.gov> 
+	for this script.
+  conf/autostart.sh
+	This simple scritp automates the installation of the conf/ndt
+	script.  The conf/ndt script is moved into the /etc/init.d
+	system directory and the /sbin.chkconfig --add ndt command is
+	run to automatically create the rc?.d slinks.  The conf/autostart.sh
+	script should be run once, when the NDT package is first installed
+	on a system.
+
+8/16/04	- ndt v3.0.19
+  web100clt.c
+	bugfix.  The mylink variable was not being set, so buffer
+	size recommendation messages were not being given.  
+
+	Added code to print an information message if the receive
+	buffer could more than double throughput.  New message will
+	calcualte the buffer size required to maximize throughput.
+	Note value can be verified by using the -b# option.
+
+  Tcpbw100.java v5.3.3a
+	Same changes were made to the applet version.  
+
+8/9/04 - ndt v3.0.19
+  web100srv.c
+	bugfix.  change byte descriptor from int to double to prevent
+	overrunning at greater than gigabit rates (caused negative
+	throughput rates to be reported).
+
+	Added in new "-s" for syslog, option.  This option causes
+	the server to write usage statistics using the syslog
+	facility at local0 levels.  This will allow the data to be
+	sent to a remote host for archival purposes.
+
+7/28/04 - ndt v3.0.18
+  tcpbw100.template
+	This file is modified by the create-html.sh script creating
+	the main NDT web page (tcpbw100.html).  The applet code now
+	resides in a table, allowing the applet to appear in the
+	center of the window, and not randomly aligned.  The list of
+	public servers was also modified to include the new NSF server.
+
+7/15/04 - ndt v3.0.17
+  fakewww.c
+	The server now writes redirect messages to the log file.
+
+7/14/04 - ndt v3.0.16
+  web100clt.c
+	added in code to recognize old servers, those that don't
+	support queuing, and exit gracefully.  Old servers relied
+	on the client to analyze the connection data, new servers
+	perform the analysis and pass the results back to the 
+	client.
+
+7/9/04 - ndt v3.0.15
+  web100clt.c
+	Added fflush() commands to code following "running xxx to yyy"
+	test message.  This allows the message to appear on the screen
+	now, instead of when the test results are obtained
+
+  tr-tree.c
+	Changes and bug fixes to the Federation mode's traceroute
+	comparison routines.  Bug fix corrects the problem where
+	the map file (Default.tree) contained an incomplete path.
+	prepended BASEDIR variable to file name.
+	New comparison logic to detemine when route to client 
+	diverges from route to a remote NDT server.  Handles
+	cases where remote client is NDT server, and when
+	paths diverge early.  (Note: local NDT servers's IP
+	address MUST be root node in the map.  This is achieved
+	by making the 1st traceroute to `uanme -n`.
+
+7/6/04 - analyze.c
+  Bug fixes.  The analyze program allows you to review the data
+    found in the web100srv.log file.  These changes include making
+    the program more robust in the face of errors in the log file.
+    One fix was to handle the months "Apr" and "Sep", these strings
+    were confusing the detection of the "port" string, which indicates
+    the start of a new test.  A second fix changed the number of
+    variables found in the link detection algorithm.  The program now
+    accounts for 2 different counts.  Finally, a new duplex detection
+    algorithm was implemented and it compares this algorithm to the
+    original algorithm.
+
+7/6/04 - web100srv.c v3.0.14
+  New duplex mismatch detection algorithm implemented.  This change
+    removed the test for a specific link type and addes in a test for
+    the amount of idle time due to Timeouts replaces this condition.
+    This change eliminates the false positives in my local tests.  
+
+7/6/04 - web100clt.c
+  Bug fix.  Added in missing tests to capture 4 variables (mismatch
+    half_duplex, congestion, and bad_cable) passed over from the server.
+    These use to be calculated here, but now come from the server.
+
+  Added new condition to determine if switch or host is in HD mode.  Now
+    use the out-of-order value instead of throughput rate.
+
+7/6/04 - tcpbw100.java b5.3.2b
+  Same changes as applies to web100clt.c (listed above).
+
+6/14/04 - web100srv.c v3.0.13
+  bug fix to window scale detection logic.  Incorrectly applied
+    winscale factor to servers send buffer.  Correct action is to
+    only set buffer value (Sndbuf) when both send and receive scale
+    factors are greater than 0.
+
+6/14/04 - web100clt.c
+  bug fix.  Value for timesec wasn't being picked up, caused
+    % of idle time to be infinite (divide by zero error)
+
+6/14/04 - web100-util.c
+  bug fix.  record SndWinScale value so above fix works.
+
+6/10/04 - fakewww.c  v3.0.12
+  Added timestanps to log file.  Format is now date/time [ip addr]
+    file requested, action (success/failure).
+
+6/8/04 - web100srv.c v3.0.11
+  Changed name to ANL/Intenet2 NDT server.
+  Added in code to check for localhost IP address.  If client
+    is using 127.0.0.1, the set device to 'lo' so the link detection
+    algorithm reports something instead of -1
+
+4/29/04 - web100srv.c v3.0.10
+  bug fix.  Incorrect scale factor was being applied to the Sndbuf,
+    MaxRwinRcv, and MaxCwnd parameters.  This caused erroneous
+    throughput limits when caluclating the BW*Delay product for 
+    these buffer sizes.
+ 
+4/22/04 - web100srv.c v3.0.9
+  Changed CurMSS to MaxMSS, to report the best we ever got
+  slightly different debug message when printing queue details
+  removed queue management logic from SIGALRM processing.  This
+    processing is now handled properly in the SIGCHLD section
+    of the code. (note, that the SIGALRM is handled in the child
+    process so the queue pointer is NULL.)
+
+4/22/04 - web100-util.c
+  Changed routine to return scaled  Sndbuf value instead of raw
+    X_Sndbuf
+
+4/22/04 - web100clt.c
+  added command line option processing.  Valid options are
+	-d (debug), -b (set send/receive buffer size), and -i
+	(increase message level details)
+  bug fix, MSS value is reduced by 12 when timestamps are enabled,
+    now correctly report this and fix middlebox detection.
+  Add debug printing to see what setsockopt() does when changing
+    send/receive window size.
+  change, scale Sndbuf and MaxRwinRcvd variables by winscale
+    factor.
+  bug fix, report the client & server views of what IP addresses
+    are involved.  Makes NAT detection operate properly
+  minor changes to diagnostic messages
+
+4/22/04 - Tcpbw100.java - v5.3.1a
+  Added code to retireve and process the RecWinScale KIS variable
+  Changed diagnostic messages that reported bw*delay values.  New
+    messages clearly state which host is using which buffer
+
+4/13/04 - web100-util.c
+  Added RcvWinScale variable to list of KIS variables
+
+4/13/04 - web100srv.c v3.0.8
+  bug fix, get current start time, used to report in log file
+  bug fix, retrieve and use RcvWinScale value
+  changed select() to use variable instead of fixed value for 
+    number of file descriptors
+  handle case where select() terminated due to Signal instead
+    of data input.
+  changed MaxRwinRcvd, Sndbuf, and MaxCwnd variables to scale
+    by RcvWinscale.
+
+4/13/04 - web100clt.c
+  new program.  This web100clt program allows access to the 
+    web100srv program via a command line interface.  It is
+    a replacement for / supplement to the java based browser
+    client.  It allows a user/administrator to run the client
+    process on a local/remote computer without the need for a
+    web browser.  The dis-advantage is that the source code
+    must be downloaded and installed prior to running a test.
+    The client has been successfully compiled on Linux and FreeBSD
+    hosts.
+
+4/13/04 - web100-admin.c
+  Bug fix, write admin_discription.html file into directory
+    specified at compile time as BASEDIR.
+
+4/9/04 - web100-admin.c
+  changed web100_perror() messages to only print when debug mode
+    is enabled.
+  Retrieved RcvWinScale KIS variable
+
+4/6/04 - fakewww
+  Modified fakewww server to operate in 'Federated' mode.
+  In this mode, several servers can act as a single system
+  and re-direct clients to a 'better' server.  The default
+  mode will be that a client will be directed to the 'closest'
+  server (see Readme-fakewww for more details).  This change
+  added 2 new modules to the fakewww program
+	fakewww.c - contains the main routines needed to 
+		send the html and java files back to the
+		client.  It also calls several new routines
+		to run traceroute and comparison functions
+		when operating in federated mode
+	tr-tree.c - contains routines needed to compare a
+		single traceroute with a map of routes to
+		all other servers.
+	troute.c - a stripped down version of the standard
+		traceroute.c program from the traceroute.org
+		web site.
+
+4/6/04 - tr-mkmap.c
+  In addition to this new fakewww program, the tr-mkmap program
+  is created to build the traceroute map file needed by the 
+  fakewww program.  (see Readme-fakewww for more details).
+
+3/22/04 - web100srv.c v3.0.7
+  modified server code to send calculation results to the
+  client.  The original code required the server and the 
+  java applet to independantly run the detection algorithms
+  to determine if any problems exist.  This change moves
+  the calculation function onto the server.  The results are
+  shipped over to the client for printing.  (Hopefully this
+  will make it easier to create a command line client as only
+  1 program will need to be modified if/when the detection
+  algorithms change.
+
+3/22/04 - Tcpbw100.java v5.3.0b
+  modified client code to retrieve calculated data from the
+  server instead of making its own calculations.  As noted
+  above, the server was changed to transmit this data to the
+  client.
+
+3/16/04 - web100srv.c v3.0.6
+	- web100-util.c
+  bug fix.  The web100_get_data() routine was causing the 
+  server program to crash when no web100 data was available
+  for the requested connnection.  How test to ensure the 
+  the connection pointer (cn) is not NULL, return with error
+  flag if it is.
+
+3/9/04 - web100srv.c v3.0.3 to 3.0.5
+  Moved from single web100srv.c file to multiple source files
+  to make code easier to understand and maintain.  There are now
+  4 major files.
+	web100srv.c - this file contains the main() routine and
+		other routines that use common global variables.
+		This include the pcap routines that use global
+		variables.  The main() loop was also redone to
+		make it clearer what happens in the parent and
+		child processes.  This made it easier to implement
+		the scheduling/queuing functions described below
+	web100-util.c - this file contains the routines needed
+		to retrieve the web100 data.
+	web100-pcap.c - this file contains the routines needed 
+		to handle the packet-pair timing functions.  Some
+		of these routines are still in the web100srv.c
+		file because they used global variables.
+	web100-admin.c - this file contains the routines needed
+		to handle the generation of the administrator view
+		html file.
+	web100srv.h - this file contains header information and
+		global structures.
+
+  This changes also incorporated 2 new features.
+	Config file support - the web100srv program can now process
+		run time options from a configuration file in addition
+		to the command line options.  It uses routines from
+		the libI2util.a file to perform this task.  By default
+		the file "/etc/ndt.conf" contains these run time options.
+	Scheduling/queuing support - the web100srv program can now
+		handle multiple simultaneous client requests in a FIFO
+		manner.  Incoming test requests are handled when they
+		arrive and if a new request arrives while a test is
+		in progress, the new request is queued for service at
+		a later time.  The client is informed that its test
+		request is pending and an estimated wait time is
+		displayed on the client's screen.  This wait time is
+		updated everytime a client leaves the system.
+
+  Finally, a support for a HUP signal was added.  When this signal is
+  received, the client re-reads the web100_variables file allowing the
+  server to learn new variables without requiring a it to be killed/restarted.
+  The HUP signal also causes the server to re-read the log file to update
+  the administrator view page.  This occurs only if this option is enabled.
+
+3/9/04 - Tcpbw100.java v5.2.2d
+  added code to support the server based scheduling/queuing feature.  The
+  client now starts out in a wait loop, looking for a 'start' signal to
+  arrive.  Once this signal arrives, the program operates as before.
+
+3/2/04 - fakewww.c
+  Added in new code to support a basic server discovery function.  This
+  function uses routines from 2 additional sources.  The sever can also
+  send a basic re-direct message to the client, allowing the server to
+  point the client to a 'better' server.  This process opeates as follows
+	* a client connects to the fakewww server to run a test.
+	* the fakewww server runs a traceroute back to the client's IP addr
+	* this resulting route is compared to a map of routes to all other
+	  servers.  (built by the tr-tree program).
+	* the client is sent a web page that will re-direct it to the new
+	  server.
+
+  To accomplish this function 2 new files were created.  They are:
+	troute.c - this file is a stripped down version of the basic
+		traceroute.c program available from the traceroute.org
+		web site's source code section.  The options processing
+		has been stripped out, and the run-time options are
+		used to suit the fakewww program needs.  Note that root
+		access is now needed to retireve the raw ICMP replies.
+	tr-tree.c - this file contains a subset of the routines needed
+		to compare the retireved route with a map of routes
+		from this server to all other possible servers.
+
+1/19/04 - web100srv.c v3.0.2
+  bug fix.  Opened pipe() to pass data beteen child & parent
+  processes and then used /tmp file as describe in 1/5/04 note.
+  Pipe() were never closed, so all file descriptors were used
+  up and select() failed causing packet-pair timing data to be
+  lost.  Removed reference to pipe() call.
+
+1/19/04 - Tcpbw100.java v 5.2.1d
+  changed packet loss equation to use CongestionSignals and
+  PktsOut variables.  Matches server equation.
+
+1/5/04 - web100srv.c v3.0.1
+  bug fix.  The new (-a) flag failed to continuously update
+  the admin page.  Several variables are updated in the child
+  process that communicates with the client.  These changes 
+  were lost when the child terminated.  These vars are now
+  passed between children via the /tmp/view.string file.
+  Used fcntl() to lock/unlock /tmp/view.string file to ensure
+  only 1 child updates it at a time.
+
+11/30/03 - web100srv.c v3.0.0
+  added new (-a) flag to enable the NDT to generate and display
+  a set of summary tables and usage statistics.  This flag causes
+  the NDT server to automatically generate a new HTML file
+  and exports this file to the world via the URL {ndt}/admin.html
+  location.  
+
+10/20/03 - web100srv.c v2.9.7
+  changed (-b) flag to accept user defined buffer value.  Option
+  also defaults to (64000 Bytes) if -b is present, but no value
+  is specified.
+
+10/16/03 - web100srv.c v2.9.7
+  new flag (-b) installed that controls the TCP send and receive
+  buffer size.  This changes the default behavior of the server.
+  Old behavior called setsockopt() to lock send/recv buffers to
+  60 KB.  New behavior uses system default settings and option
+  invokes old behavior.
+
+9/25/03 - web100srv.c v2.9.6
+  new flag (-m) installed that allows operators to select operational
+  procedure.  Server can run with fixed ports, meaning only 1 test
+  can be performed at a time.  Use -m flag to switch to ephermal
+  ports, meaning multiple tests can be run simultaneously.  
+    Note: multiple tests interfer with each other.
+
+9/22/03 - Makefile
+  added support for making Tcpbw100.jar file.  The java archive
+  .jar format combines all .class files into a single compressed
+  archive file.  This archive file is sent to the browser instead
+  of the individual .class files.
+
+9/22/03 - fakewww.c
+  added Tcpbw100.jar to the list of files the fakewww server can
+  send to the client.  This list prevents arbritray files from being
+  returned to a client.
+
+9/16/03 - Tcpbw100.java v5.2.1c
+  started adding in code to perform cut&paste operation.  Current
+  code fails to access the system clipboard, SecurityException
+  occurs instead.  Button on "Statistics" and "More Details"
+  windows is left unactive due to this exception.
+
+9/16/03 - web100srv.c v2.9.5
+  changed formula to calculate packet loss rate.  (per Matt Mathis)
+
+9/15/03 - Tcpbw100.java v5.2.1c
+  added support to close pop-up "Statistics" and "More Details"
+  windows.  They now close when you click the window close button
+  (X in upper left corner of Win-xx screen).
+
+9/15/03 - fakewww.c
+  added 2 new file names to list of downloadable files.  The
+  files Tcpbw100$1.class and Tcpbw100$clsFrame.class are sub-
+  classes in the Tcpbw100.java file.  They are automactically
+  created by javac and implement the window close function.
+
+9/12/03 - Tcpbw100.java v5.2.1b
+  Added Panel() frame to main window.  This groups the 3 buttons
+  "Statistics, More Details, and Report Problems" into a panel.
+  This panel is then placed at the bottom of the frame.  The
+  "Start" button now shows up next to the text window.
+
+9/8/03 - Tcpbw100.java v5.2.1a
+  added Panel() frame to "Statistics" and "More Details" pop=up
+  windows.  This allow the window to resize properly and keeps
+  the "Close" button at the bottom of the window.
+
+7/28/03 - web100srv.c v2.9.4
+  fixed web100 variable names to use current names, old names 
+    were depricated.
+
+7/28/03 - web100_variables
+  fixed web100 variable names to use current names, old names
+    were depricated.
+
+7/9/03 - web100srv.c v2.9.3
+  modified exit code value in init_pkttrace() routine.  If pcap
+  errors occur, exit(0) will keep program from failing.  Original
+  code used negative code values which caused the child to signal
+  the parent making the parent also exit.
+
+6/27/03
+  modified INSTALL file to include text stating that the web100srv
+  process needs 3 ports to operate (3001-3003).
+    reported by "Irene Barg <ibarg@noao.edu>"
+
+6/16/03
+  included packet trace and log analysis programs in base package
+    - viewtrace.c (viewtrace -f ndttrace.ip.port).  Prints packet
+	pair statistics from captured trace file
+    - analyze.c (analyze -f log.file).  Run web100srv.log (default)
+	file through off-line analysis routines.  Very verbose right
+	now.  Use at your own risk.
+
+6/13/03 - web100srv.c v2.9.2
+  added -t option to command line, creates packet trace for
+	future analysis.  Uses libpcap 'dump' command to 
+	write trace file (ndttrace.clientIP.port)
+
+6/12/03 - web100srv.c v2.9.1
+  added -v option to command line, prints version number
+  modified debug statements, prints messages to stderr with -d option
+
+3/10/03 - web100-spdchk.c  v2.9
+  Added getuid() support to check for root user access
+  Incremented version number 
+  Built in support for packet-pair timings (was speed-chk)
+    use pipe() to create communications channel
+    use fork() to create pcap based children
+    pass clients IP address & port number to pcap child
+    use USR1 & USR2 signals to terminate pkt sniffing
+    simplified packet collection routines
+    wrapped debug messages to suspress unwanted logging
+    increased number of link clasification bins
+    pass messages between parent and child to synchronize actions
+    fixed bug when calling calculate_spd() with port 3003
+    added MaxCwnd to list of retrieved variables
+  removed code for communicating with stand-alone speed-chk routine
+    removed UDP sockets for read/write channels
+    removed select() calls
+  added code to synchronize communications with applet
+    messages sent between tests (middlebox, client throughput,
+	server throughput
+    messages sent during throughput tests, applet opens connection
+	and waits for OK to start data xfer test
+  added code to use pkt-pair timing data for link type detection
+    new code to determine link type
+    new code to send link type to applet
+
+
+3/10/03 - Tcpbw100.java  v5.2.0e
+  new code to synchronize communications with server program
+    messages passed to start each test
+    messages passed to open socket for throughput test
+    applet waits for OK from server program before proceeding
+  bug fix to throughput results, using int instead of long
+    fix supplied by 
+  new messages to report OS and Java info
+  new link detection algorithm
+    uses pkt-pair data passed over from server program
+    new messages to report pkt-pair data
+    no-longer assumes 100 Mbps FastEthernet
+    new diagnostic messages, identifies bottleneck link type
+  new congestion experienced algorithm
+  changed Cwnd BW*Delay product to use MaxCwnd instead of CurrentCwnd
+  changed email string to use %0a instead of \n for line break
+
+3/10/03 - tcpbw100.html
+  redid base web page
+    new look with bullet items indicating test being done
+    links to other public NDT servers
+    
+Jan 2003 to Mar 2003 - experimental work on packet-pair timing
+  Work began on methods to use packet-pair timings to determine
+  bottleneck link speed.  Idea based on TCP dynamics whereby
+  back-to-back packets will be injected into the network on numerous
+  occations.  These packets will be shaped by intervening queues
+  so that they arrive at the rate supported by the slowest link
+  in the path.  If enough of these packets arrive, we should be
+  able to detect this bottleneck link rate.  This detection should
+  be independant of the measured throughput for the test.
+
+  Preliminary data was collected during the SC'02 conference and
+  post processed to validate the approach.  The approach taken is
+  to 'quantize' the results by placing individual packet-pair measurements
+  into unique 'speed bins'.  The LBL Libpcap utility is used to
+  place the network interface in promiscous mode and capture packets.
+  The throughput achieved between each packet-pair is calculated and
+  stored in the proper bin.  Statistical analysis is then used to
+  determine what type of link caused these results.
+  
+  The prototype code was then simplified and rolled into the main
+  web100srv.c program.
+
+10/10/02 - web100srv.c
+  Changes to support new Web100 a1.2 userland library code
+  general code cleanup including:
+    new local_find_connection() routine to retrieve connection data
+    reworked middelware reporting code to user for loop
+    moved web100_agent* code inside main loop instead of in lookup routine
+    report unimplemented KIS variables (uses printf's on stdout)
+
+10/4/02 - Tcpbw100.java  v5.1.1
+  Started adding code for middlebox detection (NAT, Firewalls, etc)
+  currently server set MAX_SEG value to 1456 and send negotiated value
+  back to client.  If they aren't the same, then something changed it
+  (Firewalls, or VPN clients are the obvious reasons).
+  NAT detection has server send socket data back to client, code also
+  catches IE's habit of using localhost instead of FQDN/IP data.
+
+9/12/02 - web100srv.c
+  added new command line option to allow the log file name to be
+  specified.  Uses -l option.  Defaults to ./web100srv.log
+
+9/11/02 - web100srv.c
+  added new command line option to allow web100_variables file
+  to be specified.  Uses -f option.  Defaults to ./web100_variables
+
+8/1/02 - web100srv.c
+  added setsockopt() function calles to set the SO_REUSEADDR option 
+  on the data ports.  This allows the data ports to be re-used
+  immediately after they are closed.  This avoids the timeout
+  period between tests.
+
+7/15/02 - web100srv.c
+  added command line parameter processing to support logging of
+  receiver side statistics.  This eliminates the need for the
+  web100srv-recv.c code.  The web100srv program now supports 3
+  options.  1) -p specify port number (3001 is default). 2) -h
+  prints simple usage text. 3) -r record receiver side stats.
+
+6/28/02 - Tcpbw100.java  v5.0.3
+  Changed tests for 10 Mbps link condition.  Test now looks at
+  forward and reverse speeds, packet loss, and out-of-order
+  packet delivery.  Also added in new test for unknown link
+  type.  If throughput > estimate, then link = unknown.
+
+6/28/02 - web100srv-recv.c
+  Changed tests for 10 Mbps link condition to match those in
+  the Tcpbw100.java file.
+
+6/27/02 - Tcpbw100.java  v5.0.2
+  Changed email diagnostics messages to report conditional test
+  statements (link type, duplex setting, duplex-mismatch, ...)
+
+6/26/02 - Tcpbw100.java  v5.0.1
+  Changed email diagnostic messages to report throughput values.
+  Added "End of Email Message" text to email diagnostic report.
+
+6/24/02 - Tcpbw100.java  v5.0.0
+  Added in new feature and bumped major version number to 5.
+  New feature is email button in Java applet.  This button 
+  calls the URL mailto: function passing data through the
+  browser to the users email client.  The userid, nodename,
+  and optional subject line are stored in the base tcpbw100.html
+  page as applet PARAM NAME/VALUE pairs.  This allows the local
+  admin to configure the email without needing to re-compile the
+  applet.  If no subject line is found a default message is
+  inserted that included the servers name.
+
+  Open bug - the clients name needs to be automatically inserted
+  into the email and more details diagnostic pages.  Currently I
+  use the getLocalHost() function to obtain this info.  This works
+  with Netscape 4.x browsers with the Sun JVM, however the MS JVM 
+  used by IE 5.x browsers returns 'localhost/127.0.0.1' instead.
+
+6/17/02 - web100srv-recv.c
+  Modified server process to log web100 values for both throughput
+  tests.  When the server is receiving data the values are separated
+  by the ';' character.  When the server is transmitting data the
+  values are separated by the ',' character.  All variables listed
+  in the 'web100_variables' file are recorded in the receive direction,
+  while only a subset of these are recorded in the xmit direction.
+
+6/7/02 - Tcpbw100.java  v4.6.7
+  Changed tests for duplex-mismatch condition.  Replaced test
+  for (packet loss < 1%) with (estimated throughput > 2 Mbps).
+  Remote DSL/Cable modem lines were creating false positives.
+
+6/6/02 - Tcpbw100.java  v4.6.6
+  fixed bug in calculating waitsec.  Should be CurrentRTO/1000
+
+6/4/02 - Tcpbw100.java  v4.6.6
+  Changed tests for congestion condition.  Added test for
+  (MaxSsthresh > 0) indicating that the slow start algorithm
+  had been invoked.  Previous case lead to false positives.
+
+  Changed "Server busy" messages to tell the user to wait x sec
+  before retrying test.  This improves the user interface when
+  someone tries to run back-to-back tests.  
+
+  Added new 'waitsec' variable to report percent of time connection
+  spends waiting after a timeout.  
+	waitsec = (CurrentRTO/100) * Timeouts
+
+6/4/02 - Web100srv.c
+  added CurrentRTO variable to list of variables being logged
+
+
+5/x/02 - Tcpbw100.java  v4.6.5
+  Added tests for Wireless and DSL/Cable modem links
+
+  changed output messages to report unknown link type
+
+  fixed bug in duplex-mismatch direction test (variable spd
+    was remaining 0 due to division of integers).
+
+  fixed bug in window scaling report.  Windows 9x boxes set
+    value to -1, which code reports as 4294967295.  
+
+
+4/4/02 - Tcpbw100.java  v4.5.5
+  reworked conditional tests and messages sections to report Link Type,
+    duplex-mismatch, Excessive Errors, Duplex (full/half), and congestion
+
+
+3/6/02 - Web100srv.c
+  Changed logging routine to report more variables in comma (,) separated
+    line.  Data can be imported into external program for analysis
+
+  
+2/21/02 - Tcpbw100.java v4.4.1
+  Reworked conditional tests and messages to report link type
+    (GigE, FastE, and Enet)
+
+
+1/10/02 - Tcpbw100.java  v4.3.3
+  Added new Statistics button for drill down view
+
+  Redid analysis messages to use 'statistics' and 'more details' 
+    buttons
+
+
+12/4/01 - Tcpbw100.java  v4.2.10
+  Changed messages to report speed in Mbps instead of Kbps
+
+  Added sqrt function into Java script to estimate throughput (Mathis fomula)
+
+
+12/3/01 - Tcpbw100.java  v4.2.9
+  Initial ANL mods to ORNL applet.  New analysis section.
+
+  Removed most ORNL diagnostic messages.
