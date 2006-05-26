@@ -29,19 +29,20 @@ CLASSPATH_ENV =
 # Tcpbw100dir = $(srcdir)/Applet
 
 ndtdir = $(prefix)/ndt
-ndt_DATA	= Tcpbw100 Tcpbw100.jar
+# ndt_DATA	= Tcpbw100 Tcpbw100.jar
+ndt_DATA	= Tcpbw100.jar
 Tcpbw100dir = $(ndtdir)
 
 # noinst_PROGRAMS	= Tcpbw100 Tcpbw100.jar
-noinst_PROGRAMS = Tcpbw100 Tcpbw100.jar
+noinst_PROGRAMS = Tcpbw100.jar
 
 Tcpbw100_JAVA	= Tcpbw100.java
-Tcpbw100_SOURCES	= Tcpbw100.java
+#Tcpbw100_SOURCES	= Tcpbw100.java
 
-Tcpbw100_jar_SOURCES = Tcpbw100.jar
+#Tcpbw100_jar_SOURCES = Tcpbw100.jar
 
-am_Tcpbw100_OBJECTS = Tcpbw100.java
-Tcpbw100_LDADD = 
+#am_Tcpbw100_OBJECTS = Tcpbw100.java
+#Tcpbw100_LDADD = 
 
 Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
 	@rm -f Tcpbw100$(EXEEXT)
@@ -56,6 +57,9 @@ classTcpbw100stamp: $(Tcpbw100_JAVA)
 	    $(GCJ) $?; \
 	else :; fi
 	echo timestamp > classTcpbw100.stamp
+
+Tcpbw100.class: $(Tcpbw100_JAVA)
+	$(GCJ) $(Tcpbw100_JAVA)
 
 Tcpbw100.jar:	Tcpbw100.class
 	$(NDTJAR) $(NDTJARFLAG) Tcpbw100.jar Tcpbw100*.class
