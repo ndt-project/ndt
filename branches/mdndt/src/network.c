@@ -9,26 +9,26 @@
 #include "network.h"
 
 static int
-OpenSocket(I2Addr addr, int options)
+OpenSocket(I2Addr addr, char* serv, int options)
 {
   struct addrinfo *fai;
   struct addrinfo *ai;
   int             on;
   int             fd=-1;
 
-  if (!(fai = I2AddrAddrInfo(addr, NULL, NULL))) {
+  if (!(fai = I2AddrAddrInfo(addr, NULL, serv))) {
     return -2;
   }
 
   for (ai = fai; ai; ai = ai->ai_next) {
 #ifdef AF_INET6
-    if (options | OPT_IPV6_ONLY) {
+    if (options & OPT_IPV6_ONLY) {
       if(ai->ai_family != AF_INET6)
         continue;
     }
 #endif
     
-    if (options | OPT_IPV4_ONLY) {
+    if (options & OPT_IPV4_ONLY) {
       if(ai->ai_family != AF_INET)
         continue;
     }
@@ -68,7 +68,7 @@ failsock:
   return fd;
 }
 
-int
+I2Addr
 CreateListenSocket(I2Addr addr, char* serv, int options)
 {
   int fd = -1;
@@ -79,6 +79,7 @@ CreateListenSocket(I2Addr addr, char* serv, int options)
   }
 
   if ((!addr) && !(addr = I2AddrByWildcard(/* FIXME */NULL, SOCK_STREAM, serv))) {
+    /* TODO: log the error */
     goto error;
   }
 
@@ -87,7 +88,7 @@ CreateListenSocket(I2Addr addr, char* serv, int options)
     goto error;
   }
   
-  fd = OpenSocket(addr, options);
+  fd = OpenSocket(addr, serv, options);
   
   if (fd < 0) {
     /* TODO: log the error */
@@ -99,11 +100,11 @@ CreateListenSocket(I2Addr addr, char* serv, int options)
     goto error;
   }
 
-  return 0;
+  return addr;
   
 error:
     I2AddrFree(addr);
-    return 1;
+    return NULL;
 }
 
 int

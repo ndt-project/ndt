@@ -138,9 +138,6 @@ subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 
-#
-#      $Id$
-#
 #########################################################################
 #									#
 #			   Copyright (C)  2003				#

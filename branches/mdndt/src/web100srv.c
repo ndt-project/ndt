@@ -63,6 +63,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 /* local include file contains needed structures */
 #include "web100srv.h"
 #include "../config.h"
+#include "network.h"
 
 /* list of global variables used throughout this program. */
 int window = 64000;
@@ -83,7 +84,6 @@ int testing, waiting;
 int experimental=0;
 int old_mismatch=0;	/* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
-int maxsockfd;
 
 /* experimental limit code, can remove later */
 u_int32_t limit=0;
@@ -1625,8 +1625,9 @@ char	*argv[];
 	int n, midsockfd, recvsfd, xmitsfd, ctlsockfd, clilen, servlen, one=1;
 	int c, chld_pipe[2];
 	int i, loopcnt;
-	struct sockaddr_in cli_addr, cli2_addr, srv2_addr, srv3_addr, srv4_addr, serv_addr;
+	struct sockaddr_in /*cli_addr,*/ cli2_addr, srv2_addr, srv3_addr, srv4_addr, serv_addr;
 	struct sockaddr_in6 serv6_addr, cli6_addr;
+  struct sockaddr_storage cli_addr;
 	struct sigaction new;
 	web100_agent* agent;
 	char view_string[256], *lbuf=NULL, *ctime();
@@ -1640,8 +1641,10 @@ char	*argv[];
 
 	int v4only=0, v6only=0, af_family;
 	struct addrinfo hints, *ai;
-	struct sockRFD sock_rfd[12];
-
+  I2Addr listenaddr = NULL;
+  int listenfd;
+  char* srcname = NULL;
+  char* listenport = sPORT;
 
 	opterr = 0;
 	while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:")) != -1){
@@ -1772,10 +1775,6 @@ char	*argv[];
 		sprintf(wvfn, "%s/%s", BASEDIR, WEB100_FILE);
 		VarFileName = wvfn;
 	}
-	/* if (usesyslog == 1) {
-	 * 	openlog(NULL, LOG_CONS, LOG_FACILITY|LOG_NOTICE);
-	 * }
-	 */
 	if (debug > 0) {
 	    fprintf(stderr, "ANL/Internet2 NDT ver %s\n", VERSION);
 	    fprintf(stderr, "\tVariables file = %s\n\tlog file = %s\n", VarFileName, LogFileName);
@@ -1784,13 +1783,6 @@ char	*argv[];
 
 	memset(&new, 0, sizeof(new));
 	new.sa_handler = cleanup;
-	/* sigaction(SIGUSR1, &new, NULL);
-	 * sigaction(SIGUSR2, &new, NULL);
-	 * sigaction(SIGALRM, &new, NULL);
-	 * sigaction(SIGPIPE, &new, NULL);
-	 * sigaction(SIGCHLD, &new, NULL);
-	 * sigaction(SIGHUP, &new, NULL);
-	 */
 
 	/* Grab all signals and run them through my cleanup routine.  2/24/05 */
 	for (i=1; i<32; i++) {
@@ -1803,72 +1795,20 @@ char	*argv[];
 	/*
 	 * Bind our local address so that the client can send to us.
 	 */
-	/* 
-	 * if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	 * 	err_sys("server: can't open stream socket");
-	 * 
-	 * bzero((char *) &serv_addr, sizeof(serv_addr));
-	 * serv_addr.sin_family = AF_INET;
-	 * serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	 * serv_addr.sin_port        = htons(port);
-	 *
-	 * setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	 * if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-	 *	  err_sys("server: can't bind local address");
-	 *
-	 * if (set_buff > 0) {
-	 *   setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-	 *   setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
-	 * }
-	 * listen(sockfd, 5);
-	 */
+  if (srcname && !(listenaddr = I2AddrByNode(NULL, srcname))) {
+    err_sys("server: Invalid source address specified: %s", srcname);
+  }
+  if ((listenaddr = CreateListenSocket(listenaddr, listenport, 0)) == NULL) {
+    err_sys("server: CreateListenSocket failed");
+  }
+  listenfd = I2AddrFD(listenaddr);
+  
+  setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+  if (set_buff > 0) {
+    setsockopt(listenfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+    setsockopt(listenfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+  }
 
-	/* first attempt at IPv6 port  8/16/05 RAC	*/
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-
-	if (v6only == 1)
-	    hints.ai_family = AF_INET6;
-	if (v4only == 1)
-	    hints.ai_family = AF_INET;
-
-	sprintf(tmpstr, "%d", port);
-	if (i = (getaddrinfo(NULL, tmpstr, &hints, &ai)) < 0) {
-	    if (ai == NULL) {
-	        freeaddrinfo(ai);
-	        err_sys("Server failed: cannot find usable IP v4 or v6 address");
-	    }
-	}
-
-	i = 0;
-	while (ai != NULL) {
-	    if ((sock_rfd[i].sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) < 0) {
-		freeaddrinfo(ai);
-		err_sys("Server Failed: cannot open socket");
-	    }
-	    sock_rfd[i].family = AF_INET;
-	    bzero((char *) &serv_addr, sizeof(serv_addr));
-	    serv_addr.sin_family = AF_INET;
-	    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	    serv_addr.sin_port = htons(port);
-	    setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-	    if (bind(sock_rfd[i].sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
-		err_sys("Server fault: new routine can't bind to IPv4 address");
-	    if (set_buff > 0) {
-		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-		setsockopt(sock_rfd[i].sockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
-	    }
-	    sock_rfd[i].len = ai->ai_addrlen;
-	    listen(sock_rfd[i].sockfd, 5);
-	    maxsockfd = sock_rfd[i].sockfd;
-	    i++;
-	    ai = ai->ai_next;
-
-	}
-
-	/* signal(SIGCLD,reap); */		/* get rid of zombies */
 	if (debug > 0)
 	    fprintf(stderr, "server ready on port %d\n",port);
 
@@ -1938,17 +1878,13 @@ char	*argv[];
 		}
 
 		FD_ZERO(&rfd);
-		for (i=0; ;i++) {
-		    FD_SET(sock_rfd[i].sockfd, &rfd);
-		    if (sock_rfd[i].sockfd == maxsockfd)
-			break;
-		}
+    FD_SET(listenfd, &rfd);
 		if (waiting > 0) {
 		    sel_tv.tv_sec = 3;
 		    sel_tv.tv_usec = 0;
 		    if (debug > 2)
 			fprintf(stderr, "Waiting for new connection, timer running\n");
-		    rc = select(maxsockfd+1, &rfd, NULL, NULL, &sel_tv);
+		    rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
 		    tt = time(0);
 		    if (head_ptr != NULL) {
 		        if (debug > 2) 
@@ -1975,7 +1911,7 @@ char	*argv[];
 		else {
 		    if (debug > 2)
 			fprintf(stderr, "Timer not running, waiting for new connection\n");
-		    rc = select(maxsockfd+1, &rfd, NULL, NULL, NULL);
+		    rc = select(listenfd+1, &rfd, NULL, NULL, NULL);
 		}
 
 		if (rc < 0) {
@@ -2002,25 +1938,21 @@ char	*argv[];
 			    fprintf(stderr, "New connection received, waiting for accept() to complete\n");
 		    }
 		    clilen = sizeof(cli_addr);
-		    for (i=0; ;i++) {
-			if (FD_ISSET(sock_rfd[i].sockfd, &rfd))
-			    break;
-			if (sock_rfd[i].sockfd > maxsockfd)
-			    continue;
-		    }
-		    clilen = sizeof(cli_addr);
-		    ctlsockfd = accept(sock_rfd[i].sockfd, (struct sockaddr *) &cli_addr, &clilen);
-		    if ((inet_ntop(sock_rfd[i].family, &cli_addr.sin_addr, tmpstr, sock_rfd[i].len)) == NULL)
-			fprintf(stderr, "inet_ntop() failed: rc=%d, family=%d, addr_len=%d IP=%x\n", errno, sock_rfd[i].family,
-				sock_rfd[i].len, cli_addr.sin_addr.s_addr);
-		    if (debug > 3)
-			fprintf(stderr, "New IPv4 connection received from [%s].\n", tmpstr);
-		    if (ctlsockfd < 0){
-			if (errno == EINTR)
-			    continue; /*sig child */
-			perror("Web100srv server: accept error");
-			continue;
-		    }
+        ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
+        {
+          int tmpstrlen = sizeof(tmpstr);
+          /* FIXME: check if the I2Addr have to be released */
+          I2AddrNodeName(I2AddrByLocalSockFD(NULL, ctlsockfd, False), tmpstr, &tmpstrlen);
+          printf("A: %s, len=%d\n", tmpstr, tmpstrlen);
+        }
+        if (debug > 3)
+          fprintf(stderr, "New connection received from [%s].\n", tmpstr);
+        if (ctlsockfd < 0){
+          if (errno == EINTR)
+            continue; /*sig child */
+          perror("Web100srv server: accept error");
+          continue;
+        }
 		    new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
                     tt = time(0);
                     /*
@@ -2189,12 +2121,7 @@ char	*argv[];
 					    chld_pipe[0], chld_pipe[1], chld_pid);
 			}
 			int j;
-			for (j=0; ;j++) {
-			    if (sock_rfd[j].sockfd == maxsockfd)
-				break;
-			    close(sock_rfd[j].sockfd);
-			}
-			close(sock_rfd[j].sockfd);
+      close(listenfd);
 			close(chld_pipe[1]);
 			if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL, NULL)) == NULL) {
 	                    web100_perror("web100_attach");
@@ -2223,7 +2150,7 @@ char	*argv[];
 					    LogFileName);
 			else {
                 	    fprintf(fp,"%15.15s  %s port %d\n",
-                  		ctime(&tt)+4, name, ntohs(cli_addr.sin_port));
+                  		ctime(&tt)+4, name, 666/*FIXME: ntohs(cli_addr.sin_port)*/);
                 	    fclose(fp);
 			}
 			close(chld_pipe[0]);

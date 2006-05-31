@@ -61,6 +61,12 @@ static char wvfn[256];
 #define PORT3 3003
 #define PORT4 3004
 
+/* hard-coded port values */
+#define sPORT "3001"
+#define sPORT2 "3002"
+#define sPORT3 "3003"
+#define sPORT4 "3004"
+
 struct ndtchild {
 	int pid;
 	char addr[64];
@@ -107,10 +113,12 @@ struct web100_variables {
 	char value[256];
 } web_vars[WEB100_VARS];
 
+#if 0
 struct sockRFD {
 	int sockfd;
 	int family;
 	size_t len;
 };
+#endif
 
 int32_t gmt2local(time_t);
