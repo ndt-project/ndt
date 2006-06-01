@@ -132,13 +132,13 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
 
   for (ai=fai; ai; ai=ai->ai_next) {
 #ifdef AF_INET6
-    if (options | OPT_IPV6_ONLY) {
+    if (options & OPT_IPV6_ONLY) {
       if(ai->ai_family != AF_INET6)
         continue;
     }
 #endif
 
-    if (options | OPT_IPV4_ONLY) {
+    if (options & OPT_IPV4_ONLY) {
       if(ai->ai_family != AF_INET)
         continue;
     }

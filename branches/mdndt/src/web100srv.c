@@ -515,9 +515,10 @@ void cleanup(int signo)
       fprintf(stderr, "Signal %d received by process %d\n", signo, getpid());
 
       fp = fopen(LogFileName,"a");
-      if (fp != NULL)
-          fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
-      fclose(fp);
+      if (fp != NULL) {
+        fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
+        fclose(fp);
+      }
   }
   switch (signo) {
       default:
@@ -1867,7 +1868,6 @@ char  *argv[];
           int tmpstrlen = sizeof(tmpstr);
           /* FIXME: check if the I2Addr have to be released */
           I2AddrNodeName(I2AddrByLocalSockFD(NULL, ctlsockfd, False), tmpstr, &tmpstrlen);
-          printf("A: %s, len=%d\n", tmpstr, tmpstrlen);
         }
         if (debug > 3)
           fprintf(stderr, "New connection received from [%s].\n", tmpstr);
@@ -1902,11 +1902,8 @@ char  *argv[];
          */
     }
 
-    fprintf(stderr, "pipe\n");
     pipe(chld_pipe);
-    fprintf(stderr, "fork\n");
     chld_pid = fork();
-    fprintf(stderr, "after fork\n");
 
     switch (chld_pid) {
         case -1:    /* an error occured, log it and quit */

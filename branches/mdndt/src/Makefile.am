@@ -42,8 +42,8 @@ viewtrace_SOURCES	= viewtrace.c
 viewtrace_LDADD = $(NDTLIBS)
 viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-web100clt_SOURCES	= web100clt.c
-web100clt_LDADD = 
+web100clt_SOURCES	= web100clt.c network.c
+web100clt_LDADD = $(I2UTILLIBDEPS)
 
 tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c
 tr_mkmap_LDADD = $(NDTLIBS)

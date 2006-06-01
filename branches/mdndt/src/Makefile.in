@@ -82,9 +82,9 @@ tr_mkmap_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_viewtrace_OBJECTS = viewtrace-viewtrace.$(OBJEXT)
 viewtrace_OBJECTS = $(am_viewtrace_OBJECTS)
 viewtrace_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_web100clt_OBJECTS = web100clt.$(OBJEXT)
+am_web100clt_OBJECTS = web100clt.$(OBJEXT) network.$(OBJEXT)
 web100clt_OBJECTS = $(am_web100clt_OBJECTS)
-web100clt_DEPENDENCIES =
+web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
 	web100srv-web100-util.$(OBJEXT) \
 	web100srv-web100-pcap.$(OBJEXT) \
@@ -213,8 +213,8 @@ web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 viewtrace_SOURCES = viewtrace.c
 viewtrace_LDADD = $(NDTLIBS)
 viewtrace_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
-web100clt_SOURCES = web100clt.c
-web100clt_LDADD = 
+web100clt_SOURCES = web100clt.c network.c
+web100clt_LDADD = $(I2UTILLIBDEPS)
 tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c
 tr_mkmap_LDADD = $(NDTLIBS)
 tr_mkmap_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
@@ -326,6 +326,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-fakewww.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-tr-tree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-troute.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-mkmap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-tree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viewtrace-viewtrace.Po@am__quote@
