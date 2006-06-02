@@ -47,6 +47,7 @@
  * SUCH DAMAGE.
  */
 
+#if 0
 #ifndef lint
 static char copyright[] =
 "@(#) Copyright (c) 1990, 1993\n\
@@ -56,6 +57,7 @@ static char copyright[] =
 #ifndef lint
 static char sccsid[] = "@(#)troute.c	8.1 (Berkeley) 6/6/93";
 #endif /* not lint */
+#endif
 
 #include <sys/param.h>
 #include <sys/time.h>
@@ -131,15 +133,14 @@ int verbose;
 int waittime = 1;		/* time to wait for response (in seconds) */
 int nflag;			/* print addresses numerically */
 
-int
+void
 find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
 {
 	extern char *optarg;
 	extern int optind;
-	struct hostent *hp;
 	struct protoent *pe;
 	struct sockaddr_in from, *to;
-	int ch, i, on, probe, seq, tos, ttl;
+	int i, on, probe, seq, tos, ttl;
 
 	on = 1;
 	seq = tos = 0;
@@ -197,7 +198,6 @@ find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
 		u_long lastaddr = 0;
 		int got_there = 0;
 		int unreachable = 0;
-		int IPcnt = 0;
 
 		/* printf("%2d ", ttl); */
 		for (probe = 0; probe < nprobes; ++probe) {
@@ -208,7 +208,7 @@ find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
 
 			(void) gettimeofday(&t1, &tz);
 			send_probe(++seq, ttl);
-			while (cc = wait_for_reply(s, &from)) {
+			while ((cc = wait_for_reply(s, &from))) {
 				(void) gettimeofday(&t2, &tz);
 				if ((i = packet_ok(packet, cc, &from, seq))) {
 					if (from.sin_addr.s_addr != lastaddr) {
@@ -267,7 +267,7 @@ wait_for_reply(sock, from)
 	fd_set fds;
 	struct timeval wait;
 	int cc = 0;
-	int fromlen = sizeof (*from);
+	socklen_t fromlen = sizeof (*from);
 
 	FD_ZERO(&fds);
 	FD_SET(sock, &fds);

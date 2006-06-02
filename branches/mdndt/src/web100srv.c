@@ -89,6 +89,7 @@ int view_flag=0;
 int port=PORT, record_reverse=0;
 int testing, waiting;
 int experimental=0;
+int refresh = 30;
 int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
 
@@ -531,7 +532,7 @@ cleanup(int signo)
        * RAC 3/11/04
        */
       if (admin_view == 1)
-        view_init(LogFileName, debug);
+        view_init(LogFileName, refresh, debug);
       break;
 
     case SIGCHLD:
@@ -1493,7 +1494,7 @@ read2:
         (int)c2sspd, (int)s2cspd, c2sdata, s2cack, 1, debug);
     gen_html((int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
         Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
-        debug);
+        refresh, debug);
   }
   shutdown(ctlsockfd, SHUT_RDWR);
 }
@@ -1524,7 +1525,7 @@ main(int argc, char** argv)
   char* listenport = sPORT;
 
   opterr = 0;
-  while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:")) != -1){
+  while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:T:")) != -1){
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -1550,7 +1551,7 @@ main(int argc, char** argv)
   LoadConfig(&lbuf, &lbuf_max);
   debug = 0;
 
-  while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:")) != -1){
+  while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:T:")) != -1){
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1613,6 +1614,9 @@ main(int argc, char** argv)
         break;
       case 'y':
         limit = atoi(optarg);
+        break;
+      case 'T':
+        refresh = atoi(optarg);
         break;
       case '?':
         srv_short_usage("");
@@ -1685,7 +1689,7 @@ main(int argc, char** argv)
    * RAC 11/28/03
    */
   if (admin_view == 1)
-    view_init(LogFileName, debug);
+    view_init(LogFileName, refresh, debug);
 
   /* create a log file entry every time the web100srv process starts up. */
   ndtpid = getpid();

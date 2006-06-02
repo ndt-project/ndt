@@ -39,7 +39,7 @@ void init_vars(struct spdpair *cur)
 void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int debug)
 {
 
-	int i, total=0, max=0, s, index;
+	int i, total=0, max=0, s, index = -1;
 	char buff[256];
 	int tzoffset = 6;
 	FILE *fp;
@@ -136,7 +136,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 	}
 	fclose(fp);
 
-	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d\0", cur->links[0], cur->links[1],
+	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d", cur->links[0], cur->links[1],
 		cur->links[2], cur->links[3], cur->links[4], cur->links[5], cur->links[6],
 		cur->links[7], cur->links[8], cur->links[9], cur->links[10], cur->links[11],
 		cur->totalspd2, cur->inc_cnt, cur->dec_cnt, cur->same_cnt, cur->timeout, cur->dupack);
@@ -153,7 +153,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3)
 {
 	
-	float bits, spd, time;
+	float bits = 0, spd, time;
 
 	time = (((cur->sec - cur2->sec)*1000000) + (cur->usec - cur2->usec));
 	/* time = curt->time - cur2->time; */
