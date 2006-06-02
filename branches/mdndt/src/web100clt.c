@@ -517,7 +517,7 @@ main(int argc, char *argv[])
   int buf_size=0, set_size, k;
   struct timeval sel_tv;
   fd_set rfd;
-  int v4only=0, v6only=0;
+  int conn_options = 0;
   I2Addr server_addr = NULL, sec_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
 
@@ -525,12 +525,10 @@ main(int argc, char *argv[])
   while ((c = getopt(argc, argv, "46b:dhlp:")) != -1) {
     switch (c) {
       case '4':
-        v4only = 1;
-        v6only = 0;
+        conn_options |= OPT_IPV4_ONLY;
         break;
       case '6':
-        v4only = 0;
-        v6only = 1;
+        conn_options |= OPT_IPV6_ONLY;
         break;
       case 'h':
         printf("Usage: %s {options} server\n", argv[0]);
@@ -561,6 +559,7 @@ main(int argc, char *argv[])
   failed = 0;
 
   printf("Testing network path for configuration and performance problems  --  ");
+  fflush(stdout);
 
   if ((server_addr = I2AddrByNode(NULL, host)) == NULL) {
     perror("Unable to resolve server address\n");
@@ -568,7 +567,7 @@ main(int argc, char *argv[])
   }
   I2AddrSetPort(server_addr, ctlport);
 
-  if ((ret = CreateConnectSocket(&ctlSocket, NULL, server_addr, 0))) {
+  if ((ret = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options))) {
     perror("Connect() for control socket failed ");
     exit(-4);
   }
@@ -657,7 +656,7 @@ main(int argc, char *argv[])
     printf("connecting to %s:%d\n", tmpbuff, I2AddrPort(sec_addr));
   }
 
-  if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, 0))) {
+  if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
     perror("Connect() for middlebox failed");
     exit(-10);
   }
@@ -748,7 +747,7 @@ main(int argc, char *argv[])
   }
   I2AddrSetPort(sec_addr, port3);
 
-  if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, 0))) {
+  if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options))) {
     perror("Connect() for client to server failed");
     exit(-11);
   }
@@ -815,7 +814,7 @@ main(int argc, char *argv[])
   }
   I2AddrSetPort(sec_addr, port2);
 
-  if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, 0))) {
+  if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
     perror("Connect() for Server to Client failed");
     exit(-15);
   }
