@@ -94,6 +94,7 @@ clt_long_usage(char* info)
   assert(info != NULL);
   printf("\n%s\n\n\n", info);
   printf(" Basic options:\n\n");
+  printf("  -n, --name #name       - specify name of the server\n");
   printf("  -p, --port #port       - specify port server is listening on\n");
   printf("  -d, --debug            - Increase debug level details\n");
   printf("                           Note: add multiple d's (-ddd) for more details\n");

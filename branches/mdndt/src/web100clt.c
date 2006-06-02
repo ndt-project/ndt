@@ -1,6 +1,10 @@
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+#include <ctype.h>
 
 #include "../config.h"
 #include "network.h"
@@ -29,6 +33,8 @@ double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
 
+void save_int_values(char *sysvar, int sysval);
+void save_dbl_values(char *sysvar, float *sysval);
     
 void
 printVariables(char *tmpstr)
@@ -57,10 +63,8 @@ printVariables(char *tmpstr)
 void
 testResults(char *tmpstr)
 {
-  int i=0;
-  int Zero=0, bwdelay, minwin;
+  int i=0, Zero=0;
   char *sysvar, *sysval;
-  char scaled[16];
   float j;
 
   sysvar = strtok(tmpstr, "d");
@@ -295,8 +299,8 @@ middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr)
 {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
-  int mss, tmpLen;
-  int k;
+  int mss;
+  socklen_t tmpLen;
 
   str = strtok(tmpstr, ";");
   strcpy(ssip, str);
@@ -341,7 +345,7 @@ middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr)
   }
 }
 
-int
+void
 save_int_values(char *sysvar, int sysval)
 {
   /*  Values saved for interpretation:
@@ -460,7 +464,7 @@ save_int_values(char *sysvar, int sysval)
   }
 }
 
-int
+void
 save_dbl_values(char *sysvar, float *sysval)
 {
   if (strcmp(sysvar, "bw:") == 0)
@@ -505,23 +509,21 @@ main(int argc, char *argv[])
   /* FIXME: this 3001 shuld be defined somewhere else */
   int ctlport = 3001, port3, port2, inlth;
   uint32_t bytes;
-  double stop_time, wait2;
-  int sbuf, rbuf;
+  double stop_time;
   int ret, i, xwait, one=1;
   int largewin;
-  char buff[8192], buff2[256];
-  struct timeb *tp;
+  char buff[8192];
   time_t sec;
-  char *host;
+  char *host = NULL;
   int buf_size=0, set_size, k;
   struct timeval sel_tv;
   fd_set rfd;
   int conn_options = 0;
   I2Addr server_addr = NULL, sec_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
+  socklen_t optlen;
 
-  host = argv[argc-1];
-  while ((c = getopt(argc, argv, "46vb:dhlp:")) != -1) {
+  while ((c = getopt(argc, argv, "46vb:dhlp:n:")) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -548,12 +550,19 @@ main(int argc, char *argv[])
       case 'p':
         ctlport = atoi(optarg);
         break;
+      case 'n':
+        host = optarg;
+        break;
       case '?':
         clt_short_usage("");
         break;
     }
   }
   failed = 0;
+
+  if (host == NULL) {
+    clt_short_usage("Name of the server is required");
+  }
 
   printf("Testing network path for configuration and performance problems  --  ");
   fflush(stdout);
@@ -647,7 +656,7 @@ main(int argc, char *argv[])
 
   if (debug > 4) {
     char tmpbuff[200];
-    int tmpBufLen = 199;
+    socklen_t tmpBufLen = 199;
     memset(tmpbuff, 0, 200);
     I2AddrNodeName(sec_addr, tmpbuff, &tmpBufLen);
     printf("connecting to %s:%d\n", tmpbuff, I2AddrPort(sec_addr));
@@ -659,21 +668,21 @@ main(int argc, char *argv[])
   }
 
   largewin = 128*1024;
-  k = sizeof(set_size);
+  optlen = sizeof(set_size);
   setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-  getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+  getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
   if (debug > 4)
     printf("\nSend buffer set to %d, ", set_size);
-  getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
+  getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
   if (debug > 4)
     printf("Receive buffer set to %d\n", set_size);
   if (buf_size > 0) {
     setsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
     setsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-    getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+    getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
     if (debug > 4)
       printf("Changed buffer sizes: Send buffer set to %d, ", set_size);
-    getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
+    getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
     if (debug > 4)
       printf("Receive buffer set to %d\n", set_size);
   }
@@ -750,19 +759,19 @@ main(int argc, char *argv[])
   }
 
   setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-  getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+  getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
   if (debug > 8)
     printf("\nSend buffer set to %d, ", set_size);
-  getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
+  getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
   if (debug > 8)
     printf("Receive buffer set to %d\n", set_size);
   if (buf_size > 0) {
     setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
     setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-    getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+    getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
     if (debug > 4)
       printf("Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-    getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
+    getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
     if (debug > 4)
       printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
   }
@@ -803,7 +812,7 @@ main(int argc, char *argv[])
    * call.  It certainly doesn't do anything, but the S2C test fails
    * at the connect() call if it's not there.  4/14/05 RAC
    */
-  getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+  getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
 
   if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
     perror("Unable to resolve server address\n");
@@ -817,19 +826,19 @@ main(int argc, char *argv[])
   }
 
   setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-  getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+  getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
   if (debug > 4)
     printf("\nSend buffer set to %d, ", set_size);
-  getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
+  getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
   if (debug > 4)
     printf("Receive buffer set to %d\n", set_size);
   if (buf_size > 0) {
     setsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
     setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-    getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &k);
+    getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
     if (debug > 4)
       printf("Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-    getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &k);
+    getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
     if (debug > 4)
       printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
   }
@@ -908,4 +917,5 @@ main(int argc, char *argv[])
   middleboxResults(tmpstr2, local_addr, remote_addr);
   if (msglvl > 1)
     printVariables(varstr);
+  return 0;
 }

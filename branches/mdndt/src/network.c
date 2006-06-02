@@ -6,6 +6,8 @@
  * jeremian@poczta.fm
  */
 
+#include <unistd.h>
+
 #include "network.h"
 
 static int
@@ -112,11 +114,6 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
 {
   struct addrinfo *fai=NULL;
   struct addrinfo *ai=NULL;
-  char            nodename[NI_MAXHOST];
-  size_t          nodename_len = sizeof(nodename);
-  char            servname[NI_MAXSERV];
-  size_t          servname_len = sizeof(servname);
-  char            *node,*serv;
 
   if (!server_addr) {
     goto error;
@@ -161,7 +158,6 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
         }
     }
     /* TODO: log: "I2Addr functions failed after successful connection" */
-cleanup:
     while((close(*sockfd) < 0) && (errno == EINTR));
     return 1;
   }
