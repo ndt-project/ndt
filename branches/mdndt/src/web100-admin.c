@@ -413,6 +413,7 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
 
 }
 
+int
 view_init(char *LogFileName, int debug)
 {
 

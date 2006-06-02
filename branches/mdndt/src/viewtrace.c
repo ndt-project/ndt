@@ -100,7 +100,7 @@ void init_vars(struct spdpair *cur)
 
 
 /* This routine prints results to the screen.  */
-void print_bins(struct spdpair *cur)
+void vt_print_bins(struct spdpair *cur)
 {
 
 	int i, total=0, max=0, s, index=0;
@@ -189,7 +189,7 @@ void print_bins(struct spdpair *cur)
 	init_vars(&*cur);
 }
 
-void calculate_spd(struct spdpair *cur, struct spdpair *cur2)
+void vt_calculate_spd(struct spdpair *cur, struct spdpair *cur2)
 {
 	
 	float bits, spd, time;
@@ -252,8 +252,8 @@ void cleanup(int signo)
 	int i;
 
 	if (signo == SIGALRM) {
-	    print_bins(&fwd);
-	    print_bins(&rev);
+	    vt_print_bins(&fwd);
+	    vt_print_bins(&rev);
 	    return;
 	}
 
@@ -303,8 +303,8 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 
 	if (tcp->rst == 1) {
 	    fprintf(stderr, "Reset packet found, aborting data collection\n");
-	    print_bins(&fwd);
-	    print_bins(&rev);
+	    vt_print_bins(&fwd);
+	    vt_print_bins(&rev);
 	    return;
 	}
 
@@ -330,16 +330,16 @@ pcap_handler print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char
 
 	if (fwd.saddr == current.saddr) {
 	    if (current.dport == 3002)
-		calculate_spd(&current, &fwd);
+		vt_calculate_spd(&current, &fwd);
 	    else if (current.sport == 3003)
-		calculate_spd(&current, &rev);
+		vt_calculate_spd(&current, &rev);
 	    return;
 	}
 	    if (rev.saddr == current.saddr) {
 	    if (current.sport == 3002)
-		calculate_spd(&current, &rev);
+		vt_calculate_spd(&current, &rev);
 	    else if (current.dport == 3003)
-		calculate_spd(&current, &fwd);
+		vt_calculate_spd(&current, &fwd);
 	    return;
 	}
 }
@@ -461,11 +461,11 @@ int main(int argc, char **argv)
 	    exit(-2);
 	}
 	if (fwd.sport == 3003) {
-	    print_bins(&rev);
-	    print_bins(&fwd);
+	    vt_print_bins(&rev);
+	    vt_print_bins(&fwd);
 	} else {
-	    print_bins(&fwd);
-	    print_bins(&rev);
+	    vt_print_bins(&fwd);
+	    vt_print_bins(&rev);
 	}
 	close(spd_sock);
 	close(spd_sock2);

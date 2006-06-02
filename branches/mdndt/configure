@@ -1761,7 +1761,7 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 TOP_BUILD_DIRS=""
 
-
+CFLAGS="-pedantic -Wall -O2"
 
 
 # Check whether --with-I2util or --without-I2util was given.

@@ -6,8 +6,11 @@
  * rcarlson@interent2.edu
  */
 
-/* local include file contains needed structures */
+#include <ctype.h>
+#include <time.h>
+
 #include "web100srv.h"
+#include "network.h"
 
 /*
  * set up the necessary structures for monitoring connections at the
@@ -17,7 +20,6 @@ int
 web100_init(char *VarFileName, int debug)
 {
 
-  int i, j;
   FILE *fp;
   char line[256];
   int count_vars = 0;
@@ -60,11 +62,13 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
   fd_set wfd;
   struct timeval sel_tv;
   int ret;
+  char tmpstr[200];
+  unsigned int tmpstrlen = sizeof(tmpstr);
+  I2Addr addr = NULL;
+  web100_var *LimCwnd;
+  u_int32_t limcwnd_val;
 
-  double s, t, secs();
   static char vars[][255] = {
-    "LocalAddress",
-    "RemAddress",
     "CurMSS",
     "WinScaleSent",
     "WinScaleRecv",
@@ -75,8 +79,26 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
     fprintf(stderr, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d\n", errno);
     exit(-1);
   }
+  
+  addr = I2AddrByLocalSockFD(NULL, sock, False);
+  memset(tmpstr, 0, 200);
+  I2AddrNodeName(addr, tmpstr, &tmpstrlen);
+  sprintf(line, "%s;", tmpstr);
+  if (debug > 2) 
+    fprintf(stderr, "%s",  line);
+  strcat(results, line);
+  I2AddrFree(addr);
+  tmpstrlen = sizeof(tmpstr);
+  addr = I2AddrBySockFD(NULL, sock, False);
+  memset(tmpstr, 0, 200);
+  I2AddrNodeName(addr, tmpstr, &tmpstrlen);
+  sprintf(line, "%s;", tmpstr);
+  if (debug > 2) 
+    fprintf(stderr, "%s",  line);
+  strcat(results, line);
+  I2AddrFree(addr);
 
-  for (i=0; i<5; i++) {
+  for (i=0; i<3; i++) {
     web100_agent_find_var_and_group(agent, vars[i], &group, &var);
     web100_raw_read(var, cn, buff);
     if (strcmp(vars[i], "CurMSS") == 0)
@@ -99,9 +121,6 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
    * it may be due to a duplex mismatch condition.
    * RAC 2/28/06
    */
-
-  web100_var *LimCwnd;
-  u_int32_t limcwnd_val;
 
   if (debug > 4)
     fprintf(stderr, "Setting Cwnd Limit");
@@ -151,7 +170,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
 void
 web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int debug)
 {
-  int i, j, ok;
+  int i, ok;
   web100_var* var;
   web100_connection* cn;
   char buf[32], line[256], *ctime();
@@ -207,10 +226,8 @@ int
 web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars, int debug)
 {
 
-  int i, j;
-  u_int16_t k;
+  int i;
   web100_var* var;
-  web100_connection* cn;
   char buf[32], line[256];
   web100_group* group;
 
@@ -246,7 +263,7 @@ web100_rtt(int sock, web100_agent* agent, int debug)
 {
   web100_var* var;
   web100_connection* cn;
-  char buf[32], line[64];
+  char buf[32];
   web100_group* group;
   double count, sum;
 
@@ -275,7 +292,7 @@ web100_autotune(int sock, web100_agent* agent, int debug)
 {
   web100_var* var;
   web100_connection* cn;
-  char buf[32], line[64];
+  char buf[32];
   web100_group* group;
   int i, j=0;
 
@@ -508,7 +525,7 @@ CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, in
     rt = web100_snap_read(var, snap, buff);
     s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
     if ((debug > 6) && (cnt < 20)) {
-      fprintf(stderr, "Reading snaplog 0x%x (%d), var = %s\n", snap, cnt, var);
+      fprintf(stderr, "Reading snaplog 0x%x (%d), var = %s\n", (int) snap, cnt, (char*) var);
       fprintf(stderr, "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d\n", 
           rt, s1, s2, web100_value_to_text(web100_get_var_type(var), buff), *dec_cnt);
     }

@@ -7,6 +7,9 @@
  * rcarlson@interenet2.edu
  */
 
+#ifndef _JS_WEB100_H
+#define _JS_WEB100_H
+
 #define   _USE_BSD
 #include  <stdio.h>
 #include  <netdb.h>
@@ -43,12 +46,9 @@
 #define RECLTH    8192
 
 #define LOGFILE "web100srv.log"		/* Name of log file */
-static char lgfn[256];
 #define WEB100_VARS 128			/* number of web100 variables you want to access*/
 #define WEB100_FILE "web100_variables"  /* names of the variables to access*/
 #define LOG_FACILITY LOG_LOCAL0		/* Syslog facility to log at */
-
-static char wvfn[256];
 
 /* this file needs to be fixed, as fakewww needs to export it */
 #define ADMINFILE "admin.html" 
@@ -75,7 +75,6 @@ struct ndtchild {
 	time_t qtime;
 	int pipe;
 	int ctlsockfd;
-	int family;
 	struct ndtchild *next;
 };
 
@@ -113,12 +112,42 @@ struct web100_variables {
 	char value[256];
 } web_vars[WEB100_VARS];
 
-#if 0
-struct sockRFD {
-	int sockfd;
-	int family;
-	size_t len;
-};
-#endif
-
 int32_t gmt2local(time_t);
+int err_sys(char* s);
+
+/* web100-pcap */
+void init_vars(struct spdpair *cur);
+void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int debug);
+void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
+
+/* web100-util */
+int web100_init(char *VarFileName, int debug);
+int web100_autotune(int sock, web100_agent* agent, int debug);
+void web100_middlebox(int sock, web100_agent* agent, char *results, int debug);
+int web100_setbuff(int sock, web100_agent* agent, int autotune, int debug);
+void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int debug);
+int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars, int debug);
+int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt, int debug);
+int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
+    int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut,
+    int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd,
+    int *Sndbuf, int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd,
+    int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin,
+    int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh,
+    int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
+    int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale,
+    int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions,
+    int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart,
+    int *SubsequentTimeouts, int *ThruBytesAcked);
+
+/* web100-admin */
+int view_init(char *LogFileName, int debug);
+int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
+    int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin,
+    int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd,
+    int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd,
+    int c2sdata, int s2cack, int view_flag, int debug);
+int gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
+    int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int debug);
+
+#endif

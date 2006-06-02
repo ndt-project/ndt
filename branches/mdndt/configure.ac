@@ -39,7 +39,7 @@ AC_CONFIG_HEADER([config.h])
 
 TOP_BUILD_DIRS=""
 
-
+CFLAGS="-pedantic -Wall -O2"
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],

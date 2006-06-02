@@ -506,14 +506,11 @@ main(int argc, char *argv[])
   double stop_time, wait2;
   int sbuf, rbuf;
   int ret, i, xwait, one=1;
-  struct hostent *hp;
-  struct sockaddr_in server, local;
-  struct sockaddr_in6 server6, srv61, srv62, local6;
   int largewin;
   char buff[8192], buff2[256];
   struct timeb *tp;
   time_t sec;
-  char *host, ctlpt[8];
+  char *host;
   int buf_size=0, set_size, k;
   struct timeval sel_tv;
   fd_set rfd;
