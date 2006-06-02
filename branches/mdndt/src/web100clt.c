@@ -2,7 +2,9 @@
 #include <string.h>
 #include <getopt.h>
 
+#include "../config.h"
 #include "network.h"
+#include "usage.h"
 
 extern int h_errno;
 
@@ -519,7 +521,7 @@ main(int argc, char *argv[])
   I2Addr local_addr = NULL, remote_addr = NULL;
 
   host = argv[argc-1];
-  while ((c = getopt(argc, argv, "46b:dhlp:")) != -1) {
+  while ((c = getopt(argc, argv, "46vb:dhlp:")) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -528,15 +530,12 @@ main(int argc, char *argv[])
         conn_options |= OPT_IPV6_ONLY;
         break;
       case 'h':
-        printf("Usage: %s {options} server\n", argv[0]);
-        printf("\t-4 \tUse IPv4 addresses only\n");
-        printf("\t-6 \tUse IPv6 addresses only\n");
-        printf("\t-b # \tSet send/receive buffer to value\n");
-        printf("\t-d \tIncrease debug level details\n");
-        printf("\t-h \tPrint this help message\n");
-        printf("\t-l \tIncrease message level details\n");
-        printf("\t-p # \tSpecify port server is listening on\n");
+        clt_long_usage("ANL/Internet2 NDT version " VERSION " (client)");
+        break;
+      case 'v':
+        printf("ANL/Internet2 NDT version %s (client)\n", VERSION);
         exit(0);
+        break;
       case 'b':
         buf_size = atoi(optarg);
         break;
@@ -549,8 +548,9 @@ main(int argc, char *argv[])
       case 'p':
         ctlport = atoi(optarg);
         break;
-      default:
-        exit(0);
+      case '?':
+        clt_short_usage("");
+        break;
     }
   }
   failed = 0;

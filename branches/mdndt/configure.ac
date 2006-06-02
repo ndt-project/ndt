@@ -41,6 +41,18 @@ TOP_BUILD_DIRS=""
 
 CFLAGS="-pedantic -Wall -O2"
 
+# Enabling/disabling asserts and debugging
+AC_MSG_CHECKING(whether to enable debugging)
+AC_ARG_ENABLE(debug, [  --enable-debug=[no/yes] turn on debugging
+              [default=no]],, enable_debug=no)
+if test "x$enable_debug" = "xyes"; then
+  CFLAGS="$CFLAGS -g"
+  AC_MSG_RESULT(yes)
+else
+  CFLAGS="$CFLAGS -DNDEBUG"
+  AC_MSG_RESULT(no)
+fi
+
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
 				[defaults to building I2util under owamp if exists]),

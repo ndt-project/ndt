@@ -67,6 +67,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "web100srv.h"
 #include "../config.h"
 #include "network.h"
+#include "usage.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -1561,28 +1562,12 @@ main(int argc, char** argv)
         record_reverse = 1;
         break;
       case 'h':
-        printf("Usage: %s {options}\n", argv[0]);
-        printf("\t-a \tGenerate administrator view html page\n");
-        printf("\t-d \tprint additional diagnostic messages\n");
-        printf("\t\tNote: add multiple d's (-ddd) for more details\n");
-        printf("\t-h \tprint help message (this message)\n");
-        printf("\t-m \tselect single or multi-test mode\n");
-        printf("\t-o \tuse old Duplex Mismatch heuristic\n");
-        printf("\t-q \tdisable FIFO queuing of client requests\n");
-        printf("\t-r \trecord client to server Web100 variables\n");
-        printf("\t-s \texport Web100 data via the syslog() LOG_LOCAL0 facility\n");
-        printf("\t-t \twrite tcpdump formatted file to disk\n");
-        printf("\t-x \tenable any experimental code\n");
-        printf("\t-v \tprint version number\n");
-        printf("\n");
-        printf("\t-b buffer size \tSet TCP send/recv buffers to user value\n");
-        printf("\t-f variable_FN \tspecify alternate 'web100_variables' file\n");
-        printf("\t-i device \tspecify network interface (libpcap device)\n");
-        printf("\t-l Log_FN \tspecify alternate 'web100srv.log' file\n");
-        printf("\t-p port# \tspecify primary port number (default 3001)\n");
+        srv_long_usage("ANL/Internet2 NDT version " VERSION " (server)");
+        break;
       case 'v':
-        printf("ANL/Internet2 NDT version %s\n", VERSION);
+        printf("ANL/Internet2 NDT version %s (server)\n", VERSION);
         exit(0);
+        break;
       case 'p':
         port = atoi(optarg);
         port2 = port + 1;
@@ -1628,6 +1613,9 @@ main(int argc, char** argv)
         break;
       case 'y':
         limit = atoi(optarg);
+        break;
+      case '?':
+        srv_short_usage("");
         break;
     }
   }

@@ -82,13 +82,15 @@ tr_mkmap_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_viewtrace_OBJECTS = viewtrace-viewtrace.$(OBJEXT)
 viewtrace_OBJECTS = $(am_viewtrace_OBJECTS)
 viewtrace_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_web100clt_OBJECTS = web100clt.$(OBJEXT) network.$(OBJEXT)
+am_web100clt_OBJECTS = web100clt.$(OBJEXT) network.$(OBJEXT) \
+	usage.$(OBJEXT)
 web100clt_OBJECTS = $(am_web100clt_OBJECTS)
 web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
 	web100srv-web100-util.$(OBJEXT) \
 	web100srv-web100-pcap.$(OBJEXT) \
-	web100srv-web100-admin.$(OBJEXT) web100srv-network.$(OBJEXT)
+	web100srv-web100-admin.$(OBJEXT) web100srv-network.$(OBJEXT) \
+	web100srv-usage.$(OBJEXT)
 web100srv_OBJECTS = $(am_web100srv_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -205,7 +207,7 @@ analyze_LDADD = $(NDTLIBS)
 analyze_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 fakewww_SOURCES = fakewww.c troute.c tr-tree.c
 fakewww_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
-web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c
+web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
 web100srv_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
@@ -213,7 +215,7 @@ web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 viewtrace_SOURCES = viewtrace.c
 viewtrace_LDADD = $(NDTLIBS)
 viewtrace_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
-web100clt_SOURCES = web100clt.c network.c
+web100clt_SOURCES = web100clt.c network.c usage.c
 web100clt_LDADD = $(I2UTILLIBDEPS)
 tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c
 tr_mkmap_LDADD = $(NDTLIBS)
@@ -329,9 +331,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-mkmap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-tree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viewtrace-viewtrace.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-network.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-web100-admin.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-web100-pcap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-web100-util.Po@am__quote@
@@ -518,6 +522,20 @@ web100srv-network.obj: network.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='web100srv-network.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`
+
+web100srv-usage.o: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-usage.o -MD -MP -MF "$(DEPDIR)/web100srv-usage.Tpo" -c -o web100srv-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-usage.Tpo" "$(DEPDIR)/web100srv-usage.Po"; else rm -f "$(DEPDIR)/web100srv-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='web100srv-usage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c
+
+web100srv-usage.obj: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-usage.obj -MD -MP -MF "$(DEPDIR)/web100srv-usage.Tpo" -c -o web100srv-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-usage.Tpo" "$(DEPDIR)/web100srv-usage.Po"; else rm -f "$(DEPDIR)/web100srv-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='web100srv-usage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

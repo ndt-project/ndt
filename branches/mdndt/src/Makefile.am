@@ -32,7 +32,7 @@ analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 fakewww_SOURCES	= fakewww.c troute.c tr-tree.c
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-web100srv_SOURCES	= web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c
+web100srv_SOURCES	= web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
@@ -42,7 +42,7 @@ viewtrace_SOURCES	= viewtrace.c
 viewtrace_LDADD = $(NDTLIBS)
 viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-web100clt_SOURCES	= web100clt.c network.c
+web100clt_SOURCES	= web100clt.c network.c usage.c
 web100clt_LDADD = $(I2UTILLIBDEPS)
 
 tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c
