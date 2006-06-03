@@ -140,6 +140,50 @@ static struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
+int
+check_signal_flags()
+{
+  if ((sig1 == 1) || (sig2 == 1)) {
+    if (debug > 4)
+      fprintf(stderr, "Received SIGUSRx signal terminating data collection loop for pid=%d\n", getpid());
+    if (sig1 == 1) {
+      if (debug > 3) {
+        fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
+            mon_pipe1[0], mon_pipe1[1]);
+        fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+            fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+      }
+      print_bins(&fwd, mon_pipe1, LogFileName, debug);
+      print_bins(&rev, mon_pipe1, LogFileName, debug);
+      if (pd != NULL)
+        pcap_close(pd);
+      if (dumptrace == 1)
+        pcap_dump_close(pdump);
+      sig1 = 2;
+    }
+
+    if (sig2 == 1) {
+      if (debug > 3) {
+        fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
+            mon_pipe2[0], mon_pipe2[1]);
+        fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+            fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+      }
+      print_bins(&fwd, mon_pipe2, LogFileName, debug);
+      print_bins(&rev, mon_pipe2, LogFileName, debug);
+      if (pd != NULL)
+        pcap_close(pd);
+      if (dumptrace == 1)
+        pcap_dump_close(pdump);
+      sig2 = 2;
+    }
+    if (debug > 5)
+      fprintf(stderr,"Finished reading pkt-pair data from network, process %d should terminate now\n",getpid());
+    return 1;
+  }
+  return 0;
+}
+
 /* This routine does the main work of reading packets from the network
  * interface.  It should really be in the web100-pcap.c file, but it uses
  * some shared pcap_t and pcap_dumper_t variables and I haven't figured out
@@ -166,44 +210,8 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     return;
   }
 
-  if ((sig1 == 1) || (sig2 == 1)) {
-    if (debug > 4)
-      fprintf(stderr, "Received SIGUSRx signal terminating data collection loop for pid=%d\n", getpid());
-    if (sig1 == 1) {
-      if (debug > 3) {
-                    fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
-            mon_pipe1[0], mon_pipe1[1]);
-        fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-          fwd.saddr, fwd.sport, rev.saddr, rev.sport);
-      }
-      print_bins(&fwd, mon_pipe1, LogFileName, debug);
-      print_bins(&rev, mon_pipe1, LogFileName, debug);
-      if (pd != NULL)
-        pcap_close(pd);
-      if (dumptrace == 1)
-            pcap_dump_close(pdump);
-      sig1 = 2;
-    }
-
-    if (sig2 == 1) {
-      if (debug > 3) {
-                    fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
-            mon_pipe2[0], mon_pipe2[1]);
-        fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-          fwd.saddr, fwd.sport, rev.saddr, rev.sport);
-      }
-      print_bins(&fwd, mon_pipe2, LogFileName, debug);
-      print_bins(&rev, mon_pipe2, LogFileName, debug);
-      if (pd != NULL)
-        pcap_close(pd);
-      if (dumptrace == 1)
-        pcap_dump_close(pdump);
-      sig2 = 2;
-    }
-    if (debug > 5)
-      fprintf(stderr, "Finished reading pkt-pair data from network, process %d should terminate now\n", getpid());
+  if (check_signal_flags()) {
     return;
-
   }
 
   current.sec = h->ts.tv_sec;
@@ -336,6 +344,13 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
     }
   }
 
+  printf(">>> family=%d\n", sock_addr->sa_family);
+  if (sock_addr->sa_family == AF_INET) {
+    printf(">>> 4\n");
+  }
+  else {
+    printf(">>> 6\n");
+  }
   /* special check for localhost, set device accordingly */
   if (I2SockAddrIsLoopback(sock_addr, saddrlen)) {
     strncpy(device, "lo", 3);
@@ -522,12 +537,14 @@ cleanup(int signo)
       if (debug > 5)
         fprintf(stderr, "DEBUG, caught SIGUSR1, setting sig1 flag to force exit\n");
       sig1 = 1;
+      check_signal_flags();
       break;
 
     case SIGUSR2:
-      sig2 = 1;
       if (debug > 5)
         fprintf(stderr, "DEBUG, caught SIGUSR2, setting sig2 flag to force exit\n");
+      sig2 = 1;
+      check_signal_flags();
       break;
 
     case SIGALRM:
