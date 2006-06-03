@@ -104,7 +104,7 @@ main(int argc, char** argv)
 #endif
   
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("dhl:p:t:fv"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("dhl:p:t:Fv"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -310,91 +310,99 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
       }
 
       if (fed_mode == 1) {
-#if 0
-        find_route(cli_addr.sin_addr.s_addr, IPlist, max_ttl, debug);
-        for (i=0; IPlist[i]!=cli_addr.sin_addr.s_addr; i++) {
-          sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff, (IPlist[i] >> 8) & 0xff,
+        struct sockaddr* csaddr;
+        csaddr = I2AddrSAddr(addr, NULL);
+        if (csaddr->sa_family == AF_INET) { /* make the IPv4 find */
+          struct sockaddr_in* cli_addr = (struct sockaddr_in*) csaddr;
+          find_route(cli_addr->sin_addr.s_addr, IPlist, max_ttl, debug);
+          for (i=0; IPlist[i]!=cli_addr->sin_addr.s_addr; i++) {
+            sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff, (IPlist[i] >> 8) & 0xff,
+                (IPlist[i] >> 16) & 0xff, (IPlist[i] >> 24) & 0xff);
+            if (debug > 3)
+              fprintf(stderr, "loop IPlist[%d] = %s\n", i, p);
+            if (i == max_ttl) {
+              if (debug > 3)
+                fprintf(stderr, "Oops, destination not found!\n");
+              break;
+            }
+          }
+          /* print out last item on list */
+          /* if (i == 0) { */
+          sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff,
+              (IPlist[i] >> 8) & 0xff,
               (IPlist[i] >> 16) & 0xff, (IPlist[i] >> 24) & 0xff);
           if (debug > 3)
-            fprintf(stderr, "loop IPlist[%d] = %s\n", i, p);
-          if (i == max_ttl) {
+            fprintf(stderr, "IPlist[%d] = %s\n", i, p);
+          /* } */
+
+          srv_addr = find_compare(IPlist, i, debug);
+
+          /* the find_compare() routine returns the IP address of the 'closest'
+           * NDT server.  It does this by comparing the clients address to a
+           * map of routes between all servers.  If this comparison fails, the
+           * routine returns 0.  In that case, simply use this server.
+           */
+          srv_len = sizeof(serv_addr);
+          if (srv_addr == 0) {
+            getsockname(sd, (struct sockaddr *) &serv_addr, &srv_len);
             if (debug > 3)
-              fprintf(stderr, "Oops, destination not found!\n");
-            break;
+              fprintf(stderr, "find_comapre() returned 0, reset to [%s]\n",
+                  inet_ntoa(serv_addr.sin_addr));
+            srv_addr = serv_addr.sin_addr.s_addr;
           }
-        }
-        /* print out last item on list */
-        /* if (i == 0) { */
-        sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff,
-            (IPlist[i] >> 8) & 0xff,
-            (IPlist[i] >> 16) & 0xff, (IPlist[i] >> 24) & 0xff);
-        if (debug > 3)
-          fprintf(stderr, "IPlist[%d] = %s\n", i, p);
-        /* } */
 
-        srv_addr = find_compare(IPlist, i, debug);
-
-        /* the find_compare() routine returns the IP address of the 'closest'
-         * NDT server.  It does this by comparing the clients address to a
-         * map of routes between all servers.  If this comparison fails, the
-         * routine returns 0.  In that case, simply use this server.
-         */
-        srv_len = sizeof(serv_addr);
-        if (srv_addr == 0) {
-          getsockname(sd, (struct sockaddr *) &serv_addr, &srv_len);
           if (debug > 3)
-            fprintf(stderr, "find_comapre() returned 0, reset to [%s]\n",
-                inet_ntoa(serv_addr.sin_addr));
-          srv_addr = serv_addr.sin_addr.s_addr;
-        }
+            fprintf(stderr, "Client host [%s] should be redirected to FLM server [%u.%u.%u.%u]\n", 
+                inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+                (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff);
 
-        if (debug > 3)
-          fprintf(stderr, "Client host [%s] should be redirected to FLM server [%u.%u.%u.%u]\n", 
-              inet_ntoa(cli_addr.sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff);
+          /* At this point, the srv_addr variable contains the IP address of the
+           * server we want to re-direct the connect to.  So we should generate a
+           * new html page, and sent that back to the client.  This new page will
+           * use the HTML refresh option with a short (2 second) timer to cause the
+           * client's browser to just to the new server.
+           * 
+           * RAC 3/9/04
+           */
 
-        /* At this point, the srv_addr variable contains the IP address of the
-         * server we want to re-direct the connect to.  So we should generate a
-         * new html page, and sent that back to the client.  This new page will
-         * use the HTML refresh option with a short (2 second) timer to cause the
-         * client's browser to just to the new server.
-         * 
-         * RAC 3/9/04
-         */
-
-        writen(sd, MsgOK, strlen(MsgOK));
-        writen(sd, MsgRedir1, strlen(MsgRedir1));
-        sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
-            srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-            (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
-            port);
-        writen(sd, line, strlen(line));
-        writen(sd, MsgRedir2, strlen(MsgRedir2));
-        sprintf(line, "href=http://%u.%u.%u.%u:%s/tcpbw100.html", 
-            srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-            (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
-            port);
-        writen(sd, line, strlen(line));
-        writen(sd, MsgRedir3, strlen(MsgRedir3));
-        if (debug > 2) {
-          fprintf(stderr, "%s redirected to remote server [%u.%u.%u.%u:%s]\n",
-              inet_ntoa(cli_addr.sin_addr),
+          writen(sd, MsgOK, strlen(MsgOK));
+          writen(sd, MsgRedir1, strlen(MsgRedir1));
+          sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
               srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
-        }
-        tt = time(0);
-        if (LogFileName != NULL) {
-          lfd = fopen(LogFileName, "a");
-          if (lfd != NULL) {
-            fprintf(lfd, "%15.15s [%s] redirected to remote server [%u.%u.%u.%u:%s]\n",
-                ctime(&tt)+4, inet_ntoa(cli_addr.sin_addr),
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
+              port);
+          writen(sd, line, strlen(line));
+          writen(sd, MsgRedir2, strlen(MsgRedir2));
+          sprintf(line, "href=http://%u.%u.%u.%u:%s/tcpbw100.html", 
+              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
+              port);
+          writen(sd, line, strlen(line));
+          writen(sd, MsgRedir3, strlen(MsgRedir3));
+          if (debug > 2) {
+            fprintf(stderr, "%s redirected to remote server [%u.%u.%u.%u:%s]\n",
+                inet_ntoa(cli_addr->sin_addr),
                 srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                 (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
-
-            fclose(lfd);
           }
+          tt = time(0);
+          if (LogFileName != NULL) {
+            lfd = fopen(LogFileName, "a");
+            if (lfd != NULL) {
+              fprintf(lfd, "%15.15s [%s] redirected to remote server [%u.%u.%u.%u:%s]\n",
+                  ctime(&tt)+4, inet_ntoa(cli_addr->sin_addr),
+                  srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+                  (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
+
+              fclose(lfd);
+            }
+          }
+          continue;
         }
-        continue;
+#ifdef AF_INET6
+        else if (csaddr->sa_family == AF_INET6) {
+          fprintf(stderr, "FED_MODE: AF_INET6\n");
+        }
 #endif
       }
     }

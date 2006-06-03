@@ -46,6 +46,13 @@ OpenSocket(I2Addr addr, char* serv, int options)
       goto failsock;
     }
 
+#if defined(AF_INET6) && defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
+    if ((ai->ai_family == AF_INET6) && (options & OPT_IPV6_ONLY) &&
+        setsockopt(fd,IPPROTO_IPV6,IPV6_V6ONLY,&on,sizeof(on)) != 0) {
+      goto failsock;
+    }
+#endif
+
     if (bind(fd,ai->ai_addr,ai->ai_addrlen) == 0) {
 
       if (!I2AddrSetSAddr(addr,ai->ai_addr,ai->ai_addrlen) ||
