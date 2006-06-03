@@ -1,9 +1,9 @@
 /*
- *  fakewww [port]
- *   concurrent server                          thd@ornl.gov
+ * fakewww {options}
+ * concurrent server                          thd@ornl.gov
  * reap children, and thus watch out for EINTR
- *  take http GET / and return a web page, then return requested file by
- *   next GET
+ * take http GET / and return a web page, then return requested file by
+ * next GET
  * can use this to "provide" a java client for machine without having
  * to run a web server
  */
@@ -22,7 +22,11 @@
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
+#include <errno.h>
+#include <getopt.h>
 
+#include "../config.h"
+#include "usage.h"
 #include "troute.h"
 #include "tr-tree.h"
 
@@ -37,11 +41,9 @@ char *MsgNope = "HTTP/1.0 404 Not found\n\n"
 
 char *MsgRedir1 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
     "  <BODY>\n    <meta http-equiv=\"refresh\" content=\"2; ";
-    /* url=http://%s/tcpbw100.html>" */
 char *MsgRedir2 = "\">\n\n<h2>FLM server re-direction page</h2>\n"
     "<p><font size=+2>Your client is being redirected to the 'closest' FLM server "
     "for configuration testing.\n <a ";
-    /* href=http://%s/tcpbw100.html */
 char *MsgRedir3 = ">Click Here  </a> if you are not "
     "automatically redirected in the next 2 seconds.\n  "
     "</font></BODY>\n</HTML>";
@@ -51,10 +53,25 @@ char *okfile[] = {"/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
       "/Tcpbw100$clsFrame.class", "/Tcpbw100.jar", "/copyright.html", 
       "/admin.html", "/Admin.class", 0};
 
-#include <sys/errno.h>
+
+static struct option long_options[] = {
+  {"debug", 0, 0, 'd'},
+  {"help", 0, 0, 'h'},
+  {"log", 1, 0, 'l'},
+  {"port", 1, 0, 'p'},
+  {"ttl", 1, 0, 't'},
+  {"federated", 0, 0, 'F'},
+  {"version", 0, 0, 'v'},
+#ifdef AF_INET6
+  {"ipv4", 0, 0, '4'},
+  {"ipv6", 0, 0, '6'},
+#endif
+  {0, 0, 0, 0}
+};
 
 void dowww(int sd, struct sockaddr_in cli_addr, int port, char* LogFileName,
     int debug, int fed_mode, int max_ttl);
+
 void
 err_sys(char* s)
 {
@@ -76,35 +93,45 @@ main(int argc, char** argv)
   struct sockaddr_in  cli_addr, serv_addr;
   FILE *fp;
 
+#ifdef AF_INET6
+#define GETOPT_LONG_INET6(x) "46"x
+#else
+#define GETOPT_LONG_INET6(x) x
+#endif
+  
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("dhl:p:t:fv"), long_options, 0)) != -1) {
+    switch (c) {
+      case 'd':
+        debug++;
+        break;
+      case 'h':
+        www_long_usage("ANL/Internet2 NDT version " VERSION " (fakewww)");
+        break;
+      case 'v':
+        printf("ANL/Internet2 NDT version %s (fakewww)\n", VERSION);
+        exit(0);
+        break;
+      case 'l':
+        LogFileName = optarg;
+        break;
+      case 'p':
+        port = atoi(optarg);
+        break;
+      case 't':
+        max_ttl = atoi(optarg);
+        break;
+      case 'F':
+        federated = 1;
+        break;
+      case '?':
+        short_usage(argv[0], "");
+        break;
+    }
+  }
 
-  /* if (argc > 1) port = atoi(argv[1]); */
-  while ((c = getopt(argc, argv, "dhl:p:t:F")) != -1){
-      switch (c) {
-    case 'd':
-      debug++;
-      break;
-    case 'h':
-      printf("Usage: %s {options}\n", argv[0]);
-      printf("\t-d \tincrement debugging mode\n");
-      printf("\t-h \tprint this help message\n");
-      printf("\t-l log_FN \tlog connection requests in specified file\n");
-      printf("\t-p port# \tspecify the port number (default is 7123)\n");
-      printf("\t-t # \tspecify maximum number of hops in path (default is 10)\n");
-      printf("\t-F \toperate in Federated mode\n");
-      exit(0);
-    case 'l':
-      LogFileName = optarg;
-      break;
-    case 'p':
-      port = atoi(optarg);
-      break;
-    case 't':
-      max_ttl = atoi(optarg);
-      break;
-    case 'F':
-      federated = 1;
-      break;
-      }
+  if (optind < argc) {
+    short_usage(argv[0], "Unrecognized non-option elements");
   }
 
   if ( (sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -127,30 +154,30 @@ main(int argc, char** argv)
   getsockname(sockfd, (struct sockaddr *)&cli_addr, &clilen);
   tt = time(0);
   if (debug > 0) {
-      fprintf(stderr, "%15.15s server started, listening on port %d",
-          ctime(&tt)+4, ntohs(cli_addr.sin_port));
-      if (federated == 1)
-    fprintf(stderr, ", operating in Federated mode");
-      fprintf(stderr, "\n");
+    fprintf(stderr, "%15.15s server started, listening on port %d",
+        ctime(&tt)+4, ntohs(cli_addr.sin_port));
+    if (federated == 1)
+      fprintf(stderr, ", operating in Federated mode");
+    fprintf(stderr, "\n");
   }
   if (LogFileName != NULL) {
-      fp = fopen(LogFileName, "a");
-      if (fp != NULL) {
-          fprintf(fp, "%15.15s server started, listening on port %d",
-        ctime(&tt)+4, ntohs(cli_addr.sin_port));
-          if (federated == 1)
+    fp = fopen(LogFileName, "a");
+    if (fp != NULL) {
+      fprintf(fp, "%15.15s server started, listening on port %d",
+          ctime(&tt)+4, ntohs(cli_addr.sin_port));
+      if (federated == 1)
         fprintf(fp, ", operating in Federated mode");
-          fprintf(fp, "\n");
-    fclose(fp);
-      }
+      fprintf(fp, "\n");
+      fclose(fp);
+    }
   }
   listen(sockfd, 5);
   signal(SIGCHLD, (__sighandler_t)reap);    /* get rid of zombies */
 
-    /*
-     * Wait for a connection from a client process.
-     * This is an example of a concurrent server.
-     */
+  /*
+   * Wait for a connection from a client process.
+   * This is an example of a concurrent server.
+   */
 
   for(;;){
     clilen = sizeof(cli_addr);

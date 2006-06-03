@@ -105,7 +105,6 @@ char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
 
-/* static pcap_t *pd; */
 pcap_t *pd;
 pcap_dumper_t *pdump;
 float run_ave[4];
@@ -113,6 +112,33 @@ float run_ave[4];
 int conn_options = 0;
 struct ndtchild *head_ptr;
 int ndtpid;
+
+static struct option long_options[] = {
+  {"adminview", 0, 0, 'a'},
+  {"debug", 0, 0, 'd'},
+  {"help", 0, 0, 'h'},
+  {"multiple", 0, 0, 'm'},
+  {"old", 0, 0, 'o'},
+  {"disable-queue", 0, 0, 'q'},
+  {"record", 0, 0, 'r'},
+  {"syslog", 0, 0, 's'},
+  {"tcpdump", 0, 0, 't'},
+  {"experimental", 0, 0, 'x'},
+  {"version", 0, 0, 'v'},
+  {"config", 1, 0, 'c'},
+  {"limit", 1, 0, 'y'},
+  {"buffer", 1, 0, 'b'},
+  {"file", 1, 0, 'f'},
+  {"interface", 1, 0, 'i'},
+  {"log", 1, 0, 'l'},
+  {"port", 1, 0, 'p'},
+  {"refresh", 1, 0, 'T'},
+#ifdef AF_INET6
+  {"ipv4", 0, 0, '4'},
+  {"ipv6", 0, 0, '6'},
+#endif
+  {0, 0, 0, 0}
+};
 
 /* This routine does the main work of reading packets from the network
  * interface.  It should really be in the web100-pcap.c file, but it uses
@@ -1524,8 +1550,15 @@ main(int argc, char** argv)
   char* srcname = NULL;
   char* listenport = sPORT;
 
+#ifdef AF_INET6
+#define GETOPT_LONG_INET6(x) "46"x
+#else
+#define GETOPT_LONG_INET6(x) x
+#endif
+  
   opterr = 0;
-  while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:T:")) != -1){
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:"), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -1551,7 +1584,8 @@ main(int argc, char** argv)
   LoadConfig(&lbuf, &lbuf_max);
   debug = 0;
 
-  while ((c = getopt(argc, argv, "46adxhmoqrstvb:c:p:f:i:l:y:T:")) != -1){
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1602,8 +1636,7 @@ main(int argc, char** argv)
         dumptrace = 1;
         break;
       case 'b':
-        if (optarg != NULL)
-          window = atoi(optarg);
+        window = atoi(optarg);
         set_buff = 1;
         break;
       case 'x':
@@ -1619,11 +1652,15 @@ main(int argc, char** argv)
         refresh = atoi(optarg);
         break;
       case '?':
-        srv_short_usage("");
+        short_usage(argv[0], "");
         break;
     }
   }
 
+  if (optind < argc) {
+    short_usage(argv[0], "Unrecognized non-option elements");
+  }
+  
   /* First check to see if program is running as root.  If not, then warn
    * the user that link type detection is suspect.  Then downgrade effective
    * userid to non-root user until needed.

@@ -1,14 +1,14 @@
 /*
- *  web100srv [port]          v1   thd@ornl.gov
- *   concurrent server
+ * analyze {options}                              v1   thd@ornl.gov
+ * concurrent server
  * reap children, and thus watch out for EINTR
- *   tcp bandwidth tester from applet  Tcpbw100.java
- *  test 10s up and 10s down
- *  report web100 stats back to client 
- *  accept on server port, create 2nd and 3rd server port
- *     having server creates ports help if client is behind a firewall
+ * tcp bandwidth tester from applet  Tcpbw100.java
+ * test 10s up and 10s down
+ * report web100 stats back to client 
+ * accept on server port, create 2nd and 3rd server port
+ * having server creates ports help if client is behind a firewall
  * might wish to add tcpwrappers to limit who can test....
- *  may need a better (hash) random (uncompressable) data stream
+ * may need a better (hash) random (uncompressable) data stream
  */
 
 #include <stdio.h>
@@ -26,6 +26,9 @@
 #include <sys/errno.h>
 #include <sys/select.h>
 #include <math.h>
+
+#include "../config.h"
+#include "usage.h"
 
 #define LOGFILE "web100srv.log"
 #define WEB100_VARS 128  /*number of web100 variables you want to access*/
@@ -66,6 +69,15 @@ float run_ave[4], mmorder;
 int c2sspd, s2cspd, iponly;
 int linkcnt, mismatch2, mismatch3;
 
+static struct option long_options[] = {
+  {"debug", 0, 0, 'd'},
+  {"nodns", 0, 0, 'n'},
+  {"help", 0, 0, 'h'},
+  {"log", 1, 0, 'h'},
+  {"version", 0, 0, 'v'},
+  {0, 0, 0, 0}
+};
+
 int
 err_sys(char* s)
 {
@@ -75,7 +87,6 @@ err_sys(char* s)
 
 void calculate()
 {
-
   int tail[4], i, head[4];
   float k;
   float recvbwd, cwndbwd, sendbwd;
@@ -90,144 +101,144 @@ void calculate()
   tail[0] = tail[1] = tail[2] = tail[3] = 0;
   head[0] = head[1] = head[2] = head[3] = 0;
   for (i=0; i<4; i++) {
-      max = 0;
-      indx = 0;
-      total = 0;
-      for (j=0; j<linkcnt-1; j++) {
-    total += links[i][j];
-    if (max < links[i][j]) {
+    max = 0;
+    indx = 0;
+    total = 0;
+    for (j=0; j<linkcnt-1; j++) {
+      total += links[i][j];
+      if (max < links[i][j]) {
         max = links[i][j];
         indx = j;
+      }
     }
-      }
-      for (j=indx+1; j<10; j++) {
-    k = (float) links[i][j] / max;
-    if (k > .1)
+    for (j=indx+1; j<10; j++) {
+      k = (float) links[i][j] / max;
+      if (k > .1)
         tail[i]++;
-      }
-      for (j=0; j<indx; j++) {
-    k = (float) links[i][j] / max;
-    if (k > .1)
+    }
+    for (j=0; j<indx; j++) {
+      k = (float) links[i][j] / max;
+      if (k > .1)
         head[i]++;
-      }
-      if (links[i][indx] == -1)
-    indx = -1;
-      if ((total < 20) && (indx != -1))
-     indx = -2;
-      switch (i) {
-    case 0: c2sdata = indx;
-      if (debug > 0)
-              printf("Client --> Server data detects link = ");
-      break;
-    case 1: c2sack = indx;
-      if (debug > 0)
-              printf("Client <-- Server Ack's detect link = ");
-      break;
-    case 2: s2cdata = indx;
-      if (debug > 0)
-              printf("Server --> Client data detects link = ");
-      break;
-    case 3: s2cack = indx;
-      if (debug > 0)
-              printf("Server <-- Client Ack's detect link = ");
-      }
-      if (debug > 0) {
-          switch (indx) {
+    }
+    if (links[i][indx] == -1)
+      indx = -1;
+    if ((total < 20) && (indx != -1))
+      indx = -2;
+    switch (i) {
+      case 0: c2sdata = indx;
+              if (debug > 0)
+                printf("Client --> Server data detects link = ");
+              break;
+      case 1: c2sack = indx;
+              if (debug > 0)
+                printf("Client <-- Server Ack's detect link = ");
+              break;
+      case 2: s2cdata = indx;
+              if (debug > 0)
+                printf("Server --> Client data detects link = ");
+              break;
+      case 3: s2cack = indx;
+              if (debug > 0)
+                printf("Server <-- Client Ack's detect link = ");
+    }
+    if (debug > 0) {
+      switch (indx) {
         case -2: printf("Insufficent Data\n");
-           break;
+                 break;
         case -1: printf("System Fault\n");
-           break;
+                 break;
         case 0:  printf("RTT\n");
-           break;
+                 break;
         case 1:  printf("Dial-up\n");
-           break;
+                 break;
         case 2:  printf("T1\n");
-           break;
+                 break;
         case 3:  printf("Ethernet\n");
-           break;
+                 break;
         case 4:  printf("T3\n");
-           break;
+                 break;
         case 5:  printf("FastEthernet\n");
-           break;
+                 break;
         case 6:  printf("OC-12\n");
-           break;
+                 break;
         case 7:  printf("Gigabit Ethernet\n");
-           break;
+                 break;
         case 8:  printf("OC-48\n");
-           break;
+                 break;
         case 9:  printf("10 Gigabit Enet\n");
-           break;
+                 break;
         case 10: printf("Retransmissions\n");
-          }
       }
+    }
   }
   switch (c2sdata) {
-      case -2: sprintf(btlneck, "Insufficent Data");
-         break;
-      case -1: sprintf(btlneck, "a System Fault");
-         break;
-      case 0:  sprintf(btlneck, "the Round Trip Time");
-         break;
-      case 1:  sprintf(btlneck, "a 'Dial-up modem' connection");
-         break;
-      case 2:  
-        if ((c2sspd/s2cspd > .8) && (c2sspd/s2cspd < 1.2) && (c2sspd > 1000))
-      sprintf(btlneck, "a 'T1' subnet");
-        else {
-            if ((tail[3] > 1) || (s2cack == 3))
-          sprintf(btlneck, "a 'Cable Modem' connection");
-            else 
-          sprintf(btlneck, "a 'DSL' connection");
-         }
-         break;
-      case 3:  if (linkcnt == 16)
-      sprintf(btlneck, "a T1 + subnet");
-         else
-      sprintf(btlneck, "an 'Ethernet' subnet");
-         break;
-      case 4:  if (linkcnt == 16)
-      sprintf(btlneck, "a IEEE 802.11b Wifi subnet");
-         else
-      sprintf(btlneck, "a 'T3/DS-3' subnet");
-         break;
-      case 5:  if (linkcnt == 16)
-      sprintf(btlneck, "a Wifi + subnet");
-         else
-      sprintf(btlneck, "a 'FastEthernet' subnet");
-         break;
-      case 6:  if (linkcnt == 16)
-      sprintf(btlneck, "a Ethernet subnet");
-         else
-      sprintf(btlneck, "an 'OC-12' subnet");
-         break;
-      case 7:  if (linkcnt == 16)
-      sprintf(btlneck, "a T3/DS3 subnet");
-         else
-      sprintf(btlneck, "a 'Gigabit Ethernet' subnet");
-         break;
-      case 8:  if (linkcnt == 16)
-      sprintf(btlneck, "a FastEthernet subnet");
-         else
-      sprintf(btlneck, "an 'OC-48' subnet");
-         break;
-      case 9:  if (linkcnt == 16)
-      sprintf(btlneck, "a OC-12 subnet");
-         else
-      sprintf(btlneck, "a '10 Gigabit Enet' subnet");
-         break;
-      case 10: if (linkcnt == 16)
-      sprintf(btlneck, "a Gigabit Ethernet subnet");
-         else
-      sprintf(btlneck, "Retransmissions");
-      case 11: 
-      sprintf(btlneck, "an 'OC-48' subnet");
-         break;
-      case 12:
-      sprintf(btlneck, "a '10 Gigabit Enet' subnet");
-         break;
-      case 13:
-      sprintf(btlneck, "Retransmissions");
-         break;
+    case -2: sprintf(btlneck, "Insufficent Data");
+             break;
+    case -1: sprintf(btlneck, "a System Fault");
+             break;
+    case 0:  sprintf(btlneck, "the Round Trip Time");
+             break;
+    case 1:  sprintf(btlneck, "a 'Dial-up modem' connection");
+             break;
+    case 2:  
+             if ((c2sspd/s2cspd > .8) && (c2sspd/s2cspd < 1.2) && (c2sspd > 1000))
+               sprintf(btlneck, "a 'T1' subnet");
+             else {
+               if ((tail[3] > 1) || (s2cack == 3))
+                 sprintf(btlneck, "a 'Cable Modem' connection");
+               else 
+                 sprintf(btlneck, "a 'DSL' connection");
+             }
+             break;
+    case 3:  if (linkcnt == 16)
+               sprintf(btlneck, "a T1 + subnet");
+             else
+               sprintf(btlneck, "an 'Ethernet' subnet");
+             break;
+    case 4:  if (linkcnt == 16)
+               sprintf(btlneck, "a IEEE 802.11b Wifi subnet");
+             else
+               sprintf(btlneck, "a 'T3/DS-3' subnet");
+             break;
+    case 5:  if (linkcnt == 16)
+               sprintf(btlneck, "a Wifi + subnet");
+             else
+               sprintf(btlneck, "a 'FastEthernet' subnet");
+             break;
+    case 6:  if (linkcnt == 16)
+               sprintf(btlneck, "a Ethernet subnet");
+             else
+               sprintf(btlneck, "an 'OC-12' subnet");
+             break;
+    case 7:  if (linkcnt == 16)
+               sprintf(btlneck, "a T3/DS3 subnet");
+             else
+               sprintf(btlneck, "a 'Gigabit Ethernet' subnet");
+             break;
+    case 8:  if (linkcnt == 16)
+               sprintf(btlneck, "a FastEthernet subnet");
+             else
+               sprintf(btlneck, "an 'OC-48' subnet");
+             break;
+    case 9:  if (linkcnt == 16)
+               sprintf(btlneck, "a OC-12 subnet");
+             else
+               sprintf(btlneck, "a '10 Gigabit Enet' subnet");
+             break;
+    case 10: if (linkcnt == 16)
+               sprintf(btlneck, "a Gigabit Ethernet subnet");
+             else
+               sprintf(btlneck, "Retransmissions");
+    case 11: 
+             sprintf(btlneck, "an 'OC-48' subnet");
+             break;
+    case 12:
+             sprintf(btlneck, "a '10 Gigabit Enet' subnet");
+             break;
+    case 13:
+             sprintf(btlneck, "Retransmissions");
+             break;
   }
   /* Calculate some values */
   avgrtt = (double) SumRTT/CountRTT;
@@ -235,9 +246,9 @@ void calculate()
   loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut);
   loss2 = (double)CongestionSignals/PktsOut;
   if (loss == 0)
-        loss = .0000000001;  /* set to 10^-6 for now */
+    loss = .0000000001;  /* set to 10^-6 for now */
   if (loss2 == 0)
-        loss2 = .0000000001;  /* set to 10^-6 for now */
+    loss2 = .0000000001;  /* set to 10^-6 for now */
 
   order = (double)DupAcksIn/AckPktsIn;
   bw = (CurrentMSS / (rttsec * sqrt(loss))) * 8 / 1024 / 1024;
@@ -263,7 +274,7 @@ void calculate()
   cong = (float)(CongestionSignals - CongestionOverCount) / PktsOut;
   touts = (float)Timeouts / PktsOut;
   if (PktsRetrans > 0)
-      fr_ratio = (float)FastRetran / PktsRetrans;
+    fr_ratio = (float)FastRetran / PktsRetrans;
   retransec = (float)PktsRetrans / timesec;
 
   /* new test based on analysis of TCP behavior in duplex mismatch condition. */
@@ -271,157 +282,109 @@ void calculate()
   acks = (double) AckPktsIn / (double) DataPktsOut;
   pureacks = (double) (AckPktsIn - DupAcksIn) / (double) DataPktsOut;
   if (s2cspd < c2sspd)
-      aspeed = (double)c2sspd / (double)s2cspd;
+    aspeed = (double)c2sspd / (double)s2cspd;
   else
-      aspeed = (double)s2cspd / (double)c2sspd;
+    aspeed = (double)s2cspd / (double)c2sspd;
   printf("Acks = %0.4f,  async speed = %0.4f, mismatch3 = %0.4f, CongOver = %d\n", acks, aspeed, cong, CongestionOverCount);
   printf("idle = %0.4f, timeout/pkts = %0.4f, %%retranmissions = %0.2f, %%increase = %0.2f\n", idle, 
-    touts, retrn*100, increase*100);
+      touts, retrn*100, increase*100);
   printf("FastRetrans/Total = %0.4f, Fast/Retrans = %0.4f, Retrans/sec = %0.4f\n", retrn, fr_ratio, retransec);
-  /* if ((((order > .2) && (acks > .7)) || (acks < .35)) && ((aspeed > 3.0) || (aspeed < 0.005)) */
-  /* if ((order > .2) && ((acks > .7) || (acks < .35)) && (c2sdata > 2)) { */
-  /* if (((4*c2sspd) < s2cspd) && (acks > 0.6) && ((c2sspd*4) < runave[0])) { */
-  /* if (((4*c2sspd) < s2cspd) && (order > 0.2) && (loss2 < 0.005)) { */
-  /* if (((20*c2sspd) < s2cspd) && (order > 0.35) && (loss2 < 0.0005)) { */
-  /* if ((retrn < 0.0020) && (fr_ratio > 0.5) && (order > 0.35)) { */
-  /* if ((retransec > 0.02) && (fr_ratio > 0.5)) { */
-  /* if ((acks < 0.97) && (order > 0.3) && (fr_ratio > 0.3) && (c2sdata > 2)) { */
-  /* if ((acks < 0.97) && (order > 0.3) && (fr_ratio > 0.3) && (aspeed < 0.0035)) { */
-  /* if ((CongestionSignals > 10) && (order > 0.3) && (cong < 0.02) && (retransec > 2.5)) { */
   if (((acks > 0.7) || (acks < 0.3)) && (retrn > 0.03) && (CongAvoid > SlowStart)) {
-      if ((2*CurrentMSS) == MaxSsthresh) {
-    mismatch2 = 1;
-    mismatch3 = 0;
-      } else if (aspeed > 15){
-    mismatch2 = 2;
-      }
+    if ((2*CurrentMSS) == MaxSsthresh) {
+      mismatch2 = 1;
+      mismatch3 = 0;
+    } else if (aspeed > 15){
+      mismatch2 = 2;
+    }
   }
-  /* if ((c2sdata > 2) && (((order > .2) && (acks > .7)) || (pureacks < .40))) { */
-  /* if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((acks > .7) || (acks < .35))) { */
-  /* if ((c2sdata > 2) && (mmorder < .92) && (loss2*100 < 0.5) && ((bw2*1000) > s2cspd)) { */
-  /* if (cong > 0.025) { */
-  /* if ((cwndtime > 0.9) && (retrn > 0.075)) { */
-  /* if ((loss2 > 0.01) && (increase > 0.05) && (c2sdata > 2)) { */
-  /* if ((idle > 0.75) && (touts < 0.1) && (c2sspd > (4*s2cspd))) { */
-  /* if ((idle > 0.75) && (touts < 0.4) && (c2sspd > (4*s2cspd))) { */
   if ((idle > 0.65) && (touts < 0.4)) {
-      if (MaxSsthresh == (2*CurrentMSS)) {
-    mismatch2 = 0;
-    mismatch3 = 1;
-      } else {
-    mismatch3 = 2;
-      }
+    if (MaxSsthresh == (2*CurrentMSS)) {
+      mismatch2 = 0;
+      mismatch3 = 1;
+    } else {
+      mismatch3 = 2;
+    }
   }
-/*   if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
- *      (MaxSsthresh > 0)  && (idle > .01)) {
- */
-/*    (MaxSsthresh > 0)) { */
-/*    (MaxSsthresh > 0)  && (idle > 1)) { */
-/*       mismatch2 = 1;
- *        link = 0;
- *    }
- */
-
-  /* test for uplink with duplex mismatch condition */
-/*   if (((bwin/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss < .01)) {
- *       mismatch2 = 2;
- *        link = 0;
- *  }
- */
 
   /* estimate is less than throughput, something is wrong */
   if (bw < spd)
-      link = 0;
+    link = 0;
 
   if (((loss*100)/timesec > 15) && (cwndtime/timesec > .6) &&
-        (loss < .01) && (MaxSsthresh > 0))
-      bad_cable = 1;
+      (loss < .01) && (MaxSsthresh > 0))
+    bad_cable = 1;
 
   /* test for Ethernet link (assume Fast E.) */
-  /* if ((bw < 25) && (loss < .01) && (rwin/rttsec < 25) && (link > 0)) */
   if ((spd < 9.5) && (spd > 3.0) && ((bwin/1000) < 9.5) &&
-        (loss < .01) && (order < .035) && (link > 0))
-      link = 10;
-
-  /* test for wireless link */
-/* 
-  if ((SndLimTimeSender < 15000) && (spd < 5) && (bw > 50) &&
-        ((SndLimTransRwin/SndLimTransCwnd) == 1) && (rwintime > .90) && (link > 0))
-      link = 3;
- */
+      (loss < .01) && (order < .035) && (link > 0))
+    link = 10;
 
   /* test for DSL/Cable modem link */
   if ((SndLimTimeSender < 15000) && (spd < 2) && (spd < bw) && (link > 0))
-      link = 2;
+    link = 2;
 
   if (((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
         (SndLimTransSender/timesec > 30)) || (link <= 10))
-      half_duplex = 1;
+    half_duplex = 1;
 
   if ((cwndtime > .02) && (mismatch2 == 0) && (cwndbwd < recvbwd))
-        congestion2 = 1;
+    congestion2 = 1;
 
   if (iponly == 0) {
-      addr = inet_addr(ip_addr);
-      hp = gethostbyaddr((char *) &addr, 4, AF_INET);
-      if (hp == NULL)
-          printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
-      else
-          printf("Throughput to host %s [%s] is limited by %s\n", hp->h_name, ip_addr, btlneck);
-  } else 
+    addr = inet_addr(ip_addr);
+    hp = gethostbyaddr((char *) &addr, 4, AF_INET);
+    if (hp == NULL)
       printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
+    else
+      printf("Throughput to host %s [%s] is limited by %s\n", hp->h_name, ip_addr, btlneck);
+  } else 
+    printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
 
   printf("\tWeb100 says link = %d, speed-chk says link = %d\n", link, c2sdata);
   printf("\tSpeed-chk says {%d, %d, %d, %d}, Running average = {%0.1f, %0.1f, %0.1f, %0.1f}\n",
-    c2sdata, c2sack, s2cdata, s2cack, runave[0], runave[1], runave[2], runave[3]);
+      c2sdata, c2sack, s2cdata, s2cack, runave[0], runave[1], runave[2], runave[3]);
   if (c2sspd > 1000)
-      printf("\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, ", 
-    (float) c2sspd/1000, (float)s2cspd/1000);
+    printf("\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, ", 
+        (float) c2sspd/1000, (float)s2cspd/1000);
   else
-      printf("\tC2Sspeed = %d Kbps, S2Cspeed = %d Kbps, ", c2sspd, s2cspd);
+    printf("\tC2Sspeed = %d Kbps, S2Cspeed = %d Kbps, ", c2sspd, s2cspd);
   if (bw > 1)
-      printf("Estimate = %0.2f Mbps (%0.2f Mbps)\n", bw, bw2);
+    printf("Estimate = %0.2f Mbps (%0.2f Mbps)\n", bw, bw2);
   else
-      printf("Estimate = %0.2f Kbps (%0.2f Kbps)\n", bw*1000, bw2*1000);
+    printf("Estimate = %0.2f Kbps (%0.2f Kbps)\n", bw*1000, bw2*1000);
 
   if ((bw*1000) > s2cspd) 
-      printf("\tOld estimate is greater than measured; ");
+    printf("\tOld estimate is greater than measured; ");
   else
-      printf("\tOld estimate is less than measured; ");
+    printf("\tOld estimate is less than measured; ");
 
   if (CongestionSignals == -1)
-      printf("No data collected to calculage new estimate\n");
+    printf("No data collected to calculage new estimate\n");
   else {
-      if ((bw2*1000) > s2cspd) 
-          printf("New estimate is greater than measured\n");
-      else
-          printf("New estimate is less than measured\n");
+    if ((bw2*1000) > s2cspd) 
+      printf("New estimate is greater than measured\n");
+    else
+      printf("New estimate is less than measured\n");
   }
 
   printf("\tLoss = %0.2f%% (%0.2f%%), Out-of-Order = %0.2f%%, Long tail = {%d, %d, %d, %d}\n",
-    loss*100, loss2*100, order*100, tail[0], tail[1], tail[2], tail[3]);
+      loss*100, loss2*100, order*100, tail[0], tail[1], tail[2], tail[3]);
   printf("\tDistribution = {%d, %d, %d, %d}, time spent {r=%0.1f%% c=%0.1f%% s=%0.1f%%}\n",
-    head[0], head[1], head[2], head[3], rwintime*100, cwndtime*100, sendtime*100);
+      head[0], head[1], head[2], head[3], rwintime*100, cwndtime*100, sendtime*100);
   printf("\tAve(min) RTT = %0.2f (%d) msec, Buffers = {r=%d, c=%d, s=%d}\n",
-    avgrtt, MinRTT, MaxRwinRcvd, CurrentCwnd, Sndbuf/2);
+      avgrtt, MinRTT, MaxRwinRcvd, CurrentCwnd, Sndbuf/2);
   printf("\tbw*delay = {r=%0.2f, c=%0.2f, s=%0.2f}, Transitions/sec = {r=%0.1f, c=%0.1f, s=%0.1f}\n",
-    recvbwd, cwndbwd, sendbwd,
-    SndLimTransRwin/timesec, SndLimTransCwnd/timesec, SndLimTransSender/timesec);
+      recvbwd, cwndbwd, sendbwd,
+      SndLimTransRwin/timesec, SndLimTransCwnd/timesec, SndLimTransSender/timesec);
   printf("\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SSThreshold = %d\n", 
-    (float) PktsRetrans/timesec, (float) Timeouts/timesec, MaxSsthresh);
+      (float) PktsRetrans/timesec, (float) Timeouts/timesec, MaxSsthresh);
   printf("\tMismatch = %d (%d:%d[%0.2f])", mismatch, mismatch2, mismatch3, mmorder);
   if (mismatch3 == 1)
     printf(" [H=F, S=H]");
   if (mismatch2 == 1)
     printf(" [H=H, S=F]");
   printf(", Cable fault = %d, Congestion = %d, Duplex = %d\n\n",
-     bad_cable, congestion2, half_duplex);
-
-  /* if (c2sdata != c2sack)
-   *    fprintf(stderr, "Warning, client to server test produced unusual results: %d != %d\n",
-   *  c2sdata, c2sack);
-   */
-
+      bad_cable, congestion2, half_duplex);
 }
 
 int
@@ -431,11 +394,23 @@ main(int argc, char** argv)
   char tmpstr[256];
 
   iponly = 0;
-  while ((c = getopt(argc, argv, "dhnl:")) != -1){
+
+#ifdef AF_INET6
+#define GETOPT_LONG_INET6(x) "46"x
+#else
+#define GETOPT_LONG_INET6(x) x
+#endif
+  
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("dnhl:v"), long_options, 0)) != -1) {
     switch (c) {
       case 'h':
-        printf("Usage: %s -d (debug) -n (No DNS) -l Log_FN\n", argv[0]);
+        analyze_long_usage("ANL/Internet2 NDT version " VERSION " (analyze)");
+        break;
+      case 'v':
+        printf("ANL/Internet2 NDT version %s (analyze)\n", VERSION);
         exit(0);
+        break;
       case 'l':
         LogFileName = optarg;
         break;
@@ -445,10 +420,17 @@ main(int argc, char** argv)
       case 'd':
         debug++;
         break;
+      case '?':
+        short_usage(argv[0], "");
+        break;
     }
   }
+
+  if (optind < argc) {
+    short_usage(argv[0], "Unrecognized non-option elements");
+  }
+  
   if (LogFileName == NULL) {
-    /* LogFileName = BASEDIR; */
     sprintf(tmpstr, "%s/%s", BASEDIR, LOGFILE);
     LogFileName = tmpstr;
   }

@@ -33,6 +33,21 @@ double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
 
+static struct option long_options[] = {
+  {"name", 1, 0, 'n'},
+  {"port", 1, 0, 'p'},
+  {"debug", 0, 0, 'd'},
+  {"help", 0, 0, 'h'},
+  {"msglvl", 0, 0, 'l'},
+  {"version", 0, 0, 'v'},
+  {"buffer", 1, 0, 'b'},
+#ifdef AF_INET6
+  {"ipv4", 0, 0, '4'},
+  {"ipv6", 0, 0, '6'},
+#endif
+  {0, 0, 0, 0}
+};
+
 void save_int_values(char *sysvar, int sysval);
 void save_dbl_values(char *sysvar, float *sysval);
     
@@ -523,7 +538,14 @@ main(int argc, char *argv[])
   I2Addr local_addr = NULL, remote_addr = NULL;
   socklen_t optlen;
 
-  while ((c = getopt(argc, argv, "46vb:dhlp:n:")) != -1) {
+#ifdef AF_INET6
+#define GETOPT_LONG_INET6(x) "46"x
+#else
+#define GETOPT_LONG_INET6(x) x
+#endif
+  
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("n:p:dhlvb:"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -554,27 +576,32 @@ main(int argc, char *argv[])
         host = optarg;
         break;
       case '?':
-        clt_short_usage("");
+        short_usage(argv[0], "");
         break;
     }
   }
+  
+  if (optind < argc) {
+    short_usage(argv[0], "Unrecognized non-option elements");
+  }
+  
   failed = 0;
 
   if (host == NULL) {
-    clt_short_usage("Name of the server is required");
+    short_usage(argv[0], "Name of the server is required");
   }
 
   printf("Testing network path for configuration and performance problems  --  ");
   fflush(stdout);
 
   if ((server_addr = I2AddrByNode(NULL, host)) == NULL) {
-    perror("Unable to resolve server address\n");
+    printf("Unable to resolve server address\n");
     exit(-3);
   }
   I2AddrSetPort(server_addr, ctlport);
 
   if ((ret = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options))) {
-    perror("Connect() for control socket failed ");
+    printf("Connect() for control socket failed\n");
     exit(-4);
   }
 

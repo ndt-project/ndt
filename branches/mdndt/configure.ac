@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.1.13],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.2.1],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -125,18 +125,12 @@ AC_SUBST(TOP_BUILD_DIRS)
 #
 # Java config files
 #
-# GCJ=/home/rcarlson/jdk1.4.2/bin/javac
-# GCJ=/usr/local/pkg/j2sdk_nb/j2sdk1.4.2/bin/javac
 GCJ=javac
 GCJFLAGS=
-# JAVAROOT=/usr/local/pkg/j2sdk_nb/j2sdk1.4.2/
 
-# AC_SUBST(JAVAROOT)
 AC_SUBST(GCJ)
 AC_SUBST(GCJFLAGS)
 
-# NDTJAR=/home/rcarlson/jdk1.4.2/bin/jar
-# NDTJAR=/usr/local/pkg/j2sdk_nb/j2sdk1.4.2/bin/jar
 NDTJAR=jar
 NDTJARFLAG='-cf'
 

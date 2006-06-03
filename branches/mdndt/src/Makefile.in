@@ -67,23 +67,25 @@ am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 sbinPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(sbin_PROGRAMS)
-am_analyze_OBJECTS = analyze-analyze.$(OBJEXT)
+am_analyze_OBJECTS = analyze-analyze.$(OBJEXT) analyze-usage.$(OBJEXT)
 analyze_OBJECTS = $(am_analyze_OBJECTS)
 am__DEPENDENCIES_1 =
 analyze_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_fakewww_OBJECTS = fakewww-fakewww.$(OBJEXT) \
-	fakewww-troute.$(OBJEXT) fakewww-tr-tree.$(OBJEXT)
+	fakewww-troute.$(OBJEXT) fakewww-tr-tree.$(OBJEXT) \
+	fakewww-network.$(OBJEXT) fakewww-usage.$(OBJEXT)
 fakewww_OBJECTS = $(am_fakewww_OBJECTS)
-fakewww_LDADD = $(LDADD)
+fakewww_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_tr_mkmap_OBJECTS = tr_mkmap-tr-mkmap.$(OBJEXT) \
-	tr_mkmap-tr-tree.$(OBJEXT)
+	tr_mkmap-tr-tree.$(OBJEXT) tr_mkmap-usage.$(OBJEXT)
 tr_mkmap_OBJECTS = $(am_tr_mkmap_OBJECTS)
 tr_mkmap_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_viewtrace_OBJECTS = viewtrace-viewtrace.$(OBJEXT)
+am_viewtrace_OBJECTS = viewtrace-viewtrace.$(OBJEXT) \
+	viewtrace-usage.$(OBJEXT)
 viewtrace_OBJECTS = $(am_viewtrace_OBJECTS)
 viewtrace_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_web100clt_OBJECTS = web100clt.$(OBJEXT) network.$(OBJEXT) \
-	usage.$(OBJEXT)
+am_web100clt_OBJECTS = web100clt-web100clt.$(OBJEXT) \
+	web100clt-network.$(OBJEXT) web100clt-usage.$(OBJEXT)
 web100clt_OBJECTS = $(am_web100clt_OBJECTS)
 web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
@@ -202,22 +204,24 @@ AM_LDFLAGS = $(NDTLDFLAGS)
 AM_LIBS = $(I2UTILLIBS)
 AM_CFLAGS = $(NDTCFLAGS)
 ndtdir = $(prefix)/ndt
-analyze_SOURCES = analyze.c
+analyze_SOURCES = analyze.c usage.c
 analyze_LDADD = $(NDTLIBS)
 analyze_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
-fakewww_SOURCES = fakewww.c troute.c tr-tree.c
+fakewww_SOURCES = fakewww.c troute.c tr-tree.c network.c usage.c
+fakewww_LDADD = $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
 web100srv_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
-viewtrace_SOURCES = viewtrace.c
+viewtrace_SOURCES = viewtrace.c usage.c
 viewtrace_LDADD = $(NDTLIBS)
 viewtrace_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100clt_SOURCES = web100clt.c network.c usage.c
 web100clt_LDADD = $(I2UTILLIBDEPS)
-tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c
+web100clt_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
+tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c usage.c
 tr_mkmap_LDADD = $(NDTLIBS)
 tr_mkmap_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 all: all-am
@@ -325,15 +329,20 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/analyze-analyze.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/analyze-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-fakewww.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-tr-tree.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-troute.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/network.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-mkmap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-tree.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/usage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-usage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viewtrace-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viewtrace-viewtrace.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-network.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-usage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-web100clt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-web100-admin.Po@am__quote@
@@ -368,6 +377,20 @@ analyze-analyze.obj: analyze.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='analyze.c' object='analyze-analyze.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(analyze_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o analyze-analyze.obj `if test -f 'analyze.c'; then $(CYGPATH_W) 'analyze.c'; else $(CYGPATH_W) '$(srcdir)/analyze.c'; fi`
+
+analyze-usage.o: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(analyze_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT analyze-usage.o -MD -MP -MF "$(DEPDIR)/analyze-usage.Tpo" -c -o analyze-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/analyze-usage.Tpo" "$(DEPDIR)/analyze-usage.Po"; else rm -f "$(DEPDIR)/analyze-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='analyze-usage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(analyze_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o analyze-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c
+
+analyze-usage.obj: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(analyze_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT analyze-usage.obj -MD -MP -MF "$(DEPDIR)/analyze-usage.Tpo" -c -o analyze-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/analyze-usage.Tpo" "$(DEPDIR)/analyze-usage.Po"; else rm -f "$(DEPDIR)/analyze-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='analyze-usage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(analyze_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o analyze-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`
 
 fakewww-fakewww.o: fakewww.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-fakewww.o -MD -MP -MF "$(DEPDIR)/fakewww-fakewww.Tpo" -c -o fakewww-fakewww.o `test -f 'fakewww.c' || echo '$(srcdir)/'`fakewww.c; \
@@ -411,6 +434,34 @@ fakewww-tr-tree.obj: tr-tree.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-tr-tree.obj `if test -f 'tr-tree.c'; then $(CYGPATH_W) 'tr-tree.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree.c'; fi`
 
+fakewww-network.o: network.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-network.o -MD -MP -MF "$(DEPDIR)/fakewww-network.Tpo" -c -o fakewww-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-network.Tpo" "$(DEPDIR)/fakewww-network.Po"; else rm -f "$(DEPDIR)/fakewww-network.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='fakewww-network.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c
+
+fakewww-network.obj: network.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-network.obj -MD -MP -MF "$(DEPDIR)/fakewww-network.Tpo" -c -o fakewww-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-network.Tpo" "$(DEPDIR)/fakewww-network.Po"; else rm -f "$(DEPDIR)/fakewww-network.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='fakewww-network.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`
+
+fakewww-usage.o: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-usage.o -MD -MP -MF "$(DEPDIR)/fakewww-usage.Tpo" -c -o fakewww-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-usage.Tpo" "$(DEPDIR)/fakewww-usage.Po"; else rm -f "$(DEPDIR)/fakewww-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='fakewww-usage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c
+
+fakewww-usage.obj: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-usage.obj -MD -MP -MF "$(DEPDIR)/fakewww-usage.Tpo" -c -o fakewww-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-usage.Tpo" "$(DEPDIR)/fakewww-usage.Po"; else rm -f "$(DEPDIR)/fakewww-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='fakewww-usage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`
+
 tr_mkmap-tr-mkmap.o: tr-mkmap.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-tr-mkmap.o -MD -MP -MF "$(DEPDIR)/tr_mkmap-tr-mkmap.Tpo" -c -o tr_mkmap-tr-mkmap.o `test -f 'tr-mkmap.c' || echo '$(srcdir)/'`tr-mkmap.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/tr_mkmap-tr-mkmap.Tpo" "$(DEPDIR)/tr_mkmap-tr-mkmap.Po"; else rm -f "$(DEPDIR)/tr_mkmap-tr-mkmap.Tpo"; exit 1; fi
@@ -439,6 +490,20 @@ tr_mkmap-tr-tree.obj: tr-tree.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tr_mkmap-tr-tree.obj `if test -f 'tr-tree.c'; then $(CYGPATH_W) 'tr-tree.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree.c'; fi`
 
+tr_mkmap-usage.o: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-usage.o -MD -MP -MF "$(DEPDIR)/tr_mkmap-usage.Tpo" -c -o tr_mkmap-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/tr_mkmap-usage.Tpo" "$(DEPDIR)/tr_mkmap-usage.Po"; else rm -f "$(DEPDIR)/tr_mkmap-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='tr_mkmap-usage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tr_mkmap-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c
+
+tr_mkmap-usage.obj: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-usage.obj -MD -MP -MF "$(DEPDIR)/tr_mkmap-usage.Tpo" -c -o tr_mkmap-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/tr_mkmap-usage.Tpo" "$(DEPDIR)/tr_mkmap-usage.Po"; else rm -f "$(DEPDIR)/tr_mkmap-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='tr_mkmap-usage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tr_mkmap-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`
+
 viewtrace-viewtrace.o: viewtrace.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(viewtrace_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT viewtrace-viewtrace.o -MD -MP -MF "$(DEPDIR)/viewtrace-viewtrace.Tpo" -c -o viewtrace-viewtrace.o `test -f 'viewtrace.c' || echo '$(srcdir)/'`viewtrace.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/viewtrace-viewtrace.Tpo" "$(DEPDIR)/viewtrace-viewtrace.Po"; else rm -f "$(DEPDIR)/viewtrace-viewtrace.Tpo"; exit 1; fi
@@ -452,6 +517,62 @@ viewtrace-viewtrace.obj: viewtrace.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='viewtrace.c' object='viewtrace-viewtrace.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(viewtrace_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o viewtrace-viewtrace.obj `if test -f 'viewtrace.c'; then $(CYGPATH_W) 'viewtrace.c'; else $(CYGPATH_W) '$(srcdir)/viewtrace.c'; fi`
+
+viewtrace-usage.o: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(viewtrace_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT viewtrace-usage.o -MD -MP -MF "$(DEPDIR)/viewtrace-usage.Tpo" -c -o viewtrace-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/viewtrace-usage.Tpo" "$(DEPDIR)/viewtrace-usage.Po"; else rm -f "$(DEPDIR)/viewtrace-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='viewtrace-usage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(viewtrace_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o viewtrace-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c
+
+viewtrace-usage.obj: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(viewtrace_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT viewtrace-usage.obj -MD -MP -MF "$(DEPDIR)/viewtrace-usage.Tpo" -c -o viewtrace-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/viewtrace-usage.Tpo" "$(DEPDIR)/viewtrace-usage.Po"; else rm -f "$(DEPDIR)/viewtrace-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='viewtrace-usage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(viewtrace_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o viewtrace-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`
+
+web100clt-web100clt.o: web100clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-web100clt.o -MD -MP -MF "$(DEPDIR)/web100clt-web100clt.Tpo" -c -o web100clt-web100clt.o `test -f 'web100clt.c' || echo '$(srcdir)/'`web100clt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-web100clt.Tpo" "$(DEPDIR)/web100clt-web100clt.Po"; else rm -f "$(DEPDIR)/web100clt-web100clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='web100clt.c' object='web100clt-web100clt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-web100clt.o `test -f 'web100clt.c' || echo '$(srcdir)/'`web100clt.c
+
+web100clt-web100clt.obj: web100clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-web100clt.obj -MD -MP -MF "$(DEPDIR)/web100clt-web100clt.Tpo" -c -o web100clt-web100clt.obj `if test -f 'web100clt.c'; then $(CYGPATH_W) 'web100clt.c'; else $(CYGPATH_W) '$(srcdir)/web100clt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-web100clt.Tpo" "$(DEPDIR)/web100clt-web100clt.Po"; else rm -f "$(DEPDIR)/web100clt-web100clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='web100clt.c' object='web100clt-web100clt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-web100clt.obj `if test -f 'web100clt.c'; then $(CYGPATH_W) 'web100clt.c'; else $(CYGPATH_W) '$(srcdir)/web100clt.c'; fi`
+
+web100clt-network.o: network.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-network.o -MD -MP -MF "$(DEPDIR)/web100clt-network.Tpo" -c -o web100clt-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-network.Tpo" "$(DEPDIR)/web100clt-network.Po"; else rm -f "$(DEPDIR)/web100clt-network.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='web100clt-network.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c
+
+web100clt-network.obj: network.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-network.obj -MD -MP -MF "$(DEPDIR)/web100clt-network.Tpo" -c -o web100clt-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-network.Tpo" "$(DEPDIR)/web100clt-network.Po"; else rm -f "$(DEPDIR)/web100clt-network.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='network.c' object='web100clt-network.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-network.obj `if test -f 'network.c'; then $(CYGPATH_W) 'network.c'; else $(CYGPATH_W) '$(srcdir)/network.c'; fi`
+
+web100clt-usage.o: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-usage.o -MD -MP -MF "$(DEPDIR)/web100clt-usage.Tpo" -c -o web100clt-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-usage.Tpo" "$(DEPDIR)/web100clt-usage.Po"; else rm -f "$(DEPDIR)/web100clt-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='web100clt-usage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c
+
+web100clt-usage.obj: usage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-usage.obj -MD -MP -MF "$(DEPDIR)/web100clt-usage.Tpo" -c -o web100clt-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-usage.Tpo" "$(DEPDIR)/web100clt-usage.Po"; else rm -f "$(DEPDIR)/web100clt-usage.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='usage.c' object='web100clt-usage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-usage.obj `if test -f 'usage.c'; then $(CYGPATH_W) 'usage.c'; else $(CYGPATH_W) '$(srcdir)/usage.c'; fi`
 
 web100srv-web100srv.o: web100srv.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-web100srv.o -MD -MP -MF "$(DEPDIR)/web100srv-web100srv.Tpo" -c -o web100srv-web100srv.o `test -f 'web100srv.c' || echo '$(srcdir)/'`web100srv.c; \

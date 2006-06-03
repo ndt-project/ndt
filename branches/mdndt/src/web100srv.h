@@ -15,13 +15,13 @@
 #include  <netdb.h>
 #include  <signal.h>
 #include  <web100.h>
-#include  <getopt.h>
 #include  <pcap.h>
 #include  <stdlib.h>
 #include  <string.h>
 #include  <unistd.h>
 #include  <fcntl.h>
 #include  <syslog.h>
+#include  <getopt.h>
 
 #include  <sys/types.h>
 #include  <sys/socket.h>

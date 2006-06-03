@@ -9,9 +9,12 @@
 #ifndef _JS_USAGE_H
 #define _JS_USAGE_H
 
-void srv_short_usage(char* info);
+void short_usage(char* prog, char* info);
 void srv_long_usage(char* info);
-void clt_short_usage(char* info);
 void clt_long_usage(char* info);
+void www_long_usage(char* info);
+void analyze_long_usage(char* info);
+void mkmap_long_usage(char* info);
+void vt_long_usage(char* info);
 
 #endif

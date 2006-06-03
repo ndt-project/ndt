@@ -24,8 +24,9 @@
 #include <netinet/tcp.h>
 #include <net/ethernet.h>
 
-/* local include file contains needed structures */
 #include "web100srv.h"
+#include "../config.h"
+#include "usage.h"
 
 struct spdpair fwd, rev;
 struct sockaddr_in spd_addr, spd_addr2, spd_cli;
@@ -40,6 +41,17 @@ extern char *optarg;
 FILE *fp;
 char * LogFileName=NULL;
 #define VTLOGFILE "speed-chk.log"
+
+static struct option long_options[] = {
+  {"count", 1, 0, 'c'},
+  {"debug", 0, 0, 'd'},
+  {"file", 1, 0, 'f'},
+  {"help", 0, 0, 'h'},
+  {"interface", 1, 0, 'i'},
+  {"log", 1, 0, 'l'},
+  {"version", 0, 0, 'v'},
+  {0, 0, 0, 0}
+};
 
 /*
  * Copy arg vector into a new buffer, concatenating arguments with spaces.
@@ -350,7 +362,15 @@ main(int argc, char **argv)
   read_file = NULL;
   device = NULL;
   cnt = -1;  /* read forever, or until end of file */
-  while ((c = getopt(argc, argv, "dc:f:hl:")) != -1) {
+
+#ifdef AF_INET6
+#define GETOPT_LONG_INET6(x) "46"x
+#else
+#define GETOPT_LONG_INET6(x) x
+#endif
+  
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("c:df:hi:l:v"), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         cnt = atoi(optarg);
@@ -368,9 +388,20 @@ main(int argc, char **argv)
         LogFileName = optarg;
         break;
       case 'h':
-        printf("Usage: %s -c count, -f filename -h, -d (debug)\n", argv[0]);
+        vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace)");
+        break;
+      case 'v':
+        printf("ANL/Internet2 NDT version %s (viewtrace)\n", VERSION);
         exit(0);
+        break;
+      case '?':
+        short_usage(argv[0], "");
+        break;
     }
+  }
+
+  if (optind < argc) {
+    short_usage(argv[0], "Unrecognized non-option elements");
   }
 
   init_vars(&fwd);

@@ -32,12 +32,25 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <getopt.h>
 
+#include "../config.h"
 #include "tr-tree.h"
+#include "usage.h"
 
 struct tr_tree *tr_root, *tr_cur;
 int found_node;
 
+static struct option long_options[] = {
+  {"build", 0, 0, 'b'},
+  {"compare", 1, 0, 'c'},
+  {"file", 1, 0, 'f'},
+  {"help", 0, 0, 'h'},
+  {"print", 0, 0, 'p'},
+  {"debug", 0, 0, 'd'},
+  {"version", 0, 0, 'v'},
+  {0, 0, 0, 0}
+};
 /* Recursive sub-routine that walks through the tree.  In
  * build mode (flag = b) add a new node to the tree if
  * a leaf is reached and this new node should go under it.
@@ -227,7 +240,15 @@ main(int argc, char *argv[])
   struct hostent *hp;
 
   flag = 'b';
-  while (( c = getopt(argc, argv, "dbhpc:f:")) != -1) {
+  
+#ifdef AF_INET6
+#define GETOPT_LONG_INET6(x) "46"x
+#else
+#define GETOPT_LONG_INET6(x) x
+#endif
+  
+  while ((c = getopt_long(argc, argv,
+          GETOPT_LONG_INET6("bc:f:hpdv"), long_options, 0)) != -1) {
     switch (c) {
       case 'b' :
         if (flag_set == 0) {
@@ -242,7 +263,6 @@ main(int argc, char *argv[])
           flag_set = 1;
         }
         break;
-
       case 'f':
         inputfile = optarg;
         break;
@@ -252,18 +272,21 @@ main(int argc, char *argv[])
       case 'd':
         debug++;
         break;
-      default :
-        printf("Unknown option entered\n");
       case 'h' :
-        printf("Usage: %s {options}\n", argv[0]);
-        printf("\t-b \tbuild a new default tree\n");
-        printf("\t-c fn \tCompare new traceroute to tree\n");
-        printf("\t-f fn \tSpecify the name of the input file\n");
-        printf("\t\tNote: -b and -c are mutually exclusive\n");
-        printf("\t-h \tPrint this help message\n");
-        printf("\t-p \tPrint out the current traceroute map\n");
+        mkmap_long_usage("ANL/Internet2 NDT version " VERSION " (tr-mkmap)");
+        break;
+      case 'v':
+        printf("ANL/Internet2 NDT version %s (tr-mkmap)\n", VERSION);
         exit(0);
+        break;
+      case '?':
+        short_usage(argv[0], "");
+        break;
     }
+  }
+
+  if (optind < argc) {
+    short_usage(argv[0], "Unrecognized non-option elements");
   }
 
   root = NULL;
