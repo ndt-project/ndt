@@ -240,15 +240,7 @@ main(int argc, char *argv[])
   struct hostent *hp;
 
   flag = 'b';
-  
-#ifdef AF_INET6
-#define GETOPT_LONG_INET6(x) "46"x
-#else
-#define GETOPT_LONG_INET6(x) x
-#endif
-  
-  while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("bc:f:hpdv"), long_options, 0)) != -1) {
+  while ((c = getopt_long(argc, argv, "bc:f:hpdv", long_options, 0)) != -1) {
     switch (c) {
       case 'b' :
         if (flag_set == 0) {

@@ -394,15 +394,7 @@ main(int argc, char** argv)
   char tmpstr[256];
 
   iponly = 0;
-
-#ifdef AF_INET6
-#define GETOPT_LONG_INET6(x) "46"x
-#else
-#define GETOPT_LONG_INET6(x) x
-#endif
-  
-  while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("dnhl:v"), long_options, 0)) != -1) {
+  while ((c = getopt_long(argc, argv, "dnhl:v", long_options, 0)) != -1) {
     switch (c) {
       case 'h':
         analyze_long_usage("ANL/Internet2 NDT version " VERSION " (analyze)");

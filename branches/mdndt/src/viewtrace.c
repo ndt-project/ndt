@@ -362,15 +362,7 @@ main(int argc, char **argv)
   read_file = NULL;
   device = NULL;
   cnt = -1;  /* read forever, or until end of file */
-
-#ifdef AF_INET6
-#define GETOPT_LONG_INET6(x) "46"x
-#else
-#define GETOPT_LONG_INET6(x) x
-#endif
-  
-  while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("c:df:hi:l:v"), long_options, 0)) != -1) {
+  while ((c = getopt_long(argc, argv, "c:df:hi:l:v", long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         cnt = atoi(optarg);

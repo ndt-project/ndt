@@ -1529,7 +1529,7 @@ int
 main(int argc, char** argv)
 {
   int chld_pid, rc;
-  int ctlsockfd = -1, one=1;
+  int ctlsockfd = -1;
   int c, chld_pipe[2];
   int i, loopcnt;
   struct sockaddr_storage cli_addr;
@@ -1694,7 +1694,6 @@ main(int argc, char** argv)
     sigaction(i, &new, NULL);
   }
 
-
   /*
    * Bind our local address so that the client can send to us.
    */
@@ -1707,7 +1706,6 @@ main(int argc, char** argv)
   }
   listenfd = I2AddrFD(listenaddr);
 
-  setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
   if (set_buff > 0) {
     setsockopt(listenfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
     setsockopt(listenfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
