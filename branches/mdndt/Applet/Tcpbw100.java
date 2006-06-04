@@ -1333,7 +1333,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		else if (source == deTails) {
 			deTails.setEnabled(false);
 			f.setResizable(true);
-			f.show();
+      f.setVisible(true);
 			deTails.setEnabled(true);
 		}
 
@@ -1371,7 +1371,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		else if (source == sTatistics) {
 			sTatistics.setEnabled(false);
 			ff.setResizable(true);
-			ff.show();
+      ff.setVisible(true);
 			sTatistics.setEnabled(true);
 		}
 
