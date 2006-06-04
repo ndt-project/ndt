@@ -150,8 +150,29 @@ check_signal_flags()
       if (debug > 3) {
         fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
             mon_pipe1[0], mon_pipe1[1]);
-        fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-            fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+#ifdef AF_INET6
+        if (fwd.family == 4) {
+          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+              fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
+#else
+          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+              fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+#endif
+#ifdef AF_INET6
+        }
+        else if (fwd.family == 6) {
+          char str[136];
+          memset(str, 0, 136);
+          inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
+          fprintf(stderr, "fwd.saddr = %s:%d", str, fwd.sport);
+          memset(str, 0, 136);
+          inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
+          fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
+        }
+        else {
+          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n", fwd.family);
+        }
+#endif
       }
       print_bins(&fwd, mon_pipe1, LogFileName, debug);
       print_bins(&rev, mon_pipe1, LogFileName, debug);
@@ -166,8 +187,29 @@ check_signal_flags()
       if (debug > 3) {
         fprintf(stderr, "Sending pkt-pair data back to parent on pipe %d, %d\n",
             mon_pipe2[0], mon_pipe2[1]);
-        fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-            fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+#ifdef AF_INET6
+        if (fwd.family == 4) {
+          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+              fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
+#else
+          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+              fwd.saddr, fwd.sport, rev.saddr, rev.sport);
+#endif
+#ifdef AF_INET6
+        }
+        else if (fwd.family == 6) {
+          char str[136];
+          memset(str, 0, 136);
+          inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
+          fprintf(stderr, "fwd.saddr = %s:%d", str, fwd.sport);
+          memset(str, 0, 136);
+          inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
+          fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
+        }
+        else {
+          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n", fwd.family);
+        }
+#endif
       }
       print_bins(&fwd, mon_pipe2, LogFileName, debug);
       print_bins(&rev, mon_pipe2, LogFileName, debug);
@@ -197,10 +239,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
   struct ether_header *enet;
   const struct ip *ip = NULL;
+#if defined(AF_INET6)
   const struct ip6_hdr *ip6;
+#endif
   const struct tcphdr *tcp;
   struct spdpair current;
-  int v4_or_v6=0;
 
   if (dumptrace == 1)
       pcap_dump((u_char *)pdump, h, p);
@@ -221,33 +264,19 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   enet = (struct ether_header *)p;
   p += sizeof(struct ether_header);   /* move packet pointer past ethernet fields */
 
-  v4_or_v6 = ((*p & 0xF0) >> 4);
-
-  /* fprintf(stderr, "::::::::::: IP version number = %d\n", v4_or_v6); */
-
-  if (v4_or_v6 == 4) {
-      ip = (const struct ip *)p;
-      p += (ip->ip_hl) * 4;
-  } else {
-      ip6 = (const struct ip6_hdr *)p;
-      if (ip6->ip6_nxt == IPPROTO_TCP)
-    p += 64 * 5;  /* IPv6 header is 2 128 bit addresses + 64 bits of other stuff */
-  }
-
+  ip = (const struct ip *)p;
+#if defined(AF_INET6)
+  if (ip->ip_v == 4) {
+#endif
+  p += (ip->ip_hl) * 4;
   tcp = (const struct tcphdr *)p;
-
-  if (v4_or_v6 == 4) {
-      current.saddr = ip->ip_src.s_addr;
-      current.daddr = ip->ip_dst.s_addr;
-  } else {
-      /* memcpy(&current.s6addr, &ip->ip6_src, 16);
-       * memcpy(&current.d6addr, &ip->ip6_dst, 16);
-       */
-  }
-
-  /* printf("Data received from src[%s]/", inet_ntoa(current.saddr));
-   * printf("dst[%s] socket\n", inet_ntoa(current.daddr));
-   */
+#if defined(AF_INET6)
+  current.saddr[0] = ip->ip_src.s_addr;
+  current.daddr[0] = ip->ip_dst.s_addr;
+#else
+  current.saddr = ip->ip_src.s_addr;
+  current.daddr = ip->ip_dst.s_addr;
+#endif
 
   current.sport = ntohs(tcp->source);
   current.dport = ntohs(tcp->dest);
@@ -255,21 +284,104 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   current.ack = ntohl(tcp->ack_seq);
   current.win = ntohs(tcp->window);
 
+#if defined(AF_INET6)
+  if (fwd.saddr[0] == 0) {
+    if (debug > 0)
+      fprintf(stderr, "New packet trace started -- initializing counters\n");
+    fwd.saddr[0] = current.saddr[0];
+    fwd.daddr[0] = current.daddr[0];
+#else
   if (fwd.saddr == 0) {
+    if (debug > 0)
+      fprintf(stderr, "New packet trace started -- initializing counters\n");
+    fwd.saddr = current.saddr;
+    fwd.daddr = current.daddr;
+#endif
+    fwd.sport = current.sport;
+    fwd.dport = current.dport;
+    fwd.st_sec = current.sec;
+    fwd.st_usec = current.usec;
+#if defined(AF_INET6)
+    rev.saddr[0] = current.daddr[0];
+    rev.daddr[0] = current.saddr[0];
+#else
+    rev.saddr = current.daddr;
+    rev.daddr = current.saddr;
+#endif
+    rev.sport = current.dport;
+    rev.dport = current.sport;
+    rev.st_sec = current.sec;
+    rev.st_usec = current.usec;
+    fwd.dec_cnt = 0;
+    fwd.inc_cnt = 0;
+    fwd.same_cnt = 0;
+    fwd.timeout = 0;
+    fwd.dupack = 0;
+    rev.dec_cnt = 0;
+    rev.inc_cnt = 0;
+    rev.same_cnt = 0;
+    rev.timeout = 0;
+    rev.dupack = 0;
+    fwd.family = 4;
+    rev.family = 4;
+    return;
+  }
+
+#if defined(AF_INET6)
+  if (fwd.saddr[0] == current.saddr[0]) {
+#else
+  if (fwd.saddr == current.saddr) {
+#endif
+    if (current.dport == port2) {
+      calculate_spd(&current, &fwd, port2, port3);
+      return;
+    }
+    if (current.sport == port3) {
+      calculate_spd(&current, &fwd, port2, port3);
+      return;
+    }
+  }
+#if defined(AF_INET6)
+  if (rev.saddr[0] == current.saddr[0]) {
+#else
+  if (rev.saddr == current.saddr) {
+#endif
+    if (current.sport == port2) {
+      calculate_spd(&current, &rev, port2, port3);
+      return;
+    }
+    if (current.dport == port3) {
+      calculate_spd(&current, &rev, port2, port3);
+      return;
+    }
+  }
+#if defined(AF_INET6)
+  }
+  else {
+    ip6 = (const struct ip6_hdr *)p;
+
+    p += 40;
+    tcp = (const struct tcphdr *)p;
+    memcpy(current.saddr, (void *) &ip6->ip6_src, 16);
+    memcpy(current.daddr, (void *) &ip6->ip6_dst, 16);
+
+    current.sport = ntohs(tcp->source);
+    current.dport = ntohs(tcp->dest);
+    current.seq = ntohl(tcp->seq);
+    current.ack = ntohl(tcp->ack_seq);
+    current.win = ntohs(tcp->window);
+
+    if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
       if (debug > 0)
-    fprintf(stderr, "New packet trace started -- initializing counters\n");
-      fwd.saddr = current.saddr;
-      fwd.daddr = current.daddr;
-      memcpy(&fwd.s6addr, &current.s6addr, 16);
-      memcpy(&fwd.d6addr, &current.d6addr, 16);
+        fprintf(stderr, "New packet trace started -- initializing counters\n");
+      memcpy(fwd.saddr, (void *) &current.saddr, 16);
+      memcpy(fwd.daddr, (void *) &current.daddr, 16);
       fwd.sport = current.sport;
       fwd.dport = current.dport;
       fwd.st_sec = current.sec;
       fwd.st_usec = current.usec;
-      rev.saddr = current.daddr;
-      rev.daddr = current.saddr;
-      memcpy(&rev.s6addr, &current.d6addr, 16);
-      memcpy(&rev.d6addr, &current.s6addr, 16);
+      memcpy(rev.saddr, (void *) &current.daddr, 16);
+      memcpy(rev.daddr, (void *) &current.saddr, 16);
       rev.sport = current.dport;
       rev.dport = current.sport;
       rev.st_sec = current.sec;
@@ -284,29 +396,42 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       rev.same_cnt = 0;
       rev.timeout = 0;
       rev.dupack = 0;
+      fwd.family = 6;
+      rev.family = 6;
       return;
-  }
+    }
 
-  if (current.sport == port2) {
-      calculate_spd(&current, &rev, port2, port3);
-      return;
+    if ((fwd.saddr[0] == current.saddr[0]) &&
+        (fwd.saddr[1] == current.saddr[1]) &&
+        (fwd.saddr[2] == current.saddr[2]) &&
+        (fwd.saddr[3] == current.saddr[3])) {
+      if (current.dport == port2) {
+        calculate_spd(&current, &fwd, port2, port3);
+        return;
+      }
+      if (current.sport == port3) {
+        calculate_spd(&current, &fwd, port2, port3);
+        return;
+      }
+    }
+    if ((rev.saddr[0] == current.saddr[0]) &&
+        (rev.saddr[1] == current.saddr[1]) &&
+        (rev.saddr[2] == current.saddr[2]) &&
+        (rev.saddr[3] == current.saddr[3])) {
+      if (current.sport == port2) {
+        calculate_spd(&current, &rev, port2, port3);
+        return;
+      }
+      if (current.dport == port3) {
+        calculate_spd(&current, &rev, port2, port3);
+        return;
+      }
+    }
   }
-  if (current.sport == port3) {
-      calculate_spd(&current, &fwd, port2, port3);
-      return;
-  }
-  if (current.dport == port2) {
-      calculate_spd(&current, &fwd, port2, port3);
-      return;
-  }
-  if (current.dport == port3) {
-      calculate_spd(&current, &rev, port2, port3);
-      return;
-  }
-  
+#endif
   if (debug > 5)
-    fprintf(stderr, "Fault: unknown packet received with src/dst port = %d/%d\n,", 
-        current.sport, current.dport);
+    fprintf(stderr, "Fault: unknown packet received with src/dst port = %d/%d\n,",
+      current.sport, current.dport);
 }
 
 /* This routine performs the open and initialization functions needed by the
@@ -344,15 +469,10 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
     }
   }
 
-  printf(">>> family=%d\n", sock_addr->sa_family);
-  if (sock_addr->sa_family == AF_INET) {
-    printf(">>> 4\n");
-  }
-  else {
-    printf(">>> 6\n");
-  }
+  sockAddr = I2AddrBySAddr(NULL, sock_addr, saddrlen, 0, 0);
+  sock_addr = I2AddrSAddr(sockAddr, 0);
   /* special check for localhost, set device accordingly */
-  if (I2SockAddrIsLoopback(sock_addr, saddrlen)) {
+  if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0) {
     strncpy(device, "lo", 3);
   }
 
@@ -366,7 +486,6 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   if (debug > 1)
     fprintf(stderr, "pcap_open_live() returned pointer 0x%x\n", (int) pd);
 
-  sockAddr = I2AddrBySAddr(NULL, sock_addr, saddrlen, 0, 0);
   memset(namebuf, 0, 200);
   I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
   memset(cmdbuf, 0, 256);
@@ -374,7 +493,7 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
 
   if (debug > 0) {
     fprintf(stderr, "installing pkt filter for '%s'\n", cmdbuf);
-    fprintf(stderr, "Initial pkt src data = %x\n", fwd.saddr);
+    fprintf(stderr, "Initial pkt src data = %x\n", (int) fwd.saddr);
   }
 
   if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
@@ -1048,8 +1167,6 @@ read3:
           fprintf(stderr, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d\n",
               mon_pipe2[0], mon_pipe2[1]);
         }
-        if (debug > 1)
-          fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", (int) &cli_addr);
         if (debug > 1)
           fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", (int) &cli_addr);
         init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device);
@@ -1835,7 +1952,7 @@ main(int argc, char** argv)
 
     if (rc == 0) {    /* select exited due to timer expired */
       if (debug > 2)
-        fprintf(stderr, "Timer exired while waiting for a new connection\n");
+        fprintf(stderr, "Timer expired while waiting for a new connection\n");
       if (multiple == 0) {
         if ((waiting > 0) && (testing == 0))
           goto ChldRdy;

@@ -89,14 +89,19 @@ copy_argv(register char **argv)
   return buf;
 }
 
-/* initialize variables before starting to accumlate data */
+/* initialize variables before starting to accumulate data */
 void
 init_vars(struct spdpair *cur)
 {
   int i;
 
+#if defined(AF_INET6)
+	memset(cur->saddr, 0, 4);
+	memset(cur->daddr, 0, 4);
+#else
   cur->saddr = 0;
   cur->daddr = 0;
+#endif
   cur->sport = 0;
   cur->dport = 0;
   cur->seq = 0;
@@ -145,15 +150,35 @@ vt_print_bins(struct spdpair *cur)
   fprintf(stderr, "%02d:%02d:%02d.%06u   ",
       s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
   if ((cur->sport == 3002) || (cur->dport == 3002)) {
+#if defined(AF_INET6)
+    char str[136];
+    memset(str, 0, 136);
+    inet_ntop(AF_INET6, (void *) cur->saddr, str, sizeof(str));
+    fprintf(stderr, "%s.%d --> ", str, cur->sport);
+    memset(str, 0, 136);
+    inet_ntop(AF_INET6, (void *) cur->daddr, str, sizeof(str));
+    fprintf(stderr, "%s.%d  ", str, cur->dport);
+#else
     fprintf(stderr, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
         ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
     fprintf(stderr, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
         ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
+#endif
   } else {
+#if defined(AF_INET6)
+    char str[136];
+    memset(str, 0, 136);
+    inet_ntop(AF_INET6, (void *) cur->daddr, str, sizeof(str));
+    fprintf(stderr, "%s.%d --> ", str, cur->dport);
+    memset(str, 0, 136);
+    inet_ntop(AF_INET6, (void *) cur->saddr, str, sizeof(str));
+    fprintf(stderr, "%s.%d  ", str, cur->sport);
+#else
     fprintf(stderr, "%u.%u.%u.%u:%d --> ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
         ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
     fprintf(stderr, "%u.%u.%u.%u:%d  ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
         ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
+#endif
   }
   if (max == 0) 
     fprintf(stderr, "\n\tNo packets collected\n");
@@ -281,6 +306,9 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
   struct ether_header *enet;
   const struct ip *ip;
+#if defined(AF_INET6)
+  const struct ip6_hdr *ip6;
+#endif
   const struct tcphdr *tcp;
   struct spdpair current;
 
@@ -292,11 +320,18 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   p += sizeof(struct ether_header);   /* move packet pointer past ethernet fields */
 
   ip = (const struct ip *)p;
+#if defined(AF_INET6)
+  if (ip->ip_v == 4) {
+#endif
   p += (ip->ip_hl) * 4;
   tcp = (const struct tcphdr *)p;
+#if defined(AF_INET6)
+  current.saddr[0] = ip->ip_src.s_addr;
+  current.daddr[0] = ip->ip_dst.s_addr;
+#else
   current.saddr = ip->ip_src.s_addr;
   current.daddr = ip->ip_dst.s_addr;
-
+#endif
   current.sport = ntohs(tcp->source);
   current.dport = ntohs(tcp->dest);
   current.seq = ntohl(tcp->seq);
@@ -309,18 +344,30 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     vt_print_bins(&rev);
     return;
   }
-
+#if defined(AF_INET6)
+  if (fwd.saddr[0] == 0) {
+    fprintf(stderr, "Started data collection for sockets %d:%d\n", current.dport,
+        current.sport);
+    fwd.saddr[0] = current.saddr[0];
+    fwd.daddr[0] = current.daddr[0];
+#else
   if (fwd.saddr == 0) {
     fprintf(stderr, "Started data collection for sockets %d:%d\n", current.dport,
         current.sport);
     fwd.saddr = current.saddr;
     fwd.daddr = current.daddr;
+#endif
     fwd.sport = current.sport;
     fwd.dport = current.dport;
     fwd.st_sec = current.sec;
     fwd.st_usec = current.usec;
+#if defined(AF_INET6)
+    rev.saddr[0] = current.daddr[0];
+    rev.daddr[0] = current.saddr[0];
+#else
     rev.saddr = current.daddr;
     rev.daddr = current.saddr;
+#endif
     rev.sport = current.dport;
     rev.dport = current.sport;
     rev.st_sec = current.sec;
@@ -330,20 +377,97 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     return;
   }
 
+#if defined(AF_INET6)
+  if (fwd.saddr[0] == current.saddr[0]) {
+#else
   if (fwd.saddr == current.saddr) {
+#endif
+    /* FIXME: these ports should be defined somewhere else */
     if (current.dport == 3002)
       vt_calculate_spd(&current, &fwd);
     else if (current.sport == 3003)
-      vt_calculate_spd(&current, &rev);
-    return;
+      vt_calculate_spd(&current, &fwd);
   }
+#if defined(AF_INET6)
+  if (rev.saddr[0] == current.saddr[0]) {
+#else
   if (rev.saddr == current.saddr) {
+#endif
     if (current.sport == 3002)
       vt_calculate_spd(&current, &rev);
     else if (current.dport == 3003)
-      vt_calculate_spd(&current, &fwd);
-    return;
+      vt_calculate_spd(&current, &rev);
   }
+#if defined(AF_INET6)
+  }
+  else {
+    ip6 = (const struct ip6_hdr *)p;
+
+    p += 40;
+    tcp = (const struct tcphdr *)p;
+    memcpy(current.saddr, (void *) &ip6->ip6_src, 16);
+    memcpy(current.daddr, (void *) &ip6->ip6_dst, 16);
+
+    current.sport = ntohs(tcp->source);
+    current.dport = ntohs(tcp->dest);
+    current.seq = ntohl(tcp->seq);
+    current.ack = ntohl(tcp->ack_seq);
+    current.win = ntohs(tcp->window);
+    
+    if (tcp->rst == 1) {
+      fprintf(stderr, "Reset packet found, aborting data collection\n");
+      vt_print_bins(&fwd);
+      vt_print_bins(&rev);
+      return;
+    }
+    if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
+      fprintf(stderr, "Started data collection for sockets %d:%d\n", current.dport,
+          current.sport);
+      memcpy(fwd.saddr, (void *) &current.saddr, 16);
+      memcpy(fwd.daddr, (void *) &current.daddr, 16);
+      fwd.sport = current.sport;
+      fwd.dport = current.dport;
+      fwd.st_sec = current.sec;
+      fwd.st_usec = current.usec;
+      memcpy(rev.saddr, (void *) &current.daddr, 16);
+      memcpy(rev.daddr, (void *) &current.saddr, 16);
+      rev.sport = current.dport;
+      rev.dport = current.sport;
+      rev.st_sec = current.sec;
+      rev.st_usec = current.usec;
+      fwd.dec_cnt = 0;
+      fwd.inc_cnt = 0;
+      fwd.same_cnt = 0;
+      fwd.timeout = 0;
+      fwd.dupack = 0;
+      rev.dec_cnt = 0;
+      rev.inc_cnt = 0;
+      rev.same_cnt = 0;
+      rev.timeout = 0;
+      rev.dupack = 0;
+      return;
+    }
+
+    if ((fwd.saddr[0] == current.saddr[0]) &&
+        (fwd.saddr[1] == current.saddr[1]) &&
+        (fwd.saddr[2] == current.saddr[2]) &&
+        (fwd.saddr[3] == current.saddr[3])) {
+      if (current.dport == 3002)
+        vt_calculate_spd(&current, &fwd);
+      else if (current.sport == 3003)
+        vt_calculate_spd(&current, &fwd);
+    }
+    if ((rev.saddr[0] == current.saddr[0]) &&
+        (rev.saddr[1] == current.saddr[1]) &&
+        (rev.saddr[2] == current.saddr[2]) &&
+        (rev.saddr[3] == current.saddr[3])) {
+      if (current.sport == 3002)
+        vt_calculate_spd(&current, &rev);
+      else if (current.dport == 3003)
+        vt_calculate_spd(&current, &rev);
+    }
+  }
+#endif
 }
 
 int

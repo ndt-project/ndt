@@ -79,16 +79,19 @@ struct ndtchild {
 };
 
 struct spdpair {
+  int family;
+#if defined(AF_INET6)
+	u_int32_t saddr[4];
+	u_int32_t daddr[4];
+#else
 	u_int32_t saddr;
 	u_int32_t daddr;
-	struct in6_addr s6addr;
-	struct in6_addr d6addr;
+#endif
 	u_int16_t sport;
 	u_int16_t dport;
 	u_int32_t seq;
 	u_int32_t ack;
 	u_int32_t win;
-	int family;
 	int links[16];
 	u_int32_t sec;
 	u_int32_t usec;

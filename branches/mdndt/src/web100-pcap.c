@@ -18,8 +18,13 @@ void init_vars(struct spdpair *cur)
 
 	int i;
 
+#if defined(AF_INET6)
+	memset(cur->saddr, 0, 4);
+	memset(cur->daddr, 0, 4);
+#else
 	cur->saddr = 0;
 	cur->daddr = 0;
+#endif
 	cur->sport = 0;
 	cur->dport = 0;
 	cur->seq = 0;
@@ -47,8 +52,6 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 	/* the tzoffset value is fixed for CST (6), use 5 for CDT.  The code needs to find the
 	 * current timezone and use that value here! */
 	s = (cur->st_sec - (tzoffset * 3600)) %86400; 
-	/* s = (cur->st_sec - 5) %86400;  */
-	/* s = (cur->st_sec + gmt2local(0)) %86400; */
 	fp = fopen(LogFileName, "a");
 	if (debug > 0) 
 	    fprintf(stderr, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60,
@@ -60,7 +63,17 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 		max = cur->links[i];
 	    }
 	}
-	if ((debug > 2) && (cur->family == AF_INET)) {
+	if ((debug > 2) && (cur->family == 4)) {
+#ifdef AF_INET6
+	    fprintf(fp, "%u.%u.%u.%u:%d -->", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
+		((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
+	    fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
+		((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
+	    fprintf(stderr, "%u.%u.%u.%u:%d -->", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
+		((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
+	    fprintf(stderr, "%u.%u.%u.%u:%d ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
+		((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
+#else
 	    fprintf(fp, "%u.%u.%u.%u:%d -->", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
 		((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
 	    fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
@@ -69,6 +82,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 		((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
 	    fprintf(stderr, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
 		((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
+#endif
 	}
 	if (max == 0) {
 	    if (debug > 2) {
