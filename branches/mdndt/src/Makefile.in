@@ -72,12 +72,14 @@ analyze_OBJECTS = $(am_analyze_OBJECTS)
 am__DEPENDENCIES_1 =
 analyze_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_fakewww_OBJECTS = fakewww-fakewww.$(OBJEXT) \
-	fakewww-troute.$(OBJEXT) fakewww-tr-tree.$(OBJEXT) \
+	fakewww-troute.$(OBJEXT) fakewww-troute6.$(OBJEXT) \
+	fakewww-tr-tree.$(OBJEXT) fakewww-tr-tree6.$(OBJEXT) \
 	fakewww-network.$(OBJEXT) fakewww-usage.$(OBJEXT)
 fakewww_OBJECTS = $(am_fakewww_OBJECTS)
 fakewww_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_tr_mkmap_OBJECTS = tr_mkmap-tr-mkmap.$(OBJEXT) \
-	tr_mkmap-tr-tree.$(OBJEXT) tr_mkmap-usage.$(OBJEXT)
+	tr_mkmap-tr-tree.$(OBJEXT) tr_mkmap-tr-tree6.$(OBJEXT) \
+	tr_mkmap-usage.$(OBJEXT)
 tr_mkmap_OBJECTS = $(am_tr_mkmap_OBJECTS)
 tr_mkmap_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_viewtrace_OBJECTS = viewtrace-viewtrace.$(OBJEXT) \
@@ -207,7 +209,7 @@ ndtdir = $(prefix)/ndt
 analyze_SOURCES = analyze.c usage.c
 analyze_LDADD = $(NDTLIBS)
 analyze_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
-fakewww_SOURCES = fakewww.c troute.c tr-tree.c network.c usage.c
+fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c
 fakewww_LDADD = $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c
@@ -221,7 +223,7 @@ viewtrace_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100clt_SOURCES = web100clt.c network.c usage.c
 web100clt_LDADD = $(I2UTILLIBDEPS)
 web100clt_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
-tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c usage.c
+tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c tr-tree6.c usage.c
 tr_mkmap_LDADD = $(NDTLIBS)
 tr_mkmap_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 all: all-am
@@ -333,10 +335,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-fakewww.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-tr-tree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-tr-tree6.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-troute.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-troute6.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-mkmap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-tree.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-tree6.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viewtrace-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/viewtrace-viewtrace.Po@am__quote@
@@ -420,6 +425,20 @@ fakewww-troute.obj: troute.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-troute.obj `if test -f 'troute.c'; then $(CYGPATH_W) 'troute.c'; else $(CYGPATH_W) '$(srcdir)/troute.c'; fi`
 
+fakewww-troute6.o: troute6.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-troute6.o -MD -MP -MF "$(DEPDIR)/fakewww-troute6.Tpo" -c -o fakewww-troute6.o `test -f 'troute6.c' || echo '$(srcdir)/'`troute6.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-troute6.Tpo" "$(DEPDIR)/fakewww-troute6.Po"; else rm -f "$(DEPDIR)/fakewww-troute6.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='troute6.c' object='fakewww-troute6.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-troute6.o `test -f 'troute6.c' || echo '$(srcdir)/'`troute6.c
+
+fakewww-troute6.obj: troute6.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-troute6.obj -MD -MP -MF "$(DEPDIR)/fakewww-troute6.Tpo" -c -o fakewww-troute6.obj `if test -f 'troute6.c'; then $(CYGPATH_W) 'troute6.c'; else $(CYGPATH_W) '$(srcdir)/troute6.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-troute6.Tpo" "$(DEPDIR)/fakewww-troute6.Po"; else rm -f "$(DEPDIR)/fakewww-troute6.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='troute6.c' object='fakewww-troute6.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-troute6.obj `if test -f 'troute6.c'; then $(CYGPATH_W) 'troute6.c'; else $(CYGPATH_W) '$(srcdir)/troute6.c'; fi`
+
 fakewww-tr-tree.o: tr-tree.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-tr-tree.o -MD -MP -MF "$(DEPDIR)/fakewww-tr-tree.Tpo" -c -o fakewww-tr-tree.o `test -f 'tr-tree.c' || echo '$(srcdir)/'`tr-tree.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-tr-tree.Tpo" "$(DEPDIR)/fakewww-tr-tree.Po"; else rm -f "$(DEPDIR)/fakewww-tr-tree.Tpo"; exit 1; fi
@@ -433,6 +452,20 @@ fakewww-tr-tree.obj: tr-tree.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tr-tree.c' object='fakewww-tr-tree.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-tr-tree.obj `if test -f 'tr-tree.c'; then $(CYGPATH_W) 'tr-tree.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree.c'; fi`
+
+fakewww-tr-tree6.o: tr-tree6.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-tr-tree6.o -MD -MP -MF "$(DEPDIR)/fakewww-tr-tree6.Tpo" -c -o fakewww-tr-tree6.o `test -f 'tr-tree6.c' || echo '$(srcdir)/'`tr-tree6.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-tr-tree6.Tpo" "$(DEPDIR)/fakewww-tr-tree6.Po"; else rm -f "$(DEPDIR)/fakewww-tr-tree6.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tr-tree6.c' object='fakewww-tr-tree6.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-tr-tree6.o `test -f 'tr-tree6.c' || echo '$(srcdir)/'`tr-tree6.c
+
+fakewww-tr-tree6.obj: tr-tree6.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-tr-tree6.obj -MD -MP -MF "$(DEPDIR)/fakewww-tr-tree6.Tpo" -c -o fakewww-tr-tree6.obj `if test -f 'tr-tree6.c'; then $(CYGPATH_W) 'tr-tree6.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree6.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/fakewww-tr-tree6.Tpo" "$(DEPDIR)/fakewww-tr-tree6.Po"; else rm -f "$(DEPDIR)/fakewww-tr-tree6.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tr-tree6.c' object='fakewww-tr-tree6.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-tr-tree6.obj `if test -f 'tr-tree6.c'; then $(CYGPATH_W) 'tr-tree6.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree6.c'; fi`
 
 fakewww-network.o: network.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT fakewww-network.o -MD -MP -MF "$(DEPDIR)/fakewww-network.Tpo" -c -o fakewww-network.o `test -f 'network.c' || echo '$(srcdir)/'`network.c; \
@@ -489,6 +522,20 @@ tr_mkmap-tr-tree.obj: tr-tree.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tr-tree.c' object='tr_mkmap-tr-tree.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tr_mkmap-tr-tree.obj `if test -f 'tr-tree.c'; then $(CYGPATH_W) 'tr-tree.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree.c'; fi`
+
+tr_mkmap-tr-tree6.o: tr-tree6.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-tr-tree6.o -MD -MP -MF "$(DEPDIR)/tr_mkmap-tr-tree6.Tpo" -c -o tr_mkmap-tr-tree6.o `test -f 'tr-tree6.c' || echo '$(srcdir)/'`tr-tree6.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/tr_mkmap-tr-tree6.Tpo" "$(DEPDIR)/tr_mkmap-tr-tree6.Po"; else rm -f "$(DEPDIR)/tr_mkmap-tr-tree6.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tr-tree6.c' object='tr_mkmap-tr-tree6.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tr_mkmap-tr-tree6.o `test -f 'tr-tree6.c' || echo '$(srcdir)/'`tr-tree6.c
+
+tr_mkmap-tr-tree6.obj: tr-tree6.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-tr-tree6.obj -MD -MP -MF "$(DEPDIR)/tr_mkmap-tr-tree6.Tpo" -c -o tr_mkmap-tr-tree6.obj `if test -f 'tr-tree6.c'; then $(CYGPATH_W) 'tr-tree6.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree6.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/tr_mkmap-tr-tree6.Tpo" "$(DEPDIR)/tr_mkmap-tr-tree6.Po"; else rm -f "$(DEPDIR)/tr_mkmap-tr-tree6.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tr-tree6.c' object='tr_mkmap-tr-tree6.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tr_mkmap-tr-tree6.obj `if test -f 'tr-tree6.c'; then $(CYGPATH_W) 'tr-tree6.c'; else $(CYGPATH_W) '$(srcdir)/tr-tree6.c'; fi`
 
 tr_mkmap-usage.o: usage.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-usage.o -MD -MP -MF "$(DEPDIR)/tr_mkmap-usage.Tpo" -c -o tr_mkmap-usage.o `test -f 'usage.c' || echo '$(srcdir)/'`usage.c; \

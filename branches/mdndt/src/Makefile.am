@@ -29,7 +29,7 @@ analyze_SOURCES	= analyze.c usage.c
 analyze_LDADD = $(NDTLIBS)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-fakewww_SOURCES	= fakewww.c troute.c tr-tree.c network.c usage.c
+fakewww_SOURCES	= fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c
 fakewww_LDADD = $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
@@ -47,7 +47,7 @@ web100clt_SOURCES	= web100clt.c network.c usage.c
 web100clt_LDADD = $(I2UTILLIBDEPS)
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c usage.c
+tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c tr-tree6.c usage.c
 tr_mkmap_LDADD = $(NDTLIBS)
 tr_mkmap_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 

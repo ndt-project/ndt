@@ -81,7 +81,7 @@ find_compare(u_int32_t IPlist[], int cnt, int debug)
   fp = fopen(buff, "rb");
   if (fp == NULL) {
     if (debug > 4) 
-      fprintf(stderr, "Error: Can't read default tree, exiting restore_tree()\n");
+      fprintf(stderr, "Error: Can't read default tree, exiting find_compare()\n");
     return 0;
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));

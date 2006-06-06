@@ -23,4 +23,22 @@ struct tr_tree {
 void restore_tree(struct tr_tree *tmp, FILE *fp);
 u_int32_t find_compare(u_int32_t IPlist[], int cnt, int debug);
 
+#ifdef AF_INET6
+
+struct tr_tree6 {
+  uint32_t ip_addr[4];             /* IP addr of the current node */
+  int branches;
+  char hostname[256];              /* Hostname placeholder */
+  struct tr_tree6 *branch[25];     /* pointer to child */
+  struct tr_tree6 *left;           /* pointer to child */
+  struct tr_tree6 *right;          /* pointer to child */
+};
+
+#define DFLT_TREE6 "Default.tree6" /* file containing default tree for IPv6 nodes */
+
+void restore_tree6(struct tr_tree6 *tmp, FILE *fp);
+int find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug);
+
+#endif
+
 #endif

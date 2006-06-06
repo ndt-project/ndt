@@ -423,14 +423,14 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
       fprintf(stderr, "Started data collection for sockets %d:%d\n", current.dport,
           current.sport);
-      memcpy(fwd.saddr, (void *) &current.saddr, 16);
-      memcpy(fwd.daddr, (void *) &current.daddr, 16);
+      memcpy(fwd.saddr, (void *) current.saddr, 16);
+      memcpy(fwd.daddr, (void *) current.daddr, 16);
       fwd.sport = current.sport;
       fwd.dport = current.dport;
       fwd.st_sec = current.sec;
       fwd.st_usec = current.usec;
-      memcpy(rev.saddr, (void *) &current.daddr, 16);
-      memcpy(rev.daddr, (void *) &current.saddr, 16);
+      memcpy(rev.saddr, (void *) current.daddr, 16);
+      memcpy(rev.daddr, (void *) current.saddr, 16);
       rev.sport = current.dport;
       rev.dport = current.sport;
       rev.st_sec = current.sec;

@@ -115,6 +115,7 @@ www_long_usage(char* info)
   printf("\n%s\n\n\n", info);
   printf(" Basic options:\n\n");
   printf("  -d, --debug            - increment debugging mode\n");
+  printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -h, --help             - print this help message\n");
   printf("  -l, --log log_FN       - log connection requests in specified file\n");
   printf("  -p, --port #port       - specify the port number (default is 7123)\n");
@@ -143,6 +144,7 @@ analyze_long_usage(char* info)
   printf("\n%s\n\n\n", info);
   printf(" Basic options:\n\n");
   printf("  -d, --debug            - increment debugging mode\n");
+  printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -n, --nodns            - disable resolving DNS names\n");
   printf("  -h, --help             - print this help message\n");
   printf("  -l, --log log_FN       - specify the file with the logs\n");
@@ -170,7 +172,13 @@ mkmap_long_usage(char* info)
   printf("  -h, --help             - print this help message\n");
   printf("  -p, --print            - print out the current traceroute map\n");
   printf("  -d, --debug            - increment debugging mode\n");
+  printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -v, --version          - print version number\n\n");
+#ifdef AF_INET6
+  printf(" IP family:\n\n");
+  printf("  -4, --ipv4             - use only IPv4 operational mode\n");
+  printf("  -6, --ipv6             - use only IPv6 operational mode\n\n");
+#endif
 
   exit(0);
 }
@@ -189,6 +197,7 @@ vt_long_usage(char* info)
   printf(" Basic options:\n\n");
   printf("  -c, --count #amount    - specify how many packets will be viewed\n");
   printf("  -d, --debug            - increment debugging mode\n");
+  printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -f, --file fn          - specify the name of the file to offline trace\n");
   printf("  -h, --help             - print this help message\n");
   printf("  -i, --interface device - specify network interface (libpcap device)\n");
