@@ -29,8 +29,7 @@
 #include "usage.h"
 
 struct spdpair fwd, rev;
-struct sockaddr_in spd_addr, spd_addr2, spd_cli;
-int spd_sock, spd_sock2, start, finish, fini;
+int start, finish, fini;
 int debug=0;
 extern int errno;
 
@@ -566,25 +565,6 @@ main(int argc, char **argv)
     exit (-2);
   }
 
-  if ((spd_sock2 = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    fprintf(stderr,"speed-chk: unable to open local socket to web100srv\n");
-  bzero((char *) &spd_addr2, sizeof(spd_addr2));
-  spd_addr2.sin_family = AF_INET;
-  spd_addr2.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  spd_addr2.sin_port        = htons(30005);
-
-  if ((spd_sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    fprintf(stderr,"speed-chk: unable to open local socket to web100srv\n");
-  bzero((char *) &spd_addr, sizeof(spd_addr));
-  spd_addr.sin_family = AF_INET;
-  spd_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  spd_addr.sin_port        = htons(30004);
-
-  if (bind(spd_sock, (struct sockaddr *) &spd_addr, sizeof(spd_addr)) < 0) {
-    fprintf(stderr, "server: can't bind local address");
-    exit(-20);
-  }
-
   printer = (pcap_handler) print_speed;
   if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
     fprintf(stderr, "pcap_loop failed %s\n", pcap_geterr(pd));
@@ -597,8 +577,6 @@ main(int argc, char **argv)
     vt_print_bins(&fwd);
     vt_print_bins(&rev);
   }
-  close(spd_sock);
-  close(spd_sock2);
   pcap_close(pd);
   return 0;
 }
