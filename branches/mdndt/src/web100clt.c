@@ -751,8 +751,7 @@ main(int argc, char *argv[])
   inlth = read(ctlSocket, buff, 512);
   strncat(tmpstr2, buff, inlth);
 
-  for (i=0; i<128; i++)
-    buff[i] = '\0';
+  memset(buff, 0, 128);
   sprintf(buff, "%0.0f", spdin);
   if (debug > 3)
     fprintf(stderr, "CWND limited speed = %0.2f Kbps\n", spdin);
@@ -762,7 +761,7 @@ main(int argc, char *argv[])
   I2AddrFree(sec_addr);
   /*   End of Middlebox test  */
 
-  buff[0] = '\0';
+  memset(buff, 0, 128);
   inlth = read(ctlSocket, buff, 512); 
   if (inlth <= 0) {  
     fprintf(stderr, "read failed read 'Go' flag\n");

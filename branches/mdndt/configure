@@ -1873,7 +1873,7 @@ GCJFLAGS=
 
 
 NDTJAR=jar
-NDTJARFLAG='-cf'
+NDTJARFLAG='-cmf'
 
 
 

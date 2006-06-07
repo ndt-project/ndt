@@ -72,6 +72,7 @@ import java.util.*;
 import java.text.*;
 import java.lang.*;
 import java.applet.Applet;
+import javax.swing.JFrame;
 
 public class Tcpbw100 extends Applet implements ActionListener
 {
@@ -114,7 +115,15 @@ public class Tcpbw100 extends Applet implements ActionListener
 	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 	double aspd;
 
+  boolean isApplication = false;
+  String host = null;
 
+  public void showStatus(String msg)
+  {
+    if (!isApplication) {
+      super.showStatus(msg);
+    }
+  }
 
 	public void init() {
 		setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
@@ -122,7 +131,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.5a\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.7\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -182,7 +191,9 @@ public class Tcpbw100 extends Applet implements ActionListener
 		Socket outSocket = null;
 		Socket inSocket = null;
 		Socket in2Socket = null;
-		String host = getCodeBase().getHost();
+    if (!isApplication) {
+		  host = getCodeBase().getHost();
+    }
 		int ctlport = 3001,  outport, inport, inlth, bytes;
 		int midport = 3004;
 		byte buff[] = new byte[8192];
@@ -201,7 +212,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 			return;
 		} catch (IOException e) {
 			System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
-			errmsg = "Server process not running: start web100srv process on remote server\n" ;
+			errmsg = "Server process not running: start web100srv process on remote server (" + host + ":" + ctlport + ")\n" ;
 			failed = true;
 			return;
 		}
@@ -303,17 +314,14 @@ public class Tcpbw100 extends Applet implements ActionListener
 		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
 		s2cspd = ((8.0 * bytes) / 1000) / t;
 
+		inlth = ctlin.read(buff2, 0, 512);
+		String tmpstr2 = new String(buff2, 0, inlth);
+
 		buff = Double.toString(s2cspd*1000).getBytes();
 		String tmpstr4 = new String(buff, 0, buff.length);
 		System.out.println("Sending '" + tmpstr4 + "' back to server");
 		ctlout.write(buff, 0, buff.length);
 
-		String tmpstr2 = new String(buff2, 0, 512);
-		tmpstr2 = "";
-		inlth = ctlin.read(buff2, 0, 512);
-		tmpstr2 += new String(buff2, 0, inlth);
-			System.out.println("read tmpstr2 = '" + tmpstr2 + "' from remote server");
-		
 		results.append("Done\n");
 		statistics.append("Done\n");
 		emailText += "Done\n%0A";
@@ -436,7 +444,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 			return;
 		}
 		tmpstr5 = new String(buff2, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, open new connecion");
+		System.err.println("read string '" + tmpstr5 + "' from server, open new connection");
 
 
 		try {
@@ -1021,7 +1029,14 @@ public class Tcpbw100 extends Applet implements ActionListener
 		// else
 		//     statistics.append("Information: Network Middlebox is modifying Window scaling option\n");
 
-		if (ssip.equals(csip)) {
+    boolean preserved = false;
+    try {
+      preserved = InetAddress.getByName(ssip).equals(InetAddress.getByName(csip));
+    }
+    catch (UnknownHostException e) {
+      preserved = ssip.equals(csip);
+    }
+		if (preserved) {
 			statistics.append("Server IP addresses are preserved End-to-End\n");
 		}
 		else {
@@ -1037,7 +1052,13 @@ public class Tcpbw100 extends Applet implements ActionListener
 			statistics.append("\tEdit Permissions - Access to all Network Addresses, click Eanble and save changes\n");
 		}
 		else {
-			if (scip.equals(ccip))
+      try {
+        preserved = InetAddress.getByName(scip).equals(InetAddress.getByName(ccip));
+      }
+      catch (UnknownHostException e) {
+        preserved = scip.equals(ccip);
+      }
+			if (preserved)
 				statistics.append("Client IP addresses are preserved End-to-End\n");
 			else {
 				statistics.append("Information: Network Address Translation (NAT) box is modifying the Client's IP address\n");
@@ -1426,5 +1447,28 @@ public class Tcpbw100 extends Applet implements ActionListener
 			// System.err.println("Extended Frame class - RAC9/15/03");
 		}
 	} // class: clsFrame
+
+  public static void main(String[] args)
+  {
+    JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
+    if (args.length != 1) {
+      System.out.println("Usage: java -jar Tcpbw100.jar " + "HOST");
+      System.exit(0);
+    }
+    final Tcpbw100 applet = new Tcpbw100();
+    frame.addWindowListener(new WindowAdapter() {
+      public void windowClosing(WindowEvent e) {
+        applet.destroy();
+        System.exit(0);
+      }
+    });
+    applet.isApplication = true;
+    applet.host = args[0];
+    frame.getContentPane().add(applet);
+    frame.setSize(600, 320);
+    applet.init();
+    applet.start();
+    frame.setVisible(true);
+  }
 
 } // class: Tcpbw100

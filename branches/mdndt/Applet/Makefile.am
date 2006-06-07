@@ -59,5 +59,5 @@ Tcpbw100.class: $(Tcpbw100_JAVA)
 	$(GCJ) $(Tcpbw100_JAVA)
 
 Tcpbw100.jar:	Tcpbw100.class
-	$(NDTJAR) $(NDTJARFLAG) Tcpbw100.jar Tcpbw100*.class
+	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class
 	echo timestamp > classTcpbw100.stamp
