@@ -1652,7 +1652,7 @@ read2:
         CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
         MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
         (int)c2sspd, (int)s2cspd, c2sdata, s2cack, 1, debug);
-    gen_html((int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
+    gen_html(LogFileName, (int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
         Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
         refresh, debug);
   }

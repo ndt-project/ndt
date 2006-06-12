@@ -150,7 +150,7 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int
     int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd,
     int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd,
     int c2sdata, int s2cack, int view_flag, int debug);
-void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
+void gen_html(char *LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
     int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh, int debug);
 
 #endif

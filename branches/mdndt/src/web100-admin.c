@@ -8,6 +8,9 @@
  */
 
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "web100srv.h"
 
@@ -264,7 +267,7 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
 }
 
 void
-gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
+gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
   int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh, int debug)
 {
   FILE *fp;
@@ -369,6 +372,31 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
   else
     fprintf(fp, "    <td align=right>%d Kbps\n    <td align=right>%d Kbps\n", minc2sspd, mins2cspd);
   fprintf(fp, "    <td>\n    <td>\n  </tr>\n</table>\n");
+
+  fprintf(fp, "<br>\n<hr width=100%% noShade size=4>\n");
+  fprintf(fp, "<table border>\n  <tr>\n");
+  fprintf(fp, "    <th>\n    <th>Filename\n    <th>Size\n  </tr>\n  <tr>\n");
+  fprintf(fp, "    <td><b>Log</b>\n    <td> %s    <td>\n", LogFileName);
+  {
+    struct stat fstats;
+    
+    if (stat(LogFileName, &fstats) == 0) {
+      char* names[] = {"B", "KB", "MB", "GB"};
+      int idname;
+      double size = fstats.st_size;
+      for (idname = 0; idname < 3; ++idname) {
+        if (size < 1024) {
+          break;
+        }
+        size /= 1024.0;
+      }
+      fprintf(fp, "%.2f %s\n", size, names[idname]);
+    }
+    else {
+      fprintf(fp, "???\n");
+    }
+  }
+  fprintf(fp, "  </tr>\n</table>\n");
 
   /* now pick up the rest of the descriptive text that goes along with this page.
    * instead of burying all the text in this program, just include it from an external
@@ -603,6 +631,6 @@ display:
   }
   fclose(fp);
   view_flag = 1;
-  gen_html(c2sspd, s2cspd, MinRTT, PktsRetrans, Timeouts, Sndbuf, MaxRwinRcvd,
+  gen_html(LogFileName, c2sspd, s2cspd, MinRTT, PktsRetrans, Timeouts, Sndbuf, MaxRwinRcvd,
       CurrentCwnd, mismatch, bad_cable, totalcnt, refresh, debug);
 }
