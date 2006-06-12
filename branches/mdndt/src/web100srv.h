@@ -122,6 +122,8 @@ int err_sys(char* s);
 void init_vars(struct spdpair *cur);
 void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int debug);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
+void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2], char *device);
+int check_signal_flags();
 
 /* web100-util */
 int web100_init(char *VarFileName, int debug);
