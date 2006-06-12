@@ -7,6 +7,7 @@
  */
 
 #include <unistd.h>
+#include <assert.h>
 
 #include "network.h"
 
@@ -121,6 +122,9 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
 {
   struct addrinfo *fai=NULL;
   struct addrinfo *ai=NULL;
+
+  assert(sockfd);
+  assert(server_addr);
 
   if (!server_addr) {
     goto error;

@@ -56,13 +56,12 @@
 /* Location of default config file */
 #define CONFIGFILE  "/etc/ndt.conf"
 
-#define PORT 3001
+/* hard-coded port values */
+#define PORT "3001"
 #define PORT2 3002
 #define PORT3 3003
 #define PORT4 3004
 
-/* hard-coded port values */
-#define sPORT "3001"
 #define sPORT2 "3002"
 #define sPORT3 "3003"
 #define sPORT4 "3004"

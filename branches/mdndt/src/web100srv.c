@@ -71,6 +71,8 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 
 static char lgfn[256];
 static char wvfn[256];
+static char portbuf[10];
+static char devicebuf[100];
 
 /* list of global variables used throughout this program. */
 int window = 64000;
@@ -86,7 +88,7 @@ int mon_pipe1[2], mon_pipe2[2];
 int admin_view=0;
 int queue=1;
 int view_flag=0;
-int port=PORT, record_reverse=0;
+int record_reverse=0;
 int testing, waiting;
 int experimental=0;
 int refresh = 30;
@@ -104,6 +106,7 @@ char buff[BUFFSIZE+1];
 char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
+char* port = PORT;
 
 pcap_t *pd;
 pcap_dumper_t *pdump;
@@ -327,72 +330,84 @@ static void LoadConfig(char **lbuf, size_t *lbuf_max)
 
 
   if (!(conf = fopen(ConfigFileName, "r")))
-      return;
+    return;
 
   if (debug > 0)
-      fprintf(stderr, " Reading config file %s to obtain options\n", ConfigFileName);
+    fprintf(stderr, " Reading config file %s to obtain options\n", ConfigFileName);
 
   while ((rc = I2ReadConfVar(conf, rc, key, val, 256, lbuf, lbuf_max)) > 0) {
-      if (strncasecmp(key, "administrator_view", 5) == 0) {
-    admin_view = 1;
-    continue;
-      }
+    if (strncasecmp(key, "administrator_view", 5) == 0) {
+      admin_view = 1;
+      continue;
+    }
 
-      else if (strncasecmp(key, "multiple_clients", 5) == 0) {
-    multiple = 1;
-    continue;
-      }
+    else if (strncasecmp(key, "multiple_clients", 5) == 0) {
+      multiple = 1;
+      continue;
+    }
 
-      else if (strncasecmp(key, "record_reverse", 6) == 0) {
-    record_reverse = 1;
-    continue;
-      }
+    else if (strncasecmp(key, "record_reverse", 6) == 0) {
+      record_reverse = 1;
+      continue;
+    }
 
-      else if (strncasecmp(key, "write_trace", 5) == 0) {
-    dumptrace = 1;
-    continue;
-      }
+    else if (strncasecmp(key, "write_trace", 5) == 0) {
+      dumptrace = 1;
+      continue;
+    }
 
-      else if (strncasecmp(key, "TCP_Buffer_size", 3) == 0) {
-    window = atoi(val);
-    set_buff = 1;
-    continue;
-      }
+    else if (strncasecmp(key, "TCP_Buffer_size", 3) == 0) {
+      window = atoi(val);
+      set_buff = 1;
+      continue;
+    }
 
-      else if (strncasecmp(key, "debug", 5) == 0) {
-    debug = atoi(val);
-    continue;
-      }
+    else if (strncasecmp(key, "debug", 5) == 0) {
+      debug = atoi(val);
+      continue;
+    }
 
-      else if (strncasecmp(key, "variable_file", 6) == 0) {
-    VarFileName = val;
-    continue;
-      }
+    else if (strncasecmp(key, "variable_file", 6) == 0) {
+      sprintf(wvfn, "%s", val);
+      VarFileName = wvfn;
+      continue;
+    }
 
-      else if (strncasecmp(key, "log_file", 3) == 0) {
-    LogFileName = val;
-    continue;
-      }
+    else if (strncasecmp(key, "log_file", 3) == 0) {
+      sprintf(lgfn, "%s", val);
+      LogFileName = lgfn; 
+      continue;
+    }
 
-      else if (strncasecmp(key, "device", 5) == 0) {
-    device = val;
-    continue;
-      }
+    else if (strncasecmp(key, "device", 5) == 0) {
+      snprintf(devicebuf, 100, "%s", val);
+      device = devicebuf;
+      continue;
+    }
 
-      else if (strncasecmp(key, "port", 4) == 0) {
-    port = atoi(val);
-    continue;
-      }
+    else if (strncasecmp(key, "port", 4) == 0) {
+      snprintf(portbuf, 10, "%s", val);
+      port = portbuf;
+      continue;
+    }
 
-      else if (strncasecmp(key, "syslog", 6) == 0) {
-    usesyslog = 1;
-    continue;
-      }
+    else if (strncasecmp(key, "syslog", 6) == 0) {
+      usesyslog = 1;
+      continue;
+    }
 
-      else if (strncasecmp(key, "disable_FIFO", 5) == 0) {
-    queue = 0;
-    continue;
-      }
+    else if (strncasecmp(key, "disable_FIFO", 5) == 0) {
+      queue = 0;
+      continue;
+    }
+    else {
+      fprintf(stderr, "Unrecognized config option: %s\n", key);
+      exit(1);
+    }
+  }
+  if (rc < 0) {
+    fprintf(stderr, "Syntax error in line %d of the config file %s\n", (-rc), ConfigFileName);
+    exit(1);
   }
   fclose(conf);
 }
@@ -1275,7 +1290,6 @@ main(int argc, char** argv)
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
-  char* listenport = sPORT;
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -1331,9 +1345,7 @@ main(int argc, char** argv)
         exit(0);
         break;
       case 'p':
-        port = atoi(optarg);
-        port2 = port + 1;
-        port3 = port + 2;
+        port = optarg;
         break;
       case 'a':
         admin_view = 1;
@@ -1428,7 +1440,7 @@ main(int argc, char** argv)
     err_sys("server: Invalid source address specified");
   }
   /* TODO: multiple */
-  if ((listenaddr = CreateListenSocket(listenaddr, listenport, conn_options)) == NULL) {
+  if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options)) == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   listenfd = I2AddrFD(listenaddr);
@@ -1439,7 +1451,7 @@ main(int argc, char** argv)
   }
 
   if (debug > 0)
-    fprintf(stderr, "server ready on port %d\n",port);
+    fprintf(stderr, "server ready on port %s\n",port);
 
   /* Initialize Web100 structures */
   count_vars = web100_init(VarFileName, debug);
