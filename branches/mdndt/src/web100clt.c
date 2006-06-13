@@ -522,7 +522,7 @@ main(int argc, char *argv[])
   char tmpstr2[512], tmpstr[16384], varstr[16384];
   int ctlSocket, outSocket, inSocket, in2Socket;
   /* FIXME: this 3001 shuld be defined somewhere else */
-  int ctlport = 3001, port3, port2, inlth;
+  int ctlport = 3001, port3, port2, port4, inlth;
   uint32_t bytes;
   double stop_time;
   int ret, i, xwait, one=1;
@@ -666,8 +666,9 @@ main(int argc, char *argv[])
 
   port3 = atoi(strtok(buff, " "));
   port2 = atoi(strtok(NULL, " "));
+  port4 = atoi(strtok(NULL, " "));
   if (debug > 2)
-    fprintf(stderr, "Testing will begin using port %d and %d\n", port2, port3);
+    fprintf(stderr, "Testing will begin using port %d, %d and %d\n", port2, port3, port4);
 
   /* now look for middleboxes (firewalls, NATs, and other boxes that
    * muck with TCP's end-to-end priciples
@@ -844,7 +845,7 @@ main(int argc, char *argv[])
     perror("Unable to resolve server address\n");
     exit(-3);
   }
-  I2AddrSetPort(sec_addr, port2);
+  I2AddrSetPort(sec_addr, port4);
 
   if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
     perror("Connect() for Server to Client failed");

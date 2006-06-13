@@ -68,6 +68,8 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "../config.h"
 #include "network.h"
 #include "usage.h"
+#include "utils.h"
+#include "mrange.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -83,7 +85,6 @@ int dumptrace=0;
 int usesyslog=0;
 int multiple=0;
 int set_buff=0;
-int port2=PORT2, port3=PORT3;
 int mon_pipe1[2], mon_pipe2[2];
 int admin_view=0;
 int queue=1;
@@ -107,6 +108,7 @@ char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
 char* port = PORT;
+int port2, port3, port4;
 
 pcap_t *pd;
 pcap_dumper_t *pdump;
@@ -121,6 +123,7 @@ static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
   {"multiple", 0, 0, 'm'},
+  {"mrange", 1, 0, 301},
   {"old", 0, 0, 'o'},
   {"disable-queue", 0, 0, 'q'},
   {"record", 0, 0, 'r'},
@@ -321,7 +324,7 @@ secs()
 }
 
 /* LoadConfig routine copied from Internet2. */
-static void LoadConfig(char **lbuf, size_t *lbuf_max)
+static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 {
   FILE *conf;
   char keybuf[256], valbuf[256];
@@ -357,7 +360,11 @@ static void LoadConfig(char **lbuf, size_t *lbuf_max)
     }
 
     else if (strncasecmp(key, "TCP_Buffer_size", 3) == 0) {
-      window = atoi(val);
+      if (check_int(val, &window)) {
+        char tmpText[200];
+        snprintf(tmpText, 200, "Invalid window size: %s", val);
+        short_usage(name, tmpText);
+      }
       set_buff = 1;
       continue;
     }
@@ -420,7 +427,7 @@ run_test(web100_agent* agent, int ctlsockfd)
   char logstr1[4096], logstr2[1024];
 
   int maxseg=1456, largewin=16*1024*1024;
-  int sock2, sock3; 
+  int sock2, sock3, sock4; 
   int n, midsockfd, recvsfd, xmitsfd;
   int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
   int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
@@ -454,14 +461,15 @@ run_test(web100_agent* agent, int ctlsockfd)
   float runave;
 
   struct sockaddr_storage cli_addr, cli2_addr;
-  I2Addr srv2_addr, srv3_addr;
+  I2Addr srv2_addr = NULL, srv3_addr = NULL, srv4_addr = NULL;
   struct timeval sel_tv;
   fd_set rfd;
   FILE *fp;
   socklen_t optlen, clilen;
   /* FIXME: use command-line options to set these ports */
-  char* listenport2 = sPORT2;
-  char* listenport3 = sPORT3;
+  char listenport2[10];
+  char listenport3[10];
+  char listenport4[10];
 
   /* experimental code to capture and log multiple copies of the the
    * web100 variables using the web100_snap() & log() functions.
@@ -480,6 +488,9 @@ run_test(web100_agent* agent, int ctlsockfd)
   int SndMax=0, SndUna=0;
   int c1=0, c2=0;
 
+  strcpy(listenport2, PORT2);
+  strcpy(listenport3, PORT3);
+  strcpy(listenport4, PORT4);
 
   stime = time(0);
   if (debug > 3)
@@ -492,10 +503,26 @@ run_test(web100_agent* agent, int ctlsockfd)
 
   autotune = web100_autotune(ctlsockfd, agent, debug);
 
+  if (multiple) {
+    strcpy(listenport2, "0");
+    strcpy(listenport3, "0");
+    strcpy(listenport4, "0");
+  }
+
   /* PORT2 */
 
-  /* TODO: multiple */
-  if ((srv2_addr = CreateListenSocket(NULL, listenport2, conn_options)) == NULL) {
+  while (srv2_addr == NULL) {
+    srv2_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport2) : listenport2), conn_options);
+    if (strcmp(listenport2, "0") == 0) {
+      /* FIXME: log */
+      fprintf(stderr, "WARNING: ephemeral port number was bound\n");
+      break;
+    }
+    if (multiple == 0) {
+      break;
+    }
+  }
+  if (srv2_addr == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   sock2 = I2AddrFD(srv2_addr);
@@ -513,24 +540,56 @@ run_test(web100_agent* agent, int ctlsockfd)
 
   /* PORT3 */
 
-  /* TODO: multiple */
-  if ((srv3_addr = CreateListenSocket(NULL, listenport3, conn_options)) == NULL) {
+  while (srv3_addr == NULL) {
+    srv3_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport3) : listenport3), conn_options);
+    if (strcmp(listenport3, "0") == 0) {
+      /* FIXME: log */
+      fprintf(stderr, "WARNING: ephemeral port number was bound\n");
+      break;
+    }
+    if (multiple == 0) {
+      break;
+    }
+  }
+  if (srv3_addr == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   sock3 = I2AddrFD(srv3_addr);
 
+  /* PORT4 */
+  
+  while (srv4_addr == NULL) {
+    srv4_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport4) : listenport4), conn_options);
+    if (strcmp(listenport4, "0") == 0) {
+      /* FIXME: log */
+      fprintf(stderr, "WARNING: ephemeral port number was bound\n");
+      break;
+    }
+    if (multiple == 0) {
+      break;
+    }
+  }
+  if (srv4_addr == NULL) {
+    err_sys("server: CreateListenSocket failed");
+  }
+  sock4 = I2AddrFD(srv4_addr);
+
+  /* FIXME: WHILE LOOP AROUND CreateListenSocket */
+  port2 = I2AddrPort(srv2_addr);
+  port3 = I2AddrPort(srv3_addr);
+  port4 = I2AddrPort(srv4_addr);
   if (debug > 0)
-    fprintf(stderr, "server ports %d %d\n", I2AddrPort(srv2_addr), I2AddrPort(srv3_addr));
+    fprintf(stderr, "server ports %d %d %d\n", port2, port3, port4);
   alarm(30);  /* reset alarm() signal to gain another 30 seconds */
-  sprintf(buff, "%d %d", I2AddrPort(srv2_addr), I2AddrPort(srv3_addr));
+  sprintf(listenport2, "%d", port2);
+  sprintf(listenport3, "%d", port3);
+  sprintf(listenport4, "%d", port4);
+  sprintf(buff, "%d %d %d", port2, port3, port4);
 
   /* This write kicks off the whole test cycle.  The client will start the
    * middlebox test after receiving this string
    */
   write(ctlsockfd, buff, strlen(buff));  
-
-  /* send 3rd server port to client */
-  port3 = I2AddrPort(srv3_addr);
 
   /* set mss to 1456 (strange value), and large snd/rcv buffers
    * should check to see if server supports window scale ?
@@ -725,22 +784,16 @@ read3:
     sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
   }
 
-  /* TODO: multiple */
-  if ((srv3_addr = CreateListenSocket(NULL, listenport3, conn_options)) == NULL) {
-    err_sys("server: CreateListenSocket failed");
-  }
-  sock3 = I2AddrFD(srv3_addr);
-
   if (set_buff > 0) {
-    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+    setsockopt(sock4, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+    setsockopt(sock4, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
   }
   if (autotune > 0) {
-    setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-    setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+    setsockopt(sock4, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+    setsockopt(sock4, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
   }
   if (debug > 0)
-    fprintf(stderr, "listening for Inet connection on sock3, fd=%d\n", sock3);
+    fprintf(stderr, "listening for Inet connection on sock4, fd=%d\n", sock4);
 
   /* Data received from speed-chk, tell applet to start next test */
   write(ctlsockfd, "Open-s2c-connection", 21);
@@ -750,11 +803,11 @@ read3:
    * the server back to the client.  Again stream data for 10 seconds.
    */
   if (debug > 0)
-    fprintf(stderr, "waiting for data on sock3\n");
+    fprintf(stderr, "waiting for data on sock4\n");
 
   j = 0;
   for (;;) {
-    if ((xmitsfd = accept(sock3, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+    if ((xmitsfd = accept(sock4, (struct sockaddr *) &cli_addr, &clilen)) > 0)
       break;
 
     sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
@@ -769,7 +822,7 @@ read3:
       pipe(mon_pipe2);
       if ((mon_pid2 = fork()) == 0) {
         close(ctlsockfd);
-        close(sock3);
+        close(sock4);
         close(xmitsfd);
         if (debug > 4) {
           fprintf(stderr, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d\n",
@@ -1249,7 +1302,7 @@ read2:
   }
   /* send web100 results for xmitsfd */
   close(xmitsfd); 
-  close(sock3); 
+  close(sock4); 
 
   /* If the admin view is turned on then the client process is going to update these
    * variables.  The need to be shipped back to the parent so the admin page can be
@@ -1322,7 +1375,7 @@ main(int argc, char** argv)
    */
 
   opterr =  optind = 1;
-  LoadConfig(&lbuf, &lbuf_max);
+  LoadConfig(argv[0], &lbuf, &lbuf_max);
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
@@ -1362,6 +1415,12 @@ main(int argc, char** argv)
       case 'o':
         old_mismatch = 1;
         break;
+      case 301:
+        if (mrange_parse(optarg)) {
+          char tmpText[300];
+          snprintf(tmpText, 300, "Invalid range: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
       case 'm':
         multiple = 1;
         break;
@@ -1375,7 +1434,11 @@ main(int argc, char** argv)
         dumptrace = 1;
         break;
       case 'b':
-        window = atoi(optarg);
+        if (check_int(optarg, &window)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid window size: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
         set_buff = 1;
         break;
       case 'x':
@@ -1439,7 +1502,6 @@ main(int argc, char** argv)
   if (srcname && !(listenaddr = I2AddrByNode(NULL, srcname))) {
     err_sys("server: Invalid source address specified");
   }
-  /* TODO: multiple */
   if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options)) == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
@@ -1719,8 +1781,8 @@ ChldRdy:
          */
 
         head_ptr->stime = time(0);
-        sprintf(tmpstr, "go");
 multi_client:
+        sprintf(tmpstr, "go");
         if (multiple == 1) {
           write(ctlsockfd, "0", 1);
           write(chld_pipe[1], tmpstr, 3);

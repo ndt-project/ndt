@@ -33,7 +33,7 @@ fakewww_SOURCES	= fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c us
 fakewww_LDADD = $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-web100srv_SOURCES	= web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c
+web100srv_SOURCES	= web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c utils.c mrange.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'

@@ -1,0 +1,16 @@
+/*
+ * This file contains function declarations to handle numbers sanity checks.
+ *
+ * Jakub S³awiñski 2006-06-12
+ * jeremian@poczta.fm
+ */
+
+#ifndef _JS_UTILS_H
+#define _JS_UTILS_H
+
+int check_int(char* text, int* number);
+int check_rint(char* text, int* number, int minVal, int maxVal);
+int check_long(char* text, long* number);
+
+#endif
+

@@ -62,7 +62,9 @@ srv_long_usage(char* info)
   printf("  -i, --interface device - specify network interface (libpcap device)\n");
   printf("  -l, --log Log_FN       - specify alternate 'web100srv.log' file\n");
   printf("  -p, --port #port       - specify primary port number (default 3001)\n");
-  printf("  -T, --refresh #time    - specify the refresh time of the admin page\n\n");
+  printf("  -T, --refresh #time    - specify the refresh time of the admin page\n");
+  printf("  --mrange #range        - set the port range used in multi-test mode\n");
+  printf("                           Note: this enables multi-test mode\n\n");
 #ifdef AF_INET6
   printf(" IP family:\n\n");
   printf("  -4, --ipv4             - use IPv4 addresses only\n");

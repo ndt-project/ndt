@@ -18,7 +18,7 @@ int dumptrace;
 pcap_t *pd;
 pcap_dumper_t *pdump;
 int debug;
-int port2, port3;
+int port2, port4;
 int mon_pipe1[2], mon_pipe2[2];
 int sig1, sig2;
 
@@ -280,14 +280,14 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int
 
 }
 
-void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3)
+void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA, int portB)
 {
 	
 	float bits = 0, spd, time;
 
 	time = (((cur->sec - cur2->sec)*1000000) + (cur->usec - cur2->usec));
 	/* time = curt->time - cur2->time; */
-	if ((cur->dport == port2) || (cur->sport == port3)) {
+	if ((cur->dport == portA) || (cur->sport == portB)) {
 	    if (cur->seq >= cur2->seq)
 		bits = (cur->seq - cur2->seq) * 8;
 	    else
@@ -453,11 +453,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   if (fwd.saddr == current.saddr) {
 #endif
     if (current.dport == port2) {
-      calculate_spd(&current, &fwd, port2, port3);
+      calculate_spd(&current, &fwd, port2, port4);
       return;
     }
-    if (current.sport == port3) {
-      calculate_spd(&current, &fwd, port2, port3);
+    if (current.sport == port4) {
+      calculate_spd(&current, &fwd, port2, port4);
       return;
     }
   }
@@ -467,11 +467,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   if (rev.saddr == current.saddr) {
 #endif
     if (current.sport == port2) {
-      calculate_spd(&current, &rev, port2, port3);
+      calculate_spd(&current, &rev, port2, port4);
       return;
     }
-    if (current.dport == port3) {
-      calculate_spd(&current, &rev, port2, port3);
+    if (current.dport == port4) {
+      calculate_spd(&current, &rev, port2, port4);
       return;
     }
   }
@@ -526,11 +526,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (fwd.saddr[2] == current.saddr[2]) &&
         (fwd.saddr[3] == current.saddr[3])) {
       if (current.dport == port2) {
-        calculate_spd(&current, &fwd, port2, port3);
+        calculate_spd(&current, &fwd, port2, port4);
         return;
       }
-      if (current.sport == port3) {
-        calculate_spd(&current, &fwd, port2, port3);
+      if (current.sport == port4) {
+        calculate_spd(&current, &fwd, port2, port4);
         return;
       }
     }
@@ -539,11 +539,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (rev.saddr[2] == current.saddr[2]) &&
         (rev.saddr[3] == current.saddr[3])) {
       if (current.sport == port2) {
-        calculate_spd(&current, &rev, port2, port3);
+        calculate_spd(&current, &rev, port2, port4);
         return;
       }
-      if (current.dport == port3) {
-        calculate_spd(&current, &rev, port2, port3);
+      if (current.dport == port4) {
+        calculate_spd(&current, &rev, port2, port4);
         return;
       }
     }

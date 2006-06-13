@@ -58,8 +58,22 @@ OpenSocket(I2Addr addr, char* serv, int options)
 
       if (!I2AddrSetSAddr(addr,ai->ai_addr,ai->ai_addrlen) ||
           !I2AddrSetProtocol(addr,ai->ai_protocol) ||
-          !I2AddrSetSocktype(addr,ai->ai_socktype) ||
-          !I2AddrSetFD(addr,fd,True)){
+          !I2AddrSetSocktype(addr,ai->ai_socktype)) {
+        /* TODO: log the error */
+        return -1;
+      }
+      if (!I2AddrPort(addr)) {
+        struct sockaddr_storage tmp_addr;
+        socklen_t tmp_addr_len = sizeof(tmp_addr);
+        I2Addr tmpAddr;
+        if (getsockname(fd, (struct sockaddr*) &tmp_addr, &tmp_addr_len)) {
+          return -1;
+        }
+        tmpAddr = I2AddrBySAddr(NULL, (struct sockaddr*) &tmp_addr, tmp_addr_len, 0, 0);
+        I2AddrSetPort(addr, I2AddrPort(tmpAddr));
+        I2AddrFree(tmpAddr);
+      }
+      if (!I2AddrSetFD(addr,fd,True)) {
         /* TODO: log the error */
         return -1;
       }

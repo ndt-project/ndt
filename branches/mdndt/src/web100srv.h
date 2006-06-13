@@ -57,14 +57,10 @@
 #define CONFIGFILE  "/etc/ndt.conf"
 
 /* hard-coded port values */
-#define PORT "3001"
-#define PORT2 3002
-#define PORT3 3003
-#define PORT4 3004
-
-#define sPORT2 "3002"
-#define sPORT3 "3003"
-#define sPORT4 "3004"
+#define PORT  "3001"
+#define PORT2 "3002"
+#define PORT3 "3003"
+#define PORT4 "3004"
 
 struct ndtchild {
 	int pid;
