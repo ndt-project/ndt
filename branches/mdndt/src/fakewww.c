@@ -43,7 +43,7 @@ char *MsgNope = "HTTP/1.0 404 Not found\n\n"
 char *MsgRedir1 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
     "  <BODY>\n    <meta http-equiv=\"refresh\" content=\"2; ";
 char *MsgRedir2 = "\">\n\n<h2>FLM server re-direction page</h2>\n"
-    "<p><font size=+2>Your client is being redirected to the 'closest' FLM server "
+    "<p><font size=\"+2\">Your client is being redirected to the 'closest' FLM server "
     "for configuration testing.\n <a ";
 char *MsgRedir3 = ">Click Here  </a> if you are not "
     "automatically redirected in the next 2 seconds.\n  "
@@ -375,7 +375,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
               port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          sprintf(line, "href=http://%u.%u.%u.%u:%s/tcpbw100.html", 
+          sprintf(line, "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"", 
               srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
               port);
@@ -455,7 +455,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
           sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          sprintf(line, "href=http://[%s]:%s/tcpbw100.html", onenodename, port);
+          sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
           if (debug > 2) {
@@ -479,7 +479,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
 
     /* try to open and give em what they want */
     tt = time(0);
-    writen(sd, MsgOK, strlen(MsgOK));
     if (debug > 2)
       fprintf(stderr, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4,
           nodename, filename);
@@ -540,6 +539,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
       continue;
     }
     /* reply: */
+    writen(sd, MsgOK, strlen(MsgOK));
     while( (n = read(fd, buff, sizeof(buff))) > 0){
       writen(sd, buff, n);
     }

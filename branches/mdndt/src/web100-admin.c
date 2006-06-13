@@ -285,12 +285,16 @@ gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans,
     return;
   }
   /* generate an HTML page for display.  */
-  fprintf(fp, "<html> <title>NDT server Admin Page</title>\n");
-  fprintf(fp, "<meta http-equiv=\"refresh\" content=%d url=admin.html>\n", refresh);
+  fprintf(fp, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n");
+  fprintf(fp, "<html> <head> <title>NDT server Admin Page</title>\n");
+  fprintf(fp, "<meta http-equiv=\"refresh\" content=\"%d; url=admin.html\">\n", refresh);
+  fprintf(fp, "<meta http-equiv=\"Content-Language\" content=\"en\">\n");
+  fprintf(fp, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\n");
+  fprintf(fp, "</head>\n");
 
   /* First build current results table */
   fprintf(fp, "<table border>\n  <tr>\n ");
-  fprintf(fp, "    <th colspan=8><font size=+1>NDT Usage Statistics -- Current Test Results\n");
+  fprintf(fp, "    <th colspan=8><font size=\"+1\">NDT Usage Statistics -- Current Test Results\n");
   fprintf(fp, "    </font></tr>\n");
   fprintf(fp, "  <tr>\n    <th>Date/Time\n    <th>Total Tests\n    <th rowspan=6>\n");
   fprintf(fp, "    <th>Bottleneck Link\n    <th>Theoritical Limit\n    <th rowspan=6>\n");
@@ -373,7 +377,7 @@ gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans,
     fprintf(fp, "    <td align=right>%d Kbps\n    <td align=right>%d Kbps\n", minc2sspd, mins2cspd);
   fprintf(fp, "    <td>\n    <td>\n  </tr>\n</table>\n");
 
-  fprintf(fp, "<br>\n<hr width=100%% noShade size=4>\n");
+  fprintf(fp, "<br>\n<hr width=\"100%%\" noShade size=4>\n");
   fprintf(fp, "<table border>\n  <tr>\n");
   fprintf(fp, "    <th>\n    <th>Filename\n    <th>Size\n  </tr>\n  <tr>\n");
   fprintf(fp, "    <td><b>Log</b>\n    <td> %s    <td>\n", LogFileName);
