@@ -194,8 +194,7 @@ public class Tcpbw100 extends Applet implements ActionListener
     if (!isApplication) {
 		  host = getCodeBase().getHost();
     }
-		int ctlport = 3001,  outport, inport, inlth, bytes;
-		int midport = 3004;
+		int ctlport = 3001,  outport, inport, midport, inlth, bytes;
 		byte buff[] = new byte[8192];
 		byte buff2[] = new byte[8192];
 		double stop_time, wait2;
@@ -262,8 +261,10 @@ public class Tcpbw100 extends Applet implements ActionListener
 		String tmpstr = new String(buff,0,inlth);
 		System.out.println("server ports " + tmpstr);
 		int k = tmpstr.indexOf(" ");
-		outport = Integer.parseInt(tmpstr.substring(0,k));
-		inport = Integer.parseInt(tmpstr.substring(k+1));
+    int l = tmpstr.substring(k+1).indexOf(" ");
+		outport = Integer.parseInt(tmpstr.substring(0, k));
+    midport = Integer.parseInt(tmpstr.substring(k+1).substring(0, l));
+		inport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1));
 
 		f.toBack();
 		ff.toBack();
@@ -275,8 +276,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		// results.append("Trying to open new connection to server for middlebox testing\n");
 
 		try {
-			in2Socket = new Socket(host, inport);
-			// in2Socket = new Socket(host, midport);
+			in2Socket = new Socket(host, midport);
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host: " + host);
 			errmsg = "unknown server\n" ;
