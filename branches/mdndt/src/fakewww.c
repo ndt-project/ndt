@@ -54,6 +54,13 @@ char *okfile[] = {"/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
       "/Tcpbw100$clsFrame.class", "/Tcpbw100.jar", "/copyright.html", 
       "/admin.html", "/Admin.class", 0};
 
+typedef struct allowed {
+  char* filename;
+  struct allowed *next;
+} Allowed;
+
+Allowed* a_root = NULL;
+char* basedir = BASEDIR;
 
 static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
@@ -62,6 +69,8 @@ static struct option long_options[] = {
   {"port", 1, 0, 'p'},
   {"ttl", 1, 0, 't'},
   {"federated", 0, 0, 'F'},
+  {"file", 1, 0, 'f'},
+  {"basedir", 1, 0, 'b'},
   {"version", 0, 0, 'v'},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
@@ -96,6 +105,7 @@ main(int argc, char** argv)
   struct sockaddr_storage cli_addr;
   I2Addr listenaddr = NULL;
   FILE *fp;
+  Allowed* ptr;
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -104,7 +114,7 @@ main(int argc, char** argv)
 #endif
   
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("dhl:p:t:Fv"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("dhl:p:t:Ff:b:v"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -133,6 +143,15 @@ main(int argc, char** argv)
         break;
       case 'F':
         federated = 1;
+        break;
+      case 'f':
+        ptr = malloc(sizeof(Allowed));
+        ptr->filename = optarg;
+        ptr->next = a_root;
+        a_root = ptr;
+        break;
+      case 'b':
+        basedir = optarg;
         break;
       case '?':
         short_usage(argv[0], "");
@@ -290,6 +309,8 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
   time_t tt;
   char nodename[200];
   size_t nlen = 199;
+  Allowed* ptr;
+  
   memset(nodename, 0, 200);
   I2AddrNodeName(addr, nodename, &nlen);
 
@@ -510,6 +531,25 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
       }
     }
     if (ok == 0) {
+      ptr = a_root;
+      while (ptr != NULL) {
+        if (strcmp(ptr->filename, filename) == 0) {
+          ok=1;
+          if (debug > 2)
+            fprintf(stderr, "sent to client [A]\n");
+          if (LogFileName != NULL) {
+            lfd = fopen(LogFileName, "a");
+            if (lfd != NULL) {
+              fprintf(lfd, "sent to client [A]\n");
+              fclose(lfd);
+            }
+          }
+          break;
+        }       
+        ptr = ptr->next;
+      }
+    }
+    if (ok == 0) {
       writen(sd, MsgNope, strlen(MsgNope));
       if (debug > 2)
         fprintf(stderr, "access denied\n");
@@ -522,7 +562,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
       }
       continue;
     }
-    sprintf(htmlfile, "%s/%s", BASEDIR, filename+1);
+    sprintf(htmlfile, "%s/%s", basedir, filename+1);
     fd = open(htmlfile, 0);  /* open file for read */
     if (fd < 0) {
       close(fd);

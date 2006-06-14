@@ -123,6 +123,8 @@ www_long_usage(char* info)
   printf("  -p, --port #port       - specify the port number (default is 7123)\n");
   printf("  -t, --ttl #amount      - specify maximum number of hops in path (default is 10)\n");
   printf("  -F, --federated        - operate in Federated mode\n");
+  printf("  -f, --file FN          - add the file to the allowed list\n");
+  printf("  -b, --basedir path     - set the basedir for the documents\n");
   printf("  -v, --version          - print version number\n\n");
 #ifdef AF_INET6
   printf(" IP family:\n\n");
