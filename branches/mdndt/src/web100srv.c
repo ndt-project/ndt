@@ -70,6 +70,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "usage.h"
 #include "utils.h"
 #include "mrange.h"
+#include "logging.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -80,7 +81,6 @@ static char devicebuf[100];
 int window = 64000;
 int randomize=0;
 int count_vars=0;
-int debug=0;
 int dumptrace=0;
 int usesyslog=0;
 int multiple=0;
@@ -150,7 +150,7 @@ static struct option long_options[] = {
 void
 child_sig(void)
 {
-  int pid, status, i;
+  int pid, status;
   struct ndtchild *tmp1, *tmp2;
 
   /*
@@ -158,67 +158,52 @@ child_sig(void)
    * Use the wait3() system call with the WNOHANG option.
    */
   tmp1 = head_ptr;
-  i=0;
-  if (debug > 1)
-    fprintf(stderr,"Received SIGCHLD signal for active web100srv process [%d]\n",
-        getpid());
+  ndt_log(2, "Received SIGCHLD signal for active web100srv process [%d]", getpid());
 
   while ((pid = wait3(&status, WNOHANG, (struct rusage *) 0)) > 0) {
-    if (debug > 2) {
-      fprintf(stderr, "wait3() returned %d for PID=%d\n", status, pid);
-      if (WIFEXITED(status) != 0)
-        fprintf(stderr, "wexitstatus = '%d'\n", WEXITSTATUS(status));
-      if (WIFSIGNALED(status) == 1)
-        fprintf(stderr, "wtermsig = %d\n", WTERMSIG(status));
-      if (WIFSTOPPED(status) == 1)
-        fprintf(stderr, "wstopsig = %d\n", WSTOPSIG(status));
+    ndt_log(3, "wait3() returned %d for PID=%d", status, pid);
+    if (WIFEXITED(status) != 0) {
+      ndt_log(3, "wexitstatus = '%d'", WEXITSTATUS(status));
+    }
+    if (WIFSIGNALED(status) == 1) {
+      ndt_log(3, "wtermsig = %d", WTERMSIG(status));
+    }
+    if (WIFSTOPPED(status) == 1) {
+      ndt_log(3, "wstopsig = %d", WSTOPSIG(status));
     }
     if (status != 0) 
       return;
     if (multiple == 1)
       return;
 
-    if (debug > 3)
-      fprintf(stderr, "Attempting to clean up child %d, head pid = %d\n",
-          pid, head_ptr->pid);
+    ndt_log(4, "Attempting to clean up child %d, head pid = %d", pid, head_ptr->pid);
     if (head_ptr->pid == pid) {
-      if (debug > 4)
-        fprintf(stderr, "Child process %d causing head pointer modification\n", pid);
+      ndt_log(5, "Child process %d causing head pointer modification", pid);
       tmp1 = head_ptr;
       head_ptr = head_ptr->next;
       free(tmp1);
       testing = 0;
       waiting--;
-      if (debug > 3) 
-        fprintf(stderr, "Removing Child from head, decrementing waiting now = %d\n", waiting);
+      ndt_log(4, "Removing Child from head, decrementing waiting now = %d", waiting);
       return;
     }
     else {
       while (tmp1->next != NULL) {
         if (tmp1->next->pid == pid) {
-          if (debug > 3)
-            fprintf(stderr, "Child process %d causing task list modification\n", pid);
+          ndt_log(4, "Child process %d causing task list modification", pid);
           tmp2 = tmp1->next;
           tmp1->next = tmp2->next;
           free(tmp2);
           testing = 0;
           waiting--;
-          if (debug > 3) 
-            fprintf(stderr, "Removing Child from list, decrementing waiting now = %d\n", waiting);
+          ndt_log(4, "Removing Child from list, decrementing waiting now = %d", waiting);
           return;
         }
         tmp1 = tmp1->next;
-        if (debug > 5)
-          fprintf(stderr, "Looping through service queue ptr = 0x%x\n", (int) tmp1);
-        if (debug > 5) {
-          i++;
-          if (i > 10)
-            return;
-        }
+        ndt_log(6, "Looping through service queue ptr = 0x%x", (int) tmp1);
       }
     }
-    if (debug > 2)
-      fprintf(stderr, "SIGCHLD routine finished!\n");
+    ndt_log(3, "SIGCHLD routine finished!");
     return;
   }
 }
@@ -229,9 +214,8 @@ cleanup(int signo)
 {
   FILE *fp;
 
-  if (debug > 0) {
-    fprintf(stderr, "Signal %d received by process %d\n", signo, getpid());
-
+  ndt_log(1, "Signal %d received by process %d", signo, getpid());
+  if (get_debuglvl() > 0) {
     fp = fopen(LogFileName,"a");
     if (fp != NULL) {
       fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
@@ -241,26 +225,25 @@ cleanup(int signo)
   switch (signo) {
     default:
       fp = fopen(LogFileName,"a");
-      fprintf(fp, "Unexpected signal (%d) received, process (%d) may terminate\n",
-          signo, getpid());
-      fclose(fp);
+      if (fp != NULL) {
+        fprintf(fp, "Unexpected signal (%d) received, process (%d) may terminate\n",
+            signo, getpid());
+        fclose(fp);
+      }
       break;
     case SIGSEGV:
-      if (debug > 5)
-        fprintf(stderr, "DEBUG, caught SIGSEGV signal and terminated process (%d)\n", getpid());
+      ndt_log(6, "DEBUG, caught SIGSEGV signal and terminated process (%d)", getpid());
     case SIGINT:
     case SIGTERM:
       exit(0);
     case SIGUSR1:
-      if (debug > 5)
-        fprintf(stderr, "DEBUG, caught SIGUSR1, setting sig1 flag to force exit\n");
+      ndt_log(6, "DEBUG, caught SIGUSR1, setting sig1 flag to force exit");
       sig1 = 1;
       check_signal_flags();
       break;
 
     case SIGUSR2:
-      if (debug > 5)
-        fprintf(stderr, "DEBUG, caught SIGUSR2, setting sig2 flag to force exit\n");
+      ndt_log(6, "DEBUG, caught SIGUSR2, setting sig2 flag to force exit");
       sig2 = 1;
       check_signal_flags();
       break;
@@ -284,7 +267,7 @@ cleanup(int signo)
 
     case SIGHUP:
       /* Initialize Web100 structures */
-      count_vars = web100_init(VarFileName, debug);
+      count_vars = web100_init(VarFileName);
 
       /* The administrator view automatically generates a usage page for the
        * NDT server.  This page is then accessable to the general public.
@@ -293,7 +276,7 @@ cleanup(int signo)
        * RAC 3/11/04
        */
       if (admin_view == 1)
-        view_init(LogFileName, refresh, debug);
+        view_init(LogFileName, refresh);
       break;
 
     case SIGCHLD:
@@ -335,8 +318,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   if (!(conf = fopen(ConfigFileName, "r")))
     return;
 
-  if (debug > 0)
-    fprintf(stderr, " Reading config file %s to obtain options\n", ConfigFileName);
+  ndt_log(1, " Reading config file %s to obtain options", ConfigFileName);
 
   while ((rc = I2ReadConfVar(conf, rc, key, val, 256, lbuf, lbuf_max)) > 0) {
     if (strncasecmp(key, "administrator_view", 5) == 0) {
@@ -370,7 +352,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     }
 
     else if (strncasecmp(key, "debug", 5) == 0) {
-      debug = atoi(val);
+      set_debuglvl(atoi(val));
       continue;
     }
 
@@ -493,15 +475,14 @@ run_test(web100_agent* agent, int ctlsockfd)
   strcpy(listenport4, PORT4);
 
   stime = time(0);
-  if (debug > 3)
-    fprintf(stderr, "Child process %d started\n", getpid());
+  ndt_log(4, "Child process %d started", getpid());
 
   for (spd_index=0; spd_index<4; spd_index++)
     for (ret=0; ret<256; ret++)
       spds[spd_index][ret] = 0x00;
   spd_index = 0;
 
-  autotune = web100_autotune(ctlsockfd, agent, debug);
+  autotune = web100_autotune(ctlsockfd, agent);
 
   if (multiple) {
     strcpy(listenport2, "0");
@@ -514,8 +495,7 @@ run_test(web100_agent* agent, int ctlsockfd)
   while (srv2_addr == NULL) {
     srv2_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport2) : listenport2), conn_options);
     if (strcmp(listenport2, "0") == 0) {
-      /* FIXME: log */
-      fprintf(stderr, "WARNING: ephemeral port number was bound\n");
+      ndt_log(0, "WARNING: ephemeral port number was bound");
       break;
     }
     if (multiple == 0) {
@@ -535,16 +515,14 @@ run_test(web100_agent* agent, int ctlsockfd)
     setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
     setsockopt(sock2, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
   }
-  if (debug > 0)
-    fprintf(stderr, "listening for Inet connection on sock2, fd=%d\n", sock2);
+  ndt_log(1, "listening for Inet connection on sock2, fd=%d", sock2);
 
   /* PORT3 */
 
   while (srv3_addr == NULL) {
     srv3_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport3) : listenport3), conn_options);
     if (strcmp(listenport3, "0") == 0) {
-      /* FIXME: log */
-      fprintf(stderr, "WARNING: ephemeral port number was bound\n");
+      ndt_log(0, "WARNING: ephemeral port number was bound");
       break;
     }
     if (multiple == 0) {
@@ -561,8 +539,7 @@ run_test(web100_agent* agent, int ctlsockfd)
   while (srv4_addr == NULL) {
     srv4_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport4) : listenport4), conn_options);
     if (strcmp(listenport4, "0") == 0) {
-      /* FIXME: log */
-      fprintf(stderr, "WARNING: ephemeral port number was bound\n");
+      ndt_log(0, "WARNING: ephemeral port number was bound");
       break;
     }
     if (multiple == 0) {
@@ -574,12 +551,10 @@ run_test(web100_agent* agent, int ctlsockfd)
   }
   sock4 = I2AddrFD(srv4_addr);
 
-  /* FIXME: WHILE LOOP AROUND CreateListenSocket */
   port2 = I2AddrPort(srv2_addr);
   port3 = I2AddrPort(srv3_addr);
   port4 = I2AddrPort(srv4_addr);
-  if (debug > 0)
-    fprintf(stderr, "server ports %d %d %d\n", port2, port3, port4);
+  ndt_log(1, "server ports %d %d %d", port2, port3, port4);
   alarm(30);  /* reset alarm() signal to gain another 30 seconds */
   sprintf(listenport2, "%d", port2);
   sprintf(listenport3, "%d", port3);
@@ -597,16 +572,15 @@ run_test(web100_agent* agent, int ctlsockfd)
   setsockopt(sock3, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
   setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
   setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-  if (debug > 0)
-    fprintf(stderr, "listening for Inet connection on sock3, fd=%d\n", sock3);
-  if (debug > 1) {
-    fprintf(stderr, "Middlebox test, Port %d waiting for incoming connection\n", port3);
+  ndt_log(1, "listening for Inet connection on sock3, fd=%d", sock3);
+  ndt_log(2, "Middlebox test, Port %d waiting for incoming connection", port3);
+  if (get_debuglvl() > 1) {
     optlen = sizeof(seg_size);
     getsockopt(sock3, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
     getsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
-    fprintf(stderr, "Set MSS to %d, Receiving Window size set to %dKB\n", seg_size, win_size);
+    ndt_log(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
     getsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
-    fprintf(stderr, "Sending Window size set to %dKB\n", win_size);
+    ndt_log(2, "Sending Window size set to %dKB", win_size);
   }
 
   /* Post a listen on port 3003.  Client will connect here to run the 
@@ -618,13 +592,12 @@ run_test(web100_agent* agent, int ctlsockfd)
   midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
 
   buff[0] = '\0';
-  web100_middlebox(midsockfd, agent, buff, debug);
+  web100_middlebox(midsockfd, agent, buff);
   write(ctlsockfd, buff, strlen(buff));  
   ret = read(ctlsockfd, buff, 32);  
   buff[ret] = '\0';
   s2c2spd = atof(buff);
-  if (debug > 3)
-    fprintf(stderr, "CWND limited throughput = %0.0f kbps (%s)\n", s2c2spd, buff);
+  ndt_log(4, "CWND limited throughput = %0.0f kbps (%s)", s2c2spd, buff);
   shutdown(midsockfd, SHUT_WR);
   close(midsockfd);
   close(sock3);
@@ -637,8 +610,7 @@ run_test(web100_agent* agent, int ctlsockfd)
    * when server is ready to go.
    */
 
-  if (debug > 0)
-    fprintf(stderr, "Sending 'GO' signal, to tell client to head for the next test\n");
+  ndt_log(1, "Sending 'GO' signal, to tell client to head for the next test");
 
   write(ctlsockfd, "Open-c2s-connection", 21);  
 
@@ -650,12 +622,8 @@ run_test(web100_agent* agent, int ctlsockfd)
       close(ctlsockfd);
       close(sock2);
       close(recvsfd);
-      if (debug > 4) {
-        fprintf(stderr, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d\n",
-            mon_pipe1[0], mon_pipe1[1]);
-      }
-      if (debug > 1)
-        fprintf(stderr, "C2S test calling init_pkttrace() with pd=0x%x\n", (int) &cli_addr);
+      ndt_log(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
+      ndt_log(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
       init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe1, device);
       exit(0);    /* Packet trace finished, terminate gracefully */
     }
@@ -665,10 +633,7 @@ run_test(web100_agent* agent, int ctlsockfd)
     }
   }
 
-  if (debug > 4) {
-    fprintf(stderr, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d\n",
-        mon_pipe1[0], mon_pipe1[1]);
-  }
+  ndt_log(5, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
 
   /* Check, and if needed, set the web100 autotuning function on.  This improves
    * performance without requiring the entire system be re-configured.  Returned
@@ -681,7 +646,7 @@ run_test(web100_agent* agent, int ctlsockfd)
    */
 
   if (autotune > 0) 
-    web100_setbuff(recvsfd, agent, autotune, debug);
+    web100_setbuff(recvsfd, agent, autotune);
 
   /* ok, We are now read to start the throughput tests.  First
    * the client will stream data to the server for 10 seconds.
@@ -736,11 +701,10 @@ run_test(web100_agent* agent, int ctlsockfd)
   t = secs()-t;
   c2sspd = (8.e-3 * bytes) / t;
   sprintf(buff, "%6.0f Kbs outbound", c2sspd);
-  if (debug > 0)
-    fprintf(stderr, "%s\n", buff);
+  ndt_log(1, "%s", buff);
   /* get receiver side Web100 stats and write them to the log file */
   if (record_reverse == 1)
-    web100_get_data_recv(recvsfd, agent, LogFileName, count_vars, debug);
+    web100_get_data_recv(recvsfd, agent, LogFileName, count_vars);
   shutdown(recvsfd, SHUT_RD);
   close(recvsfd);
   close(sock2);
@@ -750,8 +714,7 @@ run_test(web100_agent* agent, int ctlsockfd)
    */
 
   if (getuid() == 0) {
-    if (debug > 0)
-      fprintf(stderr, "Signal USR1(%d) sent to child [%d]\n", SIGUSR1, mon_pid1);
+    ndt_log(1, "Signal USR1(%d) sent to child [%d]", SIGUSR1, mon_pid1);
     kill(mon_pid1, SIGUSR1);
     FD_ZERO(&rfd);
     FD_SET(mon_pipe1[0], &rfd);
@@ -761,21 +724,16 @@ read3:
     if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
       if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
         sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      if (debug > 0) {
-        fprintf(stderr, "%d bytes read ", ret);
-        fprintf(stderr, "'%s' from monitor pipe\n", spds[spd_index]);
-      }
+      ndt_log(1, "%d bytes read '%s' from monitor pipe", ret, spds[spd_index]);
       spd_index++;
       if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
         sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      if (debug > 0)
-        fprintf(stderr, "%d bytes read '%s' from monitor pipe\n", ret, spds[spd_index]);
+      ndt_log(1, "%d bytes read '%s' from monitor pipe", ret, spds[spd_index]);
       spd_index++;
     } else {
       if (errno == EINTR)
         goto read3;
-      if (debug > 3)
-        fprintf(stderr, "Failed to read pkt-pair data from C2S flow, reason = %d\n", errno);
+      ndt_log(4, "Failed to read pkt-pair data from C2S flow, reason = %d", errno);
       sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
       sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
     }
@@ -792,8 +750,7 @@ read3:
     setsockopt(sock4, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
     setsockopt(sock4, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
   }
-  if (debug > 0)
-    fprintf(stderr, "listening for Inet connection on sock4, fd=%d\n", sock4);
+  ndt_log(1, "listening for Inet connection on sock4, fd=%d", sock4);
 
   /* Data received from speed-chk, tell applet to start next test */
   write(ctlsockfd, "Open-s2c-connection", 21);
@@ -802,8 +759,7 @@ read3:
    * This is the second throughput test, with data streaming from
    * the server back to the client.  Again stream data for 10 seconds.
    */
-  if (debug > 0)
-    fprintf(stderr, "waiting for data on sock4\n");
+  ndt_log(1, "waiting for data on sock4");
 
   j = 0;
   for (;;) {
@@ -811,7 +767,7 @@ read3:
       break;
 
     sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
-    if (debug > 1)
+    if (get_debuglvl() > 1)
       perror(tmpstr);
     if (++j == 4)
       break;
@@ -824,12 +780,8 @@ read3:
         close(ctlsockfd);
         close(sock4);
         close(xmitsfd);
-        if (debug > 4) {
-          fprintf(stderr, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d\n",
-              mon_pipe2[0], mon_pipe2[1]);
-        }
-        if (debug > 1)
-          fprintf(stderr, "S2C test calling init_pkttrace() with pd=0x%x\n", (int) &cli_addr);
+        ndt_log(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
+        ndt_log(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
         init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device);
         exit(0);    /* Packet trace finished, terminate gracefully */
       }
@@ -850,7 +802,7 @@ read3:
      */
 
     if (autotune > 0) 
-      web100_setbuff(xmitsfd, agent, autotune, debug);
+      web100_setbuff(xmitsfd, agent, autotune);
 
     /* experimental code, delete when finished */
     {
@@ -954,17 +906,14 @@ read3:
     web100_snap(rsnap);
     web100_snap(tsnap);
 
-    if (debug > 0) {
-      fprintf(stderr, "sent %d bytes to client in %0.2f seconds\n",(int) bytes, t);
-      fprintf(stderr, "Buffer control counters Total = %d, new data = %d, Draining Queue = %d\n", c3, c2, c1);
-    }
+    ndt_log(1, "sent %d bytes to client in %0.2f seconds",(int) bytes, t);
+    ndt_log(1, "Buffer control counters Total = %d, new data = %d, Draining Queue = %d", c3, c2, c1);
     /* Next send speed-chk a flag to retrieve the data it collected.
      * Skip this step if speed-chk isn't running.
      */
 
     if (getuid() == 0) {
-      if (debug > 0)
-        fprintf(stderr, "Signal USR2(%d) sent to child [%d]\n", SIGUSR2, mon_pid2);
+      ndt_log(1, "Signal USR2(%d) sent to child [%d]", SIGUSR2, mon_pid2);
       kill(mon_pid2, SIGUSR2);
       FD_ZERO(&rfd);
       FD_SET(mon_pipe2[0], &rfd);
@@ -974,17 +923,14 @@ read2:
       if ((ret = select(mon_pipe2[0]+1, &rfd, NULL, NULL, &sel_tv)) > 0) {
         if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
           sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-        if (debug > 0)
-          fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
+        ndt_log(1, "Read '%s' from monitor pipe", spds[spd_index]);
         spd_index++;
         if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
           sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-        if (debug > 0)
-          fprintf(stderr, "Read '%s' from monitor pipe\n", spds[spd_index]);
+        ndt_log(1, "Read '%s' from monitor pipe", spds[spd_index]);
         spd_index++;
       } else {
-        if (debug > 3)
-          fprintf(stderr, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d\n", ret, errno);
+        ndt_log(4, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d", ret, errno);
         if (errno == EINTR)
           goto read2;
         sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
@@ -995,16 +941,14 @@ read2:
       sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
     }
 
-    if (debug > 0)
-      fprintf(stderr, "%6.0f Kbps inbound\n", x2cspd);
+    ndt_log(1, "%6.0f Kbps inbound", x2cspd);
   }
 
   alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
                * is generated.  */
-  printf("debug: xmit socket fd = %d\n", xmitsfd);
-  ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars, debug);
+  ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars);
   web100_snapshot_free(tsnap);
-  ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars, debug);
+  ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars);
   web100_snapshot_free(rsnap);
 
   /* shutdown(xmitsfd, SHUT_WR); */
@@ -1014,9 +958,7 @@ read2:
   read(ctlsockfd, buff, 32);  
   s2cspd = atoi(buff);
 
-  if (debug > 3)
-    fprintf(stderr, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps\n",
-        c2sspd/1000, s2cspd/1000);
+  ndt_log(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
     sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d", &links[0],
         &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
@@ -1046,22 +988,22 @@ read2:
 
     switch (n) {
       case 0: c2sdata = index;
-              if (debug > 0)
+              if (get_debuglvl() > 0)
                 fprintf(stderr, "Client --> Server data detects link = ");
               break;
       case 1: c2sack = index;
-              if (debug > 0)
+              if (get_debuglvl() > 0)
                 fprintf(stderr, "Client <-- Server Ack's detect link = ");
               break;
       case 2: s2cdata = index;
-              if (debug > 0)
+              if (get_debuglvl() > 0)
                 fprintf(stderr, "Server --> Client data detects link = ");
               break;
       case 3: s2cack = index;
-              if (debug > 0)
+              if (get_debuglvl() > 0)
                 fprintf(stderr, "Server <-- Client Ack's detect link = ");
     }
-    if (debug > 0) {
+    if (get_debuglvl() > 0) {
       switch (index) {
         case -1: fprintf(stderr, "System Fault\n");
                  break;
@@ -1104,10 +1046,8 @@ read2:
   /* printf("Going to get some web100 data\n"); */
   if (experimental > 2) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(agent, logname, &dec_cnt, &same_cnt, &inc_cnt, debug);
-    if (debug > 1)
-      fprintf(stderr, "####### decreases = %d, increases = %d, no change = %d\n",
-          dec_cnt, inc_cnt, same_cnt);
+    CwndDecrease(agent, logname, &dec_cnt, &same_cnt, &inc_cnt);
+    ndt_log(2, "####### decreases = %d, increases = %d, no change = %d", dec_cnt, inc_cnt, same_cnt);
   }
 
   web100_logvars(&Timeouts, &SumRTT, &CountRTT,
@@ -1167,13 +1107,11 @@ read2:
 
   spd = ((double)DataBytesOut / (double)totaltime) * 8;
   waitsec = (double) (CurrentRTO * Timeouts)/1000;
-  if (debug > 1) {
-    fprintf(stderr, "CWND limited test = %0.2f while unlimited = %0.2f\n", s2c2spd, s2cspd);
-    if (s2c2spd > s2cspd) 
-      fprintf(stderr, "Better throughput when CWND is limited, may be duplex mismatch\n");
-    else
-      fprintf(stderr, "Better throughput without CWND limits - normal operation\n");
-  }
+  ndt_log(2, "CWND limited test = %0.2f while unlimited = %0.2f", s2c2spd, s2cspd);
+  if (s2c2spd > s2cspd) 
+    ndt_log(2, "Better throughput when CWND is limited, may be duplex mismatch");
+  else
+    ndt_log(2, "Better throughput without CWND limits - normal operation");
 
 
   /* remove the following line when the new detection code is ready for release */
@@ -1297,8 +1235,7 @@ read2:
     strcat(logstr1, logstr2);
     syslog(LOG_FACILITY|LOG_INFO, "%s", logstr1);
     closelog();
-    if (debug > 3)
-      fprintf(stderr, "%s", logstr1);
+    ndt_log(4, "%s", logstr1);
   }
   /* send web100 results for xmitsfd */
   close(xmitsfd); 
@@ -1312,10 +1249,10 @@ read2:
     totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
         CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
         MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
-        (int)c2sspd, (int)s2cspd, c2sdata, s2cack, 1, debug);
+        (int)c2sspd, (int)s2cspd, c2sdata, s2cack, 1);
     gen_html(LogFileName, (int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
         Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
-        refresh, debug);
+        refresh);
   }
   shutdown(ctlsockfd, SHUT_RDWR);
 }
@@ -1343,6 +1280,7 @@ main(int argc, char** argv)
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
+  int debug = 0;
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -1363,6 +1301,8 @@ main(int argc, char** argv)
     }
   }
 
+  log_init(argv[0], debug);
+  
   if (ConfigFileName == NULL)
     ConfigFileName = CONFIGFILE;
 
@@ -1462,6 +1402,10 @@ main(int argc, char** argv)
   if (optind < argc) {
     short_usage(argv[0], "Unrecognized non-option elements");
   }
+
+  if (debug > get_debuglvl()) {
+    set_debuglvl(debug);
+  }
   
   /* First check to see if program is running as root.  If not, then warn
    * the user that link type detection is suspect.  Then downgrade effective
@@ -1480,11 +1424,9 @@ main(int argc, char** argv)
     sprintf(wvfn, "%s/%s", BASEDIR, WEB100_FILE);
     VarFileName = wvfn;
   }
-  if (debug > 0) {
-    fprintf(stderr, "ANL/Internet2 NDT ver %s\n", VERSION);
-    fprintf(stderr, "\tVariables file = %s\n\tlog file = %s\n", VarFileName, LogFileName);
-    fprintf(stderr, "\tDebug level set to %d\n", debug);
-  }
+  ndt_log(1, "ANL/Internet2 NDT ver %s", VERSION);
+  ndt_log(1, "\tVariables file = %s\n\tlog file = %s", VarFileName, LogFileName);
+  ndt_log(1, "\tDebug level set to %d", debug);
 
   memset(&new, 0, sizeof(new));
   new.sa_handler = cleanup;
@@ -1512,11 +1454,10 @@ main(int argc, char** argv)
     setsockopt(listenfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
   }
 
-  if (debug > 0)
-    fprintf(stderr, "server ready on port %s\n",port);
+  ndt_log(1, "server ready on port %s", port);
 
   /* Initialize Web100 structures */
-  count_vars = web100_init(VarFileName, debug);
+  count_vars = web100_init(VarFileName);
 
   /* The administrator view automatically generates a usage page for the
    * NDT server.  This page is then accessable to the general public.
@@ -1525,7 +1466,7 @@ main(int argc, char** argv)
    * RAC 11/28/03
    */
   if (admin_view == 1)
-    view_init(LogFileName, refresh, debug);
+    view_init(LogFileName, refresh);
 
   /* create a log file entry every time the web100srv process starts up. */
   ndtpid = getpid();
@@ -1561,13 +1502,10 @@ main(int argc, char** argv)
     int i;
     char *name;
 
-    if (debug > 2) {
-      if (head_ptr == NULL)
-        fprintf(stderr, "nothing in queue\n");
-      else
-        fprintf(stderr, "Queue pointer = %d, testing = %d, waiting = %d\n",
-            head_ptr->pid, testing, waiting);
-    }
+    if (head_ptr == NULL)
+      ndt_log(3, "nothing in queue");
+    else
+      ndt_log(3, "Queue pointer = %d, testing = %d, waiting = %d", head_ptr->pid, testing, waiting);
 
     if (sig17 == 1) {
       child_sig();
@@ -1579,14 +1517,12 @@ main(int argc, char** argv)
     if (waiting > 0) {
       sel_tv.tv_sec = 3;
       sel_tv.tv_usec = 0;
-      if (debug > 2)
-        fprintf(stderr, "Waiting for new connection, timer running\n");
+      ndt_log(3, "Waiting for new connection, timer running");
       rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
       tt = time(0);
       if (head_ptr != NULL) {
-        if (debug > 2) 
-          fprintf(stderr, "now = %ld Process started at %ld, run time = %ld\n", 
-              tt, head_ptr->stime, (tt - head_ptr->stime));
+        ndt_log(3, "now = %ld Process started at %ld, run time = %ld",
+            tt, head_ptr->stime, (tt - head_ptr->stime));
         if (tt - head_ptr->stime > 60) {
           /* process is stuck at the front of the queue. */
           fp = fopen(LogFileName,"a");
@@ -1606,20 +1542,17 @@ main(int argc, char** argv)
       }
     }
     else {
-      if (debug > 2)
-        fprintf(stderr, "Timer not running, waiting for new connection\n");
+      ndt_log(3, "Timer not running, waiting for new connection");
       rc = select(listenfd+1, &rfd, NULL, NULL, NULL);
     }
 
     if (rc < 0) {
-      if (debug > 4)
-        fprintf(stderr, "Select exited with rc = %d\n", rc);
+      ndt_log(5, "Select exited with rc = %d", rc);
       continue;
     }
 
     if (rc == 0) {    /* select exited due to timer expired */
-      if (debug > 2)
-        fprintf(stderr, "Timer expired while waiting for a new connection\n");
+      ndt_log(3, "Timer expired while waiting for a new connection");
       if (multiple == 0) {
         if ((waiting > 0) && (testing == 0))
           goto ChldRdy;
@@ -1630,8 +1563,7 @@ main(int argc, char** argv)
       if (multiple == 0) {
         if ((waiting > 0) && (testing == 0))
           goto ChldRdy;
-        if (debug > 2)
-          fprintf(stderr, "New connection received, waiting for accept() to complete\n");
+        ndt_log(3, "New connection received, waiting for accept() to complete");
       }
       clilen = sizeof(cli_addr);
       ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -1641,8 +1573,7 @@ main(int argc, char** argv)
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         I2AddrFree(tmp_addr);
       }
-      if (debug > 3)
-        fprintf(stderr, "New connection received from [%s].\n", tmpstr);
+      ndt_log(4, "New connection received from [%s].", tmpstr);
       if (ctlsockfd < 0) {
         if (errno == EINTR)
           continue; /*sig child */
@@ -1675,11 +1606,8 @@ main(int argc, char** argv)
       default:    /* this is the parent process, handle scheduling and
                    * queuing of multiple incoming clients
                    */
-        if (debug > 4) {
-          fprintf(stderr, "Parent process spawned child = %d\n", chld_pid);
-          fprintf(stderr, "Parent thinks pipe() returned fd0=%d, fd1=%d\n", chld_pipe[0],
-              chld_pipe[1]);
-        }
+        ndt_log(5, "Parent process spawned child = %d", chld_pid);
+        ndt_log(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", chld_pipe[0], chld_pipe[1]);
 
         close(chld_pipe[0]);
         if (multiple == 1)
@@ -1695,31 +1623,28 @@ main(int argc, char** argv)
         new_child->next = NULL;
 
         if ((testing == 1) && (queue == 0)) {
-          if (debug > 2)
-            fprintf(stderr, "queuing disabled and testing in progress, tell client no\n");
+          ndt_log(3, "queuing disabled and testing in progress, tell client no");
           write(ctlsockfd, "9999", 4);
           free(new_child);
           continue;
         }
 
         waiting++;
-        if (debug > 4)
-          fprintf(stderr, "Incrementing waiting variable now = %d\n", waiting);
+        ndt_log(5, "Incrementing waiting variable now = %d", waiting);
         if (head_ptr == NULL)
           head_ptr = new_child;
         else {
-          if (debug > 3)
-            fprintf(stderr, "New request has arrived, adding request to queue list\n");
+          ndt_log(4, "New request has arrived, adding request to queue list");
           tmp_ptr = head_ptr;
           while (tmp_ptr->next != NULL)
             tmp_ptr = tmp_ptr->next;
           tmp_ptr->next = new_child;
 
-          if (debug > 3) {
-            fprintf(stderr, "Walking scheduling queue\n");
+          if (get_debuglvl() > 3) {
+            ndt_log(4, "Walking scheduling queue");
             tmp_ptr = head_ptr;
             while (tmp_ptr != NULL) {
-              fprintf(stderr, "\tChild %d, host: %s [%s], next=0x%x\n", tmp_ptr->pid,
+              ndt_log(4, "\tChild %d, host: %s [%s], next=0x%x", tmp_ptr->pid,
                   tmp_ptr->host, tmp_ptr->addr, (int) tmp_ptr->next);
               if (tmp_ptr->next == NULL)
                 break;
@@ -1734,9 +1659,8 @@ main(int argc, char** argv)
          * Clients who leave will be handled in the run_test routine.
          */
         if (waiting > 1) {
-          if (debug > 2)
-            fprintf(stderr, "%d clients waiting, telling client %d testing will begin within %d minutes\n",
-                (waiting-1), tmp_ptr->pid, (waiting-1));
+          ndt_log(3, "%d clients waiting, telling client %d testing will begin within %d minutes",
+              (waiting-1), tmp_ptr->pid, (waiting-1));
 
           sprintf(tmpstr, "%d", (waiting-1));
           write(ctlsockfd, tmpstr, strlen(tmpstr));
@@ -1752,9 +1676,8 @@ ChldRdy:
           i = waiting - 1;
           tmp_ptr = head_ptr->next;
           while (tmp_ptr != NULL) {
-            if (debug > 2)
-              fprintf(stderr, "%d clients waiting, updating client %d testing will begin within %d minutes\n",
-                  (waiting-1), tmp_ptr->pid, (waiting-i));
+            ndt_log(3, "%d clients waiting, updating client %d testing will begin within %d minutes",
+                (waiting-1), tmp_ptr->pid, (waiting-i));
 
             sprintf(tmpstr, "%d", (waiting-i));
             write(tmp_ptr->ctlsockfd, tmpstr, strlen(tmpstr));
@@ -1762,9 +1685,7 @@ ChldRdy:
             i--;
           }
         }
-        if (debug > 2)
-          fprintf(stderr, "Telling client %d testing will begin now\n",
-              head_ptr->pid);
+        ndt_log(3, "Telling client %d testing will begin now", head_ptr->pid);
 
         /* at this point we have successfully set everything up and are ready to
          * start testing.  The write() on the control socket tells the client
@@ -1800,10 +1721,8 @@ multi_client:
       case 0:    /* this is the child process, it handles
                   * the testing function 
                   */
-        if (debug > 3) {
-          fprintf(stderr, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d\n",
-              chld_pipe[0], chld_pipe[1], chld_pid);
-        }
+        ndt_log(4, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d",
+            chld_pipe[0], chld_pipe[1], chld_pid);
         close(listenfd);
         close(chld_pipe[1]);
         if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL, NULL)) == NULL) {
@@ -1820,8 +1739,7 @@ multi_client:
         for (;;) {
           read(chld_pipe[0], buff, 32);
           if (strncmp(buff, "go", 2) == 0) {
-            if (debug > 5)
-              fprintf(stderr, "Got 'go' signal from parent, ready to start testing\n");
+            ndt_log(6, "Got 'go' signal from parent, ready to start testing");
             break;
           }
         }
@@ -1844,8 +1762,7 @@ multi_client:
 
         run_test(agent, ctlsockfd);
 
-        if (debug > 2)
-          fprintf(stderr, "Successfully returned from run_test() routine\n");
+        ndt_log(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
         web100_detach(agent);
         exit(0);

@@ -11,13 +11,14 @@
 
 #include "web100srv.h"
 #include "network.h"
+#include "logging.h"
 
 /*
  * set up the necessary structures for monitoring connections at the
  * beginning
  */
 int
-web100_init(char *VarFileName, int debug)
+web100_init(char *VarFileName)
 {
 
   FILE *fp;
@@ -36,20 +37,19 @@ web100_init(char *VarFileName, int debug)
     count_vars++;
   }
   fclose(fp);
-  if (debug > 0)
-    fprintf(stderr, "web100_init() read %d variables from file\n", count_vars);
+  ndt_log(1, "web100_init() read %d variables from file", count_vars);
 
   return(count_vars);
 }
 
 web100_connection*
-local_find_connection(int sock, web100_agent* agent, int debug)
+local_find_connection(int sock, web100_agent* agent)
 {
   return web100_connection_from_socket(agent, sock);
 }
 
 void
-web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
+web100_middlebox(int sock, web100_agent* agent, char *results)
 {
 
   web100_var* var;
@@ -74,7 +74,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
     "WinScaleRecv",
   };
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent);
   if (cn == NULL) {
     fprintf(stderr, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d\n", errno);
     exit(-1);
@@ -84,8 +84,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
-  if (debug > 2) 
-    fprintf(stderr, "%s",  line);
+  ndt_log(3, "%s",  line);
   strcat(results, line);
   I2AddrFree(addr);
   tmpstrlen = sizeof(tmpstr);
@@ -93,8 +92,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
-  if (debug > 2) 
-    fprintf(stderr, "%s",  line);
+  ndt_log(3, "%s",  line);
   strcat(results, line);
   I2AddrFree(addr);
 
@@ -107,12 +105,9 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
     if (strcmp(line, "4294967295;") == 0)
       sprintf(line, "%d;", -1);
     strcat(results, line);
-    if (debug > 2) 
-      fprintf(stderr, "%s",  line);
+    ndt_log(3, "%s",  line);
   }
-
-  if (debug > 2)
-    fprintf(stderr, "\n");
+  /* FIXME: ndt_log without \n? */
   printf("Sending %d Byte packets over the network\n", octets);
 
   /* The initial check has been completed, now stream data to the remote client
@@ -122,13 +117,10 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
    * RAC 2/28/06
    */
 
-  if (debug > 4)
-    fprintf(stderr, "Setting Cwnd Limit");
   web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
   limcwnd_val = 2 * octets;
   web100_raw_write(LimCwnd, cn, &limcwnd_val);
-  if (debug > 4)
-    fprintf(stderr, " to %d octets\n", limcwnd_val);
+  ndt_log(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
 
   if (getuid() == 0) {
     system("echo 1 > /proc/sys/net/ipv4/route/flush");
@@ -168,7 +160,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results, int debug)
 }
  
 void
-web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int debug)
+web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars)
 {
   int i, ok;
   web100_var* var;
@@ -178,7 +170,7 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
   FILE *fp;
   time_t tt;
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent);
 
   tt=time(0);
   fp=fopen(LogFileName,"a");
@@ -191,8 +183,7 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
   ok = 1;
   for(i=0; i<count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
-      if (debug > 0)
-        fprintf(stderr, "Variable %d (%s) not found in KIS\n", i, web_vars[i].name);
+      ndt_log(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
       ok = 0;
       continue;
     }
@@ -203,17 +194,14 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
     }
 
     if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-      if (debug > 1)
+      if (get_debuglvl() > 1)
         web100_perror("web100_raw_read()");
       continue;
     }
     if (ok == 1) {
       sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
       fprintf(fp, "%d;", (int32_t)atoi(web_vars[i].value));
-      if (debug > 5) {
-        sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
-        fprintf(stderr, "%s", line); 
-      }
+      ndt_log(6, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
     }
     ok = 1;
   }
@@ -223,7 +211,7 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
 }
 
 int
-web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars, int debug)
+web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars)
 {
 
   int i;
@@ -233,8 +221,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
 
   for(i=0; i<count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
-      if (debug > 0)
-        fprintf(stderr, "Variable %d (%s) not found in KIS\n", i, web_vars[i].name);
+      ndt_log(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
       continue;
     }
 
@@ -244,22 +231,21 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     }
 
     if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-      if (debug > 4)
+      if (get_debuglvl() > 4)
         web100_perror("web100_snap_read()");
       continue;
     }
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
     sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
     write(ctlsock, line, strlen(line));
-    if (debug > 5)
-      printf("%s", line);
+    ndt_log(6, "%s", line);
   }
   return(0);
 
 }
 
 int
-web100_rtt(int sock, web100_agent* agent, int debug)
+web100_rtt(int sock, web100_agent* agent)
 {
   web100_var* var;
   web100_connection* cn;
@@ -267,7 +253,7 @@ web100_rtt(int sock, web100_agent* agent, int debug)
   web100_group* group;
   double count, sum;
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent);
   if (cn == NULL)
     return(-10);
 
@@ -288,7 +274,7 @@ web100_rtt(int sock, web100_agent* agent, int debug)
 }
 
 int
-web100_autotune(int sock, web100_agent* agent, int debug)
+web100_autotune(int sock, web100_agent* agent)
 {
   web100_var* var;
   web100_connection* cn;
@@ -296,15 +282,14 @@ web100_autotune(int sock, web100_agent* agent, int debug)
   web100_group* group;
   int i, j=0;
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent);
   if (cn == NULL)
     return(10);
 
   if ((web100_agent_find_var_and_group(agent, "X_SBufMode", &group, &var)) != WEB100_ERR_SUCCESS)
     return(22);
   if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    if (debug > 3)
-      fprintf(stderr, "Web100_raw_read(X_SBufMode) failed with errorno=%d\n", errno);
+    ndt_log(4, "Web100_raw_read(X_SBufMode) failed with errorno=%d", errno);
     return(23);
   }
   i = atoi(web100_value_to_text(web100_get_var_type(var), buf));
@@ -321,8 +306,7 @@ web100_autotune(int sock, web100_agent* agent, int debug)
   if ((web100_agent_find_var_and_group(agent, "X_RBufMode", &group, &var)) != WEB100_ERR_SUCCESS)
     return(22);
   if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    if (debug > 3)
-      fprintf(stderr, "Web100_raw_read(X_RBufMode) failed with errorno=%d\n", errno);
+    ndt_log(4, "Web100_raw_read(X_RBufMode) failed with errorno=%d", errno);
     return(23);
   }
   i = atoi(web100_value_to_text(web100_get_var_type(var), buf));
@@ -333,7 +317,7 @@ web100_autotune(int sock, web100_agent* agent, int debug)
 }
 
 int
-web100_setbuff(int sock, web100_agent* agent, int autotune, int debug)
+web100_setbuff(int sock, web100_agent* agent, int autotune)
 {
   web100_var* var;
   web100_connection* cn;
@@ -342,7 +326,7 @@ web100_setbuff(int sock, web100_agent* agent, int autotune, int debug)
   int buff;
   int sScale, rScale;
 
-  cn = local_find_connection(sock, agent, debug);
+  cn = local_find_connection(sock, agent);
   if (cn == NULL)
     return(10);
 
@@ -370,8 +354,7 @@ web100_setbuff(int sock, web100_agent* agent, int autotune, int debug)
       if ((web100_agent_find_var_and_group(agent, "LimCwnd", &group, &var)) != WEB100_ERR_SUCCESS)
         return(22);
       if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
-        if (debug > 3)
-          fprintf(stderr, "Web100_raw_write(LimCwnd) failed with errorno=%d\n", errno);
+        ndt_log(4, "Web100_raw_write(LimCwnd) failed with errorno=%d", errno);
         return(23);
       }
     }
@@ -380,8 +363,7 @@ web100_setbuff(int sock, web100_agent* agent, int autotune, int debug)
       if ((web100_agent_find_var_and_group(agent, "LimRwin", &group, &var)) != WEB100_ERR_SUCCESS)
         return(22);
       if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
-        if (debug > 3)
-          fprintf(stderr, "Web100_raw_write(LimCwnd) failed with errorno=%d\n", errno);
+        ndt_log(4, "Web100_raw_write(LimCwnd) failed with errorno=%d", errno);
         return(23);
       }
     }
@@ -495,7 +477,7 @@ web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
  */
 
 int
-CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt, int debug)
+CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt)
 {
 
   web100_var* var;
@@ -524,9 +506,9 @@ CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, in
     s1 = s2;
     rt = web100_snap_read(var, snap, buff);
     s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
-    if ((debug > 6) && (cnt < 20)) {
-      fprintf(stderr, "Reading snaplog 0x%x (%d), var = %s\n", (int) snap, cnt, (char*) var);
-      fprintf(stderr, "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d\n", 
+    if (cnt < 20) {
+      ndt_log(7, "Reading snaplog 0x%x (%d), var = %s", (int) snap, cnt, (char*) var);
+      ndt_log(7, "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
           rt, s1, s2, web100_value_to_text(web100_get_var_type(var), buff), *dec_cnt);
     }
     if (s2 < s1)
@@ -541,8 +523,6 @@ CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, in
   }
   web100_snapshot_free(snap);
   web100_log_close_read(log);
-  if (debug > 1)
-    fprintf(stderr, "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d\n",
-        *inc_cnt, *dec_cnt, *same_cnt);
+  ndt_log(2, "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d", *inc_cnt, *dec_cnt, *same_cnt);
   return(0);
 }

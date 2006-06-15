@@ -115,19 +115,19 @@ int err_sys(char* s);
 
 /* web100-pcap */
 void init_vars(struct spdpair *cur);
-void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName, int debug);
+void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
 void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2], char *device);
 int check_signal_flags();
 
 /* web100-util */
-int web100_init(char *VarFileName, int debug);
-int web100_autotune(int sock, web100_agent* agent, int debug);
-void web100_middlebox(int sock, web100_agent* agent, char *results, int debug);
-int web100_setbuff(int sock, web100_agent* agent, int autotune, int debug);
-void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars, int debug);
-int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars, int debug);
-int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt, int debug);
+int web100_init(char *VarFileName);
+int web100_autotune(int sock, web100_agent* agent);
+void web100_middlebox(int sock, web100_agent* agent, char *results);
+int web100_setbuff(int sock, web100_agent* agent, int autotune);
+void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars);
+int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars);
+int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt);
 int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut,
     int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd,
@@ -141,13 +141,13 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *SubsequentTimeouts, int *ThruBytesAcked);
 
 /* web100-admin */
-void view_init(char *LogFileName, int refresh, int debug);
+void view_init(char *LogFileName, int refresh);
 int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
     int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin,
     int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd,
     int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd,
-    int c2sdata, int s2cack, int view_flag, int debug);
+    int c2sdata, int s2cack, int view_flag);
 void gen_html(char *LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
-    int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh, int debug);
+    int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh);
 
 #endif
