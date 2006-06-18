@@ -28,9 +28,9 @@ int
 check_signal_flags()
 {
   if ((sig1 == 1) || (sig2 == 1)) {
-    ndt_log(5, "Received SIGUSRx signal terminating data collection loop for pid=%d", getpid());
+    log_println(5, "Received SIGUSRx signal terminating data collection loop for pid=%d", getpid());
     if (sig1 == 1) {
-      ndt_log(4, "Sending pkt-pair data back to parent on pipe %d, %d", mon_pipe1[0], mon_pipe1[1]);
+      log_println(4, "Sending pkt-pair data back to parent on pipe %d, %d", mon_pipe1[0], mon_pipe1[1]);
     if (get_debuglvl() > 3) {
 #ifdef AF_INET6
         if (fwd.family == 4) {
@@ -66,7 +66,7 @@ check_signal_flags()
     }
 
     if (sig2 == 1) {
-      ndt_log(4, "Sending pkt-pair data back to parent on pipe %d, %d", mon_pipe2[0], mon_pipe2[1]);
+      log_println(4, "Sending pkt-pair data back to parent on pipe %d, %d", mon_pipe2[0], mon_pipe2[1]);
     if (get_debuglvl() > 3) {
 #ifdef AF_INET6
         if (fwd.family == 4) {
@@ -100,7 +100,7 @@ check_signal_flags()
         pcap_dump_close(pdump);
       sig2 = 2;
     }
-    ndt_log(6, "Finished reading pkt-pair data from network, process %d should terminate now", getpid());
+    log_println(6, "Finished reading pkt-pair data from network, process %d should terminate now", getpid());
     return 1;
   }
   return 0;
@@ -147,8 +147,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
 	 * current timezone and use that value here! */
 	s = (cur->st_sec - (tzoffset * 3600)) %86400; 
 	fp = fopen(LogFileName, "a");
-  /* FIXME: no \n in ndt_log? */
-  ndt_log(1, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
+  /* FIXME: no \n in log_println? */
+  log_println(1, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
 
 	for (i=0; i<16; i++) {
 	    total += cur->links[i];
@@ -156,7 +156,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
 		max = cur->links[i];
 	    }
 	}
-  /* FIXME: use ndt_log here */
+  /* FIXME: use log_println here */
 	if (get_debuglvl() > 2) {
 #ifdef AF_INET6
     if (cur->family == 4) {
@@ -197,7 +197,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
 #endif
 	}
   if (max == 0) {
-    ndt_log(3, "No data Packets collected");
+    log_println(3, "No data Packets collected");
     if (get_debuglvl() > 2) {
       fprintf(fp, "\n\tNo packets collected\n");
     }
@@ -205,7 +205,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
       cur->links[i] = -1;
     index = -1;
   }
-  ndt_log(3, "Collected pkt-pair data max = %d", max);
+  log_println(3, "Collected pkt-pair data max = %d", max);
 	if (max == cur->links[8]) {
 	    max = 0;
 	    for (i=0; i<10; i++) {
@@ -266,8 +266,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
 		cur->links[7], cur->links[8], cur->links[9], cur->links[10], cur->links[11],
 		cur->totalspd2, cur->inc_cnt, cur->dec_cnt, cur->same_cnt, cur->timeout, cur->dupack);
 	i = write(monitor_pipe[1], buff, 128);
-  ndt_log(6, "wrote %d bytes: link counters are '%s'", i, buff);
-  ndt_log(6, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
+  log_println(6, "wrote %d bytes: link counters are '%s'", i, buff);
+  log_println(6, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
       cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
 }
 
@@ -397,12 +397,12 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 #if defined(AF_INET6)
   if (fwd.saddr[0] == 0) {
-    ndt_log(1, "New packet trace started -- initializing counters");
+    log_println(1, "New packet trace started -- initializing counters");
     fwd.saddr[0] = current.saddr[0];
     fwd.daddr[0] = current.daddr[0];
 #else
   if (fwd.saddr == 0) {
-    ndt_log(1, "New packet trace started -- initializing counters");
+    log_println(1, "New packet trace started -- initializing counters");
     fwd.saddr = current.saddr;
     fwd.daddr = current.daddr;
 #endif
@@ -481,7 +481,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     current.win = ntohs(tcp->window);
 
     if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
-      ndt_log(1, "New packet trace started -- initializing counters");
+      log_println(1, "New packet trace started -- initializing counters");
       memcpy(fwd.saddr, (void *) current.saddr, 16);
       memcpy(fwd.daddr, (void *) current.daddr, 16);
       fwd.sport = current.sport;
@@ -537,7 +537,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     }
   }
 #endif
-  ndt_log(6, "Fault: unknown packet received with src/dst port = %d/%d", current.sport, current.dport);
+  log_println(6, "Fault: unknown packet received with src/dst port = %d/%d", current.sport, current.dport);
 }
 
 /* This routine performs the open and initialization functions needed
@@ -580,21 +580,21 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
     strncpy(device, "lo", 3);
   }
 
-  ndt_log(1, "Opening network interface '%s' for packet-pair timing", device);
+  log_println(1, "Opening network interface '%s' for packet-pair timing", device);
 
   if ((pd = pcap_open_live(device, 68, !pflag, 1000, errbuf)) == NULL) {
     fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
   }
 
-  ndt_log(2, "pcap_open_live() returned pointer 0x%x", (int) pd);
+  log_println(2, "pcap_open_live() returned pointer 0x%x", (int) pd);
 
   memset(namebuf, 0, 200);
   I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
   memset(cmdbuf, 0, 256);
   sprintf(cmdbuf, "host %s and port %d", namebuf, I2AddrPort(sockAddr));
 
-  ndt_log(1, "installing pkt filter for '%s'", cmdbuf);
-  ndt_log(1, "Initial pkt src data = %x", (int) fwd.saddr);
+  log_println(1, "installing pkt filter for '%s'", cmdbuf);
+  log_println(1, "Initial pkt src data = %x", (int) fwd.saddr);
 
   if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
     fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
@@ -622,9 +622,9 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   alarm(45);
 
   if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
-    ndt_log(5, "pcap_loop failed %s", pcap_geterr(pd));
+    log_println(5, "pcap_loop failed %s", pcap_geterr(pd));
   }
-  ndt_log(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
+  log_println(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
 
   if (sig1 == 2) {
     read(mon_pipe1[0], &c, 1);
@@ -641,5 +641,5 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
     sig2 = 0;
   }
 
-  ndt_log(8, "Finally Finished reading data from network, process %d should terminate now", getpid());
+  log_println(8, "Finally Finished reading data from network, process %d should terminate now", getpid());
 }

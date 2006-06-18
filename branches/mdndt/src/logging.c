@@ -13,7 +13,9 @@
 
 static int                _debuglevel   = 0;
 static char*              _programname  = "";
+static I2ErrHandle        _errorhandler_nl = NULL;
 static I2ErrHandle        _errorhandler = NULL;
+static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
 
 /*
@@ -30,13 +32,15 @@ log_init(char* progname, int debuglvl)
 
   _programname = (_programname = strrchr(progname,'/')) ? _programname+1 : progname;
 
-  _immediateattr.fp = stderr;
-  _immediateattr.line_info = I2MSG;
-  _immediateattr.tformat = NULL;
+  _immediateattr.fp = _immediateattr_nl.fp = stderr;
+  _immediateattr.line_info = I2MSG | I2NONL;
+  _immediateattr_nl.line_info = I2MSG;
+  _immediateattr.tformat = _immediateattr_nl.tformat = NULL;
   
   _errorhandler = I2ErrOpen(progname, I2ErrLogImmediate, &_immediateattr, NULL, NULL);
+  _errorhandler_nl = I2ErrOpen(progname, I2ErrLogImmediate, &_immediateattr_nl, NULL, NULL);
 
-  if (!_errorhandler) {
+  if (!_errorhandler || !_errorhandler_nl) {
     fprintf(stderr, "%s : Couldn't init error module\n", progname);
     exit(1);
   }
@@ -57,7 +61,7 @@ set_debuglvl(int debuglvl)
 }
 
 /*
- * Function name: ndt_log
+ * Function name: ndt_print
  * Description: Logs the message with the given lvl.
  * Arguments: lvl - the level of the message
  *            format - the format of the message
@@ -65,7 +69,7 @@ set_debuglvl(int debuglvl)
  */
 
 void
-ndt_log(int lvl, const char* format, ...)
+log_print(int lvl, const char* format, ...)
 {
   va_list   ap;
 
@@ -75,6 +79,29 @@ ndt_log(int lvl, const char* format, ...)
 
   va_start(ap, format);
   I2ErrLogVT(_errorhandler,-1,0,format,ap);
+  va_end(ap);
+}
+
+/*
+ * Function name: ndt_println
+ * Description: Logs the message with the given lvl. New line character
+ *              is appended to the error stream.
+ * Arguments: lvl - the level of the message
+ *            format - the format of the message
+ *            ... - the additional arguments
+ */
+
+void
+log_println(int lvl, const char* format, ...)
+{
+  va_list   ap;
+
+  if (lvl > _debuglevel) {
+    return;
+  }
+
+  va_start(ap, format);
+  I2ErrLogVT(_errorhandler_nl,-1,0,format,ap);
   va_end(ap);
 }
 

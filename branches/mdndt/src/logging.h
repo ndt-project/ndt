@@ -13,7 +13,8 @@
 
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
-void ndt_log(int lvl, const char* format, ...);
+void log_print(int lvl, const char* format, ...);
+void log_println(int lvl, const char* format, ...);
 int get_debuglvl();
 
 #endif

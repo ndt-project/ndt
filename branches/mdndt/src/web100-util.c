@@ -37,7 +37,7 @@ web100_init(char *VarFileName)
     count_vars++;
   }
   fclose(fp);
-  ndt_log(1, "web100_init() read %d variables from file", count_vars);
+  log_println(1, "web100_init() read %d variables from file", count_vars);
 
   return(count_vars);
 }
@@ -84,7 +84,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
-  ndt_log(3, "%s",  line);
+  log_print(3, "%s",  line);
   strcat(results, line);
   I2AddrFree(addr);
   tmpstrlen = sizeof(tmpstr);
@@ -92,7 +92,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
-  ndt_log(3, "%s",  line);
+  log_print(3, "%s",  line);
   strcat(results, line);
   I2AddrFree(addr);
 
@@ -105,10 +105,10 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
     if (strcmp(line, "4294967295;") == 0)
       sprintf(line, "%d;", -1);
     strcat(results, line);
-    ndt_log(3, "%s",  line);
+    log_print(3, "%s",  line);
   }
-  /* FIXME: ndt_log without \n? */
-  printf("Sending %d Byte packets over the network\n", octets);
+  log_println(3, "");
+  log_println(0, "Sending %d Byte packets over the network", octets);
 
   /* The initial check has been completed, now stream data to the remote client
    * for 5 seconds with very limited buffer space.  The idea is to see if there
@@ -120,7 +120,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
   limcwnd_val = 2 * octets;
   web100_raw_write(LimCwnd, cn, &limcwnd_val);
-  ndt_log(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
+  log_println(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
 
   if (getuid() == 0) {
     system("echo 1 > /proc/sys/net/ipv4/route/flush");
@@ -183,7 +183,7 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
   ok = 1;
   for(i=0; i<count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
-      ndt_log(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
+      log_println(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
       ok = 0;
       continue;
     }
@@ -201,7 +201,7 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
     if (ok == 1) {
       sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
       fprintf(fp, "%d;", (int32_t)atoi(web_vars[i].value));
-      ndt_log(6, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
+      log_println(6, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
     }
     ok = 1;
   }
@@ -221,7 +221,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
 
   for(i=0; i<count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
-      ndt_log(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
+      log_println(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
       continue;
     }
 
@@ -238,7 +238,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
     sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
     write(ctlsock, line, strlen(line));
-    ndt_log(6, "%s", line);
+    log_print(6, "%s", line);
   }
   return(0);
 
@@ -289,7 +289,7 @@ web100_autotune(int sock, web100_agent* agent)
   if ((web100_agent_find_var_and_group(agent, "X_SBufMode", &group, &var)) != WEB100_ERR_SUCCESS)
     return(22);
   if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    ndt_log(4, "Web100_raw_read(X_SBufMode) failed with errorno=%d", errno);
+    log_println(4, "Web100_raw_read(X_SBufMode) failed with errorno=%d", errno);
     return(23);
   }
   i = atoi(web100_value_to_text(web100_get_var_type(var), buf));
@@ -306,7 +306,7 @@ web100_autotune(int sock, web100_agent* agent)
   if ((web100_agent_find_var_and_group(agent, "X_RBufMode", &group, &var)) != WEB100_ERR_SUCCESS)
     return(22);
   if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    ndt_log(4, "Web100_raw_read(X_RBufMode) failed with errorno=%d", errno);
+    log_println(4, "Web100_raw_read(X_RBufMode) failed with errorno=%d", errno);
     return(23);
   }
   i = atoi(web100_value_to_text(web100_get_var_type(var), buf));
@@ -354,7 +354,7 @@ web100_setbuff(int sock, web100_agent* agent, int autotune)
       if ((web100_agent_find_var_and_group(agent, "LimCwnd", &group, &var)) != WEB100_ERR_SUCCESS)
         return(22);
       if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
-        ndt_log(4, "Web100_raw_write(LimCwnd) failed with errorno=%d", errno);
+        log_println(4, "Web100_raw_write(LimCwnd) failed with errorno=%d", errno);
         return(23);
       }
     }
@@ -363,7 +363,7 @@ web100_setbuff(int sock, web100_agent* agent, int autotune)
       if ((web100_agent_find_var_and_group(agent, "LimRwin", &group, &var)) != WEB100_ERR_SUCCESS)
         return(22);
       if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
-        ndt_log(4, "Web100_raw_write(LimCwnd) failed with errorno=%d", errno);
+        log_println(4, "Web100_raw_write(LimCwnd) failed with errorno=%d", errno);
         return(23);
       }
     }
@@ -507,8 +507,8 @@ CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, in
     rt = web100_snap_read(var, snap, buff);
     s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
     if (cnt < 20) {
-      ndt_log(7, "Reading snaplog 0x%x (%d), var = %s", (int) snap, cnt, (char*) var);
-      ndt_log(7, "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
+      log_println(7, "Reading snaplog 0x%x (%d), var = %s", (int) snap, cnt, (char*) var);
+      log_println(7, "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
           rt, s1, s2, web100_value_to_text(web100_get_var_type(var), buff), *dec_cnt);
     }
     if (s2 < s1)
@@ -523,6 +523,6 @@ CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, in
   }
   web100_snapshot_free(snap);
   web100_log_close_read(log);
-  ndt_log(2, "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d", *inc_cnt, *dec_cnt, *same_cnt);
+  log_println(2, "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d", *inc_cnt, *dec_cnt, *same_cnt);
   return(0);
 }

@@ -155,7 +155,7 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
         break;
     mindate[i] = '\0';
 
-    ndt_log(1, "Updating admin_view variables: Total count = %d", totalcnt);
+    log_println(1, "Updating admin_view variables: Total count = %d", totalcnt);
 
     fclose(fp);
   }
@@ -246,7 +246,7 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
     strncpy(mindate, date, strlen(date));
   }
 
-  ndt_log(1, "Initial counter Values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
+  log_println(1, "Initial counter Values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
       totalcnt, totmismatch, totbad_cable);
   totalcnt++;
   count[c2sdata+1]++;
@@ -254,9 +254,9 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
     totmismatch++;
   if (bad_cable == 1)
     totbad_cable++;
-  ndt_log(1, "Updated counter values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
+  log_println(1, "Updated counter values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
       totalcnt, totmismatch, totbad_cable);
-  ndt_log(1, "Individual counts = [%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d]",
+  log_println(1, "Individual counts = [%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d]",
       count[0], count[1], count[2], count[3], count[4], count[5], count[6], count[7],
       count[8], count[9], count[10], count[11], count[12], count[13], count[14], count[15]);
   return(totalcnt);
@@ -275,7 +275,7 @@ gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans,
   AdminFileName = BASEDIR"/"ADMINFILE;
   fp = fopen(AdminFileName, "w");
   if (fp == NULL) {
-    ndt_log(1, "Cannot open file for the admin web page...");
+    log_println(1, "Cannot open file for the admin web page...");
     return;
   }
   /* generate an HTML page for display.  */
@@ -413,13 +413,13 @@ gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans,
   fp = fopen("/tmp/view.string", "w");
   lock.l_type = F_WRLCK;
   i = fcntl((int)fp, F_SETLKW, lock);
-  ndt_log(1, "successfully locked '/tmp/view.string' for updating");
+  log_println(1, "successfully locked '/tmp/view.string' for updating");
   sprintf(view_string, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
       maxc2sspd, minc2sspd, maxs2cspd, mins2cspd, totalcnt,
       totmismatch, totbad_cable, count[0], count[1], count[2], count[3], count[4],
       count[5], count[6], count[7], count[8], count[9], count[10], count[11],
       count[12], count[13], count[14], count[15], maxdate, mindate);
-  ndt_log(1, "sending '%s' to tmp file", view_string);
+  log_println(1, "sending '%s' to tmp file", view_string);
   fprintf(fp, "%s\n", view_string);
   lock.l_type = F_UNLCK;
   fcntl((int)fp, F_SETLK, lock);
@@ -616,7 +616,7 @@ view_init(char *LogFileName, int refresh)
       }
 
 display:
-      ndt_log(4, "Web100 variables line received\n");
+      log_println(4, "Web100 variables line received\n");
       totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals, PktsOut, DupAcksIn, AckPktsIn,
           CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
           MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
