@@ -27,10 +27,10 @@
 #include "web100srv.h"
 #include "../config.h"
 #include "usage.h"
+#include "logging.h"
 
 struct spdpair fwd, rev;
 int start, finish, fini;
-int debug=0;
 extern int errno;
 
 static pcap_t *pd;
@@ -371,8 +371,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     rev.dport = current.sport;
     rev.st_sec = current.sec;
     rev.st_usec = current.usec;
-    if (debug > 0)
-      fprintf(stderr, "Completed data collection for port %d\n", current.dport);
+    log_println(1, "Completed data collection for port %d", current.dport);
     return;
   }
 
@@ -478,7 +477,7 @@ main(int argc, char **argv)
   u_char * pcap_userdata = NULL;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
-  int cnt, pflag = 0;
+  int cnt, pflag = 0, debug = 0;
   struct sigaction new;
   char tmpstr[256];
 
@@ -518,6 +517,8 @@ main(int argc, char **argv)
   if (optind < argc) {
     short_usage(argv[0], "Unrecognized non-option elements");
   }
+
+  log_init(argv[0], debug);
 
   init_vars(&fwd);
   init_vars(&rev);

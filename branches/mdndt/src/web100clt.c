@@ -9,6 +9,7 @@
 #include "../config.h"
 #include "network.h"
 #include "usage.h"
+#include "logging.h"
 
 extern int h_errno;
 
@@ -24,7 +25,7 @@ int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
 int PktsOut, CongestionSignals, RcvWinScale;
 int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
-int winssent, winsrecv, msglvl=0, debug=0;
+int winssent, winsrecv, msglvl=0;
 double spdin, spdout;
 double aspd;
 
@@ -96,14 +97,12 @@ testResults(char *tmpstr)
     if (index(sysval, '.') == NULL) {
       i = atoi(sysval);
       save_int_values(sysvar, i);
-      if (debug > 6)
-        printf("Stored %d [%s] in %s\n", i, sysval, sysvar);
+      log_println(7, "Stored %d [%s] in %s", i, sysval, sysvar);
     }
     else {
       j = atof(sysval);
       save_dbl_values(sysvar, &j);
-      if (debug > 6)
-        printf("Stored %0.2f (%s) in %s\n", j, sysval, sysvar);
+      log_println(7, "Stored %0.2f (%s) in %s", j, sysval, sysvar);
     }
   }
 
@@ -178,10 +177,8 @@ testResults(char *tmpstr)
       if (congestion == 1) {
         printf("Information: Other network traffic is congesting the link\n");
       }
-      if (debug > 2) {
-        fprintf(stderr, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ", ((rwin*2)/rttsec), mylink);
-        fprintf(stderr, "AND j (%0.4f) > MaxRwinRcvd (%d)\n", (float)((mylink * avgrtt)*1000)/8, MaxRwinRcvd);
-      }
+      log_print(3, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ", ((rwin*2)/rttsec), mylink);
+      log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)", (float)((mylink * avgrtt)*1000)/8, MaxRwinRcvd);
       if (((rwin*2)/rttsec) < mylink) {
         j = (float)((mylink * avgrtt)*1000) / 8;
         if ((int)j > MaxRwinRcvd) {
@@ -533,7 +530,7 @@ main(int argc, char *argv[])
   int buf_size=0, set_size, k;
   struct timeval sel_tv;
   fd_set rfd;
-  int conn_options = 0;
+  int conn_options = 0, debug = 0;
   I2Addr server_addr = NULL, sec_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
   socklen_t optlen;
@@ -585,6 +582,8 @@ main(int argc, char *argv[])
     short_usage(argv[0], "Unrecognized non-option elements");
   }
   
+  log_init(argv[0], debug);
+  
   failed = 0;
 
   if (host == NULL) {
@@ -622,8 +621,7 @@ main(int argc, char *argv[])
   port3 = 0;
   for (;;) {
     inlth = read(ctlSocket, buff, 100);
-    if (debug > 2)
-      printf("read %d octets '%s'\n", inlth, buff);
+    log_println(3, "read %d octets '%s'", inlth, buff);
     if (inlth <= 0)
       break;
     if ((inlth > 6) && (buff[0] == '0')) {
@@ -655,8 +653,7 @@ main(int argc, char *argv[])
 
   if (port3 == 0) {
     inlth = read(ctlSocket, buff, 100);
-    if (debug > 2)
-      fprintf(stderr, "Test port numbers not received, read 2nd packet to get them\n");
+    log_println(3, "Test port numbers not received, read 2nd packet to get them");
     if (inlth == 0) {
       printf("Information: The server '%s' does not support this command line client\n",
           host);
@@ -667,8 +664,7 @@ main(int argc, char *argv[])
   port3 = atoi(strtok(buff, " "));
   port2 = atoi(strtok(NULL, " "));
   port4 = atoi(strtok(NULL, " "));
-  if (debug > 2)
-    fprintf(stderr, "Testing will begin using port %d, %d and %d\n", port2, port3, port4);
+  log_println(3, "Testing will begin using port %d, %d and %d", port2, port3, port4);
 
   /* now look for middleboxes (firewalls, NATs, and other boxes that
    * muck with TCP's end-to-end priciples
@@ -682,12 +678,12 @@ main(int argc, char *argv[])
   }
   I2AddrSetPort(sec_addr, port2);
 
-  if (debug > 4) {
+  if (get_debuglvl() > 4) {
     char tmpbuff[200];
     socklen_t tmpBufLen = 199;
     memset(tmpbuff, 0, 200);
     I2AddrNodeName(sec_addr, tmpbuff, &tmpBufLen);
-    printf("connecting to %s:%d\n", tmpbuff, I2AddrPort(sec_addr));
+    log_println(5, "connecting to %s:%d", tmpbuff, I2AddrPort(sec_addr));
   }
 
   if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
@@ -699,20 +695,16 @@ main(int argc, char *argv[])
   optlen = sizeof(set_size);
   setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
   getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  if (debug > 4)
-    printf("\nSend buffer set to %d, ", set_size);
+  log_print(5, "\nSend buffer set to %d, ", set_size);
   getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-  if (debug > 4)
-    printf("Receive buffer set to %d\n", set_size);
+  log_println(5, "Receive buffer set to %d", set_size);
   if (buf_size > 0) {
     setsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
     setsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
     getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    if (debug > 4)
-      printf("Changed buffer sizes: Send buffer set to %d, ", set_size);
+    log_print(5, "Changed buffer sizes: Send buffer set to %d, ", set_size);
     getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    if (debug > 4)
-      printf("Receive buffer set to %d\n", set_size);
+    log_println(5, "Receive buffer set to %d", set_size);
   }
 
   printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
@@ -754,8 +746,7 @@ main(int argc, char *argv[])
 
   memset(buff, 0, 128);
   sprintf(buff, "%0.0f", spdin);
-  if (debug > 3)
-    fprintf(stderr, "CWND limited speed = %0.2f Kbps\n", spdin);
+  log_println(4, "CWND limited speed = %0.2f Kbps", spdin);
   write(ctlSocket, buff, strlen(buff));
   printf("Done\n");
 
@@ -768,8 +759,7 @@ main(int argc, char *argv[])
     fprintf(stderr, "read failed read 'Go' flag\n");
     exit(-4);
   }
-  if (debug > 2)
-    fprintf(stderr, "Read '%s' from server\n", buff);
+  log_println(3, "Read '%s' from server", buff);
 
   printf("running 10s outbound test (client to server) . . . . . ");
   fflush(stdout);
@@ -787,24 +777,19 @@ main(int argc, char *argv[])
 
   setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
   getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  if (debug > 8)
-    printf("\nSend buffer set to %d, ", set_size);
+  log_print(9, "\nSend buffer set to %d, ", set_size);
   getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-  if (debug > 8)
-    printf("Receive buffer set to %d\n", set_size);
+  log_println(9, "Receive buffer set to %d", set_size);
   if (buf_size > 0) {
     setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
     setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
     getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    if (debug > 4)
-      printf("Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+    log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
     getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    if (debug > 4)
-      printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
+    log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
   }
   inlth = read(ctlSocket, buff, 32); 
-  if (debug > 2)
-    fprintf(stderr, "Read '%s' from server\n", buff);
+  log_println(3, "Read '%s' from server", buff);
 
   pkts = 0;
   k = 0;
@@ -832,8 +817,7 @@ main(int argc, char *argv[])
   fflush(stdout);
 
   inlth = read(ctlSocket, buff, 32); 
-  if (debug > 2)
-    fprintf(stderr, "Read '%s' from server\n", buff);
+  log_println(3, "Read '%s' from server", buff);
 
   /* Cygwin seems to want/need this extra getsockopt() function
    * call.  It certainly doesn't do anything, but the S2C test fails
@@ -854,20 +838,16 @@ main(int argc, char *argv[])
 
   setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
   getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  if (debug > 4)
-    printf("\nSend buffer set to %d, ", set_size);
+  log_print(5, "\nSend buffer set to %d, ", set_size);
   getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-  if (debug > 4)
-    printf("Receive buffer set to %d\n", set_size);
+  log_println(5, "Receive buffer set to %d", set_size);
   if (buf_size > 0) {
     setsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
     setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
     getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    if (debug > 4)
-      printf("Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+    log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
     getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    if (debug > 4)
-      printf("Receive buffer set to %d(%d)\n", set_size, buf_size);
+    log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
   }
 
   bytes = 0;
@@ -884,8 +864,7 @@ main(int argc, char *argv[])
    */
 
   inlth = read(ctlSocket, buff, 32); 
-  if (debug > 2)
-    fprintf(stderr, "Read '%s' from server\n", buff);
+  log_println(3, "Read '%s' from server", buff);
 
   sel_tv.tv_sec = 15;
   sel_tv.tv_usec = 5;
@@ -894,8 +873,7 @@ main(int argc, char *argv[])
   for (;;) {
     ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
     if ((time(0)-sec) > 15) {
-      if (debug > 4)
-        fprintf(stderr, "Receive test running long, break out of read loop\n");
+      log_println(5, "Receive test running long, break out of read loop");
       break;
     }
     if (ret > 0) {
@@ -905,7 +883,7 @@ main(int argc, char *argv[])
       bytes += inlth;
       continue;
     }
-    if (debug > 5)
+    if (get_debuglvl() > 5)
       perror("s2c read loop exiting:");
     break;
   }
@@ -932,8 +910,7 @@ main(int argc, char *argv[])
     }
     i++;
     strncat(tmpstr, buff, inlth);
-    if (debug > 5)
-      printf("tmpstr = '%s'\n", tmpstr);
+    log_println(6, "tmpstr = '%s'", tmpstr);
   }
 
   local_addr = I2AddrByLocalSockFD(NULL, ctlSocket, False);

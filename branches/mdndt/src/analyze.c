@@ -29,6 +29,7 @@
 
 #include "../config.h"
 #include "usage.h"
+#include "logging.h"
 
 #define LOGFILE "web100srv.log"
 #define WEB100_VARS 128  /*number of web100 variables you want to access*/
@@ -42,7 +43,6 @@ char *rmt_host;
 double bwin, bwout;
 char *VarFileName=NULL;
 char *LogFileName=NULL;
-int debug=0;
 double avgrtt, loss, loss2, rttsec, bw, bw2, rwin, swin, cwin, speed;
 double rwintime, cwndtime, sendtime, timesec;
 int experimental=0, n, m, one=1;
@@ -127,49 +127,31 @@ void calculate()
       indx = -2;
     switch (i) {
       case 0: c2sdata = indx;
-              if (debug > 0)
-                printf("Client --> Server data detects link = ");
+              log_print(1, "Client --> Server data detects link = ");
               break;
       case 1: c2sack = indx;
-              if (debug > 0)
-                printf("Client <-- Server Ack's detect link = ");
+              log_print(1, "Client <-- Server Ack's detect link = ");
               break;
       case 2: s2cdata = indx;
-              if (debug > 0)
-                printf("Server --> Client data detects link = ");
+              log_print(1, "Server --> Client data detects link = ");
               break;
       case 3: s2cack = indx;
-              if (debug > 0)
-                printf("Server <-- Client Ack's detect link = ");
+              log_print(1, "Server <-- Client Ack's detect link = ");
     }
-    if (debug > 0) {
-      switch (indx) {
-        case -2: printf("Insufficent Data\n");
-                 break;
-        case -1: printf("System Fault\n");
-                 break;
-        case 0:  printf("RTT\n");
-                 break;
-        case 1:  printf("Dial-up\n");
-                 break;
-        case 2:  printf("T1\n");
-                 break;
-        case 3:  printf("Ethernet\n");
-                 break;
-        case 4:  printf("T3\n");
-                 break;
-        case 5:  printf("FastEthernet\n");
-                 break;
-        case 6:  printf("OC-12\n");
-                 break;
-        case 7:  printf("Gigabit Ethernet\n");
-                 break;
-        case 8:  printf("OC-48\n");
-                 break;
-        case 9:  printf("10 Gigabit Enet\n");
-                 break;
-        case 10: printf("Retransmissions\n");
-      }
+    switch (indx) {
+      case -2: log_println(1, "Insufficent Data"); break;
+      case -1: log_println(1, "System Fault");     break;
+      case 0:  log_println(1, "RTT");              break;
+      case 1:  log_println(1, "Dial-up");          break;
+      case 2:  log_println(1, "T1");               break;
+      case 3:  log_println(1, "Ethernet");         break;
+      case 4:  log_println(1, "T3");               break;
+      case 5:  log_println(1, "FastEthernet");     break;
+      case 6:  log_println(1, "OC-12");            break;
+      case 7:  log_println(1, "Gigabit Ethernet"); break;
+      case 8:  log_println(1, "OC-48");            break;
+      case 9:  log_println(1, "10 Gigabit Enet");  break;
+      case 10: log_println(1, "Retransmissions");  break;
     }
   }
   switch (c2sdata) {
@@ -392,6 +374,7 @@ main(int argc, char** argv)
 {
   int c;
   char tmpstr[256];
+  int debug = 0;
 
   iponly = 0;
   while ((c = getopt_long(argc, argv, "dnhl:v", long_options, 0)) != -1) {
@@ -421,14 +404,14 @@ main(int argc, char** argv)
   if (optind < argc) {
     short_usage(argv[0], "Unrecognized non-option elements");
   }
+
+  log_init(argv[0], debug);
   
   if (LogFileName == NULL) {
     sprintf(tmpstr, "%s/%s", BASEDIR, LOGFILE);
     LogFileName = tmpstr;
   }
-  if (debug > 0)
-    printf("log file = %s\n", LogFileName);
-
+  log_println(1, "log file = %s", LogFileName);
 
   if ((fp = fopen(LogFileName, "r")) == NULL)
     err_sys("Missing Log file ");
@@ -454,10 +437,8 @@ main(int argc, char** argv)
     }
     if (strncmp(buff, "Running", 6) == 0) {
       ret = sscanf(buff, "%*s %*s %*s %f %*s", &run_ave[m]);
-      if (debug > 0) {
-        printf("read %d tokens from buffer\n", ret);
-        printf("running average[%d] = %0.2f\n", m, run_ave[m]);
-      }
+      log_println(1, "read %d tokens from buffer", ret);
+      log_println(1, "running average[%d] = %0.2f", m, run_ave[m]);
       if (runave[m] == 0)
         runave[m] = run_ave[m];
       m++;
@@ -474,8 +455,7 @@ skip2:
       if (strncmp(str, "port", 4) != 0)
         goto skip2;
       sscanf(buff, "%*s %*s %*s %s %*s", (char*) &ip_addr);
-      if (debug > 0)
-        printf("Start of New Packet trace\n");
+      log_println(1, "Start of New Packet trace");
       n = 0;
       m = 0;
       run_ave[0] = 0;
@@ -864,8 +844,7 @@ skip1:
       }
 
 display:
-      if (debug > 0)
-        printf("Web100 variables line received\n\n");
+      log_println(1, "Web100 variables line received\n");
       calculate(); 
     }
 

@@ -21,7 +21,7 @@ struct tr_tree {
 #define DFLT_TREE "Default.tree"   /* file containing default tree */
 
 void restore_tree(struct tr_tree *tmp, FILE *fp);
-u_int32_t find_compare(u_int32_t IPlist[], int cnt, int debug);
+u_int32_t find_compare(u_int32_t IPlist[], int cnt);
 
 #ifdef AF_INET6
 
@@ -37,7 +37,7 @@ struct tr_tree6 {
 #define DFLT_TREE6 "Default.tree6" /* file containing default tree for IPv6 nodes */
 
 void restore_tree6(struct tr_tree6 *tmp, FILE *fp);
-int find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug);
+int find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt);
 
 #endif
 

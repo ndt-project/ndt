@@ -30,6 +30,7 @@
 #include "troute.h"
 #include "tr-tree.h"
 #include "network.h"
+#include "logging.h"
 
 #define PORT           "7123"
 #define BUFFSIZE        1024
@@ -79,8 +80,7 @@ static struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
-void dowww(int sd, I2Addr addr, char* port, char* LogFileName,
-    int debug, int fed_mode, int max_ttl);
+void dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl);
 
 void
 err_sys(char* s)
@@ -163,6 +163,8 @@ main(int argc, char** argv)
     short_usage(argv[0], "Unrecognized non-option elements");
   }
 
+  log_init(argv[0], debug);
+
   /*
    * Bind our local address so that the client can send to us.
    */
@@ -175,13 +177,8 @@ main(int argc, char** argv)
   sockfd = I2AddrFD(listenaddr);
 
   tt = time(0);
-  if (debug > 0) {
-    fprintf(stderr, "%15.15s server started, listening on port %d",
-        ctime(&tt)+4, I2AddrPort(listenaddr));
-    if (federated == 1)
-      fprintf(stderr, ", operating in Federated mode");
-    fprintf(stderr, "\n");
-  }
+  log_println(1, "%15.15s server started, listening on port %d%s", ctime(&tt)+4, I2AddrPort(listenaddr),
+      (federated == 1) ? ", operating in Federated mode" : "");
   if (LogFileName != NULL) {
     fp = fopen(LogFileName, "a");
     if (fp != NULL) {
@@ -212,7 +209,7 @@ main(int argc, char** argv)
       I2Addr caddr = I2AddrBySAddr(NULL, (struct sockaddr *) &cli_addr, clilen, 0, 0);
       alarm(300);     /* kill child off after 5 minutes, should never happen */
       close(sockfd);
-      dowww(newsockfd, caddr, listenport, LogFileName, debug, federated, max_ttl);
+      dowww(newsockfd, caddr, listenport, LogFileName, federated, max_ttl);
       exit(0);
     }
     close(newsockfd);
@@ -295,7 +292,7 @@ register int  nbytes;
 }
 
 void
-dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mode, int max_ttl)
+dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl)
 {
   /* process web request */
   int fd, n, i, ok;
@@ -322,14 +319,12 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
     if (p == NULL) 
       continue;
     sscanf(p+4, "%s", filename);
-    if (strcmp(filename, "/") == 0){
+    if (strcmp(filename, "/") == 0) {
       /* feed em the default page */
       /* strcpy(filename, Mypagefile); */
       /* By default we now send out the redirect page */
 
-      if (debug > 3) {
-        fprintf(stderr, "Received connection from [%s]\n", nodename);
-      }
+      log_println(4, "Received connection from [%s]", nodename);
 
       if (fed_mode == 1) {
         struct sockaddr* csaddr;
@@ -337,15 +332,13 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
         if (csaddr->sa_family == AF_INET) { /* make the IPv4 find */
           struct sockaddr_in* cli_addr = (struct sockaddr_in*) csaddr;
           char onenodename[200];
-          find_route(cli_addr->sin_addr.s_addr, IPlist, max_ttl, debug);
+          find_route(cli_addr->sin_addr.s_addr, IPlist, max_ttl);
           for (i=0; IPlist[i]!=cli_addr->sin_addr.s_addr; i++) {
             sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff, (IPlist[i] >> 8) & 0xff,
                 (IPlist[i] >> 16) & 0xff, (IPlist[i] >> 24) & 0xff);
-            if (debug > 3)
-              fprintf(stderr, "loop IPlist[%d] = %s\n", i, p);
+            log_println(4, "loop IPlist[%d] = %s", i, p);
             if (i == max_ttl) {
-              if (debug > 3)
-                fprintf(stderr, "Oops, destination not found!\n");
+              log_println(4, "Oops, destination not found!");
               break;
             }
           }
@@ -353,10 +346,9 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
           sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff,
               (IPlist[i] >> 8) & 0xff,
               (IPlist[i] >> 16) & 0xff, (IPlist[i] >> 24) & 0xff);
-          if (debug > 3)
-            fprintf(stderr, "IPlist[%d] = %s\n", i, p);
+          log_println(4, "IPlist[%d] = %s", i, p);
 
-          srv_addr = find_compare(IPlist, i, debug);
+          srv_addr = find_compare(IPlist, i);
 
           /* the find_compare() routine returns the IP address of the 'closest'
            * NDT server.  It does this by comparing the clients address to a
@@ -368,16 +360,13 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
             memset(onenodename, 0, 200);
             nlen = 199;
             I2AddrNodeName(serv_addr, onenodename, &nlen);
-            if (debug > 3) {
-              fprintf(stderr, "find_compare() returned 0, reset to [%s]\n", onenodename);
-            }
+            log_println(4, "find_compare() returned 0, reset to [%s]", onenodename);
             srv_addr = ((struct sockaddr_in*)I2AddrSAddr(serv_addr, NULL))->sin_addr.s_addr;
           }
 
-          if (debug > 3)
-            fprintf(stderr, "Client host [%s] should be redirected to FLM server [%u.%u.%u.%u]\n", 
-                inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-                (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff);
+          log_println(4, "Client host [%s] should be redirected to FLM server [%u.%u.%u.%u]",
+              inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff);
 
           /* At this point, the srv_addr variable contains the IP address of the
            * server we want to re-direct the connect to.  So we should generate a
@@ -402,12 +391,9 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
               port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
-          if (debug > 2) {
-            fprintf(stderr, "%s redirected to remote server [%u.%u.%u.%u:%s]\n",
-                inet_ntoa(cli_addr->sin_addr),
-                srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-                (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
-          }
+          log_println(3, "%s redirected to remote server [%u.%u.%u.%u:%s]",
+              inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
           tt = time(0);
           if (LogFileName != NULL) {
             lfd = fopen(LogFileName, "a");
@@ -427,38 +413,33 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
           struct sockaddr_in6* cli_addr = (struct sockaddr_in6*) csaddr;
           char onenodename[200];
           socklen_t onenode_len;
-          find_route6(nodename, IP6list, max_ttl, debug);
+          find_route6(nodename, IP6list, max_ttl);
           for (i = 0; memcmp(IP6list[i], &cli_addr->sin6_addr, sizeof(cli_addr->sin6_addr)); i++) {
             memset(onenodename, 0, 200);
             onenode_len = 199;
             inet_ntop(AF_INET6, (void *) IP6list[i], onenodename, onenode_len);
-            if (debug > 3) {
-              fprintf(stderr, "loop IP6list[%d], = %s\n", i, onenodename);
-            }
+            log_println(4, "loop IP6list[%d], = %s", i, onenodename);
             if (i == max_ttl) {
-              if (debug > 3) {
-                fprintf(stderr, "Oops, destination not found!\n");
-              }
+              log_println(4, "Oops, destination not found!");
               break;
             }
           }
           /* print out last item on list */
-          if (debug > 3) {
+          
+          if (get_debuglvl() > 3) {
             memset(onenodename, 0, 200);
             onenode_len = 199;
             inet_ntop(AF_INET6, (void *) IP6list[i], onenodename, onenode_len);
-            fprintf(stderr, "IP6list[%d] = %s\n", i, onenodename);
+            log_println(4, "IP6list[%d] = %s", i, onenodename);
           }
 
-          srv_addr = find_compare6(srv_addr6, IP6list, i, debug);
+          srv_addr = find_compare6(srv_addr6, IP6list, i);
           if (srv_addr == 0) {
             serv_addr = I2AddrByLocalSockFD(NULL, sd, False);
             memset(onenodename, 0, 200);
             nlen = 199;
             I2AddrNodeName(serv_addr, onenodename, &nlen);
-            if (debug > 3) {
-              fprintf(stderr, "find_compare6() returned 0, reset to [%s]\n", onenodename);
-            }
+            log_println(4, "find_compare6() returned 0, reset to [%s]", onenodename);
             memcpy(srv_addr6, &((struct sockaddr_in6*)I2AddrSAddr(serv_addr, NULL))->sin6_addr, 16);
           }
           
@@ -466,10 +447,8 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
           memset(onenodename, 0, 200);
           inet_ntop(AF_INET6, (void *) srv_addr6, onenodename, nlen);
           
-          if (debug > 3) {
-            fprintf(stderr, "Client host [%s]", nodename);
-            fprintf(stderr, " should be redirected to FLM server [%s]\n", onenodename);
-          }
+          log_println(4, "Client host [%s] should be redirected to FLM server [%s]",
+              nodename, onenodename);
 
           writen(sd, MsgOK, strlen(MsgOK));
           writen(sd, MsgRedir1, strlen(MsgRedir1));
@@ -479,9 +458,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
           sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
-          if (debug > 2) {
-            fprintf(stderr, "%s redirected to remote server [%s:%s]\n", nodename, onenodename, port);
-          }
+          log_println(3, "%s redirected to remote server [%s:%s]", nodename, onenodename, port);
           tt = time(0);
           if (LogFileName != NULL) {
             lfd = fopen(LogFileName, "a");
@@ -500,9 +477,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
 
     /* try to open and give em what they want */
     tt = time(0);
-    if (debug > 2)
-      fprintf(stderr, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4,
-          nodename, filename);
+    log_print(3, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4, nodename, filename);
     if (LogFileName != NULL) {
       lfd = fopen(LogFileName, "a");
       if (lfd != NULL) {
@@ -518,8 +493,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
       /* restrict file access */
       if (strcmp(okfile[i], filename) == 0) {
         ok=1;
-        if (debug > 2)
-          fprintf(stderr, "sent to client\n");
+        log_println(3, "sent to client");
         if (LogFileName != NULL) {
           lfd = fopen(LogFileName, "a");
           if (lfd != NULL) {
@@ -535,8 +509,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
       while (ptr != NULL) {
         if (strcmp(ptr->filename, filename) == 0) {
           ok=1;
-          if (debug > 2)
-            fprintf(stderr, "sent to client [A]\n");
+          log_println(3, "sent to client [A]");
           if (LogFileName != NULL) {
             lfd = fopen(LogFileName, "a");
             if (lfd != NULL) {
@@ -551,8 +524,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
     }
     if (ok == 0) {
       writen(sd, MsgNope, strlen(MsgNope));
-      if (debug > 2)
-        fprintf(stderr, "access denied\n");
+      log_println(3, "access denied");
       if (LogFileName != NULL) {
         lfd = fopen(LogFileName, "a");
         if (lfd != NULL) {
@@ -567,8 +539,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int debug, int fed_mod
     if (fd < 0) {
       close(fd);
       writen(sd, MsgNope, strlen(MsgNope));
-      if (debug > 2)
-        fprintf(stderr, " not found\n");
+      log_println(3, " not found");
       if (LogFileName != NULL) {
         lfd = fopen(LogFileName, "a");
         if (lfd != NULL) {

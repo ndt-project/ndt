@@ -271,6 +271,8 @@ char copyright[] =
 #include <string.h>
 #include <unistd.h>
 
+#include "logging.h"
+
 #define  MAXPACKET  65535
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN  64
@@ -342,7 +344,6 @@ char *device = NULL;
 char *hostname;
 
 int nprobes6 = 2;
-/* int max_ttl = 30; */
 pid_t ident;
 u_short port6 = 32768+666;  /* start udp dest port # for probe packets */
 int options;      /* socket options */
@@ -364,7 +365,7 @@ int datalen = sizeof(struct pkt_format);
 
 
 void
-find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl, int debug)
+find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
 {
   extern char *optarg;
   extern int optind;
@@ -401,7 +402,6 @@ find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl, int debug)
   }
   firsthop = *to;
 
-/*  ident = getpid();*/
   ident = (getpid() & 0xffff) | 0x8000;
 
   sendbuff = malloc(datalen);
@@ -517,10 +517,10 @@ find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl, int debug)
                    &from.sin6_addr,
                    sizeof(lastaddr));
           }
-          if (debug > 4) {
+          if (get_debuglvl() > 4) {
             char tmp[MAXHOSTNAMELEN];
             inet_ntop(AF_INET6, &from.sin6_addr, tmp, sizeof(tmp));
-            fprintf(stderr, "Probe %d resulted in reply from [%s]\n",probe, tmp);
+            log_println(5, "Probe %d resulted in reply from [%s]", probe, tmp);
           }
           switch(i - 1) {
           case ICMPV6_PORT_UNREACH:

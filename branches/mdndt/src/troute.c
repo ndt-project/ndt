@@ -79,6 +79,8 @@ static char sccsid[] = "@(#)troute.c  8.1 (Berkeley) 6/6/93";
 #include <netdb.h>
 #include <stdio.h>
 
+#include "logging.h"
+
 #define  MAXPACKET  65535  /* max ip packet size */
 #ifndef MAXHOSTNAMELEN
 #define MAXHOSTNAMELEN  64
@@ -125,7 +127,6 @@ char *source = 0;
 char *hostname;
 
 int nprobes = 2;
-/* int max_ttl = 30; */
 u_short ident;
 u_short port = 32768+666;  /* start udp dest port # for probe packets */
 int options;      /* socket options */
@@ -134,7 +135,7 @@ int waittime = 1;    /* time to wait for response (in seconds) */
 int nflag;      /* print addresses numerically */
 
 void
-find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
+find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl)
 {
   extern char *optarg;
   extern int optind;
@@ -199,7 +200,6 @@ find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
     int got_there = 0;
     int unreachable = 0;
 
-    /* printf("%2d ", ttl); */
     for (probe = 0; probe < nprobes; ++probe) {
       int cc;
       struct timeval t1, t2;
@@ -215,20 +215,14 @@ find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
             IPlist[ttl-1] = from.sin_addr.s_addr;
             lastaddr = from.sin_addr.s_addr;
           }
-          if (debug > 4)
-              fprintf(stderr, "Probe %d resulted in reply from [%s]\n",
-            probe, inet_ntoa(from.sin_addr));
-          /* fprintf(stderr, "received reply to previous probe, "); */
-          /* fprintf(stderr, "checking return code of [%d]\n", (i-1)); */
+          log_println(5, "Probe %d resulted in reply from [%s]", probe, inet_ntoa(from.sin_addr));
 
           switch(i - 1) {
           case ICMP_UNREACH_PORT:
 #ifndef ARCHAIC
             ip = (struct ip *)packet;
-            /* if (ip->ip_ttl <= 1) */
 #endif /* ARCHAIC */
             ++got_there;
-            /* fprintf(stderr, "Port unreachable found, incrementing got_there variable to %d, ttl = %d\n", got_there, ntohs(ip->ip_ttl)); */
             break;
           case ICMP_UNREACH_NET:
             ++unreachable;
@@ -250,10 +244,7 @@ find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl, int debug)
         }
       }
     }
-    /* fprintf(stderr, "Exiting probe loop. probe = %d, got_there = %d\n", */
-    /*  probe, got_there); */
     if (got_there || unreachable >= nprobes-1) {
-      /* fprintf(stderr, "find_route() routine exiting gracefully\n"); */
       return;
     }
   }
@@ -320,7 +311,6 @@ send_probe(seq, ttl)
     if (i<0)
       perror("sendto");
   }
-  /* fprintf(stderr, "sent probe number to [%s]\n", inet_ntoa(ip->ip_dst));  */
 }
 
 

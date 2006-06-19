@@ -38,6 +38,7 @@
 #include "../config.h"
 #include "tr-tree.h"
 #include "usage.h"
+#include "logging.h"
 
 struct tr_tree *tr_root, *tr_cur;
 int found_node;
@@ -60,7 +61,6 @@ static struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
-int debug = 0;
 /* Recursive sub-routine that walks through the tree.  In
  * build mode (flag = b) add a new node to the tree if
  * a leaf is reached and this new node should go under it.
@@ -622,15 +622,14 @@ compare(char* cmp_ip)
   while ((fgets(buff, 256, fp)) != NULL) {
     tmpbuff = strtok(buff, "\n");
     IPlist[i] = get_addr(tmpbuff);
-    if (debug > 4)
-      printf("IPlist[%d] = %u.%u.%u.%u \n", (i),
-          (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
-          ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
+    log_println(5, "IPlist[%d] = %u.%u.%u.%u", (i),
+        (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
+        ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
     i++;
 
   }
 
-  ip_addr = find_compare(IPlist, --i, debug);
+  ip_addr = find_compare(IPlist, --i);
 
   hp = gethostbyaddr((char *) &ip_addr, 4, AF_INET);
   if (hp == NULL)
@@ -711,15 +710,15 @@ compare6(char* cmp_ip)
   while ((fgets(buff, 256, fp)) != NULL) {
     tmpbuff = strtok(buff, "\n");
     get_addr6(IPlist[i], tmpbuff);
-    if (debug > 4) {
+    if (get_debuglvl() > 4) {
       memset(nodename, 0, 200);
       inet_ntop(AF_INET6, IPlist[i], nodename, nnlen);
-      printf("IP6list[%d] = %s \n", i, nodename);
+      log_println(5, "IP6list[%d] = %s", i, nodename);
     }
     i++;
   }
 
-  find_compare6(ip_addr, IPlist, --i, debug);
+  find_compare6(ip_addr, IPlist, --i);
 
   hp = gethostbyaddr((char *) ip_addr, 16, AF_INET6);
   if (hp == NULL)
@@ -831,6 +830,7 @@ main(int argc, char *argv[])
   int c, flag, flag_set=0;
   int v4only = 0;
   int v6only = 0;
+  int debug = 0;
 
   flag = 'b';
 
@@ -886,6 +886,8 @@ main(int argc, char *argv[])
   if (optind < argc) {
     short_usage(argv[0], "Unrecognized non-option elements");
   }
+
+  log_init(argv[0], debug);
 
   if (flag == 'b') {
 #ifdef AF_INET6

@@ -36,6 +36,7 @@
 #include <arpa/inet.h>
 
 #include "tr-tree.h"
+#include "logging.h"
 
 #ifdef AF_INET6
 
@@ -69,7 +70,7 @@ restore_tree6(struct tr_tree6 *tmp, FILE *fp)
 }
 
 int
-find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug)
+find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
 {
 
   struct tr_tree6 *root, *current, *new;
@@ -86,8 +87,7 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug)
   sprintf(buff, "%s/%s", BASEDIR, DFLT_TREE6);
   fp = fopen(buff, "rb");
   if (fp == NULL) {
-    if (debug > 4) 
-      fprintf(stderr, "Error: Can't read default tree, exiting find_compare6()\n");
+    log_println(5, "Error: Can't read default tree, exiting find_compare6()");
     return 0;
   }
   new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
@@ -105,32 +105,31 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug)
   fclose(fp);
   found_node = 0;
   current = root;
-  if (debug > 5)
-    fprintf(stderr, "route to client contains %d hops\n", cnt);
+  log_println(6, "route to client contains %d hops", cnt);
   for (i=0; i<=cnt; i++) {
-    if (debug > 5) {
+    if (get_debuglvl() > 5) {
       memset(nodename, 0, 200);
       nnlen = 199;
       inet_ntop(AF_INET6, (void *) IP6list[i], nodename, nnlen);
-      fprintf(stderr, "New client node [%s] ", nodename);
+      log_print(6, "New client node [%s] ", nodename);
       memset(nodename, 0, 200);
       nnlen = 199;
       inet_ntop(AF_INET6, (void *) current->ip_addr, nodename, nnlen);
-      fprintf(stderr, "to map node [%s]\n", nodename);
+      log_println(6, "to map node [%s]", nodename);
     }
     if (memcmp(IP6list[i], current->ip_addr, sizeof(current->ip_addr)) == 0) {
       continue;
     }
     for (j=0; j<current->branches; j++) {
-      if (debug > 4) {
+      if (get_debuglvl() > 4) {
         memset(nodename, 0, 200);
         nnlen = 199;
         inet_ntop(AF_INET6, (void *) current->branch[j]->ip_addr, nodename, nnlen);
-        fprintf(stderr, "Comparing map node [%s] ", nodename);
+        log_print(5, "Comparing map node [%s] ", nodename);
         memset(nodename, 0, 200);
         nnlen = 199;
         inet_ntop(AF_INET6, (void *) IP6list[i], nodename, nnlen);
-        fprintf(stderr, "to client node [%s], cnt = %d\n", nodename, i);
+        log_println(5, "to client node [%s], cnt = %d", nodename, i);
       }
 
       if (memcmp(current->branch[j]->ip_addr, IP6list[i], sizeof(IP6list[i])) == 0) {
@@ -139,11 +138,11 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug)
         for (k=0; k<current->branches; k++) {
           if (current->branch[k]->branches == 0) {
             memcpy(IPnode, current->branch[k]->ip_addr, 16);
-            if (debug > 4) {
+            if (get_debuglvl() > 4) {
               memset(nodename, 0, 200);
               nnlen = 199;
               inet_ntop(AF_INET6, (void *) IPnode, nodename, nnlen);
-              fprintf(stderr, "srv_addr set to [%s]\n", nodename);
+              log_println(5, "srv_addr set to [%s]", nodename);
             }
             found_node = 1;
             fnode = 1;
@@ -167,8 +166,7 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug)
   }
 
   if (found_node == -1) {
-    if (debug > 5)
-      fprintf(stderr, "Broke out of compare loop, setting current pointer\n");
+    log_println(6, "Broke out of compare loop, setting current pointer");
     if (current->branches == 1) {
       current = current->branch[0];
       if (current->branches == 0)
@@ -191,31 +189,30 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt, int debug)
     strncpy(c_name, hp->h_name, strlen(hp->h_name));
 
   if (found_node == 1) {
-    if (debug > 4) {
+    if (get_debuglvl() > 4) {
       memset(nodename, 0, 200);
       nnlen = 199;
       inet_ntop(AF_INET6, (void *) IP6list[i], nodename, nnlen);
-      fprintf(stderr, "Router %s [%s] is last common router in the path!\n", c_name, nodename);
+      log_println(5, "Router %s [%s] is last common router in the path!", c_name, nodename);
     }
     return 1;
   }
-  if (debug > 5)
-    fprintf(stderr, "New Server Node found!  found_node set to %d\n", found_node);
+  log_println(6, "New Server Node found!  found_node set to %d", found_node);
   hp = (struct hostent *)gethostbyaddr((char *) current->ip_addr, 16, AF_INET6);
   if (hp == NULL)
     strncpy(h_name, "Unknown Host", 13);
   else
     strncpy(h_name, hp->h_name, strlen(hp->h_name));
 
-  if (debug > 5) {
+  if (get_debuglvl() > 5) {
     memset(nodename, 0, 200);
     nnlen = 199;
     inet_ntop(AF_INET6, (void *) current->ip_addr, nodename, nnlen);
-    fprintf(stderr, "\tThe eNDT server %s [%s]", h_name, nodename);
+    log_print(6, "\tThe eNDT server %s [%s]", h_name, nodename);
     memset(nodename, 0, 200);
     nnlen = 199;
     inet_ntop(AF_INET6, (void *) IP6list[cnt], nodename, nnlen);
-    fprintf(stderr, " is closest to %s [%s]\n", c_name, nodename);
+    log_println(6, " is closest to %s [%s]", c_name, nodename);
   }
 
   memcpy(IPnode, current->ip_addr, 16);

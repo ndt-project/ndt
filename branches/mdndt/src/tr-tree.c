@@ -33,6 +33,7 @@
 #include <netdb.h>
 
 #include "tr-tree.h"
+#include "logging.h"
 
 struct tr_tree *tr_root, *tr_cur;
 int found_node;
@@ -64,7 +65,7 @@ restore_tree(struct tr_tree *tmp, FILE *fp)
 }
 
 u_int32_t
-find_compare(u_int32_t IPlist[], int cnt, int debug)
+find_compare(u_int32_t IPlist[], int cnt)
 {
 
   struct tr_tree *root, *current, *new;
@@ -80,8 +81,7 @@ find_compare(u_int32_t IPlist[], int cnt, int debug)
   sprintf(buff, "%s/%s", BASEDIR, DFLT_TREE);
   fp = fopen(buff, "rb");
   if (fp == NULL) {
-    if (debug > 4) 
-      fprintf(stderr, "Error: Can't read default tree, exiting find_compare()\n");
+    log_println(5, "Error: Can't read default tree, exiting find_compare()");
     return 0;
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
@@ -100,30 +100,25 @@ find_compare(u_int32_t IPlist[], int cnt, int debug)
   found_node = 0;
   srv_addr = 0;
   current = root;
-  if (debug > 5)
-    fprintf(stderr, "route to client contains %d hops\n", cnt);
+  log_println(6, "route to client contains %d hops", cnt);
   for (i=0; i<=cnt; i++) {
-    if (debug > 5) {
-      fprintf(stderr, "New client node [%u.%u.%u.%u] ",
-          (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
-          ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
-      fprintf(stderr, "to map node [%u.%u.%u.%u]\n",
-          (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),
-          ((current->ip_addr >> 16) & 0xff),  (current->ip_addr >> 24));
-    }
+    log_print(6, "New client node [%u.%u.%u.%u] ",
+        (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
+        ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
+    log_println(6, "to map node [%u.%u.%u.%u]",
+        (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),
+        ((current->ip_addr >> 16) & 0xff),  (current->ip_addr >> 24));
     if (current->ip_addr == IPlist[i])
       continue;
     for (j=0; j<current->branches; j++) {
-      if (debug > 4) {
-        fprintf(stderr, "Comparing map node [%u.%u.%u.%u] ",
-            (current->branch[j]->ip_addr & 0xff),
-            ((current->branch[j]->ip_addr >> 8) & 0xff),
-            ((current->branch[j]->ip_addr >> 16) & 0xff), 
-            (current->branch[j]->ip_addr >> 24));
-        fprintf(stderr, "to client node [%u.%u.%u.%u], cnt = %d\n",
-            (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
-            ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24), i);
-      }
+      log_print(5, "Comparing map node [%u.%u.%u.%u] ",
+          (current->branch[j]->ip_addr & 0xff),
+          ((current->branch[j]->ip_addr >> 8) & 0xff),
+          ((current->branch[j]->ip_addr >> 16) & 0xff), 
+          (current->branch[j]->ip_addr >> 24));
+      log_println(5, "to client node [%u.%u.%u.%u], cnt = %d",
+          (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
+          ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24), i);
 
       if (current->branch[j]->ip_addr == IPlist[i]) {
         current = current->branch[j];
@@ -131,11 +126,9 @@ find_compare(u_int32_t IPlist[], int cnt, int debug)
         for (k=0; k<current->branches; k++) {
           if (current->branch[k]->branches == 0) {
             srv_addr = current->branch[k]->ip_addr;
-            if (debug > 4) {
-              fprintf(stderr, "srv_addr set to [%u.%u.%u.%u]\n", 
-                  (srv_addr & 0xff), ((srv_addr >> 8) & 0xff),
-                  ((srv_addr >> 16) & 0xff), (srv_addr >> 24));
-            }
+            log_println(5, "srv_addr set to [%u.%u.%u.%u]",
+                (srv_addr & 0xff), ((srv_addr >> 8) & 0xff),
+                ((srv_addr >> 16) & 0xff), (srv_addr >> 24));
             found_node = 1;
           }
         }
@@ -155,8 +148,7 @@ find_compare(u_int32_t IPlist[], int cnt, int debug)
     found_node = 1;
 
   if (found_node == -1) {
-    if (debug > 5)
-      fprintf(stderr, "Broke out of compare loop, setting current pointer\n");
+    log_println(6, "Broke out of compare loop, setting current pointer");
     if (current->branches == 1) {
       current = current->branch[0];
       if (current->branches == 0)
@@ -179,26 +171,23 @@ find_compare(u_int32_t IPlist[], int cnt, int debug)
     strncpy(c_name, hp->h_name, strlen(hp->h_name));
 
   if (found_node == 1) {
-    if (debug > 4)
-      fprintf(stderr, "Router %s [%u.%u.%u.%u] is last common router in the path!\n",
-          c_name, (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
-          ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
+    log_println(5, "Router %s [%u.%u.%u.%u] is last common router in the path!",
+        c_name, (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
+        ((IPlist[i] >> 16) & 0xff),  (IPlist[i] >> 24));
     return(srv_addr);
   }
-  if (debug > 5)
-    fprintf(stderr, "New Server Node found!  found_node set to %d\n", found_node);
+  log_println(6, "New Server Node found!  found_node set to %d", found_node);
   hp = (struct hostent *)gethostbyaddr((char *) &current->ip_addr, 4, AF_INET);
   if (hp == NULL)
     strncpy(h_name, "Unknown Host", 13);
   else
     strncpy(h_name, hp->h_name, strlen(hp->h_name));
 
-  if (debug > 5)
-    fprintf(stderr, "\tThe eNDT server %s [%u.%u.%u.%u] is closest to %s [%u.%u.%u.%u]\n",
-        h_name, (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),
-        ((current->ip_addr >> 16) & 0xff),  (current->ip_addr >> 24),
-        c_name, (IPlist[cnt] & 0xff), ((IPlist[cnt] >> 8) & 0xff),
-        ((IPlist[cnt] >> 16) & 0xff),  (IPlist[cnt] >> 24));
+  log_println(6, "\tThe eNDT server %s [%u.%u.%u.%u] is closest to %s [%u.%u.%u.%u]",
+      h_name, (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),
+      ((current->ip_addr >> 16) & 0xff),  (current->ip_addr >> 24),
+      c_name, (IPlist[cnt] & 0xff), ((IPlist[cnt] >> 8) & 0xff),
+      ((IPlist[cnt] >> 16) & 0xff),  (IPlist[cnt] >> 24));
 
   return(current->ip_addr);
 }
