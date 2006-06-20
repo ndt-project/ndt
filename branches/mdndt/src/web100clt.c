@@ -10,6 +10,7 @@
 #include "network.h"
 #include "usage.h"
 #include "logging.h"
+#include "varinfo.h"
 
 extern int h_errno;
 
@@ -40,7 +41,7 @@ static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
   {"msglvl", 0, 0, 'l'},
-  {"version", 0, 0, 'v'},
+  {"web100variables", 0, 0, 301},
   {"buffer", 1, 0, 'b'},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
@@ -73,6 +74,19 @@ printVariables(char *tmpstr)
     printf("%s %s\n", sysvar, sysval);
     if (i >= k)
       return;
+  }
+}
+
+void
+printWeb100VarInfo()
+{
+  int i = 0;
+  printf(" --- Detailed description of the Web100 variables ---\n\n");
+
+  while (web100vartable[i][0])
+  {
+    printf("* %s\n    %s\n", web100vartable[i][0], web100vartable[i][1]);
+    ++i;
   }
 }
 
@@ -571,6 +585,10 @@ main(int argc, char *argv[])
         break;
       case 'n':
         host = optarg;
+        break;
+      case 301:
+        printWeb100VarInfo();
+        exit(0);
         break;
       case '?':
         short_usage(argv[0], "");
