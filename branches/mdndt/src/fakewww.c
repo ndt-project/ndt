@@ -81,6 +81,7 @@ static struct option long_options[] = {
 };
 
 void dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl);
+void reap();
 
 void
 err_sys(char* s)
@@ -92,7 +93,7 @@ err_sys(char* s)
 int
 main(int argc, char** argv)
 {
-  int reap(), c;
+  int c;
   int sockfd, newsockfd;
   int federated=0, debug=0, max_ttl=10;
   time_t tt;

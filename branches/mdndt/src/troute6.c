@@ -260,6 +260,7 @@ char copyright[] =
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
 
+#include <asm/byteorder.h>
 #include <linux/icmpv6.h>
 
 #include <arpa/inet.h>
