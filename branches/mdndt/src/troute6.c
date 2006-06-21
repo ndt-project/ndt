@@ -244,6 +244,8 @@ char copyright[] =
  *     Tue Dec 20 03:50:13 PST 1988
  */
 
+#ifdef AF_INET6
+ 
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/socket.h>
@@ -720,3 +722,5 @@ int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
 
   return(0);
 }
+
+#endif

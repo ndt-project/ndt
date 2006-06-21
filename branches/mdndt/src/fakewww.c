@@ -300,8 +300,10 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
   char *p, filename[256], line[256], *ctime();
   char htmlfile[256];
   u_int32_t IPlist[64], srv_addr;
+#ifdef AF_INET6
   u_int32_t IP6list[64][4];
   u_int32_t srv_addr6[4];
+#endif
   I2Addr serv_addr = NULL;
   FILE *lfd;
   time_t tt;
