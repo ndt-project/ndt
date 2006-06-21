@@ -46,33 +46,51 @@ Java-based clients. If the NDT server administrator has disable FIFO processing,
 the web100clt program will terminate gracefully.
 .SH OPTIONS
 .TP
-\fB\-d\fR 
+\fB\-n, --name\fR \fIname\fR
+Specify the name of the server.
+.TP
+\fB\-p, --port\fR \fIport\fR
+Specify the port the server is listening on.
+.TP
+\fB\-d, --debug\fR 
 Print debugging information. This option increments the internal
 debugging flag, allowing the display of run-time diagnostic messages. 
 Repeated use of this option increases the amount of debugging
 information that will be displayed. Note: debugging information
 prints on stderr.
 .TP
-\fB\-h\fR 
+\fB\-h, --help\fR 
 Print a simple usage page and exit.
 .TP
-\fB\-l\fR 
+\fB\-l, --msglvl\fR 
 Increment the diagnostic message level. Repeated use of this
 option increases the amount of diagnostic results that will
 appear on the screen.
 .TP
-\fB\-b\fR \fIbuffer_size\fR
+\fB\--web100variables\fR 
+Print the information about each Web100 variable.
+.TP
+\fB\-v, --version\fR 
+Print version number and exit.
+.TP
+\fB\-b, --buffer\fR \fIbuffer_size\fR
 Set the TCP send and receive buffer size. This option uses the
 \fBsetsockopt(2)\fR function to set the TCP buffer size. Values
 larger than 64 Kbytes will result in large windows if the RFC1323
 window scaling option is enabled on the client host.
+.TP
+\fB\-4, --ipv4\fR 
+Use IPv4 addresses only.
+.TP
+\fB\-6, --ipv6\fR 
+Use IPv6 addresses only.
 .SH LIMITATIONS
 The NDT service is continuing to undergo testing and upgrading. 
 Better diagnostic algorithms are being developed to improve the
 accuracy and reliability of this service.
 .SH EXAMPLES
 .LP
-\fBweb100clt somehost.example.com\fR
+\fBweb100clt -n somehost.example.com\fR
 .IP
 Run an NDT test between this host and the remote server on
 somehost.example.com.

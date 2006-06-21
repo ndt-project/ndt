@@ -53,17 +53,28 @@ is logged.  Otherwise the requested file(s) is(are) returned to the
 client.
 .SH OPTIONS
 .TP
-\fB\-d\fR 
+\fB\-d, --debug\fR 
 Print debugging information.  This option increments the internal
 debugging flag allowing the display of run time diagnostic messages. 
 Repeated use of this option increases the amount of debugging
 information that will be displayed.  Note: the debugging information
 prints to the stderr.
 .TP
-\fB\-h\fR 
+\fB\-h, --help\fR 
 Print a simple usage page and exit.
 .TP
-\fB\-F\fR 
+\fB\-l, --log\fR \fIlog_file\fR
+Create a log file and log client activity.
+.TP
+\fB\-p, --port\fR \fIport number\fR
+Specify a different TCP port number to listen for client requests.
+.TP
+\fB\-t, --ttl\fR \fInumber\fR
+Specify the maximum number of hops that traceroute should follow. 
+This number needs to be larger than the maximum number of hops
+between servers in the federation.  
+.TP
+\fB\-F, --federated\fR 
 Operate in \fBfederated mode\fR.  In this mode several servers operate
 together to handle client requests.  The federated servers form a
 \fIMeasurement Domain\fR that clients can connect to.  Each server
@@ -71,20 +82,23 @@ contains a \fBtraceroute\fR map to all servers in the \fBfederation\fR.
 When a client connects to a server, the server performs a \fBtraceroute\fR
 back to the client.  The server then dynamically creates a new web
 page that redirects the client to the appropriate server.  By default,
-this will be the server \fIcloset\fR to the ingress point of the
+this will be the server \fIclosest\fR to the ingress point of the
 \fBmeasurement domain\fR.
 .TP
-\fB\-l\fR \fIlog_file\fR
-Create a log file and log client activity.
-Set the TCP send and receive buffer size.  This option uses the
+\fB\-f, --file\fR \fIfile\fR
+Add the specified file to the list of allowed ones.
 .TP
-\fB\-p\fR \fIport number\fR
-Specify a different TCP port number to listen for client requests.
+\fB\-b, --basedir\fR \fIpath\fR
+Specify a basedir for the documents.
 .TP
-\fB\-t\fR \fInumber\fR
-Specify the maximum number of hops that traceroute should follow. 
-This number needs to be larger than the maximum number of hops
-between servers in the federation.  
+\fB\-v, --version\fR 
+Print version number and exit.
+.TP
+\fB\-4, --ipv4\fR 
+Use IPv4 addresses only.
+.TP
+\fB\-6, --ipv6\fR 
+Use IPv6 addresses only.
 .SH LIMITATIONS
 The NDT service is continuing to undergo testing and upgrading. 
 Better diagnostic algorithms are being developed to improve the
@@ -94,9 +108,9 @@ accuracy and reliability of this service.
 \fBfakewww -l /var/log/fakewww.log >& /dev/null &\fR
 .IP
 Run a fakewww server on TCP port 7123 and log the results in the
-/fB/var/log/fakewww.log\fR log file.
+\fB/var/log/fakewww.log\fR log file.
 .LP
-\fBfakewww -p80 >& /dev/null fR
+\fBfakewww -p80 >& /dev/null\fR
 .IP
 Run a fakewww server on the standard TCP web services port.
 .SH SEE ALSO
