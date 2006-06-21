@@ -36,8 +36,8 @@ char* web100vartable[][2] = {
   {"CurSsthresh", "The current slow start threshold in octets.\n"},
   {"DSACKDups", "The number of duplicate segments reported to the local host\n"
                 "by D-SACK blocks.\n"},
-  {"DataBytesIn", "???\n"},
-  {"DataBytesOut", "???\n"},
+  {"DataBytesIn", "???\nThe number of data bytes received.\n"},
+  {"DataBytesOut", "???\nThe number of data bytes sent.\n"},
   {"DataPktsIn", "???\nThe number of data packets received.\n"},
   {"DataPktsOut", "???\nThe number of data packets sent.\n"},
   {"DupAcksIn", "The number of duplicate ACKs received.\n"},
@@ -124,7 +124,7 @@ char* web100vartable[][2] = {
                     "established.  If the current state was entered prior to\n"
                     "the last re-initialization of the local network management\n"
                     "subsystem, then this object contains a zero value.\n"},
-  {"Duration", "???\n"},
+  {"Duration", "???\nThe duration of the connection.\n"},
   {NULL, NULL}
 };
 

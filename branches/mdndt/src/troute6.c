@@ -244,7 +244,6 @@ char copyright[] =
  *     Tue Dec 20 03:50:13 PST 1988
  */
 
-#ifdef AF_INET6
  
 #include <sys/param.h>
 #include <sys/time.h>
@@ -262,6 +261,7 @@ char copyright[] =
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
 
+#ifdef AF_INET6
 #include <asm/byteorder.h>
 #include <linux/icmpv6.h>
 
