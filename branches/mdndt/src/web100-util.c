@@ -12,6 +12,7 @@
 #include "web100srv.h"
 #include "network.h"
 #include "logging.h"
+#include "utils.h"
 
 /*
  * set up the necessary structures for monitoring connections at the
@@ -160,7 +161,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
 }
  
 void
-web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars)
+web100_get_data_recv(int sock, web100_agent* agent, int count_vars)
 {
   int i, ok;
   web100_var* var;
@@ -173,7 +174,7 @@ web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count
   cn = local_find_connection(sock, agent);
 
   tt=time(0);
-  fp=fopen(LogFileName,"a");
+  fp=fopen(get_logfile(),"a");
   fprintf(fp,"%15.15s;", ctime(&tt)+4);
   web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
   web100_raw_read(var, cn, buf);

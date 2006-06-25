@@ -11,6 +11,8 @@
 int check_int(char* text, int* number);
 int check_rint(char* text, int* number, int minVal, int maxVal);
 int check_long(char* text, long* number);
+double secs();
+void err_sys(char* s);
 
 #endif
 

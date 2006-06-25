@@ -98,7 +98,8 @@ am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
 	web100srv-web100-pcap.$(OBJEXT) \
 	web100srv-web100-admin.$(OBJEXT) web100srv-network.$(OBJEXT) \
 	web100srv-usage.$(OBJEXT) web100srv-utils.$(OBJEXT) \
-	web100srv-mrange.$(OBJEXT) web100srv-logging.$(OBJEXT)
+	web100srv-mrange.$(OBJEXT) web100srv-logging.$(OBJEXT) \
+	web100srv-testoptions.$(OBJEXT)
 web100srv_OBJECTS = $(am_web100srv_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -217,7 +218,7 @@ fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c us
 fakewww_LDADD = $(I2UTILLIBDEPS) $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c \
-										network.c usage.c utils.c mrange.c logging.c
+										network.c usage.c utils.c mrange.c logging.c testoptions.c
 
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
@@ -362,6 +363,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-logging.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-mrange.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-network.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-testoptions.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-web100-admin.Po@am__quote@
@@ -830,6 +832,20 @@ web100srv-logging.obj: logging.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='logging.c' object='web100srv-logging.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-logging.obj `if test -f 'logging.c'; then $(CYGPATH_W) 'logging.c'; else $(CYGPATH_W) '$(srcdir)/logging.c'; fi`
+
+web100srv-testoptions.o: testoptions.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-testoptions.o -MD -MP -MF "$(DEPDIR)/web100srv-testoptions.Tpo" -c -o web100srv-testoptions.o `test -f 'testoptions.c' || echo '$(srcdir)/'`testoptions.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-testoptions.Tpo" "$(DEPDIR)/web100srv-testoptions.Po"; else rm -f "$(DEPDIR)/web100srv-testoptions.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testoptions.c' object='web100srv-testoptions.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-testoptions.o `test -f 'testoptions.c' || echo '$(srcdir)/'`testoptions.c
+
+web100srv-testoptions.obj: testoptions.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-testoptions.obj -MD -MP -MF "$(DEPDIR)/web100srv-testoptions.Tpo" -c -o web100srv-testoptions.obj `if test -f 'testoptions.c'; then $(CYGPATH_W) 'testoptions.c'; else $(CYGPATH_W) '$(srcdir)/testoptions.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-testoptions.Tpo" "$(DEPDIR)/web100srv-testoptions.Po"; else rm -f "$(DEPDIR)/web100srv-testoptions.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testoptions.c' object='web100srv-testoptions.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-testoptions.obj `if test -f 'testoptions.c'; then $(CYGPATH_W) 'testoptions.c'; else $(CYGPATH_W) '$(srcdir)/testoptions.c'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)

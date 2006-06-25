@@ -18,11 +18,8 @@
 int dumptrace;
 pcap_t *pd;
 pcap_dumper_t *pdump;
-int port2, port4;
 int mon_pipe1[2], mon_pipe2[2];
 int sig1, sig2;
-
-char *LogFileName;
 
 int
 check_signal_flags()
@@ -56,8 +53,8 @@ check_signal_flags()
         }
 #endif
       }
-      print_bins(&fwd, mon_pipe1, LogFileName);
-      print_bins(&rev, mon_pipe1, LogFileName);
+      print_bins(&fwd, mon_pipe1);
+      print_bins(&rev, mon_pipe1);
       if (pd != NULL)
         pcap_close(pd);
       if (dumptrace == 1)
@@ -92,8 +89,8 @@ check_signal_flags()
         }
 #endif
       }
-      print_bins(&fwd, mon_pipe2, LogFileName);
-      print_bins(&rev, mon_pipe2, LogFileName);
+      print_bins(&fwd, mon_pipe2);
+      print_bins(&rev, mon_pipe2);
       if (pd != NULL)
         pcap_close(pd);
       if (dumptrace == 1)
@@ -135,7 +132,7 @@ void init_vars(struct spdpair *cur)
 
 
 /* This routine prints results to the screen.  */
-void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
+void print_bins(struct spdpair *cur, int monitor_pipe[2])
 {
 
 	int i, total=0, max=0, s, index = -1;
@@ -146,7 +143,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName)
 	/* the tzoffset value is fixed for CST (6), use 5 for CDT.  The code needs to find the
 	 * current timezone and use that value here! */
 	s = (cur->st_sec - (tzoffset * 3600)) %86400; 
-	fp = fopen(LogFileName, "a");
+	fp = fopen(get_logfile(), "a");
   /* FIXME: no \n in log_println? */
   log_println(1, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
 
@@ -350,11 +347,14 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
   struct ether_header *enet;
   const struct ip *ip = NULL;
+  PortPair* pair = (PortPair*) user;
 #if defined(AF_INET6)
   const struct ip6_hdr *ip6;
 #endif
   const struct tcphdr *tcp;
   struct spdpair current;
+  int port2 = pair->port1;
+  int port4 = pair->port2;
 
   if (dumptrace == 1)
       pcap_dump((u_char *)pdump, h, p);
@@ -546,11 +546,12 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  */
 
 void
-init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2], char *device)
+init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
+    char *device, PortPair* pair)
 {
   char cmdbuf[256];
   pcap_handler printer;
-  u_char * pcap_userdata = NULL;
+  u_char * pcap_userdata = pair;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
   int cnt, pflag = 0;

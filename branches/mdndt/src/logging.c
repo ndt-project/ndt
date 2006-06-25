@@ -11,10 +11,11 @@
 
 #include "logging.h"
 
-static int                _debuglevel   = 0;
-static char*              _programname  = "";
-static I2ErrHandle        _errorhandler_nl = NULL;
-static I2ErrHandle        _errorhandler = NULL;
+static int                _debuglevel        = 0;
+static char*              _programname       = "";
+static char*              LogFileName        = BASEDIR"/"LOGFILE;
+static I2ErrHandle        _errorhandler_nl   = NULL;
+static I2ErrHandle        _errorhandler      = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
 
@@ -61,6 +62,42 @@ set_debuglvl(int debuglvl)
 }
 
 /*
+ * Function name: set_logfile
+ * Description: Sets the log filename.
+ * Arguments: filename - new log filename
+ */
+
+void
+set_logfile(char* filename)
+{
+  LogFileName = filename;
+}
+
+/*
+ * Function name: get_debuglvl
+ * Description: Returns the current debug level.
+ * Returns: The current debug level
+ */
+
+int
+get_debuglvl()
+{
+  return _debuglevel;
+}
+
+/*
+ * Function name: get_logfile
+ * Description: Returns the log filename.
+ * Returns: The log filename
+ */
+
+char*
+get_logfile()
+{
+  return LogFileName;
+}
+
+/*
  * Function name: ndt_print
  * Description: Logs the message with the given lvl.
  * Arguments: lvl - the level of the message
@@ -103,16 +140,4 @@ log_println(int lvl, const char* format, ...)
   va_start(ap, format);
   I2ErrLogVT(_errorhandler_nl,-1,0,format,ap);
   va_end(ap);
-}
-
-/*
- * Function name: get_debuglvl
- * Description: Returns the current debug level.
- * Returns: The current debug level
- */
-
-int
-get_debuglvl()
-{
-  return _debuglevel;
 }

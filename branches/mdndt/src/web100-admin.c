@@ -263,7 +263,7 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
 }
 
 void
-gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
+gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
   int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh)
 {
   FILE *fp;
@@ -374,11 +374,11 @@ gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans,
   fprintf(fp, "<br>\n<hr width=\"100%%\" noShade size=4>\n");
   fprintf(fp, "<table border>\n  <tr>\n");
   fprintf(fp, "    <th>\n    <th>Filename\n    <th>Size\n  </tr>\n  <tr>\n");
-  fprintf(fp, "    <td><b>Log</b>\n    <td> %s    <td>\n", LogFileName);
+  fprintf(fp, "    <td><b>Log</b>\n    <td> %s    <td>\n", get_logfile());
   {
     struct stat fstats;
     
-    if (stat(LogFileName, &fstats) == 0) {
+    if (stat(get_logfile(), &fstats) == 0) {
       char* names[] = {"B", "KB", "MB", "GB"};
       int idname;
       double size = fstats.st_size;
@@ -428,7 +428,7 @@ gen_html(char* LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans,
 }
 
 void
-view_init(char *LogFileName, int refresh)
+view_init(int refresh)
 {
   int Timeouts = 0, SumRTT, CountRTT, MinRTT = 0, PktsRetrans = 0, FastRetran, DataPktsOut;
   int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd = 0, Sndbuf = 0;
@@ -442,7 +442,7 @@ view_init(char *LogFileName, int refresh)
   int c2sdata = 0, c2sack, s2cdata, s2cack = 0;
   int totalcnt=0, view_flag=0;
 
-  if ((fp = fopen(LogFileName, "r")) == NULL)
+  if ((fp = fopen(get_logfile(), "r")) == NULL)
     return;
 
   while ((fgets(buff, 512, fp)) != NULL) {
@@ -626,6 +626,6 @@ display:
   }
   fclose(fp);
   view_flag = 1;
-  gen_html(LogFileName, c2sspd, s2cspd, MinRTT, PktsRetrans, Timeouts, Sndbuf, MaxRwinRcvd,
+  gen_html(c2sspd, s2cspd, MinRTT, PktsRetrans, Timeouts, Sndbuf, MaxRwinRcvd,
       CurrentCwnd, mismatch, bad_cable, totalcnt, refresh);
 }

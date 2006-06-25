@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #include "utils.h"
 
@@ -103,3 +104,29 @@ check_long(char* text, long* number)
   }
 }
 
+/*
+ * Function name: secs
+ * Description: Returns the seconds from the beginning of the epoch.
+ * Returns: The seconds from the beginning of the epoch.
+ */
+
+double
+secs()
+{
+  struct timeval ru;
+  gettimeofday(&ru, (struct timezone *)0);
+  return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
+}
+
+/*
+ * Function name: err_sys
+ * Description: Prints the perror and exits.
+ * Arguments: s - the argument to the perror() function
+ */
+
+void
+err_sys(char* s)
+{
+  perror(s);
+  exit(1);
+}

@@ -11,6 +11,7 @@
 #include "usage.h"
 #include "logging.h"
 #include "varinfo.h"
+#include "testoptions.h"
 
 extern int h_errno;
 
@@ -43,6 +44,9 @@ static struct option long_options[] = {
   {"msglvl", 0, 0, 'l'},
   {"web100variables", 0, 0, 301},
   {"buffer", 1, 0, 'b'},
+  {"disablemid", 0, 0, 302},
+  {"disablec2s", 0, 0, 303},
+  {"disables2c", 0, 0, 304},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
@@ -91,11 +95,15 @@ printWeb100VarInfo()
 }
 
 void
-testResults(char *tmpstr)
+testResults(char tests, char *tmpstr)
 {
   int i=0, Zero=0;
   char *sysvar, *sysval;
   float j;
+
+  if (!(tests & TEST_S2C)) {
+    return;
+  }
 
   sysvar = strtok(tmpstr, "d");
   sysvar = strtok(NULL, " ");
@@ -122,47 +130,49 @@ testResults(char *tmpstr)
 
   if(CountRTT > 0) {
 
-    if (c2sData < 3) {
-      if (c2sData < 0) {
-        printf("Server unable to determine bottleneck link type.\n");
+    if (tests & TEST_C2S) {
+      if (c2sData < 3) {
+        if (c2sData < 0) {
+          printf("Server unable to determine bottleneck link type.\n");
+        } else {
+          printf("Your host is connected to a ");
+          if (c2sData == 1) {
+            printf("Dial-up Modem\n");
+            mylink = .064;
+          } else {
+            printf("Cable/DSL modem\n");
+            mylink = 2;
+          }
+        }
       } else {
-        printf("Your host is connected to a ");
-        if (c2sData == 1) {
-          printf("Dial-up Modem\n");
-          mylink = .064;
-        } else {
-          printf("Cable/DSL modem\n");
-          mylink = 2;
+        printf("The slowest link in the end-to-end path is a ");
+        if (c2sData == 3) {
+          printf("10 Mbps Ethernet or WiFi 11b subnet\n");
+          mylink = 10;
+        } else if (c2sData == 4) {
+          printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
+          mylink = 45;
+        } else if (c2sData == 5) {
+          printf("100 Mbps ");
+          mylink = 100;
+          if (half_duplex == 0) {
+            printf("Full duplex Fast Ethernet subnet\n");
+          } else {
+            printf("Half duplex Fast Ethernet subnet\n");
+          }
+        } else if (c2sData == 6) {
+          printf("a 622 Mbps OC-12 subnet\n");
+          mylink = 622;
+        } else if (c2sData == 7) {
+          printf("1.0 Gbps Gigabit Ethernet subnet\n");
+          mylink = 1000;
+        } else if (c2sData == 8) {
+          printf("2.4 Gbps OC-48 subnet\n");
+          mylink = 2400;
+        } else if (c2sData == 9) {
+          printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
+          mylink = 10000;
         }
-      }
-    } else {
-      printf("The slowest link in the end-to-end path is a ");
-      if (c2sData == 3) {
-        printf("10 Mbps Ethernet or WiFi 11b subnet\n");
-        mylink = 10;
-      } else if (c2sData == 4) {
-        printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
-        mylink = 45;
-      } else if (c2sData == 5) {
-        printf("100 Mbps ");
-        mylink = 100;
-        if (half_duplex == 0) {
-          printf("Full duplex Fast Ethernet subnet\n");
-        } else {
-          printf("Half duplex Fast Ethernet subnet\n");
-        }
-      } else if (c2sData == 6) {
-        printf("a 622 Mbps OC-12 subnet\n");
-        mylink = 622;
-      } else if (c2sData == 7) {
-        printf("1.0 Gbps Gigabit Ethernet subnet\n");
-        mylink = 1000;
-      } else if (c2sData == 8) {
-        printf("2.4 Gbps OC-48 subnet\n");
-        mylink = 2400;
-      } else if (c2sData == 9) {
-        printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
-        mylink = 10000;
       }
     }
 
@@ -297,8 +307,10 @@ testResults(char *tmpstr)
       printf("The network based flow control limits the throughput to %0.2f Mbps\n",
           (float)cwin/rttsec);
 
-      printf("\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
-          c2sData, c2sAck);
+      if (tests & TEST_C2S) {
+        printf("\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
+            c2sData, c2sAck);
+      }
       printf("Server Data reports link is '%3d', Server Acks report link is '%3d'\n", 
           s2cData, s2cAck);
     }
@@ -531,12 +543,13 @@ main(int argc, char *argv[])
 {
   int c;
   char tmpstr2[512], tmpstr[16384], varstr[16384];
+  char tests = TEST_MID | TEST_C2S | TEST_S2C;
   int ctlSocket, outSocket, inSocket, in2Socket;
-  /* FIXME: this 3001 shuld be defined somewhere else */
-  int ctlport = 3001, port3, port2, port4, inlth;
+  /* FIXME: this 3001, 3002, 3003, 3004 shuld be defined somewhere else */
+  int ctlport = 3001, c2sport = 3002, midport = 3003, s2cport = 3004, inlth, totread;
   uint32_t bytes;
   double stop_time;
-  int ret, i, xwait, one=1;
+  int ret, i = 0, xwait, one=1;
   int largewin;
   char buff[8192];
   time_t sec;
@@ -548,6 +561,7 @@ main(int argc, char *argv[])
   I2Addr server_addr = NULL, sec_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
   socklen_t optlen;
+  int readgo = 0;
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -590,6 +604,15 @@ main(int argc, char *argv[])
         printWeb100VarInfo();
         exit(0);
         break;
+      case 302:
+        tests &= (~TEST_MID);
+        break;
+      case 303:
+        tests &= (~TEST_C2S);
+        break;
+      case 304:
+        tests &= (~TEST_S2C);
+        break;
       case '?':
         short_usage(argv[0], "");
         break;
@@ -603,6 +626,10 @@ main(int argc, char *argv[])
   log_init(argv[0], debug);
   
   failed = 0;
+  
+  if (!(tests & (TEST_MID | TEST_C2S | TEST_S2C))) {
+    short_usage(argv[0], "Cannot perform empty test suites");
+  }
 
   if (host == NULL) {
     short_usage(argv[0], "Name of the server is required");
@@ -629,6 +656,17 @@ main(int argc, char *argv[])
     printf("Using IPv6 address\n");
   }
 
+  log_println(1, "Requesting test suite:");
+  if (tests & TEST_MID) {
+    log_println(1, " > Middlebox test");
+  }
+  if (tests & TEST_C2S) {
+    log_println(1, " > C2S throughput test");
+  }
+  if (tests & TEST_S2C) {
+    log_println(1, " > S2C throughput test");
+  }
+  
   /* This is part of the server queuing process.  The server will now send
    * a integer value over to the client before testing will begin.  If queuing
    * is enabled, the server will send a positive value.  Zero indicated that
@@ -636,18 +674,30 @@ main(int argc, char *argv[])
    * user should try again later.
    */
 
-  port3 = 0;
+  /* write our test suite request */
+  write(ctlSocket, &tests, 1);
+
+  totread = 0;
+  memset(buff, 0, 8192);
   for (;;) {
-    inlth = read(ctlSocket, buff, 100);
+    inlth = read(ctlSocket, &buff[totread], 100);
     log_println(3, "read %d octets '%s'", inlth, buff);
     if (inlth <= 0)
       break;
-    if ((inlth > 6) && (buff[0] == '0')) {
-      port3 = 1;
+
+    totread += inlth;
+    
+    for (i = 0; i < totread; ++i) {
+      if (buff[i] == '\0') {
+        buff[totread-1] = '\0';
+        readgo = 1;
+      }
+    }
+    if (buff[totread-1] == '\0') {
       break;
     }
 
-    if ((strchr(buff, ' ') != NULL) && (inlth > 6)) {
+    if (totread > 256) {
       printf("Information: The server '%s' does not support this command line client\n",
           host);
       exit(0);
@@ -655,7 +705,7 @@ main(int argc, char *argv[])
 
     xwait = atoi(buff);
     if (xwait == 0)	/* signal from ver 3.0.x NDT servers */
-      break;
+      continue;
     if (xwait == 9999) {
       fprintf(stderr, "Server Busy: Please wait 60 seconds for the current test to finish\n");
       exit(0);
@@ -665,258 +715,286 @@ main(int argc, char *argv[])
      * tests in the queue.
      */
     xwait = (xwait * 45);
-    fprintf(stdout, "Another client is currently being served, your test will ");
-    fprintf(stdout,  "begin within %d seconds\n", xwait);
+    log_print(0, "Another client is currently being served, your test will ");
+    log_println(1,  "begin within %d seconds", xwait);
+    totread = 0;
+    memset(buff, 0, 8192);
   }
 
-  if (port3 == 0) {
-    inlth = read(ctlSocket, buff, 100);
-    log_println(3, "Test port numbers not received, read 2nd packet to get them");
-    if (inlth == 0) {
-      printf("Information: The server '%s' does not support this command line client\n",
-          host);
-      exit(0);
-    }
+  strtok(buff, " ");
+  if (tests & TEST_MID) {
+    midport = atoi(strtok(NULL, " "));
+  }
+  if (tests & TEST_C2S) {
+    c2sport = atoi(strtok(NULL, " "));
+  }
+  if (tests & TEST_S2C) {
+    s2cport = atoi(strtok(NULL, " "));
+  }
+  log_println(3, "Testing will begin using ports:");
+  if (tests & TEST_MID) {
+    log_println(3, " > Middlebox test: %d", midport);
+  }
+  if (tests & TEST_C2S) {
+    log_println(3, " > C2S throughput test: %d", c2sport);
+  }
+  if (tests & TEST_S2C) {
+    log_println(3, " > S2C throughput test: %d", s2cport);
   }
 
-  port3 = atoi(strtok(buff, " "));
-  port2 = atoi(strtok(NULL, " "));
-  port4 = atoi(strtok(NULL, " "));
-  log_println(3, "Testing will begin using port %d, %d and %d", port2, port3, port4);
-
+  sleep(2);
+  
   /* now look for middleboxes (firewalls, NATs, and other boxes that
    * muck with TCP's end-to-end priciples
    */
 
-  sleep(2);
+  if (tests & TEST_MID) {
 
-  if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
-    perror("Unable to resolve server address\n");
-    exit(-3);
-  }
-  I2AddrSetPort(sec_addr, port2);
+    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
+      perror("Unable to resolve server address\n");
+      exit(-3);
+    }
+    I2AddrSetPort(sec_addr, midport);
 
-  if (get_debuglvl() > 4) {
-    char tmpbuff[200];
-    socklen_t tmpBufLen = 199;
-    memset(tmpbuff, 0, 200);
-    I2AddrNodeName(sec_addr, tmpbuff, &tmpBufLen);
-    log_println(5, "connecting to %s:%d", tmpbuff, I2AddrPort(sec_addr));
-  }
+    if (get_debuglvl() > 4) {
+      char tmpbuff[200];
+      socklen_t tmpBufLen = 199;
+      memset(tmpbuff, 0, 200);
+      I2AddrNodeName(sec_addr, tmpbuff, &tmpBufLen);
+      log_println(5, "connecting to %s:%d", tmpbuff, I2AddrPort(sec_addr));
+    }
 
-  if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
-    perror("Connect() for middlebox failed");
-    exit(-10);
-  }
+    if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
+      perror("Connect() for middlebox failed");
+      exit(-10);
+    }
 
-  largewin = 128*1024;
-  optlen = sizeof(set_size);
-  setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-  getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  log_print(5, "\nSend buffer set to %d, ", set_size);
-  getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-  log_println(5, "Receive buffer set to %d", set_size);
-  if (buf_size > 0) {
-    setsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-    setsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+    largewin = 128*1024;
+    optlen = sizeof(set_size);
+    setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "Changed buffer sizes: Send buffer set to %d, ", set_size);
+    log_print(5, "\nSend buffer set to %d, ", set_size);
     getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
     log_println(5, "Receive buffer set to %d", set_size);
-  }
+    if (buf_size > 0) {
+      setsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+      setsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+      getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+      log_print(5, "Changed buffer sizes: Send buffer set to %d, ", set_size);
+      getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+      log_println(5, "Receive buffer set to %d", set_size);
+    }
 
-  printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-  fflush(stdout);
-  tmpstr2[0] = '\0';
-  i = 0;
-  bytes = 0;
-  sec = time(0);
-  sel_tv.tv_sec = 6;
-  sel_tv.tv_usec = 5;
-  FD_ZERO(&rfd);
-  FD_SET(in2Socket, &rfd);
-  for (;;) {
-    if (time(0) > (sec+5.0))
-      break;
-    ret = select(in2Socket+1, &rfd, NULL, NULL, &sel_tv);
-    if (ret > 0) {
-      inlth = read(in2Socket, buff, sizeof(buff));
-      if (inlth == 0)
+    printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+    fflush(stdout);
+    tmpstr2[0] = '\0';
+    i = 0;
+    bytes = 0;
+    sec = time(0);
+    sel_tv.tv_sec = 6;
+    sel_tv.tv_usec = 5;
+    FD_ZERO(&rfd);
+    FD_SET(in2Socket, &rfd);
+    for (;;) {
+      if (time(0) > (sec+5.0))
         break;
-      bytes += inlth;
-      continue;
+      ret = select(in2Socket+1, &rfd, NULL, NULL, &sel_tv);
+      if (ret > 0) {
+        inlth = read(in2Socket, buff, sizeof(buff));
+        if (inlth == 0)
+          break;
+        bytes += inlth;
+        continue;
+      }
+      if (ret < 0) {
+        printf("nothing to read, exiting read loop\n");
+        break;
+      }
+      if (ret == 0) {
+        printf("timer expired, exiting read loop\n");
+        break;
+      }
     }
-    if (ret < 0) {
-      printf("nothing to read, exiting read loop\n");
-      break;
-    }
-    if (ret == 0) {
-      printf("timer expired, exiting read loop\n");
-      break;
-    }
+    shutdown(in2Socket, SHUT_RD);
+    sec =  time(0) - sec;
+    spdin = ((8.0 * bytes) / 1000) / sec;
+
+    inlth = read(ctlSocket, buff, 512);
+    strncat(tmpstr2, buff, inlth);
+
+    memset(buff, 0, 128);
+    sprintf(buff, "%0.0f", spdin);
+    log_println(4, "CWND limited speed = %0.2f Kbps", spdin);
+    write(ctlSocket, buff, strlen(buff));
+    printf("Done\n");
+
+    I2AddrFree(sec_addr);
+
   }
-  shutdown(in2Socket, SHUT_RD);
-  sec =  time(0) - sec;
-  spdin = ((8.0 * bytes) / 1000) / sec;
-
-  inlth = read(ctlSocket, buff, 512);
-  strncat(tmpstr2, buff, inlth);
-
-  memset(buff, 0, 128);
-  sprintf(buff, "%0.0f", spdin);
-  log_println(4, "CWND limited speed = %0.2f Kbps", spdin);
-  write(ctlSocket, buff, strlen(buff));
-  printf("Done\n");
-
-  I2AddrFree(sec_addr);
   /*   End of Middlebox test  */
+  
+  if (tests & TEST_C2S) {
 
-  memset(buff, 0, 128);
-  inlth = read(ctlSocket, buff, 512); 
-  if (inlth <= 0) {  
-    fprintf(stderr, "read failed read 'Go' flag\n");
-    exit(-4);
-  }
-  log_println(3, "Read '%s' from server", buff);
+    if (!readgo) {
+      memset(buff, 0, 128);
+      inlth = read(ctlSocket, buff, 512); 
+      if (inlth <= 0) {  
+        fprintf(stderr, "read failed read 'Go' flag\n");
+        exit(-4);
+      }
+      log_println(3, "Read '%s' from server", buff);
+    }
+    readgo = 0;
 
-  printf("running 10s outbound test (client to server) . . . . . ");
-  fflush(stdout);
+    printf("running 10s outbound test (client to server) . . . . . ");
+    fflush(stdout);
 
-  if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
-    perror("Unable to resolve server address\n");
-    exit(-3);
-  }
-  I2AddrSetPort(sec_addr, port3);
+    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
+      perror("Unable to resolve server address\n");
+      exit(-3);
+    }
+    I2AddrSetPort(sec_addr, c2sport);
 
-  if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options))) {
-    perror("Connect() for client to server failed");
-    exit(-11);
-  }
+    if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options))) {
+      perror("Connect() for client to server failed");
+      exit(-11);
+    }
 
-  setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-  getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  log_print(9, "\nSend buffer set to %d, ", set_size);
-  getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-  log_println(9, "Receive buffer set to %d", set_size);
-  if (buf_size > 0) {
-    setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-    setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+    optlen = sizeof(set_size);
+    setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+    log_print(9, "\nSend buffer set to %d, ", set_size);
     getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
-  }
-  inlth = read(ctlSocket, buff, 32); 
-  log_println(3, "Read '%s' from server", buff);
+    log_println(9, "Receive buffer set to %d", set_size);
+    if (buf_size > 0) {
+      setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+      setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+      getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+      log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+      getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+      log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
+    }
+    inlth = read(ctlSocket, buff, 32); 
+    log_println(3, "Read '%s' from server", buff);
 
-  pkts = 0;
-  k = 0;
-  for (i=0; i<8192; i++) {
-    while (!isprint(k&0x7f))
-      k++;
-    buff[i] = (k++ % 0x7f);
-  }
-  sec = time(0);
-  stop_time = sec + 10; 
-  do {
-    write(outSocket, buff, lth);
-    pkts++;
-  } while (time(0) < stop_time);
-  sec = time(0) - sec;
-  I2AddrFree(sec_addr);
-  spdout = ((8.0 * pkts * lth) / 1000) / sec;
+    pkts = 0;
+    k = 0;
+    for (i=0; i<8192; i++) {
+      while (!isprint(k&0x7f))
+        k++;
+      buff[i] = (k++ % 0x7f);
+    }
+    sec = time(0);
+    stop_time = sec + 10; 
+    do {
+      write(outSocket, buff, lth);
+      pkts++;
+    } while (time(0) < stop_time);
+    sec = time(0) - sec;
+    I2AddrFree(sec_addr);
+    spdout = ((8.0 * pkts * lth) / 1000) / sec;
 
-  if (spdout < 1000) 
-    printf(" %0.2f Kb/s\n", spdout);
-  else
-    printf(" %0.2f Mb/s\n", spdout/1000);
+    if (spdout < 1000) 
+      printf(" %0.2f Kb/s\n", spdout);
+    else
+      printf(" %0.2f Mb/s\n", spdout/1000);
 
-  printf("running 10s inbound test (server to client) . . . . . . ");
-  fflush(stdout);
-
-  inlth = read(ctlSocket, buff, 32); 
-  log_println(3, "Read '%s' from server", buff);
-
-  /* Cygwin seems to want/need this extra getsockopt() function
-   * call.  It certainly doesn't do anything, but the S2C test fails
-   * at the connect() call if it's not there.  4/14/05 RAC
-   */
-  getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-
-  if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
-    perror("Unable to resolve server address\n");
-    exit(-3);
-  }
-  I2AddrSetPort(sec_addr, port4);
-
-  if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
-    perror("Connect() for Server to Client failed");
-    exit(-15);
   }
 
-  setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-  getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  log_print(5, "\nSend buffer set to %d, ", set_size);
-  getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-  log_println(5, "Receive buffer set to %d", set_size);
-  if (buf_size > 0) {
-    setsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-    setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+  if (tests & TEST_S2C) {
+
+    if (!readgo) {
+      inlth = read(ctlSocket, buff, 32); 
+      log_println(3, "Read '%s' from server", buff);
+    }
+    readgo = 0;
+
+    printf("running 10s inbound test (server to client) . . . . . . ");
+    fflush(stdout);
+
+    /* Cygwin seems to want/need this extra getsockopt() function
+     * call.  It certainly doesn't do anything, but the S2C test fails
+     * at the connect() call if it's not there.  4/14/05 RAC
+     */
+    optlen = sizeof(set_size);
+    getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+
+    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
+      perror("Unable to resolve server address\n");
+      exit(-3);
+    }
+    I2AddrSetPort(sec_addr, s2cport);
+
+    if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
+      perror("Connect() for Server to Client failed");
+      exit(-15);
+    }
+
+    setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+    log_print(5, "\nSend buffer set to %d, ", set_size);
     getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
-  }
+    log_println(5, "Receive buffer set to %d", set_size);
+    if (buf_size > 0) {
+      setsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+      setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+      getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+      log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+      getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+      log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
+    }
 
-  bytes = 0;
-  sec = time(0);
+    bytes = 0;
+    sec = time(0);
 
-  /* Linux updates the sel_tv time values everytime select returns.  This
-   * means that eventually the timer will reach 0 seconds and select will
-   * exit with a timeout signal.  Other OS's don't do that so they need
-   * another method for detecting a long-running process.  The check below
-   * will cause the loop to terminate if select says there is something
-   * to read and the loop has been active for over 14 seconds.  This usually
-   * happens when there is a problem (duplex mismatch) and there is data
-   * queued up on the server.
-   */
+    /* Linux updates the sel_tv time values everytime select returns.  This
+     * means that eventually the timer will reach 0 seconds and select will
+     * exit with a timeout signal.  Other OS's don't do that so they need
+     * another method for detecting a long-running process.  The check below
+     * will cause the loop to terminate if select says there is something
+     * to read and the loop has been active for over 14 seconds.  This usually
+     * happens when there is a problem (duplex mismatch) and there is data
+     * queued up on the server.
+     */
 
-  inlth = read(ctlSocket, buff, 32); 
-  log_println(3, "Read '%s' from server", buff);
+    inlth = read(ctlSocket, buff, 32); 
+    log_println(3, "Read '%s' from server", buff);
 
-  sel_tv.tv_sec = 15;
-  sel_tv.tv_usec = 5;
-  FD_ZERO(&rfd);
-  FD_SET(inSocket, &rfd);
-  for (;;) {
-    ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
-    if ((time(0)-sec) > 15) {
-      log_println(5, "Receive test running long, break out of read loop");
+    sel_tv.tv_sec = 15;
+    sel_tv.tv_usec = 5;
+    FD_ZERO(&rfd);
+    FD_SET(inSocket, &rfd);
+    for (;;) {
+      ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
+      if ((time(0)-sec) > 15) {
+        log_println(5, "Receive test running long, break out of read loop");
+        break;
+      }
+      if (ret > 0) {
+        inlth = read(inSocket, buff, sizeof(buff));
+        if (inlth == 0)
+          break;
+        bytes += inlth;
+        continue;
+      }
+      if (get_debuglvl() > 5)
+        perror("s2c read loop exiting:");
       break;
     }
-    if (ret > 0) {
-      inlth = read(inSocket, buff, sizeof(buff));
-      if (inlth == 0)
-        break;
-      bytes += inlth;
-      continue;
-    }
-    if (get_debuglvl() > 5)
-      perror("s2c read loop exiting:");
-    break;
+    sec =  time(0) - sec;
+    spdin = ((8.0 * bytes) / 1000) / sec;
+
+    if (spdin < 1000)
+      printf("%0.2f kb/s\n", spdin);
+    else
+      printf("%0.2f Mb/s\n", spdin/1000);
+
+    I2AddrFree(sec_addr);
+
+    sprintf(buff, "%0.0f", spdin);
+    write(ctlSocket, buff, 32);
+
   }
-  sec =  time(0) - sec;
-  spdin = ((8.0 * bytes) / 1000) / sec;
-
-  if (spdin < 1000)
-    printf("%0.2f kb/s\n", spdin);
-  else
-    printf("%0.2f Mb/s\n", spdin/1000);
-
-  I2AddrFree(sec_addr);
-
-  sprintf(buff, "%0.0f", spdin);
-  write(ctlSocket, buff, 32);
 
   /* get web100 variables from server */
   tmpstr[i] = '\0';
@@ -935,9 +1013,11 @@ main(int argc, char *argv[])
   remote_addr = I2AddrBySockFD(NULL, ctlSocket, False);
   I2AddrFree(server_addr);
   strcpy(varstr, tmpstr);
-  testResults(tmpstr);
-  middleboxResults(tmpstr2, local_addr, remote_addr);
-  if (msglvl > 1)
+  testResults(tests, tmpstr);
+  if (tests & TEST_MID) {
+    middleboxResults(tmpstr2, local_addr, remote_addr);
+  }
+  if ((tests & TEST_S2C) && (msglvl > 1))
     printVariables(varstr);
   return 0;
 }

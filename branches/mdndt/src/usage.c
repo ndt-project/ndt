@@ -95,7 +95,10 @@ clt_long_usage(char* info)
   printf("  --web100variables      - print the information about each Web100 variable\n");
   printf("  -v, --version          - print version number\n\n");
   printf(" Configuration:\n\n");
-  printf("  -b, --buffer #size     - set send/receive buffer to value\n\n");
+  printf("  -b, --buffer #size     - set send/receive buffer to value\n");
+  printf("  --disablemid           - disable the Middlebox test\n");
+  printf("  --disablec2s           - disable the C2S throughput test\n");
+  printf("  --disables2c           - disable the S2C throughput test\n\n");
 #ifdef AF_INET6
   printf(" IP family:\n\n");
   printf("  -4, --ipv4             - use IPv4 addresses only\n");

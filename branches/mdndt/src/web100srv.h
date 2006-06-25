@@ -45,7 +45,6 @@
 #define BUFFSIZE  8192
 #define RECLTH    8192
 
-#define LOGFILE "web100srv.log"		/* Name of log file */
 #define WEB100_VARS 128			/* number of web100 variables you want to access*/
 #define WEB100_FILE "web100_variables"  /* names of the variables to access*/
 #define LOG_FACILITY LOG_LOCAL0		/* Syslog facility to log at */
@@ -61,6 +60,11 @@
 #define PORT2 "3002"
 #define PORT3 "3003"
 #define PORT4 "3004"
+
+typedef struct portpair {
+  int port1;
+  int port2;
+} PortPair;
 
 struct ndtchild {
 	int pid;
@@ -111,13 +115,13 @@ struct web100_variables {
 } web_vars[WEB100_VARS];
 
 int32_t gmt2local(time_t);
-int err_sys(char* s);
 
 /* web100-pcap */
 void init_vars(struct spdpair *cur);
-void print_bins(struct spdpair *cur, int monitor_pipe[2], char *LogFileName);
+void print_bins(struct spdpair *cur, int monitor_pipe[2]);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
-void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2], char *device);
+void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
+    char *device, PortPair* pair);
 int check_signal_flags();
 
 /* web100-util */
@@ -125,7 +129,7 @@ int web100_init(char *VarFileName);
 int web100_autotune(int sock, web100_agent* agent);
 void web100_middlebox(int sock, web100_agent* agent, char *results);
 int web100_setbuff(int sock, web100_agent* agent, int autotune);
-void web100_get_data_recv(int sock, web100_agent* agent, char *LogFileName, int count_vars);
+void web100_get_data_recv(int sock, web100_agent* agent, int count_vars);
 int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars);
 int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt);
 int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
@@ -141,13 +145,13 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *SubsequentTimeouts, int *ThruBytesAcked);
 
 /* web100-admin */
-void view_init(char *LogFileName, int refresh);
+void view_init(int refresh);
 int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
     int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin,
     int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd,
     int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd,
     int c2sdata, int s2cack, int view_flag);
-void gen_html(char *LogFileName, int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
+void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
     int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh);
 
 #endif

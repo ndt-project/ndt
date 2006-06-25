@@ -71,6 +71,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "utils.h"
 #include "mrange.h"
 #include "logging.h"
+#include "testoptions.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -100,7 +101,6 @@ int sig1, sig2, sig17;
 u_int32_t limit=0;
 
 char *VarFileName=NULL;
-char *LogFileName=NULL;
 char *ProcessName={"web100srv"};
 char *ConfigFileName=NULL;
 char buff[BUFFSIZE+1];
@@ -108,7 +108,7 @@ char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
 char* port = PORT;
-int port2, port3, port4;
+int port4;
 
 pcap_t *pd;
 pcap_dumper_t *pdump;
@@ -216,7 +216,7 @@ cleanup(int signo)
 
   log_println(1, "Signal %d received by process %d", signo, getpid());
   if (get_debuglvl() > 0) {
-    fp = fopen(LogFileName,"a");
+    fp = fopen(get_logfile(),"a");
     if (fp != NULL) {
       fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
       fclose(fp);
@@ -224,7 +224,7 @@ cleanup(int signo)
   }
   switch (signo) {
     default:
-      fp = fopen(LogFileName,"a");
+      fp = fopen(get_logfile(),"a");
       if (fp != NULL) {
         fprintf(fp, "Unexpected signal (%d) received, process (%d) may terminate\n",
             signo, getpid());
@@ -249,7 +249,7 @@ cleanup(int signo)
       break;
 
     case SIGALRM:
-      fp = fopen(LogFileName,"a");
+      fp = fopen(get_logfile(),"a");
       if (fp  != NULL) {
         fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
             getpid());
@@ -257,7 +257,7 @@ cleanup(int signo)
       }
       exit(0);
     case SIGPIPE:
-      fp = fopen(LogFileName,"a");
+      fp = fopen(get_logfile(),"a");
       if (fp != NULL) {
         fprintf(fp,"Received SIGPIPE signal: terminating active web100srv process [%d]\n",
             getpid());
@@ -276,7 +276,7 @@ cleanup(int signo)
        * RAC 3/11/04
        */
       if (admin_view == 1)
-        view_init(LogFileName, refresh);
+        view_init(refresh);
       break;
 
     case SIGCHLD:
@@ -289,21 +289,6 @@ cleanup(int signo)
       sig17 = 1;
       break;
   }
-}
-
-int
-err_sys(char* s)
-{
-  perror(s);
-  exit(1);
-}
-
-double
-secs()
-{
-  struct timeval ru;
-  gettimeofday(&ru, (struct timezone *)0);
-  return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
 }
 
 /* LoadConfig routine copied from Internet2. */
@@ -364,7 +349,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 
     else if (strncasecmp(key, "log_file", 3) == 0) {
       sprintf(lgfn, "%s", val);
-      LogFileName = lgfn; 
+      set_logfile(lgfn);
       continue;
     }
 
@@ -404,13 +389,11 @@ void
 run_test(web100_agent* agent, int ctlsockfd)
 {
 
-  char date[32], *ctime();
-  char spds[4][256], tmpstr[256];
+  char date[32];
+  char spds[4][256];
   char logstr1[4096], logstr2[1024];
 
-  int maxseg=1456, largewin=16*1024*1024;
-  int sock2, sock3, sock4; 
-  int n, midsockfd, recvsfd, xmitsfd;
+  int n;
   int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
   int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
   int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
@@ -424,11 +407,9 @@ run_test(web100_agent* agent, int ctlsockfd)
   int index, links[16], max, total;
   int c2sdata = 0, c2sack = 0, s2cdata = 0, s2cack = 0;
   int j;
-  int mon_pid1 = 0, mon_pid2 = 0, totalcnt;
-  int seg_size, win_size;
-  int autotune, k;
+  int totalcnt;
+  int autotune;
   int dec_cnt, same_cnt, inc_cnt, timeout, dupack;
-  int c3=0;
 
   time_t stime;
 
@@ -436,43 +417,24 @@ run_test(web100_agent* agent, int ctlsockfd)
   double rwintime, cwndtime, sendtime;
   double oo_order, waitsec;
   double bw2, avgrtt, timesec, loss2, RTOidle;
-  double x2cspd, s2cspd, c2sspd, bytes=0;
+  double s2cspd, c2sspd;
   double s2c2spd;
-  double s, t, spd;
+  double spd;
   double acks, aspd = 0, tmouts, rtran, dack;
   float runave;
 
-  struct sockaddr_storage cli_addr, cli2_addr;
-  I2Addr srv2_addr = NULL, srv3_addr = NULL, srv4_addr = NULL;
-  struct timeval sel_tv;
-  fd_set rfd;
+  TestOptions testopt;
   FILE *fp;
-  socklen_t optlen, clilen;
-  /* FIXME: use command-line options to set these ports */
-  char listenport2[10];
-  char listenport3[10];
-  char listenport4[10];
 
   /* experimental code to capture and log multiple copies of the the
    * web100 variables using the web100_snap() & log() functions.
    */
-  web100_group* group;
-  web100_group* tgroup;
-  web100_group* rgroup;
-  web100_connection* conn;
-  web100_connection* xconn;
-  web100_snapshot* snap = NULL;
   web100_snapshot* tsnap = NULL;
   web100_snapshot* rsnap = NULL;
-  web100_log* log = NULL;
   char logname[128];
-  web100_var* var;
-  int SndMax=0, SndUna=0;
-  int c1=0, c2=0;
-
-  strcpy(listenport2, PORT2);
-  strcpy(listenport3, PORT3);
-  strcpy(listenport4, PORT4);
+  
+  memset(&testopt, 0, sizeof(testopt));
+  testopt.multiple = multiple;
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -484,479 +446,41 @@ run_test(web100_agent* agent, int ctlsockfd)
 
   autotune = web100_autotune(ctlsockfd, agent);
 
-  if (multiple) {
-    strcpy(listenport2, "0");
-    strcpy(listenport3, "0");
-    strcpy(listenport4, "0");
+  if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
+    log_println(0, "ERROR: Tests initialization failed (%d)", n);
+    return;
   }
 
-  /* PORT2 */
-
-  while (srv2_addr == NULL) {
-    srv2_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport2) : listenport2), conn_options);
-    if (strcmp(listenport2, "0") == 0) {
-      log_println(0, "WARNING: ephemeral port number was bound");
-      break;
-    }
-    if (multiple == 0) {
-      break;
-    }
+  log_println(1, "Starting test suite:");
+  if (testopt.midopt) {
+    log_println(1, " > Middlebox test: port %d", testopt.midsockport);
+    sprintf(buff, " %d", testopt.midsockport);
+    write(ctlsockfd, buff, strlen(buff));  
   }
-  if (srv2_addr == NULL) {
-    err_sys("server: CreateListenSocket failed");
+  if (testopt.c2sopt) {
+    log_println(1, " > C2S throughput test: port %d", testopt.c2ssockport);
+    sprintf(buff, " %d", testopt.c2ssockport);
+    write(ctlsockfd, buff, strlen(buff));  
   }
-  sock2 = I2AddrFD(srv2_addr);
-
-  if (set_buff > 0) {
-    setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-    setsockopt(sock2, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+  if (testopt.s2copt) {
+    log_println(1, " > S2C throughput test: port %d", testopt.s2csockport);
+    sprintf(buff, " %d", testopt.s2csockport);
+    write(ctlsockfd, buff, strlen(buff));  
   }
-  if (autotune > 0) {
-    setsockopt(sock2, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-    setsockopt(sock2, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-  }
-  log_println(1, "listening for Inet connection on sock2, fd=%d", sock2);
-
-  /* PORT3 */
-
-  while (srv3_addr == NULL) {
-    srv3_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport3) : listenport3), conn_options);
-    if (strcmp(listenport3, "0") == 0) {
-      log_println(0, "WARNING: ephemeral port number was bound");
-      break;
-    }
-    if (multiple == 0) {
-      break;
-    }
-  }
-  if (srv3_addr == NULL) {
-    err_sys("server: CreateListenSocket failed");
-  }
-  sock3 = I2AddrFD(srv3_addr);
-
-  /* PORT4 */
-  
-  while (srv4_addr == NULL) {
-    srv4_addr = CreateListenSocket(NULL, (multiple ? mrange_next(listenport4) : listenport4), conn_options);
-    if (strcmp(listenport4, "0") == 0) {
-      log_println(0, "WARNING: ephemeral port number was bound");
-      break;
-    }
-    if (multiple == 0) {
-      break;
-    }
-  }
-  if (srv4_addr == NULL) {
-    err_sys("server: CreateListenSocket failed");
-  }
-  sock4 = I2AddrFD(srv4_addr);
-
-  port2 = I2AddrPort(srv2_addr);
-  port3 = I2AddrPort(srv3_addr);
-  port4 = I2AddrPort(srv4_addr);
-  log_println(1, "server ports %d %d %d", port2, port3, port4);
   alarm(30);  /* reset alarm() signal to gain another 30 seconds */
-  sprintf(listenport2, "%d", port2);
-  sprintf(listenport3, "%d", port3);
-  sprintf(listenport4, "%d", port4);
-  sprintf(buff, "%d %d %d", port2, port3, port4);
 
   /* This write kicks off the whole test cycle.  The client will start the
-   * middlebox test after receiving this string
+   * first test after receiving this string
    */
-  write(ctlsockfd, buff, strlen(buff));  
+  write(ctlsockfd, "\0", 1);
 
-  /* set mss to 1456 (strange value), and large snd/rcv buffers
-   * should check to see if server supports window scale ?
-   */
-  setsockopt(sock3, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
-  setsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-  setsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-  log_println(1, "listening for Inet connection on sock3, fd=%d", sock3);
-  log_println(2, "Middlebox test, Port %d waiting for incoming connection", port3);
-  if (get_debuglvl() > 1) {
-    optlen = sizeof(seg_size);
-    getsockopt(sock3, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
-    getsockopt(sock3, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
-    log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
-    getsockopt(sock3, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
-    log_println(2, "Sending Window size set to %dKB", win_size);
-  }
+  test_mid(ctlsockfd, agent, &testopt, &s2c2spd);
 
-  /* Post a listen on port 3003.  Client will connect here to run the 
-   * middlebox test.  At this time it really only checks the MSS value
-   * and does NAT detection.  More analysis functions (window scale)
-   * will be done in the future.
-   */
-  clilen = sizeof(cli2_addr);
-  midsockfd = accept(sock3, (struct sockaddr *) &cli2_addr, &clilen);
+  test_c2s(ctlsockfd, agent, &testopt, &c2sspd, set_buff, window, autotune, mon_pipe1, device, limit,
+      record_reverse, count_vars, spds, &spd_index);
 
-  buff[0] = '\0';
-  web100_middlebox(midsockfd, agent, buff);
-  write(ctlsockfd, buff, strlen(buff));  
-  ret = read(ctlsockfd, buff, 32);  
-  buff[ret] = '\0';
-  s2c2spd = atof(buff);
-  log_println(4, "CWND limited throughput = %0.0f kbps (%s)", s2c2spd, buff);
-  shutdown(midsockfd, SHUT_WR);
-  close(midsockfd);
-  close(sock3);
-
-  /* Middlebox testing done, now get ready to run throughput tests.
-   * First send client a signal to open a new connection.  Then grap
-   * the client's IP address and TCP port number.  Next fork() a child
-   * process to read packets from the libpcap interface.  Finally sent
-   * the client another signal, via the control channel
-   * when server is ready to go.
-   */
-
-  log_println(1, "Sending 'GO' signal, to tell client to head for the next test");
-
-  write(ctlsockfd, "Open-c2s-connection", 21);  
-
-  recvsfd = accept(sock2, (struct sockaddr *) &cli_addr, &clilen);
-
-  if (getuid() == 0) {
-    pipe(mon_pipe1);
-    if ((mon_pid1 = fork()) == 0) {
-      close(ctlsockfd);
-      close(sock2);
-      close(recvsfd);
-      log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
-      log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
-      init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe1, device);
-      exit(0);    /* Packet trace finished, terminate gracefully */
-    }
-    if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
-      log_println(0, "error & exit");
-      exit(0);
-    }
-  }
-
-  log_println(5, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
-
-  /* Check, and if needed, set the web100 autotuning function on.  This improves
-   * performance without requiring the entire system be re-configured.  Returned
-   * value is true if set is done, so admin knows if system default should be changed
-   *
-   * 11/22/04, the sBufMode and rBufMode per connection autotuning variables are being
-   * depricated, so this is another attempt at making this work.  If window scaling is
-   * enabled, then scale the buffer size to the correct value.  This will also help
-   * when reporting the buffer / RTT limit.
-   */
-
-  if (autotune > 0) 
-    web100_setbuff(recvsfd, agent, autotune);
-
-  /* ok, We are now read to start the throughput tests.  First
-   * the client will stream data to the server for 10 seconds.
-   * Data will be processed by the read loop below.
-   */
-
-  /* experimental code, delete when finished */
-  {
-    web100_var *LimRwin, *yar;
-    u_int32_t limrwin_val;
-    char yuff[32];
-
-    if (limit > 0) {
-      log_print(0, "Setting Cwnd limit - ");
-      if ((conn = web100_connection_from_socket(agent, recvsfd)) != NULL) {
-        web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
-        web100_raw_read(yar, conn, yuff);
-        log_println(0, "MSS = %s, multiplication factor = %d",
-            web100_value_to_text(web100_get_var_type(yar), yuff), limit);
-        limrwin_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
-        web100_agent_find_var_and_group(agent, "LimRwin", &group, &LimRwin);
-        log_print(0, "now write %d to limit the Receive window", limrwin_val);
-        web100_raw_write(LimRwin, conn, &limrwin_val);
-        log_println(0, "  ---  Done");
-      }
-    }
-  }
-  /* End of test code */
-
-  write(ctlsockfd, "Start-c2s-test", 15);
-  alarm(45);  /* reset alarm() again, this 10 sec test should finish before this signal
-               * is generated.  */
-
-
-  t = secs();
-  sel_tv.tv_sec = 11;
-  sel_tv.tv_usec = 0;
-  FD_ZERO(&rfd);
-  FD_SET(recvsfd, &rfd);
-  for (;;) {
-    ret = select(recvsfd+1, &rfd, NULL, NULL, &sel_tv);
-    if (ret > 0) {
-      n = read(recvsfd, buff, sizeof(buff));
-      if (n == 0)
-        break;
-      bytes += n;
-      continue;
-    }
-    break;
-  }
-
-  t = secs()-t;
-  c2sspd = (8.e-3 * bytes) / t;
-  sprintf(buff, "%6.0f Kbs outbound", c2sspd);
-  log_println(1, "%s", buff);
-  /* get receiver side Web100 stats and write them to the log file */
-  if (record_reverse == 1)
-    web100_get_data_recv(recvsfd, agent, LogFileName, count_vars);
-  shutdown(recvsfd, SHUT_RD);
-  close(recvsfd);
-  close(sock2);
-
-  /* Next send speed-chk a flag to retrieve the data it collected.
-   * Skip this step if speed-chk isn't running.
-   */
-
-  if (getuid() == 0) {
-    log_println(1, "Signal USR1(%d) sent to child [%d]", SIGUSR1, mon_pid1);
-    kill(mon_pid1, SIGUSR1);
-    FD_ZERO(&rfd);
-    FD_SET(mon_pipe1[0], &rfd);
-    sel_tv.tv_sec = 1;
-    sel_tv.tv_usec = 100000;
-read3:
-    if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
-      if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
-        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      log_println(1, "%d bytes read '%s' from monitor pipe", ret, spds[spd_index]);
-      spd_index++;
-      if ((ret = read(mon_pipe1[0], spds[spd_index], 128)) < 0)
-        sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      log_println(1, "%d bytes read '%s' from monitor pipe", ret, spds[spd_index]);
-      spd_index++;
-    } else {
-      if (errno == EINTR)
-        goto read3;
-      log_println(4, "Failed to read pkt-pair data from C2S flow, reason = %d", errno);
-      sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-    }
-  } else {
-    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-    sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-  }
-
-  if (set_buff > 0) {
-    setsockopt(sock4, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-    setsockopt(sock4, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
-  }
-  if (autotune > 0) {
-    setsockopt(sock4, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-    setsockopt(sock4, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-  }
-  log_println(1, "listening for Inet connection on sock4, fd=%d", sock4);
-
-  /* Data received from speed-chk, tell applet to start next test */
-  write(ctlsockfd, "Open-s2c-connection", 21);
-
-  /* ok, await for connect on 3rd port
-   * This is the second throughput test, with data streaming from
-   * the server back to the client.  Again stream data for 10 seconds.
-   */
-  log_println(1, "waiting for data on sock4");
-
-  j = 0;
-  for (;;) {
-    if ((xmitsfd = accept(sock4, (struct sockaddr *) &cli_addr, &clilen)) > 0)
-      break;
-
-    sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
-    if (get_debuglvl() > 1)
-      perror(tmpstr);
-    if (++j == 4)
-      break;
-  } 
-
-  if (xmitsfd > 0) {
-    if (getuid() == 0) {
-      pipe(mon_pipe2);
-      if ((mon_pid2 = fork()) == 0) {
-        close(ctlsockfd);
-        close(sock4);
-        close(xmitsfd);
-        log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
-        log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
-        init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device);
-        exit(0);    /* Packet trace finished, terminate gracefully */
-      }
-      if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
-        log_println(0, "error & exit");
-        exit(0);
-      }
-    }
-
-    /* Check, and if needed, set the web100 autotuning function on.  This improves
-     * performance without requiring the entire system be re-configured.  Returned
-     * value is true if set is done, so admin knows if system default should be changed
-     *
-     * 11/22/04, the sBufMode and rBufMode per connection autotuning variables are being
-     * depricated, so this is another attempt at making this work.  If window scaling is
-     * enabled, then scale the buffer size to the correct value.  This will also help
-     * when reporting the buffer / RTT limit.
-     */
-
-    if (autotune > 0) 
-      web100_setbuff(xmitsfd, agent, autotune);
-
-    /* experimental code, delete when finished */
-    {
-      web100_var *LimCwnd, *yar;
-      u_int32_t limcwnd_val;
-      char yuff[32];
-
-      if (limit > 0) {
-        log_println(0, "Setting Cwnd Limit");
-        if ((conn = web100_connection_from_socket(agent, xmitsfd)) != NULL) {
-          web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
-          web100_raw_read(yar, conn, yuff);
-          web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
-          limcwnd_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
-          web100_raw_write(LimCwnd, conn, &limcwnd_val);
-        }
-      }
-    }
-    /* End of test code */
-
-    if (experimental > 0) {
-      I2Addr sockAddr = I2AddrBySAddr(NULL, (struct sockaddr *) &cli_addr, clilen, 0, 0);
-      char namebuf[200];
-      unsigned int nameBufLen = 199;
-      memset(namebuf, 0, 200);
-      I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-      sprintf(logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
-      conn = web100_connection_from_socket(agent, xmitsfd);
-      group = web100_group_find(agent, "read");
-      snap = web100_snapshot_alloc(group, conn);
-      if (experimental > 1)
-        log = web100_log_open_write(logname, conn, group);
-    }
-
-    /* Kludge way of nuking Linux route cache.  This should be done
-     * using the sysctl interface.
-     */
-    if (getuid() == 0) {
-      /* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
-      system("echo 1 > /proc/sys/net/ipv4/route/flush");
-    }
-    xconn = web100_connection_from_socket(agent, xmitsfd);
-    rgroup = web100_group_find(agent, "read");
-    rsnap = web100_snapshot_alloc(rgroup, xconn);
-    tgroup = web100_group_find(agent, "tune");
-    tsnap = web100_snapshot_alloc(tgroup, xconn);
-
-    bytes = 0;
-    k = 0;
-    for (j=0; j<=BUFFSIZE; j++) {
-      while (!isprint(k & 0x7f))
-        k++;
-      buff[j] = (k++ & 0x7f);
-    }
-
-    write(ctlsockfd, "Start-s2c-test", 15);
-    alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
-                 * is generated.  */
-    t = secs();
-    s = t + 10.0;
-
-    while(secs() < s) { 
-      c3++;
-      if (experimental > 0) {
-        web100_snap(snap);
-        if (experimental > 1)
-          web100_log_write(log, snap);
-        web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-        web100_snap_read(var, snap, tmpstr);
-        SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-        web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-        web100_snap_read(var, snap, tmpstr);
-        SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-      }
-      if (experimental > 0) {
-        if ((RECLTH<<2) < (SndMax - SndUna - 1)) {
-          c1++;
-          continue;
-        }
-      }
-
-      n = write(xmitsfd, buff, RECLTH);
-      if (n < 0 )
-        break;
-      bytes += n;
-
-      if (experimental > 0) {
-        c2++;
-      }
-    }
-
-    shutdown(xmitsfd, SHUT_WR);  /* end of write's */
-    s = secs() - t;
-    x2cspd = (8.e-3 * bytes) / s;
-    if (experimental > 0) {
-      web100_snapshot_free(snap);
-      if (experimental > 1)
-        web100_log_close_write(log);
-    }
-
-    web100_snap(rsnap);
-    web100_snap(tsnap);
-
-    log_println(1, "sent %d bytes to client in %0.2f seconds",(int) bytes, t);
-    log_println(1, "Buffer control counters Total = %d, new data = %d, Draining Queue = %d", c3, c2, c1);
-    /* Next send speed-chk a flag to retrieve the data it collected.
-     * Skip this step if speed-chk isn't running.
-     */
-
-    if (getuid() == 0) {
-      log_println(1, "Signal USR2(%d) sent to child [%d]", SIGUSR2, mon_pid2);
-      kill(mon_pid2, SIGUSR2);
-      FD_ZERO(&rfd);
-      FD_SET(mon_pipe2[0], &rfd);
-      sel_tv.tv_sec = 1;
-      sel_tv.tv_usec = 100000;
-read2:
-      if ((ret = select(mon_pipe2[0]+1, &rfd, NULL, NULL, &sel_tv)) > 0) {
-        if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
-          sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-        log_println(1, "Read '%s' from monitor pipe", spds[spd_index]);
-        spd_index++;
-        if ((ret = read(mon_pipe2[0], spds[spd_index], 128)) < 0)
-          sprintf(spds[spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-        log_println(1, "Read '%s' from monitor pipe", spds[spd_index]);
-        spd_index++;
-      } else {
-        log_println(4, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d", ret, errno);
-        if (errno == EINTR)
-          goto read2;
-        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-        sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      }
-    } else {
-      sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-      sprintf(spds[spd_index++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
-    }
-
-    log_println(1, "%6.0f Kbps inbound", x2cspd);
-  }
-
-  alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
-               * is generated.  */
-  ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars);
-  web100_snapshot_free(tsnap);
-  ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars);
-  web100_snapshot_free(rsnap);
-
-  /* shutdown(xmitsfd, SHUT_WR); */
-  /* end of write's */
-  /* now when client closes other end, read will fail */
-  /* read(xmitsfd, buff, 1);  */ /* read fail/complete */ 
-  read(ctlsockfd, buff, 32);  
-  s2cspd = atoi(buff);
+  test_s2c(ctlsockfd, agent, &testopt, &s2cspd, set_buff, window, autotune, mon_pipe2, device, limit,
+      experimental, logname, spds, &tsnap, &rsnap, &spd_index, count_vars);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
@@ -976,9 +500,9 @@ read2:
     }
     if (links[index] == -1)
       index = -1;
-    fp = fopen(LogFileName,"a");
+    fp = fopen(get_logfile(),"a");
     if (fp == NULL) {
-      log_println(0, "Unable to open log file '%s', continuing on without logging", LogFileName);
+      log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
     }
     else {
       fprintf(fp, "spds[%d] = '%s' max=%d [%0.2f%%]\n", n, spds[n],
@@ -986,7 +510,8 @@ read2:
       fclose(fp);
     }
 
-    switch (n) {
+    /* When the C2S test is disabled, we have to skip the results */
+    switch (n  + (testopt.c2sopt ? 0 : 2)) {
       case 0: c2sdata = index;
               log_print(1, "Client --> Server data detects link = ");
               break;
@@ -1016,12 +541,16 @@ read2:
   }
 
   if (getuid() == 0) {
-    write(mon_pipe1[1], "", 1);
-    close(mon_pipe1[0]);
-    close(mon_pipe1[1]);
-    write(mon_pipe2[1], "", 1);
-    close(mon_pipe2[0]);
-    close(mon_pipe2[1]);
+    if (testopt.c2sopt) {
+      write(mon_pipe1[1], "", 1);
+      close(mon_pipe1[0]);
+      close(mon_pipe1[1]);
+    }
+    if (testopt.s2copt) {
+      write(mon_pipe2[1], "", 1);
+      close(mon_pipe2[0]);
+      close(mon_pipe2[1]);
+    }
   }
 
   /* get some web100 vars */
@@ -1171,9 +700,9 @@ read2:
       cwin, rttsec, Sndbuf, aspd, s2c2spd);
   write(ctlsockfd, buff, strlen(buff));
 
-  fp = fopen(LogFileName,"a");
+  fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
-    log_println(0, "Unable to open log file '%s', continuing on without logging", LogFileName);
+    log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
   }
   else {
     sprintf(date,"%15.15s", ctime(&stime)+4);
@@ -1212,9 +741,9 @@ read2:
     closelog();
     log_println(4, "%s", logstr1);
   }
-  /* send web100 results for xmitsfd */
-  close(xmitsfd); 
-  close(sock4); 
+  if (testopt.s2copt) {
+    close(testopt.s2csockfd);
+  }
 
   /* If the admin view is turned on then the client process is going to update these
    * variables.  The need to be shipped back to the parent so the admin page can be
@@ -1225,7 +754,7 @@ read2:
         CurrentMSS, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
         MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
         (int)c2sspd, (int)s2cspd, c2sdata, s2cack, 1);
-    gen_html(LogFileName, (int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
+    gen_html((int)c2sspd, (int)s2cspd, MinRTT, PktsRetrans, Timeouts,
         Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
         refresh);
   }
@@ -1325,7 +854,7 @@ main(int argc, char** argv)
         device = optarg;
         break;
       case 'l':
-        LogFileName = optarg;
+        set_logfile(optarg);
         break;
       case 'o':
         old_mismatch = 1;
@@ -1391,16 +920,12 @@ main(int argc, char** argv)
     log_println(0, " detection algorithm.\nContinuing execution without this algorithm");
   }
 
-  if (LogFileName == NULL) {
-    sprintf(lgfn, "%s/%s", BASEDIR, LOGFILE);
-    LogFileName = lgfn; 
-  }
   if (VarFileName == NULL) {
     sprintf(wvfn, "%s/%s", BASEDIR, WEB100_FILE);
     VarFileName = wvfn;
   }
   log_println(1, "ANL/Internet2 NDT ver %s", VERSION);
-  log_println(1, "\tVariables file = %s\n\tlog file = %s", VarFileName, LogFileName);
+  log_println(1, "\tVariables file = %s\n\tlog file = %s", VarFileName, get_logfile());
   log_println(1, "\tDebug level set to %d", debug);
 
   memset(&new, 0, sizeof(new));
@@ -1441,14 +966,14 @@ main(int argc, char** argv)
    * RAC 11/28/03
    */
   if (admin_view == 1)
-    view_init(LogFileName, refresh);
+    view_init(refresh);
 
   /* create a log file entry every time the web100srv process starts up. */
   ndtpid = getpid();
   tt = time(0);
-  fp = fopen(LogFileName,"a");
+  fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
-    log_println(0, "Unable to open log file '%s', continuing on without logging", LogFileName);
+    log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
   }
   else {
     fprintf(fp, "Web100srv (ver %s) process (%d) started %15.15s\n",
@@ -1500,7 +1025,7 @@ main(int argc, char** argv)
             tt, head_ptr->stime, (tt - head_ptr->stime));
         if (tt - head_ptr->stime > 60) {
           /* process is stuck at the front of the queue. */
-          fp = fopen(LogFileName,"a");
+          fp = fopen(get_logfile(),"a");
           if (fp != NULL) {
             fprintf(fp, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
                 waiting, head_ptr->pid, ctime(&tt)+4);
@@ -1720,9 +1245,9 @@ multi_client:
         }
 
         /* write the incoming connection data into the log file */
-        fp = fopen(LogFileName,"a");
+        fp = fopen(get_logfile(),"a");
         if (fp == NULL) {
-          log_println(0, "Unable to open log file '%s', continuing on without logging", LogFileName);
+          log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
         }
         else {
           I2Addr tmp_addr = I2AddrBySockFD(NULL, ctlsockfd, False);
