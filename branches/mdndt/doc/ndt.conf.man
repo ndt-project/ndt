@@ -53,7 +53,7 @@ Some of the \fBtab\fR options are boolean flags or simply increment
 an integer every time they are present.  In these cases the \fBvalue\fR
 parameter is omitted.  The \fBtag\fR and \fBvalue\fR options are:
 .PP 
-\fBadimistrator_view\fR (5) - This boolean flag enables the administrator
+\fBadministrator_view\fR (5) - This boolean flag enables the administrator
 view.  This exports the usage statistics to the \fIadmin.html\fR web page
 making them visable to the user community.  Replaces \fI-a\fR option.
 .PP
@@ -89,7 +89,7 @@ info are available.  Replaces \fI-d\fR option.
 \fBdevice\fR \fIInterface Name\fR (5) - This tag indicates that 
 the default interface is not used to send/receive packets.  This
 is do to the server having multiple network interfaces.  The packet
-dispersion testsing will fail if the network interface is not set
+dispersion testing will fail if the network interface is not set
 correctly.  Replaces \fI-i\fR option.
 .PP
 \fBlog_file\fR \fIfile_name\fR (3) - This tag indicates that the
@@ -110,6 +110,42 @@ the parameter contain the file name/location of the \fBWeb100\fR
 variable file name.  This file contains a list of all \fBWeb100\fR
 KIS variables used by the \fBweb100srv\fR program.  Replaces
 \fI-f\fR option.
+.PP
+\fBexperimental\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should run with experimental flag set to \fIvalue\fR. The server program
+is constantly being modified and, from time to time, experimental code is
+installed. When the experimental flag is set, then this code is invoked at run time.
+Replaces \fI-x\fR option.
+.PP
+\fBold_mismatch\fR (3) - This boolean flag causes the \fBweb100srv\fR
+program to use old Duplex Mismatch heuristic. Replaces \fI-o\fR option.
+.PP
+\fBlimit\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should use the experimental throughput limiting code with the
+multiplication factor set to \fIvalue\fR. Replaces \fI-y\fR option.
+.PP
+\fBrefresh\fR \fItime\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should generate the \fIadmin.html\fR web page with the refresh time
+set to \fItime\fR. Replaces \fI-T\fR option.
+.PP
+\fBmrange\fR \fIrange\fR (6) - This tag sets the port range used in multi-test
+mode by the \fBweb100srv\fR program. The range represented by \fIrange\fR is added
+to the free pool. The following format is recognized: \fBmin:max\fR. This will
+result in a range from \fBmin\fR to \fBmax\fR (inclusive in both cases).
+The ranges can be separated by the commas or can be added by the multiple use of
+this tag. Note, that this enables multi-test mode. Replaces \fI--mrange\fR option.
+.PP
+\fBmidport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
+program should use the specified TCP \fIport\fR for the Middlebox test.
+Replaces \fI--midport\fR option.
+.PP
+\fBc2sport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
+program should use the specified TCP \fIport\fR for the C2S throughput test.
+Replaces \fI--c2sport\fR option.
+.PP
+\fBs2cport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
+program should use the specified TCP \fIport\fR for the S2C throughput test.
+Replaces \fI--s2cport\fR option.
 .SH LIMITATIONS
 The NDT service is continuing to undergo testing and upgrading. 
 Better diagnostic algorithms are being developed to improve the

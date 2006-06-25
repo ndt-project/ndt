@@ -108,6 +108,7 @@ char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
 char* port = PORT;
+TestOptions testopt;
 
 pcap_t *pd;
 pcap_dumper_t *pdump;
@@ -376,6 +377,63 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
       queue = 0;
       continue;
     }
+    
+    else if (strncasecmp(key, "experimental", 5) == 0) {
+      experimental = atoi(val);
+      continue;
+    }
+    
+    else if (strncasecmp(key, "old_mismatch", 3) == 0) {
+      old_mismatch = 1;
+      continue;
+    }
+    
+    else if (strncasecmp(key, "limit", 5) == 0) {
+      limit = atoi(val);
+      continue;
+    }
+    
+    else if (strncasecmp(key, "refresh", 5) == 0) {
+      refresh = atoi(val);
+      continue;
+    }
+    
+    else if (strncasecmp(key, "mrange", 6) == 0) {
+      if (mrange_parse(val)) {
+        char tmpText[300];
+        snprintf(tmpText, 300, "Invalid range: %s", val);
+        short_usage(name, tmpText);
+      }
+      continue;
+    }
+
+    else if (strncasecmp(key, "midport", 7) == 0) {
+      if (check_int(val, &testopt.midsockport)) {
+        char tmpText[200];
+        snprintf(tmpText, 200, "Invalid Middlebox test port number: %s", val);
+        short_usage(name, tmpText);
+      }
+      continue;
+    }
+    
+    else if (strncasecmp(key, "c2sport", 7) == 0) {
+      if (check_int(val, &testopt.c2ssockport)) {
+        char tmpText[200];
+        snprintf(tmpText, 200, "Invalid C2S throughput test port number: %s", val);
+        short_usage(name, tmpText);
+      }
+      continue;
+    }
+    
+    else if (strncasecmp(key, "s2cport", 7) == 0) {
+      if (check_int(val, &testopt.s2csockport)) {
+        char tmpText[200];
+        snprintf(tmpText, 200, "Invalid S2C throughput test port number: %s", val);
+        short_usage(name, tmpText);
+      }
+      continue;
+    }
+    
     else {
       log_println(0, "Unrecognized config option: %s", key);
       exit(1);
@@ -778,7 +836,6 @@ main(int argc, char** argv)
   struct ndtchild *tmp_ptr = NULL, *new_child = NULL;
   time_t tt;
   socklen_t clilen;
-  TestOptions testopt;
 
   I2Addr listenaddr = NULL;
   int listenfd;
