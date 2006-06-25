@@ -76,6 +76,10 @@ import javax.swing.JFrame;
 
 public class Tcpbw100 extends Applet implements ActionListener
 {
+  private static final char TEST_MID = (1 << 0);
+  private static final char TEST_C2S = (1 << 1);
+  private static final char TEST_S2C = (1 << 2);
+  
 	TextArea results, diagnosis, statistics, reports;
 	String inresult, outresult, errmsg;
 	Button startTest;
@@ -117,6 +121,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 
   boolean isApplication = false;
   String host = null;
+  char tests = TEST_MID | TEST_C2S | TEST_S2C;
 
   public void showStatus(String msg)
   {
@@ -226,45 +231,63 @@ public class Tcpbw100 extends Applet implements ActionListener
 		InputStream ctlin = ctlSocket.getInputStream();
 		OutputStream ctlout = ctlSocket.getOutputStream();
 
+    ctlout.write(tests);
+    
+    int readgo = 0;
+    int totread = 0;
+    byte fill = 0;
+    Arrays.fill(buff, fill);
 		try {  
-			while ((inlth = ctlin.read(buff,0,buff.length)) > 0) {
-				String tmpstr3 = new String(buff, 0, inlth);
-				wait = Integer.parseInt(tmpstr3);
+			while ((inlth = ctlin.read(buff, totread, buff.length - totread)) > 0) {
+        totread += inlth;
+				String tmpstr3 = new String(buff, 0, totread);
+        System.out.println("tmpstr3 = " + tmpstr3);
+        if (tmpstr3.indexOf(0) != -1) {
+          readgo = 1;
+        }
+        if (buff[totread-1] == 0) {
+          break;
+        }
+        if (tmpstr3.indexOf(" ") != -1) {
+          wait = Integer.parseInt(tmpstr3.substring(0, tmpstr3.indexOf(" ")));
+        }
+        else {
+				  wait = Integer.parseInt(tmpstr3);
+        }
 				System.out.println("wait flag received = " + wait);
 
-				if (wait == 0)
-					break;
-
+        if (wait == 0) {
+          continue;
+        }
+        
 				if (wait == 9999) {
 					errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
 					failed = true;
 					return;
 				}
 				
-				// Each test should take less than 30 seconds, so tell them 45 sec * numer of 
+				// Each test should take less than 30 seconds, so tell them 45 sec * number of 
 				// tests in the queue.
 				wait = (wait * 45);
 				results.append("Another client is currently being served, your test will " +
 					"begin within " + wait + " seconds\n");
+        totread = 0;
+        Arrays.fill(buff, fill);
 			}
-		} catch (IOException e) {}
-
-		inlth = ctlin.read(buff,0,buff.length); 
-
-		if (inlth <= 0) {  
-			System.err.println("control port read failed");
-			errmsg = "Server Busy: Please wait 60 seconds for previous test to finish\n" ;
+		} catch (IOException e) {
+			errmsg = "Information: The server does not support this command line client\n";
 			failed = true;
 			return;
 		}
 
-		String tmpstr = new String(buff,0,inlth);
+		String tmpstr = new String(buff,0,totread-1);
 		System.out.println("server ports " + tmpstr);
 		int k = tmpstr.indexOf(" ");
     int l = tmpstr.substring(k+1).indexOf(" ");
-		outport = Integer.parseInt(tmpstr.substring(0, k));
+    int m = tmpstr.substring(k+1).substring(l+1).indexOf(" ");
     midport = Integer.parseInt(tmpstr.substring(k+1).substring(0, l));
-		inport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1));
+		outport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(0, m));
+		inport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(m+1));
 
 		f.toBack();
 		ff.toBack();
