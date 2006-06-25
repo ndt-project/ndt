@@ -222,6 +222,18 @@ name for this log file
 By default, the \fBNDT\fR server listens for test request on port 3001. 
 This option allows the \fBNDT\fR administrator to change this port number.
 .TP
+\fB\--midport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3003 for the Middlebox test.
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
+\fB\--c2sport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3002 for the C2S throughput test.
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
+\fB\--s2cport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3004 for the S2C throughput test.
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
 \fB\-T, --refresh\fR \fItime #\fR
 Specify the refresh time of the admin page.
 .TP

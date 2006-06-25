@@ -108,7 +108,6 @@ char *rmt_host;
 char spds[4][256], buff2[32];
 char *device=NULL;
 char* port = PORT;
-int port4;
 
 pcap_t *pd;
 pcap_dumper_t *pdump;
@@ -138,6 +137,9 @@ static struct option long_options[] = {
   {"interface", 1, 0, 'i'},
   {"log", 1, 0, 'l'},
   {"port", 1, 0, 'p'},
+  {"midport", 1, 0, 302},
+  {"c2sport", 1, 0, 303},
+  {"s2cport", 1, 0, 304},
   {"refresh", 1, 0, 'T'},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
@@ -386,7 +388,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   fclose(conf);
 }
 void
-run_test(web100_agent* agent, int ctlsockfd)
+run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 {
 
   char date[32];
@@ -423,7 +425,6 @@ run_test(web100_agent* agent, int ctlsockfd)
   double acks, aspd = 0, tmouts, rtran, dack;
   float runave;
 
-  TestOptions testopt;
   FILE *fp;
 
   /* experimental code to capture and log multiple copies of the the
@@ -432,9 +433,6 @@ run_test(web100_agent* agent, int ctlsockfd)
   web100_snapshot* tsnap = NULL;
   web100_snapshot* rsnap = NULL;
   char logname[128];
-  
-  memset(&testopt, 0, sizeof(testopt));
-  testopt.multiple = multiple;
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -780,11 +778,14 @@ main(int argc, char** argv)
   struct ndtchild *tmp_ptr = NULL, *new_child = NULL;
   time_t tt;
   socklen_t clilen;
+  TestOptions testopt;
 
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
   int debug = 0;
+
+  memset(&testopt, 0, sizeof(testopt));
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -843,6 +844,27 @@ main(int argc, char** argv)
         break;
       case 'p':
         port = optarg;
+        break;
+      case 302:
+        if (check_int(optarg, &testopt.midsockport)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid Middlebox test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 303:
+        if (check_int(optarg, &testopt.c2ssockport)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid C2S throughput test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 304:
+        if (check_int(optarg, &testopt.s2csockport)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid S2C throughput test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
         break;
       case 'a':
         admin_view = 1;
@@ -910,6 +932,8 @@ main(int argc, char** argv)
   if (debug > get_debuglvl()) {
     set_debuglvl(debug);
   }
+  
+  testopt.multiple = multiple;
   
   /* First check to see if program is running as root.  If not, then warn
    * the user that link type detection is suspect.  Then downgrade effective
@@ -1260,7 +1284,7 @@ multi_client:
         alarm(30);  /* die in 30 seconds, but only if a test doesn't get started 
                      * reset alarm() before every test */
 
-        run_test(agent, ctlsockfd);
+        run_test(agent, ctlsockfd, testopt);
 
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);

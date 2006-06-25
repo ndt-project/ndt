@@ -551,7 +551,7 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
 {
   char cmdbuf[256];
   pcap_handler printer;
-  u_char * pcap_userdata = pair;
+  u_char * pcap_userdata = (u_char*) pair;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
   int cnt, pflag = 0;

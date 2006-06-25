@@ -60,6 +60,10 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
 
   if (options->midopt) {
     strcpy(listenmidport, PORT3);
+
+    if (options->midsockport) {
+      sprintf(listenmidport, "%d", options->midsockport);
+    }
     
     if (options->multiple) {
       strcpy(listenmidport, "0");
@@ -88,6 +92,10 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   if (options->c2sopt) {
     strcpy(listenc2sport, PORT2);
     
+    if (options->c2ssockport) {
+      sprintf(listenc2sport, "%d", options->c2ssockport);
+    }
+    
     if (options->multiple) {
       strcpy(listenc2sport, "0");
     }
@@ -113,6 +121,10 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   /* S2C TEST */
   if (options->s2copt) {
     strcpy(listens2cport, PORT4);
+    
+    if (options->s2csockport) {
+      sprintf(listens2cport, "%d", options->s2csockport);
+    }
     
     if (options->multiple) {
       strcpy(listens2cport, "0");
