@@ -10,8 +10,10 @@
 #define _JS_VARINFO_H
 
 char* web100vartable[][2] = {
-  {"AckPktsIn", "???\nThe number of ACK packets received.\n"},
-  {"AckPktsOut", "???\nThe number of ACK packets sent.\n"},
+  {"AckPktsIn", "The number of valid pure ack packets that have been\n"
+                "received on this connection by the Local Host.\n"},
+  {"AckPktsOut", "The number of pure ack packets that have been sent\n"
+                 "on this connection by the Local Host.\n"},
   {"BytesRetrans", "The number of octets retransmitted.\n"},
   {"CongAvoid", "The number of times the congestion window has been\n"
                 "increased by the Congestion Avoidance algorithm.\n"},
@@ -64,8 +66,9 @@ char* web100vartable[][2] = {
   {"MinMSS", "The minimum MSS, in octets.\n"},
   {"MinRTO", "The minimum value of the retransmit timer RTO.\n"},
   {"MinRTT", "The minimum sampled round trip time.\n"},
-  {"MinRwinRcvd", "???\nThe minimum window advertisement received, in octets.\n"},
-  {"MinRwinSent", "???\nThe minimum window advertisement sent, in octets.\n"},
+  {"MinRwinRcvd", "The minimum window advertisement received, in octets.\n"},
+  {"MinRwinSent", "The minimum window advertisement sent, excluding the initial\n"
+                  "unscaled window advertised on the SYN, in octets.\n"},
   {"NagleEnabled", "True(1) if the Nagle algorithm is being used, else false(2).\n"},
   {"OtherReductions", "The number of congestion window reductions made as a result\n"
                       "of anything other than AIMD congestion control algorithms.\n"
@@ -114,9 +117,18 @@ char* web100vartable[][2] = {
                         "When TCP stops sending data for any reason which can not be\n"
                         "classified as Receiver Limited or Congestion Limited it\n"
                         "MUST be treated as Sender Limited.\n"},
-  {"SndLimBytesRwin", "???\n"},
-  {"SndLimBytesCwnd", "???\n"},
-  {"SndLimBytesSender", "???\n"},
+  {"SndLimBytesRwin", "The cumulative bytes sent while in the 'Receiver Limited'\n"
+                      "state, as determined by the Local Host, when the Local Host is\n"
+                      "a sender.  This state is entered whenever TCP transmission\n"
+                      "stops due to Receiver not being able to receive data.\n"},
+  {"SndLimBytesCwnd", "The cumulative bytes sent while in the 'Congestion Limited'\n"
+                      "state, as determined by the Local Host, when the Local Host is\n"
+                      "a sender.  This state is entered whenever TCP transmission\n"
+                      "stops due to congestion.\n"},
+  {"SndLimBytesSender", "The cumulative bytes sent while in the 'Sender Limited'\n"
+                        "state, as determined by the Local Host, when the Local Host is\n"
+                        "a sender.  This state is entered whenever TCP transmission\n"
+                        "stops because there is no more data in sender's buffer.\n"},
   {"SubsequentTimeouts", "The number of times the retransmit timeout has expired\n"
                          "after the RTO has been doubled. See section 5.5 in RFC2988.\n"},
   {"SumRTT", "The sum of all sampled round trip times.\n"},

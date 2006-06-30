@@ -30,7 +30,6 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   I2Addr midsrv_addr = NULL,
          c2ssrv_addr = NULL,
          s2csrv_addr = NULL;
-  /* FIXME: use command-line options to set these ports */
   char listenmidport[10],
        listenc2sport[10],
        listens2cport[10];

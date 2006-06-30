@@ -232,8 +232,10 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     }
 
     if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-      if (get_debuglvl() > 4)
+      if (get_debuglvl() > 4) {
+        log_print(4, "Variable %d (%s): ", i, web_vars[i].name);
         web100_perror("web100_snap_read()");
+      }
       continue;
     }
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
