@@ -488,8 +488,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   /* experimental code to capture and log multiple copies of the the
    * web100 variables using the web100_snap() & log() functions.
    */
-  web100_snapshot* tsnap = NULL;
-  web100_snapshot* rsnap = NULL;
   char logname[128];
 
   stime = time(0);
@@ -536,7 +534,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
       record_reverse, count_vars, spds, &spd_index);
 
   test_s2c(ctlsockfd, agent, &testopt, &s2cspd, set_buff, window, autotune, mon_pipe2, device, limit,
-      experimental, logname, spds, &tsnap, &rsnap, &spd_index, count_vars);
+      experimental, logname, spds, &spd_index, count_vars);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {

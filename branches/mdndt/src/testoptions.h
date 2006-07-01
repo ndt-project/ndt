@@ -40,7 +40,6 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, double* c
     int record_reverse, int count_vars, char spds[4][256], int* spd_index);
 int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2cspd, int set_buff,
     int window, int autotune, int mon_pipe2[2], char* device, int limit, int experimental,
-    char* logname, char spds[4][256], web100_snapshot** tsnap, web100_snapshot** rsnap, int* spd_index,
-    int count_vars);
+    char* logname, char spds[4][256], int* spd_index, int count_vars);
 
 #endif

@@ -415,8 +415,7 @@ read3:
 int
 test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2cspd, int set_buff,
     int window, int autotune, int mon_pipe2[2], char* device, int limit, int experimental,
-    char* logname, char spds[4][256], web100_snapshot** tsnap, web100_snapshot** rsnap, int* spd_index,
-    int count_vars)
+    char* logname, char spds[4][256], int* spd_index, int count_vars)
 {
   int largewin=16*1024*1024;
   int ret, j, k, n;
@@ -433,9 +432,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
   int c3 = 0;
   PortPair pair;
   
-  /* experimental code to capture and log multiple copies of the the
+  /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
    */
+  web100_snapshot* tsnap = NULL;
+  web100_snapshot* rsnap = NULL;
   web100_group* group;
   web100_group* tgroup;
   web100_group* rgroup;
@@ -556,9 +557,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
       }
       xconn = web100_connection_from_socket(agent, xmitsfd);
       rgroup = web100_group_find(agent, "read");
-      *rsnap = web100_snapshot_alloc(rgroup, xconn);
+      rsnap = web100_snapshot_alloc(rgroup, xconn);
       tgroup = web100_group_find(agent, "tune");
-      *tsnap = web100_snapshot_alloc(tgroup, xconn);
+      tsnap = web100_snapshot_alloc(tgroup, xconn);
 
       bytes = 0;
       k = 0;
@@ -613,8 +614,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
           web100_log_close_write(log);
       }
 
-      web100_snap(*rsnap);
-      web100_snap(*tsnap);
+      web100_snap(rsnap);
+      web100_snap(tsnap);
 
       log_println(1, "sent %d bytes to client in %0.2f seconds",(int) bytes, t);
       log_println(1, "Buffer control counters Total = %d, new data = %d, Draining Queue = %d", c3, c2, c1);
@@ -656,10 +657,10 @@ read2:
 
     alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
-    ret = web100_get_data(*tsnap, ctlsockfd, agent, count_vars);
-    web100_snapshot_free(*tsnap);
-    ret = web100_get_data(*rsnap, ctlsockfd, agent, count_vars);
-    web100_snapshot_free(*rsnap);
+    ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars);
+    web100_snapshot_free(tsnap);
+    ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars);
+    web100_snapshot_free(rsnap);
 
     /* end of write's */
     /* now when client closes other end, read will fail */

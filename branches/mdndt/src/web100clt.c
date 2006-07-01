@@ -105,8 +105,7 @@ testResults(char tests, char *tmpstr)
     return;
   }
 
-  sysvar = strtok(tmpstr, "d");
-  sysvar = strtok(NULL, " ");
+  sysvar = strtok(tmpstr, " ");
   sysval = strtok(NULL, "\n");
   i = atoi(sysval);
   save_int_values(sysvar, i);
@@ -404,6 +403,8 @@ save_int_values(char *sysvar, int sysval)
    *	SndLimTimeSender
    */   
 
+  log_println(6, "save_int_values(%s, %d)", sysvar, sysval);
+
   if(strcmp("MSSSent:", sysvar) == 0) 
     MSSSent = sysval;
   else if(strcmp("MSSRcvd:", sysvar) == 0) 
@@ -687,7 +688,7 @@ main(int argc, char *argv[])
 
     totread += inlth;
     
-    for (i = 0; i < totread; ++i) {
+    for (i = 0; i < (totread-1); ++i) {
       if (buff[i] == '\0') {
         buff[totread-1] = '\0';
         readgo = 1;
@@ -844,6 +845,9 @@ main(int argc, char *argv[])
       }
       log_println(3, "Read '%s' from server", buff);
     }
+    else {
+      log_println(3, "'Go' from server read before");
+    }
     readgo = 0;
 
     printf("running 10s outbound test (client to server) . . . . . ");
@@ -906,6 +910,9 @@ main(int argc, char *argv[])
     if (!readgo) {
       inlth = read(ctlSocket, buff, 32); 
       log_println(3, "Read '%s' from server", buff);
+    }
+    else {
+      log_println(3, "'Go' from server read before");
     }
     readgo = 0;
 
@@ -997,14 +1004,12 @@ main(int argc, char *argv[])
   }
 
   /* get web100 variables from server */
-  tmpstr[i] = '\0';
-  i = 0;
+  tmpstr[0] = '\0';
   for (;;) {
     inlth = read(ctlSocket, buff, 512);
     if (inlth <= 0) {
       break;
     }
-    i++;
     strncat(tmpstr, buff, inlth);
     log_println(6, "tmpstr = '%s'", tmpstr);
   }
