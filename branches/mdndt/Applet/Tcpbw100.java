@@ -242,7 +242,7 @@ public class Tcpbw100 extends Applet implements ActionListener
         totread += inlth;
 				String tmpstr3 = new String(buff, 0, totread);
         System.out.println("tmpstr3 = " + tmpstr3);
-        if (tmpstr3.indexOf(0) != -1) {
+        if ((tmpstr3.indexOf(0) != -1) && (tmpstr3.indexOf(0) != (totread-1))) {
           readgo = 1;
         }
         if (buff[totread-1] == 0) {

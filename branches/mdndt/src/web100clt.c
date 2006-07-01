@@ -64,8 +64,7 @@ printVariables(char *tmpstr)
   char sysvar[128], sysval[128];
 
   k = strlen(tmpstr) - 1;
-  for (i=0; tmpstr[i]!='d'; i++);
-  i++;
+  i = 0;
   for (;;) {
     for (j=0; tmpstr[i]!=' '; j++)
       sysvar[j] = tmpstr[i++];

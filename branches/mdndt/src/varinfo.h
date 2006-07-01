@@ -10,6 +10,14 @@
 #define _JS_VARINFO_H
 
 char* web100vartable[][2] = {
+  {"CurMSS", "The current maximum segment size (MSS), in octets.\n"},
+  {"X_Rcvbuf", "The socket receive buffer size in octets.  Note that the\n"
+               "meaning of this variable is implementation dependent.  In\n"
+               "particular, it may or may not include the reassembly queue.\n"},
+  {"X_Sndbuf", "The socket send buffer size in octets.  Note that the\n"
+               "meaning of this variable is implementation dependent.\n"
+               "Particularly, it may or may not include the retransmit\n"
+               "queue.\n"},
   {"AckPktsIn", "The number of valid pure ack packets that have been\n"
                 "received on this connection by the Local Host.\n"},
   {"AckPktsOut", "The number of pure ack packets that have been sent\n"
