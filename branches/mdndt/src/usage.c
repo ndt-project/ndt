@@ -212,7 +212,6 @@ vt_long_usage(char* info)
   printf("  -f, --file fn          - specify the name of the file to offline trace\n");
   printf("  -h, --help             - print this help message\n");
   printf("  -i, --interface device - specify network interface (libpcap device)\n");
-  printf("  -l, --log log_FN       - log messages in specified file\n");
   printf("  -v, --version          - print version number\n\n");
 
   exit(0);

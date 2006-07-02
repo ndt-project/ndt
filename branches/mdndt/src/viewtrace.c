@@ -38,8 +38,6 @@ extern int optind;
 extern int opterr;
 extern char *optarg;
 FILE *fp;
-char * LogFileName=NULL;
-#define VTLOGFILE "speed-chk.log"
 
 static struct option long_options[] = {
   {"count", 1, 0, 'c'},
@@ -479,7 +477,6 @@ main(int argc, char **argv)
   char errbuf[PCAP_ERRBUF_SIZE];
   int cnt, pflag = 0, debug = 0;
   struct sigaction new;
-  char tmpstr[256];
 
   read_file = NULL;
   device = NULL;
@@ -497,9 +494,6 @@ main(int argc, char **argv)
         break;
       case 'i' :
         device = optarg;
-        break;
-      case 'l' :
-        LogFileName = optarg;
         break;
       case 'h':
         vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace)");
@@ -522,11 +516,6 @@ main(int argc, char **argv)
 
   init_vars(&fwd);
   init_vars(&rev);
-
-  if (LogFileName == NULL) {
-    sprintf(tmpstr, "%s/%s", BASEDIR, VTLOGFILE);
-    LogFileName = tmpstr;
-  }
 
   if (read_file == NULL) {
     if (device == NULL) {
