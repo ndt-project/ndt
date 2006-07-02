@@ -88,6 +88,8 @@ For more info on TCP tuning, visit
 or dslreports.com <a href="http://www.dslreports.com/tweaks/">tweaks</a>
 or <a href="http://www.psc.edu/networking/perf_tune.html">UNIX and
 Windows TCP/IP tuning tips</a>.
+<p>
+You can find the Web100 variables descriptions gathered on the following <a href="web100variables.html">web page</a>.
 <hr width="95%" noshade>
 <h3>REN accessable NDT servers:</h3>
 <p>A list of servers known to the Researh and Education Network (REN) community is
