@@ -87,13 +87,12 @@ err_sys(char* s)
 
 void calculate()
 {
-  int tail[4], i, head[4];
+  int tail[4], i, head[4], tmpret;
   float k;
   float recvbwd, cwndbwd, sendbwd;
   char btlneck[64];
   int congestion2=0;
-  struct hostent *hp;
-  unsigned addr;
+  I2Addr addr;
   double acks, aspeed, pureacks;
   float cong, retrn, increase, touts, fr_ratio = 0;
   float retransec;
@@ -313,14 +312,32 @@ void calculate()
     congestion2 = 1;
 
   if (iponly == 0) {
-    addr = inet_addr(ip_addr);
-    hp = gethostbyaddr((char *) &addr, 4, AF_INET);
-    if (hp == NULL)
+    char tmpbuff[200];
+    socklen_t tmpBufLen = 199;
+    if ((addr = I2AddrByNode(NULL, ip_addr)) == NULL) {
       printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
-    else
-      printf("Throughput to host %s [%s] is limited by %s\n", hp->h_name, ip_addr, btlneck);
-  } else 
+    }
+    else {
+      struct addrinfo *fai;
+      fai = I2AddrAddrInfo(addr, ip_addr, NULL);
+      if (fai == NULL) {
+        printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
+      }
+      else {
+        memset(tmpbuff, 0, 200);
+        if ((tmpret = getnameinfo(fai->ai_addr, fai->ai_addrlen, tmpbuff, tmpBufLen, NULL, 0, 0))) {
+          log_println(1, "getnameinfo: %d", tmpret);
+          printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
+        }
+        else {
+          printf("Throughput to host %s [%s] is limited by %s\n", tmpbuff, ip_addr, btlneck);
+        }
+      }
+    }
+  }
+  else {
     printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
+  }
 
   printf("\tWeb100 says link = %d, speed-chk says link = %d\n", link, c2sdata);
   printf("\tSpeed-chk says {%d, %d, %d, %d}, Running average = {%0.1f, %0.1f, %0.1f, %0.1f}\n",
@@ -455,7 +472,7 @@ skip2:
       if (strncmp(str, "port", 4) != 0)
         goto skip2;
       sscanf(buff, "%*s %*s %*s %s %*s", (char*) &ip_addr);
-      log_println(1, "Start of New Packet trace");
+      log_println(1, "Start of New Packet trace -- %s", buff);
       n = 0;
       m = 0;
       run_ave[0] = 0;
