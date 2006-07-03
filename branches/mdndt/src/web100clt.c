@@ -545,7 +545,6 @@ main(int argc, char *argv[])
   char tmpstr2[512], tmpstr[16384], varstr[16384];
   char tests = TEST_MID | TEST_C2S | TEST_S2C;
   int ctlSocket, outSocket, inSocket, in2Socket;
-  /* FIXME: this 3001, 3002, 3003, 3004 shuld be defined somewhere else */
   int ctlport = 3001, c2sport = 3002, midport = 3003, s2cport = 3004, inlth, totread;
   uint32_t bytes;
   double stop_time;

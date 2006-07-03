@@ -66,7 +66,7 @@ int j;
 char spds[4][256], buff2[32];
 char *str, tmpstr[32];
 float run_ave[4], mmorder;
-int c2sspd, s2cspd, iponly;
+int s2c2spd, c2sspd, s2cspd, iponly;
 int linkcnt, mismatch2, mismatch3;
 
 static struct option long_options[] = {
@@ -343,10 +343,10 @@ void calculate()
   printf("\tSpeed-chk says {%d, %d, %d, %d}, Running average = {%0.1f, %0.1f, %0.1f, %0.1f}\n",
       c2sdata, c2sack, s2cdata, s2cack, runave[0], runave[1], runave[2], runave[3]);
   if (c2sspd > 1000)
-    printf("\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, ", 
-        (float) c2sspd/1000, (float)s2cspd/1000);
+    printf("\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, CWND-Limited = %0.2f Mbps, ", 
+        (float) c2sspd/1000, (float)s2cspd/1000, (float)s2c2spd/1000);
   else
-    printf("\tC2Sspeed = %d Kbps, S2Cspeed = %d Kbps, ", c2sspd, s2cspd);
+    printf("\tC2Sspeed = %d Kbps, S2Cspeed = %d Kbps, CWND-Limited: %d Kbps, ", c2sspd, s2cspd, s2c2spd);
   if (bw > 1)
     printf("Estimate = %0.2f Mbps (%0.2f Mbps)\n", bw, bw2);
   else
@@ -491,6 +491,11 @@ skip1:
       if ((str = strchr(str, ',')) == NULL)
         continue;
       str++;
+      if (sscanf(str, "%[^,]s", tmpstr) < 1)
+        goto display;
+      s2c2spd = atoi(tmpstr);
+      
+      str = strchr(str, ',') +1;
       if (sscanf(str, "%[^,]s", tmpstr) < 1)
         goto display;
       s2cspd = atoi(tmpstr);

@@ -136,7 +136,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.7\n",15,70);
+		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.8\n",15,70);
 		results.setEditable(false);
 		add(results);
 		results.append("click START to begin\n");
@@ -334,16 +334,15 @@ public class Tcpbw100 extends Applet implements ActionListener
 		catch (IOException e) {}
 
 		t =  System.currentTimeMillis() - t;
-		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
+		System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
 		s2cspd = ((8.0 * bytes) / 1000) / t;
 
 		inlth = ctlin.read(buff2, 0, 512);
 		String tmpstr2 = new String(buff2, 0, inlth);
 
-		buff = Double.toString(s2cspd*1000).getBytes();
-		String tmpstr4 = new String(buff, 0, buff.length);
+		String tmpstr4 = Double.toString(s2cspd*1000);
 		System.out.println("Sending '" + tmpstr4 + "' back to server");
-		ctlout.write(buff, 0, buff.length);
+		ctlout.write(tmpstr4.getBytes());
 
 		results.append("Done\n");
 		statistics.append("Done\n");
@@ -517,7 +516,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		catch (IOException e) {}
 
 		t =  System.currentTimeMillis() - t;
-		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
+		System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
 		s2cspd = ((8.0 * bytes) / 1000) / t;
 		if (s2cspd < 1.0) {
 			results.append(prtdbl(s2cspd*1000) + "kb/s\n");
