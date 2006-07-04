@@ -681,8 +681,11 @@ main(int argc, char *argv[])
   for (;;) {
     inlth = read(ctlSocket, &buff[totread], 100);
     log_println(3, "read %d octets '%s'", inlth, buff);
-    if (inlth <= 0)
-      break;
+    if (inlth <= 0) {
+      printf("Information: The server '%s' does not support this command line client\n",
+          host);
+      exit(0);
+    }
 
     totread += inlth;
     
@@ -705,6 +708,11 @@ main(int argc, char *argv[])
     xwait = atoi(buff);
     if (xwait == 0)	/* signal from ver 3.0.x NDT servers */
       continue;
+    if (buff[0] == '0') {
+      printf("Information: The server '%s' does not support this command line client\n",
+          host);
+      exit(0);
+    }
     if (xwait == 9999) {
       fprintf(stderr, "Server Busy: Please wait 60 seconds for the current test to finish\n");
       exit(0);
