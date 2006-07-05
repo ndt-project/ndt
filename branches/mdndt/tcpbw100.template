@@ -33,7 +33,7 @@ It can also identify 2 serious error conditions:</font>
 
 <table align=center><tr><td>
 <applet code=Tcpbw100.class ARCHIVE="Tcpbw100.jar"
-   width=580 height=300>
+   width=700 height=320>
   <PARAM NAME="H" VALUE="YOURDOMAIN">
   <PARAM NAME="U" VALUE="YOUREMAIL">
   <PARAM NAME="subject" VALUE="YOURSUBJECT">

@@ -71,29 +71,36 @@ import java.applet.*;
 import java.util.*;
 import java.text.*;
 import java.lang.*;
-import java.applet.Applet;
+import javax.swing.JApplet;
 import javax.swing.JFrame;
+import javax.swing.JTextArea;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.BorderFactory;
 
-public class Tcpbw100 extends Applet implements ActionListener
+public class Tcpbw100 extends JApplet implements ActionListener
 {
+  private static final String VERSION = "5.3.9";
   private static final char TEST_MID = (1 << 0);
   private static final char TEST_C2S = (1 << 1);
   private static final char TEST_S2C = (1 << 2);
   
-	TextArea results, diagnosis, statistics, reports;
+	JTextArea results, diagnosis, statistics;
 	String inresult, outresult, errmsg;
-	Button startTest;
-	Button disMiss, disMiss2;
-	Button copy, copy2;
-	Button deTails;
-	Button sTatistics;
-	Button mailTo;
-	Label lab1, lab2, lab3, lab4;
+	JButton startTest;
+	JButton disMiss, disMiss2;
+	JButton copy, copy2;
+	JButton deTails;
+	JButton sTatistics;
+	JButton mailTo;
+  JButton options;
+  JCheckBox defaultTest;
 	boolean Randomize, failed, cancopy;
 	URL location;
-	clsFrame f, ff;
+	clsFrame f, ff, optionsFrame;
 	String s;
-	Frame frame;
 	double t;
 	int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
 	int SACKEnabled, TimestampsEnabled, WinScaleRcvd;
@@ -131,32 +138,43 @@ public class Tcpbw100 extends Applet implements ActionListener
   }
 
 	public void init() {
-		setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+		setLayout(new BorderLayout());
 		showStatus("Tcpbw100 ready");
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.8\n",15,70);
+		results = new JTextArea("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n",15,60);
 		results.setEditable(false);
-		add(results);
+		add(new JScrollPane(results));
 		results.append("click START to begin\n");
-		startTest = new Button("START");
-		startTest.addActionListener(this);
-		add("West", startTest);
 		Panel mPanel = new Panel();
-		sTatistics = new Button("Statistics");
+		startTest = new JButton("START");
+		startTest.addActionListener(this);
+		mPanel.add(startTest);
+		sTatistics = new JButton("Statistics");
 		sTatistics.addActionListener(this);
 		mPanel.add(sTatistics);
 		sTatistics.setEnabled(false);
-		deTails = new Button("More Details...");
+		deTails = new JButton("More Details...");
 		deTails.addActionListener(this);
 		mPanel.add(deTails);
 		deTails.setEnabled(false);
-		mailTo = new Button("Report Problem");
+		mailTo = new JButton("Report Problem");
 		mailTo.addActionListener(this);
 		mPanel.add(mailTo);
 		mailTo.setEnabled(false);
-		add("South", mPanel);
+    options = new JButton("Options");
+    options.addActionListener(new ActionListener() {
+
+      public void actionPerformed(ActionEvent e) {
+        options.setEnabled(false);
+        showOptions();
+        options.setEnabled(true);
+      }
+      
+    });
+    mPanel.add(options);
+		add(BorderLayout.SOUTH, mPanel);
 	}
 
 	
@@ -1305,20 +1323,20 @@ public class Tcpbw100 extends Applet implements ActionListener
 		Panel buttons = new Panel();
 		f.add("South", buttons);
 		
-		disMiss = new Button("Close");
+		disMiss = new JButton("Close");
 		disMiss.addActionListener(this);
 		
-		copy = new Button("Copy");
+		copy = new JButton("Copy");
 		copy.addActionListener(this);
 		
-		diagnosis = new TextArea("WEB100 Kernel Variables:\n", 15,30);
+		diagnosis = new JTextArea("WEB100 Kernel Variables:\n", 15,30);
 		diagnosis.setEditable(true);
 		disMiss.setEnabled(true);
 		copy.setEnabled(cancopy);
 		
 		buttons.add("West", disMiss);
 		buttons.add("East", copy);
-		f.add(diagnosis);
+		f.add(new JScrollPane(diagnosis));
 		f.pack();
 	}  // diagnose()
 	
@@ -1334,24 +1352,58 @@ public class Tcpbw100 extends Applet implements ActionListener
 		Panel buttons = new Panel();
 		ff.add("South", buttons);
 		
-		disMiss2 = new Button("Close");
+		disMiss2 = new JButton("Close");
 		disMiss2.addActionListener(this);
 		
-		copy2 = new Button("Copy");
+		copy2 = new JButton("Copy");
 		copy2.addActionListener(this);
 		
-		statistics = new TextArea("WEB100 Enabled Statistics:\n", 25,70);
+		statistics = new JTextArea("WEB100 Enabled Statistics:\n", 25,70);
 		statistics.setEditable(true);
 		disMiss2.setEnabled(true);
 		copy2.setEnabled(cancopy);
 		
 		buttons.add("West", disMiss2);
 		buttons.add("East", copy2);
-		ff.add(statistics);
+		ff.add(new JScrollPane(statistics));
 		ff.pack();
 	}  // statistics()
 
 
+  public void showOptions() {
+    showStatus("Show options");
+
+    if (optionsFrame == null) {
+      optionsFrame = new clsFrame();
+      optionsFrame.setTitle("Options");
+      JPanel testsPanel = new JPanel();
+      testsPanel.setBorder(BorderFactory.createTitledBorder("Performed tests"));
+      defaultTest = new JCheckBox("Default tests");
+      defaultTest.setSelected(true);
+      defaultTest.setEnabled(false);
+      testsPanel.add(defaultTest);
+      optionsFrame.add(testsPanel);
+      
+      Panel buttons = new Panel();
+      optionsFrame.add("South", buttons);
+
+      JButton okButton= new JButton("OK");
+      okButton.addActionListener(new ActionListener() {
+
+        public void actionPerformed(ActionEvent e) {
+          optionsFrame.toBack();
+          optionsFrame.dispose();
+        }
+        
+      });
+
+      buttons.add("West", okButton);
+
+      optionsFrame.pack();
+    }
+    optionsFrame.setResizable(true);
+    optionsFrame.setVisible(true);
+  }
 
 	public void actionPerformed(ActionEvent event) {
 		Object source = event.getSource();
@@ -1458,7 +1510,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	}  // actionPerformed()
 
 
-	public class clsFrame extends Frame {
+	public class clsFrame extends JFrame {
 		public clsFrame() {
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent event) {
@@ -1487,7 +1539,7 @@ public class Tcpbw100 extends Applet implements ActionListener
     applet.isApplication = true;
     applet.host = args[0];
     frame.getContentPane().add(applet);
-    frame.setSize(600, 320);
+    frame.setSize(700, 320);
     applet.init();
     applet.start();
     frame.setVisible(true);
