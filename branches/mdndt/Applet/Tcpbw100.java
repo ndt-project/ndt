@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.3.9";
+  private static final String VERSION = "5.3.10";
   private static final char TEST_MID = (1 << 0);
   private static final char TEST_C2S = (1 << 1);
   private static final char TEST_S2C = (1 << 2);
@@ -127,6 +127,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	double aspd;
 
   boolean isApplication = false;
+  boolean testInProgress = false;
   String host = null;
   char tests = TEST_MID | TEST_C2S | TEST_S2C;
 
@@ -177,34 +178,46 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		add(BorderLayout.SOUTH, mPanel);
 	}
 
-	
+	class TestWorker implements Runnable
+  {
+    public void run()
+    {
+      if (!testInProgress) {
+        testInProgress = true;
+        diagnose();
+        statistics();
+        startTest.setEnabled(false);
+        deTails.setEnabled(false);
+        sTatistics.setEnabled(false);
+        mailTo.setEnabled(false);
+        options.setEnabled(false);
 
-	public void runtest() {
-		diagnose();
-		statistics();
-		startTest.setEnabled(false);
-		deTails.setEnabled(false);
-		sTatistics.setEnabled(false);
-		mailTo.setEnabled(false);
-		
-		try {
-			dottcp();
-		} catch(IOException e) {
-			System.out.println (e);
-			failed=true;
-			errmsg = "Server busy: Please wait 30 seconds for previous test to finish\n";
-		}
-		
-		if (failed) {
-			results.append(errmsg);
-		}
-		
-		deTails.setEnabled(true);
-		sTatistics.setEnabled(true);
-		mailTo.setEnabled(true);
-		showStatus("Tcpbw100 done");
-		results.append("\nclick START to re-test\n");
-		startTest.setEnabled(true);
+        try {
+          dottcp();
+        } catch(IOException e) {
+          e.printStackTrace();
+          failed=true;
+          errmsg = "Server busy: Please wait 30 seconds for previous test to finish\n";
+        }
+
+        if (failed) {
+          results.append(errmsg);
+        }
+
+        deTails.setEnabled(true);
+        sTatistics.setEnabled(true);
+        mailTo.setEnabled(true);
+        options.setEnabled(true);
+        showStatus("Tcpbw100 done");
+        results.append("\nclick START to re-test\n");
+        startTest.setEnabled(true);
+        testInProgress = false;
+      }
+    }
+  }
+
+	synchronized public void runtest() {
+    new Thread(new TestWorker()).start();
 	}
 
 

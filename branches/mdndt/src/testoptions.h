@@ -19,6 +19,7 @@
 
 typedef struct testoptions {
   int multiple;
+  int mainport;
   
   int midopt;
   int midsockfd;

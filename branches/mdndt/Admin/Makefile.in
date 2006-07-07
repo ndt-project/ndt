@@ -52,7 +52,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-noinst_PROGRAMS = Admin$(EXEEXT)
+noinst_PROGRAMS = Admin.class$(EXEEXT)
 subdir = Admin
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -63,15 +63,18 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
-Admin_OBJECTS = $(am_Admin_OBJECTS)
-Admin_DEPENDENCIES =
+Admin_class_SOURCES = Admin.c
+Admin_class_OBJECTS = Admin.$(OBJEXT)
+Admin_class_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
-GCJCOMPILE = $(GCJ) $(AM_GCJFLAGS) $(GCJFLAGS)
-GCJLD = $(GCJ)
-SOURCES = $(Admin_SOURCES)
-DIST_SOURCES = $(Admin_SOURCES)
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+SOURCES = Admin.c
+DIST_SOURCES = Admin.c
 JAVAC = javac
 JAVAROOT = $(top_builddir)
 am__installdirs = "$(DESTDIR)$(Admindir)" "$(DESTDIR)$(ndtdir)"
@@ -181,17 +184,14 @@ target_alias = @target_alias@
 # JAVAC = $(JAVAROOT)bin/javac
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV = 
-Admindir = $(srcdir)/Admin
 ndtdir = $(prefix)/ndt
 ndt_DATA = Admin.class
+Admindir = $(ndtdir)
 Admin_JAVA = Admin.java
-Admin_SOURCES = Admin.java
-am_Admin_OBJECTS = Admin.java
-Admin_LDADD = 
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .java .o .obj
+.SUFFIXES: .c .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -233,19 +233,19 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Admin.Po@am__quote@
 
-.java.o:
-@am__fastdepGCJ_TRUE@	if $(GCJCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
-@am__fastdepGCJ_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	DEPDIR=$(DEPDIR) $(GCJDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepGCJ_FALSE@	$(GCJCOMPILE) -c -o $@ $<
+.c.o:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
-.java.obj:
-@am__fastdepGCJ_TRUE@	if $(GCJCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ `$(CYGPATH_W) '$<'`; \
-@am__fastdepGCJ_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	DEPDIR=$(DEPDIR) $(GCJDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepGCJ_FALSE@	$(GCJCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+.c.obj:
+@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ `$(CYGPATH_W) '$<'`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 uninstall-info-am:
 install-AdminJAVA: classAdmin.stamp
 	@$(NORMAL_INSTALL)
@@ -450,6 +450,10 @@ uninstall-am: uninstall-AdminJAVA uninstall-info-am uninstall-ndtDATA
 	ps ps-am tags uninstall uninstall-AdminJAVA uninstall-am \
 	uninstall-info-am uninstall-ndtDATA
 
+#Admin_SOURCES	= Admin.java
+
+#am_Admin_OBJECTS = Admin.java
+#Admin_LDADD = 
 
 Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	@rm -f Admin$(EXEEXT)
@@ -464,6 +468,9 @@ classAdmin.stamp: $(Admin_JAVA)
 	    $(GCJ) $?; \
 	else :; fi
 	echo timestamp > classAdmin.stamp
+
+Admin.class: $(Admin_JAVA)
+	$(GCJ) $(Admin_JAVA)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -899,6 +899,11 @@ main(int argc, char** argv)
         break;
       case 'p':
         port = optarg;
+        if (check_int(port, &testopt.mainport)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid primary port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
         break;
       case 302:
         if (check_int(optarg, &testopt.midsockport)) {
