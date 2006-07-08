@@ -557,7 +557,7 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   int cnt, pflag = 0;
   char c;
   char namebuf[200];
-  unsigned int nameBufLen = 199;
+  size_t nameBufLen = 199;
   I2Addr sockAddr = NULL;
 
   cnt = -1;  /* read forever, or until end of file */

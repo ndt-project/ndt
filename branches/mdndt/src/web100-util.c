@@ -64,7 +64,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   struct timeval sel_tv;
   int ret;
   char tmpstr[200];
-  unsigned int tmpstrlen = sizeof(tmpstr);
+  size_t tmpstrlen = sizeof(tmpstr);
   I2Addr addr = NULL;
   web100_var *LimCwnd;
   u_int32_t limcwnd_val;

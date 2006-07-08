@@ -1152,7 +1152,7 @@ main(int argc, char** argv)
       clilen = sizeof(cli_addr);
       ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
       {
-        unsigned int tmpstrlen = sizeof(tmpstr);
+        size_t tmpstrlen = sizeof(tmpstr);
         I2Addr tmp_addr = I2AddrBySockFD(NULL, ctlsockfd, False);
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         I2AddrFree(tmp_addr);

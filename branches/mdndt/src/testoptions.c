@@ -546,7 +546,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
       if (experimental > 0) {
         I2Addr sockAddr = I2AddrBySAddr(NULL, (struct sockaddr *) &cli_addr, clilen, 0, 0);
         char namebuf[200];
-        unsigned int nameBufLen = 199;
+        size_t nameBufLen = 199;
         memset(namebuf, 0, 200);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
         sprintf(logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));

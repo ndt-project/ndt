@@ -336,7 +336,7 @@ middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr)
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
   int mss;
-  socklen_t tmpLen;
+  size_t tmpLen;
 
   str = strtok(tmpstr, ";");
   strcpy(ssip, str);
@@ -765,7 +765,7 @@ main(int argc, char *argv[])
 
     if (get_debuglvl() > 4) {
       char tmpbuff[200];
-      socklen_t tmpBufLen = 199;
+      size_t tmpBufLen = 199;
       memset(tmpbuff, 0, 200);
       I2AddrNodeName(sec_addr, tmpbuff, &tmpBufLen);
       log_println(5, "connecting to %s:%d", tmpbuff, I2AddrPort(sec_addr));
