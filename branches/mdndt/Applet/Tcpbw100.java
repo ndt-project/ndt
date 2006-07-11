@@ -82,10 +82,22 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.3.10";
-  private static final char TEST_MID = (1 << 0);
-  private static final char TEST_C2S = (1 << 1);
-  private static final char TEST_S2C = (1 << 2);
+  private static final String VERSION = "5.3.11";
+  private static final byte TEST_MID = (1 << 0);
+  private static final byte TEST_C2S = (1 << 1);
+  private static final byte TEST_S2C = (1 << 2);
+
+  /* we really should do some clean-up in this java code... maybe later ;) */
+  private static final byte COMM_FAILURE  = 0;
+  private static final byte SRV_QUEUE     = 1;
+  private static final byte MSG_LOGIN     = 2;
+  private static final byte TEST_PREPARE  = 3;
+  private static final byte TEST_START    = 4;
+  private static final byte TEST_MSG      = 5;
+  private static final byte TEST_FINALIZE = 6;
+  private static final byte MSG_ERROR     = 7;
+  private static final byte MSG_RESULTS   = 8;
+  private static final byte MSG_LOGOUT    = 9;
   
 	JTextArea results, diagnosis, statistics;
 	String inresult, outresult, errmsg;
@@ -129,7 +141,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
   boolean isApplication = false;
   boolean testInProgress = false;
   String host = null;
-  char tests = TEST_MID | TEST_C2S | TEST_S2C;
+  String tmpstr, tmpstr2;
+  byte tests = TEST_MID | TEST_C2S | TEST_S2C;
 
   public void showStatus(String msg)
   {
@@ -220,7 +233,79 @@ public class Tcpbw100 extends JApplet implements ActionListener
     new Thread(new TestWorker()).start();
 	}
 
+  class Message {
+    byte type;
+    byte[] body;
+  }
+  
+  class Protocol {
+    private InputStream _ctlin;
+    private OutputStream _ctlout;
 
+    public Protocol(Socket ctlSocket) throws IOException
+    {
+      _ctlin = ctlSocket.getInputStream();
+      _ctlout = ctlSocket.getOutputStream();
+    }
+    
+    public void send_msg(byte type, byte toSend) throws IOException
+    {
+      byte[] tab = new byte[] { toSend };
+      send_msg(type, tab);
+    }
+
+    public void send_msg(byte type, byte[] tab) throws IOException
+    {
+      byte[] header = new byte[3];
+      header[0] = type;
+      header[1] = (byte) (tab.length >> 8);
+      header[2] = (byte) tab.length;
+      
+      _ctlout.write(header);
+      _ctlout.write(tab);
+    }
+
+    public int readn(Message msg, int amount) throws IOException
+    {
+      int read = 0; 
+      int tmp;
+      msg.body = new byte[amount];
+      while (read != amount) {
+        tmp = _ctlin.read(msg.body, read, amount - read);
+        if (tmp <= 0) {
+          return read;
+        }
+        read += tmp;
+      }
+      return read;
+    }
+    
+    public int recv_msg(Message msg) throws IOException
+    {
+      int length;
+      if (readn(msg, 3) != 3) {
+        return 1;
+      }
+      msg.type = msg.body[0];
+      length = ((int) msg.body[1] & 0xFF) << 8;
+      length += (int) msg.body[2] & 0xFF; 
+      if (readn(msg, length) != length) {
+        return 3;
+      }
+      return 0;
+    }
+
+    public void close()
+    {
+      try {
+        _ctlin.close();
+        _ctlout.close();
+      }
+      catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
 
 	public void dottcp() throws IOException {
 		Socket ctlSocket = null;
@@ -230,7 +315,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
     if (!isApplication) {
 		  host = getCodeBase().getHost();
     }
-		int ctlport = 3001,  outport, inport, midport, inlth, bytes;
+		int ctlport = 3001,  c2sport, s2cport, midport, inlth, bytes;
 		byte buff[] = new byte[8192];
 		byte buff2[] = new byte[8192];
 		double stop_time, wait2;
@@ -251,351 +336,394 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			failed = true;
 			return;
 		}
+    Protocol ctl = new Protocol(ctlSocket);
+    Message msg = new Message();
 
-		/* This is part of the server queuing process.  The server will now send
-		* a integer value over to the client before testing will begin.  If queuing
-		* is enabled, the server will send a positive value.  Zero indicated that
-		* testing can begin, and -1 indicates that queuing is disabled and the 
-		* user should try again later.
-		*/
+    /* The beginning of the protocol */
 
-		InputStream ctlin = ctlSocket.getInputStream();
-		OutputStream ctlout = ctlSocket.getOutputStream();
-
-    ctlout.write(tests);
-    
-    int readgo = 0;
-    int totread = 0;
-    byte fill = 0;
-    Arrays.fill(buff, fill);
-		try {  
-			while ((inlth = ctlin.read(buff, totread, buff.length - totread)) > 0) {
-        totread += inlth;
-				String tmpstr3 = new String(buff, 0, totread);
-        System.out.println("tmpstr3 = " + tmpstr3);
-        if ((tmpstr3.indexOf(0) != -1) && (tmpstr3.indexOf(0) != (totread-1))) {
-          readgo = 1;
-        }
-        if (buff[totread-1] == 0) {
-          break;
-        }
-        if (tmpstr3.indexOf(" ") != -1) {
-          wait = Integer.parseInt(tmpstr3.substring(0, tmpstr3.indexOf(" ")));
-        }
-        else {
-				  wait = Integer.parseInt(tmpstr3);
-        }
-				System.out.println("wait flag received = " + wait);
-
-        if (wait == 0) {
-          continue;
-        }
-        
-				if (wait == 9999) {
-					errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
-					failed = true;
-					return;
-				}
-				
-				// Each test should take less than 30 seconds, so tell them 45 sec * number of 
-				// tests in the queue.
-				wait = (wait * 45);
-				results.append("Another client is currently being served, your test will " +
-					"begin within " + wait + " seconds\n");
-        totread = 0;
-        Arrays.fill(buff, fill);
-			}
-		} catch (IOException e) {
-			errmsg = "Information: The server does not support this command line client\n";
-			failed = true;
-			return;
-		}
-
-    String tmpstr = new String(buff,0,totread-1);
-    System.out.println("server ports " + tmpstr);
-    try {
-      int k = tmpstr.indexOf(" ");
-      int l = tmpstr.substring(k+1).indexOf(" ");
-      int m = tmpstr.substring(k+1).substring(l+1).indexOf(" ");
-      midport = Integer.parseInt(tmpstr.substring(k+1).substring(0, l));
-      outport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(0, m));
-      inport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(m+1));
-    }
-    catch (Exception e) {
+    /* write our test suite request */
+    ctl.send_msg(MSG_LOGIN, tests);
+    /* read the specially crafted data that kicks off the old clients */
+    if (ctl.readn(msg, 13) != 13) {
       errmsg = "Information: The server does not support this command line client\n";
       failed = true;
       return;
     }
+    
+    for (;;) {
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != SRV_QUEUE) {
+        errmsg = "Logging to server: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      String tmpstr3 = new String(msg.body);
+      wait = Integer.parseInt(tmpstr3);
+      System.out.println("wait flag received = " + wait);
+      
+      if (wait == 0) {
+        break;
+      }
+
+      if (wait == 9999) {
+        errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
+        failed = true;
+        return;
+      }
+      // Each test should take less than 30 seconds, so tell them 45 sec * number of 
+      // tests in the queue.
+      wait = (wait * 45);
+      results.append("Another client is currently being served, your test will " +
+          "begin within " + wait + " seconds\n");
+    }
+//		} catch (IOException e) {
+//			errmsg = "Information: The server does not support this command line client\n";
+//			failed = true;
+//			return;
+//		}
 
 		f.toBack();
 		ff.toBack();
 
-		/* now look for middleboxes (firewalls, NATs, and other boxes that
-		* muck with TCP's end-to-end priciples
-		*/
-		showStatus("Tcpbw100 Middlebox test...");
-		// results.append("Trying to open new connection to server for middlebox testing\n");
+    if ((tests & TEST_MID) == TEST_MID) {
+      /* now look for middleboxes (firewalls, NATs, and other boxes that
+       * muck with TCP's end-to-end priciples
+       */
+      showStatus("Tcpbw100 Middlebox test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Middlebox test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      midport = Integer.parseInt(new String(msg.body));
+      
+      try {
+        in2Socket = new Socket(host, midport);
+      } catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return;
+      } catch (IOException e) {
+        System.err.println("Couldn't perform middlebox testing to: " + host);
+        errmsg = "Server Failed while middlebox testing\n" ;
+        failed = true;
+        return;
+      }
+      results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
 
-		try {
-			in2Socket = new Socket(host, midport);
-		} catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} catch (IOException e) {
-			System.err.println("Couldn't perform middlebox testing to: " + host);
-			errmsg = "Server Failed while middlebox testing\n" ;
-			failed = true;
-			return;
-		}
-		results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-		statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-		emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
+      InputStream srvin2 = in2Socket.getInputStream();
+      OutputStream srvout2 = in2Socket.getOutputStream();
 
-		InputStream srvin2 = in2Socket.getInputStream();
-		OutputStream srvout2 = in2Socket.getOutputStream();
+      int largewin = 128*1024;
 
-		int largewin = 128*1024;
+      in2Socket.setSoTimeout(6500);
+      bytes = 0;
+      t = System.currentTimeMillis();
 
-		in2Socket.setSoTimeout(6500);
-		bytes = 0;
-		t = System.currentTimeMillis();
+      try {  
+        while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
+          bytes += inlth;
+          if ((System.currentTimeMillis() - t) > 5500)
+            break;
+        }
+      } 
+      catch (IOException e) {}
 
-		try {  
-			while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
-   			    bytes += inlth;
-			    if ((System.currentTimeMillis() - t) > 5500)
-				break;
-			}
-		} 
-		catch (IOException e) {}
+      t =  System.currentTimeMillis() - t;
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
+      s2cspd = ((8.0 * bytes) / 1000) / t;
 
-		t =  System.currentTimeMillis() - t;
-		System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
-		s2cspd = ((8.0 * bytes) / 1000) / t;
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Middlebox test results: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      tmpstr2 = new String(msg.body);
 
-		inlth = ctlin.read(buff2, 0, 512);
-		String tmpstr2 = new String(buff2, 0, inlth);
+      String tmpstr4 = Double.toString(s2cspd*1000);
+      System.out.println("Sending '" + tmpstr4 + "' back to server");
+      ctl.send_msg(TEST_MSG, tmpstr4.getBytes());
 
-		String tmpstr4 = Double.toString(s2cspd*1000);
-		System.out.println("Sending '" + tmpstr4 + "' back to server");
-		ctlout.write(tmpstr4.getBytes());
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+      try {
+        tmpstr2 += in2Socket.getInetAddress() + ";";
+      } catch (SecurityException e) {
+        System.err.println("Unable to obtain Servers IP addresses: using " + host);
+        errmsg = "getInetAddress() called failed\n" ;
+        tmpstr2 += host + ";";
+        results.append("Unable to obtain remote IP address\n");
+      }
 
-		results.append("Done\n");
-		statistics.append("Done\n");
-		emailText += "Done\n%0A";
-		try {
-			tmpstr2 += in2Socket.getInetAddress() + ";";
-		} catch (SecurityException e) {
-			System.err.println("Unable to obtain Servers IP addresses: using " + host);
-			errmsg = "getInetAddress() called failed\n" ;
-			tmpstr2 += host + ";";
-			results.append("Unable to obtain remote IP address\n");
-		}
+      System.err.println("calling in2Socket.getLocalAddress()");
+      try {
+        tmpstr2 += in2Socket.getLocalAddress() + ";";
+      } catch (SecurityException e) {
+        System.err.println("Unable to obtain local IP address: using 127.0.0.1");
+        errmsg = "getLocalAddress() call failed\n" ;
+        tmpstr2 += "127.0.0.1;";
+        // results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
+      }
 
-		System.err.println("calling in2Socket.getLocalAddress()");
-		try {
-			tmpstr2 += in2Socket.getLocalAddress() + ";";
-		} catch (SecurityException e) {
-			System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-			errmsg = "getLocalAddress() call failed\n" ;
-			tmpstr2 += "127.0.0.1;";
-			// results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
-		}
+      srvin2.close();
+      srvout2.close();
+      in2Socket.close();
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Middlebox test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+    }
 
-		srvin2.close();
-		srvout2.close();
-		in2Socket.close();
+    if ((tests & TEST_C2S) == TEST_C2S) {
+      showStatus("Tcpbw100 outbound test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      c2sport = Integer.parseInt(new String(msg.body));
+      try {
+        outSocket = new Socket(host, c2sport);
+      } catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return;
+      } catch (IOException e) {
+        System.err.println("Couldn't get 2nd connection to: " + host);
+        errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
+        failed = true;
+        return;
+      }
+      results.append("running 10s outbound test (client to server) . . . . . ");
+      statistics.append("running 10s outbound test (client to server) . . . . . ");
+      emailText += "running 10s outbound test (client to server) . . . . . ";
 
-		inlth = ctlin.read(buff2,0,buff2.length); 
-		if (inlth <= 0) {  
-			System.err.println("read failed read 'C2S Open-Connection' flag");
-			errmsg = "Server failed: 'C2S Open-Connection' flag not received\n" ;
-			failed = true;
-			return;
-		}
-		String tmpstr5 = new String(buff2, 0, inlth);
-		System.err.println("read string'" + tmpstr5 +"' from server, C2S Open-Connection message");
+      OutputStream out = outSocket.getOutputStream();
 
-		////
-		//   OUTBOUND
-		////
-		showStatus("Tcpbw100 outbound test...");
-		try {
-			outSocket = new Socket(host, outport);
-		} catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} catch (IOException e) {
-			System.err.println("Couldn't get 2nd connection to: " + host);
-			errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
-			failed = true;
-			return;
-		}
-		results.append("running 10s outbound test (client to server) . . . . . ");
-		statistics.append("running 10s outbound test (client to server) . . . . . ");
-		emailText += "running 10s outbound test (client to server) . . . . . ";
+      // wait here for signal from server application 
+      // This signal tells the client to start pumping out data
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
 
-		OutputStream out = outSocket.getOutputStream();
+      Random rng = new Random();
+      byte c = '0';
+      for (i=0; i<lth; i++) {
+        if (c == 'z')
+          c = '0';
+        buff2[i] = c++;
+      }
+      System.err.println("Send buffer size =" + i);
+      outSocket.setSoTimeout(15000); 
+      pkts = 0;
+      t = System.currentTimeMillis();
+      stop_time = t + 10000; // ten seconds
+      do {
+        // if (Randomize) rng.nextBytes(buff2);
+        out.write(buff2, 0, buff2.length);
+        pkts++;
+      } while (System.currentTimeMillis() < stop_time);
 
-		// wait here for signal from server application 
-		// This signal tells the client to start pumping out data
-		inlth = ctlin.read(buff,0,buff.length); 
-		if (inlth <= 0) {  
-			System.err.println("read failed read 'Start' flag");
-			errmsg = "Server failed: 'Start' flag not received\n" ;
-			failed = true;
-			return;
-		}
-		tmpstr5 = new String(buff, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, starting C2S test");
+      t =  System.currentTimeMillis() - t;
+      out.close();
+      outSocket.close();
+      System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
+      c2sspd = ((8.0 * pkts * lth) / 1000) / t;
 
-		Random rng = new Random();
-		byte c = '0';
-		for (i=0; i<lth; i++) {
-			if (c == 'z')
-			    c = '0';
-			buff2[i] = c++;
-		}
-		System.err.println("Send buffer size =" + i);
-		outSocket.setSoTimeout(15000); 
-		pkts = 0;
-		t = System.currentTimeMillis();
-		stop_time = t + 10000; // ten seconds
-		do {
-			// if (Randomize) rng.nextBytes(buff2);
-			out.write(buff2, 0, buff2.length);
-			pkts++;
-		} while (System.currentTimeMillis() < stop_time);
-		
-		t =  System.currentTimeMillis() - t;
-		out.close();
-		outSocket.close();
-			System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
-		c2sspd = ((8.0 * pkts * lth) / 1000) / t;
+      if (c2sspd < 1.0) {
+        results.append(prtdbl(c2sspd*1000) + "Kb/s\n");
+        statistics.append(prtdbl(c2sspd*1000) + "Kb/s\n");
+        emailText += prtdbl(c2sspd*1000) + "Kb/s\n%0A";
+      } 
+      else {
+        results.append(prtdbl(c2sspd) + "Mb/s\n");
+        statistics.append(prtdbl(c2sspd) + "Mb/s\n");
+        emailText += prtdbl(c2sspd) + "Mb/s\n%0A";
+      }
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+    }
 
-		String srvresult = new String(buff,0,inlth);
-		System.out.println(srvresult + " got " + inlth );
-		if (c2sspd < 1.0) {
-			results.append(prtdbl(c2sspd*1000) + "Kb/s\n");
-			statistics.append(prtdbl(c2sspd*1000) + "Kb/s\n");
-			emailText += prtdbl(c2sspd*1000) + "Kb/s\n%0A";
-		} 
-		else {
-			results.append(prtdbl(c2sspd) + "Mb/s\n");
-			statistics.append(prtdbl(c2sspd) + "Mb/s\n");
-			emailText += prtdbl(c2sspd) + "Mb/s\n%0A";
-		}
+    if ((tests & TEST_S2C) == TEST_S2C) {
+      showStatus("Tcpbw100 inbound test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      s2cport = Integer.parseInt(new String(msg.body));
 
+      try {
+        inSocket = new Socket(host, s2cport);
+      } 
+      catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return;
+      } 
+      catch (IOException e) {
+        System.err.println("Couldn't get 3rd connection to: " + host);
+        errmsg = "Server Failed while receiving data\n" ;
+        failed = true;
+        return;
+      }
 
-		//// 
-		//   INBOUND 
-		////
-		showStatus("Tcpbw100 inbound test...");
+      InputStream srvin = inSocket.getInputStream();
+      bytes = 0;
 
-		inlth= ctlin.read(buff2, 0, buff2.length); 
-		if (inlth <= 0) {  
-			System.err.println("2nd connection failed");
-			errmsg = "Server Failed while sending data\n" ;
-			failed = true;
-			return;
-		}
-		tmpstr5 = new String(buff2, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, open new connection");
+      results.append("running 10s inbound test (server to client) . . . . . . ");
+      statistics.append("running 10s inbound test (server to client) . . . . . . ");
+      emailText += "running 10s inbound test (server to client) . . . . . . ";
 
+      // wait here for signal from server application 
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "S2C throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
 
-		try {
-			inSocket = new Socket(host, inport);
-		} 
-		catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} 
-		catch (IOException e) {
-			System.err.println("Couldn't get 3rd connection to: " + host);
-			errmsg = "Server Failed while receiving data\n" ;
-			failed = true;
-			return;
-		}
+      inSocket.setSoTimeout(15000);
+      t = System.currentTimeMillis();
 
-		InputStream srvin = inSocket.getInputStream();
-		bytes = 0;
+      try {  
+        while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
+          bytes += inlth;
+          if ((System.currentTimeMillis() - t) > 14500)
+            break;
+        }
+      } 
+      catch (IOException e) {}
 
-		results.append("running 10s inbound test (server to client) . . . . . . ");
-		statistics.append("running 10s inbound test (server to client) . . . . . . ");
-		emailText += "running 10s inbound test (server to client) . . . . . . ";
+      t =  System.currentTimeMillis() - t;
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
+      s2cspd = ((8.0 * bytes) / 1000) / t;
+      if (s2cspd < 1.0) {
+        results.append(prtdbl(s2cspd*1000) + "kb/s\n");
+        statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
+        emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
+      } else {
+        results.append(prtdbl(s2cspd) + "Mb/s\n");
+        statistics.append(prtdbl(s2cspd) + "Mb/s\n");
+        emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
+      }
 
-		// wait here for signal from server application 
-		inlth = ctlin.read(buff,0,buff.length); 
-		if (inlth <= 0) {  
-			System.err.println("read failed read 'Go' flag");
-			errmsg = "Server failed: 'Go' flag not received\n" ;
-			failed = true;
-			return;
-		}
-		tmpstr5 = new String(buff, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, starting next test");
+      srvin.close();
+      inSocket.close();
 
-		inSocket.setSoTimeout(15000);
-		t = System.currentTimeMillis();
+      buff = Double.toString(s2cspd*1000).getBytes();
+      String tmpstr4 = new String(buff, 0, buff.length);
+      System.out.println("Sending '" + tmpstr4 + "' back to server");
+      ctl.send_msg(TEST_MSG, buff);
 
-		try {  
-			while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
-   			    bytes += inlth;
-			    if ((System.currentTimeMillis() - t) > 14500)
-				break;
-			}
-		} 
-		catch (IOException e) {}
+      /* get web100 variables from server */
+      tmpstr = "";
+      i = 0;
 
-		t =  System.currentTimeMillis() - t;
-		System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
-		s2cspd = ((8.0 * bytes) / 1000) / t;
-		if (s2cspd < 1.0) {
-			results.append(prtdbl(s2cspd*1000) + "kb/s\n");
-			statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
-			emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
-		} else {
-			results.append(prtdbl(s2cspd) + "Mb/s\n");
-			statistics.append(prtdbl(s2cspd) + "Mb/s\n");
-			emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
-		}
+      // Try setting a 5 second timer here to break out if the read fails.
+      ctlSocket.setSoTimeout(5000);
+      try {  
+        for (;;) {
+          if (ctl.recv_msg(msg) != 0) {
+            errmsg = "Protocol error!\n";
+            failed = true;
+            return;
+          }
+          if (msg.type == TEST_FINALIZE) {
+            break;
+          }
+          if (msg.type != TEST_MSG) {
+            errmsg = "S2C throughput test: Received wrong type of the message\n";
+            failed = true;
+            return;
+          }
+          tmpstr += new String(msg.body);
+          i++;
+        }
+      } catch (IOException e) {}
+    }
 
-		srvin.close();
-		inSocket.close();
+    i = 0;
 
-		buff = Double.toString(s2cspd*1000).getBytes();
-		tmpstr4 = new String(buff, 0, buff.length);
-		System.out.println("Sending '" + tmpstr4 + "' back to server");
-		ctlout.write(buff, 0, buff.length);
+    try {  
+      for (;;) {
+        if (ctl.recv_msg(msg) != 0) {
+          errmsg = "Protocol error!\n";
+          failed = true;
+          return;
+        }
+        if (msg.type == MSG_LOGOUT) {
+          break;
+        }
+        if (msg.type != MSG_RESULTS) {
+          errmsg = "Tests results: Received wrong type of the message\n";
+          failed = true;
+          return;
+        }
+        tmpstr += new String(msg.body);
+        i++;
+      }
+    } catch (IOException e) {}
 
-		/* get web100 variables from server */
-		tmpstr = "";
-		i = 0;
-
-		// Try setting a 5 second timer here to break out if the read fails.
-		ctlSocket.setSoTimeout(5000);
-		try {  
-			for (;;) {
-				inlth = ctlin.read(buff, 0, buff.length);
-				//results.append("Read " + inlth + " bytes from ctl socket\n");
-				if (inlth < 0) {
-					//results.append("Finished reading data from ctl socket\n");
-					break;
-				}
-				tmpstr += new String(buff, 0, inlth);
-				i++;
-			}
-		} catch (IOException e) {}
-
-		if (i == 0)
-		    results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
-		
+    if (i == 0) {
+      results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
+    }
 		System.err.println("Calling InetAddress.getLocalHost() twice");
 		try {
 			diagnosis.append("Client: " + InetAddress.getLocalHost() + "\n");
@@ -611,8 +739,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			emailText += "Client: 127.0.0.1\n%0A";
 		}
 
-		ctlin.close();
-		ctlout.close();
+    ctl.close();
 		ctlSocket.close();
 
 		testResults(tmpstr);

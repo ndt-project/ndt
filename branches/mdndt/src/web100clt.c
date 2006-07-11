@@ -668,12 +668,7 @@ main(int argc, char *argv[])
     log_println(1, " > S2C throughput test");
   }
   
-  /* This is part of the server queuing process.  The server will now send
-   * a integer value over to the client before testing will begin.  If queuing
-   * is enabled, the server will send a positive value.  Zero indicated that
-   * testing can begin, and 9999 indicates that queuing is disabled and the 
-   * user should try again later.
-   */
+  /* The beginning of the protocol */
 
   /* write our test suite request */
   send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
