@@ -72,6 +72,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "mrange.h"
 #include "logging.h"
 #include "testoptions.h"
+#include "protocol.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -445,6 +446,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   }
   fclose(conf);
 }
+
 void
 run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 {
@@ -507,34 +509,23 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   log_println(1, "Starting test suite:");
   if (testopt.midopt) {
-    log_println(1, " > Middlebox test: port %d", testopt.midsockport);
-    sprintf(buff, " %d", testopt.midsockport);
-    write(ctlsockfd, buff, strlen(buff));  
+    log_println(1, " > Middlebox test");
   }
   if (testopt.c2sopt) {
-    log_println(1, " > C2S throughput test: port %d", testopt.c2ssockport);
-    sprintf(buff, " %d", testopt.c2ssockport);
-    write(ctlsockfd, buff, strlen(buff));  
+    log_println(1, " > C2S throughput test");
   }
   if (testopt.s2copt) {
-    log_println(1, " > S2C throughput test: port %d", testopt.s2csockport);
-    sprintf(buff, " %d", testopt.s2csockport);
-    write(ctlsockfd, buff, strlen(buff));  
+    log_println(1, " > S2C throughput test");
   }
   alarm(30);  /* reset alarm() signal to gain another 30 seconds */
 
-  /* This write kicks off the whole test cycle.  The client will start the
-   * first test after receiving this string
-   */
-  write(ctlsockfd, "\0", 1);
+  test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
 
-  test_mid(ctlsockfd, agent, &testopt, &s2c2spd);
+  test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune, mon_pipe1,
+      device, limit, record_reverse, count_vars, spds, &spd_index);
 
-  test_c2s(ctlsockfd, agent, &testopt, &c2sspd, set_buff, window, autotune, mon_pipe1, device, limit,
-      record_reverse, count_vars, spds, &spd_index);
-
-  test_s2c(ctlsockfd, agent, &testopt, &s2cspd, set_buff, window, autotune, mon_pipe2, device, limit,
-      experimental, logname, spds, &spd_index, count_vars);
+  test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune, mon_pipe2,
+      device, limit, experimental, logname, spds, &spd_index, count_vars);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
@@ -736,23 +727,25 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n",
       c2sdata, c2sack, s2cdata, s2cack);
-  write(ctlsockfd, buff, strlen(buff));
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\nmismatch: %d\nspd: %0.2f\n",
       half_duplex, link, congestion, bad_cable, mismatch, spd);
-  write(ctlsockfd, buff, strlen(buff));
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\ntimesec: %0.2f\norder: %0.4f\n",
       bw2, loss2, avgrtt, waitsec, timesec, oo_order);
-  write(ctlsockfd, buff, strlen(buff));
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\nrwin: %0.4f\nswin: %0.4f\n",
       rwintime, sendtime, cwndtime, rwin, swin);
-  write(ctlsockfd, buff, strlen(buff));
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\nCWND-Limited: %0.2f\n",
       cwin, rttsec, Sndbuf, aspd, s2c2spd);
-  write(ctlsockfd, buff, strlen(buff));
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+
+  send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
@@ -1164,6 +1157,8 @@ main(int argc, char** argv)
         perror("Web100srv server: accept error");
         continue;
       }
+      /* the specially crafted data that kicks off the old clients */
+      write(ctlsockfd, "123456 654321", 13);
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
       tt = time(0);
       name = tmpstr;
@@ -1208,7 +1203,7 @@ main(int argc, char** argv)
 
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
-          write(ctlsockfd, "9999", 4);
+          send_msg(ctlsockfd, SRV_QUEUE, "9999", 4);
           free(new_child);
           continue;
         }
@@ -1247,7 +1242,7 @@ main(int argc, char** argv)
               (waiting-1), tmp_ptr->pid, (waiting-1));
 
           sprintf(tmpstr, "%d", (waiting-1));
-          write(ctlsockfd, tmpstr, strlen(tmpstr));
+          send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
         }
         if (testing == 1) 
           continue;
@@ -1264,7 +1259,7 @@ ChldRdy:
                 (waiting-1), tmp_ptr->pid, (waiting-i));
 
             sprintf(tmpstr, "%d", (waiting-i));
-            write(tmp_ptr->ctlsockfd, tmpstr, strlen(tmpstr));
+            send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
             tmp_ptr = tmp_ptr->next;
             i--;
           }
@@ -1289,13 +1284,13 @@ ChldRdy:
 multi_client:
         sprintf(tmpstr, "go");
         if (multiple == 1) {
-          write(ctlsockfd, "0", 1);
+          send_msg(ctlsockfd, SRV_QUEUE, "0", 1);
           write(chld_pipe[1], tmpstr, 3);
           close(chld_pipe[1]);
           close(ctlsockfd);
         }
         else {
-          write(head_ptr->ctlsockfd, "0", 1);
+          send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
           write(head_ptr->pipe, tmpstr, 3);
           close(head_ptr->pipe);
           close(head_ptr->ctlsockfd);

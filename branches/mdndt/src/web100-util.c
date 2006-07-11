@@ -13,6 +13,7 @@
 #include "network.h"
 #include "logging.h"
 #include "utils.h"
+#include "protocol.h"
 
 /*
  * set up the necessary structures for monitoring connections at the
@@ -240,7 +241,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     }
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
     sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
-    write(ctlsock, line, strlen(line));
+    send_msg(ctlsock, TEST_MSG, line, strlen(line));
     log_print(6, "%s", line);
   }
   return(0);

@@ -18,5 +18,9 @@
 
 I2Addr CreateListenSocket(I2Addr addr, char* serv, int options);
 int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int options);
+int send_msg(int ctlSocket, int type, void* msg, int len);
+int recv_msg(int ctlSocket, int* type, void* msg, int* len);
+int writen(int fd, void* buf, int amount);
+int readn(int fd, void* buf, int amount);
 
 #endif

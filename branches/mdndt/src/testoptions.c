@@ -14,6 +14,7 @@
 #include "mrange.h"
 #include "logging.h"
 #include "utils.h"
+#include "protocol.h"
 
 /*
  * Function name: initialize_tests
@@ -27,23 +28,22 @@
 int
 initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
 {
-  I2Addr midsrv_addr = NULL,
-         c2ssrv_addr = NULL,
-         s2csrv_addr = NULL;
-  char listenmidport[10],
-       listenc2sport[10],
-       listens2cport[10];
-  char useropt;
+  unsigned char useropt;
+  int msgType;
+  int msgLen = 1;
 
   assert(ctlsockfd != -1);
   assert(options);
 
   /* read the test suite request */
-  if (read(ctlsockfd, &useropt, 1) != 1) {
+  if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
     return 1;
   }
-  if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C))) {
+  if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
     return 2;
+  }
+  if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C))) {
+    return 3;
   }
   if (useropt & TEST_MID) {
     options->midopt = TOPT_ENABLED;
@@ -54,10 +54,41 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   if (useropt & TEST_S2C) {
     options->s2copt = TOPT_ENABLED;
   }
+  return 0;
+}
 
-  /* MID TEST */
+/*
+ * Function name: test_mid
+ * Description: Performs the Middlebox test.
+ * Arguments: ctlsockfd - the client control socket descriptor
+ *            agent - the Web100 agent used to track the connection
+ *            options - the test options
+ *            s2c2spd - the S2C throughput results (evaluated by the MID TEST)
+ * Returns: 0 - success,
+ *          >0 - error code.
+ */
 
+int
+test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd)
+{
+  int maxseg=1456, largewin=16*1024*1024;
+  int seg_size, win_size;
+  int midfd;
+  struct sockaddr_storage cli_addr;
+  socklen_t optlen, clilen;
+  char buff[BUFFSIZE+1];
+  I2Addr midsrv_addr = NULL;
+  char listenmidport[10];
+  int msgType;
+  int msgLen;
+  
+  assert(ctlsockfd != -1);
+  assert(agent);
+  assert(options);
+  assert(s2c2spd);
+  
   if (options->midopt) {
+    log_println(1, " <-- Middlebox test -->");
     strcpy(listenmidport, PORT3);
 
     if (options->midsockport) {
@@ -87,11 +118,98 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
     }
     options->midsockfd = I2AddrFD(midsrv_addr);
     options->midsockport = I2AddrPort(midsrv_addr);
-  }
+    log_println(1, "  -- port: %d", options->midsockport);
+    
+    sprintf(buff, "%d", options->midsockport);
+    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    
+    /* set mss to 1456 (strange value), and large snd/rcv buffers
+     * should check to see if server supports window scale ?
+     */
+    setsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
+    setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+    setsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+    log_println(2, "Middlebox test, Port %d waiting for incoming connection (fd=%d)",
+        options->midsockport, options->midsockfd);
+    if (get_debuglvl() > 1) {
+      optlen = sizeof(seg_size);
+      getsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
+      getsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
+      log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
+      getsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
+      log_println(2, "Sending Window size set to %dKB", win_size);
+    }
 
-  /* C2S TEST */
+    /* Post a listen on port 3003.  Client will connect here to run the 
+     * middlebox test.  At this time it really only checks the MSS value
+     * and does NAT detection.  More analysis functions (window scale)
+     * will be done in the future.
+     */
+    clilen = sizeof(cli_addr);
+    midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
+
+    buff[0] = '\0';
+    web100_middlebox(midfd, agent, buff);
+    send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+    msgLen = sizeof(buff);
+    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+      log_println(0, "Protocol error!");
+      exit(1);
+    }
+    if (check_msg_type("Middlebox test", TEST_MSG, msgType)) {
+      exit(2);
+    }
+    if (msgLen <= 0) {
+      log_println(0, "Improper message");
+      exit(3);
+    }
+    buff[msgLen] = 0;
+    *s2c2spd = atof(buff);
+    log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c2spd, buff);
+    shutdown(midfd, SHUT_WR);
+    close(midfd);
+    close(options->midsockfd);
+    send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+    log_println(1, " <-------------------->");
+  }
+  return 0;
+}
+
+/*
+ * Function name: test_c2s
+ * Description: Performs the C2S Throughput test.
+ * Arguments: ctlsockfd - the client control socket descriptor
+ *            agent - the Web100 agent used to track the connection
+ *            options - the test options
+ * Returns: 0 - success,
+ *          >0 - error code.
+ */
+
+int
+test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* c2sspd,
+    int set_buff, int window, int autotune, int mon_pipe1[2], char* device, int limit,
+    int record_reverse, int count_vars, char spds[4][256], int* spd_index)
+{
+  int largewin=16*1024*1024;
+  int recvsfd;
+  int mon_pid1 = 0;
+  int ret, n;
+  struct sockaddr_storage cli_addr;
+  socklen_t clilen;
+  char tmpstr[256];
+  double t, bytes=0;
+  struct timeval sel_tv;
+  fd_set rfd;
+  char buff[BUFFSIZE+1];
+  PortPair pair;
+  I2Addr c2ssrv_addr = NULL;
+  char listenc2sport[10];
+
+  web100_group* group;
+  web100_connection* conn;
 
   if (options->c2sopt) {
+    log_println(1, " <-- C2S throughput test -->");
     strcpy(listenc2sport, PORT2);
     
     if (options->c2ssockport) {
@@ -121,151 +239,10 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
     }
     options->c2ssockfd = I2AddrFD(c2ssrv_addr);
     options->c2ssockport = I2AddrPort(c2ssrv_addr);
-  }
-
-  /* S2C TEST */
-  if (options->s2copt) {
-    strcpy(listens2cport, PORT4);
+    log_println(1, "  -- port: %d", options->c2ssockport);
+    pair.port1 = options->c2ssockport;
+    pair.port2 = -1;
     
-    if (options->s2csockport) {
-      sprintf(listens2cport, "%d", options->s2csockport);
-    }
-    else if (options->mainport) {
-      sprintf(listens2cport, "%d", options->mainport + 3);
-    }
-    
-    if (options->multiple) {
-      strcpy(listens2cport, "0");
-    }
-    
-    while (s2csrv_addr == NULL) {
-      s2csrv_addr = CreateListenSocket(NULL,
-          (options->multiple ? mrange_next(listens2cport) : listens2cport), conn_options);
-      if (strcmp(listens2cport, "0") == 0) {
-        log_println(0, "WARNING: ephemeral port number was bound");
-        break;
-      }
-      if (options->multiple == 0) {
-        break;
-      }
-    }
-    if (s2csrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
-    }
-    options->s2csockfd = I2AddrFD(s2csrv_addr);
-    options->s2csockport = I2AddrPort(s2csrv_addr);
-  }
-  
-  return 0;
-}
-
-/*
- * Function name: test_mid
- * Description: Performs the Middlebox test.
- * Arguments: ctlsockfd - the client control socket descriptor
- *            agent - the Web100 agent used to track the connection
- *            options - the test options
- *            s2c2spd - the S2C throughput results (evaluated by the MID TEST)
- * Returns: 0 - success,
- *          >0 - error code.
- */
-
-int
-test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2c2spd)
-{
-  int maxseg=1456, largewin=16*1024*1024;
-  int seg_size, win_size;
-  int midfd;
-  int ret;
-  struct sockaddr_storage cli_addr;
-  socklen_t optlen, clilen;
-  char buff[BUFFSIZE+1];
-
-  if (options->midopt) {
-    /* set mss to 1456 (strange value), and large snd/rcv buffers
-     * should check to see if server supports window scale ?
-     */
-    setsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
-    setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-    setsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-    log_println(2, "Middlebox test, Port %d waiting for incoming connection (fd=%d)",
-        options->midsockport, options->midsockfd);
-    if (get_debuglvl() > 1) {
-      optlen = sizeof(seg_size);
-      getsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
-      getsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
-      log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
-      getsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
-      log_println(2, "Sending Window size set to %dKB", win_size);
-    }
-
-    /* Post a listen on port 3003.  Client will connect here to run the 
-     * middlebox test.  At this time it really only checks the MSS value
-     * and does NAT detection.  More analysis functions (window scale)
-     * will be done in the future.
-     */
-    clilen = sizeof(cli_addr);
-    midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
-
-    buff[0] = '\0';
-    web100_middlebox(midfd, agent, buff);
-    write(ctlsockfd, buff, strlen(buff));  
-    ret = read(ctlsockfd, buff, 32);  
-    buff[ret] = '\0';
-    *s2c2spd = atof(buff);
-    log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c2spd, buff);
-    shutdown(midfd, SHUT_WR);
-    close(midfd);
-    close(options->midsockfd);
-  }
-  return 0;
-}
-
-/*
- * Function name: test_c2s
- * Description: Performs the C2S Throughput test.
- * Arguments: ctlsockfd - the client control socket descriptor
- *            agent - the Web100 agent used to track the connection
- *            options - the test options
- * Returns: 0 - success,
- *          >0 - error code.
- */
-
-int
-test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, double* c2sspd,
-    int set_buff, int window, int autotune, int mon_pipe1[2], char* device, int limit,
-    int record_reverse, int count_vars, char spds[4][256], int* spd_index)
-{
-  int largewin=16*1024*1024;
-  int recvsfd;
-  int mon_pid1 = 0;
-  int ret, n;
-  struct sockaddr_storage cli_addr;
-  socklen_t clilen;
-  char tmpstr[256];
-  double t, bytes=0;
-  struct timeval sel_tv;
-  fd_set rfd;
-  char buff[BUFFSIZE+1];
-  PortPair pair;
-
-  web100_group* group;
-  web100_connection* conn;
-
-  pair.port1 = options->c2ssockport;
-  pair.port2 = options->s2csockport;
-  
-  if (options->c2sopt) {
-    /* Middlebox testing done, now get ready to run throughput tests.
-     * First send client a signal to open a new connection.  Then grap
-     * the client's IP address and TCP port number.  Next fork() a child
-     * process to read packets from the libpcap interface.  Finally sent
-     * the client another signal, via the control channel
-     * when server is ready to go.
-     */
-
-    log_println(1, "Sending 'GO' signal, to tell client to head for the next test");
-
     if (set_buff > 0) {
       setsockopt(options->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
       setsockopt(options->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
@@ -276,7 +253,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, double* c2ssp
     }
     log_println(1, "listening for Inet connection on options->c2ssockfd, fd=%d", options->c2ssockfd);
 
-    write(ctlsockfd, "Open-c2s-connection", 21);  
+    log_println(1, "Sending 'GO' signal, to tell client to head for the next test");
+    sprintf(buff, "%d", options->c2ssockport);
+    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
 
     clilen = sizeof(cli_addr);
     recvsfd = accept(options->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
@@ -341,7 +320,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, double* c2ssp
     }
     /* End of test code */
 
-    write(ctlsockfd, "Start-c2s-test", 15);
+    sleep(2);
+    send_msg(ctlsockfd, TEST_START, "", 0);
     alarm(45);  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
 
@@ -407,6 +387,8 @@ read3:
       sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
     }
 
+    send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+    log_println(1, " <------------------------->");
   }
   return 0;
 }
@@ -422,9 +404,9 @@ read3:
  */
 
 int
-test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2cspd, int set_buff,
-    int window, int autotune, int mon_pipe2[2], char* device, int limit, int experimental,
-    char* logname, char spds[4][256], int* spd_index, int count_vars)
+test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2cspd,
+    int set_buff, int window, int autotune, int mon_pipe2[2], char* device, int limit,
+    int experimental, char* logname, char spds[4][256], int* spd_index, int count_vars)
 {
   int largewin=16*1024*1024;
   int ret, j, k, n;
@@ -440,6 +422,10 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
   char buff[BUFFSIZE+1];
   int c3 = 0;
   PortPair pair;
+  I2Addr s2csrv_addr = NULL;
+  char listens2cport[10];
+  int msgType;
+  int msgLen;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -457,10 +443,41 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
   int SndMax=0, SndUna=0;
   int c1=0, c2=0;
   
-  pair.port1 = options->c2ssockport;
-  pair.port2 = options->s2csockport;
-
   if (options->s2copt) {
+    log_println(1, " <-- S2C throughput test -->");
+    strcpy(listens2cport, PORT4);
+    
+    if (options->s2csockport) {
+      sprintf(listens2cport, "%d", options->s2csockport);
+    }
+    else if (options->mainport) {
+      sprintf(listens2cport, "%d", options->mainport + 3);
+    }
+    
+    if (options->multiple) {
+      strcpy(listens2cport, "0");
+    }
+    
+    while (s2csrv_addr == NULL) {
+      s2csrv_addr = CreateListenSocket(NULL,
+          (options->multiple ? mrange_next(listens2cport) : listens2cport), conn_options);
+      if (strcmp(listens2cport, "0") == 0) {
+        log_println(0, "WARNING: ephemeral port number was bound");
+        break;
+      }
+      if (options->multiple == 0) {
+        break;
+      }
+    }
+    if (s2csrv_addr == NULL) {
+      err_sys("server: CreateListenSocket failed");
+    }
+    options->s2csockfd = I2AddrFD(s2csrv_addr);
+    options->s2csockport = I2AddrPort(s2csrv_addr);
+    log_println(1, "  -- port: %d", options->s2csockport);
+    pair.port1 = -1;
+    pair.port2 = options->s2csockport;
+    
     if (set_buff > 0) {
       setsockopt(options->s2csockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
       setsockopt(options->s2csockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
@@ -472,8 +489,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
     log_println(1, "listening for Inet connection on options->s2csockfd, fd=%d", options->s2csockfd);
 
     /* Data received from speed-chk, tell applet to start next test */
-    write(ctlsockfd, "Open-s2c-connection", 21);
-
+    sprintf(buff, "%d", options->s2csockport);
+    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    
     /* ok, await for connect on 3rd port
      * This is the second throughput test, with data streaming from
      * the server back to the client.  Again stream data for 10 seconds.
@@ -578,7 +596,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2csp
         buff[j] = (k++ & 0x7f);
       }
 
-      write(ctlsockfd, "Start-s2c-test", 15);
+      send_msg(ctlsockfd, TEST_START, "", 0);
       alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
                    * is generated.  */
       t = secs();
@@ -671,12 +689,24 @@ read2:
     ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars);
     web100_snapshot_free(rsnap);
 
-    /* end of write's */
-    /* now when client closes other end, read will fail */
-    read(ctlsockfd, buff, 32);  
+    msgLen = sizeof(buff);
+    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+      log_println(0, "Protocol error!");
+      exit(1);
+    }
+    if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
+      exit(2);
+    }
+    if (msgLen <= 0) {
+      log_println(0, "Improper message");
+      exit(3);
+    }
+    buff[msgLen] = 0;
     *s2cspd = atoi(buff);
 
     close(xmitsfd);
+    send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+    log_println(1, " <------------------------->");
   }
   return 0;
 }

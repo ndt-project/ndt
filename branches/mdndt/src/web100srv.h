@@ -59,7 +59,7 @@
 #define PORT  "3001"
 #define PORT2 "3002"
 #define PORT3 "3003"
-#define PORT4 "3004"
+#define PORT4 "3003"
 
 typedef struct portpair {
   int port1;

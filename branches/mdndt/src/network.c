@@ -10,6 +10,16 @@
 #include <assert.h>
 
 #include "network.h"
+#include "logging.h"
+
+/*
+ * Function name: OpenSocket
+ * Description: Creates and binds the socket.
+ * Arguments: addr - the I2Addr structure, where the new socket will be stored
+ *            serv - the port number
+ *            options - the binding socket options
+ * Returns: The socket descriptor or error code (<0).
+ */
 
 static int
 OpenSocket(I2Addr addr, char* serv, int options)
@@ -92,6 +102,17 @@ failsock:
   return fd;
 }
 
+/*
+ * Function name: CreateListenSocket
+ * Description: Creates the I2Addr structure with the listen socket.
+ * Arguments: addr - the I2Addr structure, where listen socket should
+ *                   be added, or NULL, if the new structure should be
+ *                   created
+ *            serv - the port number
+ *            options - the binding socket options
+ * Returns: The I2Addr structure with the listen socket.
+ */
+
 I2Addr
 CreateListenSocket(I2Addr addr, char* serv, int options)
 {
@@ -130,6 +151,20 @@ error:
     I2AddrFree(addr);
     return NULL;
 }
+
+/*
+ * Function name: CreateConnectSocket
+ * Description: Creates the connect socket and adds it to the I2Addr
+ *              structure.
+ * Arguments: sockfd - the target place for the socket descriptor
+ *            local_addr - the I2Addr structure with the local address
+ *                         to bind the connect socket to
+ *            server_addr - the I2Addr structure with the remote
+ *                          server address
+ *            options - the connect socket options
+ * Returns: 0 - success,
+ *          !0 - error code.
+ */
 
 int
 CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int options)
@@ -190,4 +225,138 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
 error:
     /* TODO: log the error */
     return -1;
+}
+
+/*
+ * Function name: send_msg
+ * Description: Sends the protocol message to the control socket.
+ * Arguments: ctlSocket - the control socket
+ *            type - the type of the message
+ *            msg - the message to send
+ *            len - the length of the message
+ * Returns: 0 - success,
+ *          !0 - error code.
+ */
+
+int
+send_msg(int ctlSocket, int type, void* msg, int len)
+{
+  unsigned char buff[3];
+  
+  assert(msg);
+  assert(len >= 0);
+
+  buff[0] = type;
+  buff[1] = len >> 8;
+  buff[2] = len;
+
+  if (writen(ctlSocket, buff, 3) != 3) {
+    return 1;
+  }
+  if (writen(ctlSocket, msg, len) != len) {
+    return 2;
+  }
+  log_println(5, ">>> send_msg: type=%d, len=%d", type, len);
+  return 0;
+}
+
+/*
+ * Function name: recv_msg
+ * Description: Receives the protocol message from the control socket.
+ * Arguments: ctlSocket - the control socket
+ *            type - the target place for type of the message
+ *            buf - the target place for the message body
+ *            len - the target place for the length of the message
+ * Returns: 0 - success
+ *          !0 - error code.
+ */
+
+int
+recv_msg(int ctlSocket, int* type, void* msg, int* len)
+{
+  unsigned char buff[3];
+  int length;
+  
+  assert(type);
+  assert(buf);
+  assert(len);
+
+  if (readn(ctlSocket, buff, 3) != 3) {
+    return 1;
+  }
+  *type = buff[0];
+  length = buff[1];
+  length = (length << 8) + buff[2];
+  assert(length > (*len));
+  if (length > (*len)) {
+    log_println(0, "recv_msg: length [%d] > *len [%d]", length, *len);
+    return 2;
+  }
+  *len = length;
+  if (readn(ctlSocket, msg, length) != length) {
+    return 3;
+  }
+  log_println(5, "<<< recv_msg: type=%d, len=%d", *type, *len);
+  return 0;
+}
+
+/*
+ * Function name: writen
+ * Description: Writes the given amount of data to the file descriptor.
+ * Arguments: fd - the file descriptor
+ *            buf - buffer with data to write
+ *            amount - the size of the data
+ * Returns: The amount of bytes written to the file descriptor
+ */
+
+int
+writen(int fd, void* buf, int amount)
+{
+  int sent, n;
+  char* ptr = buf;
+  sent = 0;
+  assert(amount > 0);
+  while (sent < amount) {
+    n = write(fd, ptr+sent, amount - sent);
+    assert(n != 0);
+    if (n != -1) {
+      sent += n;
+    }
+    if (n == -1) {
+      if (errno != EAGAIN)
+        return 0;
+    }
+  }
+  return amount;
+}
+
+/*
+ * Function name: readn
+ * Description: Reads the given amount of data from the file descriptor.
+ * Arguments: fd - the file descriptor
+ *            buf - buffer for data
+ *            amount - the size of the data to read
+ * Returns: The amount of bytes read from the file descriptor.
+ */
+
+int
+readn(int fd, void* buf, int amount)
+{
+  int sent, n;
+  char* ptr = buf;
+  sent = 0;
+  assert(amount > 0);
+  while (sent < amount) {
+    n = read(fd, ptr+sent, amount - sent);
+    if (n != -1) {
+      sent += n;
+    }
+    if (n == 0)
+      return 0;
+    if (n == -1) {
+      if (errno != EAGAIN)
+        return 0;
+    }
+  }
+  return amount;
 }

@@ -71,7 +71,7 @@ server process does a passive open on these ports via the \fBlisten(2)\fR
 command. The client performs the active open, via the \fBconnect(2)\fR
 command, to allow it to operate, even when located behind a NAT or
 other filtering firewall. By default, the server uses TCP port
-numbers 3002, 3003 and 3004 for this testing service.  
+numbers 3002 and 3003 for this testing service.  
 .IP \(bu
 Testing begins with the client opening a connection on port 3003. 
 The server records and returns the negotiated TCP max segment size,
@@ -92,7 +92,7 @@ into a limited number of bins, one for each link technology to be
 identified, and a weighted average is also computed. At the end
 of the test these bins are returned to the parent process for analysis.
 .IP \(bu
-Then, the client opens a connection on port 3004.
+Then, the client opens a connection on port 3003.
 Data is streamed from the server to the client for 10 seconds. 
 The result is a measurement of the achieved throughput from the
 server to the client - i.e., the \fIdownload direction\fR. By default, the server
@@ -172,7 +172,7 @@ Export Web100 data via the syslog() LOG_LOCAL0 facility.
 \fB\-t, --tcpdump\fR 
 Write a \fBtcpdump(8)\fR formatted file to disk. By default,
 the server tries to perform a packet dispersion analysis of all
-data sent and received on the test ports (3002 and 3004). 
+data sent and received on the test ports (3002 and 3003). 
 This options allows the administrator to capture these data
 streams for later analysis. The \fBtcpdump(8)\fR and \fBtcptrace(1)\fR
 programs can be used to analyze these trace files.
@@ -231,7 +231,7 @@ By default, the \fBNDT\fR server uses port 3002 for the C2S throughput test.
 This option allows the \fBNDT\fR administrator to change this port number.
 .TP
 \fB\--s2cport\fR \fIport #\fR
-By default, the \fBNDT\fR server uses port 3004 for the S2C throughput test.
+By default, the \fBNDT\fR server uses port 3003 for the S2C throughput test.
 This option allows the \fBNDT\fR administrator to change this port number.
 .TP
 \fB\-T, --refresh\fR \fItime #\fR

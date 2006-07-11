@@ -35,12 +35,12 @@ typedef struct testoptions {
 } TestOptions;
 
 int initialize_tests(int ctlsockfd, TestOptions* options, int conn_options);
-int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2c2spd);
-int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, double* c2sspd,
+int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd);
+int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* c2sspd,
     int set_buff, int window, int autotune, int mon_pipe1[2], char* device, int limit,
     int record_reverse, int count_vars, char spds[4][256], int* spd_index);
-int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, double* s2cspd, int set_buff,
-    int window, int autotune, int mon_pipe2[2], char* device, int limit, int experimental,
+int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2cspd,
+    int set_buff, int window, int autotune, int mon_pipe2[2], char* device, int limit, int experimental,
     char* logname, char spds[4][256], int* spd_index, int count_vars);
 
 #endif

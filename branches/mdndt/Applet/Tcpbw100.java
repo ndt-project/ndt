@@ -311,14 +311,21 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			return;
 		}
 
-		String tmpstr = new String(buff,0,totread-1);
-		System.out.println("server ports " + tmpstr);
-		int k = tmpstr.indexOf(" ");
-    int l = tmpstr.substring(k+1).indexOf(" ");
-    int m = tmpstr.substring(k+1).substring(l+1).indexOf(" ");
-    midport = Integer.parseInt(tmpstr.substring(k+1).substring(0, l));
-		outport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(0, m));
-		inport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(m+1));
+    String tmpstr = new String(buff,0,totread-1);
+    System.out.println("server ports " + tmpstr);
+    try {
+      int k = tmpstr.indexOf(" ");
+      int l = tmpstr.substring(k+1).indexOf(" ");
+      int m = tmpstr.substring(k+1).substring(l+1).indexOf(" ");
+      midport = Integer.parseInt(tmpstr.substring(k+1).substring(0, l));
+      outport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(0, m));
+      inport = Integer.parseInt(tmpstr.substring(k+1).substring(l+1).substring(m+1));
+    }
+    catch (Exception e) {
+      errmsg = "Information: The server does not support this command line client\n";
+      failed = true;
+      return;
+    }
 
 		f.toBack();
 		ff.toBack();
@@ -604,26 +611,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			emailText += "Client: 127.0.0.1\n%0A";
 		}
 
-		
-		/// XXX TODO -- this code doesn't do anything  dmr
-	// 	try {  
-	// 		for (;;) {
-	// 			inlth = ctlin.read(buff, 0, buff.length);
-	// 			//results.append("Read " + inlth + " bytes from ctl socket\n");
-	// 			if (inlth < 0) {
-	// 				// System.err.println("Finished reading calculated data");
-	// 				break;
-	// 			}
-	// 			tmpstr += new String(buff, 0, inlth);
-	// 		}
-	// 	} catch (IOException e) {}
-
 		ctlin.close();
 		ctlout.close();
 		ctlSocket.close();
 
-		// System.err.println("tmpstr2 is '" + tmpstr2 + "'\n");
-		// System.err.println("tmpstr is '" + tmpstr + "'\n");
 		testResults(tmpstr);
 		middleboxResults(tmpstr2);
 	}
@@ -647,7 +638,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 			else {
 				strval = tokens.nextToken();
-				// results.append(sysvar + " " + strval + "\n");
 				diagnosis.append(sysvar + " " + strval + "\n");
 				emailText += sysvar + " " + strval + "\n%0A";
 				if (strval.indexOf(".") == -1) {

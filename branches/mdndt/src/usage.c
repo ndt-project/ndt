@@ -64,7 +64,7 @@ srv_long_usage(char* info)
   printf("  -p, --port #port       - specify primary port number (default 3001)\n");
   printf("  --midport #port        - specify Middlebox test port number (default 3003)\n");
   printf("  --c2sport #port        - specify C2S throughput test port number (default 3002)\n");
-  printf("  --s2cport #port        - specify S2C throughput test port number (default 3004)\n");
+  printf("  --s2cport #port        - specify S2C throughput test port number (default 3003)\n");
   printf("  -T, --refresh #time    - specify the refresh time of the admin page\n");
   printf("  --mrange #range        - set the port range used in multi-test mode\n");
   printf("                           Note: this enables multi-test mode\n\n");
