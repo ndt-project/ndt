@@ -838,6 +838,7 @@ main(int argc, char *argv[])
   /*   End of Middlebox test  */
   
   if (tests & TEST_C2S) {
+    struct sigaction new, old;
     log_println(1, " <-- C2S throughput test -->");
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
@@ -903,11 +904,16 @@ main(int argc, char *argv[])
       buff[i] = (k++ % 0x7f);
     }
     sec = time(0);
-    stop_time = sec + 10; 
+    stop_time = sec + 10;
+    /* ignore the pipe signal */
+    memset(&new, 0, sizeof(new));
+    new.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &new, &old);
     do {
       write(outSocket, buff, lth);
       pkts++;
     } while (time(0) < stop_time);
+    sigaction(SIGPIPE, &old, NULL);
     sec = time(0) - sec;
     I2AddrFree(sec_addr);
     spdout = ((8.0 * pkts * lth) / 1000) / sec;

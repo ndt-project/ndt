@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.3.11";
+  private static final String VERSION = "5.3.12";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -558,11 +558,20 @@ public class Tcpbw100 extends JApplet implements ActionListener
       stop_time = t + 10000; // ten seconds
       do {
         // if (Randomize) rng.nextBytes(buff2);
-        out.write(buff2, 0, buff2.length);
+        try {
+          out.write(buff2, 0, buff2.length);
+        }
+        catch (SocketException e) {
+          System.out.println(e);
+          break;
+        }
         pkts++;
       } while (System.currentTimeMillis() < stop_time);
 
       t =  System.currentTimeMillis() - t;
+      if (t == 0) {
+        t = 1;
+      }
       out.close();
       outSocket.close();
       System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
