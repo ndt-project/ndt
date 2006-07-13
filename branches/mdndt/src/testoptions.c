@@ -451,7 +451,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       sprintf(listens2cport, "%d", options->s2csockport);
     }
     else if (options->mainport) {
-      sprintf(listens2cport, "%d", options->mainport + 3);
+      sprintf(listens2cport, "%d", options->mainport + 2);
     }
     
     if (options->multiple) {
