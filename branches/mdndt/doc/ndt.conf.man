@@ -1,5 +1,5 @@
 .TH ndt.conf 5 "$Date$"
-." The first line of this file must contain the '"[e][r][t][v] line
+." The first line of this file must contains the '"[e][r][t][v] line
 ." to tell man to run the appropriate filter "t" for table.
 ."
 ."	$Id$
@@ -93,7 +93,7 @@ dispersion testing will fail if the network interface is not set
 correctly.  Replaces \fI-i\fR option.
 .PP
 \fBlog_file\fR \fIfile_name\fR (3) - This tag indicates that the
-parameter contain the file name/location that should be used to
+parameter contains the file name/location that should be used to
 log test and results data.  Replaces \fI-l\fR option.
 .PP
 \fBport\fR \fInumber\fR (4) - This tag indicates that the \fBweb100srv\fR
@@ -106,7 +106,7 @@ to the specified value using the \fBsetsockopt(2)\fR function.  Note:
 Web100 autotuning may ignore this value.  Replaces \fI-b\fR option.
 .PP
 \fBvariable_file\fR \fIfile_name\fR (6) - This tag indicates that
-the parameter contain the file name/location of the \fBWeb100\fR
+the parameter contains the file name/location of the \fBWeb100\fR
 variable file name.  This file contains a list of all \fBWeb100\fR
 KIS variables used by the \fBweb100srv\fR program.  Replaces
 \fI-f\fR option.
@@ -146,6 +146,10 @@ Replaces \fI--c2sport\fR option.
 \fBs2cport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
 program should use the specified TCP \fIport\fR for the S2C throughput test.
 Replaces \fI--s2cport\fR option.
+.PP
+\fBadmin_file\fR \fIfile_name\fR (10) - This tag indicates that the
+parameter contains the file name/location that should be used to
+generate an administrator view web page.  Replaces \fI-A\fR option.
 .SH LIMITATIONS
 The NDT service is continuing to undergo testing and upgrading. 
 Better diagnostic algorithms are being developed to improve the

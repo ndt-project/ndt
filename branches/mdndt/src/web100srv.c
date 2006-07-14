@@ -73,9 +73,11 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "logging.h"
 #include "testoptions.h"
 #include "protocol.h"
+#include "web100-admin.h"
 
 static char lgfn[256];
 static char wvfn[256];
+static char apfn[256];
 static char portbuf[10];
 static char devicebuf[100];
 
@@ -102,6 +104,7 @@ int sig1, sig2, sig17;
 u_int32_t limit=0;
 
 char *VarFileName=NULL;
+char *AdminFileName=NULL;
 char *ProcessName={"web100srv"};
 char *ConfigFileName=NULL;
 char buff[BUFFSIZE+1];
@@ -143,6 +146,7 @@ static struct option long_options[] = {
   {"c2sport", 1, 0, 303},
   {"s2cport", 1, 0, 304},
   {"refresh", 1, 0, 'T'},
+  {"adminfile", 1, 0, 'A'},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
@@ -354,6 +358,12 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     else if (strncasecmp(key, "log_file", 3) == 0) {
       sprintf(lgfn, "%s", val);
       set_logfile(lgfn);
+      continue;
+    }
+    
+    else if (strncasecmp(key, "admin_file", 10) == 0) {
+      sprintf(apfn, "%s", val);
+      AdminFileName = apfn;
       continue;
     }
 
@@ -843,7 +853,7 @@ main(int argc, char** argv)
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:"), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -872,7 +882,7 @@ main(int argc, char** argv)
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -972,6 +982,9 @@ main(int argc, char** argv)
       case 'T':
         refresh = atoi(optarg);
         break;
+      case 'A':
+        AdminFileName = optarg;
+        break;
       case '?':
         short_usage(argv[0], "");
         break;
@@ -1001,8 +1014,17 @@ main(int argc, char** argv)
     sprintf(wvfn, "%s/%s", BASEDIR, WEB100_FILE);
     VarFileName = wvfn;
   }
+  
+  if (AdminFileName == NULL) {
+    sprintf(apfn, "%s/%s", BASEDIR, ADMINFILE);
+    AdminFileName = apfn;
+  }
+  
   log_println(1, "ANL/Internet2 NDT ver %s", VERSION);
   log_println(1, "\tVariables file = %s\n\tlog file = %s", VarFileName, get_logfile());
+  if (admin_view) {
+    log_println(1, "\tAdmin file = %s", AdminFileName);
+  }
   log_println(1, "\tDebug level set to %d", debug);
 
   memset(&new, 0, sizeof(new));

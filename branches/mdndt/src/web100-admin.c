@@ -1,5 +1,5 @@
 /*
- * This file containts the functions needed to handle the Admin
+ * This file contains the functions needed to handle the Admin
  * page.  This page allows a remote user to view the usage statistics
  * via a web page.
  *
@@ -14,6 +14,7 @@
 
 #include "web100srv.h"
 #include "logging.h"
+#include "web100-admin.h"
 
 /* Initialize the Administrator view.  Process the data in the existing log file to
  * catch up on what's happened before.
@@ -28,7 +29,7 @@ char date[32], startdate[32], mindate[32], maxdate[32];
 double oo_order;
 double bw2, avgrtt, timesec, loss2;
 double bwin, bwout;
-
+char *AdminFileName;
 
 int
 calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
@@ -268,11 +269,9 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
 {
   FILE *fp;
   char view_string[256], tmpstr[256];
-  char *AdminFileName;
   int i;
   struct flock lock;
 
-  AdminFileName = BASEDIR"/"ADMINFILE;
   fp = fopen(AdminFileName, "w");
   if (fp == NULL) {
     log_println(1, "Cannot open file for the admin web page...");
@@ -281,7 +280,7 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
   /* generate an HTML page for display.  */
   fprintf(fp, "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\">\n");
   fprintf(fp, "<html> <head> <title>NDT server Admin Page</title>\n");
-  fprintf(fp, "<meta http-equiv=\"refresh\" content=\"%d; url=admin.html\">\n", refresh);
+  fprintf(fp, "<meta http-equiv=\"refresh\" content=\"%d; url="ADMINFILE"\">\n", refresh);
   fprintf(fp, "<meta http-equiv=\"Content-Language\" content=\"en\">\n");
   fprintf(fp, "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\n");
   fprintf(fp, "</head>\n");
@@ -401,7 +400,7 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
    * file.  For now, use the system command to append the text to the just created file.
    */
   fclose(fp);
-  sprintf(tmpstr, "/bin/cat %s/admin_description.html >> %s/admin.html", BASEDIR,  BASEDIR);
+  sprintf(tmpstr, "/bin/cat %s/admin_description.html >> %s", BASEDIR,  AdminFileName);
   system(tmpstr);
 
   /* Save the current variables into a file for later use.  These

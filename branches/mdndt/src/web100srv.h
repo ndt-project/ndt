@@ -49,8 +49,6 @@
 #define WEB100_FILE "web100_variables"  /* names of the variables to access*/
 #define LOG_FACILITY LOG_LOCAL0		/* Syslog facility to log at */
 
-/* this file needs to be fixed, as fakewww needs to export it */
-#define ADMINFILE "admin.html" 
 
 /* Location of default config file */
 #define CONFIGFILE  "/etc/ndt.conf"
@@ -143,15 +141,5 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions,
     int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart,
     int *SubsequentTimeouts, int *ThruBytesAcked);
-
-/* web100-admin */
-void view_init(int refresh);
-int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut,
-    int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin,
-    int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd,
-    int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd,
-    int c2sdata, int s2cack, int view_flag);
-void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf,
-    int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh);
 
 #endif

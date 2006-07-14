@@ -31,6 +31,7 @@
 #include "tr-tree.h"
 #include "network.h"
 #include "logging.h"
+#include "web100-admin.h"
 
 #define PORT           "7123"
 #define BUFFSIZE        1024
@@ -53,7 +54,7 @@ char *MsgRedir3 = ">Click Here  </a> if you are not "
 char *Mypagefile = "/tcpbw100.html";   /* we throw the slash away */
 char *okfile[] = {"/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
       "/Tcpbw100$clsFrame.class", "/Tcpbw100.jar", "/copyright.html", "/web100variables.html",
-      "/admin.html", "/Admin.class", 0};
+      "/"ADMINFILE, "/Admin.class", 0};
 
 typedef struct allowed {
   char* filename;

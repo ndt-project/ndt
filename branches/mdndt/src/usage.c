@@ -67,7 +67,9 @@ srv_long_usage(char* info)
   printf("  --s2cport #port        - specify S2C throughput test port number (default 3003)\n");
   printf("  -T, --refresh #time    - specify the refresh time of the admin page\n");
   printf("  --mrange #range        - set the port range used in multi-test mode\n");
-  printf("                           Note: this enables multi-test mode\n\n");
+  printf("                           Note: this enables multi-test mode\n");
+  printf("  -A, --adminfile #FN    - specify atlernate filename for Admin web page\n");
+  printf("                           Note: this doesn't enable adminview\n\n");
 #ifdef AF_INET6
   printf(" IP family:\n\n");
   printf("  -4, --ipv4             - use IPv4 addresses only\n");

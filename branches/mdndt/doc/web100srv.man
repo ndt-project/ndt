@@ -214,9 +214,9 @@ for the packet dispersion testing. This option allows the
 .TP
 \fB\-l, --log\fR \fIlog_FN\fR
 By default, the \fBNDT\fR server writes the results of every test
-to the \fI/usr/loca/ndt/web100srv.log\fR log file. This option
+to the \fI/usr/local/ndt/web100srv.log\fR log file. This option
 allows the \fBNDT\fR administrator to define a new location and
-name for this log file
+name for this log file.
 .TP
 \fB\-p, --port\fR \fIport #\fR
 By default, the \fBNDT\fR server listens for test request on port 3001. 
@@ -243,6 +243,12 @@ recognized: \fBmin:max\fR. This will result in a range from \fBmin\fR
 to \fBmax\fR (inclusive in both cases). The ranges can be separated by
 the commas or can be added by the multiple use of the \fB--mrange\fR
 option. Note, that this enables multi-test mode.
+.TP
+\fB\-A, --adminfile\fR \fIFN\fR
+By default, the \fBNDT\fR server writes the Admin web page to the
+\fI/usr/local/ndt/admin.html\fR. This option allows the \fBNDT\fR
+administrator to define a new location and name for this file. Note,
+that this doesn't enable generating of the administrator view web page.
 .TP
 \fB\-4, --ipv4\fR 
 Use IPv4 addresses only.
