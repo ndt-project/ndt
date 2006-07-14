@@ -150,6 +150,10 @@ Replaces \fI--s2cport\fR option.
 \fBadmin_file\fR \fIfile_name\fR (10) - This tag indicates that the
 parameter contains the file name/location that should be used to
 generate an administrator view web page.  Replaces \fI-A\fR option.
+.PP
+\fBlogfacility\fR \fIfacility_name\fR (11) - This tag indicates that the
+parameter contains the syslog facility name that should be used to log
+via syslog system.  Replaces \fI-S\fR option.
 .SH LIMITATIONS
 The NDT service is continuing to undergo testing and upgrading. 
 Better diagnostic algorithms are being developed to improve the

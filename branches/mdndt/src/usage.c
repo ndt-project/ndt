@@ -69,7 +69,9 @@ srv_long_usage(char* info)
   printf("  --mrange #range        - set the port range used in multi-test mode\n");
   printf("                           Note: this enables multi-test mode\n");
   printf("  -A, --adminfile #FN    - specify atlernate filename for Admin web page\n");
-  printf("                           Note: this doesn't enable adminview\n\n");
+  printf("                           Note: this doesn't enable 'adminview'\n");
+  printf("  -S, --logfacility #F   - specify syslog facility name\n");
+  printf("                           Note: this doesn't enable 'syslog'\n\n");
 #ifdef AF_INET6
   printf(" IP family:\n\n");
   printf("  -4, --ipv4             - use IPv4 addresses only\n");

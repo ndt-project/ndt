@@ -250,6 +250,12 @@ By default, the \fBNDT\fR server writes the Admin web page to the
 administrator to define a new location and name for this file. Note,
 that this doesn't enable generating of the administrator view web page.
 .TP
+\fB\-S, --logfacility\fR \fIF\fR
+By default, the \fBNDT\fR server uses \fILOG_LOCAL0\fR syslog facility.
+This option allows the \fBNDT\fR administrator to use the other one.
+The facility names can be taken from \fI<sys/syslog.h>\fR file. Note, that
+this doesn't enable using the syslog for logging purposes.
+.TP
 \fB\-4, --ipv4\fR 
 Use IPv4 addresses only.
 .TP

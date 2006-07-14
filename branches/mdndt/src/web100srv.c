@@ -63,6 +63,8 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
+#define SYSLOG_NAMES
+#include  <syslog.h>
 
 #include "web100srv.h"
 #include "../config.h"
@@ -78,6 +80,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 static char lgfn[256];
 static char wvfn[256];
 static char apfn[256];
+static char slfa[256];
 static char portbuf[10];
 static char devicebuf[100];
 
@@ -105,6 +108,8 @@ u_int32_t limit=0;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
+char *SysLogFacility=NULL;
+int syslogfacility = LOG_FACILITY;
 char *ProcessName={"web100srv"};
 char *ConfigFileName=NULL;
 char buff[BUFFSIZE+1];
@@ -147,6 +152,7 @@ static struct option long_options[] = {
   {"s2cport", 1, 0, 304},
   {"refresh", 1, 0, 'T'},
   {"adminfile", 1, 0, 'A'},
+  {"logfacility", 1, 0, 'S'},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
@@ -364,6 +370,12 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     else if (strncasecmp(key, "admin_file", 10) == 0) {
       sprintf(apfn, "%s", val);
       AdminFileName = apfn;
+      continue;
+    }
+    
+    else if (strncasecmp(key, "logfacility", 11) == 0) {
+      sprintf(slfa, "%s", val);
+      SysLogFacility = slfa;
       continue;
     }
 
@@ -853,7 +865,7 @@ main(int argc, char** argv)
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:S:"), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -882,7 +894,7 @@ main(int argc, char** argv)
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:S:"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -985,6 +997,9 @@ main(int argc, char** argv)
       case 'A':
         AdminFileName = optarg;
         break;
+      case 'S':
+        SysLogFacility = optarg;
+        break;
       case '?':
         short_usage(argv[0], "");
         break;
@@ -1019,11 +1034,30 @@ main(int argc, char** argv)
     sprintf(apfn, "%s/%s", BASEDIR, ADMINFILE);
     AdminFileName = apfn;
   }
+
+  if (SysLogFacility != NULL) {
+    i = 0;
+    while (facilitynames[i].c_name) {
+      if (strcmp(facilitynames[i].c_name, SysLogFacility) == 0) {
+        syslogfacility = facilitynames[i].c_val;
+        break;
+      }
+      ++i;
+    }
+    if (facilitynames[i].c_name == NULL) {
+      log_println(0, "Warning: Unknown syslog facility [%s] --> using default (%d)",
+          SysLogFacility, syslogfacility);
+      SysLogFacility = NULL;
+    }
+  }
   
   log_println(1, "ANL/Internet2 NDT ver %s", VERSION);
   log_println(1, "\tVariables file = %s\n\tlog file = %s", VarFileName, get_logfile());
   if (admin_view) {
     log_println(1, "\tAdmin file = %s", AdminFileName);
+  }
+  if (usesyslog) {
+    log_println(1, "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
   }
   log_println(1, "\tDebug level set to %d", debug);
 
