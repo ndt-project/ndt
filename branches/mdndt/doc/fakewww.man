@@ -94,6 +94,12 @@ Specify a basedir for the documents.
 \fB\-v, --version\fR 
 Print version number and exit.
 .TP
+\fB\--dflttree\fR \fIfn\fR
+Specify alternate 'Default.tree' file.
+.TP
+\fB\--dflttree6\fR \fIfn\fR
+Specify alternate 'Default.tree6' file.
+.TP
 \fB\-4, --ipv4\fR 
 Use IPv4 addresses only.
 .TP

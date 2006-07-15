@@ -64,6 +64,13 @@ typedef struct allowed {
 Allowed* a_root = NULL;
 char* basedir = BASEDIR;
 
+char* DefaultTree = NULL;
+static char dtfn[256];
+#ifdef AF_INET6
+char* DefaultTree6 = NULL;
+static char dt6fn[256];
+#endif
+
 static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
@@ -74,7 +81,9 @@ static struct option long_options[] = {
   {"file", 1, 0, 'f'},
   {"basedir", 1, 0, 'b'},
   {"version", 0, 0, 'v'},
+  {"dflttree", 1, 0, 301},
 #ifdef AF_INET6
+  {"dflttree6", 1, 0, 302},
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
 #endif
@@ -155,6 +164,14 @@ main(int argc, char** argv)
       case 'b':
         basedir = optarg;
         break;
+      case 301:
+        DefaultTree = optarg;
+        break;
+#ifdef AF_INET6
+      case 302:
+        DefaultTree6 = optarg;
+        break;
+#endif
       case '?':
         short_usage(argv[0], "");
         break;
@@ -167,6 +184,18 @@ main(int argc, char** argv)
 
   log_init(argv[0], debug);
 
+  if (DefaultTree == NULL) {
+    sprintf(dtfn, "%s/%s", BASEDIR, DFLT_TREE);
+    DefaultTree = dtfn;
+  }
+  
+#ifdef AF_INET6
+  if (DefaultTree6 == NULL) {
+    sprintf(dt6fn, "%s/%s", BASEDIR, DFLT_TREE6);
+    DefaultTree6 = dt6fn;
+  }
+#endif
+  
   /*
    * Bind our local address so that the client can send to us.
    */

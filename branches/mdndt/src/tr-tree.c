@@ -37,6 +37,7 @@
 
 struct tr_tree *tr_root, *tr_cur;
 int found_node;
+char* DefaultTree;
 
 /* Restore the default tree, stored by the save tree routine above.
  * Once restored, the comparison can take place.
@@ -71,15 +72,14 @@ find_compare(u_int32_t IPlist[], int cnt)
   struct tr_tree *root, *current, *new;
   int i, j, k;
   uint32_t srv_addr;
-  char h_name[256], c_name[256], buff[256];
+  char h_name[256], c_name[256];
   FILE *fp;
   struct hostent *hp;
 
   root = NULL;
   current = NULL;
 
-  sprintf(buff, "%s/%s", BASEDIR, DFLT_TREE);
-  fp = fopen(buff, "rb");
+  fp = fopen(DefaultTree, "rb");
   if (fp == NULL) {
     log_println(5, "Error: Can't read default tree, exiting find_compare()");
     return 0;

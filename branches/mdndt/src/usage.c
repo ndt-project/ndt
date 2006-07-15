@@ -137,10 +137,15 @@ www_long_usage(char* info)
   printf("  -f, --file FN          - add the file to the allowed list\n");
   printf("  -b, --basedir path     - set the basedir for the documents\n");
   printf("  -v, --version          - print version number\n\n");
+  printf(" Configuration:\n\n");
+  printf("  --dflttree fn          - specify alternate 'Default.tree' file\n");
 #ifdef AF_INET6
+  printf("  --dflttree6 fn         - specify alternate 'Default.tree6' file\n\n");
   printf(" IP family:\n\n");
   printf("  -4, --ipv4             - use IPv4 addresses only\n");
   printf("  -6, --ipv6             - use IPv6 addresses only\n\n");
+#else
+  printf("\n");
 #endif
 
   exit(0);
@@ -189,10 +194,15 @@ mkmap_long_usage(char* info)
   printf("  -d, --debug            - increment debugging mode\n");
   printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -v, --version          - print version number\n\n");
+  printf(" Configuration:\n\n");
+  printf("  --dflttree fn          - specify alternate 'Default.tree' file\n");
 #ifdef AF_INET6
+  printf("  --dflttree6 fn         - specify alternate 'Default.tree6' file\n\n");
   printf(" IP family:\n\n");
   printf("  -4, --ipv4             - use only IPv4 operational mode\n");
   printf("  -6, --ipv6             - use only IPv6 operational mode\n\n");
+#else
+  printf("\n");
 #endif
 
   exit(0);

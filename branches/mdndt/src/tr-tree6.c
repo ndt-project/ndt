@@ -42,6 +42,7 @@
 
 struct tr_tree6 *tr_root6, *tr_cur6;
 int found_node;
+char* DefaultTree6;
 
 /* Restore the default tree, stored by the save tree routine above.
  * Once restored, the comparison can take place.
@@ -75,7 +76,7 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
 
   struct tr_tree6 *root, *current, *new;
   int i, j, k, fnode = 0;
-  char h_name[256], c_name[256], buff[256];
+  char h_name[256], c_name[256];
   char nodename[200];
   size_t nnlen;
   FILE *fp;
@@ -84,8 +85,7 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
   root = NULL;
   current = NULL;
 
-  sprintf(buff, "%s/%s", BASEDIR, DFLT_TREE6);
-  fp = fopen(buff, "rb");
+  fp = fopen(DefaultTree6, "rb");
   if (fp == NULL) {
     log_println(5, "Error: Can't read default tree, exiting find_compare6()");
     return 0;

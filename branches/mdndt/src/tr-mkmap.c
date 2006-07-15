@@ -41,9 +41,13 @@
 #include "logging.h"
 
 struct tr_tree *tr_root, *tr_cur;
+char* DefaultTree = NULL;
+static char dtfn[256];
 int found_node;
 #ifdef AF_INET6
 struct tr_tree6 *tr_root6, *tr_cur6;
+char* DefaultTree6 = NULL;
+static char dt6fn[256];
 #endif
 
 static struct option long_options[] = {
@@ -54,7 +58,9 @@ static struct option long_options[] = {
   {"print", 0, 0, 'p'},
   {"debug", 0, 0, 'd'},
   {"version", 0, 0, 'v'},
+  {"dflttree", 1, 0, 301},
 #ifdef AF_INET6
+  {"dflttree6", 1, 0, 302},
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
 #endif
@@ -271,7 +277,7 @@ compare_tree6(struct tr_tree6 *tmp, uint32_t ip_addr[4])
 }
 #endif
 
-/* Save the default tree in the file called DFLT_TREE.  In would
+/* Save the default tree in the file called DFLT_TREE.  It would
  * probably be better to keep this program running and have the
  * default tree in memory. This works for testing.
  */
@@ -418,7 +424,6 @@ build(char* inputfile)
   int i;
   uint32_t ip_addr;
   char buff[256], *tmpbuff;
-  char tmpstr[256];
   FILE *fp;
   
   root = NULL;
@@ -480,14 +485,13 @@ build(char* inputfile)
     }
     current = new;
   }
-  sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE);
-  fp = fopen(tmpstr, "wb");
+  fp = fopen(DefaultTree, "wb");
   if (fp == NULL) {
-    printf("Error: Can't write default tree '%s', exiting save_tree()\n", tmpstr);
+    printf("Error: Can't write default tree '%s', exiting save_tree()\n", DefaultTree);
     exit (-15);
   }
   print_tree(&*root);
-  printf("Finished printing default tree '%s'\n", tmpstr);
+  printf("Finished printing default tree '%s'\n", DefaultTree);
   save_tree(&*root, fp);
   fclose(fp);
 }
@@ -499,7 +503,6 @@ build6(char* inputfile)
   int i;
   uint32_t ip_addr[4];
   char buff[256], *tmpbuff;
-  char tmpstr[256];
   char nodename[200];
   socklen_t nnlen = 199;
   FILE *fp;
@@ -562,14 +565,13 @@ build6(char* inputfile)
     }
     current = new;
   }
-  sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE6);
-  fp = fopen(tmpstr, "wb");
+  fp = fopen(DefaultTree6, "wb");
   if (fp == NULL) {
-    printf("Error: Can't write default tree6 '%s', exiting save_tree()\n", tmpstr);
+    printf("Error: Can't write default tree6 '%s', exiting save_tree()\n", DefaultTree6);
     exit (-15);
   }
   print_tree6(&*root);
-  printf("Finished printing default tree6 '%s'\n", tmpstr);
+  printf("Finished printing default tree6 '%s'\n", DefaultTree6);
   save_tree6(&*root, fp);
   fclose(fp);
 }
@@ -584,7 +586,6 @@ compare(char* cmp_ip)
   int i;
   uint32_t ip_addr, IPlist[64];
   char h_name[256], c_name[256], buff[256], *tmpbuff;
-  char tmpstr[256];
   struct hostent *hp;
   FILE *fp;
   
@@ -592,10 +593,9 @@ compare(char* cmp_ip)
   current = NULL;
 
   printf("\nComparing traceroute (IPv4)\n\n");
-  sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE);
-  fp = fopen(tmpstr, "rb");
+  fp = fopen(DefaultTree, "rb");
   if (fp == NULL) {
-    printf("Error: Can't read default tree '%s', exiting restore_tree()\n", tmpstr);
+    printf("Error: Can't read default tree '%s', exiting restore_tree()\n", DefaultTree);
     exit (-15);
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
@@ -670,7 +670,6 @@ compare6(char* cmp_ip)
   int i;
   uint32_t ip_addr[4], IPlist[64][4];
   char h_name[256], c_name[256], buff[256], *tmpbuff;
-  char tmpstr[256];
   struct hostent *hp;
   char nodename[200];
   socklen_t nnlen = 199;
@@ -680,10 +679,9 @@ compare6(char* cmp_ip)
   current = NULL;
 
   printf("\nComparing traceroute (IPv6)\n\n");
-  sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE6);
-  fp = fopen(tmpstr, "rb");
+  fp = fopen(DefaultTree6, "rb");
   if (fp == NULL) {
-    printf("Error: Can't read default tree6 '%s', exiting restore_tree()\n", tmpstr);
+    printf("Error: Can't read default tree6 '%s', exiting restore_tree()\n", DefaultTree6);
     exit (-15);
   }
   new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
@@ -764,14 +762,12 @@ print()
 {
   struct tr_tree *root = NULL, *new;
   int i;
-  char tmpstr[256];
   FILE *fp;
   
   printf("\nPrinting Default Tree (IPv4)\n\n");
-  sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE);
-  fp = fopen(tmpstr, "rb");
+  fp = fopen(DefaultTree, "rb");
   if (fp == NULL) {
-    printf("Error: No default tree '%s' found, exiting compare\n", tmpstr);
+    printf("Error: No default tree '%s' found, exiting compare\n", DefaultTree);
     return;
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
@@ -795,14 +791,12 @@ print6()
 {
   struct tr_tree6 *root = NULL, *new;
   int i;
-  char tmpstr[256];
   FILE *fp;
   
   printf("\nPrinting Default Tree (IPv6)\n\n");
-  sprintf(tmpstr, "%s/%s", BASEDIR, DFLT_TREE6);
-  fp = fopen(tmpstr, "rb");
+  fp = fopen(DefaultTree6, "rb");
   if (fp == NULL) {
-    printf("Error: No default tree6 '%s' found, exiting compare6\n", tmpstr);
+    printf("Error: No default tree6 '%s' found, exiting compare6\n", DefaultTree6);
     return;
   }
   new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
@@ -877,6 +871,14 @@ main(int argc, char *argv[])
         printf("ANL/Internet2 NDT version %s (tr-mkmap)\n", VERSION);
         exit(0);
         break;
+      case 301:
+        DefaultTree = optarg;
+        break;
+#ifdef AF_INET6
+      case 302:
+        DefaultTree6 = optarg;
+        break;
+#endif
       case '?':
         short_usage(argv[0], "");
         break;
@@ -888,6 +890,18 @@ main(int argc, char *argv[])
   }
 
   log_init(argv[0], debug);
+
+  if (DefaultTree == NULL) {
+    sprintf(dtfn, "%s/%s", BASEDIR, DFLT_TREE);
+    DefaultTree = dtfn;
+  }
+  
+#ifdef AF_INET6
+  if (DefaultTree6 == NULL) {
+    sprintf(dt6fn, "%s/%s", BASEDIR, DFLT_TREE6);
+    DefaultTree6 = dt6fn;
+  }
+#endif
 
   if (flag == 'b') {
 #ifdef AF_INET6
