@@ -30,7 +30,7 @@ int PktsOut, CongestionSignals, RcvWinScale;
 int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
 int winssent, winsrecv, msglvl=0;
-double spdin, spdout;
+double spdin, spdout, c2sspd;
 double aspd;
 
 int half_duplex, congestion, bad_cable, mismatch;
@@ -550,6 +550,7 @@ main(int argc, char *argv[])
   int ctlport = 3001, c2sport = 3002, midport = 3003, s2cport = 3003, inlth;
   uint32_t bytes;
   double stop_time;
+  double t;
   int ret, i = 0, xwait, one=1;
   int largewin;
   char buff[8192];
@@ -903,8 +904,8 @@ main(int argc, char *argv[])
         k++;
       buff[i] = (k++ % 0x7f);
     }
-    sec = time(0);
-    stop_time = sec + 10;
+    t = secs();
+    stop_time = t + 10;
     /* ignore the pipe signal */
     memset(&new, 0, sizeof(new));
     new.sa_handler = SIG_IGN;
@@ -912,16 +913,37 @@ main(int argc, char *argv[])
     do {
       write(outSocket, buff, lth);
       pkts++;
-    } while (time(0) < stop_time);
+    } while (secs() < stop_time);
     sigaction(SIGPIPE, &old, NULL);
-    sec = time(0) - sec;
+    t = secs() - t;
     I2AddrFree(sec_addr);
-    spdout = ((8.0 * pkts * lth) / 1000) / sec;
+    spdout = ((8.0 * pkts * lth) / 1000) / t;
 
-    if (spdout < 1000) 
-      printf(" %0.2f Kb/s\n", spdout);
+    /* receive the c2sspd from the server */
+    msgLen = sizeof(buff);
+    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+      log_println(0, "Protocol error!");
+      exit(1);
+    }
+    if (check_msg_type("C2S throughput test", TEST_MSG, msgType)) {
+      exit(2);
+    }
+    if (msgLen <= 0) { 
+      log_println(0, "Improper message");
+      exit(3);
+    }
+    buff[msgLen] = 0; 
+    c2sspd = atoi(buff);
+
+    if (c2sspd < 1000) 
+      printf(" %0.2f Kb/s", c2sspd);
     else
-      printf(" %0.2f Mb/s\n", spdout/1000);
+      printf(" %0.2f Mb/s", c2sspd/1000);
+    
+    if (spdout < 1000) 
+      printf(" [%0.2f Kb/s]\n", spdout);
+    else
+      printf(" [%0.2f Mb/s]\n", spdout/1000);
     
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {

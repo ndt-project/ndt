@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.3.12";
+  private static final String VERSION = "5.3.13";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -130,7 +130,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	private String TARGET1 = "U";
 	private String TARGET2 = "H";
 	String emailText;
-	double s2cspd, c2sspd;
+	double s2cspd, c2sspd, sc2sspd;
 
 	int half_duplex, congestion, bad_cable, mismatch;
 	double mylink;
@@ -576,16 +576,40 @@ public class Tcpbw100 extends JApplet implements ActionListener
       outSocket.close();
       System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
       c2sspd = ((8.0 * pkts * lth) / 1000) / t;
+      /* receive the c2sspd from the server */
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      String tmpstr3 = new String(msg.body);
+      sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
 
-      if (c2sspd < 1.0) {
-        results.append(prtdbl(c2sspd*1000) + "Kb/s\n");
-        statistics.append(prtdbl(c2sspd*1000) + "Kb/s\n");
-        emailText += prtdbl(c2sspd*1000) + "Kb/s\n%0A";
+      if (sc2sspd < 1.0) {
+        results.append(prtdbl(sc2sspd*1000) + "Kb/s ");
+        statistics.append(prtdbl(sc2sspd*1000) + "Kb/s ");
+        emailText += prtdbl(sc2sspd*1000) + "Kb/s ";
       } 
       else {
-        results.append(prtdbl(c2sspd) + "Mb/s\n");
-        statistics.append(prtdbl(c2sspd) + "Mb/s\n");
-        emailText += prtdbl(c2sspd) + "Mb/s\n%0A";
+        results.append(prtdbl(sc2sspd) + "Mb/s ");
+        statistics.append(prtdbl(sc2sspd) + "Mb/s ");
+        emailText += prtdbl(sc2sspd) + "Mb/s ";
+      }
+      
+      if (c2sspd < 1.0) {
+        results.append("[" + prtdbl(c2sspd*1000) + "Kb/s]\n");
+        statistics.append("[" + prtdbl(c2sspd*1000) + "Kb/s]\n");
+        emailText += "[" + prtdbl(c2sspd*1000) + "Kb/s]\n%0A";
+      } 
+      else {
+        results.append("[" + prtdbl(c2sspd) + "Mb/s]\n");
+        statistics.append("[" + prtdbl(c2sspd) + "Mb/s]\n");
+        emailText += "[" + prtdbl(c2sspd) + "Mb/s]\n%0A";
       }
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";

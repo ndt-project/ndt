@@ -347,6 +347,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     *c2sspd = (8.e-3 * bytes) / t;
     sprintf(buff, "%6.0f Kbs outbound", *c2sspd);
     log_println(1, "%s", buff);
+    /* send the c2sspd to the client */
+    sprintf(buff, "%0.0f", *c2sspd);
+    send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     /* get receiver side Web100 stats and write them to the log file */
     if (record_reverse == 1)
       web100_get_data_recv(recvsfd, agent, count_vars);
