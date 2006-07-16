@@ -14,6 +14,7 @@
 #define TEST_MID (1L << 0)
 #define TEST_C2S (1L << 1)
 #define TEST_S2C (1L << 2)
+#define TEST_SFW (1L << 3)
 
 #define TOPT_ENABLED 1
 
@@ -32,6 +33,8 @@ typedef struct testoptions {
   int s2copt;
   int s2csockfd;
   int s2csockport;
+
+  int sfwopt;
 } TestOptions;
 
 int initialize_tests(int ctlsockfd, TestOptions* options, int conn_options);

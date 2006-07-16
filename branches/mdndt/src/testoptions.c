@@ -21,6 +21,7 @@
  * Description: Initializes the tests for the client.
  * Arguments: ctlsockfd - the client control socket descriptor
  *            options - the test options
+ *            conn_options - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */
@@ -54,6 +55,9 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   if (useropt & TEST_S2C) {
     options->s2copt = TOPT_ENABLED;
   }
+  if (useropt & TEST_SFW) {
+    options->sfwopt = TOPT_ENABLED;
+  }
   return 0;
 }
 
@@ -64,6 +68,7 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
  *            agent - the Web100 agent used to track the connection
  *            options - the test options
  *            s2c2spd - the S2C throughput results (evaluated by the MID TEST)
+ *            conn_options - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */
@@ -181,6 +186,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
  * Arguments: ctlsockfd - the client control socket descriptor
  *            agent - the Web100 agent used to track the connection
  *            options - the test options
+ *            conn_options - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */
@@ -402,6 +408,7 @@ read3:
  * Arguments: ctlsockfd - the client control socket descriptor
  *            agent - the Web100 agent used to track the connection
  *            options - the test options
+ *            conn_options - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */

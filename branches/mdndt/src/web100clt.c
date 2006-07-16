@@ -14,6 +14,7 @@
 #include "testoptions.h"
 #include "utils.h"
 #include "protocol.h"
+#include "test_sfw.h"
 
 extern int h_errno;
 
@@ -49,6 +50,7 @@ static struct option long_options[] = {
   {"disablemid", 0, 0, 302},
   {"disablec2s", 0, 0, 303},
   {"disables2c", 0, 0, 304},
+  {"disablesfw", 0, 0, 305},
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
@@ -96,7 +98,7 @@ printWeb100VarInfo()
 }
 
 void
-testResults(char tests, char *tmpstr)
+testResults(char tests, char *tmpstr, char* host)
 {
   int i=0, Zero=0;
   char *sysvar, *sysval;
@@ -211,6 +213,8 @@ testResults(char tests, char *tmpstr)
         }
       }
     }
+
+    results_sfw(tests, host);
 
     if (msglvl > 0) {
       printf("\n\t------  Web100 Detailed Analysis  ------\n");
@@ -545,7 +549,7 @@ main(int argc, char *argv[])
 {
   int c;
   char tmpstr2[512], tmpstr[16384], varstr[16384];
-  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C;
+  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW;
   int ctlSocket, outSocket, inSocket, in2Socket;
   int ctlport = 3001, c2sport = 3002, midport = 3003, s2cport = 3003, inlth;
   uint32_t bytes;
@@ -615,6 +619,9 @@ main(int argc, char *argv[])
       case 304:
         tests &= (~TEST_S2C);
         break;
+      case 305:
+        tests &= (~TEST_SFW);
+        break;
       case '?':
         short_usage(argv[0], "");
         break;
@@ -629,7 +636,7 @@ main(int argc, char *argv[])
   
   failed = 0;
   
-  if (!(tests & (TEST_MID | TEST_C2S | TEST_S2C))) {
+  if (!(tests & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW))) {
     short_usage(argv[0], "Cannot perform empty test suites");
   }
 
@@ -667,6 +674,9 @@ main(int argc, char *argv[])
   }
   if (tests & TEST_S2C) {
     log_println(1, " > S2C throughput test");
+  }
+  if (tests & TEST_SFW) {
+    log_println(1, " > Simple firewall test");
   }
   
   /* The beginning of the protocol */
@@ -1088,6 +1098,8 @@ main(int argc, char *argv[])
     log_println(1, " <------------------------->");
   }
 
+  test_sfw_clt(ctlSocket, tests, host, conn_options);
+
   /* get the final results from server
    *
    * The results are encapsulated by the MSG_RESULTS messages. The last
@@ -1113,7 +1125,7 @@ main(int argc, char *argv[])
   remote_addr = I2AddrBySockFD(NULL, ctlSocket, False);
   I2AddrFree(server_addr);
   strcpy(varstr, tmpstr);
-  testResults(tests, tmpstr);
+  testResults(tests, tmpstr, host);
   if (tests & TEST_MID) {
     middleboxResults(tmpstr2, local_addr, remote_addr);
   }

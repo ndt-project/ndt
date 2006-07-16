@@ -88,6 +88,9 @@ Disable the C2S throughput test.
 \fB\--disables2c\fR 
 Disable the S2C throughput test.
 .TP
+\fB\--disablesfw\fR 
+Disable the Simple firewall test.
+.TP
 \fB\-4, --ipv4\fR 
 Use IPv4 addresses only.
 .TP

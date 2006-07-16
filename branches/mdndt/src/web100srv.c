@@ -76,6 +76,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "testoptions.h"
 #include "protocol.h"
 #include "web100-admin.h"
+#include "test_sfw.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -539,15 +540,23 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   if (testopt.s2copt) {
     log_println(1, " > S2C throughput test");
   }
-  alarm(30);  /* reset alarm() signal to gain another 30 seconds */
-
+  if (testopt.sfwopt) {
+    log_println(1, " > Simple firewall test");
+  }
+  
+  alarm(30);
   test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
 
+  alarm(30);
   test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune, mon_pipe1,
       device, limit, record_reverse, count_vars, spds, &spd_index);
 
+  alarm(30);
   test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune, mon_pipe2,
       device, limit, experimental, logname, spds, &spd_index, count_vars);
+
+  alarm(60);
+  test_sfw_srv(ctlsockfd, &testopt, conn_options);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
