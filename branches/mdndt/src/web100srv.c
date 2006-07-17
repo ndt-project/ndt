@@ -555,7 +555,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
       device, limit, experimental, logname, spds, &spd_index, count_vars);
 
   alarm(60);
-  test_sfw_srv(ctlsockfd, &testopt, conn_options);
+  test_sfw_srv(ctlsockfd, agent, &testopt, conn_options);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {

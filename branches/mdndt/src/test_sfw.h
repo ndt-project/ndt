@@ -16,7 +16,7 @@
 #define SFW_UNKNOWN    2
 #define SFW_POSSIBLE   3
 
-int test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options);
+int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options);
 int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options);
 int results_sfw(char tests, char* host);
 

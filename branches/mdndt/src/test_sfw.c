@@ -28,7 +28,7 @@ static int c2s_result = SFW_NOTTESTED;
  */
 
 int
-test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options)
+test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options)
 {
   char buff[BUFFSIZE+1];
   I2Addr sfwsrv_addr = NULL;
@@ -38,6 +38,11 @@ test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options)
   fd_set fds;
   struct timeval sel_tv;
   int msgLen, msgType;
+  web100_var* var;
+  web100_connection* cn;
+  web100_group* group;
+  int testTime = 30;
+  int maxRTT, maxRTO;
   
   assert(ctlsockfd != -1);
   assert(options);
@@ -53,12 +58,27 @@ test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options)
     sfwsockport = I2AddrPort(sfwsrv_addr);
     log_println(1, "  -- port: %d", sfwsockport);
     
-    sprintf(buff, "%d", sfwsockport);
+    cn = web100_connection_from_socket(agent, ctlsockfd);
+    if (cn) {
+      web100_agent_find_var_and_group(agent, "MaxRTT", &group, &var);
+      web100_raw_read(var, cn, buff);
+      maxRTT = atoi(web100_value_to_text(web100_get_var_type(var), buff));
+      web100_agent_find_var_and_group(agent, "MaxRTO", &group, &var);
+      web100_raw_read(var, cn, buff);
+      maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
+      if (maxRTT > maxRTO)
+        maxRTO = maxRTT;
+      if (((4.0 * ((double) maxRTO) / 1000.0) + 1) < 30.0)
+        testTime = (4.0 * ((double) maxRTO) / 1000.0) + 1;
+    }
+    log_println(1, "  -- time: %d", testTime);
+    
+    sprintf(buff, "%d %d", sfwsockport, testTime);
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
     
     FD_ZERO(&fds);
     FD_SET(sfwsockfd, &fds);
-    sel_tv.tv_sec = 30;
+    sel_tv.tv_sec = testTime;
     sel_tv.tv_usec = 0;
     switch (select(sfwsockfd+1, &fds, NULL, NULL, &sel_tv)) {
       case -1:
@@ -163,8 +183,10 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
   char buff[BUFFSIZE+1];
   int msgLen, msgType;
   int sfwport, sfwsock;
+  int testTime;
   I2Addr sfwsrv_addr = NULL;
   struct sigaction new, old;
+  char* ptr;
   
   if (tests & TEST_SFW) {
     log_println(1, " <-- Simple firewall test -->");
@@ -181,11 +203,18 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
       exit(3);
     }
     buff[msgLen] = 0;
-    if (check_int(buff, &sfwport)) {
+    ptr = strtok(buff, " ");
+    if (check_int(ptr, &sfwport)) {
       log_println(0, "Invalid port number");
       exit(4);
     }
+    ptr = strtok(NULL, " ");
+    if (check_int(ptr, &testTime)) {
+      log_println(0, "Invalid waiting time");
+      exit(4);
+    }
     log_println(1, "  -- port: %d", sfwport);
+    log_println(1, "  -- time: %d", testTime);
     if ((sfwsrv_addr = I2AddrByNode(NULL, host)) == NULL) {
       perror("Unable to resolve server address\n");
       exit(-3);
@@ -197,7 +226,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     new.sa_handler = catch_alrm;
     sigaction(SIGALRM, &new, &old);
     /* give 35 seconds for the whole operation */
-    alarm(35);
+    alarm(testTime + 1);
     if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr, conn_options) == 0) {
       send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
     }
