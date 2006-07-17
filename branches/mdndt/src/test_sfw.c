@@ -149,6 +149,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
   int msgLen, msgType;
   int sfwport, sfwsock;
   I2Addr sfwsrv_addr = NULL;
+  struct sigaction new, old;
   
   if (tests & TEST_SFW) {
     log_println(1, " <-- Simple firewall test -->");
@@ -176,9 +177,17 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     }
     I2AddrSetPort(sfwsrv_addr, sfwport);
 
+    /* ignore the alrm signal */
+    memset(&new, 0, sizeof(new));
+    new.sa_handler = SIG_IGN;
+    sigaction(SIGALRM, &new, &old);
+    /* give 35 seconds for the whole operation */
+    alarm(35);
     if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr, conn_options) == 0) {
       send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
     }
+    alarm(0);
+    sigaction(SIGPIPE, &old, NULL);
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {

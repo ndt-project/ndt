@@ -397,6 +397,15 @@ read3:
     }
 
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+
+    if (getuid() == 0) {
+      write(mon_pipe1[1], "", 1);
+      close(mon_pipe1[0]);
+      close(mon_pipe1[1]);
+    }
+    /* we should wait for the SIGCHLD signal here */
+    wait(NULL);
+    
     log_println(1, " <------------------------->");
   }
   return 0;
@@ -716,6 +725,15 @@ read2:
 
     close(xmitsfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+
+    if (getuid() == 0) {
+      write(mon_pipe2[1], "", 1);
+      close(mon_pipe2[0]);
+      close(mon_pipe2[1]);
+    }
+    /* we should wait for the SIGCHLD signal here */
+    wait(NULL);
+
     log_println(1, " <------------------------->");
   }
   return 0;

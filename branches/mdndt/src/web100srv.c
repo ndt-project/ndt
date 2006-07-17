@@ -616,19 +616,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
     }
   }
 
-  if (getuid() == 0) {
-    if (testopt.c2sopt) {
-      write(mon_pipe1[1], "", 1);
-      close(mon_pipe1[0]);
-      close(mon_pipe1[1]);
-    }
-    if (testopt.s2copt) {
-      write(mon_pipe2[1], "", 1);
-      close(mon_pipe2[0]);
-      close(mon_pipe2[1]);
-    }
-  }
-
   /* get some web100 vars */
   if (experimental > 2) {
     dec_cnt = inc_cnt = same_cnt = 0;
@@ -1165,7 +1152,7 @@ main(int argc, char** argv)
       if (head_ptr != NULL) {
         log_println(3, "now = %ld Process started at %ld, run time = %ld",
             tt, head_ptr->stime, (tt - head_ptr->stime));
-        if (tt - head_ptr->stime > 60) {
+        if (tt - head_ptr->stime > 180) {
           /* process is stuck at the front of the queue. */
           fp = fopen(get_logfile(),"a");
           if (fp != NULL) {
