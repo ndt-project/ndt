@@ -93,7 +93,6 @@ int dumptrace=0;
 int usesyslog=0;
 int multiple=0;
 int set_buff=0;
-int mon_pipe1[2], mon_pipe2[2];
 int admin_view=0;
 int queue=1;
 int view_flag=0;
@@ -548,11 +547,11 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
 
   alarm(30);
-  test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune, mon_pipe1,
+  test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
       device, limit, record_reverse, count_vars, spds, &spd_index);
 
   alarm(30);
-  test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune, mon_pipe2,
+  test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
       device, limit, experimental, logname, spds, &spd_index, count_vars);
 
   alarm(60);

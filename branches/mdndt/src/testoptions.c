@@ -16,6 +16,8 @@
 #include "utils.h"
 #include "protocol.h"
 
+int mon_pipe1[2], mon_pipe2[2];
+
 /*
  * Function name: initialize_tests
  * Description: Initializes the tests for the client.
@@ -193,7 +195,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
 int
 test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* c2sspd,
-    int set_buff, int window, int autotune, int mon_pipe1[2], char* device, int limit,
+    int set_buff, int window, int autotune, char* device, int limit,
     int record_reverse, int count_vars, char spds[4][256], int* spd_index)
 {
   int largewin=16*1024*1024;
@@ -424,7 +426,7 @@ read3:
 
 int
 test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2cspd,
-    int set_buff, int window, int autotune, int mon_pipe2[2], char* device, int limit,
+    int set_buff, int window, int autotune, char* device, int limit,
     int experimental, char* logname, char spds[4][256], int* spd_index, int count_vars)
 {
   int largewin=16*1024*1024;

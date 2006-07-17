@@ -133,6 +133,21 @@ test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options)
 }
 
 /*
+ * Function name: catch_alrm
+ * Description: Prints the appropriate message when the SIGALRM is catched.
+ * Arguments: signo - the signal number (shuld be SIGALRM)
+ */
+void
+catch_alrm(int signo)
+{
+  if (signo == SIGALRM) {
+    log_println(1, "SIGALRM was caught");
+    return;
+  }
+  log_println(0, "Unknown (%d) signal was caught", signo);
+}
+
+/*
  * Function name: test_sfw_clt
  * Description: Performs the client part of the Simple firewall test.
  * Arguments: ctlsockfd - the server control socket descriptor
@@ -179,7 +194,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
 
     /* ignore the alrm signal */
     memset(&new, 0, sizeof(new));
-    new.sa_handler = SIG_IGN;
+    new.sa_handler = catch_alrm;
     sigaction(SIGALRM, &new, &old);
     /* give 35 seconds for the whole operation */
     alarm(35);
