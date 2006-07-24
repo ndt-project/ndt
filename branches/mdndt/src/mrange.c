@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include "utils.h"
+#include "logging.h"
 
 typedef struct range {
   int min;
@@ -55,8 +56,7 @@ mrange_parse(char* text)
       sptr = ptr;
     }
     if ((mr_ptr = malloc(sizeof(Range))) == NULL) {
-      /* FIXME: log */
-      fprintf(stderr, "FATAL: cannot allocate memory\n");
+      log_println(0, "FATAL: cannot allocate memory");
       return 1;
     }
     if (*ptr == 0) {
@@ -96,7 +96,7 @@ mrange_next(char* port)
   assert(port);
   
   if (check_rint(port, &val, 0, 65535)) {
-    /* FIXME: log */
+    log_println(0, "WARNING: invalid port number");
     sprintf(port, "0");
     return port;
   }

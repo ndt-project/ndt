@@ -144,8 +144,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 	 * current timezone and use that value here! */
 	s = (cur->st_sec - (tzoffset * 3600)) %86400; 
 	fp = fopen(get_logfile(), "a");
-  /* FIXME: no \n in log_println? */
-  log_println(1, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
+  log_print(1, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
 
 	for (i=0; i<16; i++) {
 	    total += cur->links[i];
@@ -153,7 +152,6 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 		max = cur->links[i];
 	    }
 	}
-  /* FIXME: use log_println here */
 	if (get_debuglvl() > 2) {
 #ifdef AF_INET6
     if (cur->family == 4) {
@@ -161,9 +159,9 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
           ((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
       fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
           ((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
-      fprintf(stderr, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
+      log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
           ((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
-      fprintf(stderr, "%u.%u.%u.%u:%d ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
+      log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
           ((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
     }
 #else
@@ -171,9 +169,9 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
         ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
     fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
         ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
-    fprintf(stderr, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
+    log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
         ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
-    fprintf(stderr, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
+    log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
         ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
 #endif
 #ifdef AF_INET6
@@ -184,12 +182,12 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
       len = 199;
       inet_ntop(AF_INET6, cur->saddr, name, len);
       fprintf(fp, "%s:%d --> ", name, cur->sport);
-      fprintf(stderr, "%s:%d --> ", name, cur->sport);
+      log_print(3, "%s:%d --> ", name, cur->sport);
       memset(name, 0, 200);
       len = 199;
       inet_ntop(AF_INET6, cur->daddr, name, len);
       fprintf(fp, "%s:%d  ", name, cur->dport);
-      fprintf(stderr, "%s:%d  ", name, cur->dport);
+      log_print(3, "%s:%d  ", name, cur->dport);
     }
 #endif
 	}

@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.3.14";
+  private static final String VERSION = "5.4.1";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -148,7 +148,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   boolean testInProgress = false;
   String host = null;
   String tmpstr, tmpstr2;
-  byte tests = TEST_MID | TEST_C2S | TEST_S2C;
+  byte tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW;
   int c2sResult = SFW_NOTTESTED;
   int s2cResult = SFW_NOTTESTED;
 

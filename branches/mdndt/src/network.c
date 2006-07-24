@@ -8,6 +8,7 @@
 
 #include <unistd.h>
 #include <assert.h>
+#include <string.h>
 
 #include "network.h"
 #include "logging.h"
@@ -69,7 +70,7 @@ OpenSocket(I2Addr addr, char* serv, int options)
       if (!I2AddrSetSAddr(addr,ai->ai_addr,ai->ai_addrlen) ||
           !I2AddrSetProtocol(addr,ai->ai_protocol) ||
           !I2AddrSetSocktype(addr,ai->ai_socktype)) {
-        /* TODO: log the error */
+        log_println(1, "OpenSocket: Unable to set saddr in address record");
         return -1;
       }
       if (!I2AddrPort(addr)) {
@@ -84,7 +85,7 @@ OpenSocket(I2Addr addr, char* serv, int options)
         I2AddrFree(tmpAddr);
       }
       if (!I2AddrSetFD(addr,fd,True)) {
-        /* TODO: log the error */
+        log_println(1, "OpenSocket: Unable to set file descriptor in address record");
         return -1;
       }
 
@@ -119,29 +120,29 @@ CreateListenSocket(I2Addr addr, char* serv, int options)
   int fd = -1;
 
   if (addr && (I2AddrFD(addr) > -1)) {
-    /* TODO: log the error */
+    log_println(1, "Invalid I2Addr record - fd already specified.");
     goto error;
   }
 
   if ((!addr) && !(addr = I2AddrByWildcard(/* FIXME */NULL, SOCK_STREAM, serv))) {
-    /* TODO: log the error */
+    log_println(1, "Unable to create I2Addr record by wildcard.");
     goto error;
   }
 
   if (!I2AddrSetPassive(addr,True)) {
-    /* TODO: log the error */
+    log_println(1, "Unable to set passive mode in I2Addr record.");
     goto error;
   }
   
   fd = OpenSocket(addr, serv, options);
   
   if (fd < 0) {
-    /* TODO: log the error */
+    log_println(1, "Unable to open socket.");
     goto error;
   }
 
   if (listen(fd, NDT_BACKLOG) < 0) {
-    /* TODO: log the error */
+    log_println(1, "listen(%d,%d):%s", fd, NDT_BACKLOG, strerror(errno));
     goto error;
   }
 
@@ -217,14 +218,14 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
           return 0;
         }
     }
-    /* TODO: log: "I2Addr functions failed after successful connection" */
+    log_println(1, "I2Addr functions failed after successful connection");
     while((close(*sockfd) < 0) && (errno == EINTR));
     return 1;
   }
 
 error:
-    /* TODO: log the error */
-    return -1;
+  log_println(1, "Unable to create connect socket.");
+  return -1;
 }
 
 /*
