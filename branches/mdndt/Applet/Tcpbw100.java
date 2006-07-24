@@ -82,10 +82,11 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.3.13";
+  private static final String VERSION = "5.3.14";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
+  private static final byte TEST_SFW = (1 << 3);
 
   /* we really should do some clean-up in this java code... maybe later ;) */
   private static final byte COMM_FAILURE  = 0;
@@ -98,6 +99,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private static final byte MSG_ERROR     = 7;
   private static final byte MSG_RESULTS   = 8;
   private static final byte MSG_LOGOUT    = 9;
+
+  private static final int SFW_NOTTESTED  = 0;
+  private static final int SFW_NOFIREWALL = 1;
+  private static final int SFW_UNKNOWN    = 2;
+  private static final int SFW_POSSIBLE   = 3;
   
 	JTextArea results, diagnosis, statistics;
 	String inresult, outresult, errmsg;
@@ -143,6 +149,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
   String host = null;
   String tmpstr, tmpstr2;
   byte tests = TEST_MID | TEST_C2S | TEST_S2C;
+  int c2sResult = SFW_NOTTESTED;
+  int s2cResult = SFW_NOTTESTED;
 
   public void showStatus(String msg)
   {
@@ -380,11 +388,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       results.append("Another client is currently being served, your test will " +
           "begin within " + wait + " seconds\n");
     }
-//		} catch (IOException e) {
-//			errmsg = "Information: The server does not support this command line client\n";
-//			failed = true;
-//			return;
-//		}
 
 		f.toBack();
 		ff.toBack();
@@ -730,8 +733,73 @@ public class Tcpbw100 extends JApplet implements ActionListener
           i++;
         }
       } catch (IOException e) {}
+      ctlSocket.setSoTimeout(0);
     }
 
+    if ((tests & TEST_SFW) == TEST_SFW) {
+      showStatus("Simple firewall test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      
+      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
+      
+      String message = new String(msg.body);
+        
+      int k = message.indexOf(" ");
+      int srvPort = Integer.parseInt(message.substring(0,k));
+      int testTime = Integer.parseInt(message.substring(k+1));
+
+      Socket sfwSocket = new Socket();
+      try {
+        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
+
+        Protocol sfwCtl = new Protocol(sfwSocket);
+        sfwCtl.send_msg(TEST_MSG, new String("Simple firewall test").getBytes());
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      c2sResult = Integer.parseInt(new String(msg.body));
+
+      test_osfw_clt(ctl, testTime);
+      
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+    }
+    
     i = 0;
 
     try {  
@@ -779,6 +847,59 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		middleboxResults(tmpstr2);
 	}
 
+
+  private void test_osfw_clt(Protocol ctl, int testTime) throws IOException {
+    Message msg = new Message();
+    ServerSocket srvSocket;
+    try {
+      srvSocket = new ServerSocket(0);
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+      errmsg = "Simple firewall test: Cannot create listen socket\n";
+      failed = true;
+      return;
+    }
+    
+    ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
+    
+    srvSocket.setSoTimeout(testTime * 1000);
+    Socket sock;
+    try {
+      sock = srvSocket.accept();
+    }
+    catch (Exception e) {
+      e.printStackTrace();
+      s2cResult = SFW_POSSIBLE;
+      srvSocket.close();
+      return;
+    }
+    Protocol sfwCtl = new Protocol(sock);
+
+    if (sfwCtl.recv_msg(msg) != 0) {
+      System.out.println("Simple firewall test: unrecognized message");
+      s2cResult = SFW_UNKNOWN;
+      sock.close();
+      srvSocket.close();
+      return;
+    }
+    if (msg.type != TEST_MSG) {
+      s2cResult = SFW_UNKNOWN;
+      sock.close();
+      srvSocket.close();
+      return;
+    }
+    if (! new String(msg.body).equals("Simple firewall test")) {
+      System.out.println("Simple firewall test: Improper message");
+      s2cResult = SFW_UNKNOWN;
+      sock.close();
+      srvSocket.close();
+      return;
+    }
+    s2cResult = SFW_NOFIREWALL;
+    sock.close();
+    srvSocket.close();
+  }
 
 
 	public void testResults(String tmpstr) {
@@ -943,6 +1064,35 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			        }
 			    }
 			}
+
+      if ((tests & TEST_SFW) == TEST_SFW) {
+        switch (c2sResult) {
+          case SFW_NOFIREWALL:
+            results.append("Server '" + host + "' is not behind a firewall.\n");
+            emailText += "Server '" + host + "' is not behind a firewall.\n%0A";
+            break;
+          case SFW_POSSIBLE:
+            results.append("Server '" + host + "' is probably behind a firewall.\n");
+            emailText += "Server '" + host + "' is probably behind a firewall.\n%0A";
+            break;
+          case SFW_UNKNOWN:
+          case SFW_NOTTESTED:
+            break;
+        }
+        switch (s2cResult) {
+          case SFW_NOFIREWALL:
+            results.append("Client is not behind a firewall.\n");
+            emailText += "Client is not behind a firewall.\n%0A";
+            break;
+          case SFW_POSSIBLE:
+            results.append("Client is probably behind a firewall.\n");
+            emailText += "Client is probably behind a firewall.\n%0A";
+            break;
+          case SFW_UNKNOWN:
+          case SFW_NOTTESTED:
+            break;
+        }
+      }
 
 			statistics.append("\n\t------  Client System Details  ------\n");
 			statistics.append("OS data: Name = " + osName + ", Architecture = " + osArch);

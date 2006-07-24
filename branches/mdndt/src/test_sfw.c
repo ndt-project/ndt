@@ -347,6 +347,8 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
   
   if (tests & TEST_SFW) {
     log_println(1, " <-- Simple firewall test -->");
+    printf("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+    fflush(stdout);
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
       log_println(0, "Protocol error!");
@@ -408,6 +410,8 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     }
 
     test_osfw_clt(ctlsockfd, testTime, conn_options);
+    
+    printf("Done\n");
     
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
