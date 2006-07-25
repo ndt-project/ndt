@@ -1151,7 +1151,7 @@ main(int argc, char** argv)
       if (head_ptr != NULL) {
         log_println(3, "now = %ld Process started at %ld, run time = %ld",
             tt, head_ptr->stime, (tt - head_ptr->stime));
-        if (tt - head_ptr->stime > 180) {
+        if (tt - head_ptr->stime > 90) {
           /* process is stuck at the front of the queue. */
           fp = fopen(get_logfile(),"a");
           if (fp != NULL) {

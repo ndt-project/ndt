@@ -65,19 +65,20 @@ listen for new requests. There are several operational modes (see
 options below) that may cause the child to start a test, handle
 multiple simultaneous clients, or immediately terminate the pending request.
 .IP \(bu
-Once a test request is accepted, the server returns a three TCP
-port numbers that the client must use for further testing. The
-server process does a passive open on these ports via the \fBlisten(2)\fR
+Once a test request is accepted, the server returns a TCP port number
+that the client must use for the next test. The
+server process does a passive open on this port via the \fBlisten(2)\fR
 command. The client performs the active open, via the \fBconnect(2)\fR
 command, to allow it to operate, even when located behind a NAT or
 other filtering firewall. By default, the server uses TCP port
-numbers 3002 and 3003 for this testing service.  
+numbers 3002 and 3003 in the tests from the basic suite.
 .IP \(bu
 Testing begins with the client opening a connection on port 3003. 
 The server records and returns the negotiated TCP max segment size,
 along with the server's view of the IP addresses used for this connection. 
 These values allow the client to determine if a NAT or filtering
-firewall is located in the network path. The connection is closed
+firewall is located in the network path. Moreover, the 5 seconds CWND limited
+throughput test is performed during this connection. The connection is closed
 and the client records the results for later display.
 .IP \(bu
 Next, the client opens a connection on port 3002.
@@ -102,6 +103,11 @@ to perform this snooping on the network interface.) After the
 test stream has finished, the server retrieves a set of \fBWeb100\fR
 kernel variables and counters. These variables are used by the
 analysis engine to determine what, if any, fault conditions occurred.
+.IP \(bu
+Next, the server listens on the random ephemeral port. The client tries to
+open a connection to this port. The same operation is repeated in the
+opposite direction. There will be a possible firewall detection, when the
+connections will not be established in the specified amount of time.
 .IP \(bu
 The final step is to analyze the collected data. The packet
 dispersion results are used to calculate the bottleneck link

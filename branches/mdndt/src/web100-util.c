@@ -78,7 +78,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
 
   cn = local_find_connection(sock, agent);
   if (cn == NULL) {
-    fprintf(stderr, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d\n", errno);
+    log_println(0, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d", errno);
     exit(-1);
   }
   
