@@ -41,7 +41,7 @@ web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 
-viewtrace_SOURCES	= viewtrace.c usage.c logging.c
+viewtrace_SOURCES	= viewtrace.c usage.c logging.c utils.c
 viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 

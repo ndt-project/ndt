@@ -28,6 +28,7 @@
 #include "../config.h"
 #include "usage.h"
 #include "logging.h"
+#include "utils.h"
 
 struct spdpair fwd, rev;
 int start, finish, fini;
@@ -39,6 +40,9 @@ extern int opterr;
 extern char *optarg;
 FILE *fp;
 
+int c2sport = 3002,
+    s2cport = 3003;
+
 static struct option long_options[] = {
   {"count", 1, 0, 'c'},
   {"debug", 0, 0, 'd'},
@@ -46,6 +50,8 @@ static struct option long_options[] = {
   {"help", 0, 0, 'h'},
   {"interface", 1, 0, 'i'},
   {"log", 1, 0, 'l'},
+  {"c2sport", 1, 0, 303},
+  {"s2cport", 1, 0, 304},
   {"version", 0, 0, 'v'},
   {0, 0, 0, 0}
 };
@@ -146,7 +152,7 @@ vt_print_bins(struct spdpair *cur)
 
   fprintf(stderr, "%02d:%02d:%02d.%06u   ",
       s / 3600, (s % 3600) / 60, s % 60, cur->st_usec);
-  if ((cur->sport == 3002) || (cur->dport == 3002)) {
+  if ((cur->sport == c2sport) || (cur->dport == c2sport)) {
 #if defined(AF_INET6)
     char str[136];
     memset(str, 0, 136);
@@ -230,7 +236,7 @@ vt_calculate_spd(struct spdpair *cur, struct spdpair *cur2)
   float bits, spd, time;
 
   time = (((cur->sec - cur2->sec)*1000000) + (cur->usec - cur2->usec));
-  if ((cur->dport == 3002) || (cur->sport == 3003)) {
+  if ((cur->dport == c2sport) || (cur->sport == s2cport)) {
     if (cur->seq >= cur2->seq)
       bits = (cur->seq - cur2->seq) * 8;
     else
@@ -378,10 +384,9 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #else
   if (fwd.saddr == current.saddr) {
 #endif
-    /* FIXME: these ports should be defined somewhere else */
-    if (current.dport == 3002)
+    if (current.dport == c2sport)
       vt_calculate_spd(&current, &fwd);
-    else if (current.sport == 3003)
+    else if (current.sport == s2cport)
       vt_calculate_spd(&current, &fwd);
   }
 #if defined(AF_INET6)
@@ -389,9 +394,9 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #else
   if (rev.saddr == current.saddr) {
 #endif
-    if (current.sport == 3002)
+    if (current.sport == c2sport)
       vt_calculate_spd(&current, &rev);
-    else if (current.dport == 3003)
+    else if (current.dport == s2cport)
       vt_calculate_spd(&current, &rev);
   }
 #if defined(AF_INET6)
@@ -448,18 +453,18 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (fwd.saddr[1] == current.saddr[1]) &&
         (fwd.saddr[2] == current.saddr[2]) &&
         (fwd.saddr[3] == current.saddr[3])) {
-      if (current.dport == 3002)
+      if (current.dport == c2sport)
         vt_calculate_spd(&current, &fwd);
-      else if (current.sport == 3003)
+      else if (current.sport == s2cport)
         vt_calculate_spd(&current, &fwd);
     }
     if ((rev.saddr[0] == current.saddr[0]) &&
         (rev.saddr[1] == current.saddr[1]) &&
         (rev.saddr[2] == current.saddr[2]) &&
         (rev.saddr[3] == current.saddr[3])) {
-      if (current.sport == 3002)
+      if (current.sport == c2sport)
         vt_calculate_spd(&current, &rev);
-      else if (current.dport == 3003)
+      else if (current.dport == s2cport)
         vt_calculate_spd(&current, &rev);
     }
   }
@@ -501,6 +506,20 @@ main(int argc, char **argv)
       case 'v':
         printf("ANL/Internet2 NDT version %s (viewtrace)\n", VERSION);
         exit(0);
+        break;
+      case 303:
+        if (check_int(optarg, &c2sport)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid C2S throughput test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 304:
+        if (check_int(optarg, &s2cport)) {
+          char tmpText[200];
+          snprintf(tmpText, 200, "Invalid S2C throughput test port number: %s", optarg);
+          short_usage(argv[0], tmpText); 
+        }
         break;
       case '?':
         short_usage(argv[0], "");
@@ -560,7 +579,7 @@ main(int argc, char **argv)
     fprintf(stderr, "pcap_loop failed %s\n", pcap_geterr(pd));
     exit(-2);
   }
-  if (fwd.sport == 3003) {
+  if (fwd.sport == s2cport) {
     vt_print_bins(&rev);
     vt_print_bins(&fwd);
   } else {

@@ -227,6 +227,8 @@ vt_long_usage(char* info)
   printf("  -f, --file fn          - specify the name of the file to offline trace\n");
   printf("  -h, --help             - print this help message\n");
   printf("  -i, --interface device - specify network interface (libpcap device)\n");
+  printf("  --c2sport #port        - specify C2S throughput test port number (default 3002)\n");
+  printf("  --s2cport #port        - specify S2C throughput test port number (default 3003)\n");
   printf("  -v, --version          - print version number\n\n");
 
   exit(0);
