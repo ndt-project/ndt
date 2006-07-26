@@ -30,12 +30,12 @@ analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 fakewww_SOURCES	= fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c
-fakewww_LDADD = $(I2UTILLIBDEPS) $(I2UTILLIBDEPS)
+fakewww_LDADD = $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100srv_SOURCES	= web100srv.c web100-util.c web100-pcap.c web100-admin.c \
 										network.c usage.c utils.c mrange.c logging.c testoptions.c \
-										protocol.c test_sfw.c
+										protocol.c test_sfw_srv.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
@@ -46,8 +46,8 @@ viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100clt_SOURCES	= web100clt.c network.c usage.c logging.c utils.c protocol.c \
-										test_sfw.c
-web100clt_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(I2UTILLIBDEPS)
+										test_sfw_clt.c
+web100clt_LDADD = $(I2UTILLIBDEPS)
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c

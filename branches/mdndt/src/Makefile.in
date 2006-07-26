@@ -78,7 +78,7 @@ am_fakewww_OBJECTS = fakewww-fakewww.$(OBJEXT) \
 	fakewww-network.$(OBJEXT) fakewww-usage.$(OBJEXT) \
 	fakewww-logging.$(OBJEXT)
 fakewww_OBJECTS = $(am_fakewww_OBJECTS)
-fakewww_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+fakewww_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_tr_mkmap_OBJECTS = tr_mkmap-tr-mkmap.$(OBJEXT) \
 	tr_mkmap-tr-tree.$(OBJEXT) tr_mkmap-tr-tree6.$(OBJEXT) \
 	tr_mkmap-usage.$(OBJEXT) tr_mkmap-logging.$(OBJEXT)
@@ -91,10 +91,9 @@ viewtrace_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am_web100clt_OBJECTS = web100clt-web100clt.$(OBJEXT) \
 	web100clt-network.$(OBJEXT) web100clt-usage.$(OBJEXT) \
 	web100clt-logging.$(OBJEXT) web100clt-utils.$(OBJEXT) \
-	web100clt-protocol.$(OBJEXT) web100clt-test_sfw.$(OBJEXT)
+	web100clt-protocol.$(OBJEXT) web100clt-test_sfw_clt.$(OBJEXT)
 web100clt_OBJECTS = $(am_web100clt_OBJECTS)
-web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1)
+web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
 	web100srv-web100-util.$(OBJEXT) \
 	web100srv-web100-pcap.$(OBJEXT) \
@@ -102,7 +101,7 @@ am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
 	web100srv-usage.$(OBJEXT) web100srv-utils.$(OBJEXT) \
 	web100srv-mrange.$(OBJEXT) web100srv-logging.$(OBJEXT) \
 	web100srv-testoptions.$(OBJEXT) web100srv-protocol.$(OBJEXT) \
-	web100srv-test_sfw.$(OBJEXT)
+	web100srv-test_sfw_srv.$(OBJEXT)
 web100srv_OBJECTS = $(am_web100srv_OBJECTS)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
@@ -218,11 +217,11 @@ analyze_SOURCES = analyze.c usage.c logging.c
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 analyze_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c
-fakewww_LDADD = $(I2UTILLIBDEPS) $(I2UTILLIBDEPS)
+fakewww_LDADD = $(I2UTILLIBDEPS)
 fakewww_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c \
 										network.c usage.c utils.c mrange.c logging.c testoptions.c \
-										protocol.c test_sfw.c
+										protocol.c test_sfw_srv.c
 
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS)
@@ -232,9 +231,9 @@ viewtrace_SOURCES = viewtrace.c usage.c logging.c
 viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 viewtrace_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c \
-										test_sfw.c
+										test_sfw_clt.c
 
-web100clt_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(I2UTILLIBDEPS)
+web100clt_LDADD = $(I2UTILLIBDEPS)
 web100clt_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c
 tr_mkmap_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
@@ -365,7 +364,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-logging.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-protocol.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-test_sfw.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-test_sfw_clt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-utils.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-web100clt.Po@am__quote@
@@ -373,7 +372,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-mrange.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-protocol.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-test_sfw.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-test_sfw_srv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-testoptions.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100srv-utils.Po@am__quote@
@@ -746,19 +745,19 @@ web100clt-protocol.obj: protocol.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-protocol.obj `if test -f 'protocol.c'; then $(CYGPATH_W) 'protocol.c'; else $(CYGPATH_W) '$(srcdir)/protocol.c'; fi`
 
-web100clt-test_sfw.o: test_sfw.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_sfw.o -MD -MP -MF "$(DEPDIR)/web100clt-test_sfw.Tpo" -c -o web100clt-test_sfw.o `test -f 'test_sfw.c' || echo '$(srcdir)/'`test_sfw.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_sfw.Tpo" "$(DEPDIR)/web100clt-test_sfw.Po"; else rm -f "$(DEPDIR)/web100clt-test_sfw.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw.c' object='web100clt-test_sfw.o' libtool=no @AMDEPBACKSLASH@
+web100clt-test_sfw_clt.o: test_sfw_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_sfw_clt.o -MD -MP -MF "$(DEPDIR)/web100clt-test_sfw_clt.Tpo" -c -o web100clt-test_sfw_clt.o `test -f 'test_sfw_clt.c' || echo '$(srcdir)/'`test_sfw_clt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_sfw_clt.Tpo" "$(DEPDIR)/web100clt-test_sfw_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_sfw_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw_clt.c' object='web100clt-test_sfw_clt.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_sfw.o `test -f 'test_sfw.c' || echo '$(srcdir)/'`test_sfw.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_sfw_clt.o `test -f 'test_sfw_clt.c' || echo '$(srcdir)/'`test_sfw_clt.c
 
-web100clt-test_sfw.obj: test_sfw.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_sfw.obj -MD -MP -MF "$(DEPDIR)/web100clt-test_sfw.Tpo" -c -o web100clt-test_sfw.obj `if test -f 'test_sfw.c'; then $(CYGPATH_W) 'test_sfw.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_sfw.Tpo" "$(DEPDIR)/web100clt-test_sfw.Po"; else rm -f "$(DEPDIR)/web100clt-test_sfw.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw.c' object='web100clt-test_sfw.obj' libtool=no @AMDEPBACKSLASH@
+web100clt-test_sfw_clt.obj: test_sfw_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_sfw_clt.obj -MD -MP -MF "$(DEPDIR)/web100clt-test_sfw_clt.Tpo" -c -o web100clt-test_sfw_clt.obj `if test -f 'test_sfw_clt.c'; then $(CYGPATH_W) 'test_sfw_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw_clt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_sfw_clt.Tpo" "$(DEPDIR)/web100clt-test_sfw_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_sfw_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw_clt.c' object='web100clt-test_sfw_clt.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_sfw.obj `if test -f 'test_sfw.c'; then $(CYGPATH_W) 'test_sfw.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_sfw_clt.obj `if test -f 'test_sfw_clt.c'; then $(CYGPATH_W) 'test_sfw_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw_clt.c'; fi`
 
 web100srv-web100srv.o: web100srv.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-web100srv.o -MD -MP -MF "$(DEPDIR)/web100srv-web100srv.Tpo" -c -o web100srv-web100srv.o `test -f 'web100srv.c' || echo '$(srcdir)/'`web100srv.c; \
@@ -914,19 +913,19 @@ web100srv-protocol.obj: protocol.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-protocol.obj `if test -f 'protocol.c'; then $(CYGPATH_W) 'protocol.c'; else $(CYGPATH_W) '$(srcdir)/protocol.c'; fi`
 
-web100srv-test_sfw.o: test_sfw.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-test_sfw.o -MD -MP -MF "$(DEPDIR)/web100srv-test_sfw.Tpo" -c -o web100srv-test_sfw.o `test -f 'test_sfw.c' || echo '$(srcdir)/'`test_sfw.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-test_sfw.Tpo" "$(DEPDIR)/web100srv-test_sfw.Po"; else rm -f "$(DEPDIR)/web100srv-test_sfw.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw.c' object='web100srv-test_sfw.o' libtool=no @AMDEPBACKSLASH@
+web100srv-test_sfw_srv.o: test_sfw_srv.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-test_sfw_srv.o -MD -MP -MF "$(DEPDIR)/web100srv-test_sfw_srv.Tpo" -c -o web100srv-test_sfw_srv.o `test -f 'test_sfw_srv.c' || echo '$(srcdir)/'`test_sfw_srv.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-test_sfw_srv.Tpo" "$(DEPDIR)/web100srv-test_sfw_srv.Po"; else rm -f "$(DEPDIR)/web100srv-test_sfw_srv.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw_srv.c' object='web100srv-test_sfw_srv.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-test_sfw.o `test -f 'test_sfw.c' || echo '$(srcdir)/'`test_sfw.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-test_sfw_srv.o `test -f 'test_sfw_srv.c' || echo '$(srcdir)/'`test_sfw_srv.c
 
-web100srv-test_sfw.obj: test_sfw.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-test_sfw.obj -MD -MP -MF "$(DEPDIR)/web100srv-test_sfw.Tpo" -c -o web100srv-test_sfw.obj `if test -f 'test_sfw.c'; then $(CYGPATH_W) 'test_sfw.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-test_sfw.Tpo" "$(DEPDIR)/web100srv-test_sfw.Po"; else rm -f "$(DEPDIR)/web100srv-test_sfw.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw.c' object='web100srv-test_sfw.obj' libtool=no @AMDEPBACKSLASH@
+web100srv-test_sfw_srv.obj: test_sfw_srv.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-test_sfw_srv.obj -MD -MP -MF "$(DEPDIR)/web100srv-test_sfw_srv.Tpo" -c -o web100srv-test_sfw_srv.obj `if test -f 'test_sfw_srv.c'; then $(CYGPATH_W) 'test_sfw_srv.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw_srv.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100srv-test_sfw_srv.Tpo" "$(DEPDIR)/web100srv-test_sfw_srv.Po"; else rm -f "$(DEPDIR)/web100srv-test_sfw_srv.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw_srv.c' object='web100srv-test_sfw_srv.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-test_sfw.obj `if test -f 'test_sfw.c'; then $(CYGPATH_W) 'test_sfw.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100srv-test_sfw_srv.obj `if test -f 'test_sfw_srv.c'; then $(CYGPATH_W) 'test_sfw_srv.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw_srv.c'; fi`
 uninstall-info-am:
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
