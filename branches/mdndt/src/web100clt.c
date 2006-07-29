@@ -31,6 +31,7 @@ int PktsOut, CongestionSignals, RcvWinScale;
 int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
 int winssent, winsrecv, msglvl=0;
+int sndqueue;
 double spdin, spdout, c2sspd;
 double aspd;
 
@@ -214,6 +215,18 @@ testResults(char tests, char *tmpstr, char* host)
       }
     }
 
+    if (tests & TEST_C2S) {
+      if (c2sspd < (spdout  * (1.0 - VIEW_DIFF))) {
+        printf("Information [C2S]: %0.2f%% of the transmitted bytes were buffered ", 100 * (spdout - c2sspd) / spdout);
+        if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
+          printf("locally.\n");
+        }
+        else {
+          printf("somewhere on the path.\n");
+        }
+      }
+    }
+    
     results_sfw(tests, host);
 
     if (msglvl > 0) {
@@ -925,6 +938,7 @@ main(int argc, char *argv[])
       pkts++;
     } while (secs() < stop_time);
     sigaction(SIGPIPE, &old, NULL);
+    sndqueue = sndq_len(outSocket);
     t = secs() - t;
     I2AddrFree(sec_addr);
     spdout = ((8.0 * pkts * lth) / 1000) / t;
@@ -946,14 +960,16 @@ main(int argc, char *argv[])
     c2sspd = atoi(buff);
 
     if (c2sspd < 1000) 
-      printf(" %0.2f Kb/s", c2sspd);
+      printf(" %0.2f Kb/s\n", c2sspd);
     else
-      printf(" %0.2f Mb/s", c2sspd/1000);
+      printf(" %0.2f Mb/s\n", c2sspd/1000);
     
+#if 0
     if (spdout < 1000) 
       printf(" [%0.2f Kb/s]\n", spdout);
     else
       printf(" [%0.2f Mb/s]\n", spdout/1000);
+#endif
     
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {

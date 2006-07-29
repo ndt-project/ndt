@@ -58,6 +58,11 @@
 #define PORT3 "3003"
 #define PORT4 "3003"
 
+/* the difference between server's and client't throughput views that trigger
+ * an alarm
+ */
+#define VIEW_DIFF 0.1
+
 typedef struct portpair {
   int port1;
   int port2;

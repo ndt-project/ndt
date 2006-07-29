@@ -1,5 +1,6 @@
 /*
- * This file contains functions needed to handle numbers sanity checks.
+ * This file contains functions needed to handle numbers sanity checks
+ * and some other utility things.
  *
  * Jakub S³awiñski 2006-06-12
  * jeremian@poczta.fm
@@ -7,11 +8,16 @@
 
 #include "../config.h"
 
+#ifdef HAVE_LINUX_SOCKIOS_H
+#include <linux/sockios.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <sys/ioctl.h>
 
 #include "utils.h"
 
@@ -129,4 +135,23 @@ err_sys(char* s)
 {
   perror(s);
   exit(1);
+}
+
+/*
+ * Function name: sndq_len
+ * Description: Returns the length of the sending queue of the given
+ *              file descriptor.
+ * Arguments: fd - file descriptor to check
+ * Returns: The length of the sending queue.
+ */
+
+int
+sndq_len(int fd)
+{
+  int length = -1;
+
+  if (ioctl(fd, SIOCOUTQ, &length)) {
+    return -1;
+  }
+  return length;
 }

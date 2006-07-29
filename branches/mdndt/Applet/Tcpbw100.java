@@ -104,6 +104,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private static final int SFW_NOFIREWALL = 1;
   private static final int SFW_UNKNOWN    = 2;
   private static final int SFW_POSSIBLE   = 3;
+
+  private static final double VIEW_DIFF = 0.1;
   
 	JTextArea results, diagnosis, statistics;
 	String inresult, outresult, errmsg;
@@ -594,16 +596,17 @@ public class Tcpbw100 extends JApplet implements ActionListener
       sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
 
       if (sc2sspd < 1.0) {
-        results.append(prtdbl(sc2sspd*1000) + "Kb/s ");
-        statistics.append(prtdbl(sc2sspd*1000) + "Kb/s ");
-        emailText += prtdbl(sc2sspd*1000) + "Kb/s ";
+        results.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
+        statistics.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
+        emailText += prtdbl(sc2sspd*1000) + "Kb/s\n%0A";
       } 
       else {
-        results.append(prtdbl(sc2sspd) + "Mb/s ");
-        statistics.append(prtdbl(sc2sspd) + "Mb/s ");
-        emailText += prtdbl(sc2sspd) + "Mb/s ";
+        results.append(prtdbl(sc2sspd) + "Mb/s\n");
+        statistics.append(prtdbl(sc2sspd) + "Mb/s\n");
+        emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
       }
       
+      /*
       if (c2sspd < 1.0) {
         results.append("[" + prtdbl(c2sspd*1000) + "Kb/s]\n");
         statistics.append("[" + prtdbl(c2sspd*1000) + "Kb/s]\n");
@@ -614,6 +617,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
         statistics.append("[" + prtdbl(c2sspd) + "Mb/s]\n");
         emailText += "[" + prtdbl(c2sspd) + "Mb/s]\n%0A";
       }
+      */
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
         failed = true;
@@ -1064,6 +1068,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			        }
 			    }
 			}
+      
+      if ((tests & TEST_C2S) == TEST_C2S) {
+        if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
+          results.append("Information [C2S]: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered.\n");
+        }
+      }
 
       if ((tests & TEST_SFW) == TEST_SFW) {
         switch (c2sResult) {
