@@ -45,7 +45,7 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
     return 2;
   }
-  if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C))) {
+  if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW))) {
     return 3;
   }
   if (useropt & TEST_MID) {

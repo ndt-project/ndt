@@ -106,6 +106,19 @@ testResults(char tests, char *tmpstr, char* host)
   float j;
 
   if (!(tests & TEST_S2C)) {
+    if (tests & TEST_C2S) {
+      if (c2sspd < (spdout  * (1.0 - VIEW_DIFF))) {
+        printf("Information [C2S]: %0.2f%% of the transmitted bytes were buffered ", 100 * (spdout - c2sspd) / spdout);
+        if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
+          printf("locally.\n");
+        }
+        else {
+          printf("somewhere on the path.\n");
+        }
+      }
+    }
+    
+    results_sfw(tests, host);
     return;
   }
 

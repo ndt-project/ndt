@@ -205,22 +205,22 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
     if (*sockfd < 0) {
       continue;
     }
-    
+
     if (local_addr) {
       /* TODO: local bind of the fd */
     }
-    
+
     if (connect(*sockfd,ai->ai_addr,ai->ai_addrlen) == 0) {
-        if(I2AddrSetSAddr(server_addr,ai->ai_addr,ai->ai_addrlen) &&
-                I2AddrSetSocktype(server_addr,ai->ai_socktype) &&
-                I2AddrSetProtocol(server_addr,ai->ai_protocol) &&
-                I2AddrSetFD(server_addr,*sockfd,True)){
-          return 0;
-        }
+      if(I2AddrSetSAddr(server_addr,ai->ai_addr,ai->ai_addrlen) &&
+          I2AddrSetSocktype(server_addr,ai->ai_socktype) &&
+          I2AddrSetProtocol(server_addr,ai->ai_protocol) &&
+          I2AddrSetFD(server_addr,*sockfd,True)){
+        return 0;
+      }
+      log_println(1, "I2Addr functions failed after successful connection");
+      while((close(*sockfd) < 0) && (errno == EINTR));
+      return 1;
     }
-    log_println(1, "I2Addr functions failed after successful connection");
-    while((close(*sockfd) < 0) && (errno == EINTR));
-    return 1;
   }
 
 error:

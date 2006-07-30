@@ -89,6 +89,7 @@ test_osfw_srv(int ctlsockfd, web100_agent* agent, int testTime)
       return;
     }
     I2AddrSetPort(sfwcli_addr, sfwport);
+    log_println(1, "  -- oport: %d", sfwport);
     
     /* ignore the alrm signal */
     memset(&new, 0, sizeof(new));
@@ -161,8 +162,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
       if (maxRTT > maxRTO)
         maxRTO = maxRTT;
-      if (((4.0 * ((double) maxRTO) / 1000.0) + 1) < 30.0)
-        testTime = (4.0 * ((double) maxRTO) / 1000.0) + 1;
+      if (((((double) maxRTO) / 1000.0) + 1) < 30.0)
+        testTime = ((double) maxRTO) / 1000.0 + 1;
     }
     log_println(1, "  -- time: %d", testTime);
     
@@ -171,7 +172,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     
     FD_ZERO(&fds);
     FD_SET(sfwsockfd, &fds);
-    sel_tv.tv_sec = testTime;
+    sel_tv.tv_sec = testTime + 1;
     sel_tv.tv_usec = 0;
     switch (select(sfwsockfd+1, &fds, NULL, NULL, &sel_tv)) {
       case -1:
@@ -192,6 +193,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     clilen = sizeof(cli_addr);
     sockfd = accept(sfwsockfd, (struct sockaddr *) &cli_addr, &clilen);
 
+    msgLen = sizeof(buff);
     if (recv_msg(sockfd, &msgType, &buff, &msgLen)) {
       log_println(0, "Simple firewall test: unrecognized message");
       sprintf(buff, "%d", SFW_UNKNOWN);
