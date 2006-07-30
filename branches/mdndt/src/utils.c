@@ -38,7 +38,7 @@ check_int(char* text, int* number)
   long tmp;
 
   assert(text != NULL);
-  assert(info != NULL);
+  assert(number != NULL);
   
   if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
     return 1;
@@ -97,7 +97,7 @@ check_long(char* text, long* number)
   char* tmp;
   
   assert(text != NULL);
-  assert(info != NULL);
+  assert(number != NULL);
   
   if (((*number = strtol(text, &tmp, 10)) == LONG_MAX) || (*number == LONG_MIN)) {
     return 1;

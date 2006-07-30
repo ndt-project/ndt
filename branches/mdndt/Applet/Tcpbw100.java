@@ -1082,8 +1082,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
             emailText += "Server '" + host + "' is not behind a firewall.\n%0A";
             break;
           case SFW_POSSIBLE:
+            /*
             results.append("Server '" + host + "' is probably behind a firewall.\n");
             emailText += "Server '" + host + "' is probably behind a firewall.\n%0A";
+            */
             break;
           case SFW_UNKNOWN:
           case SFW_NOTTESTED:
@@ -1095,8 +1097,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
             emailText += "Client is not behind a firewall.\n%0A";
             break;
           case SFW_POSSIBLE:
+            /*
             results.append("Client is probably behind a firewall.\n");
             emailText += "Client is probably behind a firewall.\n%0A";
+            */
             break;
           case SFW_UNKNOWN:
           case SFW_NOTTESTED:

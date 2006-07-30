@@ -279,7 +279,7 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   int length;
   
   assert(type);
-  assert(buf);
+  assert(msg);
   assert(len);
 
   if (readn(ctlSocket, buff, 3) != 3) {
@@ -288,7 +288,7 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   *type = buff[0];
   length = buff[1];
   length = (length << 8) + buff[2];
-  assert(length > (*len));
+  assert(length <= (*len));
   if (length > (*len)) {
     log_println(0, "recv_msg: length [%d] > *len [%d]", length, *len);
     return 2;
@@ -316,7 +316,7 @@ writen(int fd, void* buf, int amount)
   int sent, n;
   char* ptr = buf;
   sent = 0;
-  assert(amount > 0);
+  assert(amount >= 0);
   while (sent < amount) {
     n = write(fd, ptr+sent, amount - sent);
     assert(n != 0);
@@ -346,7 +346,7 @@ readn(int fd, void* buf, int amount)
   int sent, n;
   char* ptr = buf;
   sent = 0;
-  assert(amount > 0);
+  assert(amount >= 0);
   while (sent < amount) {
     n = read(fd, ptr+sent, amount - sent);
     if (n != -1) {

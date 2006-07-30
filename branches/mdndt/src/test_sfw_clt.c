@@ -156,11 +156,19 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     }
     buff[msgLen] = 0;
     ptr = strtok(buff, " ");
+    if (ptr == NULL) {
+      log_println(0, "SFW: Improper message");
+      exit(5);
+    }
     if (check_int(ptr, &sfwport)) {
       log_println(0, "Invalid port number");
       exit(4);
     }
     ptr = strtok(NULL, " ");
+    if (ptr == NULL) {
+      log_println(0, "SFW: Improper message");
+      exit(5);
+    }
     if (check_int(ptr, &testTime)) {
       log_println(0, "Invalid waiting time");
       exit(4);
@@ -236,7 +244,9 @@ results_sfw(char tests, char* host)
         printf("Server '%s' is not behind a firewall.\n", host);
         break;
       case SFW_POSSIBLE:
+#if 0
         printf("Server '%s' is probably behind a firewall.\n", host);
+#endif
         break;
       case SFW_UNKNOWN:
       case SFW_NOTTESTED:
@@ -247,7 +257,9 @@ results_sfw(char tests, char* host)
         printf("Client is not behind a firewall.\n");
         break;
       case SFW_POSSIBLE:
+#if 0
         printf("Client is probably behind a firewall.\n");
+#endif
         break;
       case SFW_UNKNOWN:
       case SFW_NOTTESTED:

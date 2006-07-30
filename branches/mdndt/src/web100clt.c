@@ -746,7 +746,7 @@ main(int argc, char *argv[])
      */
     xwait = (xwait * 45);
     log_print(0, "Another client is currently being served, your test will ");
-    log_println(1,  "begin within %d seconds", xwait);
+    log_println(0,  "begin within %d seconds", xwait);
   }
 
   sleep(2);
