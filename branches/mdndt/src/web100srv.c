@@ -533,18 +533,21 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   if (testopt.midopt) {
     log_println(1, " > Middlebox test");
   }
+  if (testopt.sfwopt) {
+    log_println(1, " > Simple firewall test");
+  }
   if (testopt.c2sopt) {
     log_println(1, " > C2S throughput test");
   }
   if (testopt.s2copt) {
     log_println(1, " > S2C throughput test");
   }
-  if (testopt.sfwopt) {
-    log_println(1, " > Simple firewall test");
-  }
   
-  alarm(30);
+  alarm(15);
   test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
+  
+  alarm(60);
+  test_sfw_srv(ctlsockfd, agent, &testopt, conn_options);
 
   alarm(30);
   test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
@@ -553,9 +556,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   alarm(30);
   test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
       device, limit, experimental, logname, spds, &spd_index, count_vars);
-
-  alarm(60);
-  test_sfw_srv(ctlsockfd, agent, &testopt, conn_options);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {

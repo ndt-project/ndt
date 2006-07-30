@@ -330,7 +330,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
     sleep(2);
     send_msg(ctlsockfd, TEST_START, "", 0);
-    alarm(45);  /* reset alarm() again, this 10 sec test should finish before this signal
+    alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
 
 

@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.1";
+  private static final String VERSION = "5.4.2";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -504,6 +504,70 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
     }
 
+    if ((tests & TEST_SFW) == TEST_SFW) {
+      showStatus("Simple firewall test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      
+      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
+      
+      String message = new String(msg.body);
+        
+      int k = message.indexOf(" ");
+      int srvPort = Integer.parseInt(message.substring(0,k));
+      int testTime = Integer.parseInt(message.substring(k+1));
+
+      Socket sfwSocket = new Socket();
+      try {
+        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
+
+        Protocol sfwCtl = new Protocol(sfwSocket);
+        sfwCtl.send_msg(TEST_MSG, new String("Simple firewall test").getBytes());
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      c2sResult = Integer.parseInt(new String(msg.body));
+
+      test_osfw_clt(ctl, testTime);
+      
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+    }
+
     if ((tests & TEST_C2S) == TEST_C2S) {
       showStatus("Tcpbw100 outbound test...");
       if (ctl.recv_msg(msg) != 0) {
@@ -740,70 +804,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       ctlSocket.setSoTimeout(0);
     }
 
-    if ((tests & TEST_SFW) == TEST_SFW) {
-      showStatus("Simple firewall test...");
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_PREPARE) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      
-      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
-      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
-      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
-      
-      String message = new String(msg.body);
-        
-      int k = message.indexOf(" ");
-      int srvPort = Integer.parseInt(message.substring(0,k));
-      int testTime = Integer.parseInt(message.substring(k+1));
-
-      Socket sfwSocket = new Socket();
-      try {
-        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
-
-        Protocol sfwCtl = new Protocol(sfwSocket);
-        sfwCtl.send_msg(TEST_MSG, new String("Simple firewall test").getBytes());
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-      }
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_MSG) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      c2sResult = Integer.parseInt(new String(msg.body));
-
-      test_osfw_clt(ctl, testTime);
-      
-      results.append("Done\n");
-      statistics.append("Done\n");
-      emailText += "Done\n%0A";
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_FINALIZE) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-    }
-    
     i = 0;
 
     try {  

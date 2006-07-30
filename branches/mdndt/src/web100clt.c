@@ -695,14 +695,14 @@ main(int argc, char *argv[])
   if (tests & TEST_MID) {
     log_println(1, " > Middlebox test");
   }
+  if (tests & TEST_SFW) {
+    log_println(1, " > Simple firewall test");
+  }
   if (tests & TEST_C2S) {
     log_println(1, " > C2S throughput test");
   }
   if (tests & TEST_S2C) {
     log_println(1, " > S2C throughput test");
-  }
-  if (tests & TEST_SFW) {
-    log_println(1, " > Simple firewall test");
   }
   
   /* The beginning of the protocol */
@@ -873,6 +873,8 @@ main(int argc, char *argv[])
     log_println(1, " <-------------------->");
   }
   /*   End of Middlebox test  */
+
+  test_sfw_clt(ctlSocket, tests, host, conn_options);
   
   if (tests & TEST_C2S) {
     struct sigaction new, old;
@@ -1126,8 +1128,6 @@ main(int argc, char *argv[])
     }
     log_println(1, " <------------------------->");
   }
-
-  test_sfw_clt(ctlSocket, tests, host, conn_options);
 
   /* get the final results from server
    *
