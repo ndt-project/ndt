@@ -447,6 +447,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   char listens2cport[10];
   int msgType;
   int msgLen;
+  int sndqueue;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -644,7 +645,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         }
 
         n = write(xmitsfd, buff, RECLTH);
-        if (n < 0 )
+        if (n < 0)
           break;
         bytes += n;
 
@@ -652,10 +653,14 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
           c2++;
         }
       }
+      sndqueue = sndq_len(xmitsfd);
 
       shutdown(xmitsfd, SHUT_WR);  /* end of write's */
       s = secs() - t;
       x2cspd = (8.e-3 * bytes) / s;
+      /* send the x2cspd to the client */
+      sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
+      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       if (experimental > 0) {
         web100_snapshot_free(snap);
         if (experimental > 1)

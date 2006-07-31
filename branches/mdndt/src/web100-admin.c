@@ -410,6 +410,9 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
    * test.
    */
   fp = fopen("/tmp/view.string", "w");
+  if (fp == NULL) {
+    return;
+  }
   lock.l_type = F_WRLCK;
   i = fcntl((int)fp, F_SETLKW, lock);
   log_println(1, "successfully locked '/tmp/view.string' for updating");
@@ -423,7 +426,6 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
   lock.l_type = F_UNLCK;
   fcntl((int)fp, F_SETLK, lock);
   fclose(fp);
-
 }
 
 void

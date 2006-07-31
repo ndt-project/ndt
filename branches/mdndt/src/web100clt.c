@@ -31,8 +31,8 @@ int PktsOut, CongestionSignals, RcvWinScale;
 int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
 int winssent, winsrecv, msglvl=0;
-int sndqueue;
-double spdin, spdout, c2sspd;
+int sndqueue, ssndqueue, sbytes;
+double spdin, spdout, c2sspd, s2cspd;
 double aspd;
 
 int half_duplex, congestion, bad_cable, mismatch;
@@ -233,6 +233,17 @@ testResults(char tests, char *tmpstr, char* host)
         printf("Information [C2S]: %0.2f%% of the transmitted bytes were buffered ", 100 * (spdout - c2sspd) / spdout);
         if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
           printf("locally.\n");
+        }
+        else {
+          printf("somewhere on the path.\n");
+        }
+      }
+    }
+    if (tests & TEST_S2C) {
+      if (spdin < (s2cspd  * (1.0 - VIEW_DIFF))) {
+        printf("Information [S2C]: %0.2f%% of the transmitted bytes were buffered ", 100 * (s2cspd - spdin) / s2cspd);
+        if (ssndqueue > (0.8 * sbytes * (s2cspd - spdin) / s2cspd)) {
+          printf("on the server.\n");
         }
         else {
           printf("somewhere on the path.\n");
@@ -584,7 +595,6 @@ main(int argc, char *argv[])
   int ret, i = 0, xwait, one=1;
   int largewin;
   char buff[8192];
-  time_t sec;
   char *host = NULL;
   int buf_size=0, set_size, k;
   int msgLen, msgType;
@@ -594,6 +604,7 @@ main(int argc, char *argv[])
   I2Addr server_addr = NULL, sec_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
   socklen_t optlen;
+  char* ptr;
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -815,13 +826,13 @@ main(int argc, char *argv[])
     tmpstr2[0] = '\0';
     i = 0;
     bytes = 0;
-    sec = time(0);
+    t = secs() + 5.0;
     sel_tv.tv_sec = 6;
     sel_tv.tv_usec = 5;
     FD_ZERO(&rfd);
     FD_SET(in2Socket, &rfd);
     for (;;) {
-      if (time(0) > (sec+5.0))
+      if (secs() > t)
         break;
       ret = select(in2Socket+1, &rfd, NULL, NULL, &sel_tv);
       if (ret > 0) {
@@ -841,8 +852,8 @@ main(int argc, char *argv[])
       }
     }
     shutdown(in2Socket, SHUT_RD);
-    sec =  time(0) - sec;
-    spdin = ((8.0 * bytes) / 1000) / sec;
+    t =  secs() - t + 5.0;
+    spdin = ((8.0 * bytes) / 1000) / t;
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
@@ -1050,9 +1061,6 @@ main(int argc, char *argv[])
       log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
     }
 
-    bytes = 0;
-    sec = time(0);
-
     /* Linux updates the sel_tv time values everytime select returns.  This
      * means that eventually the timer will reach 0 seconds and select will
      * exit with a timeout signal.  Other OS's don't do that so they need
@@ -1075,13 +1083,15 @@ main(int argc, char *argv[])
     printf("running 10s inbound test (server to client) . . . . . . ");
     fflush(stdout);
 
+    bytes = 0;
+    t = secs() + 15.0;
     sel_tv.tv_sec = 15;
     sel_tv.tv_usec = 5;
     FD_ZERO(&rfd);
     FD_SET(inSocket, &rfd);
     for (;;) {
       ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
-      if ((time(0)-sec) > 15) {
+      if (secs() > t) {
         log_println(5, "Receive test running long, break out of read loop");
         break;
       }
@@ -1096,9 +1106,42 @@ main(int argc, char *argv[])
         perror("s2c read loop exiting:");
       break;
     }
-    sec =  time(0) - sec;
-    spdin = ((8.0 * bytes) / 1000) / sec;
+    t = secs() - t + 15.0;
+    spdin = ((8.0 * bytes) / 1000) / t;
 
+    /* receive the s2cspd from the server */
+    msgLen = sizeof(buff);
+    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+      log_println(0, "Protocol error!");
+      exit(1);
+    }
+    if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
+      exit(2);
+    }
+    if (msgLen <= 0) { 
+      log_println(0, "Improper message");
+      exit(3);
+    }
+    buff[msgLen] = 0; 
+    ptr = strtok(buff, " ");
+    if (ptr == NULL) {
+      log_println(0, "S2C: Improper message");
+      exit(4);
+    }
+    s2cspd = atoi(ptr);
+    ptr = strtok(NULL, " ");
+    if (ptr == NULL) {
+      log_println(0, "S2C: Improper message");
+      exit(4);
+    }
+    ssndqueue = atoi(ptr);
+    ptr = strtok(NULL, " ");
+    if (ptr == NULL) {
+      log_println(0, "S2C: Improper message");
+      exit(4);
+    }
+    sbytes = atoi(ptr);
+    
     if (spdin < 1000)
       printf("%0.2f kb/s\n", spdin);
     else
