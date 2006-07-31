@@ -670,7 +670,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       web100_snap(rsnap);
       web100_snap(tsnap);
 
-      log_println(1, "sent %d bytes to client in %0.2f seconds",(int) bytes, t);
+      log_println(1, "sent %d bytes to client in %0.2f seconds",(int) bytes, s);
       log_println(1, "Buffer control counters Total = %d, new data = %d, Draining Queue = %d", c3, c2, c1);
       /* Next send speed-chk a flag to retrieve the data it collected.
        * Skip this step if speed-chk isn't running.

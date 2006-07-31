@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.2";
+  private static final String VERSION = "5.4.3";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -138,7 +138,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	private String TARGET1 = "U";
 	private String TARGET2 = "H";
 	String emailText;
-	double s2cspd, c2sspd, sc2sspd;
+	double s2cspd, c2sspd, sc2sspd, ss2cspd;
+  int ssndqueue;
+  double sbytes;
 
 	int half_duplex, congestion, bad_cable, mismatch;
 	double mylink;
@@ -758,6 +760,33 @@ public class Tcpbw100 extends JApplet implements ActionListener
       t =  System.currentTimeMillis() - t;
       System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
       s2cspd = ((8.0 * bytes) / 1000) / t;
+
+      /* receive the s2cspd from the server */
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "S2C throughput test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      try {
+        String tmpstr3 = new String(msg.body);
+        int k1 = tmpstr3.indexOf(" ");
+        int k2 = tmpstr3.substring(k1+1).indexOf(" ");
+        ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
+        ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
+        sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        errmsg = "S2C throughput test: Received improper message\n";
+        failed = true;
+        return;
+      }
+      
       if (s2cspd < 1.0) {
         results.append(prtdbl(s2cspd*1000) + "kb/s\n");
         statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
@@ -1074,6 +1103,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
           results.append("Information [C2S]: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered.\n");
         }
       }
+      
+      if ((tests & TEST_S2C) == TEST_S2C) {
+        if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
+          results.append("Information [S2C]: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered.\n");
+        }
+      }
 
       if ((tests & TEST_SFW) == TEST_SFW) {
         switch (c2sResult) {
@@ -1205,6 +1240,24 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				emailText += "No packet loss was observed.\n%0A";
 			}
 
+      if ((tests & TEST_C2S) == TEST_C2S) {
+        if (c2sspd > sc2sspd) {
+          statistics.append(prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered in the C2S throughput test.\n");
+        }
+        else {
+          statistics.append("All transmitted bytes in the C2S throughput test were received.\n");
+        }
+      }
+      
+      if ((tests & TEST_S2C) == TEST_S2C) {
+        if (ss2cspd > s2cspd) {
+          statistics.append(prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered in the S2C throughput test.\n");
+        }
+        else {
+          statistics.append("All transmitted bytes in the S2C throughput test were received.\n");
+        }
+      }
+      
 			if (rwintime > .015) {
 				statistics.append("This connection is receiver limited " + prtdbl(rwintime*100) +
 				"% of the time.\n");
