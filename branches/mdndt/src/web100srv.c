@@ -546,7 +546,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   alarm(15);
   test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
   
-  alarm(60);
+  alarm(30);
   test_sfw_srv(ctlsockfd, agent, &testopt, conn_options);
 
   alarm(30);

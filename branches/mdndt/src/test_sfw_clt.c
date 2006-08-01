@@ -7,6 +7,7 @@
  */
 
 #include <assert.h>
+#include <pthread.h>
 
 #include "test_sfw.h"
 #include "logging.h"
@@ -16,6 +17,9 @@
 
 static int c2s_result = SFW_NOTTESTED;
 static int s2c_result = SFW_NOTTESTED;
+static int testTime;
+static int sfwsockfd;
+static I2Addr sfwcli_addr = NULL;
 
 /*
  * Function name: catch_alrm
@@ -36,33 +40,19 @@ catch_alrm(int signo)
 /*
  * Function name: test_osfw_clt
  * Description: Performs the client part of the opposite Simple
- *              firewall test.
- * Arguments: ctlsockfd - the server control socket descriptor
- *            conn_options - the connection options
+ *              firewall test in the separate thread.
  */
 
-void
-test_osfw_clt(int ctlsockfd, int testTime, int conn_options)
+void*
+test_osfw_clt(void* vptr)
 {
   char buff[BUFFSIZE+1];
-  I2Addr sfwcli_addr = NULL;
-  int sfwsockfd, sfwsockport, sockfd;
+  int sockfd;
   fd_set fds;
   struct timeval sel_tv;
   int msgLen, msgType;
   struct sockaddr_storage srv_addr;
   socklen_t srvlen;
-
-  sfwcli_addr = CreateListenSocket(NULL, "0", conn_options);
-  if (sfwcli_addr == NULL) {
-    err_sys("client: CreateListenSocket failed");
-  }
-  sfwsockfd = I2AddrFD(sfwcli_addr);
-  sfwsockport = I2AddrPort(sfwcli_addr);
-  log_println(1, "  -- oport: %d", sfwsockport);
-
-  sprintf(buff, "%d", sfwsockport);
-  send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
 
   FD_ZERO(&fds);
   FD_SET(sfwsockfd, &fds);
@@ -72,12 +62,12 @@ test_osfw_clt(int ctlsockfd, int testTime, int conn_options)
     case -1:
       log_println(0, "Simple firewall test: select exited with error");
       I2AddrFree(sfwcli_addr);
-      return;
+      return NULL;
     case 0:
       log_println(1, "Simple firewall test: no connection for %d seconds", testTime);
       s2c_result = SFW_POSSIBLE;
       I2AddrFree(sfwcli_addr);
-      return;
+      return NULL;
   }
   srvlen = sizeof(srv_addr);
   sockfd = accept(sfwsockfd, (struct sockaddr *) &srv_addr, &srvlen);
@@ -88,20 +78,20 @@ test_osfw_clt(int ctlsockfd, int testTime, int conn_options)
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
     I2AddrFree(sfwcli_addr);
-    return;
+    return NULL;
   }
   if (check_msg_type("Simple firewall test", TEST_MSG, msgType)) {
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
     I2AddrFree(sfwcli_addr);
-    return;
+    return NULL;
   }
   if (msgLen != 20) {
     log_println(0, "Simple firewall test: Improper message");
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
     I2AddrFree(sfwcli_addr);
-    return;
+    return NULL;
   }
   buff[msgLen] = 0;
   if (strcmp(buff, "Simple firewall test") != 0) {
@@ -109,12 +99,14 @@ test_osfw_clt(int ctlsockfd, int testTime, int conn_options)
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
     I2AddrFree(sfwcli_addr);
-    return;
+    return NULL;
   }
 
   s2c_result = SFW_NOFIREWALL;
   close(sockfd);
   I2AddrFree(sfwcli_addr);
+
+  return NULL;
 }
 
 /*
@@ -132,11 +124,11 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
 {
   char buff[BUFFSIZE+1];
   int msgLen, msgType;
-  int sfwport, sfwsock;
-  int testTime;
+  int sfwport, sfwsock, sfwsockport;
   I2Addr sfwsrv_addr = NULL;
   struct sigaction new, old;
   char* ptr;
+  pthread_t threadId;
   
   if (tests & TEST_SFW) {
     log_println(1, " <-- Simple firewall test -->");
@@ -181,6 +173,27 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     }
     I2AddrSetPort(sfwsrv_addr, sfwport);
 
+    sfwcli_addr = CreateListenSocket(NULL, "0", conn_options);
+    if (sfwcli_addr == NULL) {
+      err_sys("client: CreateListenSocket failed");
+    }
+    sfwsockfd = I2AddrFD(sfwcli_addr);
+    sfwsockport = I2AddrPort(sfwcli_addr);
+    log_println(1, "  -- oport: %d", sfwsockport);
+
+    sprintf(buff, "%d", sfwsockport);
+    send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+    
+    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+      log_println(0, "Protocol error!");
+      exit(1);
+    }
+    if (check_msg_type("Simple firewall test", TEST_START, msgType)) {
+      exit(2);
+    }
+    
+    pthread_create(&threadId, NULL, &test_osfw_clt, NULL);
+
     /* ignore the alrm signal */
     memset(&new, 0, sizeof(new));
     new.sa_handler = catch_alrm;
@@ -210,7 +223,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
       exit(4);
     }
 
-    test_osfw_clt(ctlsockfd, testTime, conn_options);
+    pthread_join(threadId, NULL);
     
     printf("Done\n");
     

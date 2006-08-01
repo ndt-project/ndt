@@ -7,12 +7,19 @@
  */
 
 #include <assert.h>
+#include <pthread.h>
 
 #include "test_sfw.h"
 #include "logging.h"
 #include "protocol.h"
 #include "network.h"
 #include "utils.h"
+
+static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
+static I2Addr sfwcli_addr = NULL;
+static int testTime = 30;
+static int toWait = 1;
 
 /*
  * Function name: catch_alrm
@@ -33,79 +40,49 @@ catch_alrm(int signo)
 /*
  * Function name: test_osfw_srv
  * Description: Performs the server part of the opposite Simple
- *              firewall test.
+ *              firewall test in the separate thread.
+ */
+
+void*
+test_osfw_srv(void* vptr)
+{
+  int sfwsock;
+  struct sigaction new, old;
+
+  /* ignore the alrm signal */
+  memset(&new, 0, sizeof(new));
+  new.sa_handler = catch_alrm;
+  sigaction(SIGALRM, &new, &old);
+  alarm(testTime + 1);
+  if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0) == 0) {
+    send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
+  }
+  alarm(0);
+  sigaction(SIGPIPE, &old, NULL);
+
+  pthread_mutex_lock( &mainmutex);
+  toWait = 0;
+  pthread_cond_broadcast(&maincond);
+  pthread_mutex_unlock( &mainmutex);
+
+  return NULL;
+}
+
+/*
+ * Function name: finalize_sfw
+ * Description: Waits for the every thread to accomplish and finalizes
+ *              the SFW test.
  * Arguments: ctlsockfd - the client control socket descriptor
  */
 
 void
-test_osfw_srv(int ctlsockfd, web100_agent* agent, int testTime)
+finalize_sfw(int ctlsockfd)
 {
-  char buff[BUFFSIZE+1];
-  I2Addr sfwcli_addr = NULL;
-  web100_var* var;
-  web100_connection* cn;
-  web100_group* group;
-  int msgLen, msgType;
-  int sfwport, sfwsock;
-  char* hostname;
-  struct sigaction new, old;
-
-  cn = web100_connection_from_socket(agent, ctlsockfd);
-  if (cn) {
-    web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
-    web100_raw_read(var, cn, buff);
-    hostname = web100_value_to_text(web100_get_var_type(var), buff);
-
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
-      log_println(1, " <-------------------------->");
-      return;
-    }
-    if (check_msg_type("Simple firewall test", TEST_MSG, msgType)) {
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
-      log_println(1, " <-------------------------->");
-      return;
-    }
-    if (msgLen <= 0) {
-      log_println(0, "Improper message");
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
-      log_println(1, " <-------------------------->");
-      return;
-    }
-    buff[msgLen] = 0;
-    if (check_int(buff, &sfwport)) {
-      log_println(0, "Invalid port number");
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
-      log_println(1, " <-------------------------->");
-      return;
-    }
-   
-    if ((sfwcli_addr = I2AddrByNode(NULL, hostname)) == NULL) {
-      log_println(0, "Unable to resolve server address");
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
-      log_println(1, " <-------------------------->");
-      return;
-    }
-    I2AddrSetPort(sfwcli_addr, sfwport);
-    log_println(1, "  -- oport: %d", sfwport);
-    
-    /* ignore the alrm signal */
-    memset(&new, 0, sizeof(new));
-    new.sa_handler = catch_alrm;
-    sigaction(SIGALRM, &new, &old);
-    alarm(testTime + 1);
-    if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0) == 0) {
-      send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
-    }
-    alarm(0);
-    sigaction(SIGPIPE, &old, NULL);
+  while (toWait) {
+    pthread_mutex_lock( &mainmutex);
+    pthread_cond_wait(&maincond, &mainmutex);
+    pthread_mutex_unlock( &mainmutex);
   }
-  else {
-    log_println(0, "Simple firewall test: Cannot find connection");
-  }
-    
   send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   log_println(1, " <-------------------------->");
 }
@@ -126,7 +103,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
 {
   char buff[BUFFSIZE+1];
   I2Addr sfwsrv_addr = NULL;
-  int sfwsockfd, sfwsockport, sockfd;
+  int sfwsockfd, sfwsockport, sockfd, sfwport;
   struct sockaddr_storage cli_addr;
   socklen_t clilen;
   fd_set fds;
@@ -135,8 +112,9 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
   web100_var* var;
   web100_connection* cn;
   web100_group* group;
-  int testTime = 30;
   int maxRTT, maxRTO;
+  pthread_t threadId;
+  char hostname[256];
   
   assert(ctlsockfd != -1);
   assert(options);
@@ -154,6 +132,10 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     
     cn = web100_connection_from_socket(agent, ctlsockfd);
     if (cn) {
+      web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
+      web100_raw_read(var, cn, buff);
+      memset(hostname, 0, 256);
+      strncpy(hostname, web100_value_to_text(web100_get_var_type(var), buff), 255);
       web100_agent_find_var_and_group(agent, "MaxRTT", &group, &var);
       web100_raw_read(var, cn, buff);
       maxRTT = atoi(web100_value_to_text(web100_get_var_type(var), buff));
@@ -165,11 +147,45 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       if (((((double) maxRTO) / 1000.0) + 1) < 30.0)
         testTime = ((double) maxRTO) / 1000.0 + 1;
     }
+    else {
+      log_println(0, "Simple firewall test: Cannot find connection");
+      exit(-1);
+    }
     log_println(1, "  -- time: %d", testTime);
     
     sprintf(buff, "%d %d", sfwsockport, testTime);
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+   
+    msgLen = sizeof(buff);
+    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+      log_println(0, "Protocol error!");
+      exit(1);
+    }
+    if (check_msg_type("Simple firewall test", TEST_MSG, msgType)) {
+      exit(2);
+    }
+    if (msgLen <= 0) {
+      log_println(0, "Improper message");
+      exit(3);
+    }
+    buff[msgLen] = 0;
+    if (check_int(buff, &sfwport)) {
+      log_println(0, "Invalid port number");
+      exit(4);
+    }
+
+    if ((sfwcli_addr = I2AddrByNode(NULL, hostname)) == NULL) {
+      log_println(0, "Unable to resolve server address");
+      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+      log_println(1, " <-------------------------->");
+      exit(5);
+    }
+    I2AddrSetPort(sfwcli_addr, sfwport);
+    log_println(1, "  -- oport: %d", sfwport);
     
+    send_msg(ctlsockfd, TEST_START, "", 0);
+    pthread_create(&threadId, NULL, &test_osfw_srv, NULL);
+
     FD_ZERO(&fds);
     FD_SET(sfwsockfd, &fds);
     sel_tv.tv_sec = testTime + 1;
@@ -180,14 +196,14 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
         sprintf(buff, "%d", SFW_UNKNOWN);
         send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
         I2AddrFree(sfwsrv_addr);
-        test_osfw_srv(ctlsockfd, agent, testTime);
+        finalize_sfw(ctlsockfd);
         return 1;
       case 0:
         log_println(0, "Simple firewall test: no connection for %d seconds", testTime);
         sprintf(buff, "%d", SFW_POSSIBLE);
         send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
         I2AddrFree(sfwsrv_addr);
-        test_osfw_srv(ctlsockfd, agent, testTime);
+        finalize_sfw(ctlsockfd);
         return 2;
     }
     clilen = sizeof(cli_addr);
@@ -200,7 +216,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
       I2AddrFree(sfwsrv_addr);
-      test_osfw_srv(ctlsockfd, agent, testTime);
+      finalize_sfw(ctlsockfd);
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_MSG, msgType)) {
@@ -208,7 +224,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
       I2AddrFree(sfwsrv_addr);
-      test_osfw_srv(ctlsockfd, agent, testTime);
+      finalize_sfw(ctlsockfd);
       return 1;
     }
     if (msgLen != 20) {
@@ -217,7 +233,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
       I2AddrFree(sfwsrv_addr);
-      test_osfw_srv(ctlsockfd, agent, testTime);
+      finalize_sfw(ctlsockfd);
       return 1;
     }
     buff[msgLen] = 0;
@@ -227,7 +243,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
       I2AddrFree(sfwsrv_addr);
-      test_osfw_srv(ctlsockfd, agent, testTime);
+      finalize_sfw(ctlsockfd);
       return 1;
     }
     
@@ -235,7 +251,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     close(sockfd);
     I2AddrFree(sfwsrv_addr);
-    test_osfw_srv(ctlsockfd, agent, testTime);
+    finalize_sfw(ctlsockfd);
   }
   return 0;
 }
