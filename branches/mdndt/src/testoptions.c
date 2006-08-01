@@ -20,6 +20,22 @@ int mon_pipe1[2], mon_pipe2[2];
 static int currentTest = TEST_NONE;
 
 /*
+ * Function name: catch_s2c_alrm
+ * Description: Prints the appropriate message when the SIGALRM is catched.
+ * Arguments: signo - the signal number (shuld be SIGALRM)
+ */
+
+void
+catch_s2c_alrm(int signo)
+{
+  if (signo == SIGALRM) {
+    log_println(1, "SIGALRM was caught");
+    return;
+  }
+  log_println(0, "Unknown (%d) signal was caught", signo);
+}
+
+/*
  * Function name: initialize_tests
  * Description: Initializes the tests for the client.
  * Arguments: ctlsockfd - the client control socket descriptor
@@ -453,6 +469,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int msgType;
   int msgLen;
   int sndqueue;
+  struct sigaction new, old;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -625,8 +642,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       }
 
       send_msg(ctlsockfd, TEST_START, "", 0);
-      alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
-                   * is generated.  */
+      /* ignore the alrm signal */
+      memset(&new, 0, sizeof(new));
+      new.sa_handler = catch_s2c_alrm;
+      sigaction(SIGALRM, &new, &old);
+      alarm(11);
       t = secs();
       s = t + 10.0;
 
@@ -659,6 +679,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
           c2++;
         }
       }
+      alarm(10);
+      sigaction(SIGALRM, &old, NULL);
       sndqueue = sndq_len(xmitsfd);
 
       shutdown(xmitsfd, SHUT_WR);  /* end of write's */
