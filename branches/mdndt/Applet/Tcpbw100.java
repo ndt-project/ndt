@@ -529,6 +529,37 @@ public class Tcpbw100 extends JApplet implements ActionListener
       int srvPort = Integer.parseInt(message.substring(0,k));
       int testTime = Integer.parseInt(message.substring(k+1));
 
+      System.out.println("SFW: port=" + srvPort);
+      System.out.println("SFW: testTime=" + testTime);
+
+      ServerSocket srvSocket;
+      try {
+        srvSocket = new ServerSocket(0);
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        errmsg = "Simple firewall test: Cannot create listen socket\n";
+        failed = true;
+        return;
+      }
+
+      System.out.println("SFW: oport=" + srvSocket.getLocalPort());
+      ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }     
+
+      OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
+      new Thread(osfwTest).start();
+
       Socket sfwSocket = new Socket();
       try {
         sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
@@ -551,8 +582,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
         return;
       }
       c2sResult = Integer.parseInt(new String(msg.body));
-
-      test_osfw_clt(ctl, testTime);
+      
+      osfwTest.finalize();
       
       results.append("Done\n");
       statistics.append("Done\n");
@@ -881,57 +912,86 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	}
 
 
-  private void test_osfw_clt(Protocol ctl, int testTime) throws IOException {
-    Message msg = new Message();
-    ServerSocket srvSocket;
-    try {
-      srvSocket = new ServerSocket(0);
-    }
-    catch (Exception e) {
-      e.printStackTrace();
-      errmsg = "Simple firewall test: Cannot create listen socket\n";
-      failed = true;
-      return;
-    }
+	class OsfwWorker implements Runnable
+  {
+    private ServerSocket srvSocket;
+    private int testTime;
+    private boolean finalized = false;
     
-    ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
-    
-    srvSocket.setSoTimeout(testTime * 1000);
-    Socket sock;
-    try {
-      sock = srvSocket.accept();
+    OsfwWorker(ServerSocket srvSocket, int testTime)
+    {
+      this.srvSocket = srvSocket;
+      this.testTime = testTime;
     }
-    catch (Exception e) {
-      e.printStackTrace();
-      s2cResult = SFW_POSSIBLE;
-      srvSocket.close();
-      return;
-    }
-    Protocol sfwCtl = new Protocol(sock);
 
-    if (sfwCtl.recv_msg(msg) != 0) {
-      System.out.println("Simple firewall test: unrecognized message");
-      s2cResult = SFW_UNKNOWN;
-      sock.close();
-      srvSocket.close();
-      return;
+    public void finalize()
+    {
+      while (!finalized) {
+        try {
+          Thread.currentThread().sleep(1000);
+        }
+        catch (InterruptedException e) {
+          // do nothing.
+        }
+      }
     }
-    if (msg.type != TEST_MSG) {
-      s2cResult = SFW_UNKNOWN;
-      sock.close();
-      srvSocket.close();
-      return;
+    
+    public void run()
+    {
+      Message msg = new Message();
+      Socket sock = null;
+
+      try {
+        srvSocket.setSoTimeout(testTime * 1000);
+        try {
+          sock = srvSocket.accept();
+        }
+        catch (Exception e) {
+          e.printStackTrace();
+          s2cResult = SFW_POSSIBLE;
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        Protocol sfwCtl = new Protocol(sock);
+
+        if (sfwCtl.recv_msg(msg) != 0) {
+          System.out.println("Simple firewall test: unrecognized message");
+          s2cResult = SFW_UNKNOWN;
+          sock.close();
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        if (msg.type != TEST_MSG) {
+          s2cResult = SFW_UNKNOWN;
+          sock.close();
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        if (! new String(msg.body).equals("Simple firewall test")) {
+          System.out.println("Simple firewall test: Improper message");
+          s2cResult = SFW_UNKNOWN;
+          sock.close();
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        s2cResult = SFW_NOFIREWALL;
+      }
+      catch (IOException ex) {
+        s2cResult = SFW_UNKNOWN;
+      }
+      try {
+        sock.close();
+        srvSocket.close();
+      }
+      catch (IOException e) {
+        // do nothing
+      }
+      finalized = true;
     }
-    if (! new String(msg.body).equals("Simple firewall test")) {
-      System.out.println("Simple firewall test: Improper message");
-      s2cResult = SFW_UNKNOWN;
-      sock.close();
-      srvSocket.close();
-      return;
-    }
-    s2cResult = SFW_NOFIREWALL;
-    sock.close();
-    srvSocket.close();
   }
 
 
