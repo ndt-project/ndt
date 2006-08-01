@@ -14,6 +14,7 @@
 #include "protocol.h"
 #include "network.h"
 #include "utils.h"
+#include "testoptions.h"
 
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
@@ -58,7 +59,7 @@ test_osfw_srv(void* vptr)
     send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
   }
   alarm(0);
-  sigaction(SIGPIPE, &old, NULL);
+  sigaction(SIGALRM, &old, NULL);
 
   pthread_mutex_lock( &mainmutex);
   toWait = 0;
@@ -85,6 +86,7 @@ finalize_sfw(int ctlsockfd)
   }
   send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   log_println(1, " <-------------------------->");
+  setCurrentTest(TEST_NONE);
 }
 
 /*
@@ -120,6 +122,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
   assert(options);
 
   if (options->sfwopt) {
+    setCurrentTest(TEST_SFW);
     log_println(1, " <-- Simple firewall test -->");
     
     sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options);

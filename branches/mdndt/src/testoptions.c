@@ -17,6 +17,7 @@
 #include "protocol.h"
 
 int mon_pipe1[2], mon_pipe2[2];
+static int currentTest = TEST_NONE;
 
 /*
  * Function name: initialize_tests
@@ -95,6 +96,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   assert(s2c2spd);
   
   if (options->midopt) {
+    setCurrentTest(TEST_MID);
     log_println(1, " <-- Middlebox test -->");
     strcpy(listenmidport, PORT3);
 
@@ -178,6 +180,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     close(options->midsockfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
     log_println(1, " <-------------------->");
+    setCurrentTest(TEST_NONE);
   }
   return 0;
 }
@@ -217,6 +220,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   web100_connection* conn;
 
   if (options->c2sopt) {
+    setCurrentTest(TEST_C2S);
     log_println(1, " <-- C2S throughput test -->");
     strcpy(listenc2sport, PORT2);
     
@@ -409,6 +413,7 @@ read3:
     wait(NULL);
     
     log_println(1, " <------------------------->");
+    setCurrentTest(TEST_NONE);
   }
   return 0;
 }
@@ -466,6 +471,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int c1=0, c2=0;
   
   if (options->s2copt) {
+    setCurrentTest(TEST_S2C);
     log_println(1, " <-- S2C throughput test -->");
     strcpy(listens2cport, PORT4);
     
@@ -742,6 +748,31 @@ read2:
     wait(NULL);
 
     log_println(1, " <------------------------->");
+    setCurrentTest(TEST_NONE);
   }
   return 0;
+}
+
+/*
+ * Function name: getCurrentTest
+ * Description: Returns the id of the currently running test.
+ * Returns: The id of the currently running test.
+ */
+
+int
+getCurrentTest()
+{
+  return currentTest;
+}
+
+/*
+ * Function name: setCurrentTest
+ * Description: Sets the id of the currently running test.
+ * Arguments: testId - the id of the currently running test
+ */
+
+void
+setCurrentTest(int testId)
+{
+  currentTest = testId;
 }

@@ -263,10 +263,40 @@ cleanup(int signo)
       break;
 
     case SIGALRM:
+      switch (getCurrentTest()) {
+        case TEST_MID:
+          log_println(6, "Received SIGALRM signal [Middlebox test]");
+          break;
+        case TEST_C2S:
+          log_println(6, "Received SIGALRM signal [C2S throughput test]");
+          break;
+        case TEST_S2C:
+          log_println(6, "Received SIGALRM signal [S2C throughput test]");
+          break;
+        case TEST_SFW:
+          log_println(6, "Received SIGALRM signal [Simple firewall test]");
+          break;
+      }
       fp = fopen(get_logfile(),"a");
       if (fp  != NULL) {
-        fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]\n",
+        fprintf(fp,"Received SIGALRM signal: terminating active web100srv process [%d]",
             getpid());
+        switch (getCurrentTest()) {
+          case TEST_MID:
+            fprintf(fp, " [Middlebox test]\n");
+            break;
+          case TEST_C2S:
+            fprintf(fp, " [C2S throughput test]\n");
+            break;
+          case TEST_S2C:
+            fprintf(fp, " [S2C throughput test]\n");
+            break;
+          case TEST_SFW:
+            fprintf(fp, " [Simple firewall test]\n");
+            break;
+          default:
+            fprintf(fp, "\n");
+        }
         fclose(fp);
       }
       exit(0);

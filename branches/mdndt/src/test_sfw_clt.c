@@ -203,7 +203,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
       send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
     }
     alarm(0);
-    sigaction(SIGPIPE, &old, NULL);
+    sigaction(SIGALRM, &old, NULL);
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
@@ -257,9 +257,7 @@ results_sfw(char tests, char* host)
         printf("Server '%s' is not behind a firewall.\n", host);
         break;
       case SFW_POSSIBLE:
-#if 0
         printf("Server '%s' is probably behind a firewall.\n", host);
-#endif
         break;
       case SFW_UNKNOWN:
       case SFW_NOTTESTED:
@@ -270,9 +268,7 @@ results_sfw(char tests, char* host)
         printf("Client is not behind a firewall.\n");
         break;
       case SFW_POSSIBLE:
-#if 0
         printf("Client is probably behind a firewall.\n");
-#endif
         break;
       case SFW_UNKNOWN:
       case SFW_NOTTESTED:

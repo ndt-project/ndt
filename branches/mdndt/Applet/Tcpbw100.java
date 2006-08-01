@@ -1157,49 +1157,18 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			        }
 			    }
 			}
-      
+     
       if ((tests & TEST_C2S) == TEST_C2S) {
         if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
+          // TODO:  distinguish the host buffering from the middleboxes buffering
           results.append("Information [C2S]: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered.\n");
         }
       }
       
       if ((tests & TEST_S2C) == TEST_S2C) {
         if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
+          // TODO:  distinguish the host buffering from the middleboxes buffering
           results.append("Information [S2C]: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered.\n");
-        }
-      }
-
-      if ((tests & TEST_SFW) == TEST_SFW) {
-        switch (c2sResult) {
-          case SFW_NOFIREWALL:
-            results.append("Server '" + host + "' is not behind a firewall.\n");
-            emailText += "Server '" + host + "' is not behind a firewall.\n%0A";
-            break;
-          case SFW_POSSIBLE:
-            /*
-            results.append("Server '" + host + "' is probably behind a firewall.\n");
-            emailText += "Server '" + host + "' is probably behind a firewall.\n%0A";
-            */
-            break;
-          case SFW_UNKNOWN:
-          case SFW_NOTTESTED:
-            break;
-        }
-        switch (s2cResult) {
-          case SFW_NOFIREWALL:
-            results.append("Client is not behind a firewall.\n");
-            emailText += "Client is not behind a firewall.\n%0A";
-            break;
-          case SFW_POSSIBLE:
-            /*
-            results.append("Client is probably behind a firewall.\n");
-            emailText += "Client is probably behind a firewall.\n%0A";
-            */
-            break;
-          case SFW_UNKNOWN:
-          case SFW_NOTTESTED:
-            break;
         }
       }
 
@@ -1389,6 +1358,35 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				statistics.append ("ON\n");
 			diagnosis.append("\n");
 
+      if ((tests & TEST_SFW) == TEST_SFW) {
+        switch (c2sResult) {
+          case SFW_NOFIREWALL:
+            diagnosis.append("Server '" + host + "' is not behind a firewall.\n");
+            emailText += "Server '" + host + "' is not behind a firewall.\n%0A";
+            break;
+          case SFW_POSSIBLE:
+            diagnosis.append("Server '" + host + "' is probably behind a firewall.\n");
+            emailText += "Server '" + host + "' is probably behind a firewall.\n%0A";
+            break;
+          case SFW_UNKNOWN:
+          case SFW_NOTTESTED:
+            break;
+        }
+        switch (s2cResult) {
+          case SFW_NOFIREWALL:
+            diagnosis.append("Client is not behind a firewall.\n");
+            emailText += "Client is not behind a firewall.\n%0A";
+            break;
+          case SFW_POSSIBLE:
+            diagnosis.append("Client is probably behind a firewall.\n");
+            emailText += "Client is probably behind a firewall.\n%0A";
+            break;
+          case SFW_UNKNOWN:
+          case SFW_NOTTESTED:
+            break;
+        }
+      }
+			diagnosis.append("\n");
 
 			// diagnosis.append("Checking for mismatch condition\n\t(cwndtime > .3) " +
 			//	"[" + prtdbl(cwndtime) + ">.3], (MaxSsthresh > 0) [" + MaxSsthresh +
