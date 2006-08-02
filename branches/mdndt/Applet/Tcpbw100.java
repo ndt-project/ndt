@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.3";
+  private static final String VERSION = "5.4.4";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -319,18 +319,507 @@ public class Tcpbw100 extends JApplet implements ActionListener
     }
   }
 
+  public boolean test_mid(Protocol ctl) throws IOException
+  {
+		byte buff[] = new byte[8192];
+    Message msg = new Message();
+    if ((tests & TEST_MID) == TEST_MID) {
+      /* now look for middleboxes (firewalls, NATs, and other boxes that
+       * muck with TCP's end-to-end priciples
+       */
+      showStatus("Tcpbw100 Middlebox test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Middlebox test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      int midport = Integer.parseInt(new String(msg.body));
+
+      Socket in2Socket = null;
+      try {
+        in2Socket = new Socket(host, midport);
+      } catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return true;
+      } catch (IOException e) {
+        System.err.println("Couldn't perform middlebox testing to: " + host);
+        errmsg = "Server Failed while middlebox testing\n" ;
+        failed = true;
+        return true;
+      }
+      results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
+
+      InputStream srvin2 = in2Socket.getInputStream();
+      OutputStream srvout2 = in2Socket.getOutputStream();
+
+      int largewin = 128*1024;
+
+      in2Socket.setSoTimeout(6500);
+      int bytes = 0;
+      int inlth;
+      t = System.currentTimeMillis();
+
+      try {  
+        while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
+          bytes += inlth;
+          if ((System.currentTimeMillis() - t) > 5500)
+            break;
+        }
+      } 
+      catch (IOException e) {}
+
+      t =  System.currentTimeMillis() - t;
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
+      s2cspd = ((8.0 * bytes) / 1000) / t;
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Middlebox test results: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      tmpstr2 = new String(msg.body);
+
+      String tmpstr4 = Double.toString(s2cspd*1000);
+      System.out.println("Sending '" + tmpstr4 + "' back to server");
+      ctl.send_msg(TEST_MSG, tmpstr4.getBytes());
+
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+      try {
+        tmpstr2 += in2Socket.getInetAddress() + ";";
+      } catch (SecurityException e) {
+        System.err.println("Unable to obtain Servers IP addresses: using " + host);
+        errmsg = "getInetAddress() called failed\n" ;
+        tmpstr2 += host + ";";
+        results.append("Unable to obtain remote IP address\n");
+      }
+
+      System.err.println("calling in2Socket.getLocalAddress()");
+      try {
+        tmpstr2 += in2Socket.getLocalAddress() + ";";
+      } catch (SecurityException e) {
+        System.err.println("Unable to obtain local IP address: using 127.0.0.1");
+        errmsg = "getLocalAddress() call failed\n" ;
+        tmpstr2 += "127.0.0.1;";
+        // results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
+      }
+
+      srvin2.close();
+      srvout2.close();
+      in2Socket.close();
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Middlebox test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean test_sfw(Protocol ctl) throws IOException
+  {
+    Message msg = new Message();
+    if ((tests & TEST_SFW) == TEST_SFW) {
+      showStatus("Simple firewall test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+
+      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
+
+      String message = new String(msg.body);
+
+      int srvPort, testTime;
+      try {
+        int k = message.indexOf(" ");
+        srvPort = Integer.parseInt(message.substring(0,k));
+        testTime = Integer.parseInt(message.substring(k+1));
+      }
+      catch (Exception e) {
+        errmsg = "Simple firewall test: Received improper message\n";
+        failed = true;
+        return true;
+      }
+
+      System.out.println("SFW: port=" + srvPort);
+      System.out.println("SFW: testTime=" + testTime);
+
+      ServerSocket srvSocket;
+      try {
+        srvSocket = new ServerSocket(0);
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        errmsg = "Simple firewall test: Cannot create listen socket\n";
+        failed = true;
+        return true;
+      }
+
+      System.out.println("SFW: oport=" + srvSocket.getLocalPort());
+      ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }     
+
+      OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
+      new Thread(osfwTest).start();
+
+      Socket sfwSocket = new Socket();
+      try {
+        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
+
+        Protocol sfwCtl = new Protocol(sfwSocket);
+        sfwCtl.send_msg(TEST_MSG, new String("Simple firewall test").getBytes());
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      c2sResult = Integer.parseInt(new String(msg.body));
+
+      osfwTest.finalize();
+
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean test_c2s(Protocol ctl) throws IOException
+  {
+		byte buff2[] = new byte[8192];
+    Message msg = new Message();
+    if ((tests & TEST_C2S) == TEST_C2S) {
+      showStatus("Tcpbw100 outbound test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      int c2sport = Integer.parseInt(new String(msg.body));
+
+      Socket outSocket = null;
+      try {
+        outSocket = new Socket(host, c2sport);
+      } catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return true;
+      } catch (IOException e) {
+        System.err.println("Couldn't get 2nd connection to: " + host);
+        errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
+        failed = true;
+        return true;
+      }
+      results.append("running 10s outbound test (client to server) . . . . . ");
+      statistics.append("running 10s outbound test (client to server) . . . . . ");
+      emailText += "running 10s outbound test (client to server) . . . . . ";
+
+      OutputStream out = outSocket.getOutputStream();
+
+      // wait here for signal from server application 
+      // This signal tells the client to start pumping out data
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+
+      Random rng = new Random();
+      byte c = '0';
+      int i;
+      for (i=0; i<lth; i++) {
+        if (c == 'z')
+          c = '0';
+        buff2[i] = c++;
+      }
+      System.err.println("Send buffer size =" + i);
+      outSocket.setSoTimeout(15000); 
+      pkts = 0;
+      t = System.currentTimeMillis();
+      double stop_time = t + 10000; // ten seconds
+      do {
+        // if (Randomize) rng.nextBytes(buff2);
+        try {
+          out.write(buff2, 0, buff2.length);
+        }
+        catch (SocketException e) {
+          System.out.println(e);
+          break;
+        }
+        pkts++;
+      } while (System.currentTimeMillis() < stop_time);
+
+      t =  System.currentTimeMillis() - t;
+      if (t == 0) {
+        t = 1;
+      }
+      out.close();
+      outSocket.close();
+      System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
+      c2sspd = ((8.0 * pkts * lth) / 1000) / t;
+      /* receive the c2sspd from the server */
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      String tmpstr3 = new String(msg.body);
+      sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
+
+      if (sc2sspd < 1.0) {
+        results.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
+        statistics.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
+        emailText += prtdbl(sc2sspd*1000) + "Kb/s\n%0A";
+      } 
+      else {
+        results.append(prtdbl(sc2sspd) + "Mb/s\n");
+        statistics.append(prtdbl(sc2sspd) + "Mb/s\n");
+        emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
+      }
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean test_s2c(Protocol ctl, Socket ctlSocket) throws IOException
+  {
+		byte buff[] = new byte[8192];
+    Message msg = new Message();
+    if ((tests & TEST_S2C) == TEST_S2C) {
+      showStatus("Tcpbw100 inbound test...");
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      int s2cport = Integer.parseInt(new String(msg.body));
+
+      Socket inSocket;
+      try {
+        inSocket = new Socket(host, s2cport);
+      } 
+      catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return true;
+      } 
+      catch (IOException e) {
+        System.err.println("Couldn't get 3rd connection to: " + host);
+        errmsg = "Server Failed while receiving data\n" ;
+        failed = true;
+        return true;
+      }
+
+      InputStream srvin = inSocket.getInputStream();
+      int bytes = 0;
+      int inlth;
+
+      results.append("running 10s inbound test (server to client) . . . . . . ");
+      statistics.append("running 10s inbound test (server to client) . . . . . . ");
+      emailText += "running 10s inbound test (server to client) . . . . . . ";
+
+      // wait here for signal from server application 
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "S2C throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+
+      inSocket.setSoTimeout(15000);
+      t = System.currentTimeMillis();
+
+      try {  
+        while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
+          bytes += inlth;
+          if ((System.currentTimeMillis() - t) > 14500)
+            break;
+        }
+      } 
+      catch (IOException e) {}
+
+      t =  System.currentTimeMillis() - t;
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
+      s2cspd = ((8.0 * bytes) / 1000) / t;
+
+      /* receive the s2cspd from the server */
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "S2C throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      try {
+        String tmpstr3 = new String(msg.body);
+        int k1 = tmpstr3.indexOf(" ");
+        int k2 = tmpstr3.substring(k1+1).indexOf(" ");
+        ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
+        ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
+        sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        errmsg = "S2C throughput test: Received improper message\n";
+        failed = true;
+        return true;
+      }
+
+      if (s2cspd < 1.0) {
+        results.append(prtdbl(s2cspd*1000) + "kb/s\n");
+        statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
+        emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
+      } else {
+        results.append(prtdbl(s2cspd) + "Mb/s\n");
+        statistics.append(prtdbl(s2cspd) + "Mb/s\n");
+        emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
+      }
+
+      srvin.close();
+      inSocket.close();
+
+      buff = Double.toString(s2cspd*1000).getBytes();
+      String tmpstr4 = new String(buff, 0, buff.length);
+      System.out.println("Sending '" + tmpstr4 + "' back to server");
+      ctl.send_msg(TEST_MSG, buff);
+
+      /* get web100 variables from server */
+      tmpstr = "";
+      int i = 0;
+
+      // Try setting a 5 second timer here to break out if the read fails.
+      ctlSocket.setSoTimeout(5000);
+      try {  
+        for (;;) {
+          if (ctl.recv_msg(msg) != 0) {
+            errmsg = "Protocol error!\n";
+            failed = true;
+            return true;
+          }
+          if (msg.type == TEST_FINALIZE) {
+            break;
+          }
+          if (msg.type != TEST_MSG) {
+            errmsg = "S2C throughput test: Received wrong type of the message\n";
+            failed = true;
+            return true;
+          }
+          tmpstr += new String(msg.body);
+          i++;
+        }
+      } catch (IOException e) {}
+      ctlSocket.setSoTimeout(0);
+    }
+    return false;
+  }
+
 	public void dottcp() throws IOException {
 		Socket ctlSocket = null;
-		Socket outSocket = null;
-		Socket inSocket = null;
-		Socket in2Socket = null;
     if (!isApplication) {
 		  host = getCodeBase().getHost();
     }
-		int ctlport = 3001,  c2sport, s2cport, midport, inlth, bytes;
-		byte buff[] = new byte[8192];
-		byte buff2[] = new byte[8192];
-		double stop_time, wait2;
+		int ctlport = 3001;
+		double wait2;
 		int sbuf, rbuf;
 		int i, wait;
 
@@ -396,472 +885,46 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		f.toBack();
 		ff.toBack();
 
-    if ((tests & TEST_MID) == TEST_MID) {
-      /* now look for middleboxes (firewalls, NATs, and other boxes that
-       * muck with TCP's end-to-end priciples
-       */
-      showStatus("Tcpbw100 Middlebox test...");
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_PREPARE) {
-        errmsg = "Middlebox test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      midport = Integer.parseInt(new String(msg.body));
-      
-      try {
-        in2Socket = new Socket(host, midport);
-      } catch (UnknownHostException e) {
-        System.err.println("Don't know about host: " + host);
-        errmsg = "unknown server\n" ;
-        failed = true;
-        return;
-      } catch (IOException e) {
-        System.err.println("Couldn't perform middlebox testing to: " + host);
-        errmsg = "Server Failed while middlebox testing\n" ;
-        failed = true;
-        return;
-      }
-      results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-      statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-      emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
-
-      InputStream srvin2 = in2Socket.getInputStream();
-      OutputStream srvout2 = in2Socket.getOutputStream();
-
-      int largewin = 128*1024;
-
-      in2Socket.setSoTimeout(6500);
-      bytes = 0;
-      t = System.currentTimeMillis();
-
-      try {  
-        while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
-          bytes += inlth;
-          if ((System.currentTimeMillis() - t) > 5500)
-            break;
-        }
-      } 
-      catch (IOException e) {}
-
-      t =  System.currentTimeMillis() - t;
-      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
-      s2cspd = ((8.0 * bytes) / 1000) / t;
-
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_MSG) {
-        errmsg = "Middlebox test results: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      tmpstr2 = new String(msg.body);
-
-      String tmpstr4 = Double.toString(s2cspd*1000);
-      System.out.println("Sending '" + tmpstr4 + "' back to server");
-      ctl.send_msg(TEST_MSG, tmpstr4.getBytes());
-
-      results.append("Done\n");
-      statistics.append("Done\n");
-      emailText += "Done\n%0A";
-      try {
-        tmpstr2 += in2Socket.getInetAddress() + ";";
-      } catch (SecurityException e) {
-        System.err.println("Unable to obtain Servers IP addresses: using " + host);
-        errmsg = "getInetAddress() called failed\n" ;
-        tmpstr2 += host + ";";
-        results.append("Unable to obtain remote IP address\n");
-      }
-
-      System.err.println("calling in2Socket.getLocalAddress()");
-      try {
-        tmpstr2 += in2Socket.getLocalAddress() + ";";
-      } catch (SecurityException e) {
-        System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-        errmsg = "getLocalAddress() call failed\n" ;
-        tmpstr2 += "127.0.0.1;";
-        // results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
-      }
-
-      srvin2.close();
-      srvout2.close();
-      in2Socket.close();
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_FINALIZE) {
-        errmsg = "Middlebox test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
+    if (ctl.recv_msg(msg) != 0) {
+      errmsg = "Protocol error!\n";
+      failed = true;
+      return;
     }
-
-    if ((tests & TEST_SFW) == TEST_SFW) {
-      showStatus("Simple firewall test...");
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_PREPARE) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      
-      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
-      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
-      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
-      
-      String message = new String(msg.body);
-        
-      int k = message.indexOf(" ");
-      int srvPort = Integer.parseInt(message.substring(0,k));
-      int testTime = Integer.parseInt(message.substring(k+1));
-
-      System.out.println("SFW: port=" + srvPort);
-      System.out.println("SFW: testTime=" + testTime);
-
-      ServerSocket srvSocket;
-      try {
-        srvSocket = new ServerSocket(0);
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-        errmsg = "Simple firewall test: Cannot create listen socket\n";
-        failed = true;
-        return;
-      }
-
-      System.out.println("SFW: oport=" + srvSocket.getLocalPort());
-      ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
-
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_START) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }     
-
-      OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
-      new Thread(osfwTest).start();
-
-      Socket sfwSocket = new Socket();
-      try {
-        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
-
-        Protocol sfwCtl = new Protocol(sfwSocket);
-        sfwCtl.send_msg(TEST_MSG, new String("Simple firewall test").getBytes());
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-      }
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_MSG) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      c2sResult = Integer.parseInt(new String(msg.body));
-      
-      osfwTest.finalize();
-      
-      results.append("Done\n");
-      statistics.append("Done\n");
-      emailText += "Done\n%0A";
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_FINALIZE) {
-        errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
+    if (msg.type != MSG_LOGIN) {
+      errmsg = "Negotiating test suite: Received wrong type of the message\n";
+      failed = true;
+      return;
     }
+    StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
 
-    if ((tests & TEST_C2S) == TEST_C2S) {
-      showStatus("Tcpbw100 outbound test...");
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_PREPARE) {
-        errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      c2sport = Integer.parseInt(new String(msg.body));
-      try {
-        outSocket = new Socket(host, c2sport);
-      } catch (UnknownHostException e) {
-        System.err.println("Don't know about host: " + host);
-        errmsg = "unknown server\n" ;
-        failed = true;
-        return;
-      } catch (IOException e) {
-        System.err.println("Couldn't get 2nd connection to: " + host);
-        errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
-        failed = true;
-        return;
-      }
-      results.append("running 10s outbound test (client to server) . . . . . ");
-      statistics.append("running 10s outbound test (client to server) . . . . . ");
-      emailText += "running 10s outbound test (client to server) . . . . . ";
-
-      OutputStream out = outSocket.getOutputStream();
-
-      // wait here for signal from server application 
-      // This signal tells the client to start pumping out data
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_START) {
-        errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-
-      Random rng = new Random();
-      byte c = '0';
-      for (i=0; i<lth; i++) {
-        if (c == 'z')
-          c = '0';
-        buff2[i] = c++;
-      }
-      System.err.println("Send buffer size =" + i);
-      outSocket.setSoTimeout(15000); 
-      pkts = 0;
-      t = System.currentTimeMillis();
-      stop_time = t + 10000; // ten seconds
-      do {
-        // if (Randomize) rng.nextBytes(buff2);
-        try {
-          out.write(buff2, 0, buff2.length);
-        }
-        catch (SocketException e) {
-          System.out.println(e);
+    while (tokenizer.hasMoreTokens()) {
+      int testId = Integer.parseInt(tokenizer.nextToken());
+      switch (testId) {
+        case TEST_MID:
+          if (test_mid(ctl)) {
+            return;
+          }
           break;
-        }
-        pkts++;
-      } while (System.currentTimeMillis() < stop_time);
-
-      t =  System.currentTimeMillis() - t;
-      if (t == 0) {
-        t = 1;
-      }
-      out.close();
-      outSocket.close();
-      System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
-      c2sspd = ((8.0 * pkts * lth) / 1000) / t;
-      /* receive the c2sspd from the server */
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_MSG) {
-        errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      String tmpstr3 = new String(msg.body);
-      sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
-
-      if (sc2sspd < 1.0) {
-        results.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
-        statistics.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
-        emailText += prtdbl(sc2sspd*1000) + "Kb/s\n%0A";
-      } 
-      else {
-        results.append(prtdbl(sc2sspd) + "Mb/s\n");
-        statistics.append(prtdbl(sc2sspd) + "Mb/s\n");
-        emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
-      }
-      
-      /*
-      if (c2sspd < 1.0) {
-        results.append("[" + prtdbl(c2sspd*1000) + "Kb/s]\n");
-        statistics.append("[" + prtdbl(c2sspd*1000) + "Kb/s]\n");
-        emailText += "[" + prtdbl(c2sspd*1000) + "Kb/s]\n%0A";
-      } 
-      else {
-        results.append("[" + prtdbl(c2sspd) + "Mb/s]\n");
-        statistics.append("[" + prtdbl(c2sspd) + "Mb/s]\n");
-        emailText += "[" + prtdbl(c2sspd) + "Mb/s]\n%0A";
-      }
-      */
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_FINALIZE) {
-        errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-    }
-
-    if ((tests & TEST_S2C) == TEST_S2C) {
-      showStatus("Tcpbw100 inbound test...");
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_PREPARE) {
-        errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      s2cport = Integer.parseInt(new String(msg.body));
-
-      try {
-        inSocket = new Socket(host, s2cport);
-      } 
-      catch (UnknownHostException e) {
-        System.err.println("Don't know about host: " + host);
-        errmsg = "unknown server\n" ;
-        failed = true;
-        return;
-      } 
-      catch (IOException e) {
-        System.err.println("Couldn't get 3rd connection to: " + host);
-        errmsg = "Server Failed while receiving data\n" ;
-        failed = true;
-        return;
-      }
-
-      InputStream srvin = inSocket.getInputStream();
-      bytes = 0;
-
-      results.append("running 10s inbound test (server to client) . . . . . . ");
-      statistics.append("running 10s inbound test (server to client) . . . . . . ");
-      emailText += "running 10s inbound test (server to client) . . . . . . ";
-
-      // wait here for signal from server application 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_START) {
-        errmsg = "S2C throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-
-      inSocket.setSoTimeout(15000);
-      t = System.currentTimeMillis();
-
-      try {  
-        while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
-          bytes += inlth;
-          if ((System.currentTimeMillis() - t) > 14500)
-            break;
-        }
-      } 
-      catch (IOException e) {}
-
-      t =  System.currentTimeMillis() - t;
-      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
-      s2cspd = ((8.0 * bytes) / 1000) / t;
-
-      /* receive the s2cspd from the server */
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != TEST_MSG) {
-        errmsg = "S2C throughput test: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      try {
-        String tmpstr3 = new String(msg.body);
-        int k1 = tmpstr3.indexOf(" ");
-        int k2 = tmpstr3.substring(k1+1).indexOf(" ");
-        ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
-        ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
-        sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-        errmsg = "S2C throughput test: Received improper message\n";
-        failed = true;
-        return;
-      }
-      
-      if (s2cspd < 1.0) {
-        results.append(prtdbl(s2cspd*1000) + "kb/s\n");
-        statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
-        emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
-      } else {
-        results.append(prtdbl(s2cspd) + "Mb/s\n");
-        statistics.append(prtdbl(s2cspd) + "Mb/s\n");
-        emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
-      }
-
-      srvin.close();
-      inSocket.close();
-
-      buff = Double.toString(s2cspd*1000).getBytes();
-      String tmpstr4 = new String(buff, 0, buff.length);
-      System.out.println("Sending '" + tmpstr4 + "' back to server");
-      ctl.send_msg(TEST_MSG, buff);
-
-      /* get web100 variables from server */
-      tmpstr = "";
-      i = 0;
-
-      // Try setting a 5 second timer here to break out if the read fails.
-      ctlSocket.setSoTimeout(5000);
-      try {  
-        for (;;) {
-          if (ctl.recv_msg(msg) != 0) {
-            errmsg = "Protocol error!\n";
-            failed = true;
+        case TEST_SFW:
+          if (test_sfw(ctl)) {
             return;
           }
-          if (msg.type == TEST_FINALIZE) {
-            break;
-          }
-          if (msg.type != TEST_MSG) {
-            errmsg = "S2C throughput test: Received wrong type of the message\n";
-            failed = true;
+          break;
+        case TEST_C2S:
+          if (test_c2s(ctl)) {
             return;
           }
-          tmpstr += new String(msg.body);
-          i++;
-        }
-      } catch (IOException e) {}
-      ctlSocket.setSoTimeout(0);
+          break;
+        case TEST_S2C:
+          if (test_s2c(ctl, ctlSocket)) {
+            return;
+          }
+          break;
+        default:
+          errmsg = "Unknown test ID\n";
+          failed = true;
+          return;
+      }
     }
 
     i = 0;
