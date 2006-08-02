@@ -51,6 +51,8 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   unsigned char useropt;
   int msgType;
   int msgLen = 1;
+  char buff[1024];
+  int first = 1;
 
   assert(ctlsockfd != -1);
   assert(options);
@@ -67,16 +69,48 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
   }
   if (useropt & TEST_MID) {
     options->midopt = TOPT_ENABLED;
-  }
-  if (useropt & TEST_C2S) {
-    options->c2sopt = TOPT_ENABLED;
-  }
-  if (useropt & TEST_S2C) {
-    options->s2copt = TOPT_ENABLED;
+    if (first) {
+      first = 0;
+      sprintf(buff, "%ld", TEST_MID);
+    }
   }
   if (useropt & TEST_SFW) {
     options->sfwopt = TOPT_ENABLED;
+    if (first) {
+      first = 0;
+      sprintf(buff, "%ld", TEST_SFW);
+    }
+    else {
+      char tmpbuff[100];
+      sprintf(tmpbuff, " %ld", TEST_SFW);
+      strcat(buff, tmpbuff);
+    }
   }
+  if (useropt & TEST_C2S) {
+    options->c2sopt = TOPT_ENABLED;
+    if (first) {
+      first = 0;
+      sprintf(buff, "%ld", TEST_C2S);
+    }
+    else {
+      char tmpbuff[100];
+      sprintf(tmpbuff, " %ld", TEST_C2S);
+      strcat(buff, tmpbuff);
+    }
+  }
+  if (useropt & TEST_S2C) {
+    options->s2copt = TOPT_ENABLED;
+    if (first) {
+      first = 0;
+      sprintf(buff, "%ld", TEST_S2C);
+    }
+    else {
+      char tmpbuff[100];
+      sprintf(tmpbuff, " %ld", TEST_S2C);
+      strcat(buff, tmpbuff);
+    }
+  }
+  send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
   return 0;
 }
 

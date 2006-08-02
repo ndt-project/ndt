@@ -92,7 +92,10 @@ viewtrace_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am_web100clt_OBJECTS = web100clt-web100clt.$(OBJEXT) \
 	web100clt-network.$(OBJEXT) web100clt-usage.$(OBJEXT) \
 	web100clt-logging.$(OBJEXT) web100clt-utils.$(OBJEXT) \
-	web100clt-protocol.$(OBJEXT) web100clt-test_sfw_clt.$(OBJEXT)
+	web100clt-protocol.$(OBJEXT) web100clt-test_sfw_clt.$(OBJEXT) \
+	web100clt-test_mid_clt.$(OBJEXT) \
+	web100clt-test_c2s_clt.$(OBJEXT) \
+	web100clt-test_s2c_clt.$(OBJEXT)
 web100clt_OBJECTS = $(am_web100clt_OBJECTS)
 web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
@@ -232,7 +235,7 @@ viewtrace_SOURCES = viewtrace.c usage.c logging.c utils.c
 viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 viewtrace_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c \
-										test_sfw_clt.c
+										test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c
 
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread
 web100clt_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
@@ -366,6 +369,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-logging.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-network.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-protocol.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-test_c2s_clt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-test_mid_clt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-test_s2c_clt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-test_sfw_clt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-usage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/web100clt-utils.Po@am__quote@
@@ -774,6 +780,48 @@ web100clt-test_sfw_clt.obj: test_sfw_clt.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_sfw_clt.c' object='web100clt-test_sfw_clt.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_sfw_clt.obj `if test -f 'test_sfw_clt.c'; then $(CYGPATH_W) 'test_sfw_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_sfw_clt.c'; fi`
+
+web100clt-test_mid_clt.o: test_mid_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_mid_clt.o -MD -MP -MF "$(DEPDIR)/web100clt-test_mid_clt.Tpo" -c -o web100clt-test_mid_clt.o `test -f 'test_mid_clt.c' || echo '$(srcdir)/'`test_mid_clt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_mid_clt.Tpo" "$(DEPDIR)/web100clt-test_mid_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_mid_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_mid_clt.c' object='web100clt-test_mid_clt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_mid_clt.o `test -f 'test_mid_clt.c' || echo '$(srcdir)/'`test_mid_clt.c
+
+web100clt-test_mid_clt.obj: test_mid_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_mid_clt.obj -MD -MP -MF "$(DEPDIR)/web100clt-test_mid_clt.Tpo" -c -o web100clt-test_mid_clt.obj `if test -f 'test_mid_clt.c'; then $(CYGPATH_W) 'test_mid_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_mid_clt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_mid_clt.Tpo" "$(DEPDIR)/web100clt-test_mid_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_mid_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_mid_clt.c' object='web100clt-test_mid_clt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_mid_clt.obj `if test -f 'test_mid_clt.c'; then $(CYGPATH_W) 'test_mid_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_mid_clt.c'; fi`
+
+web100clt-test_c2s_clt.o: test_c2s_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_c2s_clt.o -MD -MP -MF "$(DEPDIR)/web100clt-test_c2s_clt.Tpo" -c -o web100clt-test_c2s_clt.o `test -f 'test_c2s_clt.c' || echo '$(srcdir)/'`test_c2s_clt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_c2s_clt.Tpo" "$(DEPDIR)/web100clt-test_c2s_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_c2s_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_c2s_clt.c' object='web100clt-test_c2s_clt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_c2s_clt.o `test -f 'test_c2s_clt.c' || echo '$(srcdir)/'`test_c2s_clt.c
+
+web100clt-test_c2s_clt.obj: test_c2s_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_c2s_clt.obj -MD -MP -MF "$(DEPDIR)/web100clt-test_c2s_clt.Tpo" -c -o web100clt-test_c2s_clt.obj `if test -f 'test_c2s_clt.c'; then $(CYGPATH_W) 'test_c2s_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_c2s_clt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_c2s_clt.Tpo" "$(DEPDIR)/web100clt-test_c2s_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_c2s_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_c2s_clt.c' object='web100clt-test_c2s_clt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_c2s_clt.obj `if test -f 'test_c2s_clt.c'; then $(CYGPATH_W) 'test_c2s_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_c2s_clt.c'; fi`
+
+web100clt-test_s2c_clt.o: test_s2c_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_s2c_clt.o -MD -MP -MF "$(DEPDIR)/web100clt-test_s2c_clt.Tpo" -c -o web100clt-test_s2c_clt.o `test -f 'test_s2c_clt.c' || echo '$(srcdir)/'`test_s2c_clt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_s2c_clt.Tpo" "$(DEPDIR)/web100clt-test_s2c_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_s2c_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_s2c_clt.c' object='web100clt-test_s2c_clt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_s2c_clt.o `test -f 'test_s2c_clt.c' || echo '$(srcdir)/'`test_s2c_clt.c
+
+web100clt-test_s2c_clt.obj: test_s2c_clt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100clt-test_s2c_clt.obj -MD -MP -MF "$(DEPDIR)/web100clt-test_s2c_clt.Tpo" -c -o web100clt-test_s2c_clt.obj `if test -f 'test_s2c_clt.c'; then $(CYGPATH_W) 'test_s2c_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_s2c_clt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/web100clt-test_s2c_clt.Tpo" "$(DEPDIR)/web100clt-test_s2c_clt.Po"; else rm -f "$(DEPDIR)/web100clt-test_s2c_clt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test_s2c_clt.c' object='web100clt-test_s2c_clt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100clt_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o web100clt-test_s2c_clt.obj `if test -f 'test_s2c_clt.c'; then $(CYGPATH_W) 'test_s2c_clt.c'; else $(CYGPATH_W) '$(srcdir)/test_s2c_clt.c'; fi`
 
 web100srv-web100srv.o: web100srv.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(web100srv_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT web100srv-web100srv.o -MD -MP -MF "$(DEPDIR)/web100srv-web100srv.Tpo" -c -o web100srv-web100srv.o `test -f 'web100srv.c' || echo '$(srcdir)/'`web100srv.c; \

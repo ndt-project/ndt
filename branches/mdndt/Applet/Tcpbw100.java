@@ -1361,12 +1361,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
       if ((tests & TEST_SFW) == TEST_SFW) {
         switch (c2sResult) {
           case SFW_NOFIREWALL:
-            diagnosis.append("Server '" + host + "' is not behind a firewall.\n");
-            emailText += "Server '" + host + "' is not behind a firewall.\n%0A";
+            diagnosis.append("Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n");
+            emailText += "Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n%0A";
             break;
           case SFW_POSSIBLE:
-            diagnosis.append("Server '" + host + "' is probably behind a firewall.\n");
-            emailText += "Server '" + host + "' is probably behind a firewall.\n%0A";
+            diagnosis.append("Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n");
+            emailText += "Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n%0A";
             break;
           case SFW_UNKNOWN:
           case SFW_NOTTESTED:
@@ -1374,12 +1374,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
         }
         switch (s2cResult) {
           case SFW_NOFIREWALL:
-            diagnosis.append("Client is not behind a firewall.\n");
-            emailText += "Client is not behind a firewall.\n%0A";
+            diagnosis.append("Client is not behind a firewall. [Connection to the ephemeral port was successful]\n");
+            emailText += "Client is not behind a firewall. [Connection to the ephemeral port was successful]\n%0A";
             break;
           case SFW_POSSIBLE:
-            diagnosis.append("Client is probably behind a firewall.\n");
-            emailText += "Client is probably behind a firewall.\n%0A";
+            diagnosis.append("Client is probably behind a firewall. [Connection to the ephemeral port failed]\n");
+            emailText += "Client is probably behind a firewall. [Connection to the ephemeral port failed]\n%0A";
             break;
           case SFW_UNKNOWN:
           case SFW_NOTTESTED:

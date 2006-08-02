@@ -46,7 +46,7 @@ viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100clt_SOURCES	= web100clt.c network.c usage.c logging.c utils.c protocol.c \
-										test_sfw_clt.c
+										test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 

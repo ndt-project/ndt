@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "protocol.h"
 #include "test_sfw.h"
+#include "clt_tests.h"
 
 extern int h_errno;
 
@@ -587,23 +588,17 @@ main(int argc, char *argv[])
   int c;
   char tmpstr2[512], tmpstr[16384], varstr[16384];
   unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW;
-  int ctlSocket, outSocket, inSocket, in2Socket;
-  int ctlport = 3001, c2sport = 3002, midport = 3003, s2cport = 3003, inlth;
-  uint32_t bytes;
-  double stop_time;
-  double t;
-  int ret, i = 0, xwait, one=1;
-  int largewin;
+  int ctlSocket;
+  int ctlport = 3001;
+  int ret, xwait;
   char buff[8192];
+  char* strtokbuf;
   char *host = NULL;
-  int buf_size=0, set_size, k;
+  int buf_size=0;
   int msgLen, msgType;
-  struct timeval sel_tv;
-  fd_set rfd;
-  int conn_options = 0, debug = 0;
-  I2Addr server_addr = NULL, sec_addr = NULL;
+  int conn_options = 0, debug = 0, testId;
+  I2Addr server_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
-  socklen_t optlen;
   char* ptr;
 
 #ifdef AF_INET6
@@ -760,418 +755,51 @@ main(int argc, char *argv[])
     log_println(0,  "begin within %d seconds", xwait);
   }
 
-  sleep(2);
+  msgLen = sizeof(buff);
+  if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    log_println(0, "Protocol error!");
+    exit(1);
+  }
+  if (check_msg_type("Negotiating test suite", MSG_LOGIN, msgType)) {
+    exit(2);
+  }
+  if (msgLen <= 0) {
+    log_println(0, "Improper message");
+    exit(3);
+  }
+  buff[msgLen] = 0;
+  log_println(5, "Received tests sequence: '%s'", buff);
+  if ((strtokbuf = malloc(1024)) == NULL) {
+    log_println(0, "Malloc failed!");
+    exit(6);
+  }
+  ptr = strtok_r(buff, " ", &strtokbuf);
+
+  while (ptr) {
+    if (check_int(ptr, &testId)) {
+      log_println(0, "Invalid test ID");
+      exit(4);
+    }
+    switch (testId) {
+      case TEST_MID:
+        test_mid_clt(ctlSocket, tests, host, conn_options, buf_size, tmpstr2);
+        break;
+      case TEST_C2S:
+        test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size);
+        break;
+      case TEST_S2C:
+        test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size, tmpstr);
+        break;
+      case TEST_SFW:
+        test_sfw_clt(ctlSocket, tests, host, conn_options);
+        break;
+      default:
+        log_println(0, "Unknown test ID");
+        exit(5);
+    }
+    ptr = strtok_r(NULL, " ", &strtokbuf);
+  }
   
-  /* now look for middleboxes (firewalls, NATs, and other boxes that
-   * muck with TCP's end-to-end priciples
-   */
-
-  if (tests & TEST_MID) {
-    log_println(1, " <-- Middlebox test -->");
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("Middlebox test", TEST_PREPARE, msgType)) {
-      exit(2);
-    }
-    if (msgLen <= 0) {
-      log_println(0, "Improper message");
-      exit(3);
-    }
-    buff[msgLen] = 0;
-    if (check_int(buff, &midport)) {
-      log_println(0, "Invalid port number");
-      exit(4);
-    }
-    log_println(1, "  -- port: %d", midport);
-    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
-    }
-    I2AddrSetPort(sec_addr, midport);
-
-    if (get_debuglvl() > 4) {
-      char tmpbuff[200];
-      size_t tmpBufLen = 199;
-      memset(tmpbuff, 0, 200);
-      I2AddrNodeName(sec_addr, tmpbuff, &tmpBufLen);
-      log_println(5, "connecting to %s:%d", tmpbuff, I2AddrPort(sec_addr));
-    }
-
-    if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
-      perror("Connect() for middlebox failed");
-      exit(-10);
-    }
-
-    largewin = 128*1024;
-    optlen = sizeof(set_size);
-    setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "\nSend buffer set to %d, ", set_size);
-    getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(5, "Receive buffer set to %d", set_size);
-    if (buf_size > 0) {
-      setsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-      setsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-      getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-      log_print(5, "Changed buffer sizes: Send buffer set to %d, ", set_size);
-      getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-      log_println(5, "Receive buffer set to %d", set_size);
-    }
-
-    printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-    fflush(stdout);
-    tmpstr2[0] = '\0';
-    i = 0;
-    bytes = 0;
-    t = secs() + 5.0;
-    sel_tv.tv_sec = 6;
-    sel_tv.tv_usec = 5;
-    FD_ZERO(&rfd);
-    FD_SET(in2Socket, &rfd);
-    for (;;) {
-      if (secs() > t)
-        break;
-      ret = select(in2Socket+1, &rfd, NULL, NULL, &sel_tv);
-      if (ret > 0) {
-        inlth = read(in2Socket, buff, sizeof(buff));
-        if (inlth == 0)
-          break;
-        bytes += inlth;
-        continue;
-      }
-      if (ret < 0) {
-        printf("nothing to read, exiting read loop\n");
-        break;
-      }
-      if (ret == 0) {
-        printf("timer expired, exiting read loop\n");
-        break;
-      }
-    }
-    shutdown(in2Socket, SHUT_RD);
-    t =  secs() - t + 5.0;
-    spdin = ((8.0 * bytes) / 1000) / t;
-
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("Middlebox test results", TEST_MSG, msgType)) {
-      exit(2);
-    }
-    strncat(tmpstr2, buff, msgLen);
-
-    memset(buff, 0, 128);
-    sprintf(buff, "%0.0f", spdin);
-    log_println(4, "CWND limited speed = %0.2f Kbps", spdin);
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
-    printf("Done\n");
-
-    I2AddrFree(sec_addr);
-
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("Middlebox test", TEST_FINALIZE, msgType)) {
-      exit(2);
-    }
-    log_println(1, " <-------------------->");
-  }
-  /*   End of Middlebox test  */
-
-  test_sfw_clt(ctlSocket, tests, host, conn_options);
-  
-  if (tests & TEST_C2S) {
-    struct sigaction new, old;
-    log_println(1, " <-- C2S throughput test -->");
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("C2S throughput test", TEST_PREPARE, msgType)) {
-      exit(2);
-    }
-    if (msgLen <= 0) {
-      log_println(0, "Improper message");
-      exit(3);
-    }
-    buff[msgLen] = 0;
-    if (check_int(buff, &c2sport)) {
-      log_println(0, "Invalid port number");
-      exit(4);
-    }
-    log_println(1, "  -- port: %d", c2sport);
-
-    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
-    }
-    I2AddrSetPort(sec_addr, c2sport);
-
-    if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options))) {
-      perror("Connect() for client to server failed");
-      exit(-11);
-    }
-
-    optlen = sizeof(set_size);
-    setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(9, "\nSend buffer set to %d, ", set_size);
-    getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(9, "Receive buffer set to %d", set_size);
-    if (buf_size > 0) {
-      setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-      setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-      getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-      log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-      getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-      log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
-    }
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("C2S throughput test", TEST_START, msgType)) {
-      exit(2);
-    }
-
-    printf("running 10s outbound test (client to server) . . . . . ");
-    fflush(stdout);
-
-    pkts = 0;
-    k = 0;
-    for (i=0; i<8192; i++) {
-      while (!isprint(k&0x7f))
-        k++;
-      buff[i] = (k++ % 0x7f);
-    }
-    t = secs();
-    stop_time = t + 10;
-    /* ignore the pipe signal */
-    memset(&new, 0, sizeof(new));
-    new.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &new, &old);
-    do {
-      write(outSocket, buff, lth);
-      pkts++;
-    } while (secs() < stop_time);
-    sigaction(SIGPIPE, &old, NULL);
-    sndqueue = sndq_len(outSocket);
-    t = secs() - t;
-    I2AddrFree(sec_addr);
-    spdout = ((8.0 * pkts * lth) / 1000) / t;
-
-    /* receive the c2sspd from the server */
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("C2S throughput test", TEST_MSG, msgType)) {
-      exit(2);
-    }
-    if (msgLen <= 0) { 
-      log_println(0, "Improper message");
-      exit(3);
-    }
-    buff[msgLen] = 0; 
-    c2sspd = atoi(buff);
-
-    if (c2sspd < 1000) 
-      printf(" %0.2f Kb/s\n", c2sspd);
-    else
-      printf(" %0.2f Mb/s\n", c2sspd/1000);
-    
-#if 0
-    if (spdout < 1000) 
-      printf(" [%0.2f Kb/s]\n", spdout);
-    else
-      printf(" [%0.2f Mb/s]\n", spdout/1000);
-#endif
-    
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("C2S throughput test", TEST_FINALIZE, msgType)) {
-      exit(2);
-    }
-    log_println(1, " <------------------------->");
-  }
-
-  if (tests & TEST_S2C) {
-    log_println(1, " <-- S2C throughput test -->");
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("S2C throughput test", TEST_PREPARE, msgType)) {
-      exit(2);
-    }
-    if (msgLen <= 0) {
-      log_println(0, "Improper message");
-      exit(3);
-    }
-    buff[msgLen] = 0;
-    if (check_int(buff, &s2cport)) {
-      log_println(0, "Invalid port number");
-      exit(4);
-    }
-    log_println(1, "  -- port: %d", s2cport);
-
-    /* Cygwin seems to want/need this extra getsockopt() function
-     * call.  It certainly doesn't do anything, but the S2C test fails
-     * at the connect() call if it's not there.  4/14/05 RAC
-     */
-    optlen = sizeof(set_size);
-    getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-
-    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
-    }
-    I2AddrSetPort(sec_addr, s2cport);
-
-    if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
-      perror("Connect() for Server to Client failed");
-      exit(-15);
-    }
-
-    setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "\nSend buffer set to %d, ", set_size);
-    getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(5, "Receive buffer set to %d", set_size);
-    if (buf_size > 0) {
-      setsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-      setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-      getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-      log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-      getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-      log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
-    }
-
-    /* Linux updates the sel_tv time values everytime select returns.  This
-     * means that eventually the timer will reach 0 seconds and select will
-     * exit with a timeout signal.  Other OS's don't do that so they need
-     * another method for detecting a long-running process.  The check below
-     * will cause the loop to terminate if select says there is something
-     * to read and the loop has been active for over 14 seconds.  This usually
-     * happens when there is a problem (duplex mismatch) and there is data
-     * queued up on the server.
-     */
-    
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("S2C throughput test", TEST_START, msgType)) {
-      exit(2);
-    }
-
-    printf("running 10s inbound test (server to client) . . . . . . ");
-    fflush(stdout);
-
-    bytes = 0;
-    t = secs() + 15.0;
-    sel_tv.tv_sec = 15;
-    sel_tv.tv_usec = 5;
-    FD_ZERO(&rfd);
-    FD_SET(inSocket, &rfd);
-    for (;;) {
-      ret = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
-      if (secs() > t) {
-        log_println(5, "Receive test running long, break out of read loop");
-        break;
-      }
-      if (ret > 0) {
-        inlth = read(inSocket, buff, sizeof(buff));
-        if (inlth == 0)
-          break;
-        bytes += inlth;
-        continue;
-      }
-      if (get_debuglvl() > 5)
-        perror("s2c read loop exiting:");
-      break;
-    }
-    t = secs() - t + 15.0;
-    spdin = ((8.0 * bytes) / 1000) / t;
-
-    /* receive the s2cspd from the server */
-    msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-      log_println(0, "Protocol error!");
-      exit(1);
-    }
-    if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
-      exit(2);
-    }
-    if (msgLen <= 0) { 
-      log_println(0, "Improper message");
-      exit(3);
-    }
-    buff[msgLen] = 0; 
-    ptr = strtok(buff, " ");
-    if (ptr == NULL) {
-      log_println(0, "S2C: Improper message");
-      exit(4);
-    }
-    s2cspd = atoi(ptr);
-    ptr = strtok(NULL, " ");
-    if (ptr == NULL) {
-      log_println(0, "S2C: Improper message");
-      exit(4);
-    }
-    ssndqueue = atoi(ptr);
-    ptr = strtok(NULL, " ");
-    if (ptr == NULL) {
-      log_println(0, "S2C: Improper message");
-      exit(4);
-    }
-    sbytes = atoi(ptr);
-    
-    if (spdin < 1000)
-      printf("%0.2f kb/s\n", spdin);
-    else
-      printf("%0.2f Mb/s\n", spdin/1000);
-
-    I2AddrFree(sec_addr);
-
-    sprintf(buff, "%0.0f", spdin);
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
-    
-    /* get web100 variables from server */
-    tmpstr[0] = '\0';
-    for (;;) {
-      msgLen = sizeof(buff);
-      if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
-        log_println(0, "Protocol error!");
-        exit(1);
-      }
-      if (msgType == TEST_FINALIZE) {
-        break;
-      }
-      if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
-        exit(2);
-      }
-      strncat(tmpstr, buff, msgLen);
-      log_println(6, "tmpstr = '%s'", tmpstr);
-    }
-    log_println(1, " <------------------------->");
-  }
-
   /* get the final results from server
    *
    * The results are encapsulated by the MSG_RESULTS messages. The last
