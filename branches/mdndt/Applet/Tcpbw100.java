@@ -82,7 +82,7 @@ import javax.swing.BorderFactory;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.4";
+  private static final String VERSION = "5.4.5";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -328,6 +328,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
        * muck with TCP's end-to-end priciples
        */
       showStatus("Tcpbw100 Middlebox test...");
+      results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
+
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
         failed = true;
@@ -354,9 +358,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
         failed = true;
         return true;
       }
-      results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-      statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-      emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
 
       InputStream srvin2 = in2Socket.getInputStream();
       OutputStream srvout2 = in2Socket.getOutputStream();
@@ -397,9 +398,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       System.out.println("Sending '" + tmpstr4 + "' back to server");
       ctl.send_msg(TEST_MSG, tmpstr4.getBytes());
 
-      results.append("Done\n");
-      statistics.append("Done\n");
-      emailText += "Done\n%0A";
       try {
         tmpstr2 += in2Socket.getInetAddress() + ";";
       } catch (SecurityException e) {
@@ -433,6 +431,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
         failed = true;
         return true;
       }
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
     }
     return false;
   }
@@ -442,6 +443,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
     Message msg = new Message();
     if ((tests & TEST_SFW) == TEST_SFW) {
       showStatus("Simple firewall test...");
+      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
+      
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
         failed = true;
@@ -452,10 +457,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
         failed = true;
         return true;
       }
-
-      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
-      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
-      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
 
       String message = new String(msg.body);
 
@@ -527,10 +528,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       osfwTest.finalize();
 
-      results.append("Done\n");
-      statistics.append("Done\n");
-      emailText += "Done\n%0A";
-
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
         failed = true;
@@ -541,6 +538,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
         failed = true;
         return true;
       }
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
     }
     return false;
   }
@@ -551,6 +551,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
     Message msg = new Message();
     if ((tests & TEST_C2S) == TEST_C2S) {
       showStatus("Tcpbw100 outbound test...");
+      results.append("running 10s outbound test (client-to-server [C2S]) . . . . . ");
+      statistics.append("running 10s outbound test (client-to-server [C2S]) . . . . . ");
+      emailText += "running 10s outbound test (client-to-server [C2S]) . . . . . ";
+      
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
         failed = true;
@@ -577,9 +581,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
         failed = true;
         return true;
       }
-      results.append("running 10s outbound test (client to server) . . . . . ");
-      statistics.append("running 10s outbound test (client to server) . . . . . ");
-      emailText += "running 10s outbound test (client to server) . . . . . ";
 
       OutputStream out = outSocket.getOutputStream();
 
@@ -674,6 +675,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
     Message msg = new Message();
     if ((tests & TEST_S2C) == TEST_S2C) {
       showStatus("Tcpbw100 inbound test...");
+      results.append("running 10s inbound test (server-to-client [S2C]) . . . . . . ");
+      statistics.append("running 10s inbound test (server-to-client [S2C]) . . . . . . ");
+      emailText += "running 10s inbound test (server-to-client [S2C]) . . . . . . ";
+      
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
         failed = true;
@@ -706,10 +711,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       InputStream srvin = inSocket.getInputStream();
       int bytes = 0;
       int inlth;
-
-      results.append("running 10s inbound test (server to client) . . . . . . ");
-      statistics.append("running 10s inbound test (server to client) . . . . . . ");
-      emailText += "running 10s inbound test (server to client) . . . . . . ";
 
       // wait here for signal from server application 
       if (ctl.recv_msg(msg) != 0) {

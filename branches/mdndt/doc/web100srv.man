@@ -81,7 +81,12 @@ firewall is located in the network path. Moreover, the 5 seconds CWND limited
 throughput test is performed during this connection. The connection is closed
 and the client records the results for later display.
 .IP \(bu
-Next, the client opens a connection on port 3002.
+Next, the server listens on the random ephemeral port. The client tries to
+open a connection to this port. The same operation is repeated in the
+opposite direction. There will be a possible firewall detection, when the
+connections will not be established in the specified amount of time.
+.IP \(bu
+Then, the client opens a connection on port 3002.
 Data is streamed from the client to the server for 10 seconds. 
 The result is a measurement of the achieved throughput from the
 client to the server - i.e., the \fIupload direction\fR. By default, the server
@@ -93,7 +98,7 @@ into a limited number of bins, one for each link technology to be
 identified, and a weighted average is also computed. At the end
 of the test these bins are returned to the parent process for analysis.
 .IP \(bu
-Then, the client opens a connection on port 3003.
+Next, the client opens a connection on port 3003.
 Data is streamed from the server to the client for 10 seconds. 
 The result is a measurement of the achieved throughput from the
 server to the client - i.e., the \fIdownload direction\fR. By default, the server
@@ -103,11 +108,6 @@ to perform this snooping on the network interface.) After the
 test stream has finished, the server retrieves a set of \fBWeb100\fR
 kernel variables and counters. These variables are used by the
 analysis engine to determine what, if any, fault conditions occurred.
-.IP \(bu
-Next, the server listens on the random ephemeral port. The client tries to
-open a connection to this port. The same operation is repeated in the
-opposite direction. There will be a possible firewall detection, when the
-connections will not be established in the specified amount of time.
 .IP \(bu
 The final step is to analyze the collected data. The packet
 dispersion results are used to calculate the bottleneck link
