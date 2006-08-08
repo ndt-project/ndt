@@ -71,6 +71,7 @@ import java.applet.*;
 import java.util.*;
 import java.text.*;
 import java.lang.*;
+import javax.swing.JLabel;
 import javax.swing.JApplet;
 import javax.swing.JFrame;
 import javax.swing.JTextArea;
@@ -79,6 +80,11 @@ import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.BorderFactory;
+import javax.swing.JTextPane;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.BadLocationException;
+import javax.swing.JOptionPane;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
@@ -107,7 +113,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
   private static final double VIEW_DIFF = 0.1;
   
-	JTextArea results, diagnosis, statistics;
+	JTextArea diagnosis, statistics;
+  MyTextPane results;
 	String inresult, outresult, errmsg;
 	JButton startTest;
 	JButton disMiss, disMiss2;
@@ -169,7 +176,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new JTextArea("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n",15,60);
+    results = new MyTextPane();
+    results.append("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n");
 		results.setEditable(false);
 		add(new JScrollPane(results));
 		results.append("click START to begin\n");
@@ -202,6 +210,26 @@ public class Tcpbw100 extends JApplet implements ActionListener
     mPanel.add(options);
 		add(BorderLayout.SOUTH, mPanel);
 	}
+
+  class MyTextPane extends JTextPane
+  {
+    public void append(String text)
+    {
+      try {
+        getStyledDocument().insertString(getStyledDocument().getLength(), text, null);
+      }
+      catch (BadLocationException e) {
+        System.out.println("WARNING: failed to append text to the text pane! [" + text + "]");
+      }
+    }
+
+    public void insertComponent(Component c)
+    {
+      setSelectionStart(results.getStyledDocument().getLength());
+      setSelectionEnd(results.getStyledDocument().getLength());
+      super.insertComponent(c);
+    }
+  }
 
 	class TestWorker implements Runnable
   {
@@ -1058,6 +1086,27 @@ public class Tcpbw100 extends JApplet implements ActionListener
     }
   }
 
+  public void showBufferedBytesInfo()
+  {
+    JOptionPane.showMessageDialog(null,
+        "The bytes written by the sender need some time to reach the receiver.\n" +
+        "In the throughput tests it's possible that not all bytes would be read by\n" +
+        "the receiver's application. This is caused by the time limitation in the\n" +
+        "reading process.\n\n" +
+        "However, the missing bytes cannot disappear. They must be buffered in some of\n" +
+        "the places:\n" +
+        " - sender's buffers\n" +
+        " - middleboxes' buffers (like long data queues in the DSL modems)\n" +
+        " - receiver's buffers\n\n" +
+        "The high percentage of the buffered bytes means that sender writes the data\n" +
+        "much faster than capabilities of the link allows. Such situation decreases\n" +
+        "the responsiveness of the connection (the latency is very high), but has\n" +
+        "almost no influence for the throughput test results.\n\n" +
+        "In order to avoid too high percentage of the buffered bytes, the size of the\n" +
+        "sender's buffers should be decreased.",
+        "Buffered bytes",
+        JOptionPane.INFORMATION_MESSAGE);
+  }
 
 	public void testResults(String tmpstr) {
 		StringTokenizer tokens;
@@ -1225,14 +1274,40 @@ public class Tcpbw100 extends JApplet implements ActionListener
       if ((tests & TEST_C2S) == TEST_C2S) {
         if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
           // TODO:  distinguish the host buffering from the middleboxes buffering
-          results.append("Information [C2S]: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered.\n");
+          JLabel info = new JLabel("Information ");
+          info.addMouseListener(new MouseAdapter()
+              {
+
+                public void mouseClicked(MouseEvent e) {
+                  showBufferedBytesInfo();
+                }
+
+              });
+          info.setForeground(Color.BLUE);
+          info.setCursor(new Cursor(Cursor.HAND_CURSOR));
+          info.setAlignmentY((float) 0.8);
+          results.insertComponent(info);
+          results.append("[C2S]: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered.\n");
         }
       }
       
       if ((tests & TEST_S2C) == TEST_S2C) {
         if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
           // TODO:  distinguish the host buffering from the middleboxes buffering
-          results.append("Information [S2C]: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered.\n");
+          JLabel info = new JLabel("Information ");
+          info.addMouseListener(new MouseAdapter()
+              {
+
+                public void mouseClicked(MouseEvent e) {
+                  showBufferedBytesInfo();
+                }
+
+              });
+          info.setForeground(Color.BLUE);
+          info.setCursor(new Cursor(Cursor.HAND_CURSOR));
+          info.setAlignmentY((float) 0.8);
+          results.insertComponent(info);
+          results.append("[S2C]: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered.\n");
         }
       }
 
