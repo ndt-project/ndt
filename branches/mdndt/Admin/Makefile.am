@@ -30,7 +30,7 @@ ndt_DATA	= Admin.class
 Admindir = $(ndtdir)
 
 Admin_JAVA	= Admin.java
-#Admin_SOURCES	= Admin.java
+Admin_class_SOURCES	= Admin.java
 
 #am_Admin_OBJECTS = Admin.java
 #Admin_LDADD = 

@@ -54,3 +54,5 @@ tr_mkmap_SOURCES	= tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c
 tr_mkmap_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 tr_mkmap_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
+EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h \
+						 troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h
