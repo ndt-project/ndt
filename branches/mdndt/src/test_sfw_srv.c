@@ -21,6 +21,7 @@ static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
 static I2Addr sfwcli_addr = NULL;
 static int testTime = 30;
 static int toWait = 1;
+static pthread_t threadId = -1;
 
 /*
  * Function name: catch_alrm
@@ -33,6 +34,10 @@ catch_alrm(int signo)
 {
   if (signo == SIGALRM) {
     log_println(1, "SIGALRM was caught");
+    if (threadId != -1) { /* we forward the signal to the osfw thread */
+      pthread_kill(threadId, SIGALRM);
+      threadId =-1;
+    }
     return;
   }
   log_println(0, "Unknown (%d) signal was caught", signo);
@@ -115,7 +120,6 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
   web100_connection* cn;
   web100_group* group;
   int maxRTT, maxRTO;
-  pthread_t threadId;
   char hostname[256];
   
   assert(ctlsockfd != -1);
