@@ -554,6 +554,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   autotune = web100_autotune(ctlsockfd, agent);
 
+  sprintf(buff, "v%s", VERSION);
+  send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
   if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
     log_println(0, "ERROR: Tests initialization failed (%d)", n);
     return;

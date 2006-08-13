@@ -88,7 +88,7 @@ import javax.swing.JOptionPane;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.5";
+  private static final String VERSION = "5.4.6";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -914,6 +914,25 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		f.toBack();
 		ff.toBack();
 
+    if (ctl.recv_msg(msg) != 0) {
+      errmsg = "Protocol error!\n";
+      failed = true;
+      return;
+    }
+    if (msg.type != MSG_LOGIN) {
+      errmsg = "Negotiating NDT version: Received wrong type of the message\n";
+      failed = true;
+      return;
+    }
+
+    String vVersion = new String(msg.body);
+    if (!vVersion.startsWith("v")) {
+      errmsg = "Incompatible version number";
+      failed = true;
+      return;
+    }
+    System.out.println("Server version: " + vVersion.substring(1));
+    
     if (ctl.recv_msg(msg) != 0) {
       errmsg = "Protocol error!\n";
       failed = true;

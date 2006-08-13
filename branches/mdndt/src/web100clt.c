@@ -760,6 +760,28 @@ main(int argc, char *argv[])
     log_println(0, "Protocol error!");
     exit(1);
   }
+  if (check_msg_type("Negotiating NDT version", MSG_LOGIN, msgType)) {
+    exit(2);
+  }
+  if (msgLen <= 0) {
+    log_println(0, "Improper message");
+    exit(3);
+  }
+  buff[msgLen] = 0;
+  if (buff[0] != 'v') {
+    log_println(0, "Incompatible version number");
+    exit(4);
+  }
+  log_println(5, "Server version: %s", &buff[1]);
+  if (strcmp(&buff[1], VERSION)) {
+    log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
+  }
+  
+  msgLen = sizeof(buff);
+  if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    log_println(0, "Protocol error!");
+    exit(1);
+  }
   if (check_msg_type("Negotiating test suite", MSG_LOGIN, msgType)) {
     exit(2);
   }
