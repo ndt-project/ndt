@@ -170,8 +170,10 @@ error:
 int
 CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int options)
 {
-  struct addrinfo *fai=NULL;
-  struct addrinfo *ai=NULL;
+  struct addrinfo *fai  = NULL;
+  struct addrinfo *ai   = NULL;
+  struct addrinfo *lfai = NULL;
+  struct addrinfo *lai  = NULL;
 
   assert(sockfd);
   assert(server_addr);
@@ -207,7 +209,34 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
     }
 
     if (local_addr) {
-      /* TODO: local bind of the fd */
+      int bindFailed = 1;
+      if (!(lfai = I2AddrAddrInfo(local_addr, NULL, NULL))) {
+        continue;
+      }
+      
+      for (lai=lfai; lai; lai=lai->ai_next) {
+#ifdef AF_INET6
+        if (options & OPT_IPV6_ONLY) {
+          if(lai->ai_family != AF_INET6)
+            continue;
+        }
+#endif
+
+        if (options & OPT_IPV4_ONLY) {
+          if(lai->ai_family != AF_INET)
+            continue;
+        }
+
+        if (bind((*sockfd), lai->ai_addr, lai->ai_addrlen) == 0) {
+          bindFailed = 0;
+          break;      /* success */
+        }
+      }
+
+      if (bindFailed == 1) {
+        close((*sockfd));  /* ignore this one */
+        continue;
+      }
     }
 
     if (connect(*sockfd,ai->ai_addr,ai->ai_addrlen) == 0) {

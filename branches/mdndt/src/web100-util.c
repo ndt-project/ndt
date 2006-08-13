@@ -63,6 +63,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   web100_group* group;
   web100_snapshot* snap;
   char buff[8192], line[256];
+  char* sndbuff;
   int i, j, k, octets=0;
   int SndMax=0, SndUna=0;
   fd_set wfd;
@@ -130,15 +131,20 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   web100_raw_write(LimCwnd, cn, &limcwnd_val);
   log_println(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
 
+  sndbuff = malloc(octets);
+  if (sndbuff == NULL) {
+    log_println(0, "Failed to allocate memory --> switching to 8192 Byte packets");
+    sndbuff = buff;
+    octets = 8192;
+  }
   if (getuid() == 0) {
     system("echo 1 > /proc/sys/net/ipv4/route/flush");
   }
-  printf("Sending %d Byte packets over the network\n", octets);
   k=0;
-  for (j=0; j<=octets; j++) {
+  for (j=0; j<octets; j++) {
     while (!isprint(k & 0x7f))
       k++;
-    buff[j] = (k++ & 0x7f);
+    sndbuff[j] = (k++ & 0x7f);
   }
 
   group = web100_group_find(agent, "read");
@@ -160,7 +166,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
       continue;
     }
 
-    k = write(sock, buff, octets);
+    k = write(sock, sndbuff, octets);
     if (k < 0 )
       break;
   }
