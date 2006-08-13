@@ -181,7 +181,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       exit(4);
     }
 
-    if ((sfwcli_addr = I2AddrByNode(NULL, hostname)) == NULL) {
+    if ((sfwcli_addr = I2AddrByNode(get_errhandle(), hostname)) == NULL) {
       log_println(0, "Unable to resolve server address");
       send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
       log_println(1, " <-------------------------->");

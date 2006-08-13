@@ -679,7 +679,7 @@ main(int argc, char *argv[])
   printf("Testing network path for configuration and performance problems  --  ");
   fflush(stdout);
 
-  if ((server_addr = I2AddrByNode(NULL, host)) == NULL) {
+  if ((server_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
     printf("Unable to resolve server address\n");
     exit(-3);
   }
@@ -821,8 +821,8 @@ main(int argc, char *argv[])
     log_println(6, "tmpstr = '%s'", tmpstr);
   }
 
-  local_addr = I2AddrByLocalSockFD(NULL, ctlSocket, False);
-  remote_addr = I2AddrBySockFD(NULL, ctlSocket, False);
+  local_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, False);
+  remote_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, False);
   I2AddrFree(server_addr);
   strcpy(varstr, tmpstr);
   testResults(tests, tmpstr, host);

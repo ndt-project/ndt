@@ -8,6 +8,7 @@
 
 #include <ctype.h>
 #include <time.h>
+#include <assert.h>
 
 #include "web100srv.h"
 #include "network.h"
@@ -26,6 +27,8 @@ web100_init(char *VarFileName)
   FILE *fp;
   char line[256];
   int count_vars = 0;
+
+  assert(VarFileName);
 
   if((fp = fopen(VarFileName, "r")) == NULL) {
     err_sys("Required Web100 variables file missing, use -f option to specify file location\n");
@@ -47,6 +50,7 @@ web100_init(char *VarFileName)
 web100_connection*
 local_find_connection(int sock, web100_agent* agent)
 {
+  assert(agent);
   return web100_connection_from_socket(agent, sock);
 }
 
@@ -76,13 +80,15 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
     "WinScaleRecv",
   };
 
+  assert(results);
+
   cn = local_find_connection(sock, agent);
   if (cn == NULL) {
     log_println(0, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d", errno);
     exit(-1);
   }
   
-  addr = I2AddrByLocalSockFD(NULL, sock, False);
+  addr = I2AddrByLocalSockFD(get_errhandle(), sock, False);
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
@@ -90,7 +96,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   strcat(results, line);
   I2AddrFree(addr);
   tmpstrlen = sizeof(tmpstr);
-  addr = I2AddrBySockFD(NULL, sock, False);
+  addr = I2AddrBySockFD(get_errhandle(), sock, False);
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
@@ -220,6 +226,9 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
   web100_var* var;
   char buf[32], line[256];
   web100_group* group;
+
+  assert(snap);
+  assert(agent);
 
   for(i=0; i<count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group, &var)) != WEB100_ERR_SUCCESS) {

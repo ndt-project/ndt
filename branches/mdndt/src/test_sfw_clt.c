@@ -167,7 +167,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     }
     log_println(1, "  -- port: %d", sfwport);
     log_println(1, "  -- time: %d", testTime);
-    if ((sfwsrv_addr = I2AddrByNode(NULL, host)) == NULL) {
+    if ((sfwsrv_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
       perror("Unable to resolve server address\n");
       exit(-3);
     }

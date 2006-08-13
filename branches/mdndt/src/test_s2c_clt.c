@@ -59,7 +59,7 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     optlen = sizeof(set_size);
     getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
 
-    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
+    if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
       perror("Unable to resolve server address\n");
       exit(-3);
     }

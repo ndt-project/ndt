@@ -6,8 +6,9 @@
  *
  * Richard Carlson 3/10/04
  * rcarlson@internet2.edu
- *
  */
+
+#include <assert.h>
 
 /* local include file contains needed structures */
 #include "web100srv.h"
@@ -109,6 +110,8 @@ void init_vars(struct spdpair *cur)
 
 	int i;
 
+  assert(cur);
+
 #if defined(AF_INET6)
 	memset(cur->saddr, 0, 4);
 	memset(cur->daddr, 0, 4);
@@ -139,6 +142,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 	char buff[256];
 	int tzoffset = 6;
 	FILE *fp;
+
+  assert(cur);
 
 	/* the tzoffset value is fixed for CST (6), use 5 for CDT.  The code needs to find the
 	 * current timezone and use that value here! */
@@ -271,6 +276,9 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA, int por
 	
 	float bits = 0, spd, time;
 
+  assert(cur);
+  assert(cur2);
+
 	time = (((cur->sec - cur2->sec)*1000000) + (cur->usec - cur2->usec));
 	/* time = curt->time - cur2->time; */
 	if ((cur->dport == portA) || (cur->sport == portB)) {
@@ -353,6 +361,8 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   struct spdpair current;
   int port2 = pair->port1;
   int port4 = pair->port2;
+
+  assert(user);
 
   if (dumptrace == 1)
       pcap_dump((u_char *)pdump, h, p);
@@ -572,7 +582,7 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
     }
   }
 
-  sockAddr = I2AddrBySAddr(NULL, sock_addr, saddrlen, 0, 0);
+  sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
   sock_addr = I2AddrSAddr(sockAddr, 0);
   /* special check for localhost, set device accordingly */
   if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0) {

@@ -18,6 +18,7 @@ void set_debuglvl(int debuglvl);
 void set_logfile(char* filename);
 int get_debuglvl();
 char* get_logfile();
+I2ErrHandle get_errhandle();
 void log_print(int lvl, const char* format, ...);
 void log_println(int lvl, const char* format, ...);
 

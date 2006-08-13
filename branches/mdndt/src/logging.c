@@ -98,6 +98,19 @@ get_logfile()
 }
 
 /*
+ * Function name: get_errhandle
+ * Description: Returns the error handle, that writes the messages
+ *              with the new line.
+ * Returns: The error handle
+ */
+
+I2ErrHandle
+get_errhandle()
+{
+  return _errorhandler_nl;
+}
+
+/*
  * Function name: ndt_print
  * Description: Logs the message with the given lvl.
  * Arguments: lvl - the level of the message

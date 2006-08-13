@@ -314,7 +314,7 @@ void calculate()
   if (iponly == 0) {
     char tmpbuff[200];
     socklen_t tmpBufLen = 199;
-    if ((addr = I2AddrByNode(NULL, ip_addr)) == NULL) {
+    if ((addr = I2AddrByNode(get_errhandle(), ip_addr)) == NULL) {
       printf("Throughput to host [%s] is limited by %s\n", ip_addr, btlneck);
     }
     else {

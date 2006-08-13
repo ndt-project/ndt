@@ -49,7 +49,7 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
       exit(4);
     }
     log_println(1, "  -- port: %d", midport);
-    if ((sec_addr = I2AddrByNode(NULL, host)) == NULL) {
+    if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
       perror("Unable to resolve server address\n");
       exit(-3);
     }

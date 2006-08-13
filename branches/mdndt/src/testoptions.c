@@ -641,7 +641,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       /* End of test code */
 
       if (experimental > 0) {
-        I2Addr sockAddr = I2AddrBySAddr(NULL, (struct sockaddr *) &cli_addr, clilen, 0, 0);
+        I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
         char namebuf[200];
         size_t nameBufLen = 199;
         memset(namebuf, 0, 200);

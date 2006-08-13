@@ -1099,7 +1099,7 @@ main(int argc, char** argv)
   /*
    * Bind our local address so that the client can send to us.
    */
-  if (srcname && !(listenaddr = I2AddrByNode(NULL, srcname))) {
+  if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
     err_sys("server: Invalid source address specified");
   }
   if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options)) == NULL) {
@@ -1227,7 +1227,7 @@ main(int argc, char** argv)
       ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
       {
         size_t tmpstrlen = sizeof(tmpstr);
-        I2Addr tmp_addr = I2AddrBySockFD(NULL, ctlsockfd, False);
+        I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         I2AddrFree(tmp_addr);
       }
@@ -1410,7 +1410,7 @@ multi_client:
           log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
         }
         else {
-          I2Addr tmp_addr = I2AddrBySockFD(NULL, ctlsockfd, False);
+          I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
           fprintf(fp,"%15.15s  %s port %d\n",
               ctime(&tt)+4, name, I2AddrPort(tmp_addr));
           I2AddrFree(tmp_addr);

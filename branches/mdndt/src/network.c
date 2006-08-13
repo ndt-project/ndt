@@ -80,7 +80,7 @@ OpenSocket(I2Addr addr, char* serv, int options)
         if (getsockname(fd, (struct sockaddr*) &tmp_addr, &tmp_addr_len)) {
           return -1;
         }
-        tmpAddr = I2AddrBySAddr(NULL, (struct sockaddr*) &tmp_addr, tmp_addr_len, 0, 0);
+        tmpAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr*) &tmp_addr, tmp_addr_len, 0, 0);
         I2AddrSetPort(addr, I2AddrPort(tmpAddr));
         I2AddrFree(tmpAddr);
       }
@@ -124,7 +124,7 @@ CreateListenSocket(I2Addr addr, char* serv, int options)
     goto error;
   }
 
-  if ((!addr) && !(addr = I2AddrByWildcard(/* FIXME */NULL, SOCK_STREAM, serv))) {
+  if ((!addr) && !(addr = I2AddrByWildcard(get_errhandle(), SOCK_STREAM, serv))) {
     log_println(1, "Unable to create I2Addr record by wildcard.");
     goto error;
   }

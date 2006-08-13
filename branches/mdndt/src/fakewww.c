@@ -199,7 +199,7 @@ main(int argc, char** argv)
   /*
    * Bind our local address so that the client can send to us.
    */
-  if (srcname && !(listenaddr = I2AddrByNode(NULL, srcname))) {
+  if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
     err_sys("server: Invalid source address specified");
   }
   if ((listenaddr = CreateListenSocket(listenaddr, listenport, conn_options)) == NULL) {
@@ -237,7 +237,7 @@ main(int argc, char** argv)
     }
 
     if (fork() == 0){ /* child */
-      I2Addr caddr = I2AddrBySAddr(NULL, (struct sockaddr *) &cli_addr, clilen, 0, 0);
+      I2Addr caddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
       alarm(300);     /* kill child off after 5 minutes, should never happen */
       close(sockfd);
       dowww(newsockfd, caddr, listenport, LogFileName, federated, max_ttl);
@@ -365,7 +365,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
            * routine returns 0.  In that case, simply use this server.
            */
           if (srv_addr == 0) {
-            serv_addr = I2AddrByLocalSockFD(NULL, sd, False);
+            serv_addr = I2AddrByLocalSockFD(get_errhandle(), sd, False);
             memset(onenodename, 0, 200);
             nlen = 199;
             I2AddrNodeName(serv_addr, onenodename, &nlen);
@@ -444,7 +444,7 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
 
           srv_addr = find_compare6(srv_addr6, IP6list, i);
           if (srv_addr == 0) {
-            serv_addr = I2AddrByLocalSockFD(NULL, sd, False);
+            serv_addr = I2AddrByLocalSockFD(get_errhandle(), sd, False);
             memset(onenodename, 0, 200);
             nlen = 199;
             I2AddrNodeName(serv_addr, onenodename, &nlen);
