@@ -224,7 +224,7 @@ testResults(char tests, char *tmpstr, char* host)
         j = (float)((mylink * avgrtt)*1000) / 8;
         if ((int)j > MaxRwinRcvd) {
           printf("Information: The receive buffer should be %0.0f ", j/1024);
-          printf("Kbytes to maximize throughput\n");
+          printf("kbytes to maximize throughput\n");
         }
       }
     }

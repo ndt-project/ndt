@@ -407,7 +407,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
     t = secs()-t;
     *c2sspd = (8.e-3 * bytes) / t;
-    sprintf(buff, "%6.0f Kbs outbound", *c2sspd);
+    sprintf(buff, "%6.0f kbps outbound", *c2sspd);
     log_println(1, "%s", buff);
     /* send the c2sspd to the client */
     sprintf(buff, "%0.0f", *c2sspd);
@@ -767,7 +767,7 @@ read2:
         sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
       }
 
-      log_println(1, "%6.0f Kbps inbound", x2cspd);
+      log_println(1, "%6.0f kbps inbound", x2cspd);
     }
 
     alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal

@@ -297,12 +297,12 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
   if (bw2 > 1)
     fprintf(fp, "    <td align=right>%0.2f Mbps\n",  bw2);
   else
-    fprintf(fp, "    <td align=right>%0.2f Kbps\n",  bw2*1000);
+    fprintf(fp, "    <td align=right>%0.2f kbps\n",  bw2*1000);
   if (c2sspd > 1000)
     fprintf(fp, "    <td align=right>%0.2f Mbps\n    <td align=right>%0.2f Mbps\n",
         (float) c2sspd/1000, (float)s2cspd/1000);
   else
-    fprintf(fp, "    <td align=right>%d Kbps\n    <td align=right>%d Kbps, ", c2sspd, s2cspd);
+    fprintf(fp, "    <td align=right>%d kbps\n    <td align=right>%d kbps, ", c2sspd, s2cspd);
   fprintf(fp, "  </tr>\n  <tr>\n    <th>Packet Loss\n    <th>Average RTT\n");
   fprintf(fp, "    <th>Mininum RTT\n    <th>Retrans/sec\n    <th>Timeouts/sec\n");
   fprintf(fp, "    <th>%% Out-of-Order\n  </tr>\n  <tr>\n");
@@ -350,7 +350,7 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
     fprintf(fp, "    <td align=right>%0.2f Mbps\n    <td align=right>%0.2f Mbps\n",
         (float) c2sspd/1000, (float)s2cspd/1000);
   else
-    fprintf(fp, "    <td align=right>%d Kbps\n    <td align=right>%d Kbps, ", c2sspd, s2cspd);
+    fprintf(fp, "    <td align=right>%d kbps\n    <td align=right>%d kbps, ", c2sspd, s2cspd);
 
   fprintf(fp, "    <td align=right>%s\n    <td align=right>%s\n  </tr>\n  <tr>\n",
       mismatch==1?"Yes":"No", bad_cable==1?"Yes":"No");  
@@ -359,7 +359,7 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
     fprintf(fp, "    <td align=right>%0.2f Mbps\n    <td align=right>%0.2f Mbps\n",
         (float) maxc2sspd/1000, (float)maxs2cspd/1000);
   else
-    fprintf(fp, "    <td align=right>%d Kbps\n    <td align=right>%d Kbps, ", maxc2sspd, maxs2cspd);
+    fprintf(fp, "    <td align=right>%d kbps\n    <td align=right>%d kbps, ", maxc2sspd, maxs2cspd);
   fprintf(fp, "    <td align=right>%d found\n    <td align=right>%d found\n  </tr>\n",
       totmismatch, totbad_cable);
   fprintf(fp, "  <tr>\n    <td><b>Minimum</b>\n    <td align=right>%s\n", mindate);
@@ -367,7 +367,7 @@ gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int 
     fprintf(fp, "    <td align=right>%0.2f Mbps\n    <td align=right>%0.2f Mbps\n",
         (float) minc2sspd/1000, (float)mins2cspd/1000);
   else
-    fprintf(fp, "    <td align=right>%d Kbps\n    <td align=right>%d Kbps\n", minc2sspd, mins2cspd);
+    fprintf(fp, "    <td align=right>%d kbps\n    <td align=right>%d kbps\n", minc2sspd, mins2cspd);
   fprintf(fp, "    <td>\n    <td>\n  </tr>\n</table>\n");
 
   fprintf(fp, "<br>\n<hr width=\"100%%\" noShade size=4>\n");

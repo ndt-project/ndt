@@ -346,11 +346,11 @@ void calculate()
     printf("\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, CWND-Limited = %0.2f Mbps, ", 
         (float) c2sspd/1000, (float)s2cspd/1000, (float)s2c2spd/1000);
   else
-    printf("\tC2Sspeed = %d Kbps, S2Cspeed = %d Kbps, CWND-Limited: %d Kbps, ", c2sspd, s2cspd, s2c2spd);
+    printf("\tC2Sspeed = %d kbps, S2Cspeed = %d kbps, CWND-Limited: %d kbps, ", c2sspd, s2cspd, s2c2spd);
   if (bw > 1)
     printf("Estimate = %0.2f Mbps (%0.2f Mbps)\n", bw, bw2);
   else
-    printf("Estimate = %0.2f Kbps (%0.2f Kbps)\n", bw*1000, bw2*1000);
+    printf("Estimate = %0.2f kbps (%0.2f kbps)\n", bw*1000, bw2*1000);
 
   if ((bw*1000) > s2cspd) 
     printf("\tOld estimate is greater than measured; ");

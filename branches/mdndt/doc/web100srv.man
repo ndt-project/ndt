@@ -201,7 +201,7 @@ Enable the experimental throughput limiting code.
 \fB\-b, --buffer\fR \fIbuffer_size\fR
 This option allows the \fBNDT\fR administrator to set the TCP send
 and receive buffer sizes via the \fBsetsockopt(2)\fR function. 
-Values larger than 64 Kbytes will result in large windows if
+Values larger than 64 kbytes will result in large windows if
 the RFC1323 window scaling option is enabled on the client host.
 By default, the server uses the system default values.  The
 \fBNDT\fR administrator may override the system defaults

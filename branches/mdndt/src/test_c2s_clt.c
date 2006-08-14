@@ -130,7 +130,7 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     c2sspd = atoi(buff);
 
     if (c2sspd < 1000) 
-      printf(" %0.2f Kb/s\n", c2sspd);
+      printf(" %0.2f kb/s\n", c2sspd);
     else
       printf(" %0.2f Mb/s\n", c2sspd/1000);
     

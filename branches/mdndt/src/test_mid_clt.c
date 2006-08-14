@@ -130,7 +130,7 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     memset(buff, 0, 128);
     sprintf(buff, "%0.0f", spdin);
-    log_println(4, "CWND limited speed = %0.2f Kbps", spdin);
+    log_println(4, "CWND limited speed = %0.2f kbps", spdin);
     send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
     printf("Done\n");
 

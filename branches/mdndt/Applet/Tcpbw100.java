@@ -88,7 +88,7 @@ import javax.swing.JOptionPane;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.6";
+  private static final String VERSION = "5.4.7";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -407,7 +407,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       catch (IOException e) {}
 
       t =  System.currentTimeMillis() - t;
-      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
       s2cspd = ((8.0 * bytes) / 1000) / t;
 
       if (ctl.recv_msg(msg) != 0) {
@@ -656,7 +656,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
       out.close();
       outSocket.close();
-      System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
+      System.out.println((8.0 * pkts * lth) / t + " kb/s outbound");
       c2sspd = ((8.0 * pkts * lth) / 1000) / t;
       /* receive the c2sspd from the server */
       if (ctl.recv_msg(msg) != 0) {
@@ -673,9 +673,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
       sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
 
       if (sc2sspd < 1.0) {
-        results.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
-        statistics.append(prtdbl(sc2sspd*1000) + "Kb/s\n");
-        emailText += prtdbl(sc2sspd*1000) + "Kb/s\n%0A";
+        results.append(prtdbl(sc2sspd*1000) + "kb/s\n");
+        statistics.append(prtdbl(sc2sspd*1000) + "kb/s\n");
+        emailText += prtdbl(sc2sspd*1000) + "kb/s\n%0A";
       } 
       else {
         results.append(prtdbl(sc2sspd) + "Mb/s\n");
@@ -765,7 +765,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       catch (IOException e) {}
 
       t =  System.currentTimeMillis() - t;
-      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " Kb/s " + t/1000 + " secs");
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
       s2cspd = ((8.0 * bytes) / 1000) / t;
 
       /* receive the s2cspd from the server */
@@ -1283,9 +1283,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			        j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
 			        if (j > (float)MaxRwinRcvd) {
 				    results.append("Information: The receive buffer should be " +
-				    prtdbl(j) + " Kbytes to maximize throughput\n");
+				    prtdbl(j) + " kbytes to maximize throughput\n");
 				    emailText += "Information: The receive buffer should be " +
-				    prtdbl(j) + " Kbytes to maximize throughput\n";
+				    prtdbl(j) + " kbytes to maximize throughput\n";
 			        }
 			    }
 			}
@@ -1514,16 +1514,17 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				statistics.append ("OFF\n");
 			else
 				statistics.append ("ON\n");
-			diagnosis.append("\n");
+
+      statistics.append("\n");
 
       if ((tests & TEST_SFW) == TEST_SFW) {
         switch (c2sResult) {
           case SFW_NOFIREWALL:
-            diagnosis.append("Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n");
+            statistics.append("Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n");
             emailText += "Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n%0A";
             break;
           case SFW_POSSIBLE:
-            diagnosis.append("Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n");
+            statistics.append("Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n");
             emailText += "Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n%0A";
             break;
           case SFW_UNKNOWN:
@@ -1532,11 +1533,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
         }
         switch (s2cResult) {
           case SFW_NOFIREWALL:
-            diagnosis.append("Client is not behind a firewall. [Connection to the ephemeral port was successful]\n");
+            statistics.append("Client is not behind a firewall. [Connection to the ephemeral port was successful]\n");
             emailText += "Client is not behind a firewall. [Connection to the ephemeral port was successful]\n%0A";
             break;
           case SFW_POSSIBLE:
-            diagnosis.append("Client is probably behind a firewall. [Connection to the ephemeral port failed]\n");
+            statistics.append("Client is probably behind a firewall. [Connection to the ephemeral port failed]\n");
             emailText += "Client is probably behind a firewall. [Connection to the ephemeral port failed]\n%0A";
             break;
           case SFW_UNKNOWN:
@@ -1544,51 +1545,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
             break;
         }
       }
-			diagnosis.append("\n");
 
-			// diagnosis.append("Checking for mismatch condition\n\t(cwndtime > .3) " +
-			//	"[" + prtdbl(cwndtime) + ">.3], (MaxSsthresh > 0) [" + MaxSsthresh +
-			//	">0],\n\t (PktsRetrans/sec > 2) [" + prtdbl(PktsRetrans/timesec) + ">2], " +
-			//	"(estimate > 2) [" + prtdbl(estimate) + ">2]\n");
-
-			diagnosis.append("Checking for mismatch on uplink\n\t(speed > 50 [" +
-				prtdbl(spd) + ">50], (xmitspeed < 5) [" + prtdbl(c2sspd) +
-				"<5]\n\t(rwintime > .9) [" + prtdbl(rwintime) + ">.9], (loss < .01) [" +
-				prtdbl(loss) + "<.01]\n");
-
-			diagnosis.append("Checking for excessive errors condition\n\t" +
-				"(loss/sec > .15) [" + prtdbl(loss/timesec) + ">.15], " +
-				"(cwndtime > .6) [" + prtdbl(cwndtime) + ">.6], \n\t" +
-				"(loss < .01) [" + prtdbl(loss) + "<.01], " +
-				"(MaxSsthresh > 0) [" + MaxSsthresh + ">0]\n");
-
-			diagnosis.append("Checking for 10 Mbps link\n\t(speed < 9.5) [" +
-				prtdbl(spd) + "<9.5], (speed > 3.0) [" + prtdbl(spd) + ">3.0]\n\t" +
-				"(xmitspeed < 9.5) [" + prtdbl(c2sspd) + "<9.5] " +
-				"(loss < .01) [" + prtdbl(loss) + "<.01], (mylink > 0) [" + mylink + ">0]\n");
-
-			diagnosis.append("Checking for Wireless link\n\t(sendtime = 0) [" +
-				prtdbl(sendtime) + "=0], (speed < 5) [" + prtdbl(spd) + "<5]\n\t" +
-				"(Estimate > 50 [" + prtdbl(estimate) + ">50], (Rwintime > 90) [" + 
-				prtdbl(rwintime) + ">.90]\n\t (RwinTrans/CwndTrans = 1) [" + SndLimTransRwin +
-				"/" + SndLimTransCwnd + "=1], (mylink > 0) [" + mylink + ">0]\n");
-
-			diagnosis.append("Checking for DSL/Cable Modem link\n\t(speed < 2) [" +
-				prtdbl(spd) + "<2], " +
-				"(SndLimTransSender = 0) [" + SndLimTransSender + "=0]\n\t " +
-				"(SendTime = 0) [" + sendtime + "=0], (mylink > 0) [" + mylink + ">0]\n");
-
-			diagnosis.append("Checking for half-duplex condition\n\t(rwintime > .95) [" +
-				prtdbl(rwintime) + ">.95], (RwinTrans/sec > 30) [" +
-				prtdbl(SndLimTransRwin/timesec) + ">30],\n\t (SenderTrans/sec > 30) [" +
-				prtdbl(SndLimTransSender/timesec) + ">30], OR (mylink <= 10) [" + mylink +	"<=10]\n");
-
-			diagnosis.append("Checking for congestion\n\t(cwndtime > .02) [" +
-				prtdbl(cwndtime) + ">.02], (mismatch = 0) [" + mismatch + "=0]\n\t" +
-				"(MaxSsthresh > 0) [" + MaxSsthresh + ">0]\n");
-
-			diagnosis.append("\nestimate = " + prtdbl(estimate) + " based on packet size = "
-				+ (CurrentMSS*8/1024) + "Kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
+//			diagnosis.append("\nEstimate = " + prtdbl(estimate) + " based on packet size = "
+//				+ (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
+      diagnosis.append("\n");
 
 			diagnosis.append("The theoretical network limit is " + prtdbl(estimate) + " Mbps\n");
 			emailText += "The theoretical network limit is " + prtdbl(estimate) + " Mbps\n%0A";

@@ -76,7 +76,7 @@ Print version number and exit.
 \fB\-b, --buffer\fR \fIbuffer_size\fR
 Set the TCP send and receive buffer size. This option uses the
 \fBsetsockopt(2)\fR function to set the TCP buffer size. Values
-larger than 64 Kbytes will result in large windows if the RFC1323
+larger than 64 kbytes will result in large windows if the RFC1323
 window scaling option is enabled on the client host.
 .TP
 \fB\--disablemid\fR 
