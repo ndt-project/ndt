@@ -109,12 +109,12 @@ testResults(char tests, char *tmpstr, char* host)
   if (!(tests & TEST_S2C)) {
     if (tests & TEST_C2S) {
       if (c2sspd < (spdout  * (1.0 - VIEW_DIFF))) {
-        printf("Information [C2S]: %0.2f%% of the transmitted bytes were buffered ", 100 * (spdout - c2sspd) / spdout);
+        printf("Information [C2S]: Excessive packet queuing detected: %0.2f%% ", 100 * (spdout - c2sspd) / spdout);
         if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
-          printf("locally.\n");
+          printf("(local buffers)\n");
         }
         else {
-          printf("somewhere on the path.\n");
+          printf("(remote buffers)\n");
         }
       }
     }
@@ -231,23 +231,23 @@ testResults(char tests, char *tmpstr, char* host)
 
     if (tests & TEST_C2S) {
       if (c2sspd < (spdout  * (1.0 - VIEW_DIFF))) {
-        printf("Information [C2S]: %0.2f%% of the transmitted bytes were buffered ", 100 * (spdout - c2sspd) / spdout);
+        printf("Information [C2S]: Excessive packet queuing detected: %0.2f%% ", 100 * (spdout - c2sspd) / spdout);
         if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
-          printf("locally.\n");
+          printf("(local buffers)\n");
         }
         else {
-          printf("somewhere on the path.\n");
+          printf("(remote buffers)\n");
         }
       }
     }
     if (tests & TEST_S2C) {
       if (spdin < (s2cspd  * (1.0 - VIEW_DIFF))) {
-        printf("Information [S2C]: %0.2f%% of the transmitted bytes were buffered ", 100 * (s2cspd - spdin) / s2cspd);
+        printf("Information [S2C]: Excessive packet queuing detected: %0.2f%% ", 100 * (s2cspd - spdin) / s2cspd);
         if (ssndqueue > (0.8 * sbytes * (s2cspd - spdin) / s2cspd)) {
-          printf("on the server.\n");
+          printf("(local buffers)\n");
         }
         else {
-          printf("somewhere on the path.\n");
+          printf("(remote buffers)\n");
         }
       }
     }

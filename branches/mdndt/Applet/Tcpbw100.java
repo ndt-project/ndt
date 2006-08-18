@@ -88,7 +88,7 @@ import javax.swing.JOptionPane;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.7";
+  private static final String VERSION = "5.4.8";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -1108,22 +1108,23 @@ public class Tcpbw100 extends JApplet implements ActionListener
   public void showBufferedBytesInfo()
   {
     JOptionPane.showMessageDialog(null,
-        "The bytes written by the sender need some time to reach the receiver.\n" +
-        "In the throughput tests it's possible that not all bytes would be read by\n" +
-        "the receiver's application. This is caused by the time limitation in the\n" +
-        "reading process.\n\n" +
-        "However, the missing bytes cannot disappear. They must be buffered in some of\n" +
-        "the places:\n" +
-        " - sender's buffers\n" +
-        " - middleboxes' buffers (like long data queues in the DSL modems)\n" +
-        " - receiver's buffers\n\n" +
-        "The high percentage of the buffered bytes means that sender writes the data\n" +
-        "much faster than capabilities of the link allows. Such situation decreases\n" +
-        "the responsiveness of the connection (the latency is very high), but has\n" +
-        "almost no influence for the throughput test results.\n\n" +
-        "In order to avoid too high percentage of the buffered bytes, the size of the\n" +
-        "sender's buffers should be decreased.",
-        "Buffered bytes",
+        "TCP (Transmission Control Protocol) reliably transfers data between two\n" +
+        "Internet hosts.  It automatically detects and recovers from errors and\n" +
+        "losses.  TCP uses buffers to provide this reliability.  In addition,\n" +
+        "switches and routers use buffers to handle cases where multiple input\n" +
+        "links send packets to a single output link or link speeds change\n" +
+        "(FastEthernet to DSL modem).\n\n" +
+        "The NDT server generates and sends 10 seconds of data to the client.  In\n" +
+        "some cases the server can generate data faster than it can send packets\n" +
+        "into the network (e.g., a 2 GHz CPU sending to a DSL connected client).\n" +
+        "When this happens, some packets may remain in the server output queue\n" +
+        "when the 10 second timer expires.  TCP will automatically continue to\n" +
+        "send these queued packets and the client will continue to accept and\n" +
+        "process these incoming packets.  This will result in the client test\n" +
+        "running longer than expected.\n\n" +
+        "This condition has occurred during this test.  No action is required to\n" +
+        "resolve this issue.",
+        "Packet queuing",
         JOptionPane.INFORMATION_MESSAGE);
   }
 
@@ -1306,7 +1307,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
           info.setCursor(new Cursor(Cursor.HAND_CURSOR));
           info.setAlignmentY((float) 0.8);
           results.insertComponent(info);
-          results.append("[C2S]: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered.\n");
+          results.append("[C2S]: Excessive packet queuing detected\n");
         }
       }
       
@@ -1326,7 +1327,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
           info.setCursor(new Cursor(Cursor.HAND_CURSOR));
           info.setAlignmentY((float) 0.8);
           results.insertComponent(info);
-          results.append("[S2C]: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered.\n");
+          results.append("[S2C]: Excessive packet queuing detected\n");
         }
       }
 
@@ -1429,19 +1430,23 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if ((tests & TEST_C2S) == TEST_C2S) {
         if (c2sspd > sc2sspd) {
-          statistics.append(prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "% of the transmitted bytes were buffered in the C2S throughput test.\n");
-        }
-        else {
-          statistics.append("All transmitted bytes in the C2S throughput test were received.\n");
+          if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
+            statistics.append("C2S throughput test: Excessive packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+          }
+          else {
+            statistics.append("C2S throughput test: Packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+          }
         }
       }
       
       if ((tests & TEST_S2C) == TEST_S2C) {
         if (ss2cspd > s2cspd) {
-          statistics.append(prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "% of the transmitted bytes were buffered in the S2C throughput test.\n");
-        }
-        else {
-          statistics.append("All transmitted bytes in the S2C throughput test were received.\n");
+          if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
+            statistics.append("S2C throughput test: Excessive packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+          }
+          else {
+            statistics.append("S2C throughput test: Packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+          }
         }
       }
       
