@@ -14,9 +14,6 @@
 
 @SET_MAKE@
 
-#
-#      $Id$
-#
 #########################################################################
 #									#
 #			   Copyright (C)  2003				#
@@ -66,18 +63,16 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
-Tcpbw100_jar_SOURCES = Tcpbw100.c
-Tcpbw100_jar_OBJECTS = Tcpbw100.$(OBJEXT)
+am_Tcpbw100_jar_OBJECTS = Tcpbw100.$(OBJEXT)
+Tcpbw100_jar_OBJECTS = $(am_Tcpbw100_jar_OBJECTS)
 Tcpbw100_jar_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-CCLD = $(CC)
-LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = Tcpbw100.c
-DIST_SOURCES = Tcpbw100.c
+GCJCOMPILE = $(GCJ) $(AM_GCJFLAGS) $(GCJFLAGS)
+GCJLD = $(GCJ)
+SOURCES = $(Tcpbw100_jar_SOURCES)
+DIST_SOURCES = $(Tcpbw100_jar_SOURCES)
 JAVAC = javac
 JAVAROOT = $(top_builddir)
 am__installdirs = "$(DESTDIR)$(Tcpbw100dir)" "$(DESTDIR)$(ndtdir)"
@@ -196,10 +191,12 @@ ndtdir = $(prefix)/ndt
 ndt_DATA = Tcpbw100.jar
 Tcpbw100dir = $(ndtdir)
 Tcpbw100_JAVA = Tcpbw100.java
+Tcpbw100_jar_SOURCES = Tcpbw100.java
+EXTRA_DIST = MANIFEST.MF
 all: all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .o .obj
+.SUFFIXES: .java .o .obj
 $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -241,19 +238,19 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Tcpbw100.Po@am__quote@
 
-.c.o:
-@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c $<
+.java.o:
+@am__fastdepGCJ_TRUE@	if $(GCJCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ $<; \
+@am__fastdepGCJ_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	DEPDIR=$(DEPDIR) $(GCJDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepGCJ_FALSE@	$(GCJCOMPILE) -c -o $@ $<
 
-.c.obj:
-@am__fastdepCC_TRUE@	if $(COMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ `$(CYGPATH_W) '$<'`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+.java.obj:
+@am__fastdepGCJ_TRUE@	if $(GCJCOMPILE) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -c -o $@ `$(CYGPATH_W) '$<'`; \
+@am__fastdepGCJ_TRUE@	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepGCJ_FALSE@	DEPDIR=$(DEPDIR) $(GCJDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepGCJ_FALSE@	$(GCJCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 uninstall-info-am:
 
 classTcpbw100.stamp: $(Tcpbw100_JAVA)
@@ -467,7 +464,6 @@ uninstall-am: uninstall-Tcpbw100JAVA uninstall-info-am \
 	ps ps-am tags uninstall uninstall-Tcpbw100JAVA uninstall-am \
 	uninstall-info-am uninstall-ndtDATA
 
-#Tcpbw100_SOURCES	= Tcpbw100.java
 
 #Tcpbw100_jar_SOURCES = Tcpbw100.jar
 
@@ -492,7 +488,7 @@ Tcpbw100.class: $(Tcpbw100_JAVA)
 	$(GCJ) $(Tcpbw100_JAVA)
 
 Tcpbw100.jar:	Tcpbw100.class
-	$(NDTJAR) $(NDTJARFLAG) Tcpbw100.jar Tcpbw100*.class
+	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class
 	echo timestamp > classTcpbw100.stamp
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

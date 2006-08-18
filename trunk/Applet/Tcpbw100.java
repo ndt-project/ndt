@@ -71,24 +71,63 @@ import java.applet.*;
 import java.util.*;
 import java.text.*;
 import java.lang.*;
-import java.applet.Applet;
+import javax.swing.JLabel;
+import javax.swing.JApplet;
+import javax.swing.JFrame;
+import javax.swing.JTextArea;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.BorderFactory;
+import javax.swing.JTextPane;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.BadLocationException;
+import javax.swing.JOptionPane;
 
-public class Tcpbw100 extends Applet implements ActionListener
+public class Tcpbw100 extends JApplet implements ActionListener
 {
-	TextArea results, diagnosis, statistics, reports;
+  private static final String VERSION = "5.4.8";
+  private static final byte TEST_MID = (1 << 0);
+  private static final byte TEST_C2S = (1 << 1);
+  private static final byte TEST_S2C = (1 << 2);
+  private static final byte TEST_SFW = (1 << 3);
+
+  /* we really should do some clean-up in this java code... maybe later ;) */
+  private static final byte COMM_FAILURE  = 0;
+  private static final byte SRV_QUEUE     = 1;
+  private static final byte MSG_LOGIN     = 2;
+  private static final byte TEST_PREPARE  = 3;
+  private static final byte TEST_START    = 4;
+  private static final byte TEST_MSG      = 5;
+  private static final byte TEST_FINALIZE = 6;
+  private static final byte MSG_ERROR     = 7;
+  private static final byte MSG_RESULTS   = 8;
+  private static final byte MSG_LOGOUT    = 9;
+
+  private static final int SFW_NOTTESTED  = 0;
+  private static final int SFW_NOFIREWALL = 1;
+  private static final int SFW_UNKNOWN    = 2;
+  private static final int SFW_POSSIBLE   = 3;
+
+  private static final double VIEW_DIFF = 0.1;
+  
+	JTextArea diagnosis, statistics;
+  MyTextPane results;
 	String inresult, outresult, errmsg;
-	Button startTest;
-	Button disMiss, disMiss2;
-	Button copy, copy2;
-	Button deTails;
-	Button sTatistics;
-	Button mailTo;
-	Label lab1, lab2, lab3, lab4;
+	JButton startTest;
+	JButton disMiss, disMiss2;
+	JButton copy, copy2;
+	JButton deTails;
+	JButton sTatistics;
+	JButton mailTo;
+  JButton options;
+  JCheckBox defaultTest;
 	boolean Randomize, failed, cancopy;
 	URL location;
-	clsFrame f, ff;
+	clsFrame f, ff, optionsFrame;
 	String s;
-	Frame frame;
 	double t;
 	int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
 	int SACKEnabled, TimestampsEnabled, WinScaleRcvd;
@@ -106,7 +145,9 @@ public class Tcpbw100 extends Applet implements ActionListener
 	private String TARGET1 = "U";
 	private String TARGET2 = "H";
 	String emailText;
-	double s2cspd, c2sspd;
+	double s2cspd, c2sspd, sc2sspd, ss2cspd;
+  int ssndqueue;
+  double sbytes;
 
 	int half_duplex, congestion, bad_cable, mismatch;
 	double mylink;
@@ -114,80 +155,700 @@ public class Tcpbw100 extends Applet implements ActionListener
 	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 	double aspd;
 
+  boolean isApplication = false;
+  boolean testInProgress = false;
+  String host = null;
+  String tmpstr, tmpstr2;
+  byte tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW;
+  int c2sResult = SFW_NOTTESTED;
+  int s2cResult = SFW_NOTTESTED;
 
+  public void showStatus(String msg)
+  {
+    if (!isApplication) {
+      super.showStatus(msg);
+    }
+  }
 
 	public void init() {
-		setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
+		setLayout(new BorderLayout());
 		showStatus("Tcpbw100 ready");
 		failed = false ;
 		Randomize = false;
 		cancopy = false;
-		results = new TextArea("TCP/Web100 Network Diagnostic Tool v5.3.5a\n",15,70);
+    results = new MyTextPane();
+    results.append("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n");
 		results.setEditable(false);
-		add(results);
+		add(new JScrollPane(results));
 		results.append("click START to begin\n");
-		startTest = new Button("START");
-		startTest.addActionListener(this);
-		add("West", startTest);
 		Panel mPanel = new Panel();
-		sTatistics = new Button("Statistics");
+		startTest = new JButton("START");
+		startTest.addActionListener(this);
+		mPanel.add(startTest);
+		sTatistics = new JButton("Statistics");
 		sTatistics.addActionListener(this);
 		mPanel.add(sTatistics);
 		sTatistics.setEnabled(false);
-		deTails = new Button("More Details...");
+		deTails = new JButton("More Details...");
 		deTails.addActionListener(this);
 		mPanel.add(deTails);
 		deTails.setEnabled(false);
-		mailTo = new Button("Report Problem");
+		mailTo = new JButton("Report Problem");
 		mailTo.addActionListener(this);
 		mPanel.add(mailTo);
 		mailTo.setEnabled(false);
-		add("South", mPanel);
+    options = new JButton("Options");
+    options.addActionListener(new ActionListener() {
+
+      public void actionPerformed(ActionEvent e) {
+        options.setEnabled(false);
+        showOptions();
+        options.setEnabled(true);
+      }
+      
+    });
+    mPanel.add(options);
+		add(BorderLayout.SOUTH, mPanel);
 	}
 
-	
+  class MyTextPane extends JTextPane
+  {
+    public void append(String text)
+    {
+      try {
+        getStyledDocument().insertString(getStyledDocument().getLength(), text, null);
+      }
+      catch (BadLocationException e) {
+        System.out.println("WARNING: failed to append text to the text pane! [" + text + "]");
+      }
+    }
 
-	public void runtest() {
-		diagnose();
-		statistics();
-		startTest.setEnabled(false);
-		deTails.setEnabled(false);
-		sTatistics.setEnabled(false);
-		mailTo.setEnabled(false);
-		
-		try {
-			dottcp();
-		} catch(IOException e) {
-			System.out.println (e);
-			failed=true;
-			errmsg = "Server busy: Please wait 30 seconds for previous test to finish\n";
-		}
-		
-		if (failed) {
-			results.append(errmsg);
-		}
-		
-		deTails.setEnabled(true);
-		sTatistics.setEnabled(true);
-		mailTo.setEnabled(true);
-		showStatus("Tcpbw100 done");
-		results.append("\nclick START to re-test\n");
-		startTest.setEnabled(true);
+    public void insertComponent(Component c)
+    {
+      setSelectionStart(results.getStyledDocument().getLength());
+      setSelectionEnd(results.getStyledDocument().getLength());
+      super.insertComponent(c);
+    }
+  }
+
+	class TestWorker implements Runnable
+  {
+    public void run()
+    {
+      if (!testInProgress) {
+        testInProgress = true;
+        diagnose();
+        statistics();
+        startTest.setEnabled(false);
+        deTails.setEnabled(false);
+        sTatistics.setEnabled(false);
+        mailTo.setEnabled(false);
+        options.setEnabled(false);
+
+        try {
+          dottcp();
+        } catch(IOException e) {
+          e.printStackTrace();
+          failed=true;
+          errmsg = "Server busy: Please wait 30 seconds for previous test to finish\n";
+        }
+
+        if (failed) {
+          results.append(errmsg);
+        }
+
+        deTails.setEnabled(true);
+        sTatistics.setEnabled(true);
+        mailTo.setEnabled(true);
+        options.setEnabled(true);
+        showStatus("Tcpbw100 done");
+        results.append("\nclick START to re-test\n");
+        startTest.setEnabled(true);
+        testInProgress = false;
+      }
+    }
+  }
+
+	synchronized public void runtest() {
+    new Thread(new TestWorker()).start();
 	}
 
+  class Message {
+    byte type;
+    byte[] body;
+  }
+  
+  class Protocol {
+    private InputStream _ctlin;
+    private OutputStream _ctlout;
 
+    public Protocol(Socket ctlSocket) throws IOException
+    {
+      _ctlin = ctlSocket.getInputStream();
+      _ctlout = ctlSocket.getOutputStream();
+    }
+    
+    public void send_msg(byte type, byte toSend) throws IOException
+    {
+      byte[] tab = new byte[] { toSend };
+      send_msg(type, tab);
+    }
+
+    public void send_msg(byte type, byte[] tab) throws IOException
+    {
+      byte[] header = new byte[3];
+      header[0] = type;
+      header[1] = (byte) (tab.length >> 8);
+      header[2] = (byte) tab.length;
+      
+      _ctlout.write(header);
+      _ctlout.write(tab);
+    }
+
+    public int readn(Message msg, int amount) throws IOException
+    {
+      int read = 0; 
+      int tmp;
+      msg.body = new byte[amount];
+      while (read != amount) {
+        tmp = _ctlin.read(msg.body, read, amount - read);
+        if (tmp <= 0) {
+          return read;
+        }
+        read += tmp;
+      }
+      return read;
+    }
+    
+    public int recv_msg(Message msg) throws IOException
+    {
+      int length;
+      if (readn(msg, 3) != 3) {
+        return 1;
+      }
+      msg.type = msg.body[0];
+      length = ((int) msg.body[1] & 0xFF) << 8;
+      length += (int) msg.body[2] & 0xFF; 
+      if (readn(msg, length) != length) {
+        return 3;
+      }
+      return 0;
+    }
+
+    public void close()
+    {
+      try {
+        _ctlin.close();
+        _ctlout.close();
+      }
+      catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  public boolean test_mid(Protocol ctl) throws IOException
+  {
+		byte buff[] = new byte[8192];
+    Message msg = new Message();
+    if ((tests & TEST_MID) == TEST_MID) {
+      /* now look for middleboxes (firewalls, NATs, and other boxes that
+       * muck with TCP's end-to-end priciples
+       */
+      showStatus("Tcpbw100 Middlebox test...");
+      results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+      emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Middlebox test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      int midport = Integer.parseInt(new String(msg.body));
+
+      Socket in2Socket = null;
+      try {
+        in2Socket = new Socket(host, midport);
+      } catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return true;
+      } catch (IOException e) {
+        System.err.println("Couldn't perform middlebox testing to: " + host);
+        errmsg = "Server Failed while middlebox testing\n" ;
+        failed = true;
+        return true;
+      }
+
+      InputStream srvin2 = in2Socket.getInputStream();
+      OutputStream srvout2 = in2Socket.getOutputStream();
+
+      int largewin = 128*1024;
+
+      in2Socket.setSoTimeout(6500);
+      int bytes = 0;
+      int inlth;
+      t = System.currentTimeMillis();
+
+      try {  
+        while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
+          bytes += inlth;
+          if ((System.currentTimeMillis() - t) > 5500)
+            break;
+        }
+      } 
+      catch (IOException e) {}
+
+      t =  System.currentTimeMillis() - t;
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
+      s2cspd = ((8.0 * bytes) / 1000) / t;
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Middlebox test results: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      tmpstr2 = new String(msg.body);
+
+      String tmpstr4 = Double.toString(s2cspd*1000);
+      System.out.println("Sending '" + tmpstr4 + "' back to server");
+      ctl.send_msg(TEST_MSG, tmpstr4.getBytes());
+
+      try {
+        tmpstr2 += in2Socket.getInetAddress() + ";";
+      } catch (SecurityException e) {
+        System.err.println("Unable to obtain Servers IP addresses: using " + host);
+        errmsg = "getInetAddress() called failed\n" ;
+        tmpstr2 += host + ";";
+        results.append("Unable to obtain remote IP address\n");
+      }
+
+      System.err.println("calling in2Socket.getLocalAddress()");
+      try {
+        tmpstr2 += in2Socket.getLocalAddress() + ";";
+      } catch (SecurityException e) {
+        System.err.println("Unable to obtain local IP address: using 127.0.0.1");
+        errmsg = "getLocalAddress() call failed\n" ;
+        tmpstr2 += "127.0.0.1;";
+        // results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
+      }
+
+      srvin2.close();
+      srvout2.close();
+      in2Socket.close();
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Middlebox test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+    }
+    return false;
+  }
+
+  public boolean test_sfw(Protocol ctl) throws IOException
+  {
+    Message msg = new Message();
+    if ((tests & TEST_SFW) == TEST_SFW) {
+      showStatus("Simple firewall test...");
+      results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+      emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+
+      String message = new String(msg.body);
+
+      int srvPort, testTime;
+      try {
+        int k = message.indexOf(" ");
+        srvPort = Integer.parseInt(message.substring(0,k));
+        testTime = Integer.parseInt(message.substring(k+1));
+      }
+      catch (Exception e) {
+        errmsg = "Simple firewall test: Received improper message\n";
+        failed = true;
+        return true;
+      }
+
+      System.out.println("SFW: port=" + srvPort);
+      System.out.println("SFW: testTime=" + testTime);
+
+      ServerSocket srvSocket;
+      try {
+        srvSocket = new ServerSocket(0);
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        errmsg = "Simple firewall test: Cannot create listen socket\n";
+        failed = true;
+        return true;
+      }
+
+      System.out.println("SFW: oport=" + srvSocket.getLocalPort());
+      ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }     
+
+      OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
+      new Thread(osfwTest).start();
+
+      Socket sfwSocket = new Socket();
+      try {
+        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
+
+        Protocol sfwCtl = new Protocol(sfwSocket);
+        sfwCtl.send_msg(TEST_MSG, new String("Simple firewall test").getBytes());
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      c2sResult = Integer.parseInt(new String(msg.body));
+
+      osfwTest.finalize();
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "Simple firewall test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      results.append("Done\n");
+      statistics.append("Done\n");
+      emailText += "Done\n%0A";
+    }
+    return false;
+  }
+
+  public boolean test_c2s(Protocol ctl) throws IOException
+  {
+		byte buff2[] = new byte[8192];
+    Message msg = new Message();
+    if ((tests & TEST_C2S) == TEST_C2S) {
+      showStatus("Tcpbw100 outbound test...");
+      results.append("running 10s outbound test (client-to-server [C2S]) . . . . . ");
+      statistics.append("running 10s outbound test (client-to-server [C2S]) . . . . . ");
+      emailText += "running 10s outbound test (client-to-server [C2S]) . . . . . ";
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      int c2sport = Integer.parseInt(new String(msg.body));
+
+      Socket outSocket = null;
+      try {
+        outSocket = new Socket(host, c2sport);
+      } catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return true;
+      } catch (IOException e) {
+        System.err.println("Couldn't get 2nd connection to: " + host);
+        errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
+        failed = true;
+        return true;
+      }
+
+      OutputStream out = outSocket.getOutputStream();
+
+      // wait here for signal from server application 
+      // This signal tells the client to start pumping out data
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+
+      Random rng = new Random();
+      byte c = '0';
+      int i;
+      for (i=0; i<lth; i++) {
+        if (c == 'z')
+          c = '0';
+        buff2[i] = c++;
+      }
+      System.err.println("Send buffer size =" + i);
+      outSocket.setSoTimeout(15000); 
+      pkts = 0;
+      t = System.currentTimeMillis();
+      double stop_time = t + 10000; // ten seconds
+      do {
+        // if (Randomize) rng.nextBytes(buff2);
+        try {
+          out.write(buff2, 0, buff2.length);
+        }
+        catch (SocketException e) {
+          System.out.println(e);
+          break;
+        }
+        pkts++;
+      } while (System.currentTimeMillis() < stop_time);
+
+      t =  System.currentTimeMillis() - t;
+      if (t == 0) {
+        t = 1;
+      }
+      out.close();
+      outSocket.close();
+      System.out.println((8.0 * pkts * lth) / t + " kb/s outbound");
+      c2sspd = ((8.0 * pkts * lth) / 1000) / t;
+      /* receive the c2sspd from the server */
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      String tmpstr3 = new String(msg.body);
+      sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
+
+      if (sc2sspd < 1.0) {
+        results.append(prtdbl(sc2sspd*1000) + "kb/s\n");
+        statistics.append(prtdbl(sc2sspd*1000) + "kb/s\n");
+        emailText += prtdbl(sc2sspd*1000) + "kb/s\n%0A";
+      } 
+      else {
+        results.append(prtdbl(sc2sspd) + "Mb/s\n");
+        statistics.append(prtdbl(sc2sspd) + "Mb/s\n");
+        emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
+      }
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean test_s2c(Protocol ctl, Socket ctlSocket) throws IOException
+  {
+		byte buff[] = new byte[8192];
+    Message msg = new Message();
+    if ((tests & TEST_S2C) == TEST_S2C) {
+      showStatus("Tcpbw100 inbound test...");
+      results.append("running 10s inbound test (server-to-client [S2C]) . . . . . . ");
+      statistics.append("running 10s inbound test (server-to-client [S2C]) . . . . . . ");
+      emailText += "running 10s inbound test (server-to-client [S2C]) . . . . . . ";
+      
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = "C2S throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      int s2cport = Integer.parseInt(new String(msg.body));
+
+      Socket inSocket;
+      try {
+        inSocket = new Socket(host, s2cport);
+      } 
+      catch (UnknownHostException e) {
+        System.err.println("Don't know about host: " + host);
+        errmsg = "unknown server\n" ;
+        failed = true;
+        return true;
+      } 
+      catch (IOException e) {
+        System.err.println("Couldn't get 3rd connection to: " + host);
+        errmsg = "Server Failed while receiving data\n" ;
+        failed = true;
+        return true;
+      }
+
+      InputStream srvin = inSocket.getInputStream();
+      int bytes = 0;
+      int inlth;
+
+      // wait here for signal from server application 
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = "S2C throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+
+      inSocket.setSoTimeout(15000);
+      t = System.currentTimeMillis();
+
+      try {  
+        while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
+          bytes += inlth;
+          if ((System.currentTimeMillis() - t) > 14500)
+            break;
+        }
+      } 
+      catch (IOException e) {}
+
+      t =  System.currentTimeMillis() - t;
+      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
+      s2cspd = ((8.0 * bytes) / 1000) / t;
+
+      /* receive the s2cspd from the server */
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return true;
+      }
+      if (msg.type != TEST_MSG) {
+        errmsg = "S2C throughput test: Received wrong type of the message\n";
+        failed = true;
+        return true;
+      }
+      try {
+        String tmpstr3 = new String(msg.body);
+        int k1 = tmpstr3.indexOf(" ");
+        int k2 = tmpstr3.substring(k1+1).indexOf(" ");
+        ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
+        ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
+        sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        errmsg = "S2C throughput test: Received improper message\n";
+        failed = true;
+        return true;
+      }
+
+      if (s2cspd < 1.0) {
+        results.append(prtdbl(s2cspd*1000) + "kb/s\n");
+        statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
+        emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
+      } else {
+        results.append(prtdbl(s2cspd) + "Mb/s\n");
+        statistics.append(prtdbl(s2cspd) + "Mb/s\n");
+        emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
+      }
+
+      srvin.close();
+      inSocket.close();
+
+      buff = Double.toString(s2cspd*1000).getBytes();
+      String tmpstr4 = new String(buff, 0, buff.length);
+      System.out.println("Sending '" + tmpstr4 + "' back to server");
+      ctl.send_msg(TEST_MSG, buff);
+
+      /* get web100 variables from server */
+      tmpstr = "";
+      int i = 0;
+
+      // Try setting a 5 second timer here to break out if the read fails.
+      ctlSocket.setSoTimeout(5000);
+      try {  
+        for (;;) {
+          if (ctl.recv_msg(msg) != 0) {
+            errmsg = "Protocol error!\n";
+            failed = true;
+            return true;
+          }
+          if (msg.type == TEST_FINALIZE) {
+            break;
+          }
+          if (msg.type != TEST_MSG) {
+            errmsg = "S2C throughput test: Received wrong type of the message\n";
+            failed = true;
+            return true;
+          }
+          tmpstr += new String(msg.body);
+          i++;
+        }
+      } catch (IOException e) {}
+      ctlSocket.setSoTimeout(0);
+    }
+    return false;
+  }
 
 	public void dottcp() throws IOException {
 		Socket ctlSocket = null;
-		Socket outSocket = null;
-		Socket inSocket = null;
-		Socket in2Socket = null;
-		String host = getCodeBase().getHost();
-		int ctlport = 3001,  outport, inport, inlth, bytes;
-		int midport = 3004;
-		byte buff[] = new byte[8192];
-		byte buff2[] = new byte[8192];
-		double stop_time, wait2;
+    if (!isApplication) {
+		  host = getCodeBase().getHost();
+    }
+		int ctlport = 3001;
+		double wait2;
 		int sbuf, rbuf;
 		int i, wait;
 
@@ -201,333 +862,144 @@ public class Tcpbw100 extends Applet implements ActionListener
 			return;
 		} catch (IOException e) {
 			System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
-			errmsg = "Server process not running: start web100srv process on remote server\n" ;
+			errmsg = "Server process not running: start web100srv process on remote server (" + host + ":" + ctlport + ")\n" ;
 			failed = true;
 			return;
 		}
+    Protocol ctl = new Protocol(ctlSocket);
+    Message msg = new Message();
 
-		/* This is part of the server queuing process.  The server will now send
-		* a integer value over to the client before testing will begin.  If queuing
-		* is enabled, the server will send a positive value.  Zero indicated that
-		* testing can begin, and -1 indicates that queuing is disabled and the 
-		* user should try again later.
-		*/
+    /* The beginning of the protocol */
 
-		InputStream ctlin = ctlSocket.getInputStream();
-		OutputStream ctlout = ctlSocket.getOutputStream();
+    /* write our test suite request */
+    ctl.send_msg(MSG_LOGIN, tests);
+    /* read the specially crafted data that kicks off the old clients */
+    if (ctl.readn(msg, 13) != 13) {
+      errmsg = "Information: The server does not support this command line client\n";
+      failed = true;
+      return;
+    }
+    
+    for (;;) {
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = "Protocol error!\n";
+        failed = true;
+        return;
+      }
+      if (msg.type != SRV_QUEUE) {
+        errmsg = "Logging to server: Received wrong type of the message\n";
+        failed = true;
+        return;
+      }
+      String tmpstr3 = new String(msg.body);
+      wait = Integer.parseInt(tmpstr3);
+      System.out.println("wait flag received = " + wait);
+      
+      if (wait == 0) {
+        break;
+      }
 
-		try {  
-			while ((inlth = ctlin.read(buff,0,buff.length)) > 0) {
-				String tmpstr3 = new String(buff, 0, inlth);
-				wait = Integer.parseInt(tmpstr3);
-				System.out.println("wait flag received = " + wait);
-
-				if (wait == 0)
-					break;
-
-				if (wait == 9999) {
-					errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
-					failed = true;
-					return;
-				}
-				
-				// Each test should take less than 30 seconds, so tell them 45 sec * numer of 
-				// tests in the queue.
-				wait = (wait * 45);
-				results.append("Another client is currently being served, your test will " +
-					"begin within " + wait + " seconds\n");
-			}
-		} catch (IOException e) {}
-
-		inlth = ctlin.read(buff,0,buff.length); 
-
-		if (inlth <= 0) {  
-			System.err.println("control port read failed");
-			errmsg = "Server Busy: Please wait 60 seconds for previous test to finish\n" ;
-			failed = true;
-			return;
-		}
-
-		String tmpstr = new String(buff,0,inlth);
-		System.out.println("server ports " + tmpstr);
-		int k = tmpstr.indexOf(" ");
-		outport = Integer.parseInt(tmpstr.substring(0,k));
-		inport = Integer.parseInt(tmpstr.substring(k+1));
+      if (wait == 9999) {
+        errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
+        failed = true;
+        return;
+      }
+      // Each test should take less than 30 seconds, so tell them 45 sec * number of 
+      // tests in the queue.
+      wait = (wait * 45);
+      results.append("Another client is currently being served, your test will " +
+          "begin within " + wait + " seconds\n");
+    }
 
 		f.toBack();
 		ff.toBack();
 
-		/* now look for middleboxes (firewalls, NATs, and other boxes that
-		* muck with TCP's end-to-end priciples
-		*/
-		showStatus("Tcpbw100 Middlebox test...");
-		// results.append("Trying to open new connection to server for middlebox testing\n");
+    if (ctl.recv_msg(msg) != 0) {
+      errmsg = "Protocol error!\n";
+      failed = true;
+      return;
+    }
+    if (msg.type != MSG_LOGIN) {
+      errmsg = "Negotiating NDT version: Received wrong type of the message\n";
+      failed = true;
+      return;
+    }
 
-		try {
-			in2Socket = new Socket(host, inport);
-			// in2Socket = new Socket(host, midport);
-		} catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} catch (IOException e) {
-			System.err.println("Couldn't perform middlebox testing to: " + host);
-			errmsg = "Server Failed while middlebox testing\n" ;
-			failed = true;
-			return;
-		}
-		results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-		statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
-		emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
+    String vVersion = new String(msg.body);
+    if (!vVersion.startsWith("v")) {
+      errmsg = "Incompatible version number";
+      failed = true;
+      return;
+    }
+    System.out.println("Server version: " + vVersion.substring(1));
+    
+    if (ctl.recv_msg(msg) != 0) {
+      errmsg = "Protocol error!\n";
+      failed = true;
+      return;
+    }
+    if (msg.type != MSG_LOGIN) {
+      errmsg = "Negotiating test suite: Received wrong type of the message\n";
+      failed = true;
+      return;
+    }
+    StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
 
-		InputStream srvin2 = in2Socket.getInputStream();
-		OutputStream srvout2 = in2Socket.getOutputStream();
+    while (tokenizer.hasMoreTokens()) {
+      int testId = Integer.parseInt(tokenizer.nextToken());
+      switch (testId) {
+        case TEST_MID:
+          if (test_mid(ctl)) {
+            return;
+          }
+          break;
+        case TEST_SFW:
+          if (test_sfw(ctl)) {
+            return;
+          }
+          break;
+        case TEST_C2S:
+          if (test_c2s(ctl)) {
+            return;
+          }
+          break;
+        case TEST_S2C:
+          if (test_s2c(ctl, ctlSocket)) {
+            return;
+          }
+          break;
+        default:
+          errmsg = "Unknown test ID\n";
+          failed = true;
+          return;
+      }
+    }
 
-		int largewin = 128*1024;
+    i = 0;
 
-		in2Socket.setSoTimeout(6500);
-		bytes = 0;
-		t = System.currentTimeMillis();
+    try {  
+      for (;;) {
+        if (ctl.recv_msg(msg) != 0) {
+          errmsg = "Protocol error!\n";
+          failed = true;
+          return;
+        }
+        if (msg.type == MSG_LOGOUT) {
+          break;
+        }
+        if (msg.type != MSG_RESULTS) {
+          errmsg = "Tests results: Received wrong type of the message\n";
+          failed = true;
+          return;
+        }
+        tmpstr += new String(msg.body);
+        i++;
+      }
+    } catch (IOException e) {}
 
-		try {  
-			while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
-   			    bytes += inlth;
-			    if ((System.currentTimeMillis() - t) > 5500)
-				break;
-			}
-		} 
-		catch (IOException e) {}
-
-		t =  System.currentTimeMillis() - t;
-		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
-		s2cspd = ((8.0 * bytes) / 1000) / t;
-
-		buff = Double.toString(s2cspd*1000).getBytes();
-		String tmpstr4 = new String(buff, 0, buff.length);
-		System.out.println("Sending '" + tmpstr4 + "' back to server");
-		ctlout.write(buff, 0, buff.length);
-
-		String tmpstr2 = new String(buff2, 0, 512);
-		tmpstr2 = "";
-		inlth = ctlin.read(buff2, 0, 512);
-		tmpstr2 += new String(buff2, 0, inlth);
-			System.out.println("read tmpstr2 = '" + tmpstr2 + "' from remote server");
-		
-		results.append("Done\n");
-		statistics.append("Done\n");
-		emailText += "Done\n%0A";
-		try {
-			tmpstr2 += in2Socket.getInetAddress() + ";";
-		} catch (SecurityException e) {
-			System.err.println("Unable to obtain Servers IP addresses: using " + host);
-			errmsg = "getInetAddress() called failed\n" ;
-			tmpstr2 += host + ";";
-			results.append("Unable to obtain remote IP address\n");
-		}
-
-		System.err.println("calling in2Socket.getLocalAddress()");
-		try {
-			tmpstr2 += in2Socket.getLocalAddress() + ";";
-		} catch (SecurityException e) {
-			System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-			errmsg = "getLocalAddress() call failed\n" ;
-			tmpstr2 += "127.0.0.1;";
-			// results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
-		}
-
-		srvin2.close();
-		srvout2.close();
-		in2Socket.close();
-
-		inlth = ctlin.read(buff2,0,buff2.length); 
-		if (inlth <= 0) {  
-			System.err.println("read failed read 'C2S Open-Connection' flag");
-			errmsg = "Server failed: 'C2S Open-Connection' flag not received\n" ;
-			failed = true;
-			return;
-		}
-		String tmpstr5 = new String(buff2, 0, inlth);
-		System.err.println("read string'" + tmpstr5 +"' from server, C2S Open-Connection message");
-
-		////
-		//   OUTBOUND
-		////
-		showStatus("Tcpbw100 outbound test...");
-		try {
-			outSocket = new Socket(host, outport);
-		} catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} catch (IOException e) {
-			System.err.println("Couldn't get 2nd connection to: " + host);
-			errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
-			failed = true;
-			return;
-		}
-		results.append("running 10s outbound test (client to server) . . . . . ");
-		statistics.append("running 10s outbound test (client to server) . . . . . ");
-		emailText += "running 10s outbound test (client to server) . . . . . ";
-
-		OutputStream out = outSocket.getOutputStream();
-
-		// wait here for signal from server application 
-		// This signal tells the client to start pumping out data
-		inlth = ctlin.read(buff,0,buff.length); 
-		if (inlth <= 0) {  
-			System.err.println("read failed read 'Start' flag");
-			errmsg = "Server failed: 'Start' flag not received\n" ;
-			failed = true;
-			return;
-		}
-		tmpstr5 = new String(buff, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, starting C2S test");
-
-		Random rng = new Random();
-		byte c = '0';
-		for (i=0; i<lth; i++) {
-			if (c == 'z')
-			    c = '0';
-			buff2[i] = c++;
-		}
-		System.err.println("Send buffer size =" + i);
-		outSocket.setSoTimeout(15000); 
-		pkts = 0;
-		t = System.currentTimeMillis();
-		stop_time = t + 10000; // ten seconds
-		do {
-			// if (Randomize) rng.nextBytes(buff2);
-			out.write(buff2, 0, buff2.length);
-			pkts++;
-		} while (System.currentTimeMillis() < stop_time);
-		
-		t =  System.currentTimeMillis() - t;
-		out.close();
-		outSocket.close();
-			System.out.println((8.0 * pkts * lth) / t + " Kb/s outbound");
-		c2sspd = ((8.0 * pkts * lth) / 1000) / t;
-
-		String srvresult = new String(buff,0,inlth);
-		System.out.println(srvresult + " got " + inlth );
-		if (c2sspd < 1.0) {
-			results.append(prtdbl(c2sspd*1000) + "Kb/s\n");
-			statistics.append(prtdbl(c2sspd*1000) + "Kb/s\n");
-			emailText += prtdbl(c2sspd*1000) + "Kb/s\n%0A";
-		} 
-		else {
-			results.append(prtdbl(c2sspd) + "Mb/s\n");
-			statistics.append(prtdbl(c2sspd) + "Mb/s\n");
-			emailText += prtdbl(c2sspd) + "Mb/s\n%0A";
-		}
-
-
-		//// 
-		//   INBOUND 
-		////
-		showStatus("Tcpbw100 inbound test...");
-
-		inlth= ctlin.read(buff2, 0, buff2.length); 
-		if (inlth <= 0) {  
-			System.err.println("2nd connection failed");
-			errmsg = "Server Failed while sending data\n" ;
-			failed = true;
-			return;
-		}
-		tmpstr5 = new String(buff2, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, open new connecion");
-
-
-		try {
-			inSocket = new Socket(host, inport);
-		} 
-		catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} 
-		catch (IOException e) {
-			System.err.println("Couldn't get 3rd connection to: " + host);
-			errmsg = "Server Failed while receiving data\n" ;
-			failed = true;
-			return;
-		}
-
-		InputStream srvin = inSocket.getInputStream();
-		bytes = 0;
-
-		results.append("running 10s inbound test (server to client) . . . . . . ");
-		statistics.append("running 10s inbound test (server to client) . . . . . . ");
-		emailText += "running 10s inbound test (server to client) . . . . . . ";
-
-		// wait here for signal from server application 
-		inlth = ctlin.read(buff,0,buff.length); 
-		if (inlth <= 0) {  
-			System.err.println("read failed read 'Go' flag");
-			errmsg = "Server failed: 'Go' flag not received\n" ;
-			failed = true;
-			return;
-		}
-		tmpstr5 = new String(buff, 0, inlth);
-		System.err.println("read string '" + tmpstr5 + "' from server, starting next test");
-
-		inSocket.setSoTimeout(15000);
-		t = System.currentTimeMillis();
-
-		try {  
-			while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
-   			    bytes += inlth;
-			    if ((System.currentTimeMillis() - t) > 14500)
-				break;
-			}
-		} 
-		catch (IOException e) {}
-
-		t =  System.currentTimeMillis() - t;
-		System.out.println(bytes + " bytes " + 8.0 * bytes/t + " Kb/s " + t/1000 + " secs");
-		s2cspd = ((8.0 * bytes) / 1000) / t;
-		if (s2cspd < 1.0) {
-			results.append(prtdbl(s2cspd*1000) + "kb/s\n");
-			statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
-			emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
-		} else {
-			results.append(prtdbl(s2cspd) + "Mb/s\n");
-			statistics.append(prtdbl(s2cspd) + "Mb/s\n");
-			emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
-		}
-
-		srvin.close();
-		inSocket.close();
-
-		buff = Double.toString(s2cspd*1000).getBytes();
-		tmpstr4 = new String(buff, 0, buff.length);
-		System.out.println("Sending '" + tmpstr4 + "' back to server");
-		ctlout.write(buff, 0, buff.length);
-
-		/* get web100 variables from server */
-		tmpstr = "";
-		i = 0;
-
-		// Try setting a 5 second timer here to break out if the read fails.
-		ctlSocket.setSoTimeout(5000);
-		try {  
-			for (;;) {
-				inlth = ctlin.read(buff, 0, buff.length);
-				//results.append("Read " + inlth + " bytes from ctl socket\n");
-				if (inlth < 0) {
-					//results.append("Finished reading data from ctl socket\n");
-					break;
-				}
-				tmpstr += new String(buff, 0, inlth);
-				i++;
-			}
-		} catch (IOException e) {}
-
-		if (i == 0)
-		    results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
-		
+    if (i == 0) {
+      results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
+    }
 		System.err.println("Calling InetAddress.getLocalHost() twice");
 		try {
 			diagnosis.append("Client: " + InetAddress.getLocalHost() + "\n");
@@ -543,31 +1015,118 @@ public class Tcpbw100 extends Applet implements ActionListener
 			emailText += "Client: 127.0.0.1\n%0A";
 		}
 
-		
-		/// XXX TODO -- this code doesn't do anything  dmr
-	// 	try {  
-	// 		for (;;) {
-	// 			inlth = ctlin.read(buff, 0, buff.length);
-	// 			//results.append("Read " + inlth + " bytes from ctl socket\n");
-	// 			if (inlth < 0) {
-	// 				// System.err.println("Finished reading calculated data");
-	// 				break;
-	// 			}
-	// 			tmpstr += new String(buff, 0, inlth);
-	// 		}
-	// 	} catch (IOException e) {}
-
-		ctlin.close();
-		ctlout.close();
+    ctl.close();
 		ctlSocket.close();
 
-		// System.err.println("tmpstr2 is '" + tmpstr2 + "'\n");
-		// System.err.println("tmpstr is '" + tmpstr + "'\n");
 		testResults(tmpstr);
 		middleboxResults(tmpstr2);
 	}
 
 
+	class OsfwWorker implements Runnable
+  {
+    private ServerSocket srvSocket;
+    private int testTime;
+    private boolean finalized = false;
+    
+    OsfwWorker(ServerSocket srvSocket, int testTime)
+    {
+      this.srvSocket = srvSocket;
+      this.testTime = testTime;
+    }
+
+    public void finalize()
+    {
+      while (!finalized) {
+        try {
+          Thread.currentThread().sleep(1000);
+        }
+        catch (InterruptedException e) {
+          // do nothing.
+        }
+      }
+    }
+    
+    public void run()
+    {
+      Message msg = new Message();
+      Socket sock = null;
+
+      try {
+        srvSocket.setSoTimeout(testTime * 1000);
+        try {
+          sock = srvSocket.accept();
+        }
+        catch (Exception e) {
+          e.printStackTrace();
+          s2cResult = SFW_POSSIBLE;
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        Protocol sfwCtl = new Protocol(sock);
+
+        if (sfwCtl.recv_msg(msg) != 0) {
+          System.out.println("Simple firewall test: unrecognized message");
+          s2cResult = SFW_UNKNOWN;
+          sock.close();
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        if (msg.type != TEST_MSG) {
+          s2cResult = SFW_UNKNOWN;
+          sock.close();
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        if (! new String(msg.body).equals("Simple firewall test")) {
+          System.out.println("Simple firewall test: Improper message");
+          s2cResult = SFW_UNKNOWN;
+          sock.close();
+          srvSocket.close();
+          finalized = true;
+          return;
+        }
+        s2cResult = SFW_NOFIREWALL;
+      }
+      catch (IOException ex) {
+        s2cResult = SFW_UNKNOWN;
+      }
+      try {
+        sock.close();
+        srvSocket.close();
+      }
+      catch (IOException e) {
+        // do nothing
+      }
+      finalized = true;
+    }
+  }
+
+  public void showBufferedBytesInfo()
+  {
+    JOptionPane.showMessageDialog(null,
+        "TCP (Transmission Control Protocol) reliably transfers data between two\n" +
+        "Internet hosts.  It automatically detects and recovers from errors and\n" +
+        "losses.  TCP uses buffers to provide this reliability.  In addition,\n" +
+        "switches and routers use buffers to handle cases where multiple input\n" +
+        "links send packets to a single output link or link speeds change\n" +
+        "(FastEthernet to DSL modem).\n\n" +
+        "The NDT server generates and sends 10 seconds of data to the client.  In\n" +
+        "some cases the server can generate data faster than it can send packets\n" +
+        "into the network (e.g., a 2 GHz CPU sending to a DSL connected client).\n" +
+        "When this happens, some packets may remain in the server output queue\n" +
+        "when the 10 second timer expires.  TCP will automatically continue to\n" +
+        "send these queued packets and the client will continue to accept and\n" +
+        "process these incoming packets.  This will result in the client test\n" +
+        "running longer than expected.\n\n" +
+        "This condition has occurred during this test.  No action is required to\n" +
+        "resolve this issue.",
+        "Packet queuing",
+        JOptionPane.INFORMATION_MESSAGE);
+  }
 
 	public void testResults(String tmpstr) {
 		StringTokenizer tokens;
@@ -586,7 +1145,6 @@ public class Tcpbw100 extends Applet implements ActionListener
 			}
 			else {
 				strval = tokens.nextToken();
-				// results.append(sysvar + " " + strval + "\n");
 				diagnosis.append(sysvar + " " + strval + "\n");
 				emailText += sysvar + " " + strval + "\n%0A";
 				if (strval.indexOf(".") == -1) {
@@ -726,12 +1284,52 @@ public class Tcpbw100 extends Applet implements ActionListener
 			        j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
 			        if (j > (float)MaxRwinRcvd) {
 				    results.append("Information: The receive buffer should be " +
-				    prtdbl(j) + " Kbytes to maximize throughput\n");
+				    prtdbl(j) + " kbytes to maximize throughput\n");
 				    emailText += "Information: The receive buffer should be " +
-				    prtdbl(j) + " Kbytes to maximize throughput\n";
+				    prtdbl(j) + " kbytes to maximize throughput\n";
 			        }
 			    }
 			}
+     
+      if ((tests & TEST_C2S) == TEST_C2S) {
+        if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
+          // TODO:  distinguish the host buffering from the middleboxes buffering
+          JLabel info = new JLabel("Information ");
+          info.addMouseListener(new MouseAdapter()
+              {
+
+                public void mouseClicked(MouseEvent e) {
+                  showBufferedBytesInfo();
+                }
+
+              });
+          info.setForeground(Color.BLUE);
+          info.setCursor(new Cursor(Cursor.HAND_CURSOR));
+          info.setAlignmentY((float) 0.8);
+          results.insertComponent(info);
+          results.append("[C2S]: Excessive packet queuing detected\n");
+        }
+      }
+      
+      if ((tests & TEST_S2C) == TEST_S2C) {
+        if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
+          // TODO:  distinguish the host buffering from the middleboxes buffering
+          JLabel info = new JLabel("Information ");
+          info.addMouseListener(new MouseAdapter()
+              {
+
+                public void mouseClicked(MouseEvent e) {
+                  showBufferedBytesInfo();
+                }
+
+              });
+          info.setForeground(Color.BLUE);
+          info.setCursor(new Cursor(Cursor.HAND_CURSOR));
+          info.setAlignmentY((float) 0.8);
+          results.insertComponent(info);
+          results.append("[S2C]: Excessive packet queuing detected\n");
+        }
+      }
 
 			statistics.append("\n\t------  Client System Details  ------\n");
 			statistics.append("OS data: Name = " + osName + ", Architecture = " + osArch);
@@ -830,6 +1428,28 @@ public class Tcpbw100 extends Applet implements ActionListener
 				emailText += "No packet loss was observed.\n%0A";
 			}
 
+      if ((tests & TEST_C2S) == TEST_C2S) {
+        if (c2sspd > sc2sspd) {
+          if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
+            statistics.append("C2S throughput test: Excessive packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+          }
+          else {
+            statistics.append("C2S throughput test: Packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+          }
+        }
+      }
+      
+      if ((tests & TEST_S2C) == TEST_S2C) {
+        if (ss2cspd > s2cspd) {
+          if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
+            statistics.append("S2C throughput test: Excessive packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+          }
+          else {
+            statistics.append("S2C throughput test: Packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+          }
+        }
+      }
+      
 			if (rwintime > .015) {
 				statistics.append("This connection is receiver limited " + prtdbl(rwintime*100) +
 				"% of the time.\n");
@@ -899,52 +1519,41 @@ public class Tcpbw100 extends Applet implements ActionListener
 				statistics.append ("OFF\n");
 			else
 				statistics.append ("ON\n");
-			diagnosis.append("\n");
 
+      statistics.append("\n");
 
-			// diagnosis.append("Checking for mismatch condition\n\t(cwndtime > .3) " +
-			//	"[" + prtdbl(cwndtime) + ">.3], (MaxSsthresh > 0) [" + MaxSsthresh +
-			//	">0],\n\t (PktsRetrans/sec > 2) [" + prtdbl(PktsRetrans/timesec) + ">2], " +
-			//	"(estimate > 2) [" + prtdbl(estimate) + ">2]\n");
+      if ((tests & TEST_SFW) == TEST_SFW) {
+        switch (c2sResult) {
+          case SFW_NOFIREWALL:
+            statistics.append("Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n");
+            emailText += "Server '" + host + "' is not behind a firewall. [Connection to the ephemeral port was successful]\n%0A";
+            break;
+          case SFW_POSSIBLE:
+            statistics.append("Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n");
+            emailText += "Server '" + host + "' is probably behind a firewall. [Connection to the ephemeral port failed]\n%0A";
+            break;
+          case SFW_UNKNOWN:
+          case SFW_NOTTESTED:
+            break;
+        }
+        switch (s2cResult) {
+          case SFW_NOFIREWALL:
+            statistics.append("Client is not behind a firewall. [Connection to the ephemeral port was successful]\n");
+            emailText += "Client is not behind a firewall. [Connection to the ephemeral port was successful]\n%0A";
+            break;
+          case SFW_POSSIBLE:
+            statistics.append("Client is probably behind a firewall. [Connection to the ephemeral port failed]\n");
+            emailText += "Client is probably behind a firewall. [Connection to the ephemeral port failed]\n%0A";
+            break;
+          case SFW_UNKNOWN:
+          case SFW_NOTTESTED:
+            break;
+        }
+      }
 
-			diagnosis.append("Checking for mismatch on uplink\n\t(speed > 50 [" +
-				prtdbl(spd) + ">50], (xmitspeed < 5) [" + prtdbl(c2sspd) +
-				"<5]\n\t(rwintime > .9) [" + prtdbl(rwintime) + ">.9], (loss < .01) [" +
-				prtdbl(loss) + "<.01]\n");
-
-			diagnosis.append("Checking for excessive errors condition\n\t" +
-				"(loss/sec > .15) [" + prtdbl(loss/timesec) + ">.15], " +
-				"(cwndtime > .6) [" + prtdbl(cwndtime) + ">.6], \n\t" +
-				"(loss < .01) [" + prtdbl(loss) + "<.01], " +
-				"(MaxSsthresh > 0) [" + MaxSsthresh + ">0]\n");
-
-			diagnosis.append("Checking for 10 Mbps link\n\t(speed < 9.5) [" +
-				prtdbl(spd) + "<9.5], (speed > 3.0) [" + prtdbl(spd) + ">3.0]\n\t" +
-				"(xmitspeed < 9.5) [" + prtdbl(c2sspd) + "<9.5] " +
-				"(loss < .01) [" + prtdbl(loss) + "<.01], (mylink > 0) [" + mylink + ">0]\n");
-
-			diagnosis.append("Checking for Wireless link\n\t(sendtime = 0) [" +
-				prtdbl(sendtime) + "=0], (speed < 5) [" + prtdbl(spd) + "<5]\n\t" +
-				"(Estimate > 50 [" + prtdbl(estimate) + ">50], (Rwintime > 90) [" + 
-				prtdbl(rwintime) + ">.90]\n\t (RwinTrans/CwndTrans = 1) [" + SndLimTransRwin +
-				"/" + SndLimTransCwnd + "=1], (mylink > 0) [" + mylink + ">0]\n");
-
-			diagnosis.append("Checking for DSL/Cable Modem link\n\t(speed < 2) [" +
-				prtdbl(spd) + "<2], " +
-				"(SndLimTransSender = 0) [" + SndLimTransSender + "=0]\n\t " +
-				"(SendTime = 0) [" + sendtime + "=0], (mylink > 0) [" + mylink + ">0]\n");
-
-			diagnosis.append("Checking for half-duplex condition\n\t(rwintime > .95) [" +
-				prtdbl(rwintime) + ">.95], (RwinTrans/sec > 30) [" +
-				prtdbl(SndLimTransRwin/timesec) + ">30],\n\t (SenderTrans/sec > 30) [" +
-				prtdbl(SndLimTransSender/timesec) + ">30], OR (mylink <= 10) [" + mylink +	"<=10]\n");
-
-			diagnosis.append("Checking for congestion\n\t(cwndtime > .02) [" +
-				prtdbl(cwndtime) + ">.02], (mismatch = 0) [" + mismatch + "=0]\n\t" +
-				"(MaxSsthresh > 0) [" + MaxSsthresh + ">0]\n");
-
-			diagnosis.append("\nestimate = " + prtdbl(estimate) + " based on packet size = "
-				+ (CurrentMSS*8/1024) + "Kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
+//			diagnosis.append("\nEstimate = " + prtdbl(estimate) + " based on packet size = "
+//				+ (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
+      diagnosis.append("\n");
 
 			diagnosis.append("The theoretical network limit is " + prtdbl(estimate) + " Mbps\n");
 			emailText += "The theoretical network limit is " + prtdbl(estimate) + " Mbps\n%0A";
@@ -1021,7 +1630,14 @@ public class Tcpbw100 extends Applet implements ActionListener
 		// else
 		//     statistics.append("Information: Network Middlebox is modifying Window scaling option\n");
 
-		if (ssip.equals(csip)) {
+    boolean preserved = false;
+    try {
+      preserved = InetAddress.getByName(ssip).equals(InetAddress.getByName(csip));
+    }
+    catch (UnknownHostException e) {
+      preserved = ssip.equals(csip);
+    }
+		if (preserved) {
 			statistics.append("Server IP addresses are preserved End-to-End\n");
 		}
 		else {
@@ -1037,7 +1653,13 @@ public class Tcpbw100 extends Applet implements ActionListener
 			statistics.append("\tEdit Permissions - Access to all Network Addresses, click Eanble and save changes\n");
 		}
 		else {
-			if (scip.equals(ccip))
+      try {
+        preserved = InetAddress.getByName(scip).equals(InetAddress.getByName(ccip));
+      }
+      catch (UnknownHostException e) {
+        preserved = scip.equals(ccip);
+      }
+			if (preserved)
 				statistics.append("Client IP addresses are preserved End-to-End\n");
 			else {
 				statistics.append("Information: Network Address Translation (NAT) box is modifying the Client's IP address\n");
@@ -1262,20 +1884,20 @@ public class Tcpbw100 extends Applet implements ActionListener
 		Panel buttons = new Panel();
 		f.add("South", buttons);
 		
-		disMiss = new Button("Close");
+		disMiss = new JButton("Close");
 		disMiss.addActionListener(this);
 		
-		copy = new Button("Copy");
+		copy = new JButton("Copy");
 		copy.addActionListener(this);
 		
-		diagnosis = new TextArea("WEB100 Kernel Variables:\n", 15,30);
+		diagnosis = new JTextArea("WEB100 Kernel Variables:\n", 15,30);
 		diagnosis.setEditable(true);
 		disMiss.setEnabled(true);
 		copy.setEnabled(cancopy);
 		
 		buttons.add("West", disMiss);
 		buttons.add("East", copy);
-		f.add(diagnosis);
+		f.add(new JScrollPane(diagnosis));
 		f.pack();
 	}  // diagnose()
 	
@@ -1291,24 +1913,58 @@ public class Tcpbw100 extends Applet implements ActionListener
 		Panel buttons = new Panel();
 		ff.add("South", buttons);
 		
-		disMiss2 = new Button("Close");
+		disMiss2 = new JButton("Close");
 		disMiss2.addActionListener(this);
 		
-		copy2 = new Button("Copy");
+		copy2 = new JButton("Copy");
 		copy2.addActionListener(this);
 		
-		statistics = new TextArea("WEB100 Enabled Statistics:\n", 25,70);
+		statistics = new JTextArea("WEB100 Enabled Statistics:\n", 25,70);
 		statistics.setEditable(true);
 		disMiss2.setEnabled(true);
 		copy2.setEnabled(cancopy);
 		
 		buttons.add("West", disMiss2);
 		buttons.add("East", copy2);
-		ff.add(statistics);
+		ff.add(new JScrollPane(statistics));
 		ff.pack();
 	}  // statistics()
 
 
+  public void showOptions() {
+    showStatus("Show options");
+
+    if (optionsFrame == null) {
+      optionsFrame = new clsFrame();
+      optionsFrame.setTitle("Options");
+      JPanel testsPanel = new JPanel();
+      testsPanel.setBorder(BorderFactory.createTitledBorder("Performed tests"));
+      defaultTest = new JCheckBox("Default tests");
+      defaultTest.setSelected(true);
+      defaultTest.setEnabled(false);
+      testsPanel.add(defaultTest);
+      optionsFrame.add(testsPanel);
+      
+      Panel buttons = new Panel();
+      optionsFrame.add("South", buttons);
+
+      JButton okButton= new JButton("OK");
+      okButton.addActionListener(new ActionListener() {
+
+        public void actionPerformed(ActionEvent e) {
+          optionsFrame.toBack();
+          optionsFrame.dispose();
+        }
+        
+      });
+
+      buttons.add("West", okButton);
+
+      optionsFrame.pack();
+    }
+    optionsFrame.setResizable(true);
+    optionsFrame.setVisible(true);
+  }
 
 	public void actionPerformed(ActionEvent event) {
 		Object source = event.getSource();
@@ -1333,7 +1989,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		else if (source == deTails) {
 			deTails.setEnabled(false);
 			f.setResizable(true);
-			f.show();
+      f.setVisible(true);
 			deTails.setEnabled(true);
 		}
 
@@ -1371,7 +2027,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		else if (source == sTatistics) {
 			sTatistics.setEnabled(false);
 			ff.setResizable(true);
-			ff.show();
+      ff.setVisible(true);
 			sTatistics.setEnabled(true);
 		}
 
@@ -1415,7 +2071,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 	}  // actionPerformed()
 
 
-	public class clsFrame extends Frame {
+	public class clsFrame extends JFrame {
 		public clsFrame() {
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent event) {
@@ -1426,5 +2082,28 @@ public class Tcpbw100 extends Applet implements ActionListener
 			// System.err.println("Extended Frame class - RAC9/15/03");
 		}
 	} // class: clsFrame
+
+  public static void main(String[] args)
+  {
+    JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
+    if (args.length != 1) {
+      System.out.println("Usage: java -jar Tcpbw100.jar " + "HOST");
+      System.exit(0);
+    }
+    final Tcpbw100 applet = new Tcpbw100();
+    frame.addWindowListener(new WindowAdapter() {
+      public void windowClosing(WindowEvent e) {
+        applet.destroy();
+        System.exit(0);
+      }
+    });
+    applet.isApplication = true;
+    applet.host = args[0];
+    frame.getContentPane().add(applet);
+    frame.setSize(700, 320);
+    applet.init();
+    applet.start();
+    frame.setVisible(true);
+  }
 
 } // class: Tcpbw100

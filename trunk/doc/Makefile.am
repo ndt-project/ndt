@@ -1,6 +1,3 @@
-#
-#      $Id$
-#
 #########################################################################
 #									#
 #			   Copyright (C)  2004				#
@@ -18,7 +15,7 @@
 #
 #	Description:
 
-dist_man1_MANS = web100clt.man
+dist_man1_MANS = web100clt.man analyze.man tr-mkmap.man viewtrace.man
 dist_man5_MANS = ndt.conf.man
 dist_man8_MANS = web100srv.man fakewww.man
 

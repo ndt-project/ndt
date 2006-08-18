@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.1.13],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.3.12],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -39,7 +39,19 @@ AC_CONFIG_HEADER([config.h])
 
 TOP_BUILD_DIRS=""
 
+CFLAGS="-pedantic -Wall -O2"
 
+# Enabling/disabling asserts and debugging
+AC_MSG_CHECKING(whether to enable debugging)
+AC_ARG_ENABLE(debug, [  --enable-debug=[no/yes] turn on debugging
+              [default=no]],, enable_debug=no)
+if test "x$enable_debug" = "xyes"; then
+  CFLAGS="$CFLAGS -g"
+  AC_MSG_RESULT(yes)
+else
+  CFLAGS="$CFLAGS -DNDEBUG"
+  AC_MSG_RESULT(no)
+fi
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
@@ -113,20 +125,14 @@ AC_SUBST(TOP_BUILD_DIRS)
 #
 # Java config files
 #
-# GCJ=/home/rcarlson/jdk1.4.2/bin/javac
-# GCJ=/usr/local/pkg/j2sdk_nb/j2sdk1.4.2/bin/javac
 GCJ=javac
 GCJFLAGS=
-# JAVAROOT=/usr/local/pkg/j2sdk_nb/j2sdk1.4.2/
 
-# AC_SUBST(JAVAROOT)
 AC_SUBST(GCJ)
 AC_SUBST(GCJFLAGS)
 
-# NDTJAR=/home/rcarlson/jdk1.4.2/bin/jar
-# NDTJAR=/usr/local/pkg/j2sdk_nb/j2sdk1.4.2/bin/jar
 NDTJAR=jar
-NDTJARFLAG='-cf'
+NDTJARFLAG='-cmf'
 
 AC_SUBST(NDTJAR)
 AC_SUBST(NDTJARFLAG)
@@ -140,7 +146,7 @@ AM_PROG_GCJ
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

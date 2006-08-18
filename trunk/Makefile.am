@@ -1,6 +1,3 @@
-#
-#      $Id$
-#
 #########################################################################
 #									#
 #			   Copyright (C)  2002				#
@@ -21,13 +18,13 @@
 SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
 
 EXTRA_DIST = admin_description.html admin.html \
-	tcpbw100.template copyright.html \
+	tcpbw100.template copyright.html web100variables.html \
 	web100_variables COPYRIGHT \
 	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv
 
 ndtdir = $(prefix)/ndt
 ndt_DATA = admin_description.html admin.html \
-	   copyright.html web100_variables
+	   copyright.html web100variables.html web100_variables
 
 # uncomment this when we stop using broken automake 1.5
 # (then remove from DIST_EXTRA in subdir)
