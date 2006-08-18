@@ -1,6 +1,3 @@
-#
-#      $Id$
-#
 #########################################################################
 #									#
 #			   Copyright (C)  2003				#
@@ -24,18 +21,19 @@ GCJLINK = $(GCJLD)
 
 CLASSPATH_ENV = 
 
-Admindir = $(srcdir)/Admin
+# Admindir = $(srcdir)/Admin
 
-noinst_PROGRAMS	= Admin
+noinst_PROGRAMS	= Admin.class
 
 ndtdir = $(prefix)/ndt
 ndt_DATA	= Admin.class
+Admindir = $(ndtdir)
 
 Admin_JAVA	= Admin.java
-Admin_SOURCES	= Admin.java
+Admin_class_SOURCES	= Admin.java
 
-am_Admin_OBJECTS = Admin.java
-Admin_LDADD = 
+#am_Admin_OBJECTS = Admin.java
+#Admin_LDADD = 
 
 Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	@rm -f Admin$(EXEEXT)
@@ -50,3 +48,6 @@ classAdmin.stamp: $(Admin_JAVA)
 	    $(GCJ) $?; \
 	else :; fi
 	echo timestamp > classAdmin.stamp
+
+Admin.class: $(Admin_JAVA)
+	$(GCJ) $(Admin_JAVA)

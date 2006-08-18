@@ -14,9 +14,6 @@
 
 @SET_MAKE@
 
-#
-#      $Id$
-#
 #########################################################################
 #									#
 #			   Copyright (C)  2003				#
@@ -55,7 +52,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-noinst_PROGRAMS = Admin$(EXEEXT)
+noinst_PROGRAMS = Admin.class$(EXEEXT)
 subdir = Admin
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -66,15 +63,16 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/config/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
-Admin_OBJECTS = $(am_Admin_OBJECTS)
-Admin_DEPENDENCIES =
+am_Admin_class_OBJECTS = Admin.$(OBJEXT)
+Admin_class_OBJECTS = $(am_Admin_class_OBJECTS)
+Admin_class_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 am__depfiles_maybe = depfiles
 GCJCOMPILE = $(GCJ) $(AM_GCJFLAGS) $(GCJFLAGS)
 GCJLD = $(GCJ)
-SOURCES = $(Admin_SOURCES)
-DIST_SOURCES = $(Admin_SOURCES)
+SOURCES = $(Admin_class_SOURCES)
+DIST_SOURCES = $(Admin_class_SOURCES)
 JAVAC = javac
 JAVAROOT = $(top_builddir)
 am__installdirs = "$(DESTDIR)$(Admindir)" "$(DESTDIR)$(ndtdir)"
@@ -184,13 +182,11 @@ target_alias = @target_alias@
 # JAVAC = $(JAVAROOT)bin/javac
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV = 
-Admindir = $(srcdir)/Admin
 ndtdir = $(prefix)/ndt
 ndt_DATA = Admin.class
+Admindir = $(ndtdir)
 Admin_JAVA = Admin.java
-Admin_SOURCES = Admin.java
-am_Admin_OBJECTS = Admin.java
-Admin_LDADD = 
+Admin_class_SOURCES = Admin.java
 all: all-am
 
 .SUFFIXES:
@@ -454,6 +450,9 @@ uninstall-am: uninstall-AdminJAVA uninstall-info-am uninstall-ndtDATA
 	uninstall-info-am uninstall-ndtDATA
 
 
+#am_Admin_OBJECTS = Admin.java
+#Admin_LDADD = 
+
 Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	@rm -f Admin$(EXEEXT)
 	@if test ! -s "classAdmin.stamp"; then \
@@ -467,6 +466,9 @@ classAdmin.stamp: $(Admin_JAVA)
 	    $(GCJ) $?; \
 	else :; fi
 	echo timestamp > classAdmin.stamp
+
+Admin.class: $(Admin_JAVA)
+	$(GCJ) $(Admin_JAVA)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

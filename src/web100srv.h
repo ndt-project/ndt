@@ -7,18 +7,20 @@
  * rcarlson@interenet2.edu
  */
 
+#ifndef _JS_WEB100_H
+#define _JS_WEB100_H
+
 #define   _USE_BSD
 #include  <stdio.h>
 #include  <netdb.h>
 #include  <signal.h>
 #include  <web100.h>
-#include  <getopt.h>
 #include  <pcap.h>
 #include  <stdlib.h>
 #include  <string.h>
 #include  <unistd.h>
 #include  <fcntl.h>
-#include  <syslog.h>
+#include  <getopt.h>
 
 #include  <sys/types.h>
 #include  <sys/socket.h>
@@ -42,24 +44,29 @@
 #define BUFFSIZE  8192
 #define RECLTH    8192
 
-#define LOGFILE "web100srv.log"		/* Name of log file */
-static char lgfn[256];
 #define WEB100_VARS 128			/* number of web100 variables you want to access*/
 #define WEB100_FILE "web100_variables"  /* names of the variables to access*/
 #define LOG_FACILITY LOG_LOCAL0		/* Syslog facility to log at */
 
-static char wvfn[256];
-
-/* this file needs to be fixed, as fakewww needs to export it */
-#define ADMINFILE "admin.html" 
 
 /* Location of default config file */
 #define CONFIGFILE  "/etc/ndt.conf"
 
-#define PORT 3001
-#define PORT2 3002
-#define PORT3 3003
-#define PORT4 3004
+/* hard-coded port values */
+#define PORT  "3001"
+#define PORT2 "3002"
+#define PORT3 "3003"
+#define PORT4 "3003"
+
+/* the difference between server's and client't throughput views that trigger
+ * an alarm
+ */
+#define VIEW_DIFF 0.1
+
+typedef struct portpair {
+  int port1;
+  int port2;
+} PortPair;
 
 struct ndtchild {
 	int pid;
@@ -69,21 +76,23 @@ struct ndtchild {
 	time_t qtime;
 	int pipe;
 	int ctlsockfd;
-	int family;
 	struct ndtchild *next;
 };
 
 struct spdpair {
+  int family;
+#if defined(AF_INET6)
+	u_int32_t saddr[4];
+	u_int32_t daddr[4];
+#else
 	u_int32_t saddr;
 	u_int32_t daddr;
-	struct in6_addr s6addr;
-	struct in6_addr d6addr;
+#endif
 	u_int16_t sport;
 	u_int16_t dport;
 	u_int32_t seq;
 	u_int32_t ack;
 	u_int32_t win;
-	int family;
 	int links[16];
 	u_int32_t sec;
 	u_int32_t usec;
@@ -107,10 +116,34 @@ struct web100_variables {
 	char value[256];
 } web_vars[WEB100_VARS];
 
-struct sockRFD {
-	int sockfd;
-	int family;
-	size_t len;
-};
-
 int32_t gmt2local(time_t);
+
+/* web100-pcap */
+void init_vars(struct spdpair *cur);
+void print_bins(struct spdpair *cur, int monitor_pipe[2]);
+void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
+void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
+    char *device, PortPair* pair);
+int check_signal_flags();
+
+/* web100-util */
+int web100_init(char *VarFileName);
+int web100_autotune(int sock, web100_agent* agent);
+void web100_middlebox(int sock, web100_agent* agent, char *results);
+int web100_setbuff(int sock, web100_agent* agent, int autotune);
+void web100_get_data_recv(int sock, web100_agent* agent, int count_vars);
+int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars);
+int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt);
+int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
+    int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut,
+    int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd,
+    int *Sndbuf, int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd,
+    int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin,
+    int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh,
+    int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
+    int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale,
+    int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions,
+    int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart,
+    int *SubsequentTimeouts, int *ThruBytesAcked);
+
+#endif
