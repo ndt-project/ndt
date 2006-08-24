@@ -1,5 +1,5 @@
 /*
-Copyright © 2003 University of Chicago.  All rights reserved.
+Copyright 2003 University of Chicago.  All rights reserved.
 The Web100 Network Diagnostic Tool (NDT) is distributed subject to
 the following license conditions:
 SOFTWARE LICENSE AGREEMENT
@@ -88,7 +88,7 @@ import javax.swing.JOptionPane;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.8";
+  private static final String VERSION = "5.4.9";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -171,7 +171,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   }
 
 	public void init() {
-		setLayout(new BorderLayout());
+		getContentPane().setLayout(new BorderLayout());
 		showStatus("Tcpbw100 ready");
 		failed = false ;
 		Randomize = false;
@@ -179,7 +179,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
     results = new MyTextPane();
     results.append("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n");
 		results.setEditable(false);
-		add(new JScrollPane(results));
+		getContentPane().add(new JScrollPane(results));
 		results.append("click START to begin\n");
 		Panel mPanel = new Panel();
 		startTest = new JButton("START");
@@ -208,7 +208,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       
     });
     mPanel.add(options);
-		add(BorderLayout.SOUTH, mPanel);
+		getContentPane().add(BorderLayout.SOUTH, mPanel);
 	}
 
   class MyTextPane extends JTextPane
@@ -1882,7 +1882,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 		f.setTitle("Web100 Variables");
 		Panel buttons = new Panel();
-		f.add("South", buttons);
+		f.getContentPane().add("South", buttons);
 		
 		disMiss = new JButton("Close");
 		disMiss.addActionListener(this);
@@ -1897,7 +1897,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		
 		buttons.add("West", disMiss);
 		buttons.add("East", copy);
-		f.add(new JScrollPane(diagnosis));
+		f.getContentPane().add(new JScrollPane(diagnosis));
 		f.pack();
 	}  // diagnose()
 	
@@ -1911,7 +1911,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 		ff.setTitle("Detailed Statistics");
 		Panel buttons = new Panel();
-		ff.add("South", buttons);
+		ff.getContentPane().add("South", buttons);
 		
 		disMiss2 = new JButton("Close");
 		disMiss2.addActionListener(this);
@@ -1926,7 +1926,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		
 		buttons.add("West", disMiss2);
 		buttons.add("East", copy2);
-		ff.add(new JScrollPane(statistics));
+		ff.getContentPane().add(new JScrollPane(statistics));
 		ff.pack();
 	}  // statistics()
 
@@ -1943,10 +1943,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
       defaultTest.setSelected(true);
       defaultTest.setEnabled(false);
       testsPanel.add(defaultTest);
-      optionsFrame.add(testsPanel);
+      optionsFrame.getContentPane().add(testsPanel);
       
       Panel buttons = new Panel();
-      optionsFrame.add("South", buttons);
+      optionsFrame.getContentPane().add("South", buttons);
 
       JButton okButton= new JButton("OK");
       okButton.addActionListener(new ActionListener() {
