@@ -7,6 +7,10 @@
  */
 
 #include <ctype.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "clt_tests.h"
 #include "logging.h"

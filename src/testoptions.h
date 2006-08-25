@@ -11,14 +11,6 @@
 
 #include "web100srv.h"
 
-#define TEST_NONE 0
-#define TEST_MID (1L << 0)
-#define TEST_C2S (1L << 1)
-#define TEST_S2C (1L << 2)
-#define TEST_SFW (1L << 3)
-
-#define TOPT_ENABLED 1
-
 typedef struct testoptions {
   int multiple;
   int mainport;
@@ -46,6 +38,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
 int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2cspd,
     int set_buff, int window, int autotune, char* device, int limit, int experimental,
     char* logname, char spds[4][256], int* spd_index, int count_vars);
+int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options);
 int getCurrentTest();
 void setCurrentTest(int testId);
 

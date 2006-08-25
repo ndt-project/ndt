@@ -11,7 +11,6 @@
 #include "usage.h"
 #include "logging.h"
 #include "varinfo.h"
-#include "testoptions.h"
 #include "utils.h"
 #include "protocol.h"
 #include "test_sfw.h"
@@ -133,7 +132,7 @@ testResults(char tests, char *tmpstr, char* host)
     if (sysvar == NULL)
       break;
     sysval = strtok(NULL, "\n");
-    if (index(sysval, '.') == NULL) {
+    if (strchr(sysval, '.') == NULL) {
       i = atoi(sysval);
       save_int_values(sysvar, i);
       log_println(7, "Stored %d [%s] in %s", i, sysval, sysvar);
