@@ -148,10 +148,14 @@ err_sys(char* s)
 int
 sndq_len(int fd)
 {
+#ifdef SIOCOUTQ
   int length = -1;
 
   if (ioctl(fd, SIOCOUTQ, &length)) {
     return -1;
   }
   return length;
+#else
+  return 0;
+#endif
 }

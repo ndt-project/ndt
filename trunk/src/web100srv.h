@@ -41,7 +41,6 @@
 
 /* move version to configure.ac file for package name */
 /* #define VERSION   "3.0.7" */		/* version number */
-#define BUFFSIZE  8192
 #define RECLTH    8192
 
 #define WEB100_VARS 128			/* number of web100 variables you want to access*/
@@ -57,11 +56,6 @@
 #define PORT2 "3002"
 #define PORT3 "3003"
 #define PORT4 "3003"
-
-/* the difference between server's and client't throughput views that trigger
- * an alarm
- */
-#define VIEW_DIFF 0.1
 
 typedef struct portpair {
   int port1;

@@ -6,6 +6,10 @@
  * jeremian@poczta.fm
  */
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
 #include "clt_tests.h"
 #include "logging.h"
 #include "network.h"

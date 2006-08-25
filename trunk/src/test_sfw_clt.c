@@ -8,6 +8,10 @@
 
 #include <assert.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
 
 #include "test_sfw.h"
 #include "logging.h"

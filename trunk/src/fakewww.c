@@ -34,7 +34,6 @@
 #include "web100-admin.h"
 
 #define PORT           "7123"
-#define BUFFSIZE        1024
 char buff[BUFFSIZE];
 /* html message */
 char *MsgOK  = "HTTP/1.0 200 OK\n\n";
