@@ -88,7 +88,7 @@ import javax.swing.JOptionPane;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.9";
+  private static final String VERSION = "5.4.10";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -870,6 +870,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
     Message msg = new Message();
 
     /* The beginning of the protocol */
+    
+    if (ctlSocket.getInetAddress() instanceof Inet6Address) {
+      results.append("Connected to: " + host + "  --  Using IPv6 address\n");
+    }
+    else {
+      results.append("Connected to: " + host + "  --  Using IPv4 address\n");
+    }
 
     /* write our test suite request */
     ctl.send_msg(MSG_LOGIN, tests);
