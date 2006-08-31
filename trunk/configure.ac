@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.3.15],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.3.16],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -64,6 +64,7 @@ AC_ARG_WITH(I2util,
 I2UTILLDFLAGS=""
 I2UTILLIBS=""
 I2UTILLIBDEPS=""
+I2UTILLIBMAKE=""
 I2UTILINCS=""
 if test "$with_I2util" != "no"; then
 	# first, check for directory given.
@@ -84,6 +85,7 @@ if test "$with_I2util" != "no"; then
 		I2UTILINCS="-I$I2util_dir $I2UTILINCS"
 		I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
+    I2UTILLIBMAKE="cd $I2util_dir; make"
 		
 	# now, check for installed I2util
 	elif test -d /usr/local/I2util; then
@@ -102,6 +104,7 @@ fi
 AC_SUBST(I2UTILLDFLAGS)
 AC_SUBST(I2UTILLIBS)
 AC_SUBST(I2UTILLIBDEPS)
+AC_SUBST(I2UTILLIBMAKE)
 AC_SUBST(I2UTILINCS)
 
 #
@@ -126,7 +129,7 @@ AC_SUBST(TOP_BUILD_DIRS)
 # Java config files
 #
 GCJ=javac
-GCJFLAGS="-source 1.3"
+GCJFLAGS="-source 1.4"
 
 AC_SUBST(GCJ)
 AC_SUBST(GCJFLAGS)

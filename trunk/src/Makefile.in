@@ -97,7 +97,6 @@ am_web100clt_OBJECTS = web100clt-web100clt.$(OBJEXT) \
 	web100clt-test_c2s_clt.$(OBJEXT) \
 	web100clt-test_s2c_clt.$(OBJEXT)
 web100clt_OBJECTS = $(am_web100clt_OBJECTS)
-web100clt_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_web100srv_OBJECTS = web100srv-web100srv.$(OBJEXT) \
 	web100srv-web100-util.$(OBJEXT) \
 	web100srv-web100-pcap.$(OBJEXT) \
@@ -149,6 +148,7 @@ GCJFLAGS = @GCJFLAGS@
 I2UTILINCS = @I2UTILINCS@
 I2UTILLDFLAGS = @I2UTILLDFLAGS@
 I2UTILLIBDEPS = @I2UTILLIBDEPS@
+I2UTILLIBMAKE = @I2UTILLIBMAKE@
 I2UTILLIBS = @I2UTILLIBS@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -222,6 +222,7 @@ web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c \
 
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread
 web100clt_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
+web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
 analyze_SOURCES = analyze.c usage.c logging.c
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 analyze_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
@@ -1165,6 +1166,9 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-am uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-sbinPROGRAMS
 
+
+$(I2UTILLIBDEPS):
+	$(I2UTILLIBMAKE)
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
