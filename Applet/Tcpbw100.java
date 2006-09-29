@@ -85,10 +85,11 @@ import javax.swing.text.StyledDocument;
 import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.BadLocationException;
 import javax.swing.JOptionPane;
+import javax.swing.BoxLayout;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.10";
+  private static final String VERSION = "5.4.11";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -123,7 +124,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	JButton sTatistics;
 	JButton mailTo;
   JButton options;
-  JCheckBox defaultTest;
+  JCheckBox defaultTest = new JCheckBox("Default tests"),
+            preferIPv6 = new JCheckBox("prefer IPv6");
 	boolean Randomize, failed, cancopy;
 	URL location;
 	clsFrame f, ff, optionsFrame;
@@ -149,6 +151,15 @@ public class Tcpbw100 extends JApplet implements ActionListener
   int ssndqueue;
   double sbytes;
 
+/*************************************************************************
+ * Added by Seth Peery
+ * Adds public variables to store upstream and downstream speeds in kbps
+ */
+        public String downstream = "No data";
+        public String upstream = "No data";
+/************************************************************************/
+
+
 	int half_duplex, congestion, bad_cable, mismatch;
 	double mylink;
 	double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
@@ -170,6 +181,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
     }
   }
 
+  public String getParameter(String name)
+  {
+    if (!isApplication) {
+      return super.getParameter(name);
+    }
+    return null;
+  }
+
 	public void init() {
 		getContentPane().setLayout(new BorderLayout());
 		showStatus("Tcpbw100 ready");
@@ -187,15 +206,21 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		mPanel.add(startTest);
 		sTatistics = new JButton("Statistics");
 		sTatistics.addActionListener(this);
-		mPanel.add(sTatistics);
+    if (getParameter("disableStatistics") == null) {
+      mPanel.add(sTatistics);
+    }
 		sTatistics.setEnabled(false);
 		deTails = new JButton("More Details...");
 		deTails.addActionListener(this);
-		mPanel.add(deTails);
+    if (getParameter("disableDetails") == null) {
+      mPanel.add(deTails);
+    }
 		deTails.setEnabled(false);
 		mailTo = new JButton("Report Problem");
 		mailTo.addActionListener(this);
-		mPanel.add(mailTo);
+    if (getParameter("disableMailto") == null) {
+      mPanel.add(mailTo);
+    }
 		mailTo.setEnabled(false);
     options = new JButton("Options");
     options.addActionListener(new ActionListener() {
@@ -207,8 +232,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
       
     });
-    mPanel.add(options);
+    if (getParameter("disableOptions") == null) {
+      mPanel.add(options);
+    }
 		getContentPane().add(BorderLayout.SOUTH, mPanel);
+    preferIPv6.setSelected(true);
+    defaultTest.setSelected(true);
+    defaultTest.setEnabled(false);
 	}
 
   class MyTextPane extends JTextPane
@@ -682,6 +712,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
         statistics.append(prtdbl(sc2sspd) + "Mb/s\n");
         emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
       }
+
+/*************************************************************************
+ * Added by Seth Peery
+ * Write string representation of upstream speed to public String upstream
+ */
+                upstream = ""+(prtdbl(sc2sspd*1000));
+/************************************************************************/
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
@@ -804,6 +841,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
         emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
       }
 
+/*************************************************************************
+ * Added by Seth Peery
+ * Write string representation of downstream speed to public String upstream
+ */
+                downstream = ""+(prtdbl(s2cspd*1000));
+/************************************************************************/
+
       srvin.close();
       inSocket.close();
 
@@ -845,7 +889,20 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	public void dottcp() throws IOException {
 		Socket ctlSocket = null;
     if (!isApplication) {
-		  host = getCodeBase().getHost();
+/*************************************************************************
+ * Added by Seth Peery
+ * Instead of using the getCodeBase().getHost() value for the testing server,
+ * which assumes this applet is being served from the web100srv server,
+ * use a parameter provided in the APPLET tag.
+ * Note that for this to work the applet must be signed because you are
+ * potentially accessing a server outside the source domain.
+*/
+      host = getParameter("testingServer");
+/************************************************************************/
+      /* fall back to the old behaviour if the APPLET tag is not set */
+      if (host == null) {
+        host = getCodeBase().getHost();
+      }
     }
 		int ctlport = 3001;
 		double wait2;
@@ -854,7 +911,16 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 		failed = false;
 		try {
-			ctlSocket = new Socket(host, ctlport);
+      if (preferIPv6.isSelected()) {
+        try {
+          System.setProperty("java.net.preferIPv6Addresses", "true");
+        }
+        catch (SecurityException e) {
+          System.err.println("Couldn't set system property. Check your security settings.");
+        }
+      }
+      preferIPv6.setEnabled(false);
+      ctlSocket = new Socket(host, ctlport);
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host: " + host);
 			errmsg = "unknown server\n" ;
@@ -1944,14 +2010,21 @@ public class Tcpbw100 extends JApplet implements ActionListener
     if (optionsFrame == null) {
       optionsFrame = new clsFrame();
       optionsFrame.setTitle("Options");
+
+      JPanel optionsPanel = new JPanel();
+      optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
+
       JPanel testsPanel = new JPanel();
       testsPanel.setBorder(BorderFactory.createTitledBorder("Performed tests"));
-      defaultTest = new JCheckBox("Default tests");
-      defaultTest.setSelected(true);
-      defaultTest.setEnabled(false);
       testsPanel.add(defaultTest);
-      optionsFrame.getContentPane().add(testsPanel);
-      
+      optionsPanel.add(testsPanel);
+
+      JPanel protocolPanel = new JPanel();
+      protocolPanel.setBorder(BorderFactory.createTitledBorder("IP protocol"));
+      protocolPanel.add(preferIPv6);
+      optionsPanel.add(protocolPanel);
+
+      optionsFrame.getContentPane().add(optionsPanel);      
       Panel buttons = new Panel();
       optionsFrame.getContentPane().add("South", buttons);
 
