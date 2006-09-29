@@ -19,7 +19,888 @@ of the client code.  It augments the Tcpbw100.java program, allowing
 the user to pre-install a version of the client code.  This allows
 non-browser based clients, helpful for remote access testing.
 
-Rich Carlson	6/7/02  Modified 8/17/04
+Rich Carlson	6/7/02  Modified 8/31/06
+
+2006-08-31 22:32  jslawins
+
+	* Makefile.in, configure, configure.ac, Admin/Makefile.in,
+	  Applet/Makefile.in, Applet/Tcpbw100.java,
+	  I2util/autom4te.cache/requests, conf/Makefile.in,
+	  doc/Makefile.in, src/Makefile.am, src/Makefile.in: Modified the
+	  makefiles to allow clean web100clt compilation without the need
+	  to have web100 library installed.
+
+	  Changed the -source 1.3 directive to -source 1.4.
+
+	  Added the information about TCP version used in the Java applet.
+
+	  Increased the Java applet version to 5.4.10.	Increased the NDT
+	  version to 3.3.16.
+
+2006-08-25 11:20  jslawins
+
+	* Makefile.in, aclocal.m4, configure, configure.ac,
+	  Admin/Makefile.in, Applet/Makefile.in, I2util/configure,
+	  I2util/configure.ac, I2util/autom4te.cache/output.0,
+	  I2util/autom4te.cache/requests, I2util/autom4te.cache/traces.0,
+	  conf/Makefile.in, doc/Makefile.in, src/Makefile.am,
+	  src/Makefile.in, src/clt_tests.h, src/fakewww.c, src/network.h,
+	  src/protocol.h, src/test_c2s_clt.c, src/test_mid_clt.c,
+	  src/test_s2c_clt.c, src/test_sfw.h, src/test_sfw_clt.c,
+	  src/testoptions.h, src/utils.c, src/web100clt.c, src/web100srv.h:
+	  Installed some of the Simon's patches.  Removed the command line
+	  client dependencies on the web100 code.
+
+	  Incremented NDT version to 3.3.15.
+
+2006-08-24 20:04  racarlson
+
+	* Makefile.in, aclocal.m4, configure, configure.ac,
+	  Admin/Makefile.in, Applet/Makefile.am, Applet/Makefile.in,
+	  Applet/Tcpbw100.java, I2util/autom4te.cache/requests,
+	  conf/Makefile.in, doc/Makefile.in, src/Makefile.in: RAC updates
+
+	  aclocal.m4 changed to use the GCJFLAGS= -source 1.3 option,
+	  forcing the javac code to be java 1.3 compatable
+
+	  Updated Tcpbw100.java to include patches from Lixin (Simon Fraser
+	  Univ) to fix a bug with Safari browser on Mac
+
+	  Incremented NDT version 3.3.13 and 3.3.14 Applet version
+	  incremented to 5.4.9
+
+2006-08-18 11:35  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/web100clt.c:
+	  Added new buffered bytes information (edited by Richard).
+	  Modified the information messages about buffering (as Richard
+	  suggested).
+
+2006-08-14 21:37  jslawins
+
+	* admin.html, configure, configure.ac, Applet/Tcpbw100.java,
+	  doc/web100clt.man, doc/web100srv.man, src/analyze.c,
+	  src/test_c2s_clt.c, src/test_mid_clt.c, src/testoptions.c,
+	  src/web100-admin.c, src/web100clt.c: Moved the SFW results from
+	  the "More Details" page to the "Statics" page.  Deleted the
+	  "Checking for ..." messages on the "More Details" page.  Fixed
+	  the typo in the units (K instead of k).
+
+2006-08-13 14:16  jslawins
+
+	* Applet/Tcpbw100.java, src/web100clt.c, src/web100srv.c: Added
+	  server version checking in the clients.
+
+2006-08-13 12:36  jslawins
+
+	* configure, configure.ac, src/network.c, src/test_sfw_clt.c,
+	  src/web100-util.c: Implemented the local binding in the
+	  CreateConnectSocket (this was the last TODO tag). Fixed the bug
+	  in the CWND limited throughput test.
+
+2006-08-13 09:52  jslawins
+
+	* src/: analyze.c, fakewww.c, logging.c, logging.h, network.c,
+	  test_c2s_clt.c, test_mid_clt.c, test_s2c_clt.c, test_sfw_clt.c,
+	  test_sfw_srv.c, testoptions.c, web100-pcap.c, web100-util.c,
+	  web100clt.c, web100srv.c: Added some asserts. Used the logging
+	  capabilities of the I2 functions. Removed the last FIXME tag.
+
+2006-08-12 00:11  jslawins
+
+	* configure, configure.ac, src/test_sfw_srv.c: Fixed the bug in the
+	  server part of the SFW test.
+
+2006-08-08 15:53  jslawins
+
+	* Admin/Makefile.am, Admin/Makefile.in, Applet/Makefile.am,
+	  Applet/Makefile.in, src/Makefile.am, src/Makefile.in: Fixed
+	  makefiles, so that it's possible to prepare the real dist
+	  packages now.
+
+2006-08-08 14:25  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java: Used different
+	  graphic component in the Java applet, which allows to insert
+	  graphics and other components into the text. Added hot links to
+	  the information about buffered bytes in the throughput tests.
+
+2006-08-08 09:32  jslawins
+
+	* Applet/Tcpbw100.java, doc/web100srv.man: Modified the client
+	  messages to make some definitions explicit. Updated the manual
+	  pages to respect the recent changes in the default tests order.
+
+2006-08-02 17:46  jslawins
+
+	* Applet/Tcpbw100.java: Updated the Java applet.
+
+2006-08-02 16:59  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/Makefile.am,
+	  src/Makefile.in, src/clt_tests.h, src/test_c2s_clt.c,
+	  src/test_mid_clt.c, src/test_s2c_clt.c, src/test_sfw_clt.c,
+	  src/testoptions.c, src/web100clt.c: Added the information about
+	  testing the ephemeral ports in the SFW results.  Removed the
+	  dependency from the tests fixed order.
+
+2006-08-01 16:45  jslawins
+
+	* src/testoptions.c: Fixed the bug in S2C test that can trigger an
+	  alrm signal.
+
+2006-08-01 15:52  jslawins
+
+	* Applet/Tcpbw100.java, src/test_sfw_clt.c, src/test_sfw_srv.c,
+	  src/testoptions.c, src/testoptions.h, src/web100srv.c: Modified
+	  the SIGALRM handling. Added some comments. Fixed the bug in
+	  changing the signals handlers. Moved the SFW results to the 'more
+	  details' window.
+
+2006-08-01 14:20  jslawins
+
+	* Applet/Tcpbw100.java: Implemented the parallel SFW test in the
+	  Java applet.
+
+2006-08-01 13:18  jslawins
+
+	* src/: Makefile.am, Makefile.in, test_sfw_clt.c, test_sfw_srv.c,
+	  web100srv.c: Implemented the parallel version of the SFW test.
+	  Updated the command-line client. Decreased the maximal testing
+	  time of the SFW test.
+
+2006-07-31 23:59  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/testoptions.c:
+	  Updated the Java Applet. Some small bugfixes.
+
+2006-07-31 22:18  jslawins
+
+	* src/: testoptions.c, web100-admin.c, web100clt.c: Fixed some
+	  minor bugs. Added views checking in the s2c test.
+
+2006-07-30 15:33  jslawins
+
+	* Applet/Tcpbw100.java, src/network.c, src/test_sfw_clt.c,
+	  src/utils.c, src/web100clt.c: Fixed some asserts. Modified the
+	  reporting of the SFW results.
+
+2006-07-30 13:50  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/testoptions.c,
+	  src/web100clt.c, src/web100srv.c: Moved the firewall test before
+	  the speed tests. Decreased the alarms in the tests.
+
+2006-07-30 13:04  jslawins
+
+	* src/: network.c, test_sfw_srv.c, testoptions.c, web100clt.c:
+	  Decreased the waiting time in the SFW test. Fixed a bug in
+	  creating connect socket.
+
+2006-07-30 00:43  jslawins
+
+	* config.h.in, configure, configure.ac, Applet/Tcpbw100.java,
+	  src/utils.c, src/utils.h, src/web100clt.c, src/web100srv.h:
+	  Printed only server's view of the c2s speed. Distinguish the host
+	  buffering from the middleboxes buffering in the command-line
+	  client.
+
+2006-07-26 13:14  jslawins
+
+	* doc/viewtrace.man, src/Makefile.am, src/Makefile.in, src/usage.c,
+	  src/viewtrace.c: Added the possibility to specify port numbers
+	  for the traces analysis.
+
+2006-07-26 12:20  jslawins
+
+	* src/: Makefile.am, Makefile.in, test_sfw.c, test_sfw_clt.c,
+	  test_sfw_srv.c: Reorganized some code. Removed the redundant
+	  dependencies.
+
+2006-07-26 01:11  jslawins
+
+	* doc/web100srv.man, src/web100-util.c, src/web100srv.c: Updated
+	  the web100srv manual page. Decreased the maximal testing time.
+	  Modified some logging messages.
+
+2006-07-24 19:33  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/mrange.c,
+	  src/network.c, src/web100-pcap.c: Enabled the Simple firewall
+	  test in the Java applet. Made some code cleanup.
+
+2006-07-24 17:04  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/test_sfw.c:
+	  Implemented the Simple firewall test in the Java applet. Some
+	  cosmetic changes in the clients.
+
+2006-07-23 22:45  jslawins
+
+	* src/test_sfw.c: Added the implementation of the opposite Simple
+	  firewall test.
+
+2006-07-17 23:40  jslawins
+
+	* configure, configure.ac, src/Makefile.am, src/Makefile.in,
+	  src/test_sfw.c, src/test_sfw.h, src/web100srv.c: Modified the
+	  Simple firewall test in order to minimize the needed time.
+
+2006-07-17 16:12  jslawins
+
+	* src/: test_sfw.c, testoptions.c, testoptions.h, web100srv.c:
+	  Fixed the client part of the Simple firewall test. Improved the
+	  modularization of the tests (there are less arguments passed to
+	  the tests functions).
+
+2006-07-17 15:41  jslawins
+
+	* src/: test_sfw.c, testoptions.c, web100srv.c: Fixed the bug in
+	  Simple firewall test. Modified the client part of this test.
+
+2006-07-16 22:33  jslawins
+
+	* configure, configure.ac, doc/web100clt.man, src/Makefile.am,
+	  src/Makefile.in, src/test_sfw.c, src/test_sfw.h,
+	  src/testoptions.c, src/testoptions.h, src/usage.c,
+	  src/web100clt.c, src/web100srv.c: Added the experimental first
+	  version of the Simple firewall test. Only the command-line client
+	  is able to perform new test at the moment.
+
+2006-07-15 13:35  jslawins
+
+	* Applet/Tcpbw100.java, src/testoptions.c, src/web100clt.c:
+	  Modified the C2S throughput test so that the server's measurement
+	  are also printed in the client. Fixed the bug in the command-line
+	  client, which causes the C2S results to be smaller up to 10% from
+	  the real throughput.
+
+2006-07-15 11:53  jslawins
+
+	* configure, configure.ac, doc/fakewww.man, doc/tr-mkmap.man,
+	  src/fakewww.c, src/tr-mkmap.c, src/tr-tree.c, src/tr-tree6.c,
+	  src/usage.c: Added the possibility to specify default trees (for
+	  IPv4 and IPv6) in 'tr-mkmap' and 'fakewww' applications.
+
+2006-07-14 23:39  jslawins
+
+	* doc/ndt.conf.man, doc/web100srv.man, src/usage.c,
+	  src/web100srv.c, src/web100srv.h: Added the possibility to
+	  specify syslog facility.
+
+2006-07-14 22:27  jslawins
+
+	* doc/ndt.conf.man, doc/web100srv.man, src/fakewww.c, src/usage.c,
+	  src/web100-admin.c, src/web100-admin.h, src/web100srv.c,
+	  src/web100srv.h: Added the possibility to specify an
+	  administrator view web page filename.  Make the fakewww aware of
+	  the hard-coded ADMINFILE.
+
+2006-07-13 16:10  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/web100clt.c:
+	  Fixed the bug in C2S test in the clients.
+
+2006-07-13 08:33  jslawins
+
+	* src/testoptions.c: Reuse of the mid port in the s2c test when
+	  there is main port specified and s2c port was not specified.
+
+2006-07-11 20:06  jslawins
+
+	* Applet/Tcpbw100.java, src/web100clt.c: Updated the protocol in
+	  Java Applet. Small bugfixes.
+
+2006-07-11 12:39  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, doc/web100srv.man,
+	  src/Makefile.am, src/Makefile.in, src/fakewww.c, src/network.c,
+	  src/network.h, src/protocol.c, src/protocol.h, src/testoptions.c,
+	  src/testoptions.h, src/usage.c, src/web100-util.c,
+	  src/web100clt.c, src/web100srv.c, src/web100srv.h: New message
+	  system and protocol have been implemented.
+
+2006-07-08 23:48  jslawins
+
+	* configure, configure.ac, src/testoptions.c, src/web100-pcap.c,
+	  src/web100-util.c, src/web100clt.c, src/web100srv.c: Fixed the
+	  bug in calling I2AddrNodeName().
+
+2006-07-07 21:11  jslawins
+
+	* configure, configure.ac, Admin/Makefile.am, Admin/Makefile.in,
+	  Applet/Tcpbw100.java, src/testoptions.c, src/testoptions.h,
+	  src/web100srv.c: Disabled "Options" button when a test is
+	  running.  The tests are run in a separate thread.  Modified the
+	  way port numbers are assigned for the tests (if not specified,
+	  the 'primary + x' number is taken).  Fixed the Makefile for
+	  Admin.
+
+2006-07-05 20:32  jslawins
+
+	* configure, configure.ac, tcpbw100.template, Applet/Tcpbw100.java:
+	  Small modifications of the Java Applet. Added options frame.
+
+2006-07-04 21:28  jslawins
+
+	* src/web100clt.c: Fixed compatibility issues between MDNDT client
+	  and older NDT servers.
+
+2006-07-03 21:36  jslawins
+
+	* configure, configure.ac, Applet/Tcpbw100.java, src/analyze.c,
+	  src/web100clt.c: Updated the 'analyze' program, so it's able to
+	  parse the newest log format.	Fixed the bug in Java applet that
+	  minimizes the S2C throughput.
+
+2006-07-03 01:09  jslawins
+
+	* Makefile.am, Makefile.in, tcpbw100.template,
+	  web100variables.html, src/fakewww.c: Added the web page with the
+	  Web100 variables descriptions.
+
+2006-07-02 20:12  jslawins
+
+	* doc/Makefile.am, doc/Makefile.in, doc/analyze.man,
+	  doc/tr-mkmap.man, doc/viewtrace.man, src/usage.c,
+	  src/viewtrace.c: Added new manual pages. Removed the redundant
+	  option from the 'viewtrace'.
+
+2006-07-02 16:23  jslawins
+
+	* configure, configure.ac, I2util/I2util/addr.c, doc/Makefile.am,
+	  doc/Makefile.in, doc/analyze.man, src/analyze.c: Fixed small bug
+	  in the I2AddrSockLen. Added manual page for the 'analyze'
+	  program. Fixed DNS names resolving in the 'analyze'.
+
+2006-07-01 20:59  jslawins
+
+	* Applet/Tcpbw100.java, src/varinfo.h, src/web100clt.c: Added more
+	  Web100 variables descriptions. Fixed displaying these variables
+	  in the client.
+
+2006-07-01 18:38  jslawins
+
+	* src/: testoptions.c, testoptions.h, web100clt.c, web100srv.c:
+	  Fixed small bug in the protocol. Reorganized some code.
+
+2006-06-30 15:25  jslawins
+
+	* configure, configure.ac, src/testoptions.c, src/varinfo.h,
+	  src/web100-util.c: Fixed the Web100 variables descriptions.
+
+2006-06-25 23:17  jslawins
+
+	* Applet/Tcpbw100.java: Synchronized the Java Applet with the
+	  newest protocol.
+
+2006-06-25 21:20  jslawins
+
+	* doc/ndt.conf.man, src/web100srv.c: Added the possibility to set
+	  new options by the ndt.conf file. Updated the manual page.
+
+2006-06-25 16:51  jslawins
+
+	* doc/web100clt.man, doc/web100srv.man, src/testoptions.c,
+	  src/usage.c, src/web100-pcap.c, src/web100srv.c: Added new
+	  options to the 'web100srv': '--midport', '--c2sport',
+	  '--s2cport'.	Updated the manual pages.
+
+2006-06-25 15:49  jslawins
+
+	* configure, configure.ac, src/Makefile.am, src/Makefile.in,
+	  src/logging.c, src/logging.h, src/testoptions.c,
+	  src/testoptions.h, src/usage.c, src/utils.c, src/utils.h,
+	  src/web100-admin.c, src/web100-pcap.c, src/web100-util.c,
+	  src/web100clt.c, src/web100srv.c, src/web100srv.h: Modified the
+	  protocol to allow enabling/disabling performed tests in one
+	  session. Encapsulated each test in a separate functions, that can
+	  be run independently. Added new options to the 'web100clt':
+	  '--disablemid', '--disablec2s', '--disables2c'.
+
+2006-06-22 22:48  jslawins
+
+	* configure, configure.ac, src/varinfo.h: Modified the Web100
+	  variables descriptions.
+
+2006-06-21 22:35  jslawins
+
+	* configure, configure.ac, src/troute6.c, src/varinfo.h: Fixed the
+	  bug in includes and modified the Web100 variables description.
+
+2006-06-21 21:33  jslawins
+
+	* I2util/I2util/addr.c, src/fakewww.c, src/troute6.c: Some fixes in
+	  the checking of the AF_INET6 define.
+
+2006-06-21 19:21  jslawins
+
+	* doc/: fakewww.man, web100clt.man, web100srv.man: Updated the
+	  manual pages.
+
+2006-06-20 21:57  jslawins
+
+	* src/: usage.c, varinfo.h, web100clt.c: Added some information
+	  about Web100 variables.
+
+2006-06-20 17:08  jslawins
+
+	* src/: fakewww.c, troute6.c: Small fixes in the includes and
+	  declarations.
+
+2006-06-19 21:20  jslawins
+
+	* src/: Makefile.am, Makefile.in, analyze.c, fakewww.c, tr-mkmap.c,
+	  tr-tree.c, tr-tree.h, tr-tree6.c, troute.c, troute.h, troute6.c,
+	  viewtrace.c, web100clt.c: Used the new logging system in every
+	  program. Fixed some little misspellings.
+
+2006-06-18 21:51  jslawins
+
+	* I2util/I2util/ErrLogImmediate.c, I2util/I2util/errlog.h,
+	  src/logging.c, src/logging.h, src/web100-admin.c,
+	  src/web100-pcap.c, src/web100-util.c, src/web100srv.c: Added the
+	  possibility to log immediately without new line.  Started using
+	  the new logging routines.
+
+2006-06-17 22:21  jslawins
+
+	* I2util/I2util/addr.c: Added the implementation of the
+	  I2AddrSockLen.
+
+2006-06-17 16:16  jslawins
+
+	* I2util/I2util/saddr.c: Fixed the bug in I2SockAddrIsLoopback.
+
+2006-06-15 12:49  jslawins
+
+	* I2util/I2util/: ErrLog.c, ErrLogImmediate.c, ErrLogSyslog.c,
+	  Options.c, addr.c, addr.h, conf.c, conf.h, errlog.h, hex.c,
+	  hex.h, io.c, io.h, mach_dep.c, md5.c, options.h, random.c,
+	  random.h, readpassphrase.c, saddr.c, saddr.h, table.c, util.h:
+	  Synchronized the I2util sources with the main branch in the I2
+	  CVS.
+
+2006-06-15 10:21  jslawins
+
+	* src/: Makefile.am, Makefile.in, logging.c, logging.h,
+	  web100-admin.c, web100-pcap.c, web100-util.c, web100srv.c,
+	  web100srv.h: First attempts to centralize the logging routines.
+
+2006-06-14 14:43  jslawins
+
+	* Applet/Tcpbw100.java: Modified the protocol used in the Java
+	  Applet.
+
+2006-06-14 09:19  jslawins
+
+	* src/: fakewww.c, usage.c: Added new options to the 'fakewww':
+	  '-f', '-b'.
+
+2006-06-13 20:09  jslawins
+
+	* admin_description.html, copyright.html, tcpbw100.template,
+	  src/fakewww.c, src/web100-admin.c: Modified the tcpbw100.html,
+	  admin.html and copyright.html to be valid HTML 4.01 Transitional
+	  documents.  Fixed the 'HTTP/1.0 404 Not found' documents sent by
+	  'fakewww'.
+
+2006-06-13 14:35  jslawins
+
+	* src/: Makefile.am, Makefile.in, mrange.c, mrange.h, network.c,
+	  usage.c, utils.c, utils.h, web100-pcap.c, web100clt.c,
+	  web100srv.c, web100srv.h: Modified the protocol to fix the bugs
+	  in the multi-test mode.  New option '--mrange' in the
+	  'web100srv'.
+
+2006-06-12 13:28  jslawins
+
+	* src/: network.c, web100srv.c, web100srv.h: Fixed the bugs in
+	  LoadConfig (not copying the string values) and added the
+	  'unrecognized config option' and 'syntax error' handling.
+
+2006-06-12 11:49  jslawins
+
+	* src/: web100-pcap.c, web100srv.c, web100srv.h: print_speed and
+	  init_pkttrace functions have been moved back to where they
+	  belongs (from web100srv.c to web100-pcap.c).	Small fixes in the
+	  logging routines (in the main and in the print_bins).
+
+2006-06-12 09:56  jslawins
+
+	* admin_description.html, src/web100-admin.c, src/web100srv.c,
+	  src/web100srv.h: Added the size of the web100srv.log to the
+	  Admin.html page.
+
+2006-06-08 00:26  jslawins
+
+	* I2util/I2util/addr.c, I2util/I2util/addr.h,
+	  I2util/I2util/saddr.c, src/viewtrace.c: Small fixes in viewtrace.
+	  Few modifications in the I2util library.
+
+2006-06-07 12:13  jslawins
+
+	* configure, configure.ac, Applet/MANIFEST.MF, Applet/Makefile.am,
+	  Applet/Makefile.in, Applet/Tcpbw100.java, src/web100clt.c: Added
+	  the possibility to run applet from the command line.	Fixed the
+	  protocol (synchronized with the newest one used by the web100srv)
+	  used by the applet.
+
+2006-06-06 22:14  jslawins
+
+	* src/: Makefile.am, Makefile.in, fakewww.c, tr-mkmap.c, tr-tree.c,
+	  tr-tree.h, tr-tree6.c, troute.c, troute.h, troute6.c, usage.c,
+	  viewtrace.c, web100srv.c: Added the IPv6 support to tr-mkmap and
+	  fakewww in federated mode.
+
+2006-06-04 20:49  jslawins
+
+	* Applet/Tcpbw100.java: Got rid of the deprecation warning when
+	  compiling Tcpbw100.java.
+
+2006-06-04 16:42  jslawins
+
+	* I2util/I2util/saddr.c, src/viewtrace.c, src/web100-pcap.c,
+	  src/web100srv.c, src/web100srv.h: Fixed the print_speed function.
+	  Partially fixed the I2SockAddrIsLoopback function from the I2util
+	  library.
+
+2006-06-03 23:13  jslawins
+
+	* src/web100srv.c: Fixed bug in reading pkt-pair data through the
+	  mon_pipe.
+
+2006-06-03 21:54  jslawins
+
+	* src/: fakewww.c, network.c: Restored the federated mode in
+	  fakewww (the IPv4 only at the moment).  Few modifications in the
+	  network routines (listening sockets created with the
+	  OPT_IPV6_ONLY flag will not accept IPv4 tunnelled connections).
+
+2006-06-03 21:03  jslawins
+
+	* src/: analyze.c, fakewww.c, tr-mkmap.c, viewtrace.c, web100srv.c:
+	  Few modifications around the getopt_long functions.  'fakewww':
+		 - Added the IPv6 support (with disabled fed_mode)
+	  - New options: '-4', '-6'
+
+2006-06-03 15:01  jslawins
+
+	* configure, configure.ac, I2util/I2util/config.h.in,
+	  src/Makefile.am, src/Makefile.in, src/analyze.c, src/fakewww.c,
+	  src/tr-mkmap.c, src/usage.c, src/usage.h, src/viewtrace.c,
+	  src/web100clt.c, src/web100srv.c, src/web100srv.h:
+	  'fakewww':	      - New option: '-v' 'analyze':	     - New
+	  option: '-v'		- Added the missing info about options:
+	  '-d', '-n', '-h', '-l' 'tr-mkmap':	       - New option: '-v'
+		  - Added the missing info about option: '-d' 'viewtrace':
+		    - New option: '-v'		  - Fixed option: '-i'
+		- Added the missing info about options: '-c', '-d', '-f',
+	  '-h', 	     '-i', '-l' Used getopt_long instead of getopt.
+	  Added long equivalents for every command-line option from:
+	  web100srv, web100clt, fakewww, analyze, tr-mkmap, viewtrace.
+
+2006-06-03 00:19  jslawins
+
+	* src/: analyze.c, fakewww.c, tr-mkmap.c, tr-tree.c, tr-tree.h,
+	  troute.c, troute.h, usage.c, viewtrace.c, web100-admin.c,
+	  web100-pcap.c, web100srv.c, web100srv.h: Added the '-T' option to
+	  set the refresh time of the admin page.  Fixed the segmentation
+	  fault when the file for the admin web page cannot be opened.
+	  Fixed printing the IP addresses (the problems with byte
+	  ordering).  Got rid of the compile warnings.	Fixed several bugs.
+
+2006-06-02 22:25  jslawins
+
+	* src/: network.c, usage.c, web100clt.c: Added '-n' option to the
+	  web100clt.
+
+2006-06-02 20:11  jslawins
+
+	* configure, configure.ac, src/Makefile.am, src/Makefile.in,
+	  src/usage.c, src/usage.h, src/web100clt.c, src/web100srv.c:
+	  Encapsulated the usage descriptions in a separate functions.
+	  Added the missing info about some options ('-c', '-4', '-6',
+	  '-y').  Added some asserts and new configure option:
+	  '--enable-debug'.  Added '-v' option to the web100clt.
+
+2006-06-02 16:29  jslawins
+
+	* configure, configure.ac, src/viewtrace.c, src/web100-admin.c,
+	  src/web100-util.c, src/web100clt.c, src/web100srv.c,
+	  src/web100srv.h: Added '-Wall -pedantic' flags to CFLAGS. Got rid
+	  of a lot of compile warnings (unused variables, uninitialized
+	  variables, wrong arguments to printf, implicit declarations,
+	  etc.).
+
+	  Fixed several bugs in the code.
+
+2006-06-02 10:04  jslawins
+
+	* src/web100clt.c: Used the '-4' and '-6' options in the new
+	  network related functions responsible for making the connection.
+
+2006-06-01 21:56  jslawins
+
+	* src/: Makefile.am, Makefile.in, network.c, web100clt.c,
+	  web100srv.c: Fixed the bug in web100srv cleanup routine, which
+	  leaded to segmentation fault when the server couldn't open the
+	  file to log to.
+
+	  Rewriten parts of the web100clt responsible for network
+	  connecting/host addresses.
+
+2006-06-01 16:57  jslawins
+
+	* src/: web100-util.c, web100srv.c: Got rid of the 'family'
+	  arguments in the functions from web100srv and web100-util.
+	  Removed some redundant code.
+
+2006-05-31 20:56  jslawins
+
+	* Makefile.am, Makefile.in, Admin/Makefile.am, Admin/Makefile.in,
+	  Applet/Makefile.am, Applet/Makefile.in, I2util/Makefile.am,
+	  I2util/Makefile.in, I2util/I2util/Makefile.am,
+	  I2util/I2util/Makefile.in, I2util/I2util/config.h.in,
+	  I2util/aespasswd/Makefile.am, I2util/aespasswd/Makefile.in,
+	  I2util/doc/Makefile.am, I2util/doc/Makefile.in, conf/Makefile.am,
+	  conf/Makefile.in, doc/Makefile.am, doc/Makefile.in,
+	  src/Makefile.am, src/Makefile.in, src/network.c, src/network.h,
+	  src/web100srv.c, src/web100srv.h: Some modifications in the
+	  makefiles.
+
+	  First use of the CreateListenSocket in the web100srv. Removed
+	  some pointless comments from the mentioned file. Get rid of the
+	  sockRFD structure.
+
+2006-05-30 19:10  jslawins
+
+	* src/: network.c, network.h: Removed the GPL license header from
+	  the previously added files.
+
+2006-05-29 19:17  jslawins
+
+	* src/: network.c, network.h: Separate files with network related
+	  functions have been added.
+
+	  These functions are based on the I2util library. The current
+	  version is not ready for use. This commit is rather to check the
+	  new branch, than to add something valuable.
+
+2006-05-27 00:31  jslawins
+
+	* Makefile.in, Admin/Makefile.in, Applet/Makefile.in,
+	  I2util/Makefile.in, I2util/acinclude.m4, I2util/aclocal.m4,
+	  I2util/I2util/Makefile.in, I2util/aespasswd/Makefile.in,
+	  I2util/doc/Makefile.in, conf/Makefile.in, doc/Makefile.in,
+	  src/Makefile.in: Added acinclude file to the I2util section in
+	  order to avoid I2_* functions disappearing.
+
+2006-05-26 10:27  jslawins
+
+	* INSTALL, Makefile.in, aclocal.m4, config.h.in, configure,
+	  Admin/Makefile.in, Applet/Makefile.am, Applet/Makefile.in,
+	  I2util/Makefile.in, I2util/aclocal.m4, I2util/configure,
+	  I2util/I2util/Makefile.in, I2util/I2util/config.h,
+	  I2util/I2util/config.h.in, I2util/I2util/stamp-h.in,
+	  I2util/aespasswd/Makefile.in, I2util/config/c-syslog-perror.m4,
+	  I2util/config/depcomp, I2util/config/install-sh,
+	  I2util/config/missing, I2util/config/mkinstalldirs,
+	  I2util/doc/Makefile.in, conf/Makefile.in, config/compile,
+	  config/depcomp, config/install-sh, config/missing,
+	  config/mkinstalldirs, doc/Makefile.in, src/Makefile.in: My first
+	  commit. Some files rearrangement connected with autoconf/automake
+	  support.
+
+2006-05-25 19:22  racarlson
+
+	* I2util/I2util/addr.c: add missing c file too.
+
+2006-05-25 19:20  racarlson
+
+	* I2util/I2util/addr.h: add missing header file
+
+2006-05-18 16:25  racarlson
+
+	* I2util/Makefile.in, I2util/I2util/Makefile.in,
+	  I2util/I2util/config.h, I2util/I2util/config.h.in,
+	  I2util/aespasswd/Makefile.in, I2util/doc/Makefile.in,
+	  src/fakewww.c, src/web100-util.c, src/web100srv.c,
+	  src/web100srv.h: Bug fixes to time() and ctime() function calls.
+	  Now uses time_t structure from <time.h> instead of integer.
+
+	  Patch from Mike Inglesias
+
+2006-05-12 19:49  racarlson
+
+	* src/web100srv.c: update web100srv.c file to stop reporting
+	  mismatch for DSL/Cable Modem type connections.
+
+2006-05-12 19:48  racarlson
+
+	* configure.ac, I2util/Makefile.am, I2util/Makefile.in,
+	  I2util/README, I2util/configure.ac, I2util/I2util/ErrLog.c,
+	  I2util/I2util/ErrLogImmediate.c, I2util/I2util/ErrLogSyslog.c,
+	  I2util/I2util/Makefile.am, I2util/I2util/Makefile.in,
+	  I2util/I2util/Options.c, I2util/I2util/Pthread.c,
+	  I2util/I2util/Pthread.h, I2util/I2util/conf.c,
+	  I2util/I2util/conf.h, I2util/I2util/errlog.h,
+	  I2util/I2util/errlogimmediate.h, I2util/I2util/errlogsyslog.h,
+	  I2util/I2util/hex.c, I2util/I2util/hex.h, I2util/I2util/io.c,
+	  I2util/I2util/io.h, I2util/I2util/mach_dep.c,
+	  I2util/I2util/mach_dep.h, I2util/I2util/md5.c,
+	  I2util/I2util/options.h, I2util/I2util/optionsP.h,
+	  I2util/I2util/random.c, I2util/I2util/random.h,
+	  I2util/I2util/readpassphrase.c, I2util/I2util/readpassphrase.h,
+	  I2util/I2util/saddr.c, I2util/I2util/saddr.h,
+	  I2util/I2util/table.c, I2util/I2util/table.h,
+	  I2util/I2util/util.h, I2util/aespasswd/Makefile.am,
+	  I2util/aespasswd/Makefile.in, I2util/aespasswd/aespasswd.c,
+	  I2util/config/c-attribute.m4, I2util/config/c-syslog-names.m4,
+	  I2util/config/randomdev.m4, I2util/doc/Makefile.am,
+	  I2util/doc/Makefile.in, I2util/doc/aespasswd.man,
+	  src/Makefile.am, src/web100srv.c: 3.1.13 updates, now the
+	  repository should be up to date.
+
+2006-05-12 19:47  racarlson
+
+	* configure.ac, Applet/Tcpbw100.java, I2util/Makefile.am,
+	  I2util/Makefile.in, I2util/README, I2util/aclocal.m4,
+	  I2util/configure, I2util/configure.ac, I2util/I2util/ErrLog.c,
+	  I2util/I2util/ErrLogImmediate.c, I2util/I2util/ErrLogSyslog.c,
+	  I2util/I2util/Makefile.am, I2util/I2util/Makefile.in,
+	  I2util/I2util/Options.c, I2util/I2util/Pthread.c,
+	  I2util/I2util/Pthread.h, I2util/I2util/conf.c,
+	  I2util/I2util/conf.h, I2util/I2util/config.h.in,
+	  I2util/I2util/errlog.h, I2util/I2util/errlogimmediate.h,
+	  I2util/I2util/errlogsyslog.h, I2util/I2util/hex.c,
+	  I2util/I2util/hex.h, I2util/I2util/io.c, I2util/I2util/io.h,
+	  I2util/I2util/mach_dep.c, I2util/I2util/mach_dep.h,
+	  I2util/I2util/md5.c, I2util/I2util/md5.h,
+	  I2util/I2util/options.h, I2util/I2util/optionsP.h,
+	  I2util/I2util/random.c, I2util/I2util/random.h,
+	  I2util/I2util/readpassphrase.c, I2util/I2util/readpassphrase.h,
+	  I2util/I2util/saddr.c, I2util/I2util/saddr.h,
+	  I2util/I2util/table.c, I2util/I2util/table.h,
+	  I2util/I2util/util.h, I2util/aespasswd/Makefile.am,
+	  I2util/aespasswd/Makefile.in, I2util/aespasswd/aespasswd.c,
+	  I2util/config/c-attribute.m4, I2util/config/c-syslog-names.m4,
+	  I2util/config/depcomp, I2util/config/install-sh,
+	  I2util/config/missing, I2util/config/randomdev.m4,
+	  I2util/doc/Makefile.am, I2util/doc/Makefile.in,
+	  I2util/doc/aespasswd.man, src/Makefile.am, src/fakewww.c,
+	  src/tr-mkmap.c, src/tr-tree.c, src/web100-admin.c,
+	  src/web100-util.c, src/web100clt.c, src/web100srv.c: 3.1.12
+	  updates
+
+2006-05-12 19:47  racarlson
+
+	* configure.ac, Applet/Tcpbw100.java, I2util/configure.ac,
+	  I2util/I2util/ErrLog.c, I2util/I2util/ErrLogSyslog.c,
+	  I2util/I2util/Makefile.am, I2util/I2util/Options.c,
+	  I2util/I2util/conf.c, I2util/I2util/conf.h,
+	  I2util/I2util/errlog.h, I2util/I2util/hex.c, I2util/I2util/hex.h,
+	  I2util/I2util/io.c, I2util/I2util/md5.c, I2util/I2util/random.c,
+	  I2util/I2util/random.h, I2util/I2util/readpassphrase.c,
+	  I2util/I2util/readpassphrase.h, I2util/I2util/saddr.c,
+	  I2util/I2util/saddr.h, I2util/I2util/table.c,
+	  I2util/I2util/table.h, I2util/I2util/util.h,
+	  I2util/aespasswd/aespasswd.c, I2util/doc/aespasswd.man,
+	  src/Makefile.am, src/web100srv.c: 3.1.11 updates
+
+2006-05-12 19:46  racarlson
+
+	* configure.ac, I2util/configure.ac, I2util/I2util/ErrLog.c,
+	  I2util/I2util/ErrLogSyslog.c, I2util/I2util/Makefile.am,
+	  I2util/I2util/Options.c, I2util/I2util/conf.c,
+	  I2util/I2util/conf.h, I2util/I2util/errlog.h,
+	  I2util/I2util/hex.c, I2util/I2util/hex.h, I2util/I2util/io.c,
+	  I2util/I2util/md5.c, I2util/I2util/random.c,
+	  I2util/I2util/random.h, I2util/I2util/readpassphrase.c,
+	  I2util/I2util/readpassphrase.h, I2util/I2util/saddr.c,
+	  I2util/I2util/saddr.h, I2util/I2util/table.c,
+	  I2util/I2util/table.h, I2util/I2util/util.h,
+	  I2util/aespasswd/aespasswd.c, I2util/doc/aespasswd.man,
+	  src/Makefile.am, src/web100-util.c, src/web100srv.c: 3.1.10 tree
+	  updates
+
+2006-05-12 19:45  racarlson
+
+	* configure.ac, tcpbw100.template, I2util/configure,
+	  I2util/configure.ac, I2util/I2util/ErrLog.c,
+	  I2util/I2util/ErrLogSyslog.c, I2util/I2util/Makefile.am,
+	  I2util/I2util/Options.c, I2util/I2util/conf.c,
+	  I2util/I2util/conf.h, I2util/I2util/errlog.h,
+	  I2util/I2util/hex.c, I2util/I2util/hex.h, I2util/I2util/io.c,
+	  I2util/I2util/md5.c, I2util/I2util/md5.h, I2util/I2util/random.c,
+	  I2util/I2util/random.h, I2util/I2util/readpassphrase.c,
+	  I2util/I2util/readpassphrase.h, I2util/I2util/saddr.c,
+	  I2util/I2util/saddr.h, I2util/I2util/table.c,
+	  I2util/I2util/table.h, I2util/I2util/util.h,
+	  I2util/aespasswd/aespasswd.c, I2util/config/depcomp,
+	  I2util/config/install-sh, I2util/config/missing,
+	  I2util/doc/aespasswd.man, conf/autostart.sh, src/Makefile.am,
+	  src/tr-mkmap.c, src/tr-tree.c, src/web100clt.c, src/web100srv.c:
+	  OK, previous efforts failed, so this updates everything even
+	  though most of the files didn't change.
+
+2006-05-12 19:42  racarlson
+
+	* I2util/: configure, configure.ac, I2util/ErrLog.c,
+	  I2util/ErrLogSyslog.c, I2util/Makefile.am, I2util/Options.c,
+	  I2util/conf.c, I2util/conf.h, I2util/errlog.h, I2util/hex.c,
+	  I2util/hex.h, I2util/io.c, I2util/md5.c, I2util/md5.h,
+	  I2util/random.c, I2util/random.h, I2util/readpassphrase.c,
+	  I2util/readpassphrase.h, I2util/saddr.c, I2util/saddr.h,
+	  I2util/table.c, I2util/table.h, I2util/util.h,
+	  aespasswd/aespasswd.c, config/c-attribute.m4,
+	  config/c-syslog-names.m4, config/depcomp, config/install-sh,
+	  config/missing, config/randomdev.m4, doc/aespasswd.man: 3.1.12
+	  changes, mostly updating the I2Util tree to match Jeff's current
+	  work.3.1.12 changes, mostly updating the I2Util tree to match
+	  Jeff's current work.
+
+2006-05-12 19:40  racarlson
+
+	* INSTALL, README, src/Makefile.am, src/web100-pcap.c,
+	  src/web100-util.c, src/web100srv.h: 3.1.9 changes
+
+2006-05-12 19:39  racarlson
+
+	* configure.ac, tcpbw100.template, Applet/Tcpbw100.java,
+	  conf/autostart.sh, src/web100clt.c, src/web100srv.c: Bringing
+	  repository up to data.  Changes made to 3.1.8 distribution
+
+2005-04-25 23:39  racarlson
+
+	* Applet/Tcpbw100.java, src/web100clt.c, src/web100srv.c: cleanup
+	  client programs to report buffer tuning messgaes and window
+	  scaling only if large windows are used.
+
+	  Rich
+
+2005-04-25 16:39  racarlson
+
+	* configure.ac, Applet/Tcpbw100.java, src/analyze.c,
+	  src/web100-pcap.c, src/web100-util.c, src/web100clt.c,
+	  src/web100srv.c, src/web100srv.h: Major changes to duplex
+	  mismsatch detection.
+
+	  Separate algoritms to detect mismatch in each direction
+
+2005-03-14 20:43  racarlson
+
+	* ChangeLog, configure.ac, Applet/Tcpbw100.java, src/analyze.c,
+	  src/tr-mkmap.c, src/web100clt.c, src/web100srv.c: Chnages 3.1.1
+	  thru 3.1.3
+
+	  bug fixes to signal processing.  Start work on new duplex
+	  mismatch detection algorithm/implementation.
+
+	  Bug fix in applet and client code to only display new buffer size
+	  if suggesting an increase.
+
+	  3/14/05
 
 1/28/05 - NDT v3.1.1
   tr-mkmap.c
