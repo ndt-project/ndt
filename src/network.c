@@ -29,10 +29,6 @@ OpenSocket(I2Addr addr, char* serv, int options)
   struct addrinfo *ai;
   int             on;
   int             fd=-1;
-/* RAC */
-  char tmpstr[200], line[200];
-  size_t tmpstrlen=sizeof(tmpstr);
-  I2Addr saddr;
 
   if (!(fai = I2AddrAddrInfo(addr, NULL, serv))) {
     return -2;
@@ -69,14 +65,6 @@ OpenSocket(I2Addr addr, char* serv, int options)
     }
 #endif
 
-  saddr = I2AddrByLocalSockFD(get_errhandle(), fd, False);
-  memset(tmpstr, 0, 200);
-  I2AddrNodeName(saddr, tmpstr, &tmpstrlen);
-  sprintf(line, "%s", tmpstr);
-  memset(tmpstr, 0, 200); 
-  I2AddrServName(saddr, tmpstr, &tmpstrlen);
-  log_print(3, "RAC: Trying to bind Server:  fd=%d %s (%X) - %s (%s)## ", fd, line, ai->ai_addr->sa_data, tmpstr, serv);
-
     if (bind(fd,ai->ai_addr,ai->ai_addrlen) == 0) {
 
       if (!I2AddrSetSAddr(addr,ai->ai_addr,ai->ai_addrlen) ||
@@ -105,7 +93,6 @@ OpenSocket(I2Addr addr, char* serv, int options)
     }
 
     if (errno == EADDRINUSE) {
-        log_println(1, "RAC:: OpenSocket(): returning -2");
       return -2;
     }
 
