@@ -58,6 +58,15 @@ determine why the connection achieved the throughput results it reported.
 <p>
 <h3> Understanding the test results </h3>
 <p>
+End-to-End performance depends upon a number factors.  One of the biggest factors
+is setting the tunable network parametes to the proper value.  There are several
+web sites that provide detailed tuning instructions for various Operating Systems.
+Two of the best are:
+<ul>
+<li)<a href=http://www.psc.edu/networking/projects/tcptune>PSC's Enabling High
+Performance Data Transfers</a>
+<li><a href=http://dsd.lbl.gov/TCP-tuning>LBNL's TCP Tuning Guide</a>
+</ul>
 The throughput an application achieves is dependant on the amount of buffer space
 available in the sending and receiving hosts, packet loss due to errors or congestion,
 packet size (usually limited to 1500 bytes by Ethernet), and the round trip time
