@@ -16,6 +16,10 @@
 #include "test_sfw.h"
 #include "clt_tests.h"
 
+#ifndef VIEW_DIFF
+#define VIEW_DIFF 0.1
+#endif
+
 extern int h_errno;
 
 int Randomize, failed, cancopy;

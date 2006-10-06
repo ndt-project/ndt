@@ -50,13 +50,13 @@ Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
 
 classTcpbw100stamp: $(Tcpbw100_JAVA)
 	if test -n "$?"; then \
-	    echo '$(GCJ) $(GCJFLAGS) $?' ; \
-	    $(GCJ) $(GCJFLAGS) $?; \
+	    echo '$(GCJ) $(NDTGCJFLAGS) $?' ; \
+	    $(GCJ) $(NDTGCJFLAGS) $?; \
 	else :; fi
 	echo timestamp > classTcpbw100.stamp
 
 Tcpbw100.class: $(Tcpbw100_JAVA)
-	$(GCJ) $(GCJFLAGS) $(Tcpbw100_JAVA)
+	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_JAVA)
 
 Tcpbw100.jar:	Tcpbw100.class
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class

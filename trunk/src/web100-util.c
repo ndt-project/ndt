@@ -83,6 +83,7 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
 
   assert(results);
 
+  log_println(4, "Looking for Web100 data on socketid %d", sock);
   cn = local_find_connection(sock, agent);
   if (cn == NULL) {
     log_println(0, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d", errno);
@@ -93,16 +94,19 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
-  log_print(3, "%s",  line);
-  strcat(results, line);
+  memset(tmpstr, 0, 200);
+  I2AddrServName(addr, tmpstr, &tmpstrlen);
+  log_print(3, "Server: %s%s ",  line, tmpstr);
+  strncat(results, line, strlen(line));
   I2AddrFree(addr);
   tmpstrlen = sizeof(tmpstr);
   addr = I2AddrBySockFD(get_errhandle(), sock, False);
   memset(tmpstr, 0, 200);
   I2AddrNodeName(addr, tmpstr, &tmpstrlen);
   sprintf(line, "%s;", tmpstr);
-  log_print(3, "%s",  line);
-  strcat(results, line);
+  I2AddrServName(addr, tmpstr, &tmpstrlen);
+  log_print(3, "Client: %s%s ",  line, tmpstr);
+  strncat(results, line, strlen(line));
   I2AddrFree(addr);
 
   for (i=0; i<3; i++) {

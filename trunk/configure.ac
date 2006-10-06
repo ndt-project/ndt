@@ -129,10 +129,11 @@ AC_SUBST(TOP_BUILD_DIRS)
 # Java config files
 #
 GCJ=javac
-GCJFLAGS="-source 1.4"
+NDTGCJFLAGS="-source 1.3"
+GCJFLAGS="-source 1.3"
 
 AC_SUBST(GCJ)
-AC_SUBST(GCJFLAGS)
+AC_SUBST(NDTGCJFLAGS)
 
 NDTJAR=jar
 NDTJARFLAG='-cmf'
