@@ -139,7 +139,6 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   char listenmidport[10];
   int msgType;
   int msgLen;
-  int one=1;
   
   assert(ctlsockfd != -1);
   assert(agent);
@@ -189,7 +188,6 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     setsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
     setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
     setsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-    setsockopt(options->midsockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     log_println(2, "Middlebox test, Port %d waiting for incoming connection (fd=%d)",
         options->midsockport, options->midsockfd);
     if (get_debuglvl() > 1) {
@@ -230,6 +228,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
     shutdown(midfd, SHUT_WR);
     close(midfd);
+    close(options->midsockfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
     log_println(1, " <-------------------->");
     setCurrentTest(TEST_NONE);
@@ -506,7 +505,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int msgLen;
   int sndqueue;
   struct sigaction new, old;
-  int one=1;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -568,8 +566,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       setsockopt(options->s2csockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
       setsockopt(options->s2csockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
     }
-    setsockopt(options->s2csockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    log_println(1, "listening for Inet connection on options->s2csockfd, fd=%d", options->s2csockfd);
 
     /* Data received from speed-chk, tell applet to start next test */
     sprintf(buff, "%d", options->s2csockport);
