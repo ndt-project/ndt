@@ -228,8 +228,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     *s2c2spd = atof(buff);
     log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c2spd, buff);
 
-    shutdown(midfd, SHUT_RDWR);
-    write(midfd, "STOP", 4);
+    shutdown(midfd, SHUT_WR);
     close(midfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
     log_println(1, " <-------------------->");
@@ -418,8 +417,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     /* get receiver side Web100 stats and write them to the log file */
     if (record_reverse == 1)
       web100_get_data_recv(recvsfd, agent, count_vars);
-    shutdown(recvsfd, SHUT_RD);
-    write(recvsfd, "STOP2", 5);
+    /* shutdown(recvsfd, SHUT_RD); */
     close(recvsfd);
     close(options->c2ssockfd);
 
@@ -723,8 +721,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       sigaction(SIGALRM, &old, NULL);
       sndqueue = sndq_len(xmitsfd);
 
-      shutdown(xmitsfd, SHUT_RDWR);  /* end of write's */
-      write(xmitsfd, "STOP3", 5);
+      shutdown(xmitsfd, SHUT_WR);  /* end of write's */
 
       s = secs() - t;
       x2cspd = (8.e-3 * bytes) / s;
