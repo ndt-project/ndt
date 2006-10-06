@@ -475,12 +475,12 @@ int
 main(int argc, char **argv)
 {
 
-  char *read_file, c, *cmdbuf, *device;
+  char *read_file, *cmdbuf, *device;
   pcap_handler printer;
   u_char * pcap_userdata = NULL;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
-  int cnt, pflag = 0, debug = 0;
+  int cnt, pflag = 0, debug = 0, c;
   struct sigaction new;
 
   read_file = NULL;
