@@ -19,7 +19,20 @@ of the client code.  It augments the Tcpbw100.java program, allowing
 the user to pre-install a version of the client code.  This allows
 non-browser based clients, helpful for remote access testing.
 
-Rich Carlson	6/7/02  Modified 8/31/06
+Rich Carlson	6/7/02  Modified 9/29/06
+
+2006-09-29 13:12  jslawins
+
+	* ChangeLog, configure, configure.ac, Applet/Tcpbw100.java,
+	  I2util/autom4te.cache/requests: Installed some of the Seth Peery
+	  patches: public variables upstream and downstream, possibility to
+	  set testing server by the APPLET tag.
+
+	  Added the possibility to disable buttons by the APPLET tag. Added
+	  the 'prefer IPv6' checkbox in the options.
+
+	  Increased the Java applet version to 5.4.11.	Increased the NDT
+	  version to 3.3.17
 
 2006-08-31 22:32  jslawins
 

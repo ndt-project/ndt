@@ -118,7 +118,12 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
         break;
       }
     }
+    /*
+     * TODO: check why this line causes problems on clients from
+     *       FreeBSD
+     *
     shutdown(in2Socket, SHUT_RD);
+    */
     t =  secs() - t + 5.0;
     spdin = ((8.0 * bytes) / 1000) / t;
 
