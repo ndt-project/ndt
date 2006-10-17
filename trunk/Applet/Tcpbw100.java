@@ -89,7 +89,7 @@ import javax.swing.BoxLayout;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.11";
+  private static final String VERSION = "5.4.12";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -1380,7 +1380,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
           info.setCursor(new Cursor(Cursor.HAND_CURSOR));
           info.setAlignmentY((float) 0.8);
           results.insertComponent(info);
-          results.append("[C2S]: Excessive packet queuing detected\n");
+          results.append("[C2S]: Packet queuing detected\n");
         }
       }
       
@@ -1400,7 +1400,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
           info.setCursor(new Cursor(Cursor.HAND_CURSOR));
           info.setAlignmentY((float) 0.8);
           results.insertComponent(info);
-          results.append("[S2C]: Excessive packet queuing detected\n");
+          results.append("[S2C]: Packet queuing detected\n");
         }
       }
 

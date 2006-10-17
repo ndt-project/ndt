@@ -21,6 +21,11 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 10/06/06
 
+2006-10-06 12:20  jslawins
+
+	* ChangeLog, src/viewtrace.c: Fixed a small bug in the viewtrace
+	  program.
+
 2006-10-06 11:58  jslawins
 
 	* ChangeLog, INSTALL, configure, configure.ac, src/test_mid_clt.c:
