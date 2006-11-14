@@ -192,11 +192,13 @@ web100_get_data_recv(int sock, web100_agent* agent, int count_vars)
 
   tt=time(0);
   fp=fopen(get_logfile(),"a");
-  fprintf(fp,"%15.15s;", ctime(&tt)+4);
+  if (fp)
+    fprintf(fp,"%15.15s;", ctime(&tt)+4);
   web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
   web100_raw_read(var, cn, buf);
   sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buf));
-  fprintf(fp,"%s",  line);
+  if (fp)
+    fprintf(fp,"%s",  line);
 
   ok = 1;
   for(i=0; i<count_vars; i++) {
@@ -218,13 +220,16 @@ web100_get_data_recv(int sock, web100_agent* agent, int count_vars)
     }
     if (ok == 1) {
       sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
-      fprintf(fp, "%d;", (int32_t)atoi(web_vars[i].value));
+      if (fp)
+        fprintf(fp, "%d;", (int32_t)atoi(web_vars[i].value));
       log_println(6, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
     }
     ok = 1;
   }
-  fprintf(fp, "\n");
-  fclose(fp);
+  if (fp) {
+    fprintf(fp, "\n");
+    fclose(fp);
+  }
 
 }
 

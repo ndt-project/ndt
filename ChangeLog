@@ -19,7 +19,45 @@ of the client code.  It augments the Tcpbw100.java program, allowing
 the user to pre-install a version of the client code.  This allows
 non-browser based clients, helpful for remote access testing.
 
-Rich Carlson	6/7/02  Modified 10/06/06
+Rich Carlson	6/7/02  Modified 10/17/06
+
+2006-10-17 19:30  jslawins
+
+	* ChangeLog, Applet/Tcpbw100.java: Modified the packet queuing
+	  message.
+
+	  Increased the Java applet version to 5.4.12.
+
+2006-10-06 17:12  racarlson
+
+	* I2util/Makefile.in, I2util/configure, src/testoptions.c: fixed
+	  bugs in testioptions.c I introduced while testing LAST_ACK bug.
+
+	  Rich
+
+2006-10-06 15:20  racarlson
+
+	* src/: network.c, testoptions.c: removed debugging statements from
+	  code.  Shouldn't have been there - just looking for LAST_ACK bug.
+
+	  Rich
+
+2006-10-06 15:14  racarlson
+
+	* Makefile.in, aclocal.m4, configure, configure.ac,
+	  tcpbw100.template, Admin/Makefile.in, Applet/Makefile.am,
+	  Applet/Makefile.in, I2util/Makefile.in, I2util/aclocal.m4,
+	  I2util/configure, I2util/I2util/Makefile.in,
+	  I2util/I2util/config.h.in, I2util/aespasswd/Makefile.in,
+	  I2util/autom4te.cache/output.0, I2util/autom4te.cache/requests,
+	  I2util/autom4te.cache/traces.0, I2util/doc/Makefile.in,
+	  conf/Makefile.in, doc/Makefile.in, src/Makefile.in,
+	  src/network.c, src/testoptions.c, src/web100-util.c,
+	  src/web100clt.c: Moved INSTALL to a later version.  src files
+	  probably contain some of my debugging code, which should be
+	  removed.
+
+	  Rich
 
 2006-10-06 12:20  jslawins
 
