@@ -160,20 +160,24 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 	if (get_debuglvl() > 2) {
 #ifdef AF_INET6
     if (cur->family == 4) {
-      fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
-          ((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
-      fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
-          ((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
+      if (fp) {
+        fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
+            ((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
+        fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
+            ((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
+      }
       log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
           ((cur->saddr[0] >> 16) & 0xff),  (cur->saddr[0] >> 24), cur->sport);
       log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
           ((cur->daddr[0] >> 16) & 0xff),  (cur->daddr[0] >> 24), cur->dport);
     }
 #else
-    fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
-        ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
-    fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
-        ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
+    if (fp) {
+      fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
+          ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
+      fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
+          ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
+    }
     log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
         ((cur->saddr >> 16) & 0xff),  (cur->saddr >> 24), cur->sport);
     log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
@@ -186,12 +190,16 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
       memset(name, 0, 200);
       len = 199;
       inet_ntop(AF_INET6, cur->saddr, name, len);
-      fprintf(fp, "%s:%d --> ", name, cur->sport);
+      if (fp) {
+        fprintf(fp, "%s:%d --> ", name, cur->sport);
+      }
       log_print(3, "%s:%d --> ", name, cur->sport);
       memset(name, 0, 200);
       len = 199;
       inet_ntop(AF_INET6, cur->daddr, name, len);
-      fprintf(fp, "%s:%d  ", name, cur->dport);
+      if (fp) {
+        fprintf(fp, "%s:%d  ", name, cur->dport);
+      }
       log_print(3, "%s:%d  ", name, cur->dport);
     }
 #endif
@@ -199,7 +207,9 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
   if (max == 0) {
     log_println(3, "No data Packets collected");
     if (get_debuglvl() > 2) {
-      fprintf(fp, "\n\tNo packets collected\n");
+      if (fp) {
+        fprintf(fp, "\n\tNo packets collected\n");
+      }
     }
     for (i=0; i<16; i++)
       cur->links[i] = -1;
@@ -215,51 +225,53 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 		}
 	    }
 	}
-	if (get_debuglvl() > 2) {
-	    switch (index) {
-	    	case -1:	fprintf(fp, "link=System Fault; ");
-			break;
-	    	case 0:	fprintf(fp, "link=RTT; ");
-			break;
-	    	case 1:	fprintf(fp, "link=dial-up; ");
-			break;
-	    	case 2:	fprintf(fp, "link=T1; ");
-			break;
-	    	case 3:	fprintf(fp, "link=Enet; ");
-			break;
-	    	case 4:	fprintf(fp, "link=T3; ");
-			break;
-	    	case 5:	fprintf(fp, "link=FastE; ");
-			break;
-	    	case 6:	fprintf(fp, "link=OC-12; ");
-			break;
-	    	case 7:	fprintf(fp, "link=GigE; ");
-			break;
-	    	case 8:	fprintf(fp, "link=OC-48; ");
-			break;
-	    	case 9:	fprintf(fp, "link=10 GigE; ");
-			break;
-	    	case 10:	fprintf(fp, "retransmission; ");
-			break;
-	    	case 11:	fprintf(fp, "link=unknown; ");
-			break;
-	    }
+  if (fp) {
+    if (get_debuglvl() > 2) {
+      switch (index) {
+        case -1:	fprintf(fp, "link=System Fault; ");
+                  break;
+        case 0:	fprintf(fp, "link=RTT; ");
+                break;
+        case 1:	fprintf(fp, "link=dial-up; ");
+                break;
+        case 2:	fprintf(fp, "link=T1; ");
+                break;
+        case 3:	fprintf(fp, "link=Enet; ");
+                break;
+        case 4:	fprintf(fp, "link=T3; ");
+                break;
+        case 5:	fprintf(fp, "link=FastE; ");
+                break;
+        case 6:	fprintf(fp, "link=OC-12; ");
+                break;
+        case 7:	fprintf(fp, "link=GigE; ");
+                break;
+        case 8:	fprintf(fp, "link=OC-48; ");
+                break;
+        case 9:	fprintf(fp, "link=10 GigE; ");
+                break;
+        case 10:	fprintf(fp, "retransmission; ");
+                  break;
+        case 11:	fprintf(fp, "link=unknown; ");
+                  break;
+      }
 
-	    fprintf(fp, "packets=%d\n", total);
-	    fprintf(fp, "Running Average = %0.2f Mbps  ", cur->totalspd2);
-	    fprintf(fp, "Average speed = %0.2f Mbps\n", cur->totalspd/cur->totalcount);
-	    fprintf(fp, "\tT1=%d (%0.2f%%); ", cur->links[2], ((float) cur->links[2]*100/total));
-	    fprintf(fp, "Ethernet=%d (%0.2f%%); ", cur->links[3], ((float) cur->links[3]*100/total));
-	    fprintf(fp, "T3=%d (%0.2f%%); ", cur->links[4], ((float) cur->links[4]*100/total));
-	    fprintf(fp, "FastEthernet=%d (%0.2f%%);\n", cur->links[5], ((float) cur->links[5]*100/total));
-	    fprintf(fp, "OC-12=%d (%0.2f%%); ", cur->links[6], ((float) cur->links[6]*100/total));
-	    fprintf(fp, "\tGigabit Ethernet=%d (%0.2f%%); ", cur->links[7], ((float) cur->links[7]*100/total));
-	    fprintf(fp, "OC-48=%d (%0.2f%%); ", cur->links[8], ((float) cur->links[8]*100/total));
-	    fprintf(fp, "10 Gigabit Enet=%d (%0.2f%%);\n", cur->links[9], ((float) cur->links[9]*100/total));
-	    fprintf(fp, "\tRetransmissions=%d (%0.2f%%); ", cur->links[10], ((float) cur->links[10]*100/total));
-	    fprintf(fp, "Unknown=%d (%0.2f%%);\n", cur->links[11], ((float) cur->links[11]*100/total));
-	}
-	fclose(fp);
+      fprintf(fp, "packets=%d\n", total);
+      fprintf(fp, "Running Average = %0.2f Mbps  ", cur->totalspd2);
+      fprintf(fp, "Average speed = %0.2f Mbps\n", cur->totalspd/cur->totalcount);
+      fprintf(fp, "\tT1=%d (%0.2f%%); ", cur->links[2], ((float) cur->links[2]*100/total));
+      fprintf(fp, "Ethernet=%d (%0.2f%%); ", cur->links[3], ((float) cur->links[3]*100/total));
+      fprintf(fp, "T3=%d (%0.2f%%); ", cur->links[4], ((float) cur->links[4]*100/total));
+      fprintf(fp, "FastEthernet=%d (%0.2f%%);\n", cur->links[5], ((float) cur->links[5]*100/total));
+      fprintf(fp, "OC-12=%d (%0.2f%%); ", cur->links[6], ((float) cur->links[6]*100/total));
+      fprintf(fp, "\tGigabit Ethernet=%d (%0.2f%%); ", cur->links[7], ((float) cur->links[7]*100/total));
+      fprintf(fp, "OC-48=%d (%0.2f%%); ", cur->links[8], ((float) cur->links[8]*100/total));
+      fprintf(fp, "10 Gigabit Enet=%d (%0.2f%%);\n", cur->links[9], ((float) cur->links[9]*100/total));
+      fprintf(fp, "\tRetransmissions=%d (%0.2f%%); ", cur->links[10], ((float) cur->links[10]*100/total));
+      fprintf(fp, "Unknown=%d (%0.2f%%);\n", cur->links[11], ((float) cur->links[11]*100/total));
+    }
+    fclose(fp);
+  }
 
 	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d", cur->links[0], cur->links[1],
 		cur->links[2], cur->links[3], cur->links[4], cur->links[5], cur->links[6],
