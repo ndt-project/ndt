@@ -110,6 +110,14 @@ struct web100_variables {
 	char value[256];
 } web_vars[WEB100_VARS];
 
+struct pseudo_hdr {   /* used to compute TCP checksum */
+    unsigned long s_addr;
+    unsigned long d_addr;
+    char pad;
+    unsigned char protocol;
+    unsigned short len;
+};
+
 int32_t gmt2local(time_t);
 
 /* web100-pcap */
@@ -139,5 +147,6 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions,
     int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart,
     int *SubsequentTimeouts, int *ThruBytesAcked);
+int KillHung(void);
 
 #endif

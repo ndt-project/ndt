@@ -854,7 +854,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
         Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
         refresh);
   }
-  shutdown(ctlsockfd, SHUT_RDWR);
+  shutdown(ctlsockfd, SHUT_WR);
+  /* shutdown(ctlsockfd, SHUT_RDWR); */
 }
 
 int

@@ -173,8 +173,7 @@ but the NDT server still doesn't work.   Here are some things you can try.
 	   # grow up to the max (16 MB in this case)
 		# increase Linux autotuning TCP buffer limits
 		net.ipv4.tcp_rmem = 4096 87380 16777216 
-		net.ipv4.tcp_wmem = 4096 87380 16777216
-		net.ipv4.tcp_mem = 8388608 8388608 8388608
+		net.ipv4.tcp_wmem = 4096 65535 16777216
 
 	   # This command allows the server to send/receive the ECN bits in
 	   # the TCP header.  You can leave this off.

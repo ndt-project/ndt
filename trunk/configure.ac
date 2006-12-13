@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.3.18],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.3.19],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -129,8 +129,10 @@ AC_SUBST(TOP_BUILD_DIRS)
 # Java config files
 #
 GCJ=javac
-NDTGCJFLAGS="-source 1.3"
-GCJFLAGS="-source 1.3"
+# NDTGCJFLAGS="-source 1.3"
+# GCJFLAGS="-source 1.3"
+NDTGCJFLAGS="-source 1.4"
+GCJFLAGS="-source 1.4"
 
 AC_SUBST(GCJ)
 AC_SUBST(NDTGCJFLAGS)

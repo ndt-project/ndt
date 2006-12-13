@@ -1504,7 +1504,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       if ((tests & TEST_C2S) == TEST_C2S) {
         if (c2sspd > sc2sspd) {
           if (sc2sspd < (c2sspd  * (1.0 - VIEW_DIFF))) {
-            statistics.append("C2S throughput test: Excessive packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+            statistics.append("C2S throughput test: Packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
           }
           else {
             statistics.append("C2S throughput test: Packet queuing detected: " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
@@ -1515,7 +1515,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       if ((tests & TEST_S2C) == TEST_S2C) {
         if (ss2cspd > s2cspd) {
           if (s2cspd < (ss2cspd  * (1.0 - VIEW_DIFF))) {
-            statistics.append("S2C throughput test: Excessive packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+            statistics.append("S2C throughput test: Packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
           }
           else {
             statistics.append("S2C throughput test: Packet queuing detected: " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");

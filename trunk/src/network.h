@@ -25,4 +25,7 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len);
 int writen(int fd, void* buf, int amount);
 int readn(int fd, void* buf, int amount);
 
+/* web100-util.c routine used in network. */
+int KillHung(void);
+
 #endif

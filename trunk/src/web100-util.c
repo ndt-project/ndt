@@ -554,3 +554,157 @@ CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, in
   log_println(2, "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d", *inc_cnt, *dec_cnt, *same_cnt);
   return(0);
 }
+
+unsigned short
+csum(unsigned short *buff, int nwords)
+{
+
+/* generate a TCP/IP checksum for our packet */
+
+  register int sum = 0;
+  u_short answer = 0;
+  register u_short *w = buff;
+  register int nleft = nwords;
+
+  while (nleft > 1) {
+    sum += *w++;
+    nleft -= 2;
+  }
+
+  if (nleft == 1) {
+    *(u_char *) (&answer) = *(u_char *)w;
+    sum += answer;
+  }
+
+  sum = (sum >> 16) + (sum & 0xffff);
+  sum += (sum >> 16);
+  answer = ~sum;
+  return(answer);
+}
+
+int
+KillHung(void)
+
+{
+  web100_agent *agent;
+  web100_group *group;
+  web100_var *state, *var;
+  web100_connection *conn;
+  int cid, one=1, hung=0;
+  int sd;
+  char *pkt, buff[64];
+  struct in_addr src, dst;
+  struct iphdr *ip = NULL;
+#if defined(AF_INET6)
+  struct ip6_hdr *ip6;
+#endif
+  struct tcphdr *tcp;
+  struct sockaddr_in sin;
+  struct pseudo_hdr *phdr;
+
+  if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL, NULL)) == NULL) {
+    web100_perror("web100_attach");
+    return(-1);
+  }
+ 
+  group = web100_group_head(agent);
+  conn = web100_connection_head(agent);
+
+  while (conn) {
+    cid = web100_get_connection_cid(conn);
+    web100_agent_find_var_and_group(agent, "State", &group, &state);
+    web100_raw_read(state, conn, buff);
+    if (atoi(web100_value_to_text(web100_get_var_type(state), buff)) == 9) {
+      /* Connection is in Last_Ack state, and probably stuck, so generate and
+	 send a FIN packet to the remote client.  This should force the connection
+	 to close
+ 	*/
+
+	log_println(3, "Connection %d was found in LastAck state", cid);
+      sin.sin_family = AF_INET;
+
+      pkt = malloc(sizeof(struct iphdr) + sizeof(struct tcphdr) + 24);
+      memset(pkt, 0, (24 + sizeof(struct iphdr) + sizeof(struct tcphdr)));
+      sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+      ip = (struct iphdr *) pkt;
+      tcp = (struct tcphdr *) (pkt + sizeof(struct iphdr));
+      phdr = (struct pseudo_hdr *) (pkt + sizeof(struct iphdr) - sizeof(struct pseudo_hdr));
+
+
+  /* Build the TCP packet first, along with the pseudo header, the later
+   * the IP header build process will overwrite the pseudo header fields
+   */
+
+      web100_agent_find_var_and_group(agent, "LocalAddress", &group, &var);
+      web100_raw_read(var, conn, buff);
+	log_println(3, "LocalAddress: '%s'", web100_value_to_text(web100_get_var_type(var), buff));
+      dst.s_addr = inet_addr(web100_value_to_text(web100_get_var_type(var), buff)); 
+      web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
+      web100_raw_read(var, conn, buff);
+      src.s_addr = inet_addr(web100_value_to_text(web100_get_var_type(var), buff)); 
+	log_println(3, "RemAddress: '%s'", web100_value_to_text(web100_get_var_type(var), buff));
+
+      phdr->protocol = IPPROTO_TCP;
+      phdr->len = htons(sizeof(struct tcphdr)/4);
+      phdr->s_addr = src.s_addr;
+      phdr->d_addr = dst.s_addr;
+
+      web100_agent_find_var_and_group(agent, "LocalPort", &group, &var);
+      web100_raw_read(var, conn, buff);
+      tcp->dest = htons(atoi(web100_value_to_text(web100_get_var_type(var), buff))); 
+	log_println(3, "LocalPort: '%s'", web100_value_to_text(web100_get_var_type(var), buff));
+      web100_agent_find_var_and_group(agent, "RemPort", &group, &var);
+      web100_raw_read(var, conn, buff);
+      tcp->source = htons(atoi(web100_value_to_text(web100_get_var_type(var), buff))); 
+	log_println(3, "RemPort: '%s'", web100_value_to_text(web100_get_var_type(var), buff));
+      sin.sin_port = tcp->dest;
+
+      web100_agent_find_var_and_group(agent, "RcvNxt", &group, &var);
+      web100_raw_read(var, conn, buff);
+      tcp->seq = htonl(atoll(web100_value_to_text(web100_get_var_type(var), buff)) ); 
+	log_println(3, "Seq No. (RcvNxt): '%s'", web100_value_to_text(web100_get_var_type(var), buff));
+      web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+      web100_raw_read(var, conn, buff);
+      tcp->ack_seq = htonl(atoll(web100_value_to_text(web100_get_var_type(var), buff))); 
+	log_println(3, "Ack No. (SndNxt): '%s'", web100_value_to_text(web100_get_var_type(var), buff));
+
+      tcp->window = 0x7fff;
+      tcp->res1 = 0;
+      tcp->doff = sizeof(struct tcphdr)/4;
+      /* tcp->syn = 1; */
+      tcp->rst = 1;
+      tcp->ack = 1;
+      /* tcp->fin = 1; */
+      tcp->urg_ptr = 0;
+      tcp->check = csum((unsigned short *)phdr, sizeof(struct tcphdr) + sizeof(struct pseudo_hdr));
+
+      bzero(pkt, sizeof(struct iphdr));
+      ip->ihl = 5;
+      ip->version = 4;
+      ip->tos = 0;
+      ip->tot_len = sizeof (struct iphdr) + sizeof (struct tcphdr);
+      ip->id = htons(31890);
+      ip->frag_off = htons(IP_DF);
+      ip->ttl = IPDEFTTL;
+      ip->protocol = IPPROTO_TCP;		/* TCP packet */
+      ip->saddr = src.s_addr;
+      ip->daddr = dst.s_addr;
+      sin.sin_addr.s_addr = dst.s_addr;
+
+      ip->check = csum((unsigned short *) pkt, sizeof(struct iphdr));
+
+      if (setsockopt(sd, IPPROTO_IP, IP_HDRINCL, &one, sizeof(one)) < 0) 
+	return(-1);
+
+      sendto(sd, (char *)pkt, 40, 0, (struct sockaddr *) &sin, sizeof(sin));
+	
+      hung = 1;
+
+    }
+    conn = web100_connection_next(conn);
+  }
+
+  if (hung == 0)
+    return(-1);
+  return(0);
+}
