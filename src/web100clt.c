@@ -112,7 +112,7 @@ testResults(char tests, char *tmpstr, char* host)
   if (!(tests & TEST_S2C)) {
     if (tests & TEST_C2S) {
       if (c2sspd < (spdout  * (1.0 - VIEW_DIFF))) {
-        printf("Information [C2S]: Excessive packet queuing detected: %0.2f%% ", 100 * (spdout - c2sspd) / spdout);
+        printf("Information [C2S]: Packet queuing detected: %0.2f%% ", 100 * (spdout - c2sspd) / spdout);
         if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
           printf("(local buffers)\n");
         }
@@ -234,7 +234,7 @@ testResults(char tests, char *tmpstr, char* host)
 
     if (tests & TEST_C2S) {
       if (c2sspd < (spdout  * (1.0 - VIEW_DIFF))) {
-        printf("Information [C2S]: Excessive packet queuing detected: %0.2f%% ", 100 * (spdout - c2sspd) / spdout);
+        printf("Information [C2S]: Packet queuing detected: %0.2f%% ", 100 * (spdout - c2sspd) / spdout);
         if (sndqueue > (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
           printf("(local buffers)\n");
         }
@@ -245,7 +245,7 @@ testResults(char tests, char *tmpstr, char* host)
     }
     if (tests & TEST_S2C) {
       if (spdin < (s2cspd  * (1.0 - VIEW_DIFF))) {
-        printf("Information [S2C]: Excessive packet queuing detected: %0.2f%% ", 100 * (s2cspd - spdin) / s2cspd);
+        printf("Information [S2C]: Packet queuing detected: %0.2f%% ", 100 * (s2cspd - spdin) / s2cspd);
         if (ssndqueue > (0.8 * sbytes * (s2cspd - spdin) / s2cspd)) {
           printf("(local buffers)\n");
         }

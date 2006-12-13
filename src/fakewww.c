@@ -53,7 +53,7 @@ char *MsgRedir3 = ">Click Here  </a> if you are not "
 char *Mypagefile = "/tcpbw100.html";   /* we throw the slash away */
 char *okfile[] = {"/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
       "/Tcpbw100$clsFrame.class", "/Tcpbw100.jar", "/copyright.html", "/web100variables.html",
-      "/"ADMINFILE, "/Admin.class", 0};
+      "/"ADMINFILE, "/Admin.class", "/tr.sh", "/traceroute.pl", 0};
 
 typedef struct allowed {
   char* filename;
@@ -88,6 +88,7 @@ static struct option long_options[] = {
 #endif
   {0, 0, 0, 0}
 };
+
 
 void dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl);
 void reap();
@@ -310,9 +311,11 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
   u_int32_t srv_addr6[4];
 #endif
   I2Addr serv_addr = NULL;
+  I2Addr loc_addr=NULL, rem_addr=NULL;
   FILE *lfd;
   time_t tt;
   char nodename[200];
+  char onenodename[200];
   size_t nlen = 199;
   Allowed* ptr;
   
@@ -339,7 +342,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
         csaddr = I2AddrSAddr(addr, NULL);
         if (csaddr->sa_family == AF_INET) { /* make the IPv4 find */
           struct sockaddr_in* cli_addr = (struct sockaddr_in*) csaddr;
-          char onenodename[200];
           find_route(cli_addr->sin_addr.s_addr, IPlist, max_ttl);
           for (i=0; IPlist[i]!=cli_addr->sin_addr.s_addr; i++) {
             sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff, (IPlist[i] >> 8) & 0xff,
@@ -419,7 +421,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
 #ifdef AF_INET6
         else if (csaddr->sa_family == AF_INET6) {
           struct sockaddr_in6* cli_addr = (struct sockaddr_in6*) csaddr;
-          char onenodename[200];
           socklen_t onenode_len;
           find_route6(nodename, IP6list, max_ttl);
           for (i = 0; memcmp(IP6list[i], &cli_addr->sin6_addr, sizeof(cli_addr->sin6_addr)); i++) {
@@ -558,6 +559,32 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
       continue;
     }
     /* reply: */
+
+
+    /* RAC
+     * run Les Cottrell's traceroute program
+     */
+    if (strncmp(htmlfile, "/usr/local/ndt/traceroute.pl", 28) == 0) {
+	/* fprintf(stderr, "running traceroute script\n"); */
+        loc_addr = I2AddrByLocalSockFD(get_errhandle(), sd, False);
+        memset(onenodename, 0, 200);
+        nlen = 199;
+        I2AddrNodeName(loc_addr, onenodename, &nlen);
+        /* fprintf(stderr, "query_string=%s", nodename);
+         * fprintf(stderr, " server_name=%s", onenodename);
+         * fprintf(stderr, " remote_host=%s", nodename);
+         * fprintf(stderr, " remote_addr=%s\n", nodename);
+	 */
+
+	setenv("QUERY_STRING", nodename, 1);
+	setenv("SERVER_NAME", onenodename, 1);
+	setenv("REMOTE_HOST", nodename, 1);
+	setenv("REMOTE_ADDR", "207.75.164.153", 1);
+	system("/usr/bin/perl /usr/local/ndt/traceroute.pl > /tmp/rac-traceroute.pl");
+	close(fd);
+	fd = open("/tmp/rac-traceroute.pl", 0);
+    }
+        
     writen(sd, MsgOK, strlen(MsgOK));
     while( (n = read(fd, buff, sizeof(buff))) > 0){
       writen(sd, buff, n);

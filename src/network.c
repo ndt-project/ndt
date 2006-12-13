@@ -93,10 +93,15 @@ OpenSocket(I2Addr addr, char* serv, int options)
     }
 
     if (errno == EADDRINUSE) {
+      /* RAC debug statemement 10/11/06 */
+      getsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+      log_println(1, "bind(%d) failed: Address already in use given as the reason, getsockopt() returend %d", fd, on);
       return -2;
     }
 
 failsock:
+    /* RAC debug statemement 10/11/06 */
+    log_println(1, "failsock: Unable to set socket options for fd=%d", fd);
     while((close(fd) < 0) && (errno == EINTR));
   }
   

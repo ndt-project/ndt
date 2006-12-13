@@ -453,13 +453,17 @@ view_init(int refresh)
       sscanf(str, "%[^,]s", ip_addr2);
       if ((str = strchr(str, ',')) == NULL)
         continue;
+      /* skip over s2c cwnd-limited speed value */
       str++;
       sscanf(str, "%[^,]s", tmpstr);
-      s2cspd = atoi(tmpstr);
 
       str = strchr(str, ',') +1;
       sscanf(str, "%[^,]s", tmpstr);
       c2sspd = atoi(tmpstr);
+
+      str = strchr(str, ',') +1;
+      sscanf(str, "%[^,]s", tmpstr);
+      s2cspd = atoi(tmpstr);
 
       str = strchr(str, ',') +1;
       sscanf(str, "%[^,]s", tmpstr);
