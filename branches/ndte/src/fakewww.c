@@ -36,17 +36,20 @@
 #define PORT           "7123"
 char buff[BUFFSIZE];
 /* html message */
-char *MsgOK  = "HTTP/1.0 200 OK\n\n";
-char *MsgNope = "HTTP/1.0 404 Not found\n\n"
+char *MsgOK  = "HTTP/1.0 200 OK\r\n\r\n";
+char *MsgNope = "HTTP/1.0 404 Not found\r\n\r\n"
     "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
         "<BODY><H1>The requested file could not be found</H1></BODY>\n";
 
-char *MsgRedir1 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
+char *MsgRedir1 = "HTTP/1.0 307 Temporary Redirect\r\n";
+char *MsgRedir2 = "Location: ";
+char *MsgRedir3 = "\r\n\r\n";
+char *MsgRedir4 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
     "  <BODY>\n    <meta http-equiv=\"refresh\" content=\"2; ";
-char *MsgRedir2 = "\">\n\n<h2>FLM server re-direction page</h2>\n"
+char *MsgRedir5 = "\">\n\n<h2>FLM server re-direction page</h2>\n"
     "<p><font size=\"+2\">Your client is being redirected to the 'closest' FLM server "
     "for configuration testing.\n <a ";
-char *MsgRedir3 = ">Click Here  </a> if you are not "
+char *MsgRedir6 = ">Click Here  </a> if you are not "
     "automatically redirected in the next 2 seconds.\n  "
     "</font></BODY>\n</HTML>";
 
@@ -387,20 +390,27 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
            * RAC 3/9/04
            */
 
-          writen(sd, MsgOK, strlen(MsgOK));
           writen(sd, MsgRedir1, strlen(MsgRedir1));
-          sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
-              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
-              port);
-          writen(sd, line, strlen(line));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          sprintf(line, "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"", 
+          sprintf(line, "http://%u.%u.%u.%u:%s/tcpbw100.html", 
               srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
               port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
+          writen(sd, MsgRedir4, strlen(MsgRedir4));
+          sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
+              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
+              port);
+          writen(sd, line, strlen(line));
+          writen(sd, MsgRedir5, strlen(MsgRedir5));
+          sprintf(line, "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"", 
+              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
+              port);
+          writen(sd, line, strlen(line));
+          writen(sd, MsgRedir6, strlen(MsgRedir6));
           log_println(3, "%s redirected to remote server [%u.%u.%u.%u:%s]",
               inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
@@ -459,20 +469,24 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
           log_println(4, "Client host [%s] should be redirected to FLM server [%s]",
               nodename, onenodename);
 
-          writen(sd, MsgOK, strlen(MsgOK));
           writen(sd, MsgRedir1, strlen(MsgRedir1));
-          sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
-          writen(sd, line, strlen(line));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
+          sprintf(line, "http://[%s]:%s/tcpbw100.html", onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
-          log_println(3, "%s redirected to remote server [%s:%s]", nodename, onenodename, port);
+          writen(sd, MsgRedir4, strlen(MsgRedir4));
+          sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
+          writen(sd, line, strlen(line));
+          writen(sd, MsgRedir5, strlen(MsgRedir5));
+          sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
+          writen(sd, line, strlen(line));
+          writen(sd, MsgRedir6, strlen(MsgRedir6));
+          log_println(3, "%s redirected to remote server [[%s]:%s]", nodename, onenodename, port);
           tt = time(0);
           if (LogFileName != NULL) {
             lfd = fopen(LogFileName, "a");
             if (lfd != NULL) {
-              fprintf(lfd, "%15.15s [%s] redirected to remote server [%s:%s]\n",
+              fprintf(lfd, "%15.15s [%s] redirected to remote server [[%s]:%s]\n",
                   ctime(&tt)+4, nodename, onenodename, port);
 
               fclose(lfd);
