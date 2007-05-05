@@ -191,7 +191,7 @@ mkmap_long_usage(char* info)
   printf("                           Note: -b and -c are mutually exclusive\n");
   printf("  -f, --file fn          - specify the name of the input file\n");
   printf("  -h, --help             - print this help message\n");
-  printf("  -p, --print            - print out the current traceroute map\n");
+  printf("  -p, --print            - [default] print out the current traceroute map\n");
   printf("  -d, --debug            - increment debugging mode\n");
   printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -v, --version          - print version number\n\n");
