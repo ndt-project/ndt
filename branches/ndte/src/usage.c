@@ -131,7 +131,8 @@ www_long_usage(char* info)
   printf("  -d, --debug            - increment debugging mode\n");
   printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -h, --help             - print this help message\n");
-  printf("  -l, --log log_FN       - log connection requests in specified file\n");
+  printf("  -l, --alog alog_FN     - specify the access log filename\n");
+  printf("  -e, --elog elog_FN     - specify the error log filename\n");
   printf("  -p, --port #port       - specify the port number (default is 7123)\n");
   printf("  -t, --ttl #amount      - specify maximum number of hops in path (default is 10)\n");
   printf("  -F, --federated        - operate in Federated mode\n");

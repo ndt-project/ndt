@@ -595,9 +595,6 @@ KillHung(void)
   char *pkt, buff[64];
   struct in_addr src, dst;
   struct iphdr *ip = NULL;
-#if defined(AF_INET6)
-  struct ip6_hdr *ip6;
-#endif
   struct tcphdr *tcp;
   struct sockaddr_in sin;
   struct pseudo_hdr *phdr;

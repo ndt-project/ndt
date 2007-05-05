@@ -34,12 +34,17 @@
 #include "web100-admin.h"
 
 #define PORT           "7123"
+#define AC_TIME_FORMAT    "%d/%b/%Y:%H:%M:%S %z"
+#define ER_TIME_FORMAT    "%a %b %d %H:%M:%S %Y"
+
+char* ac_time_format = AC_TIME_FORMAT;
+char* er_time_format = ER_TIME_FORMAT;
 char buff[BUFFSIZE];
 /* html message */
-char *MsgOK  = "HTTP/1.0 200 OK\r\n\r\n";
-char *MsgNope = "HTTP/1.0 404 Not found\r\n\r\n"
-    "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
-        "<BODY><H1>The requested file could not be found</H1></BODY>\n";
+char *MsgOK    = "HTTP/1.0 200 OK\r\n\r\n";
+char *MsgNope1 = "HTTP/1.0 404 Not found\r\n\r\n";
+char *MsgNope2 = "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
+                 "<BODY><H1>The requested file could not be found</H1></BODY>\n";
 
 char *MsgRedir1 = "HTTP/1.0 307 Temporary Redirect\r\n";
 char *MsgRedir2 = "Location: ";
@@ -76,7 +81,8 @@ static char dt6fn[256];
 static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
-  {"log", 1, 0, 'l'},
+  {"alog", 1, 0, 'l'},
+  {"elog", 1, 0, 'e'},
   {"port", 1, 0, 'p'},
   {"ttl", 1, 0, 't'},
   {"federated", 0, 0, 'F'},
@@ -93,8 +99,11 @@ static struct option long_options[] = {
 };
 
 
-void dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl);
+void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName, int fed_mode, int max_ttl);
 void reap();
+char* getTime(time_t* tt, char* format);
+void logErLog(char* LogFileName, time_t* tt, char* severity, char* format, ...);
+void logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int size);
 
 void
 err_sys(char* s)
@@ -115,10 +124,9 @@ main(int argc, char** argv)
   char* listenport = PORT;
   int conn_options = 0;
 
-  char *LogFileName=NULL, *ctime();
+  char *ErLogFileName=NULL, *AcLogFileName=NULL;
   struct sockaddr_storage cli_addr;
   I2Addr listenaddr = NULL;
-  FILE *fp;
   Allowed* ptr;
 
 #ifdef AF_INET6
@@ -128,7 +136,7 @@ main(int argc, char** argv)
 #endif
   
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("dhl:p:t:Ff:b:v"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:v"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -147,7 +155,10 @@ main(int argc, char** argv)
         exit(0);
         break;
       case 'l':
-        LogFileName = optarg;
+        AcLogFileName = optarg;
+        break;
+      case 'e':
+        ErLogFileName = optarg;
         break;
       case 'p':
         listenport = optarg;
@@ -213,17 +224,8 @@ main(int argc, char** argv)
   tt = time(0);
   log_println(1, "%15.15s server started, listening on port %d%s", ctime(&tt)+4, I2AddrPort(listenaddr),
       (federated == 1) ? ", operating in Federated mode" : "");
-  if (LogFileName != NULL) {
-    fp = fopen(LogFileName, "a");
-    if (fp != NULL) {
-      fprintf(fp, "%15.15s server started, listening on port %d",
-          ctime(&tt)+4, I2AddrPort(listenaddr));
-      if (federated == 1)
-        fprintf(fp, ", operating in Federated mode");
-      fprintf(fp, "\n");
-      fclose(fp);
-    }
-  }
+  logErLog(ErLogFileName, &tt, "notice", "server started, listening on port %d%s", I2AddrPort(listenaddr),
+      (federated == 1) ? ", operating in Federated mode" : "");
   signal(SIGCHLD, (__sighandler_t)reap);    /* get rid of zombies */
 
   /*
@@ -243,7 +245,7 @@ main(int argc, char** argv)
       I2Addr caddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
       alarm(300);     /* kill child off after 5 minutes, should never happen */
       close(sockfd);
-      dowww(newsockfd, caddr, listenport, LogFileName, federated, max_ttl);
+      dowww(newsockfd, caddr, listenport, AcLogFileName, ErLogFileName, federated, max_ttl);
       exit(0);
     }
     close(newsockfd);
@@ -302,7 +304,7 @@ register int  maxlen;
 }
 
 void
-dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl)
+dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName, int fed_mode, int max_ttl)
 {
   /* process web request */
   int fd, n, i, ok;
@@ -314,13 +316,14 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
   u_int32_t srv_addr6[4];
 #endif
   I2Addr serv_addr = NULL;
-  I2Addr loc_addr=NULL, rem_addr=NULL;
-  FILE *lfd;
+  I2Addr loc_addr=NULL;
   time_t tt;
   char nodename[200];
   char onenodename[200];
   size_t nlen = 199;
   Allowed* ptr;
+  char lineBuf[100];
+  int answerSize;
   
   memset(nodename, 0, 200);
   I2AddrNodeName(addr, nodename, &nlen);
@@ -332,6 +335,16 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
     p = (char *) strstr(buff, "GET");
     if (p == NULL) 
       continue;
+    memset(lineBuf, 0, 100);
+    strncpy(lineBuf, buff, 99);
+    i = 0;
+    while (lineBuf[i]) {
+        if ((lineBuf[i] == '\r') || (lineBuf[i] == '\n')) {
+            lineBuf[i] = 0;
+            break;
+        }
+        ++i;
+    }
     sscanf(p+4, "%s", filename);
     if (strcmp(filename, "/") == 0) {
       /* feed em the default page */
@@ -399,33 +412,32 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
           writen(sd, MsgRedir4, strlen(MsgRedir4));
+          answerSize = strlen(MsgRedir4);
           sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
               srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
               port);
           writen(sd, line, strlen(line));
+          answerSize += strlen(line);
           writen(sd, MsgRedir5, strlen(MsgRedir5));
+          answerSize += strlen(MsgRedir5);
           sprintf(line, "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"", 
               srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
               port);
           writen(sd, line, strlen(line));
+          answerSize += strlen(line);
           writen(sd, MsgRedir6, strlen(MsgRedir6));
+          answerSize += strlen(MsgRedir6);
           log_println(3, "%s redirected to remote server [%u.%u.%u.%u:%s]",
               inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
           tt = time(0);
-          if (LogFileName != NULL) {
-            lfd = fopen(LogFileName, "a");
-            if (lfd != NULL) {
-              fprintf(lfd, "%15.15s [%s] redirected to remote server [%u.%u.%u.%u:%s]\n",
-                  ctime(&tt)+4, inet_ntoa(cli_addr->sin_addr),
+          logErLog(ErLogFileName, &tt, "notice", "[%s] redirected to remote server [%u.%u.%u.%u:%s]",
+                  inet_ntoa(cli_addr->sin_addr),
                   srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                   (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
-
-              fclose(lfd);
-            }
-          }
+          logAcLog(AcLogFileName, &tt, inet_ntoa(cli_addr->sin_addr), lineBuf, 307, answerSize);
           continue;
         }
 #ifdef AF_INET6
@@ -475,23 +487,22 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
           writen(sd, MsgRedir4, strlen(MsgRedir4));
+          answerSize = strlen(MsgRedir4);
           sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
           writen(sd, line, strlen(line));
+          answerSize += strlen(line);
           writen(sd, MsgRedir5, strlen(MsgRedir5));
+          answerSize += strlen(MsgRedir5);
           sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
           writen(sd, line, strlen(line));
+          answerSize += strlen(line);
           writen(sd, MsgRedir6, strlen(MsgRedir6));
+          answerSize += strlen(MsgRedir6);
           log_println(3, "%s redirected to remote server [[%s]:%s]", nodename, onenodename, port);
           tt = time(0);
-          if (LogFileName != NULL) {
-            lfd = fopen(LogFileName, "a");
-            if (lfd != NULL) {
-              fprintf(lfd, "%15.15s [%s] redirected to remote server [[%s]:%s]\n",
-                  ctime(&tt)+4, nodename, onenodename, port);
-
-              fclose(lfd);
-            }
-          }
+          logErLog(ErLogFileName, &tt, "notice", "[%s] redirected to remote server [[%s]:%s]",
+                  nodename, onenodename, port);
+          logAcLog(AcLogFileName, &tt, nodename, lineBuf, 307, answerSize);
           continue;
         }
 #endif
@@ -500,15 +511,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
 
     /* try to open and give em what they want */
     tt = time(0);
-    log_print(3, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4, nodename, filename);
-    if (LogFileName != NULL) {
-      lfd = fopen(LogFileName, "a");
-      if (lfd != NULL) {
-        fprintf(lfd, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4,
-            nodename, filename);
-        fclose(lfd);
-      }
-    }
     ok = 0;
     if (strcmp(filename, "/") == 0)
       strncpy(filename, "/tcpbw100.html", 15);
@@ -516,14 +518,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
       /* restrict file access */
       if (strcmp(okfile[i], filename) == 0) {
         ok=1;
-        log_println(3, "sent to client");
-        if (LogFileName != NULL) {
-          lfd = fopen(LogFileName, "a");
-          if (lfd != NULL) {
-            fprintf(lfd, "sent to client\n");
-            fclose(lfd);
-          }
-        }
         break;
       }
     }
@@ -531,47 +525,43 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
       ptr = a_root;
       while (ptr != NULL) {
         if (strcmp(ptr->filename, filename) == 0) {
-          ok=1;
-          log_println(3, "sent to client [A]");
-          if (LogFileName != NULL) {
-            lfd = fopen(LogFileName, "a");
-            if (lfd != NULL) {
-              fprintf(lfd, "sent to client [A]\n");
-              fclose(lfd);
-            }
-          }
+          ok=2;
           break;
         }       
         ptr = ptr->next;
       }
     }
+    log_print(3, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4, nodename, filename);
     if (ok == 0) {
-      writen(sd, MsgNope, strlen(MsgNope));
+      writen(sd, MsgNope1, strlen(MsgNope1));
+      writen(sd, MsgNope2, strlen(MsgNope2));
+      answerSize = strlen(MsgNope2);
       log_println(3, "access denied");
-      if (LogFileName != NULL) {
-        lfd = fopen(LogFileName, "a");
-        if (lfd != NULL) {
-          fprintf(lfd, "access denied\n");
-          fclose(lfd);
-        }
-      }
+      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 403, answerSize);
+      logErLog(ErLogFileName, &tt, "error", "[client %s] Permission denied: path not allowed: %s",
+              nodename, filename);
       continue;
     }
     sprintf(htmlfile, "%s/%s", basedir, filename+1);
     fd = open(htmlfile, 0);  /* open file for read */
     if (fd < 0) {
       close(fd);
-      writen(sd, MsgNope, strlen(MsgNope));
+      writen(sd, MsgNope1, strlen(MsgNope1));
+      writen(sd, MsgNope2, strlen(MsgNope2));
+      answerSize = strlen(MsgNope2);
       log_println(3, " not found");
-      if (LogFileName != NULL) {
-        lfd = fopen(LogFileName, "a");
-        if (lfd != NULL) {
-          fprintf(lfd, " not found\n");
-          fclose(lfd);
-        }
-      }
+      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 404, answerSize);
+      logErLog(ErLogFileName, &tt, "error", "[client %s] File does not exist: %s",
+              nodename, filename);
       continue;
     }
+    if (ok == 1) {
+        log_println(3, "sent to client");
+    }
+    else {
+        log_println(3, "sent to client [A]");
+    }
+
     /* reply: */
 
 
@@ -579,16 +569,10 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
      * run Les Cottrell's traceroute program
      */
     if (strncmp(htmlfile, "/usr/local/ndt/traceroute.pl", 28) == 0) {
-	/* fprintf(stderr, "running traceroute script\n"); */
         loc_addr = I2AddrByLocalSockFD(get_errhandle(), sd, False);
         memset(onenodename, 0, 200);
         nlen = 199;
         I2AddrNodeName(loc_addr, onenodename, &nlen);
-        /* fprintf(stderr, "query_string=%s", nodename);
-         * fprintf(stderr, " server_name=%s", onenodename);
-         * fprintf(stderr, " remote_host=%s", nodename);
-         * fprintf(stderr, " remote_addr=%s\n", nodename);
-	 */
 
 	setenv("QUERY_STRING", nodename, 1);
 	setenv("SERVER_NAME", onenodename, 1);
@@ -600,10 +584,58 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
     }
         
     writen(sd, MsgOK, strlen(MsgOK));
+    answerSize = 0;
     while( (n = read(fd, buff, sizeof(buff))) > 0){
       writen(sd, buff, n);
+      answerSize += n;
     }
+    logAcLog(AcLogFileName, &tt, nodename, lineBuf, 200, answerSize);
     close(fd);
   }
   close(sd);
+}
+
+char*
+getTime(time_t* tt, char* format)
+{
+    static char timeBuf[100];
+
+    if (strftime(timeBuf, 99, format, localtime(tt))) {
+        return timeBuf;
+    }
+    else {
+        return (ctime(tt)+4);
+    }
+}
+
+void
+logErLog(char* LogFileName, time_t* tt, char* severity, char* format, ...)
+{
+    FILE *fp;
+    va_list ap;
+    if (LogFileName != NULL) {
+        fp = fopen(LogFileName, "a");
+        if (fp != NULL) {
+            fprintf(fp, "[%s] [%s] ", getTime(tt, er_time_format), severity);
+            va_start(ap, format);
+            vfprintf(fp, format, ap);
+            va_end(ap);
+            fprintf(fp, "\n");
+            fclose(fp);
+        }
+    }
+}
+
+void
+logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int size)
+{
+    FILE *fp;
+    if (LogFileName != NULL) {
+        fp = fopen(LogFileName, "a");
+        if (fp != NULL) {
+            fprintf(fp, "%s - - [%s] \"%s\" %d %d\n", host, getTime(tt, ac_time_format), line, res, size);
+            fclose(fp);
+        }
+    }
+
 }
