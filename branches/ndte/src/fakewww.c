@@ -99,11 +99,11 @@ static struct option long_options[] = {
 };
 
 
-void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName, int fed_mode, int max_ttl);
+void dowww(int, I2Addr, char*, char*, char*, int, int);
 void reap();
-char* getTime(time_t* tt, char* format);
-void logErLog(char* LogFileName, time_t* tt, char* severity, char* format, ...);
-void logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int size);
+char* getTime(time_t*, char*);
+void logErLog(char*, time_t*, char*, char*, ...);
+void logAcLog(char*, time_t*, char*, char*, int, int, char*, char*);
 
 void
 err_sys(char* s)
@@ -304,6 +304,17 @@ register int  maxlen;
 }
 
 void
+trim(char* ptr) {
+    while (*ptr) {
+        if ((*ptr == '\r') || (*ptr == '\n')) {
+            *ptr = 0;
+            break;
+        }
+        ptr++;
+    }
+}
+
+void
 dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName, int fed_mode, int max_ttl)
 {
   /* process web request */
@@ -323,29 +334,37 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
   size_t nlen = 199;
   Allowed* ptr;
   char lineBuf[100];
+  char useragentBuf[100];
+  char refererBuf[100];
   int answerSize;
   
   memset(nodename, 0, 200);
   I2AddrNodeName(addr, nodename, &nlen);
 
-  while ((n = readline(sd, buff, sizeof(buff))) > 0){
-    buff[n] = '\0';
+  while ((n = readline(sd, buff, sizeof(buff))) > 0) {
     if (n < 3)
       break;  /* end of html input */
     p = (char *) strstr(buff, "GET");
     if (p == NULL) 
       continue;
     memset(lineBuf, 0, 100);
+    memset(useragentBuf, 0, 100);
+    memset(refererBuf, 0, 100);
     strncpy(lineBuf, buff, 99);
-    i = 0;
-    while (lineBuf[i]) {
-        if ((lineBuf[i] == '\r') || (lineBuf[i] == '\n')) {
-            lineBuf[i] = 0;
-            break;
-        }
-        ++i;
-    }
+    trim(lineBuf);
     sscanf(p+4, "%s", filename);
+    while ((n = readline(sd, buff, sizeof(buff))) > 0) {
+        if ((p = (char *) strstr(buff, "User-Agent"))) {
+            strncpy(useragentBuf, p+12, 99);
+            trim(useragentBuf);
+        }
+        if ((p = (char *) strstr(buff, "Referer"))) {
+            strncpy(refererBuf, p+9, 99);
+            trim(refererBuf);
+        }
+        if (n < 3)
+            break;  /* end of html input */
+    }
     if (strcmp(filename, "/") == 0) {
       /* feed em the default page */
       /* strcpy(filename, Mypagefile); */
@@ -437,8 +456,9 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
                   inet_ntoa(cli_addr->sin_addr),
                   srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                   (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
-          logAcLog(AcLogFileName, &tt, inet_ntoa(cli_addr->sin_addr), lineBuf, 307, answerSize);
-          continue;
+          logAcLog(AcLogFileName, &tt, inet_ntoa(cli_addr->sin_addr), lineBuf, 307, answerSize,
+                  useragentBuf, refererBuf);
+          break;
         }
 #ifdef AF_INET6
         else if (csaddr->sa_family == AF_INET6) {
@@ -502,8 +522,9 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
           tt = time(0);
           logErLog(ErLogFileName, &tt, "notice", "[%s] redirected to remote server [[%s]:%s]",
                   nodename, onenodename, port);
-          logAcLog(AcLogFileName, &tt, nodename, lineBuf, 307, answerSize);
-          continue;
+          logAcLog(AcLogFileName, &tt, nodename, lineBuf, 307, answerSize,
+                  useragentBuf, refererBuf);
+          break;
         }
 #endif
       }
@@ -537,10 +558,11 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
       writen(sd, MsgNope2, strlen(MsgNope2));
       answerSize = strlen(MsgNope2);
       log_println(3, "access denied");
-      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 403, answerSize);
+      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 403, answerSize,
+              useragentBuf, refererBuf);
       logErLog(ErLogFileName, &tt, "error", "[client %s] Permission denied: path not allowed: %s",
               nodename, filename);
-      continue;
+      break;
     }
     sprintf(htmlfile, "%s/%s", basedir, filename+1);
     fd = open(htmlfile, 0);  /* open file for read */
@@ -550,10 +572,11 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
       writen(sd, MsgNope2, strlen(MsgNope2));
       answerSize = strlen(MsgNope2);
       log_println(3, " not found");
-      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 404, answerSize);
+      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 404, answerSize,
+              useragentBuf, refererBuf);
       logErLog(ErLogFileName, &tt, "error", "[client %s] File does not exist: %s",
               nodename, filename);
-      continue;
+      break;
     }
     if (ok == 1) {
         log_println(3, "sent to client");
@@ -589,8 +612,10 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
       writen(sd, buff, n);
       answerSize += n;
     }
-    logAcLog(AcLogFileName, &tt, nodename, lineBuf, 200, answerSize);
+    logAcLog(AcLogFileName, &tt, nodename, lineBuf, 200, answerSize,
+            useragentBuf, refererBuf);
     close(fd);
+    break;
   }
   close(sd);
 }
@@ -627,13 +652,13 @@ logErLog(char* LogFileName, time_t* tt, char* severity, char* format, ...)
 }
 
 void
-logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int size)
+logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int size, char* agent, char* referer)
 {
     FILE *fp;
     if (LogFileName != NULL) {
         fp = fopen(LogFileName, "a");
         if (fp != NULL) {
-            fprintf(fp, "%s - - [%s] \"%s\" %d %d\n", host, getTime(tt, ac_time_format), line, res, size);
+            fprintf(fp, "%s - - [%s] \"%s\" %d %d \"%s\" \"%s\"\n", host, getTime(tt, ac_time_format), line, res, size, agent, referer);
             fclose(fp);
         }
     }
