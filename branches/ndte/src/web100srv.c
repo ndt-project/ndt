@@ -1085,7 +1085,7 @@ main(int argc, char** argv)
     log_println(1, "\tAdmin file = %s", AdminFileName);
   }
   if (usesyslog) {
-    log_println(1, "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
+    log_println(1, "\tSyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
   }
   log_println(1, "\tDebug level set to %d", debug);
 
@@ -1142,7 +1142,7 @@ main(int argc, char** argv)
     fclose(fp);
   }
   if (usesyslog == 1)
-    syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started\n",
+    syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started",
         VERSION);
   /*
    * Wait at accept() for a new connection from a client process.

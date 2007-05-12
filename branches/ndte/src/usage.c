@@ -50,7 +50,7 @@ srv_long_usage(char* info)
   printf("  -o, --old              - use old Duplex Mismatch heuristic\n");
   printf("  -q, --disable-queue    - disable FIFO queuing of client requests\n");
   printf("  -r, --record           - record client to server Web100 variables\n");
-  printf("  -s, --syslog           - export Web100 data via the syslog() LOG_LOCAL0 facility\n");
+  printf("  -s, --syslog           - use the syslog() to log some information\n");
   printf("  -t, --tcpdump          - write tcpdump formatted file to disk\n");
   printf("  -x, --experimental     - enable any experimental code\n");
   printf("  -v, --version          - print version number\n\n");
@@ -131,15 +131,18 @@ www_long_usage(char* info)
   printf("  -d, --debug            - increment debugging mode\n");
   printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -h, --help             - print this help message\n");
-  printf("  -l, --alog alog_FN     - specify the access log filename\n");
-  printf("  -e, --elog elog_FN     - specify the error log filename\n");
-  printf("  -p, --port #port       - specify the port number (default is 7123)\n");
-  printf("  -t, --ttl #amount      - specify maximum number of hops in path (default is 10)\n");
   printf("  -F, --federated        - operate in Federated mode\n");
   printf("  -f, --file FN          - add the file to the allowed list\n");
-  printf("  -b, --basedir path     - set the basedir for the documents\n");
+  printf("  -s, --syslog           - use the syslog() to log some information\n");
   printf("  -v, --version          - print version number\n\n");
   printf(" Configuration:\n\n");
+  printf("  -l, --alog alog_FN     - specify the access log filename\n");
+  printf("  -e, --elog elog_FN     - specify the error log filename\n");
+  printf("  -b, --basedir path     - set the basedir for the documents\n");
+  printf("  -S, --logfacility #F   - specify syslog facility name\n");
+  printf("                           Note: this doesn't enable 'syslog'\n");
+  printf("  -p, --port #port       - specify the port number (default is 7123)\n");
+  printf("  -t, --ttl #amount      - specify maximum number of hops in path (default is 10)\n");
   printf("  --dflttree fn          - specify alternate 'Default.tree' file\n");
 #ifdef AF_INET6
   printf("  --dflttree6 fn         - specify alternate 'Default.tree6' file\n\n");

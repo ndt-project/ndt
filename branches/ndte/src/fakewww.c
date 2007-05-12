@@ -24,6 +24,8 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#define SYSLOG_NAMES
+#include  <syslog.h>
 
 #include "../config.h"
 #include "usage.h"
@@ -33,9 +35,12 @@
 #include "logging.h"
 #include "web100-admin.h"
 
-#define PORT           "7123"
-#define AC_TIME_FORMAT    "%d/%b/%Y:%H:%M:%S %z"
-#define ER_TIME_FORMAT    "%a %b %d %H:%M:%S %Y"
+#define PORT            "7123"
+#define AC_TIME_FORMAT  "%d/%b/%Y:%H:%M:%S %z"
+#define ER_TIME_FORMAT  "%a %b %d %H:%M:%S %Y"
+#define ACLOGFILE       "access_log"
+#define ERLOGFILE       "error_log"
+#define LOG_FACILITY    LOG_LOCAL0
 
 char* ac_time_format = AC_TIME_FORMAT;
 char* er_time_format = ER_TIME_FORMAT;
@@ -78,6 +83,11 @@ char* DefaultTree6 = NULL;
 static char dt6fn[256];
 #endif
 
+int usesyslog=0;
+char *SysLogFacility=NULL;
+int syslogfacility = LOG_FACILITY;
+char *ProcessName={"fakewww"};
+
 static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
@@ -88,6 +98,8 @@ static struct option long_options[] = {
   {"federated", 0, 0, 'F'},
   {"file", 1, 0, 'f'},
   {"basedir", 1, 0, 'b'},
+  {"syslog", 0, 0, 's'},
+  {"logfacility", 1, 0, 'S'},
   {"version", 0, 0, 'v'},
   {"dflttree", 1, 0, 301},
 #ifdef AF_INET6
@@ -124,7 +136,8 @@ main(int argc, char** argv)
   char* listenport = PORT;
   int conn_options = 0;
 
-  char *ErLogFileName=NULL, *AcLogFileName=NULL;
+  char *ErLogFileName= BASEDIR"/"ERLOGFILE;
+  char *AcLogFileName= BASEDIR"/"ACLOGFILE;
   struct sockaddr_storage cli_addr;
   I2Addr listenaddr = NULL;
   Allowed* ptr;
@@ -136,7 +149,7 @@ main(int argc, char** argv)
 #endif
   
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:v"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:sS:v"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -178,6 +191,12 @@ main(int argc, char** argv)
       case 'b':
         basedir = optarg;
         break;
+      case 's':
+        usesyslog = 1;
+        break;
+      case 'S':
+        SysLogFacility = optarg;
+        break;
       case 301:
         DefaultTree = optarg;
         break;
@@ -197,6 +216,22 @@ main(int argc, char** argv)
   }
 
   log_init(argv[0], debug);
+
+  if (SysLogFacility != NULL) {
+    int i = 0;
+    while (facilitynames[i].c_name) {
+      if (strcmp(facilitynames[i].c_name, SysLogFacility) == 0) {
+        syslogfacility = facilitynames[i].c_val;
+        break;
+      }
+      ++i;
+    }
+    if (facilitynames[i].c_name == NULL) {
+      log_println(0, "Warning: Unknown syslog facility [%s] --> using default (%d)",
+          SysLogFacility, syslogfacility);
+      SysLogFacility = NULL;
+    }
+  }
 
   if (DefaultTree == NULL) {
     sprintf(dtfn, "%s/%s", BASEDIR, DFLT_TREE);
@@ -222,10 +257,30 @@ main(int argc, char** argv)
   sockfd = I2AddrFD(listenaddr);
 
   tt = time(0);
-  log_println(1, "%15.15s server started, listening on port %d%s", ctime(&tt)+4, I2AddrPort(listenaddr),
-      (federated == 1) ? ", operating in Federated mode" : "");
-  logErLog(ErLogFileName, &tt, "notice", "server started, listening on port %d%s", I2AddrPort(listenaddr),
-      (federated == 1) ? ", operating in Federated mode" : "");
+  log_println(1, "%15.15s fakewww server started (NDT version %s)", ctime(&tt)+4, VERSION);
+  log_println(1, "\tport = %d", I2AddrPort(listenaddr));
+  log_println(1, "\tfederated mode = %s", (federated == 1) ? "on" : "off");
+  log_println(1, "\taccess log = %s\n\terror log = %s", AcLogFileName, ErLogFileName);
+  log_println(1, "\tbasedir = %s", basedir);
+  if (usesyslog) {
+    log_println(1, "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
+  }
+  log_println(1, "\tdebug level set to %d", debug);
+
+  logErLog(ErLogFileName, &tt, "notice", "fakewww server started (NDT version %s)", VERSION);
+  logErLog(ErLogFileName, &tt, "notice", "\tport = %d", I2AddrPort(listenaddr));
+  logErLog(ErLogFileName, &tt, "notice", "\tfederated mode = %s", (federated == 1) ? "on" : "off");
+  logErLog(ErLogFileName, &tt, "notice", "\taccess log = %s", AcLogFileName);
+  logErLog(ErLogFileName, &tt, "notice", "\terror log = %s", ErLogFileName);
+  logErLog(ErLogFileName, &tt, "notice", "\tbasedir = %s", basedir);
+  if (usesyslog) {
+    logErLog(ErLogFileName, &tt, "notice", "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
+  }
+  logErLog(ErLogFileName, &tt, "notice", "\tdebug level set to %d", debug);
+
+  if (usesyslog == 1)
+      syslog(LOG_FACILITY|LOG_INFO, "Fakewww (ver %s) process started",
+              VERSION);
   signal(SIGCHLD, (__sighandler_t)reap);    /* get rid of zombies */
 
   /*
@@ -562,6 +617,9 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
               useragentBuf, refererBuf);
       logErLog(ErLogFileName, &tt, "error", "[client %s] Permission denied: path not allowed: %s",
               nodename, filename);
+      if (usesyslog == 1)
+          syslog(LOG_FACILITY|LOG_WARNING, "[client %s] Permission denied: path not allowed: %s",
+                  nodename, filename);
       break;
     }
     sprintf(htmlfile, "%s/%s", basedir, filename+1);
@@ -576,6 +634,9 @@ dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName,
               useragentBuf, refererBuf);
       logErLog(ErLogFileName, &tt, "error", "[client %s] File does not exist: %s",
               nodename, filename);
+      if (usesyslog == 1)
+          syslog(LOG_FACILITY|LOG_WARNING, "[client %s] File does not exist: %s",
+                  nodename, filename);
       break;
     }
     if (ok == 1) {
@@ -662,5 +723,4 @@ logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int siz
             fclose(fp);
         }
     }
-
 }
