@@ -7,10 +7,14 @@
  *  Richard Carlson <RACarlson@anl.gov>
  */
 
+#include "../config.h"
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#ifdef HAVE_LIBPCAP
 #include <pcap.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,10 +26,11 @@
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#endif
 
 #include "web100srv.h"
-#include "../config.h"
 #include "usage.h"
 #include "logging.h"
 #include "utils.h"
@@ -34,7 +39,9 @@ struct spdpair fwd, rev;
 int start, finish, fini;
 extern int errno;
 
+#ifdef HAVE_LIBPCAP
 static pcap_t *pd;
+#endif
 extern int optind;
 extern int opterr;
 extern char *optarg;
@@ -295,11 +302,14 @@ cleanup(int signo)
     return;
   }
 
+#ifdef HAVE_LIBPCAP
   pcap_close(pd);
+#endif
   exit(0);
 }
 
 
+#ifdef HAVE_LIBPCAP
 /* This routine does the main work.  It steps through the input file
  * and calculates the link speed between each packet pair.  It then
  * increments the proper link bin.
@@ -470,16 +480,19 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
   }
 #endif
 }
+#endif
 
 int
 main(int argc, char **argv)
 {
 
   char *read_file, *cmdbuf, *device;
+#ifdef HAVE_LIBPCAP
   pcap_handler printer;
   u_char * pcap_userdata = NULL;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
+#endif
   int cnt, pflag = 0, debug = 0, c;
   struct sigaction new;
 
@@ -501,10 +514,18 @@ main(int argc, char **argv)
         device = optarg;
         break;
       case 'h':
+#ifdef HAVE_LIBPCAP
         vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace)");
+#else
+        vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace) [missing pcap library]");
+#endif
         break;
       case 'v':
+#ifdef HAVE_LIBPCAP
         printf("ANL/Internet2 NDT version %s (viewtrace)\n", VERSION);
+#else
+        printf("ANL/Internet2 NDT version %s (viewtrace) [missing pcap library]\n", VERSION);
+#endif
         exit(0);
         break;
       case 303:
@@ -533,6 +554,7 @@ main(int argc, char **argv)
 
   log_init(argv[0], debug);
 
+#ifdef HAVE_LIBPCAP
   init_vars(&fwd);
   init_vars(&rev);
 
@@ -587,5 +609,8 @@ main(int argc, char **argv)
     vt_print_bins(&rev);
   }
   pcap_close(pd);
+#else
+  log_println(0, "\n!!! In order to use viewtrace utility you have to compile it with the pcap library !!!\n");
+#endif
   return 0;
 }

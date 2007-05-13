@@ -1,3 +1,5 @@
+#include "../config.h"
+
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
@@ -6,7 +8,6 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "../config.h"
 #include "network.h"
 #include "usage.h"
 #include "logging.h"

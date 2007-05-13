@@ -8,6 +8,8 @@
  * to run a web server
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -27,7 +29,6 @@
 #define SYSLOG_NAMES
 #include  <syslog.h>
 
-#include "../config.h"
 #include "usage.h"
 #include "troute.h"
 #include "tr-tree.h"

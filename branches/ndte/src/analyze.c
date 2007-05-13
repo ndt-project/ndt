@@ -11,8 +11,11 @@
  * may need a better (hash) random (uncompressable) data stream
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -27,7 +30,6 @@
 #include <sys/select.h>
 #include <math.h>
 
-#include "../config.h"
 #include "usage.h"
 #include "logging.h"
 

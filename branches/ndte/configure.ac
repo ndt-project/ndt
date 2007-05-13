@@ -118,14 +118,27 @@ AC_CHECK_LIB([web100], [web100_snap],
                INCLUDED_WEB100LIB=""
                ])
 
-NDTINCDIR='$(INCLUDED_WEB100LIB) -I/usr/include/pcap'
+AC_CHECK_LIB([pcap], [pcap_open_live],
+             [
+              LINKED_PCAPLIB="-lpcap"
+              INCLUDED_PCAPLIB="-I/usr/include/pcap"
+              AC_DEFINE(HAVE_LIBPCAP, 1, [Define to 1 if you have the 'pcap' library (-lpcap).])
+              ],
+              [
+               LINKED_PCAPLIB=""
+               INCLUDED_PCAPLIB=""
+               ])
+
+NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) -lpcap -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
 AC_SUBST(LINKED_WEB100LIB)
 AC_SUBST(INCLUDED_WEB100LIB)
+AC_SUBST(LINKED_PCAPLIB)
+AC_SUBST(INCLUDED_PCAPLIB)
 AC_SUBST(NDTINCS)
 AC_SUBST(NDTLDFLAGS)
 AC_SUBST(NDTLIBS)
@@ -161,7 +174,7 @@ AM_PROG_GCJ
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h net/ethernet.h netinet/ip6.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

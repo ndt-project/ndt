@@ -697,6 +697,8 @@ am__fastdepCC_TRUE
 am__fastdepCC_FALSE
 LINKED_WEB100LIB
 INCLUDED_WEB100LIB
+LINKED_PCAPLIB
+INCLUDED_PCAPLIB
 NDTINCS
 NDTLDFLAGS
 NDTLIBS
@@ -3480,11 +3482,92 @@ else
 fi
 
 
-NDTINCDIR='$(INCLUDED_WEB100LIB) -I/usr/include/pcap'
+{ echo "$as_me:$LINENO: checking for pcap_open_live in -lpcap" >&5
+echo $ECHO_N "checking for pcap_open_live in -lpcap... $ECHO_C" >&6; }
+if test "${ac_cv_lib_pcap_pcap_open_live+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lpcap  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pcap_open_live ();
+int
+main ()
+{
+return pcap_open_live ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_pcap_pcap_open_live=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_pcap_pcap_open_live=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_pcap_pcap_open_live" >&5
+echo "${ECHO_T}$ac_cv_lib_pcap_pcap_open_live" >&6; }
+if test $ac_cv_lib_pcap_pcap_open_live = yes; then
+
+              LINKED_PCAPLIB="-lpcap"
+              INCLUDED_PCAPLIB="-I/usr/include/pcap"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LIBPCAP 1
+_ACEOF
+
+
+else
+
+               LINKED_PCAPLIB=""
+               INCLUDED_PCAPLIB=""
+
+fi
+
+
+NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) -lpcap -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
+
+
 
 
 
@@ -5179,7 +5262,9 @@ done
 
 
 
-for ac_header in arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h
+
+
+for ac_header in arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h net/ethernet.h netinet/ip6.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
@@ -7578,6 +7663,8 @@ am__fastdepCC_TRUE!$am__fastdepCC_TRUE$ac_delim
 am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
 LINKED_WEB100LIB!$LINKED_WEB100LIB$ac_delim
 INCLUDED_WEB100LIB!$INCLUDED_WEB100LIB$ac_delim
+LINKED_PCAPLIB!$LINKED_PCAPLIB$ac_delim
+INCLUDED_PCAPLIB!$INCLUDED_PCAPLIB$ac_delim
 NDTINCS!$NDTINCS$ac_delim
 NDTLDFLAGS!$NDTLDFLAGS$ac_delim
 NDTLIBS!$NDTLIBS$ac_delim
@@ -7591,8 +7678,6 @@ NDTJARFLAG!$NDTJARFLAG$ac_delim
 GCJFLAGS!$GCJFLAGS$ac_delim
 GCJDEPMODE!$GCJDEPMODE$ac_delim
 am__fastdepGCJ_TRUE!$am__fastdepGCJ_TRUE$ac_delim
-am__fastdepGCJ_FALSE!$am__fastdepGCJ_FALSE$ac_delim
-CPP!$CPP$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7634,6 +7719,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+am__fastdepGCJ_FALSE!$am__fastdepGCJ_FALSE$ac_delim
+CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
@@ -7641,7 +7728,7 @@ ac_aux_dir!$ac_aux_dir$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 5; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 7; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

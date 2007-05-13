@@ -23,6 +23,8 @@
  * IPv6 port by Jakub S³awiñski <jeremian@poczta.fm>
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -35,7 +37,6 @@
 #include <netdb.h>
 #include <getopt.h>
 
-#include "../config.h"
 #include "tr-tree.h"
 #include "usage.h"
 #include "logging.h"

@@ -5,12 +5,12 @@
  * jeremian@poczta.fm
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <assert.h>
-
-#include "../config.h"
 
 /*
  * Function name: short_usage

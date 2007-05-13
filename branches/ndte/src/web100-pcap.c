@@ -8,11 +8,12 @@
  * rcarlson@internet2.edu
  */
 
+#include "../config.h"
+
 #include <assert.h>
 
 /* local include file contains needed structures */
 #include "web100srv.h"
-#include "../config.h"
 #include "network.h"
 #include "logging.h"
 

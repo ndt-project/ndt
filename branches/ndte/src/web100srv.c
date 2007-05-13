@@ -60,6 +60,8 @@ The Software was developed at least in part by the University of Chicago,
 as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
  */
 
+#include "../config.h"
+
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
@@ -67,7 +69,6 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include  <syslog.h>
 
 #include "web100srv.h"
-#include "../config.h"
 #include "network.h"
 #include "usage.h"
 #include "utils.h"
