@@ -107,16 +107,25 @@ AC_SUBST(I2UTILLIBDEPS)
 AC_SUBST(I2UTILLIBMAKE)
 AC_SUBST(I2UTILINCS)
 
-#
-# set local vars
-#
+AC_CHECK_LIB([web100], [web100_snap],
+             [
+              LINKED_WEB100LIB="-lweb100"
+              INCLUDED_WEB100LIB="-I/usr/local/include/web100"
+              AC_DEFINE(HAVE_LIBWEB100, 1, [Define to 1 if you have the 'Web100' library (-lweb100).])
+              ],
+              [
+               LINKED_WEB100LIB=""
+               INCLUDED_WEB100LIB=""
+               ])
 
-NDTINCDIR='-I/usr/local/include/web100 -I/usr/include/pcap'
+NDTINCDIR='$(INCLUDED_WEB100LIB) -I/usr/include/pcap'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='-lweb100 -lpcap -lm'
+NDTLIBS='$(LINKED_WEB100LIB) -lpcap -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
+AC_SUBST(LINKED_WEB100LIB)
+AC_SUBST(INCLUDED_WEB100LIB)
 AC_SUBST(NDTINCS)
 AC_SUBST(NDTLDFLAGS)
 AC_SUBST(NDTLIBS)

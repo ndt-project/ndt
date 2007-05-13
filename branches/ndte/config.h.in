@@ -27,6 +27,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the 'Web100' library (-lweb100). */
+#undef HAVE_LIBWEB100
+
 /* Define to 1 if you have the <linux/sockios.h> header file. */
 #undef HAVE_LINUX_SOCKIOS_H
 
