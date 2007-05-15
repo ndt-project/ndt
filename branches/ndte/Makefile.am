@@ -15,7 +15,12 @@
 #
 #	Description:	toplevel build for bwctl
 #
+
+if HAVE_GCJ
 SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
+else
+SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
+endif
 
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template copyright.html web100variables.html \

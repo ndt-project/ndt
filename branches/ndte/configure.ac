@@ -112,10 +112,12 @@ AC_CHECK_LIB([web100], [web100_snap],
               LINKED_WEB100LIB="-lweb100"
               INCLUDED_WEB100LIB="-I/usr/local/include/web100"
               AC_DEFINE(HAVE_LIBWEB100, 1, [Define to 1 if you have the 'Web100' library (-lweb100).])
+              AM_CONDITIONAL(HAVE_WEB100, true)
               ],
               [
                LINKED_WEB100LIB=""
                INCLUDED_WEB100LIB=""
+               AM_CONDITIONAL(HAVE_WEB100, false)
                ])
 
 AC_CHECK_LIB([pcap], [pcap_open_live],
@@ -151,12 +153,9 @@ AC_SUBST(TOP_BUILD_DIRS)
 # Java config files
 #
 GCJ=javac
-# NDTGCJFLAGS="-source 1.3"
-# GCJFLAGS="-source 1.3"
 NDTGCJFLAGS="-source 1.4"
 GCJFLAGS="-source 1.4"
 
-AC_SUBST(GCJ)
 AC_SUBST(NDTGCJFLAGS)
 
 NDTJAR=jar
@@ -168,13 +167,15 @@ AC_SUBST(NDTJARFLAG)
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_GCJ
+AC_CHECK_PROGS(SGCJ, javac)
+AM_CONDITIONAL(HAVE_GCJ, test -n "$SGCJ")
 
 # Checks for libraries.
 
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h net/ethernet.h netinet/ip6.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h net/ethernet.h netinet/ip6.h linux/icmpv6.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

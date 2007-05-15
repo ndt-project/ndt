@@ -112,6 +112,10 @@ GCJ = @GCJ@
 GCJDEPMODE = @GCJDEPMODE@
 GCJFLAGS = @GCJFLAGS@
 GREP = @GREP@
+HAVE_GCJ_FALSE = @HAVE_GCJ_FALSE@
+HAVE_GCJ_TRUE = @HAVE_GCJ_TRUE@
+HAVE_WEB100_FALSE = @HAVE_WEB100_FALSE@
+HAVE_WEB100_TRUE = @HAVE_WEB100_TRUE@
 I2UTILINCS = @I2UTILINCS@
 I2UTILLDFLAGS = @I2UTILLDFLAGS@
 I2UTILLIBDEPS = @I2UTILLIBDEPS@
@@ -147,6 +151,7 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 SET_MAKE = @SET_MAKE@
+SGCJ = @SGCJ@
 SHELL = @SHELL@
 STRIP = @STRIP@
 TOP_BUILD_DIRS = @TOP_BUILD_DIRS@
@@ -190,9 +195,6 @@ sharedstatedir = @sharedstatedir@
 subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-
-# JAVAROOT = /home/rcarlson/jdk1.4.2
-# JAVAC = $(JAVAROOT)bin/javac
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV = 
 ndtdir = $(prefix)/ndt
@@ -462,9 +464,6 @@ uninstall-am: uninstall-AdminJAVA uninstall-info-am uninstall-ndtDATA
 	ps ps-am tags uninstall uninstall-AdminJAVA uninstall-am \
 	uninstall-info-am uninstall-ndtDATA
 
-
-#am_Admin_OBJECTS = Admin.java
-#Admin_LDADD = 
 
 Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	@rm -f Admin$(EXEEXT)

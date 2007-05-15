@@ -282,7 +282,7 @@ main(int argc, char** argv)
   if (usesyslog == 1)
       syslog(LOG_FACILITY|LOG_INFO, "Fakewww (ver %s) process started",
               VERSION);
-  signal(SIGCHLD, (__sighandler_t)reap);    /* get rid of zombies */
+  signal(SIGCHLD, reap);    /* get rid of zombies */
 
   /*
    * Wait for a connection from a client process.
@@ -311,7 +311,7 @@ main(int argc, char** argv)
 
 #include        <sys/wait.h>
 void
-reap()
+reap(int signo)
 {
   /*
    * avoid zombies, since we run forever

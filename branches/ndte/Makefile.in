@@ -14,6 +14,24 @@
 
 @SET_MAKE@
 
+#########################################################################
+#									#
+#			   Copyright (C)  2002				#
+#	     			Internet2				#
+#			   All Rights Reserved				#
+#									#
+#########################################################################
+#
+#	File:		Makefile.am
+#
+#	Author:		Rich Carlson
+#			Internet2
+#
+#	Date:		Fri Feb 27 13:37:24 CST 2004
+#
+#	Description:	toplevel build for bwctl
+#
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -68,7 +86,7 @@ ndtDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(ndt_DATA)
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = @TOP_BUILD_DIRS@ src conf doc Admin Applet
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -105,6 +123,10 @@ GCJ = @GCJ@
 GCJDEPMODE = @GCJDEPMODE@
 GCJFLAGS = @GCJFLAGS@
 GREP = @GREP@
+HAVE_GCJ_FALSE = @HAVE_GCJ_FALSE@
+HAVE_GCJ_TRUE = @HAVE_GCJ_TRUE@
+HAVE_WEB100_FALSE = @HAVE_WEB100_FALSE@
+HAVE_WEB100_TRUE = @HAVE_WEB100_TRUE@
 I2UTILINCS = @I2UTILINCS@
 I2UTILLDFLAGS = @I2UTILLDFLAGS@
 I2UTILLIBDEPS = @I2UTILLIBDEPS@
@@ -140,6 +162,7 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 SET_MAKE = @SET_MAKE@
+SGCJ = @SGCJ@
 SHELL = @SHELL@
 STRIP = @STRIP@
 TOP_BUILD_DIRS = @TOP_BUILD_DIRS@
@@ -183,25 +206,8 @@ sharedstatedir = @sharedstatedir@
 subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-
-#########################################################################
-#									#
-#			   Copyright (C)  2002				#
-#	     			Internet2				#
-#			   All Rights Reserved				#
-#									#
-#########################################################################
-#
-#	File:		Makefile.am
-#
-#	Author:		Rich Carlson
-#			Internet2
-#
-#	Date:		Fri Feb 27 13:37:24 CST 2004
-#
-#	Description:	toplevel build for bwctl
-#
-SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
+@HAVE_GCJ_FALSE@SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
+@HAVE_GCJ_TRUE@SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template copyright.html web100variables.html \
 	web100_variables COPYRIGHT \
