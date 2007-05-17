@@ -7,7 +7,10 @@ The web100 variables are shipped to this process for analysis
 on the desktop. 
 
 2) the fakewww.c program.  This process runs on the server and
-listens for new connections from user desktop's.  
+listens for new connections from user desktop's. It writes some
+messages to the access log (default location:
+/usr/local/ndt/access_log) and error log (default location:
+/usr/local/ndt/error_log).
 
 3) the web100srv.c program.  This process communicates with the
 Java applet, runs the throughput tests, and gathers the web100
@@ -20,6 +23,85 @@ the user to pre-install a version of the client code.  This allows
 non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 10/17/06
+
+
+2007-05-17 12:30  jslawins
+
+	* configure, configure.ac: Increased the NDT version to 3.3.20.
+
+2007-05-15 18:10  jslawins
+
+	* Admin/Makefile.am, Admin/Makefile.in, Applet/Makefile.am,
+	  Applet/Makefile.in, Makefile.am, Makefile.in, conf/Makefile.in,
+	  config.h.in, configure, configure.ac, doc/Makefile.in,
+	  src/Makefile.am, src/Makefile.in, src/fakewww.c: Added
+	  conditional compilation of the java code (depends on the
+	  existence of the javac compiler) and other applications (depend
+	  on the availability of the Web100 library).
+
+2007-05-13 20:52  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in,
+	  conf/Makefile.in, config.h.in, configure, configure.ac,
+	  doc/Makefile.in, src/Makefile.in, src/analyze.c, src/fakewww.c,
+	  src/tr-mkmap.c, src/usage.c, src/viewtrace.c, src/web100-pcap.c,
+	  src/web100clt.c, src/web100srv.c, src/web100srv.h: Added
+	  checking for the pcap library.
+	  Added some conditional macros to allow building NDT under
+	  some non-GNU/Linux environments [not completed].
+
+2007-05-13 16:11  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in, aclocal.m4,
+	  conf/Makefile.in, config.h.in, configure, configure.ac,
+	  doc/Makefile.in, src/Makefile.in: Added checking for the web100
+	  library to the configure file.
+
+2007-05-12 08:24  jslawins
+
+	* src/fakewww.c, src/usage.c, src/web100srv.c: Added the support
+	  for the syslog to the fakewww.
+	  Enabled the access log and error log by default.
+	  Modified the usage/start screens of the fakewww.
+
+2007-05-10 19:04  jslawins
+
+	* src/fakewww.c: Changed Common Log Format to the Combined Log
+	  format.
+
+2007-05-05 19:27  jslawins
+
+	* src/fakewww.c, src/network.c, src/usage.c, src/web100-util.c:
+	  Added the error log and the access log (in the Common Log
+	  Format)
+	  to the fakewww.
+	  Removed the unwanted files from the repository.
+	  Fixed several warnings.
+
+2007-05-05 11:29  jslawins
+
+	* src/tr-mkmap.c, src/usage.c: Changed the default operation mode
+	  of the tr-mkmap from building to printing.
+
+2007-05-05 11:13  jslawins
+
+	* src/fakewww.c: Added 'HTTP/1.0 307 Temporary Redirect' response.
+
+2006-12-13 23:18  racarlson
+
+	* Applet/Tcpbw100.java, INSTALL, configure, configure.ac,
+	  src/fakewww.c, src/network.c, src/network.h, src/testoptions.c,
+	  src/web100-admin.c, src/web100-util.c, src/web100clt.c,
+	  src/web100srv.c, src/web100srv.h: merging Jakub's changes with
+	  mine.
+	  Updated src files to find/kill stuck processes
+	  
+	  Rich
+
+2006-11-14 19:41  jslawins
+
+	* src/web100-pcap.c, src/web100-util.c: Fixed the bugs in the
+	  logging functions.
 
 2006-10-17 19:30  jslawins
 
