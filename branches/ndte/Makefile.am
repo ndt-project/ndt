@@ -25,7 +25,8 @@ endif
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template copyright.html web100variables.html \
 	web100_variables COPYRIGHT \
-	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv
+	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv \
+	contrib/Tcpbw1001.java
 
 ndtdir = $(prefix)/ndt
 ndt_DATA = admin_description.html admin.html \
