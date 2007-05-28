@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <pthread.h>
 
 #include "testoptions.h"
 #include "network.h"
@@ -18,6 +19,15 @@
 
 int mon_pipe1[2], mon_pipe2[2];
 static int currentTest = TEST_NONE;
+
+typedef struct snapArgs {
+  web100_snapshot* snap;
+  web100_log* log;
+} SnapArgs;
+
+int workerLoop = 1;
+pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
 
 /*
  * Function name: catch_s2c_alrm
@@ -33,6 +43,35 @@ catch_s2c_alrm(int signo)
     return;
   }
   log_println(0, "Unknown (%d) signal was caught", signo);
+}
+
+/*
+ * Function name: snapWorker
+ * Description: Writes the snap logs with fixed time intervals in separate
+ *              thread.
+ * Arguments: arg - pointer to the snapshot structure
+ * Returns: NULL
+ */
+
+void*
+snapWorker(void* arg)
+{
+    SnapArgs *snapArgs = (SnapArgs*) arg;
+
+    while (1) {
+        pthread_mutex_lock(&mainmutex);
+        if (!workerLoop) {
+            pthread_mutex_unlock(&mainmutex);
+            break;
+        }
+        web100_log_write(snapArgs->log, snapArgs->snap);
+        pthread_mutex_unlock(&mainmutex);
+        mysleep(0.01);
+    }
+
+    pthread_cond_broadcast(&maincond);
+
+    return NULL;
 }
 
 /*
@@ -528,11 +567,13 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   web100_group* rgroup;
   web100_connection* conn;
   web100_connection* xconn;
-  web100_snapshot* snap = NULL;
-  web100_log* log = NULL;
   web100_var* var;
+  pthread_t workerThreadId;
   int SndMax=0, SndUna=0;
   int c1=0, c2=0;
+  SnapArgs snapArgs;
+  snapArgs.snap = NULL;
+  snapArgs.log = NULL;
   
   if (options->s2copt) {
     setCurrentTest(TEST_S2C);
@@ -666,9 +707,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         sprintf(logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
         conn = web100_connection_from_socket(agent, xmitsfd);
         group = web100_group_find(agent, "read");
-        snap = web100_snapshot_alloc(group, conn);
+        snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (experimental > 1)
-          log = web100_log_open_write(logname, conn, group);
+          snapArgs.log = web100_log_open_write(logname, conn, group);
       }
 
       /* Kludge way of nuking Linux route cache.  This should be done
@@ -701,18 +742,26 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       t = secs();
       s = t + 10.0;
 
+      if (experimental > 1) {
+          web100_snap(snapArgs.snap);
+          if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &snapArgs)) {
+              log_println(0, "Cannot create worker thread for writing snap log!");
+              workerThreadId = 0;
+          }
+      }
+
       while(secs() < s) { 
         c3++;
         if (experimental > 0) {
-          web100_snap(snap);
-          if (experimental > 1)
-            web100_log_write(log, snap);
-          web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-          web100_snap_read(var, snap, tmpstr);
-          SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-          web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-          web100_snap_read(var, snap, tmpstr);
-          SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            pthread_mutex_lock(&mainmutex);
+            web100_snap(snapArgs.snap);
+            web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
+            web100_snap_read(var, snapArgs.snap, tmpstr);
+            SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+            web100_snap_read(var, snapArgs.snap, tmpstr);
+            SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            pthread_mutex_unlock(&mainmutex);
         }
         if (experimental > 0) {
           if ((RECLTH<<2) < (SndMax - SndUna - 1)) {
@@ -742,9 +791,16 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       if (experimental > 0) {
-        web100_snapshot_free(snap);
-        if (experimental > 1)
-          web100_log_close_write(log);
+        web100_snapshot_free(snapArgs.snap);
+        if (experimental > 1) {
+            if (workerThreadId) {
+                pthread_mutex_lock(&mainmutex);
+                workerLoop = 0;
+                pthread_cond_wait(&maincond, &mainmutex);
+                pthread_mutex_unlock(&mainmutex);
+            }
+            web100_log_close_write(snapArgs.log);
+        }
       }
 
       web100_snap(rsnap);

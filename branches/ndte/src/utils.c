@@ -34,22 +34,22 @@
 int
 check_int(char* text, int* number)
 {
-  char* znak;
-  long tmp;
+    char* znak;
+    long tmp;
 
-  assert(text != NULL);
-  assert(number != NULL);
-  
-  if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
-    return 1;
-  }
-  if ((*text != '\0') && (*znak == '\0')) {
-    *number = tmp;
-    return 0;
-  }
-  else {
-    return 2;
-  }
+    assert(text != NULL);
+    assert(number != NULL);
+
+    if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
+        return 1;
+    }
+    if ((*text != '\0') && (*znak == '\0')) {
+        *number = tmp;
+        return 0;
+    }
+    else {
+        return 2;
+    }
 }
 
 /*
@@ -68,17 +68,17 @@ check_int(char* text, int* number)
 int
 check_rint(char* text, int* number, int minVal, int maxVal)
 {
-  int ret;
+    int ret;
 
-  assert(maxVal >= minVal);
-  
-  if ((ret = check_int(text, number))) {
-    return ret;
-  }
-  if ((*number < minVal) || (*number > maxVal)) {
-    return 1;
-  }
-  return 0;
+    assert(maxVal >= minVal);
+
+    if ((ret = check_int(text, number))) {
+        return ret;
+    }
+    if ((*number < minVal) || (*number > maxVal)) {
+        return 1;
+    }
+    return 0;
 }
 
 /*
@@ -94,20 +94,20 @@ check_rint(char* text, int* number, int minVal, int maxVal)
 int
 check_long(char* text, long* number)
 {
-  char* tmp;
-  
-  assert(text != NULL);
-  assert(number != NULL);
-  
-  if (((*number = strtol(text, &tmp, 10)) == LONG_MAX) || (*number == LONG_MIN)) {
-    return 1;
-  }
-  if ((*text != '\0') && (*tmp == '\0')) {
-    return 0;
-  }
-  else {
-    return 2;
-  }
+    char* tmp;
+
+    assert(text != NULL);
+    assert(number != NULL);
+
+    if (((*number = strtol(text, &tmp, 10)) == LONG_MAX) || (*number == LONG_MIN)) {
+        return 1;
+    }
+    if ((*text != '\0') && (*tmp == '\0')) {
+        return 0;
+    }
+    else {
+        return 2;
+    }
 }
 
 /*
@@ -119,9 +119,9 @@ check_long(char* text, long* number)
 double
 secs()
 {
-  struct timeval ru;
-  gettimeofday(&ru, (struct timezone *)0);
-  return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
+    struct timeval ru;
+    gettimeofday(&ru, (struct timezone *)0);
+    return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
 }
 
 /*
@@ -133,8 +133,8 @@ secs()
 void
 err_sys(char* s)
 {
-  perror(s);
-  exit(1);
+    perror(s);
+    exit(1);
 }
 
 /*
@@ -149,13 +149,28 @@ int
 sndq_len(int fd)
 {
 #ifdef SIOCOUTQ
-  int length = -1;
+    int length = -1;
 
-  if (ioctl(fd, SIOCOUTQ, &length)) {
-    return -1;
-  }
-  return length;
+    if (ioctl(fd, SIOCOUTQ, &length)) {
+        return -1;
+    }
+    return length;
 #else
-  return 0;
+    return 0;
 #endif
+}
+
+/*
+ * Function name: mysleep
+ * Description: Sleeps for the given amount of seconds.
+ * Arguments: time - the amount of seconds to sleep for
+ */
+
+void
+mysleep(double time)
+{
+    struct timeval tv;
+    tv.tv_sec = (int) time;
+    tv.tv_usec = (int)(time * 1000000)%1000000;
+    select(0, NULL, NULL, NULL, &tv);
 }
