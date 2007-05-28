@@ -64,6 +64,7 @@ snapWorker(void* arg)
             pthread_mutex_unlock(&mainmutex);
             break;
         }
+        web100_snap(snapArgs->snap);
         web100_log_write(snapArgs->log, snapArgs->snap);
         pthread_mutex_unlock(&mainmutex);
         mysleep(0.01);
@@ -754,7 +755,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         c3++;
         if (experimental > 0) {
             pthread_mutex_lock(&mainmutex);
-            web100_snap(snapArgs.snap);
+            if (experimental == 1) {
+                web100_snap(snapArgs.snap);
+            }
             web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
             web100_snap_read(var, snapArgs.snap, tmpstr);
             SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
