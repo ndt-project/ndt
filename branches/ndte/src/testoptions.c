@@ -25,9 +25,9 @@ typedef struct snapArgs {
   web100_log* log;
 } SnapArgs;
 
-int workerLoop = 1;
-pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
+static int workerLoop = 0;
+static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
 
 /*
  * Function name: catch_s2c_alrm
@@ -60,6 +60,18 @@ snapWorker(void* arg)
 
     while (1) {
         pthread_mutex_lock(&mainmutex);
+        if (workerLoop) {
+            pthread_mutex_unlock(&mainmutex);
+            web100_snap(snapArgs->snap);
+            pthread_cond_broadcast(&maincond);
+            break;
+        }
+        pthread_mutex_unlock(&mainmutex);
+        mysleep(0.01);
+    }
+
+    while (1) {
+        pthread_mutex_lock(&mainmutex);
         if (!workerLoop) {
             pthread_mutex_unlock(&mainmutex);
             break;
@@ -69,8 +81,6 @@ snapWorker(void* arg)
         pthread_mutex_unlock(&mainmutex);
         mysleep(0.01);
     }
-
-    pthread_cond_broadcast(&maincond);
 
     return NULL;
 }
@@ -744,12 +754,16 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       s = t + 10.0;
 
       if (experimental > 1) {
-          web100_snap(snapArgs.snap);
           if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &snapArgs)) {
               log_println(0, "Cannot create worker thread for writing snap log!");
               workerThreadId = 0;
           }
       }
+
+      pthread_mutex_lock(&mainmutex);
+      workerLoop = 1;
+      pthread_cond_wait(&maincond, &mainmutex);
+      pthread_mutex_unlock(&mainmutex);
 
       while(secs() < s) { 
         c3++;
@@ -794,16 +808,16 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       if (experimental > 0) {
-        web100_snapshot_free(snapArgs.snap);
         if (experimental > 1) {
             if (workerThreadId) {
                 pthread_mutex_lock(&mainmutex);
                 workerLoop = 0;
-                pthread_cond_wait(&maincond, &mainmutex);
                 pthread_mutex_unlock(&mainmutex);
+                pthread_join(workerThreadId, NULL);
             }
             web100_log_close_write(snapArgs.log);
         }
+        web100_snapshot_free(snapArgs.snap);
       }
 
       web100_snap(rsnap);
