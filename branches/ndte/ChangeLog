@@ -24,6 +24,62 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 10/17/06
 
+2007-05-31 18:50  jslawins
+
+	* configure, src/testoptions.c, configure.ac, ChangeLog: Fixed the
+	  show-stopper bug in the s2c test.
+
+	  Increased the NDT version to 3.3.21.
+
+2007-05-30 14:28  racarlson
+
+	* contrib/README, contrib/loadmap.intro, contrib/loadmap.js,
+	  contrib/loadmap.txt: VT.edu mashup files and text to describe
+	  what these files do.
+	  README contains a brief description about who submitted the
+	  code, how to contact them, and what it does. This file will be
+	  update when new contrib code is added to the directory.
+	  
+	  loadmap.js is the javascript file from vt.edu. The loadmap.intro
+	  and loadmap.txt
+	  files are extracted from an email Seth Peery sent me describing
+	  how their mashup
+	  code works.
+	  
+	  Rich Carlson
+
+
+2007-05-29 20:31  jslawins
+
+	* src/testoptions.c: Better synchronization of the threads.
+
+2007-05-28 19:45  jslawins
+
+	* src/testoptions.c: Move updating of the snap to the separate
+	  thread.
+
+2007-05-28 19:32  jslawins
+
+	* src/testoptions.c, src/utils.c, src/utils.h: Modified the snap
+	  log writing to use different thread to write to file.
+
+
+2007-05-23 16:59  jslawins
+
+	* Makefile.am, Makefile.in, contrib/Tcpbw1001.java: Added the
+	  Tcpbw1001.java to the contrib directory.
+
+
+2007-05-17 20:14  jslawins
+
+	* ChangeLog, conf/ndt, doc/fakewww.man: Updated the manual page of
+	  the fakewww.
+	  Removed the '-l' option for the fakewww from the ndt startup
+	  script.
+	  Written some info about the new fakewww logs default locations to
+	  the
+	  ChangeLog.
+
 
 2007-05-17 12:30  jslawins
 

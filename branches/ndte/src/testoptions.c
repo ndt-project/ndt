@@ -758,12 +758,12 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
               log_println(0, "Cannot create worker thread for writing snap log!");
               workerThreadId = 0;
           }
-      }
 
-      pthread_mutex_lock(&mainmutex);
-      workerLoop = 1;
-      pthread_cond_wait(&maincond, &mainmutex);
-      pthread_mutex_unlock(&mainmutex);
+          pthread_mutex_lock(&mainmutex);
+          workerLoop = 1;
+          pthread_cond_wait(&maincond, &mainmutex);
+          pthread_mutex_unlock(&mainmutex);
+      }
 
       while(secs() < s) { 
         c3++;
