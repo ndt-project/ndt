@@ -24,6 +24,14 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 10/17/06
 
+2007-06-01 14:45  racarlson
+	
+	* src/testoptions.c, ChangeLog:  Removed extra calls to 
+	  web100_connection_from_socket().  Still a possible bug
+	  somewhere, but for now it returns the correct connection data.
+	  Changed thread loop timer to record a snaplog entry every 5msec.
+
+
 2007-05-31 18:50  jslawins
 
 	* configure, src/testoptions.c, configure.ac, ChangeLog: Fixed the

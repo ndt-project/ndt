@@ -79,7 +79,7 @@ snapWorker(void* arg)
         web100_snap(snapArgs->snap);
         web100_log_write(snapArgs->log, snapArgs->snap);
         pthread_mutex_unlock(&mainmutex);
-        mysleep(0.01);
+        mysleep(0.005);
     }
 
     return NULL;
@@ -431,6 +431,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       if (limit > 0) {
         log_print(0, "Setting Cwnd limit - ");
         if ((conn = web100_connection_from_socket(agent, recvsfd)) != NULL) {
+	  log_println(0, "Got web100 connection pointer for recvsfd socket\n");
           web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
           web100_raw_read(yar, conn, yuff);
           log_println(0, "MSS = %s, multiplication factor = %d",
@@ -690,6 +691,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       if (autotune > 0) 
         web100_setbuff(xmitsfd, agent, autotune);
 
+      conn = web100_connection_from_socket(agent, xmitsfd); 
+
       /* experimental code, delete when finished */
       {
         web100_var *LimCwnd, *yar;
@@ -698,13 +701,13 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
         if (limit > 0) {
           log_println(0, "Setting Cwnd Limit");
-          if ((conn = web100_connection_from_socket(agent, xmitsfd)) != NULL) {
+          /* if ((conn = web100_connection_from_socket(agent, xmitsfd)) != NULL) { */
             web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
             web100_raw_read(yar, conn, yuff);
             web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
             limcwnd_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
             web100_raw_write(LimCwnd, conn, &limcwnd_val);
-          }
+          /* } */
         }
       }
       /* End of test code */
@@ -716,7 +719,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         memset(namebuf, 0, 200);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
         sprintf(logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
-        conn = web100_connection_from_socket(agent, xmitsfd);
+        /* conn = web100_connection_from_socket(agent, xmitsfd); */
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (experimental > 1)
@@ -730,11 +733,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         /* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
         system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
-      xconn = web100_connection_from_socket(agent, xmitsfd);
+      /* xconn = web100_connection_from_socket(agent, xmitsfd); */
       rgroup = web100_group_find(agent, "read");
-      rsnap = web100_snapshot_alloc(rgroup, xconn);
+      rsnap = web100_snapshot_alloc(rgroup, conn);
       tgroup = web100_group_find(agent, "tune");
-      tsnap = web100_snapshot_alloc(tgroup, xconn);
+      tsnap = web100_snapshot_alloc(tgroup, conn);
 
       bytes = 0;
       k = 0;
