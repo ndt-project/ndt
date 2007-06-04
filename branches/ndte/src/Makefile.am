@@ -23,7 +23,7 @@ AM_CFLAGS  = $(NDTCFLAGS)
 ndtdir = $(prefix)/ndt
 
 if HAVE_WEB100
-bin_PROGRAMS = web100clt analyze viewtrace tr-mkmap
+bin_PROGRAMS = web100clt analyze viewtrace tr-mkmap genplot
 sbin_PROGRAMS = fakewww web100srv 
 else
 bin_PROGRAMS = web100clt
@@ -34,6 +34,10 @@ web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c \
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
+
+genplot_SOURCES = genplot.c
+genplot_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
+genplot_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 analyze_SOURCES = analyze.c usage.c logging.c
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)

@@ -31,7 +31,7 @@
 #
 #  Description:
 
-SOURCES = $(analyze_SOURCES) $(fakewww_SOURCES) $(tr_mkmap_SOURCES) $(viewtrace_SOURCES) $(web100clt_SOURCES) $(web100srv_SOURCES)
+SOURCES = $(analyze_SOURCES) $(fakewww_SOURCES) $(genplot_SOURCES) $(tr_mkmap_SOURCES) $(viewtrace_SOURCES) $(web100clt_SOURCES) $(web100srv_SOURCES)
 
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
@@ -55,7 +55,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 @HAVE_WEB100_FALSE@bin_PROGRAMS = web100clt$(EXEEXT)
 @HAVE_WEB100_TRUE@bin_PROGRAMS = web100clt$(EXEEXT) analyze$(EXEEXT) \
-@HAVE_WEB100_TRUE@	viewtrace$(EXEEXT) tr-mkmap$(EXEEXT)
+@HAVE_WEB100_TRUE@	viewtrace$(EXEEXT) tr-mkmap$(EXEEXT) \
+@HAVE_WEB100_TRUE@	genplot$(EXEEXT)
 @HAVE_WEB100_TRUE@sbin_PROGRAMS = fakewww$(EXEEXT) web100srv$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -82,6 +83,9 @@ am_fakewww_OBJECTS = fakewww-fakewww.$(OBJEXT) \
 	fakewww-logging.$(OBJEXT)
 fakewww_OBJECTS = $(am_fakewww_OBJECTS)
 fakewww_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_genplot_OBJECTS = genplot-genplot.$(OBJEXT)
+genplot_OBJECTS = $(am_genplot_OBJECTS)
+genplot_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am_tr_mkmap_OBJECTS = tr_mkmap-tr-mkmap.$(OBJEXT) \
 	tr_mkmap-tr-tree.$(OBJEXT) tr_mkmap-tr-tree6.$(OBJEXT) \
 	tr_mkmap-usage.$(OBJEXT) tr_mkmap-logging.$(OBJEXT)
@@ -116,11 +120,12 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(analyze_SOURCES) $(fakewww_SOURCES) $(tr_mkmap_SOURCES) \
-	$(viewtrace_SOURCES) $(web100clt_SOURCES) $(web100srv_SOURCES)
-DIST_SOURCES = $(analyze_SOURCES) $(fakewww_SOURCES) \
+SOURCES = $(analyze_SOURCES) $(fakewww_SOURCES) $(genplot_SOURCES) \
 	$(tr_mkmap_SOURCES) $(viewtrace_SOURCES) $(web100clt_SOURCES) \
 	$(web100srv_SOURCES)
+DIST_SOURCES = $(analyze_SOURCES) $(fakewww_SOURCES) \
+	$(genplot_SOURCES) $(tr_mkmap_SOURCES) $(viewtrace_SOURCES) \
+	$(web100clt_SOURCES) $(web100srv_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -236,6 +241,9 @@ web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c \
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread
 web100clt_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
+genplot_SOURCES = genplot.c
+genplot_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
+genplot_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 analyze_SOURCES = analyze.c usage.c logging.c
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 analyze_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
@@ -344,6 +352,9 @@ analyze$(EXEEXT): $(analyze_OBJECTS) $(analyze_DEPENDENCIES)
 fakewww$(EXEEXT): $(fakewww_OBJECTS) $(fakewww_DEPENDENCIES) 
 	@rm -f fakewww$(EXEEXT)
 	$(LINK) $(fakewww_LDFLAGS) $(fakewww_OBJECTS) $(fakewww_LDADD) $(LIBS)
+genplot$(EXEEXT): $(genplot_OBJECTS) $(genplot_DEPENDENCIES) 
+	@rm -f genplot$(EXEEXT)
+	$(LINK) $(genplot_LDFLAGS) $(genplot_OBJECTS) $(genplot_LDADD) $(LIBS)
 tr-mkmap$(EXEEXT): $(tr_mkmap_OBJECTS) $(tr_mkmap_DEPENDENCIES) 
 	@rm -f tr-mkmap$(EXEEXT)
 	$(LINK) $(tr_mkmap_LDFLAGS) $(tr_mkmap_OBJECTS) $(tr_mkmap_LDADD) $(LIBS)
@@ -374,6 +385,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-troute.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-troute6.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fakewww-usage.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genplot-genplot.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-logging.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-mkmap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tr_mkmap-tr-tree.Po@am__quote@
@@ -573,6 +585,20 @@ fakewww-logging.obj: logging.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='logging.c' object='fakewww-logging.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(fakewww_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o fakewww-logging.obj `if test -f 'logging.c'; then $(CYGPATH_W) 'logging.c'; else $(CYGPATH_W) '$(srcdir)/logging.c'; fi`
+
+genplot-genplot.o: genplot.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(genplot_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genplot-genplot.o -MD -MP -MF "$(DEPDIR)/genplot-genplot.Tpo" -c -o genplot-genplot.o `test -f 'genplot.c' || echo '$(srcdir)/'`genplot.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genplot-genplot.Tpo" "$(DEPDIR)/genplot-genplot.Po"; else rm -f "$(DEPDIR)/genplot-genplot.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='genplot.c' object='genplot-genplot.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(genplot_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genplot-genplot.o `test -f 'genplot.c' || echo '$(srcdir)/'`genplot.c
+
+genplot-genplot.obj: genplot.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(genplot_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genplot-genplot.obj -MD -MP -MF "$(DEPDIR)/genplot-genplot.Tpo" -c -o genplot-genplot.obj `if test -f 'genplot.c'; then $(CYGPATH_W) 'genplot.c'; else $(CYGPATH_W) '$(srcdir)/genplot.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genplot-genplot.Tpo" "$(DEPDIR)/genplot-genplot.Po"; else rm -f "$(DEPDIR)/genplot-genplot.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='genplot.c' object='genplot-genplot.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(genplot_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genplot-genplot.obj `if test -f 'genplot.c'; then $(CYGPATH_W) 'genplot.c'; else $(CYGPATH_W) '$(srcdir)/genplot.c'; fi`
 
 tr_mkmap-tr-mkmap.o: tr-mkmap.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(tr_mkmap_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tr_mkmap-tr-mkmap.o -MD -MP -MF "$(DEPDIR)/tr_mkmap-tr-mkmap.Tpo" -c -o tr_mkmap-tr-mkmap.o `test -f 'tr-mkmap.c' || echo '$(srcdir)/'`tr-mkmap.c; \
