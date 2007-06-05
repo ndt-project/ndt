@@ -135,6 +135,10 @@ result in a range from \fBmin\fR to \fBmax\fR (inclusive in both cases).
 The ranges can be separated by the commas or can be added by the multiple use of
 this tag. Note, that this enables multi-test mode. Replaces \fI--mrange\fR option.
 .PP
+\fBsnapdelay\fR \fImsec\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should write the snaplog every \fImsec\fR milliseconds in the S2C test.
+Replaces \fI--snapdelay\fR option.
+.PP
 \fBmidport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
 program should use the specified TCP \fIport\fR for the Middlebox test.
 Replaces \fI--midport\fR option.

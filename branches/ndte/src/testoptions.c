@@ -23,6 +23,7 @@ static int currentTest = TEST_NONE;
 typedef struct snapArgs {
   web100_snapshot* snap;
   web100_log* log;
+  int delay;
 } SnapArgs;
 
 static int workerLoop = 0;
@@ -57,6 +58,7 @@ void*
 snapWorker(void* arg)
 {
     SnapArgs *snapArgs = (SnapArgs*) arg;
+    double delay = ((double) snapArgs->delay) / 1000.0;
 
     while (1) {
         pthread_mutex_lock(&mainmutex);
@@ -79,7 +81,7 @@ snapWorker(void* arg)
         web100_snap(snapArgs->snap);
         web100_log_write(snapArgs->log, snapArgs->snap);
         pthread_mutex_unlock(&mainmutex);
-        mysleep(0.005);
+        mysleep(delay);
     }
 
     return NULL;
@@ -545,7 +547,7 @@ read3:
 
 int
 test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2cspd,
-    int set_buff, int window, int autotune, char* device, int limit,
+    int set_buff, int window, int autotune, char* device, int limit, int snapDelay,
     int experimental, char* logname, char spds[4][256], int* spd_index, int count_vars)
 {
   int largewin=16*1024*1024;
@@ -578,7 +580,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   web100_group* tgroup;
   web100_group* rgroup;
   web100_connection* conn;
-  web100_connection* xconn;
   web100_var* var;
   pthread_t workerThreadId;
   int SndMax=0, SndUna=0;
@@ -586,6 +587,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   SnapArgs snapArgs;
   snapArgs.snap = NULL;
   snapArgs.log = NULL;
+  snapArgs.delay = snapDelay;
   
   if (options->s2copt) {
     setCurrentTest(TEST_S2C);
@@ -733,7 +735,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         /* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
         system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
-      /* xconn = web100_connection_from_socket(agent, xmitsfd); */
       rgroup = web100_group_find(agent, "read");
       rsnap = web100_snapshot_alloc(rgroup, conn);
       tgroup = web100_group_find(agent, "tune");
@@ -807,9 +808,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
       s = secs() - t;
       x2cspd = (8.e-3 * bytes) / s;
-      /* send the x2cspd to the client */
-      sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       if (experimental > 0) {
         if (experimental > 1) {
             if (workerThreadId) {
@@ -822,6 +820,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         }
         web100_snapshot_free(snapArgs.snap);
       }
+      /* send the x2cspd to the client */
+      sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
+      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
 
       web100_snap(rsnap);
       web100_snap(tsnap);

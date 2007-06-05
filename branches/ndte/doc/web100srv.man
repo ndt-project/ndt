@@ -228,6 +228,10 @@ name for this log file.
 By default, the \fBNDT\fR server listens for test request on port 3001. 
 This option allows the \fBNDT\fR administrator to change this port number.
 .TP
+\fB\--snapdelay\fR \fImsec #\fR
+By default, the \fBNDT\fR server writes the snaplog every 5 msecs. This
+option allows the \fBNDT\fR administrator to change this time period.
+.TP
 \fB\--midport\fR \fIport #\fR
 By default, the \fBNDT\fR server uses port 3003 for the Middlebox test.
 This option allows the \fBNDT\fR administrator to change this port number.

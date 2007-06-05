@@ -106,6 +106,7 @@ int sig1, sig2, sig17;
 
 /* experimental limit code, can remove later */
 u_int32_t limit=0;
+int snapDelay = 5;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
@@ -142,6 +143,7 @@ static struct option long_options[] = {
   {"experimental", 0, 0, 'x'},
   {"version", 0, 0, 'v'},
   {"config", 1, 0, 'c'},
+  {"snapdelay", 1, 0, 305},
   {"limit", 1, 0, 'y'},
   {"buffer", 1, 0, 'b'},
   {"file", 1, 0, 'f'},
@@ -441,6 +443,11 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
       old_mismatch = 1;
       continue;
     }
+
+    else if (strncasecmp(key, "snapdelay", 5) == 0) {
+      snapDelay = atoi(val);
+      continue;
+    }
     
     else if (strncasecmp(key, "limit", 5) == 0) {
       limit = atoi(val);
@@ -588,7 +595,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   alarm(30);
   test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, limit, experimental, logname, spds, &spd_index, count_vars);
+      device, limit, snapDelay, experimental, logname, spds, &spd_index, count_vars);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
@@ -1016,6 +1023,9 @@ main(int argc, char** argv)
         break;
       case 'd':
         debug++;
+        break;
+      case 305:
+        snapDelay = atoi(optarg);
         break;
       case 'y':
         limit = atoi(optarg);
