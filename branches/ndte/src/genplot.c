@@ -223,7 +223,7 @@ void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
     for (;;) {
 	if (varg == NULL)
 	    break;
-        printf("% 10s\t", varg);
+        printf("%10s\t", varg);
 	varg = strtok(NULL, ",");
     }
     printf("\n");
@@ -233,7 +233,7 @@ void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
 	    printf("-------------- End Of Data  --------------\n\n");
 	    return;
     	}
-    	printf("% 5d\t", i);
+    	printf("%5d\t", i);
   
 	strncpy(varlist, savelist, strlen(savelist)+1);
   	varg=strtok(varlist, ",");
@@ -250,7 +250,7 @@ void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
                 exit(EXIT_FAILURE);
             }
     
-            printf("% 10s\t", web100_value_to_text(web100_get_var_type(var), buf));
+            printf("%10s\t", web100_value_to_text(web100_get_var_type(var), buf));
 	    varg = strtok(NULL, ",");
   	}
     	printf("\n");
@@ -279,15 +279,14 @@ main(int argc, char** argv)
     web100_agent* agent;
     web100_connection* conn;
     web100_group* group;
-    web100_var* var;
     web100_log* log;
     web100_snapshot* snap;
-    char buf[256], fn[128];
-    char snaplist[1024], *varlist=NULL, list[1024];
-    char *sarg, *varg;
+    char fn[128];
+    char *varlist=NULL, list[1024];
+    char *varg;
     int i, j, c, plotspd=0, plotuser=0;
     int plotboth=0, plotcwnd=0, plotrwin=0;
-    int opterr=0, k, txt=0;
+    int k, txt=0;
 
     argv0 = argv[0];
 
