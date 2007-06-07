@@ -17,6 +17,9 @@
  *
  * $Id: readvar.c,v 1.3 2002/09/30 19:48:27 engelhar Exp $
  */
+
+#include "../config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,10 +28,11 @@
 #include <getopt.h>
 #include <sys/types.h>
 
-#include <web100/web100.h>
-/* #include "web100.h" */
+#ifdef HAVE_LIBWEB100
+#include  <web100.h>
+#endif
 
-static const char* argv0 = NULL;
+#include "usage.h"
 
 char *color[16] = {"green",
 		   "blue",
@@ -41,6 +45,17 @@ char *color[16] = {"green",
 		   "black"
 		  };
 
+static struct option long_options[] = {
+  {"both", 0, 0, 'b'},
+  {"multi", 1, 0, 'm'},
+  {"text", 0, 0, 't'},
+  {"CurCwnd", 0, 0, 'C'},
+  {"CurRwinRcvd", 0, 0, 'R'},
+  {"throughput", 0, 0, 'S'},
+  {"help", 0, 0, 'h'},
+  {"version", 0, 0, 'v'},
+  {0, 0, 0, 0}
+};
 
 void get_title(web100_snapshot* snap, web100_log* log, web100_agent* agent,
 		web100_group* group, char* title, char* remport)
@@ -258,21 +273,6 @@ void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
 
 }
 
-static void
-usage(void)
-{
-    printf("Usage: %s [options] filelist\n", argv0);
-    printf("This program generates xplot graphs from Web100 variables\n");
-    printf("\t'-b'\tgenerate plot of both CurCwnd and CurRwinRcvd\n");
-    printf("\t'-m' varlist \ta comma separaged list of Web100 vars to plot\n");
-    printf("\t'-t'\tPrint variable values instead of generating plots\n");
-    printf("\t'-C'\tgenerate CurCwnd plot\n");
-    printf("\t'-R'\tgenerate CurRwinRcvd plot\n");
-    printf("\t'-S'\tgenerate throughput plot\n");
-    exit(0);
-}
-
-
 int
 main(int argc, char** argv)
 {
@@ -284,132 +284,127 @@ main(int argc, char** argv)
     char fn[128];
     char *varlist=NULL, list[1024];
     char *varg;
-    int i, j, c, plotspd=0, plotuser=0;
+    int j, c, plotspd=0, plotuser=0;
     int plotboth=0, plotcwnd=0, plotrwin=0;
     int k, txt=0;
 
-    argv0 = argv[0];
-
-    i=1;
-    while ((c = getopt(argc, argv, "hCSRbtm:")) != -1) {
+    while ((c = getopt_long(argc, argv, "hCSRbtm:v", long_options, 0)) != -1) {
         switch (c) {
-	    case 'b':
-		    plotboth = 1;
-		    i++;
-		    break;
-	    default:
+            case 'b':
+                plotboth = 1;
+                break;
             case 'h':
-                    usage();
-                    exit(0);
-	    case 't':
-		    txt = 1;
-		    i++;
-		    break;
+                genplot_long_usage("ANL/Internet2 NDT version " VERSION " (genplot)", argv[0]);
+                break;
+            case 'v':
+                printf("ANL/Internet2 NDT version %s (genplot)\n", VERSION);
+                exit(0);
+                break;
+            case 't':
+                txt = 1;
+                break;
             case 'C':
-                    plotcwnd = 1;
-		    i++;
-                    break;
+                plotcwnd = 1;
+                break;
             case 'R':
-                    plotrwin = 1;
-		    i++;
-                    break;
+                plotrwin = 1;
+                break;
             case 'S':
-                    plotspd = 1;
-		    i++;
-                    break;
+                plotspd = 1;
+                break;
             case 'm':
-                    varlist = optarg;
-		    plotuser = 1;
-		    if (strlen(argv[i]) == 2)
-			i++;
-		    i++;
-                    break;
-	}
+                varlist = optarg;
+                plotuser = 1;
+                break;
+        }
     }
 
-    if (i == argc) {
-	usage();
-	exit(1);
+    if (optind == argc) {
+        short_usage(argv[0], "Missing snaplog file");
     }
 
-    for (j=i; j<argc; j++) {
-   	sprintf(fn, "%s",  argv[j]); 
-    	if ((log = web100_log_open_read(fn)) == NULL) {
+    if (argc == 1) {
+        short_usage(argv[0], "ANL/Internet2 NDT version " VERSION " (genplot)");
+    }
+
+    for (j=optind; j<argc; j++) {
+        sprintf(fn, "%s",  argv[j]); 
+        if ((log = web100_log_open_read(fn)) == NULL) {
             web100_perror("web100_log_open_read");
             exit(EXIT_FAILURE);
-    	}
+        }
 
-    	if ((agent = web100_get_log_agent(log)) == NULL) {
+        if ((agent = web100_get_log_agent(log)) == NULL) {
             web100_perror("web100_get_log_agent");
             exit(EXIT_FAILURE);
-    	}
+        }
 
-    	if ((group = web100_get_log_group(log)) == NULL) {
+        if ((group = web100_get_log_group(log)) == NULL) {
             web100_perror("web100_get_log_group");
             exit(EXIT_FAILURE);
-    	}
+        }
 
-    	if ((conn = web100_get_log_connection(log)) == NULL) {
+        if ((conn = web100_get_log_connection(log)) == NULL) {
             web100_perror("web100_get_log_connection");
             exit(EXIT_FAILURE);
-    	}
+        }
 
-    	fprintf(stderr, "Extracting data from Snaplog '%s'\n\n", fn);
+        fprintf(stderr, "Extracting data from Snaplog '%s'\n\n", fn);
 
-    	if ((snap = web100_snapshot_alloc_from_log(log)) == NULL) {
+        if ((snap = web100_snapshot_alloc_from_log(log)) == NULL) {
             web100_perror("web100_snapshot_alloc_from_log");
             exit(EXIT_FAILURE);
-    	}
+        }
 
-	if (plotuser == 1) {
-	    memset(list, 0, 1024);
-	    strncpy(list, "Duration,", 9);
-	    strncat(list, varlist, strlen(varlist));
-  	    varg=strtok(list, ",");
-	    for (k=1; ; k++) {
-		if ((varg=strtok(NULL, ",")) == NULL)
-		    break;
-	    }
-	    memset(list, 0, 1024);
-	    strncpy(list, "Duration,", 9);
-	    strncat(list, varlist, strlen(varlist));
-	    if (txt == 1)
-		print_var(list, snap, log, agent, group);
-	    else
-	        plot_var(list, k, "User Defined", snap, log, agent, group);
-	}
-	if (plotspd == 1) {
-	    memset(list, 0, 1024);
-	    strncpy(list, "Duration,CurCwnd", 16);
-	    if (txt == 1)
-		print_var(list, snap, log, agent, group);
-	    else
-	        plot_var(list, 2, "Thruput", snap, log, agent, group);
-	}
-	if (plotcwnd == 1) {
-	    memset(list, 0, 1024);
-	    strncpy(list, "Duration,CurCwnd", 16);
-	    if (txt == 1)
-		print_var(list, snap, log, agent, group);
-	    else
-	        plot_var(list, 2, "CurCwnd", snap, log, agent, group);
-	}
-	if (plotrwin == 1) {
-	    memset(list, 0, 1024);
-	    strncpy(list, "Duration,CurRwinRcvd", 20);
-	    if (txt == 1)
-		print_var(list, snap, log, agent, group);
-	    else
-	        plot_var(list, 2, "CurRwinRcvd", snap, log, agent, group);
-	}
-	if (plotboth == 1) {
-	    memset(list, 0, 1024);
-	    strncpy(list, "Duration,CurCwnd,CurRwinRcvd", 28);
-	    if (txt == 1)
-		print_var(list, snap, log, agent, group);
-	    else
-	        plot_var(list, 3, "Both", snap, log, agent, group);
-	}
+        if (plotuser == 1) {
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,", 9);
+            strncat(list, varlist, strlen(varlist));
+            varg=strtok(list, ",");
+            for (k=1; ; k++) {
+                if ((varg=strtok(NULL, ",")) == NULL)
+                    break;
+            }
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,", 9);
+            strncat(list, varlist, strlen(varlist));
+            if (txt == 1)
+                print_var(list, snap, log, agent, group);
+            else
+                plot_var(list, k, "User Defined", snap, log, agent, group);
+        }
+        if (plotspd == 1) {
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,CurCwnd", 16);
+            if (txt == 1)
+                print_var(list, snap, log, agent, group);
+            else
+                plot_var(list, 2, "Thruput", snap, log, agent, group);
+        }
+        if (plotcwnd == 1) {
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,CurCwnd", 16);
+            if (txt == 1)
+                print_var(list, snap, log, agent, group);
+            else
+                plot_var(list, 2, "CurCwnd", snap, log, agent, group);
+        }
+        if (plotrwin == 1) {
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,CurRwinRcvd", 20);
+            if (txt == 1)
+                print_var(list, snap, log, agent, group);
+            else
+                plot_var(list, 2, "CurRwinRcvd", snap, log, agent, group);
+        }
+        if (plotboth == 1) {
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,CurCwnd,CurRwinRcvd", 28);
+            if (txt == 1)
+                print_var(list, snap, log, agent, group);
+            else
+                plot_var(list, 3, "Both", snap, log, agent, group);
+        }
         web100_log_close_read(log);
     }
 

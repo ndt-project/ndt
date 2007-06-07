@@ -35,7 +35,7 @@ web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
 
-genplot_SOURCES = genplot.c
+genplot_SOURCES = genplot.c usage.c
 genplot_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 genplot_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
