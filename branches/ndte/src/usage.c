@@ -254,7 +254,7 @@ genplot_long_usage(char* info, char* argv0)
     printf("This program generates xplot graphs from Web100 variables\n\n");
     printf(" Basic options:\n\n");
     printf("  -b, --both             - generate plot of both CurCwnd and CurRwinRcvd\n");
-    printf("  -m, --multi varlist    - a comma separaged list of Web100 vars to plot\n");
+    printf("  -m, --multi varlist    - a comma separated list of Web100 vars to plot\n");
     printf("  -t, --text             - print variable values instead of generating plots\n");
     printf("  -C, --CurCwnd          - generate CurCwnd plot\n");
     printf("  -R, --CurRwinRcvd      - generate CurRwinRcvd plot\n");
