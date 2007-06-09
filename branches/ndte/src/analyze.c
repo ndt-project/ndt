@@ -47,7 +47,7 @@ char *VarFileName=NULL;
 char *LogFileName=NULL;
 double avgrtt, loss, loss2, rttsec, bw, bw2, rwin, swin, cwin, speed;
 double rwintime, cwndtime, sendtime, timesec;
-int experimental=0, n, m, one=1;
+int n, m, one=1;
 int Timeouts, SumRTT, CountRTT, MinRTT, PktsRetrans, FastRetran, DataPktsOut;
 int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
 int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;

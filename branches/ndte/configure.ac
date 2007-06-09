@@ -53,6 +53,17 @@ else
   AC_MSG_RESULT(no)
 fi
 
+# Enabling/disabling experimental code
+AC_MSG_CHECKING(whether to enable experimental code)
+AC_ARG_ENABLE(experimental, [  --enable-experimental=[yes/no] turn on experimental code
+              [default=yes]],, enable_experimental=yes)
+if test "x$enable_experimental" = "xno"; then
+    AC_MSG_RESULT(no)
+else
+    CFLAGS="$CFLAGS -DEXPERIMENTAL_ENABLED"
+    AC_MSG_RESULT(yes)
+fi
+
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
 				[defaults to building I2util under owamp if exists]),

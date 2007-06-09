@@ -66,6 +66,15 @@
 #define PORT3 "3003"
 #define PORT4 "3003"
 
+typedef struct options {
+    u_int32_t limit;
+    int snapDelay;
+    char avoidSndBlockUp;
+    char snaplog;
+    char cwndDecrease;
+    char logname[128];
+} Options;
+
 typedef struct portpair {
   int port1;
   int port2;

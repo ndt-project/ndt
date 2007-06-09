@@ -111,18 +111,23 @@ variable file name.  This file contains a list of all \fBWeb100\fR
 KIS variables used by the \fBweb100srv\fR program.  Replaces
 \fI-f\fR option.
 .PP
-\fBexperimental\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
-program should run with experimental flag set to \fIvalue\fR. The server program
-is constantly being modified and, from time to time, experimental code is
-installed. When the experimental flag is set, then this code is invoked at run time.
-Replaces \fI-x\fR option.
-.PP
 \fBold_mismatch\fR (3) - This boolean flag causes the \fBweb100srv\fR
 program to use old Duplex Mismatch heuristic. Replaces \fI-o\fR option.
 .PP
 \fBlimit\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
 program should use the experimental throughput limiting code with the
 multiplication factor set to \fIvalue\fR. Replaces \fI-y\fR option.
+.PP
+\fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR
+program to analyze the cwnd changes during the S2C test. Replaces
+\fI--avoidsndblockup\fR option.
+.PP
+\fBsnaplog\fR (5) - This boolean flag causes the \fBweb100srv\fR program
+to write the snaplogs. Replaces \fI--snaplog\fR option.
+.PP
+\fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR program
+to avoid send buffers blocking in the S2C test. Replaces \fI--avoidsndblockup\fR
+option.
 .PP
 \fBrefresh\fR \fItime\fR (5) - This tag indicates that the \fBweb100srv\fR
 program should generate the \fIadmin.html\fR web page with the refresh time

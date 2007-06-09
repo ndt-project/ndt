@@ -1311,6 +1311,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-debug=no/yes turn on debugging
               default=no
+  --enable-experimental=yes/no turn on experimental code
+              default=yes
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
 
@@ -2251,6 +2253,25 @@ else
   CFLAGS="$CFLAGS -DNDEBUG"
   { echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
+fi
+
+# Enabling/disabling experimental code
+{ echo "$as_me:$LINENO: checking whether to enable experimental code" >&5
+echo $ECHO_N "checking whether to enable experimental code... $ECHO_C" >&6; }
+# Check whether --enable-experimental was given.
+if test "${enable_experimental+set}" = set; then
+  enableval=$enable_experimental;
+else
+  enable_experimental=yes
+fi
+
+if test "x$enable_experimental" = "xno"; then
+    { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+else
+    CFLAGS="$CFLAGS -DEXPERIMENTAL_ENABLED"
+    { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
 fi
 
 

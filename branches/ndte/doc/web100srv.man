@@ -183,12 +183,6 @@ This options allows the administrator to capture these data
 streams for later analysis. The \fBtcpdump(8)\fR and \fBtcptrace(1)\fR
 programs can be used to analyze these trace files.
 .TP
-\fB\-x, --experimental\fR 
-Enable any experimental code. The server program is constantly
-being modified and, from time to time, experimental code is installed. 
-This option allows the \fBNDT\fR administrator to invoke this code
-at run time.
-.TP
 \fB\-v, --version\fR 
 Print version number and exit.
 .TP
@@ -197,6 +191,16 @@ Specify the name of the file with configuration.
 .TP
 \fB\-y, --limit\fR \fIlimit\fR
 Enable the experimental throughput limiting code.
+.TP
+\fB\--avoidsndblockup\fR
+Enable the experimental code to avoid send buffers blocking in the S2C test.
+.TP
+\fB\--snaplog\fR
+Enable the experimental snaplog writing.
+.TP
+\fB\--cwnddecrease\fR
+Enable the experimental analyzing of the cwnd changes during the S2C test.
+Note, that this automatically enables 'snaplog' option.
 .TP
 \fB\-b, --buffer\fR \fIbuffer_size\fR
 This option allows the \fBNDT\fR administrator to set the TCP send

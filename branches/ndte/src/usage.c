@@ -52,17 +52,14 @@ srv_long_usage(char* info)
     printf("  -r, --record           - record client to server Web100 variables\n");
     printf("  -s, --syslog           - use the syslog() to log some information\n");
     printf("  -t, --tcpdump          - write tcpdump formatted file to disk\n");
-    printf("  -x, --experimental     - enable any experimental code\n");
     printf("  -v, --version          - print version number\n\n");
     printf(" Configuration:\n\n");
     printf("  -c, --config #filename - specify the name of the file with configuration\n");
-    printf("  -y, --limit #limit     - enable the experimental throughput limiting code\n");
     printf("  -b, --buffer #size     - set TCP send/recv buffers to user value\n");
     printf("  -f, --file variable_FN - specify alternate 'web100_variables' file\n");
     printf("  -i, --interface device - specify network interface (libpcap device)\n");
     printf("  -l, --log Log_FN       - specify alternate 'web100srv.log' file\n");
     printf("  -p, --port #port       - specify primary port number (default 3001)\n");
-    printf("  --snapdelay #msec      - specify the delay in the snaplog thread (default 5 msec)\n");
     printf("  --midport #port        - specify Middlebox test port number (default 3003)\n");
     printf("  --c2sport #port        - specify C2S throughput test port number (default 3002)\n");
     printf("  --s2cport #port        - specify S2C throughput test port number (default 3003)\n");
@@ -73,6 +70,16 @@ srv_long_usage(char* info)
     printf("                           Note: this doesn't enable 'adminview'\n");
     printf("  -S, --logfacility #F   - specify syslog facility name\n");
     printf("                           Note: this doesn't enable 'syslog'\n\n");
+#ifdef EXPERIMENTAL_ENABLED
+    printf(" Experimental code:\n\n");
+    printf("  --avoidsndblockup      - enable code to avoid send buffers blocking in the S2C test\n");
+    printf("  --snaplog              - enable the snaplog writing\n");
+    printf("  --snapdelay #msec      - specify the delay in the snaplog thread (default 5 msec)\n");
+    printf("                           Note: this doesn't enable 'snaplog'\n");
+    printf("  --cwnddecrease         - enable analyzing of the cwnd changes during the S2C test\n");
+    printf("                           Note: this automatically enables 'snaplog'\n");
+    printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
+#endif
 #ifdef AF_INET6
     printf(" IP family:\n\n");
     printf("  -4, --ipv4             - use IPv4 addresses only\n");

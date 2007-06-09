@@ -99,14 +99,11 @@ int queue=1;
 int view_flag=0;
 int record_reverse=0;
 int testing, waiting;
-int experimental=0;
 int refresh = 30;
 int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
 
-/* experimental limit code, can remove later */
-u_int32_t limit=0;
-int snapDelay = 5;
+Options options;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
@@ -140,11 +137,15 @@ static struct option long_options[] = {
   {"record", 0, 0, 'r'},
   {"syslog", 0, 0, 's'},
   {"tcpdump", 0, 0, 't'},
-  {"experimental", 0, 0, 'x'},
   {"version", 0, 0, 'v'},
   {"config", 1, 0, 'c'},
+#ifdef EXPERIMENTAL_ENABLED
+  {"avoidsndblockup", 0, 0, 306},
+  {"snaplog", 0, 0, 307},
   {"snapdelay", 1, 0, 305},
+  {"cwnddecrease", 0, 0, 308},
   {"limit", 1, 0, 'y'},
+#endif
   {"buffer", 1, 0, 'b'},
   {"file", 1, 0, 'f'},
   {"interface", 1, 0, 'i'},
@@ -434,23 +435,34 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
       continue;
     }
     
-    else if (strncasecmp(key, "experimental", 5) == 0) {
-      experimental = atoi(val);
-      continue;
-    }
-    
     else if (strncasecmp(key, "old_mismatch", 3) == 0) {
       old_mismatch = 1;
       continue;
     }
 
+    else if (strncasecmp(key, "cwnddecrease", 5) == 0) {
+      options.cwndDecrease = 1;
+      options.snaplog = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "snaplog", 5) == 0) {
+      options.snaplog = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "avoidsndblockup", 5) == 0) {
+      options.avoidSndBlockUp = 1;
+      continue;
+    }
+
     else if (strncasecmp(key, "snapdelay", 5) == 0) {
-      snapDelay = atoi(val);
+      options.snapDelay = atoi(val);
       continue;
     }
     
     else if (strncasecmp(key, "limit", 5) == 0) {
-      limit = atoi(val);
+      options.limit = atoi(val);
       continue;
     }
     
@@ -547,11 +559,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   FILE *fp;
 
-  /* experimental code to capture and log multiple copies of the the
-   * web100 variables using the web100_snap() & log() functions.
-   */
-  char logname[128];
-
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
 
@@ -591,11 +598,11 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   alarm(30);
   test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
-      device, limit, record_reverse, count_vars, spds, &spd_index);
+      device, &options, record_reverse, count_vars, spds, &spd_index);
 
   alarm(30);
   test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, limit, snapDelay, experimental, logname, spds, &spd_index, count_vars);
+      device, &options, spds, &spd_index, count_vars);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
@@ -656,9 +663,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   }
 
   /* get some web100 vars */
-  if (experimental > 2) {
+  if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(agent, logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(agent, options.logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d", dec_cnt, inc_cnt, same_cnt);
   }
 
@@ -890,6 +897,12 @@ main(int argc, char** argv)
   int listenfd;
   char* srcname = NULL;
   int debug = 0;
+  options.limit = 0;
+  options.snapDelay = 5;
+  options.avoidSndBlockUp = 0;
+  options.snaplog = 0;
+  options.cwndDecrease = 0;
+  memset(options.logname, 0, 128);
 
   memset(&testopt, 0, sizeof(testopt));
 
@@ -898,10 +911,16 @@ main(int argc, char** argv)
 #else
 #define GETOPT_LONG_INET6(x) x
 #endif
+
+#ifdef EXPERIMENTAL_ENABLED
+#define GETOPT_LONG_EXP(x) "y:"x
+#else
+#define GETOPT_LONG_EXP(x) x
+#endif
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:S:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -930,7 +949,7 @@ main(int argc, char** argv)
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:S:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1018,17 +1037,22 @@ main(int argc, char** argv)
         }
         set_buff = 1;
         break;
-      case 'x':
-        experimental++;
-        break;
       case 'd':
         debug++;
         break;
       case 305:
-        snapDelay = atoi(optarg);
+        options.snapDelay = atoi(optarg);
         break;
       case 'y':
-        limit = atoi(optarg);
+        options.limit = atoi(optarg);
+        break;
+      case 306:
+        options.avoidSndBlockUp = 1;
+        break;
+      case 308:
+        options.cwndDecrease = 1;
+      case 307:
+        options.snaplog = 1;
         break;
       case 'T':
         refresh = atoi(optarg);
