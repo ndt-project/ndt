@@ -266,6 +266,7 @@ genplot_long_usage(char* info, char* argv0)
     printf("  -C, --CurCwnd          - generate CurCwnd plot\n");
     printf("  -R, --CurRwinRcvd      - generate CurRwinRcvd plot\n");
     printf("  -S, --throughput       - generate throughput plot\n");
+    printf("  -c, --cwndtime         - generate Cwnd time plot\n");
     printf("  -h, --help             - print this help message\n");
     printf("  -v, --version          - print version number\n\n");
 

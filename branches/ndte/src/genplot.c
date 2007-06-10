@@ -52,6 +52,7 @@ static struct option long_options[] = {
   {"CurCwnd", 0, 0, 'C'},
   {"CurRwinRcvd", 0, 0, 'R'},
   {"throughput", 0, 0, 'S'},
+  {"cwndtime", 0, 0, 'c'},
   {"help", 0, 0, 'h'},
   {"version", 0, 0, 'v'},
   {0, 0, 0, 0}
@@ -245,6 +246,121 @@ plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
 }
 
 void
+plot_cwndtime(char *name, web100_snapshot* snap,
+        web100_log* log, web100_agent* agent, web100_group* group)
+{
+    double SndLimTimeRwin = 0, SndLimTimeSender = 0;
+    char buf[256];
+    web100_var* var;
+    char lname[256], remport[8];
+    char title[256];
+    char* variables[] = {"Duration", "SndLimTimeRwin", "SndLimTimeSender", "SndLimTimeCwnd"};
+    int i, first=0;
+    double x1, x2, y1, y2;
+    FILE *fn;
+
+    memset(lname, 0, 256);
+
+    get_title(snap, log, agent, group, title, remport);
+
+    if (name == NULL) {
+        fn = stdout;
+        strncpy(name, "Unknown", 7);
+    } else {
+        strncpy(lname, name, strlen(name));
+        strcat(lname, ".");
+        strcat(lname, remport);
+        strcat(lname, ".xpl");
+        fn = fopen(lname, "w");
+    }
+
+    fprintf(fn, "timeval double\ntitle\n");
+    fprintf(fn, "%s:%s (%s)\n", title, remport, name);
+    fprintf(fn, "xlabel\nTime\nylabel\nPercentage\n");
+
+    x1 = x2 = y1 = y2 = 0;
+    first = 0;
+
+    for (;;) {
+        if (first != 0) {
+            if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
+                fprintf(fn, "go\n");
+                return;
+            }
+        }
+        for (i=0; i<4; i++) {
+            if ((web100_agent_find_var_and_group(agent, variables[i], &group, &var)) != WEB100_ERR_SUCCESS) {
+                web100_perror("web100_agent_find_var_and_group");
+                exit(EXIT_FAILURE);
+            }
+
+            if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
+                web100_perror("web100_snap_read");
+                exit(EXIT_FAILURE);
+            }
+
+            if (i == 0) {
+                if (first == 0) {
+                    x1 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                } else {
+                    x1 = x2;
+                }
+            }
+            else if (i == 1) {
+                if (first == 0) {
+                    SndLimTimeRwin = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                }
+            }
+            else if (i == 2) {
+                if (first == 0) {
+                    SndLimTimeSender = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                }
+            }
+            else {
+                if (first == 0) {
+                    y1 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                    y1 = y1 / (SndLimTimeRwin + SndLimTimeSender + y1);
+                }
+                else {
+                    y1 = y2;
+                }
+            }
+        }
+
+        first++;
+        for (i=0; i<4; i++) {
+            if ((web100_agent_find_var_and_group(agent, variables[i], &group, &var)) != WEB100_ERR_SUCCESS) {
+                web100_perror("web100_agent_find_var_and_group");
+                exit(EXIT_FAILURE);
+            }
+
+            if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
+                web100_perror("web100_snap_read");
+                exit(EXIT_FAILURE);
+            }
+
+            if (i == 0) {
+                x2 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+            }
+            else if (i == 1) {
+                SndLimTimeRwin = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+            }
+            else if (i == 2) {
+                SndLimTimeSender = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+            }
+            else {
+                y2 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                y2 = y2 / (SndLimTimeRwin + SndLimTimeSender + y2);
+                fprintf(fn, "%s\nline %0.4f %0.4f %0.4f %0.4f\n", color[i-1], x1/1000000, y1,
+                        x2/1000000, y2);
+            }
+        }
+    }
+    fprintf(fn, "go\n");
+
+}
+
+void
 print_var(char *varlist, web100_snapshot* snap, web100_log* log,
         web100_agent* agent, web100_group* group, void(*func)(const int arg, const int value))
 {
@@ -348,6 +464,38 @@ throughputPlot(const int arg, const int value)
     }
 }
 
+void
+cwndtime(const int arg, const int value)
+{
+    static int SndLimTimeRwin, SndLimTimeSender;
+
+    if (arg == -1) {
+        if (value == 0) {
+            printf("%10s\t", "Duration");
+        }
+        else if (value == 3) {
+            printf("%10s\t", "CwndTime (%% of total time)");
+        }
+        return;
+    }
+
+    if (arg == 0) { /* duration */
+        printf("%10d\t", value);
+    }
+    else if (arg == 1) { /* SndLimTimeRwin */
+        SndLimTimeRwin = value;
+    }
+    else if (arg == 2) { /* SndLimTimeSender */
+        SndLimTimeSender = value;
+    }
+    else { /* SndLimTimeCwnd */
+        printf("%10.2f", ((double) value) /
+                (((double) SndLimTimeRwin) + ((double) SndLimTimeSender) + ((double) value)));
+    }
+}
+
+/* --- */
+
 int
 main(int argc, char** argv)
 {
@@ -359,11 +507,12 @@ main(int argc, char** argv)
     char fn[128];
     char *varlist=NULL, list[1024];
     char *varg;
-    int j, c, plotspd=0, plotuser=0;
-    int plotboth=0, plotcwnd=0, plotrwin=0;
-    int k, txt=0;
+    int j, c, plotspd = 0, plotuser = 0;
+    int plotboth = 0, plotcwnd = 0, plotrwin = 0;
+    int plotcwndtime = 0;
+    int k, txt = 0;
 
-    while ((c = getopt_long(argc, argv, "hCSRbtm:v", long_options, 0)) != -1) {
+    while ((c = getopt_long(argc, argv, "hCScRbtm:v", long_options, 0)) != -1) {
         switch (c) {
             case 'b':
                 plotboth = 1;
@@ -386,6 +535,9 @@ main(int argc, char** argv)
                 break;
             case 'S':
                 plotspd = 1;
+                break;
+            case 'c':
+                plotcwndtime = 1;
                 break;
             case 'm':
                 varlist = optarg;
@@ -455,6 +607,14 @@ main(int argc, char** argv)
                 print_var(list, snap, log, agent, group, throughput);
             else
                 plot_var(list, 2, "Throughput", snap, log, agent, group, throughputPlot);
+        }
+        if (plotcwndtime == 1) {
+            memset(list, 0, 1024);
+            strncpy(list, "Duration,SndLimTimeRwin,SndLimTimeSender,SndLimTimeCwnd", 55);
+            if (txt == 1)
+                print_var(list, snap, log, agent, group, cwndtime);
+            else
+                plot_cwndtime("Cwnd Time", snap, log, agent, group);
         }
         if (plotcwnd == 1) {
             memset(list, 0, 1024);

@@ -58,6 +58,9 @@ Generate CurRwinRcvd plot.
 \fB\-S, --throughput\fR 
 Generate throughput plot.
 .TP
+\fB\-c, --cwndtime\fR
+Generate Cwnd time plot.
+.TP
 \fB\-h, --help\fR 
 Print a simple usage page and exit.
 .TP
