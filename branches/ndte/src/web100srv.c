@@ -67,6 +67,8 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include <math.h>
 #define SYSLOG_NAMES
 #include  <syslog.h>
+#include <pthread.h>
+#include <sys/times.h>
 
 #include "web100srv.h"
 #include "network.h"
@@ -104,6 +106,10 @@ int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
 
 Options options;
+int cputime = 0;
+char cputimelog[256];
+pthread_t workerThreadId;
+int workerLoop = 1;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
@@ -144,6 +150,7 @@ static struct option long_options[] = {
   {"snaplog", 0, 0, 307},
   {"snapdelay", 1, 0, 305},
   {"cwnddecrease", 0, 0, 308},
+  {"cputime", 0, 0, 309},
   {"limit", 1, 0, 'y'},
 #endif
   {"buffer", 1, 0, 'b'},
@@ -517,6 +524,33 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     exit(1);
   }
   fclose(conf);
+}
+
+void*
+cputimeWorker(void* arg)
+{
+    char *logname = (char*) arg;
+    FILE* file = fopen(logname, "w");
+    struct tms buf;
+    double start = secs();
+
+    if (!file)
+        return NULL;
+
+    while (1) {
+        if (!workerLoop) {
+            break;
+        }
+        times(&buf);
+        fprintf(file, "%.2f %ld %ld %ld %ld\n", secs() - start, buf.tms_utime, buf.tms_stime,
+                buf.tms_cutime, buf.tms_cstime);
+        fflush(file);
+        mysleep(0.1);
+    }
+
+    fclose(file);
+
+    return NULL;
 }
 
 void
@@ -1054,6 +1088,9 @@ main(int argc, char** argv)
       case 307:
         options.snaplog = 1;
         break;
+      case 309:
+        cputime = 1;
+        break;
       case 'T':
         refresh = atoi(optarg);
         break;
@@ -1451,6 +1488,18 @@ multi_client:
           I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
           fprintf(fp,"%15.15s  %s port %d\n",
               ctime(&tt)+4, name, I2AddrPort(tmp_addr));
+          if (cputime) {
+              memset(cputimelog, 0, 256);
+              sprintf(cputimelog, "cputime.%s.%d", name, I2AddrPort(tmp_addr));
+              if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
+                  log_println(0, "Cannot create worker thread for writing cpu usage!");
+                  workerThreadId = 0;
+              }
+              else {
+                  log_println(1, "cputime trace file: %s", cputimelog);
+                  fprintf(fp, "cputime trace file: %s", cputimelog);
+              }
+          }
           I2AddrFree(tmp_addr);
           fclose(fp);
         }
@@ -1463,6 +1512,12 @@ multi_client:
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
         web100_detach(agent);
+
+        if (cputime && workerThreadId) {
+            workerLoop = 0;
+            pthread_join(workerThreadId, NULL);
+        }
+
         exit(0);
         break;
     }

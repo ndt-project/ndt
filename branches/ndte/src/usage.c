@@ -78,6 +78,7 @@ srv_long_usage(char* info)
     printf("                           Note: this doesn't enable 'snaplog'\n");
     printf("  --cwnddecrease         - enable analyzing of the cwnd changes during the S2C test\n");
     printf("                           Note: this automatically enables 'snaplog'\n");
+    printf("  --cputime              - enable the cputime writing\n");
     printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
 #endif
 #ifdef AF_INET6
