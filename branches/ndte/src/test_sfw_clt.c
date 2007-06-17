@@ -77,14 +77,14 @@ test_osfw_clt(void* vptr)
   sockfd = accept(sfwsockfd, (struct sockaddr *) &srv_addr, &srvlen);
 
   msgLen = sizeof(buff);
-  if (recv_msg(sockfd, &msgType, &buff, &msgLen)) {
+  if (recv_msg(sockfd, &msgType, buff, &msgLen)) {
     log_println(0, "Simple firewall test: unrecognized message");
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
     I2AddrFree(sfwcli_addr);
     return NULL;
   }
-  if (check_msg_type("Simple firewall test", TEST_MSG, msgType)) {
+  if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
     I2AddrFree(sfwcli_addr);
@@ -139,47 +139,48 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     printf("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
     fflush(stdout);
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Simple firewall test", TEST_PREPARE, msgType)) {
-      exit(2);
+    if (check_msg_type("Simple firewall test", TEST_PREPARE, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0;
     ptr = strtok(buff, " ");
     if (ptr == NULL) {
       log_println(0, "SFW: Improper message");
-      exit(5);
+      return 5;
     }
     if (check_int(ptr, &sfwport)) {
       log_println(0, "Invalid port number");
-      exit(4);
+      return 4;
     }
     ptr = strtok(NULL, " ");
     if (ptr == NULL) {
       log_println(0, "SFW: Improper message");
-      exit(5);
+      return 5;
     }
     if (check_int(ptr, &testTime)) {
       log_println(0, "Invalid waiting time");
-      exit(4);
+      return 4;
     }
     log_println(1, "\n  -- port: %d", sfwport);
     log_println(1, "  -- time: %d", testTime);
     if ((sfwsrv_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
+      log_println(0, "Unable to resolve server address: %s", strerror(errno));
+      return -3;
     }
     I2AddrSetPort(sfwsrv_addr, sfwport);
 
     sfwcli_addr = CreateListenSocket(NULL, "0", conn_options);
     if (sfwcli_addr == NULL) {
-      err_sys("client: CreateListenSocket failed");
+      log_println(0, "Client (Simple firewall test): CreateListenSocket failed: %s", strerror(errno));
+      return -1;
     }
     sfwsockfd = I2AddrFD(sfwcli_addr);
     sfwsockport = I2AddrPort(sfwcli_addr);
@@ -188,12 +189,12 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     sprintf(buff, "%d", sfwsockport);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Simple firewall test", TEST_START, msgType)) {
-      exit(2);
+    if (check_msg_type("Simple firewall test", TEST_START, msgType, buff, msgLen)) {
+      return 2;
     }
     
     pthread_create(&threadId, NULL, &test_osfw_clt, NULL);
@@ -210,21 +211,21 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     sigaction(SIGALRM, &old, NULL);
 
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Simple firewall test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0;
     if (check_int(buff, &c2s_result)) {
       log_println(0, "Invalid test result");
-      exit(4);
+      return 4;
     }
 
     pthread_join(threadId, NULL);
@@ -232,12 +233,12 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     printf("Done\n");
     
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Simple firewall test", TEST_FINALIZE, msgType)) {
-      exit(2);
+    if (check_msg_type("Simple firewall test", TEST_FINALIZE, msgType, buff, msgLen)) {
+      return 2;
     }
     log_println(1, " <-------------------------->");
   }

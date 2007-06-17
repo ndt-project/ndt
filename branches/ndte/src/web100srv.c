@@ -625,18 +625,30 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   }
   
   alarm(15);
-  test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
+  if (test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd)) {
+      log_println(0, "Middlebox test FAILED!");
+      testopt.midopt = TOPT_DISABLED;
+  }
   
   alarm(30);
-  test_sfw_srv(ctlsockfd, agent, &testopt, conn_options);
+  if (test_sfw_srv(ctlsockfd, agent, &testopt, conn_options)) {
+      log_println(0, "Simple firewall test FAILED!");
+      testopt.sfwopt = TOPT_DISABLED;
+  }
 
   alarm(30);
-  test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
-      device, &options, record_reverse, count_vars, spds, &spd_index);
+  if (test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
+      device, &options, record_reverse, count_vars, spds, &spd_index)) {
+      log_println(0, "C2S throughput test FAILED!");
+      testopt.c2sopt = TOPT_DISABLED;
+  }
 
   alarm(30);
-  test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, &options, spds, &spd_index, count_vars);
+  if (test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
+      device, &options, spds, &spd_index, count_vars)) {
+      log_println(0, "S2C throughput test FAILED!");
+      testopt.s2copt = TOPT_DISABLED;
+  }
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {

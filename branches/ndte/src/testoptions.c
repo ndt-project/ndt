@@ -111,13 +111,19 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
 
   /* read the test suite request */
   if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
-    return 1;
+      sprintf(buff, "Invalid test suite request");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 1;
   }
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
-    return 2;
+      sprintf(buff, "Invalid test suite request");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 2;
   }
   if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW))) {
-    return 3;
+      sprintf(buff, "Invalid test suite request");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 3;
   }
   if (useropt & TEST_MID) {
     options->midopt = TOPT_ENABLED;
@@ -220,23 +226,26 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 	log_println(5, "KillHung(): returned non-0 response, nothing to kill or kill failed");
 
     while (midsrv_addr == NULL) {
-      midsrv_addr = CreateListenSocket(NULL,
-          (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options);
-      if (midsrv_addr == NULL) {
-        log_println(5, " Calling KillHung() because midsrv_address failed to bind");
-	if (KillHung() == 0)
-	  continue;
-      }
-      if (strcmp(listenmidport, "0") == 0) {
-        log_println(0, "WARNING: ephemeral port number was bound");
-        break;
-      }
-      if (options->multiple == 0) {
-        break;
-      }
+        midsrv_addr = CreateListenSocket(NULL,
+                (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options);
+        if (midsrv_addr == NULL) {
+            log_println(5, " Calling KillHung() because midsrv_address failed to bind");
+            if (KillHung() == 0)
+                continue;
+        }
+        if (strcmp(listenmidport, "0") == 0) {
+            log_println(0, "WARNING: ephemeral port number was bound");
+            break;
+        }
+        if (options->multiple == 0) {
+            break;
+        }
     }
     if (midsrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
+      log_println(0, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
+      sprintf(buff, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return -1;
     }
     options->midsockfd = I2AddrFD(midsrv_addr);
     options->midsockport = I2AddrPort(midsrv_addr);
@@ -274,16 +283,22 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     web100_middlebox(midfd, agent, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 1;
     }
-    if (check_msg_type("Middlebox test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff, msgLen)) {
+      sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 3;
     }
     buff[msgLen] = 0;
     *s2c2spd = atof(buff);
@@ -362,7 +377,10 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       }
     }
     if (c2ssrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
+      log_println(0, "Server (C2S throughput test): CreateListenSocket failed: %s", strerror(errno));
+      sprintf(buff, "Server (C2S throughput test): CreateListenSocket failed: %s", strerror(errno));
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return -1;
     }
     testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
@@ -622,7 +640,10 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       }
     }
     if (s2csrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
+      log_println(0, "Server (S2C throughput test): CreateListenSocket failed: %s", strerror(errno));
+      sprintf(buff, "Server (S2C throughput test): CreateListenSocket failed: %s", strerror(errno));
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return -1;
     }
     testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
     testOptions->s2csockport = I2AddrPort(s2csrv_addr);
@@ -723,7 +744,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         memset(namebuf, 0, 200);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
         sprintf(options->logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
-        /* conn = web100_connection_from_socket(agent, xmitsfd); */
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (options->snaplog)
@@ -873,16 +893,22 @@ read2:
     web100_snapshot_free(rsnap);
 
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 1;
     }
-    if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
+      sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 3;
     }
     buff[msgLen] = 0;
     *s2cspd = atoi(buff);

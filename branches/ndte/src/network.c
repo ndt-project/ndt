@@ -302,7 +302,7 @@ send_msg(int ctlSocket, int type, void* msg, int len)
  * Description: Receives the protocol message from the control socket.
  * Arguments: ctlSocket - the control socket
  *            type - the target place for type of the message
- *            buf - the target place for the message body
+ *            msg - the target place for the message body
  *            len - the target place for the length of the message
  * Returns: 0 - success
  *          !0 - error code.
@@ -379,14 +379,14 @@ writen(int fd, void* buf, int amount)
 int
 readn(int fd, void* buf, int amount)
 {
-  int sent, n;
+  int received, n;
   char* ptr = buf;
-  sent = 0;
+  received = 0;
   assert(amount >= 0);
-  while (sent < amount) {
-    n = read(fd, ptr+sent, amount - sent);
+  while (received < amount) {
+    n = read(fd, ptr+received, amount - received);
     if (n != -1) {
-      sent += n;
+      received += n;
     }
     if (n == 0)
       return 0;
