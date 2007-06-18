@@ -89,7 +89,7 @@ import javax.swing.BoxLayout;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.4.12";
+  private static final String VERSION = "5.5.1";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -392,12 +392,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "Middlebox test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       int midport = Integer.parseInt(new String(msg.body));
@@ -408,12 +409,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
       } catch (UnknownHostException e) {
         System.err.println("Don't know about host: " + host);
         errmsg = "unknown server\n" ;
-        failed = true;
         return true;
       } catch (IOException e) {
         System.err.println("Couldn't perform middlebox testing to: " + host);
         errmsg = "Server Failed while middlebox testing\n" ;
-        failed = true;
         return true;
       }
 
@@ -442,12 +441,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "Middlebox test results: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       tmpstr2 = new String(msg.body);
@@ -472,7 +472,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
         System.err.println("Unable to obtain local IP address: using 127.0.0.1");
         errmsg = "getLocalAddress() call failed\n" ;
         tmpstr2 += "127.0.0.1;";
-        // results.append("Unable to obtain local IP address: Using 127.0.0.1 instead\n");
       }
 
       srvin2.close();
@@ -481,12 +480,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
         errmsg = "Middlebox test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       results.append("Done\n");
@@ -507,12 +507,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
 
@@ -526,7 +527,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
       catch (Exception e) {
         errmsg = "Simple firewall test: Received improper message\n";
-        failed = true;
         return true;
       }
 
@@ -540,7 +540,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       catch (Exception e) {
         e.printStackTrace();
         errmsg = "Simple firewall test: Cannot create listen socket\n";
-        failed = true;
         return true;
       }
 
@@ -549,12 +548,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_START) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }     
 
@@ -574,12 +574,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       c2sResult = Integer.parseInt(new String(msg.body));
@@ -588,12 +589,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       results.append("Done\n");
@@ -615,12 +617,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       int c2sport = Integer.parseInt(new String(msg.body));
@@ -631,12 +634,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
       } catch (UnknownHostException e) {
         System.err.println("Don't know about host: " + host);
         errmsg = "unknown server\n" ;
-        failed = true;
         return true;
       } catch (IOException e) {
         System.err.println("Couldn't get 2nd connection to: " + host);
         errmsg = "Server Busy: Please wait 15 seconds for previous test to finish\n" ;
-        failed = true;
         return true;
       }
 
@@ -646,12 +647,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       // This signal tells the client to start pumping out data
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_START) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
 
@@ -691,12 +693,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       /* receive the c2sspd from the server */
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       String tmpstr3 = new String(msg.body);
@@ -722,12 +725,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
     }
@@ -746,12 +750,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       int s2cport = Integer.parseInt(new String(msg.body));
@@ -763,13 +768,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
       catch (UnknownHostException e) {
         System.err.println("Don't know about host: " + host);
         errmsg = "unknown server\n" ;
-        failed = true;
         return true;
       } 
       catch (IOException e) {
         System.err.println("Couldn't get 3rd connection to: " + host);
         errmsg = "Server Failed while receiving data\n" ;
-        failed = true;
         return true;
       }
 
@@ -780,12 +783,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       // wait here for signal from server application 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_START) {
         errmsg = "S2C throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
 
@@ -808,12 +812,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
       /* receive the s2cspd from the server */
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!\n";
-        failed = true;
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "S2C throughput test: Received wrong type of the message\n";
-        failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
         return true;
       }
       try {
@@ -827,7 +832,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       catch (Exception e) {
         e.printStackTrace();
         errmsg = "S2C throughput test: Received improper message\n";
-        failed = true;
         return true;
       }
 
@@ -866,7 +870,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
         for (;;) {
           if (ctl.recv_msg(msg) != 0) {
             errmsg = "Protocol error!\n";
-            failed = true;
             return true;
           }
           if (msg.type == TEST_FINALIZE) {
@@ -874,7 +877,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
           }
           if (msg.type != TEST_MSG) {
             errmsg = "S2C throughput test: Received wrong type of the message\n";
-            failed = true;
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+        }
             return true;
           }
           tmpstr += new String(msg.body);
@@ -886,214 +891,229 @@ public class Tcpbw100 extends JApplet implements ActionListener
     return false;
   }
 
-	public void dottcp() throws IOException {
-		Socket ctlSocket = null;
-    if (!isApplication) {
-/*************************************************************************
- * Added by Seth Peery
- * Instead of using the getCodeBase().getHost() value for the testing server,
- * which assumes this applet is being served from the web100srv server,
- * use a parameter provided in the APPLET tag.
- * Note that for this to work the applet must be signed because you are
- * potentially accessing a server outside the source domain.
-*/
-      host = getParameter("testingServer");
-/************************************************************************/
-      /* fall back to the old behaviour if the APPLET tag is not set */
-      if (host == null) {
-        host = getCodeBase().getHost();
-      }
-    }
-		int ctlport = 3001;
-		double wait2;
-		int sbuf, rbuf;
-		int i, wait;
-
-		failed = false;
-		try {
-      if (preferIPv6.isSelected()) {
-        try {
-          System.setProperty("java.net.preferIPv6Addresses", "true");
-        }
-        catch (SecurityException e) {
-          System.err.println("Couldn't set system property. Check your security settings.");
-        }
-      }
-      preferIPv6.setEnabled(false);
-      ctlSocket = new Socket(host, ctlport);
-		} catch (UnknownHostException e) {
-			System.err.println("Don't know about host: " + host);
-			errmsg = "unknown server\n" ;
-			failed = true;
-			return;
-		} catch (IOException e) {
-			System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
-			errmsg = "Server process not running: start web100srv process on remote server (" + host + ":" + ctlport + ")\n" ;
-			failed = true;
-			return;
-		}
-    Protocol ctl = new Protocol(ctlSocket);
-    Message msg = new Message();
-
-    /* The beginning of the protocol */
-    
-    if (ctlSocket.getInetAddress() instanceof Inet6Address) {
-      results.append("Connected to: " + host + "  --  Using IPv6 address\n");
-    }
-    else {
-      results.append("Connected to: " + host + "  --  Using IPv4 address\n");
-    }
-
-    /* write our test suite request */
-    ctl.send_msg(MSG_LOGIN, tests);
-    /* read the specially crafted data that kicks off the old clients */
-    if (ctl.readn(msg, 13) != 13) {
-      errmsg = "Information: The server does not support this command line client\n";
-      failed = true;
-      return;
-    }
-    
-    for (;;) {
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
-        failed = true;
-        return;
-      }
-      if (msg.type != SRV_QUEUE) {
-        errmsg = "Logging to server: Received wrong type of the message\n";
-        failed = true;
-        return;
-      }
-      String tmpstr3 = new String(msg.body);
-      wait = Integer.parseInt(tmpstr3);
-      System.out.println("wait flag received = " + wait);
-      
-      if (wait == 0) {
-        break;
-      }
-
-      if (wait == 9999) {
-        errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
-        failed = true;
-        return;
-      }
-      // Each test should take less than 30 seconds, so tell them 45 sec * number of 
-      // tests in the queue.
-      wait = (wait * 45);
-      results.append("Another client is currently being served, your test will " +
-          "begin within " + wait + " seconds\n");
-    }
-
-		f.toBack();
-		ff.toBack();
-
-    if (ctl.recv_msg(msg) != 0) {
-      errmsg = "Protocol error!\n";
-      failed = true;
-      return;
-    }
-    if (msg.type != MSG_LOGIN) {
-      errmsg = "Negotiating NDT version: Received wrong type of the message\n";
-      failed = true;
-      return;
-    }
-
-    String vVersion = new String(msg.body);
-    if (!vVersion.startsWith("v")) {
-      errmsg = "Incompatible version number";
-      failed = true;
-      return;
-    }
-    System.out.println("Server version: " + vVersion.substring(1));
-    
-    if (ctl.recv_msg(msg) != 0) {
-      errmsg = "Protocol error!\n";
-      failed = true;
-      return;
-    }
-    if (msg.type != MSG_LOGIN) {
-      errmsg = "Negotiating test suite: Received wrong type of the message\n";
-      failed = true;
-      return;
-    }
-    StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
-
-    while (tokenizer.hasMoreTokens()) {
-      int testId = Integer.parseInt(tokenizer.nextToken());
-      switch (testId) {
-        case TEST_MID:
-          if (test_mid(ctl)) {
-            return;
+  public void dottcp() throws IOException {
+      Socket ctlSocket = null;
+      if (!isApplication) {
+          /*************************************************************************
+           * Added by Seth Peery
+           * Instead of using the getCodeBase().getHost() value for the testing server,
+           * which assumes this applet is being served from the web100srv server,
+           * use a parameter provided in the APPLET tag.
+           * Note that for this to work the applet must be signed because you are
+           * potentially accessing a server outside the source domain.
+           */
+          host = getParameter("testingServer");
+          /************************************************************************/
+          /* fall back to the old behaviour if the APPLET tag is not set */
+          if (host == null) {
+              host = getCodeBase().getHost();
           }
-          break;
-        case TEST_SFW:
-          if (test_sfw(ctl)) {
-            return;
+      }
+      int ctlport = 3001;
+      double wait2;
+      int sbuf, rbuf;
+      int i, wait;
+
+      failed = false;
+      try {
+          if (preferIPv6.isSelected()) {
+              try {
+                  System.setProperty("java.net.preferIPv6Addresses", "true");
+              }
+              catch (SecurityException e) {
+                  System.err.println("Couldn't set system property. Check your security settings.");
+              }
           }
-          break;
-        case TEST_C2S:
-          if (test_c2s(ctl)) {
-            return;
-          }
-          break;
-        case TEST_S2C:
-          if (test_s2c(ctl, ctlSocket)) {
-            return;
-          }
-          break;
-        default:
-          errmsg = "Unknown test ID\n";
+          preferIPv6.setEnabled(false);
+          ctlSocket = new Socket(host, ctlport);
+      } catch (UnknownHostException e) {
+          System.err.println("Don't know about host: " + host);
+          errmsg = "unknown server\n" ;
+          failed = true;
+          return;
+      } catch (IOException e) {
+          System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
+          errmsg = "Server process not running: start web100srv process on remote server (" + host + ":" + ctlport + ")\n" ;
           failed = true;
           return;
       }
-    }
+      Protocol ctl = new Protocol(ctlSocket);
+      Message msg = new Message();
 
-    i = 0;
+      /* The beginning of the protocol */
 
-    try {  
+      if (ctlSocket.getInetAddress() instanceof Inet6Address) {
+          results.append("Connected to: " + host + "  --  Using IPv6 address\n");
+      }
+      else {
+          results.append("Connected to: " + host + "  --  Using IPv4 address\n");
+      }
+
+      /* write our test suite request */
+      ctl.send_msg(MSG_LOGIN, tests);
+      /* read the specially crafted data that kicks off the old clients */
+      if (ctl.readn(msg, 13) != 13) {
+          errmsg = "Information: The server does not support this command line client\n";
+          failed = true;
+          return;
+      }
+
       for (;;) {
-        if (ctl.recv_msg(msg) != 0) {
+          if (ctl.recv_msg(msg) != 0) {
+              errmsg = "Protocol error!\n";
+              failed = true;
+              return;
+          }
+          if (msg.type != SRV_QUEUE) {
+              errmsg = "Logging to server: Received wrong type of the message\n";
+              failed = true;
+              return;
+          }
+          String tmpstr3 = new String(msg.body);
+          wait = Integer.parseInt(tmpstr3);
+          System.out.println("wait flag received = " + wait);
+
+          if (wait == 0) {
+              break;
+          }
+
+          if (wait == 9999) {
+              errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
+              failed = true;
+              return;
+          }
+          // Each test should take less than 30 seconds, so tell them 45 sec * number of 
+          // tests in the queue.
+          wait = (wait * 45);
+          results.append("Another client is currently being served, your test will " +
+                  "begin within " + wait + " seconds\n");
+      }
+
+      f.toBack();
+      ff.toBack();
+
+      if (ctl.recv_msg(msg) != 0) {
           errmsg = "Protocol error!\n";
           failed = true;
           return;
-        }
-        if (msg.type == MSG_LOGOUT) {
-          break;
-        }
-        if (msg.type != MSG_RESULTS) {
-          errmsg = "Tests results: Received wrong type of the message\n";
+      }
+      if (msg.type != MSG_LOGIN) {
+          errmsg = "Negotiating NDT version: Received wrong type of the message\n";
           failed = true;
           return;
-        }
-        tmpstr += new String(msg.body);
-        i++;
       }
-    } catch (IOException e) {}
 
-    if (i == 0) {
-      results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
-    }
-		System.err.println("Calling InetAddress.getLocalHost() twice");
-		try {
-			diagnosis.append("Client: " + InetAddress.getLocalHost() + "\n");
-		} catch (SecurityException e) {
-			diagnosis.append("Client: 127.0.0.1\n");
-			results.append("Unable to obtain local IP address\n");
-			System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-		}
-		
-		try {
-			emailText += "Client: " + InetAddress.getLocalHost() + "\n%0A";
-		} catch (SecurityException e) {
-			emailText += "Client: 127.0.0.1\n%0A";
-		}
+      String vVersion = new String(msg.body);
+      if (!vVersion.startsWith("v")) {
+          errmsg = "Incompatible version number";
+          failed = true;
+          return;
+      }
+      System.out.println("Server version: " + vVersion.substring(1));
 
-    ctl.close();
-		ctlSocket.close();
+      if (ctl.recv_msg(msg) != 0) {
+          errmsg = "Protocol error!\n";
+          failed = true;
+          return;
+      }
+      if (msg.type != MSG_LOGIN) {
+          errmsg = "Negotiating test suite: Received wrong type of the message\n";
+          failed = true;
+          return;
+      }
+      StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
 
-		testResults(tmpstr);
-		middleboxResults(tmpstr2);
-	}
+      while (tokenizer.hasMoreTokens()) {
+          int testId = Integer.parseInt(tokenizer.nextToken());
+          switch (testId) {
+              case TEST_MID:
+                  if (test_mid(ctl)) {
+                      results.append(errmsg);
+                      results.append("Middlebox test FAILED!\n");
+                      tests &= (~TEST_MID);
+                  }
+                  break;
+              case TEST_SFW:
+                  if (test_sfw(ctl)) {
+                      results.append(errmsg);
+                      results.append("Simple firewall test FAILED!\n");
+                      tests &= (~TEST_SFW);
+                  }
+                  break;
+              case TEST_C2S:
+                  if (test_c2s(ctl)) {
+                      results.append(errmsg);
+                      results.append("C2S throughput test FAILED!\n");
+                      tests &= (~TEST_C2S);
+                  }
+                  break;
+              case TEST_S2C:
+                  if (test_s2c(ctl, ctlSocket)) {
+                      results.append(errmsg);
+                      results.append("S2C throughput test FAILED!\n");
+                      tests &= (~TEST_S2C);
+                  }
+                  break;
+              default:
+                  errmsg = "Unknown test ID\n";
+                  failed = true;
+                  return;
+          }
+      }
+
+      i = 0;
+
+      try {  
+          for (;;) {
+              if (ctl.recv_msg(msg) != 0) {
+                  errmsg = "Protocol error!\n";
+                  failed = true;
+                  return;
+              }
+              if (msg.type == MSG_LOGOUT) {
+                  break;
+              }
+              if (msg.type != MSG_RESULTS) {
+                  errmsg = "Tests results: Received wrong type of the message\n";
+                  failed = true;
+                  return;
+              }
+              tmpstr += new String(msg.body);
+              i++;
+          }
+      } catch (IOException e) {}
+
+      if (i == 0) {
+          results.append("Warning! Client time-out while reading data, possible duplex mismatch exists\n");
+      }
+      System.err.println("Calling InetAddress.getLocalHost() twice");
+      try {
+          diagnosis.append("Client: " + InetAddress.getLocalHost() + "\n");
+      } catch (SecurityException e) {
+          diagnosis.append("Client: 127.0.0.1\n");
+          results.append("Unable to obtain local IP address\n");
+          System.err.println("Unable to obtain local IP address: using 127.0.0.1");
+      }
+
+      try {
+          emailText += "Client: " + InetAddress.getLocalHost() + "\n%0A";
+      } catch (SecurityException e) {
+          emailText += "Client: 127.0.0.1\n%0A";
+      }
+
+      ctl.close();
+      ctlSocket.close();
+
+      try {
+          testResults(tmpstr);
+      }
+      catch (Exception ex) {
+          results.append("Error in parsing tests results!\n");
+      }
+      if ((tests & TEST_MID) == TEST_MID) {
+          middleboxResults(tmpstr2);
+      }
+  }
 
 
 	class OsfwWorker implements Runnable

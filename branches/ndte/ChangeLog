@@ -24,13 +24,100 @@ non-browser based clients, helpful for remote access testing.
 
 Rich Carlson	6/7/02  Modified 10/17/06
 
+2007-06-18 17:05  jslawins
+
+	* Applet/Tcpbw100.java, ChangeLog: Modified the protocol in the
+	  Java Applet to be more robust (failed tests are not interrupting
+	  the whole process). Fixed the parsing of the broken results.
+
+	  Increased the Java applet version to 5.5.1.
+
+2007-06-17 20:22  jslawins
+
+	* configure, configure.ac, src/network.c, src/protocol.c,
+	  src/protocol.h, src/test_c2s_clt.c, src/test_mid_clt.c,
+	  src/test_s2c_clt.c, src/test_sfw_clt.c, src/test_sfw_srv.c,
+	  src/testoptions.c, src/web100clt.c, src/web100srv.c: Removed the
+	  majority of the exit() calls.
+	  Started using the MSG_ERROR messages.
+	  Modified the protocol to be more robust (failed tests are not
+	  interrupting the whole process).
+	  
+	  Increased the NDT version to 3.4.1.
+
+2007-06-10 15:07  jslawins
+
+	* doc/web100srv.man, src/usage.c, src/web100srv.c: web100srv:
+	  Added new option: --cputime
+
+2007-06-10 11:49  jslawins
+
+	* doc/genplot.man, src/genplot.c, src/usage.c: Added
+	  plotting/printing Cwnd time (genplot: Added new option:
+	  --cwndtime)
+
+2007-06-09 21:15  jslawins
+
+	* src/genplot.c: Fixed throughput plotting/printing.
+	  Changed the msecs to secs in the xlabels of the plots.
+
+2007-06-09 19:06  jslawins
+
+	* configure, configure.ac, ndt.conf.man, web100srv.man, analyze.c,
+	  testoptions.c, testoptions.h, usage.c, web100srv.c, web100srv.h:
+	  Added new configure option: '--enable-experimental'.
+	  Removed '--experimental' option from the web100srv.
+	  web100srv: Added new option: --avoidsndblockup
+	  web100srv: Added new option: --snaplog
+	  web100srv: Added new option: --cwnddecrease
+
+2007-06-07 14:24  jslawins
+
+	* doc/Makefile.am, doc/Makefile.in, doc/genplot.man, src/usage.c:
+	  Added the genplot manual page.
+	  Fixed some misspellings.
+
+2007-06-07 12:44  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in, aclocal.m4,
+	  conf/Makefile.in, configure, doc/Makefile.in, src/Makefile.am,
+	  src/Makefile.in, src/genplot.c, src/usage.c, src/usage.h: Added
+	  standardized usage screen to the genplot.
+	  Genplot: Added new option: --version.
+	  Genplot: Added support for the long options.
+
+2007-06-06 13:20  jslawins
+
+	* src/genplot.c: Fixed the warnings during compilation of the
+	  genplot.
+
+2007-06-05 20:27  jslawins
+
+	* doc/ndt.conf.man, doc/web100srv.man, src/testoptions.c,
+	  src/testoptions.h, src/usage.c, src/web100srv.c: Added the
+	  possibility to set delay in the snap thread.
+	  New option: --snapdelay #msec.
+
+2007-06-04 21:27  racarlson
+
+	* src/Makefile.am, src/Makefile.in, src/genplot.c: Added new
+	  genplot.c program. This program will generate xplot graphs, or
+	  text files, using the Web100 varialbes.
+	  Options let you plot Duration vs CurCwnd, Duration vs CurRwinRcvd
+	  or you can specify a comma ',' separated list of variables.
+	  
+	  The '-t' flag controls the output format set and you get a text
+	  file output to stdout, not set and you get an xpl plot file.
+	  
+	  Updated src/Makefile.am file was updated to automatically build
+	  the genplot program
+
 2007-06-01 14:45  racarlson
 	
 	* src/testoptions.c, ChangeLog:  Removed extra calls to 
 	  web100_connection_from_socket().  Still a possible bug
 	  somewhere, but for now it returns the correct connection data.
 	  Changed thread loop timer to record a snaplog entry every 5msec.
-
 
 2007-05-31 18:50  jslawins
 
@@ -55,7 +142,6 @@ Rich Carlson	6/7/02  Modified 10/17/06
 	  code works.
 	  
 	  Rich Carlson
-
 
 2007-05-29 20:31  jslawins
 
