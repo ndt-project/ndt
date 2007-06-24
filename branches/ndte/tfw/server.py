@@ -26,7 +26,8 @@ def serve1cli(ctrl, conn, addr):
                 if len(msg) > 0:
                     print msg
                     if msg.startswith('OPENED:'):
-                        ctrl.startTraffic(id, msg[7:])
+                        list = msg[7:].split('/')
+                        ctrl.startTraffic(id, list[0], list[1])
                 else:
                     break
     except:
@@ -329,8 +330,8 @@ class TFW(wx.Frame):
             host, cookie = self.tree.GetNextChild(self.root, cookie)
         self.statusBar(1)
 
-    def startTraffic(self, id, port):
-        print 'startTraffic(' + str(id) + ', ' + port + ')'
+    def startTraffic(self, id, hostname, port):
+        print 'startTraffic(' + str(id) + ', ' + hostname + ', ' + port + ')'
         host, cookie = self.tree.GetFirstChild(self.root)
         while host.IsOk():
             asHost = self.tree.GetPyData(host)
@@ -341,7 +342,7 @@ class TFW(wx.Frame):
                     if asTraffic.isValidClientAssigned():
                         if asTraffic.getAssignedClient() == id:
                             sendMsg(self.getClient(asHost.getAssignedClient())[0],
-                                    'TRAFFIC/'+str(self.getClient(id)[1][0])+'/'+port+'/'+str(asTraffic.getThroughput()))
+                                    'TRAFFIC/'+hostname+'/'+port+'/'+str(asTraffic.getThroughput()))
                     traffic, tcook = self.tree.GetNextChild(host, tcook)
             else:
                 print 'Warning: valid client not assigned to host: %s!' % (asHost.getName())

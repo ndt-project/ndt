@@ -8,9 +8,10 @@ from communication import *
 
 
 class TFWclient:
-    def __init__(self, host, port):
+    def __init__(self, host, port, paddr):
         self._host = host
         self._port = port
+        self._paddr = paddr
         self._working = 1
         self._threads = []
 
@@ -34,8 +35,8 @@ class TFWclient:
                 if msg == 'OPEN':
                     print 'opening...'
                     s = network.listen('::', None)
-                    sendMsg(self._sock, str('OPENED:'+str(s.getsockname()[1])))
-                    print 'accepting...'
+                    sendMsg(self._sock, str('OPENED:'+self._paddr+'/'+str(s.getsockname()[1])))
+                    print 'accepting... [' + self._paddr + ':' + str(s.getsockname()[1]) + ']'
                     conn, addr = s.accept()
                     print 'starting...'
                     # Start garbage thread
@@ -107,10 +108,10 @@ class TFWclient:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print "Usage:", sys.argv[0], "<host> <port>"
+    if len(sys.argv) != 4:
+        print "Usage:", sys.argv[0], "<host> <port> <publicaddr>"
         sys.exit()
-    client = TFWclient(sys.argv[1], sys.argv[2])
+    client = TFWclient(sys.argv[1], sys.argv[2], sys.argv[3])
     client.connect()
     client.logIn()
     client.operate()
