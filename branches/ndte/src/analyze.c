@@ -42,7 +42,6 @@ char buff[BUFFSIZE+1];
 int window = 64000;
 int randomize=0;
 char *rmt_host;
-double bwin, bwout;
 char *VarFileName=NULL;
 char *LogFileName=NULL;
 double avgrtt, loss, loss2, rttsec, bw, bw2, rwin, swin, cwin, speed;
@@ -298,8 +297,7 @@ void calculate()
     bad_cable = 1;
 
   /* test for Ethernet link (assume Fast E.) */
-  if ((spd < 9.5) && (spd > 3.0) && ((bwin/1000) < 9.5) &&
-      (loss < .01) && (order < .035) && (link > 0))
+  if ((spd < 9.5) && (spd > 3.0) && (loss < .01) && (order < .035) && (link > 0))
     link = 10;
 
   /* test for DSL/Cable modem link */
