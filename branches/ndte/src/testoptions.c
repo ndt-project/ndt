@@ -746,8 +746,18 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         sprintf(options->logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
-        if (options->snaplog)
-          snapArgs.log = web100_log_open_write(options->logname, conn, group);
+        if (options->snaplog) {
+            FILE* fp = fopen(get_logfile(),"a");
+            snapArgs.log = web100_log_open_write(options->logname, conn, group);
+            if (fp == NULL) {
+                log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
+            }
+            else {
+                log_println(1, "snaplog file: %s\n", options->logname);
+                fprintf(fp, "snaplog file: %s\n", options->logname);
+                fclose(fp);
+            }
+        }
       }
 
       /* Kludge way of nuking Linux route cache.  This should be done

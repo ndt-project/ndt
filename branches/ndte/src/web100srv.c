@@ -1508,8 +1508,8 @@ multi_client:
                   workerThreadId = 0;
               }
               else {
-                  log_println(1, "cputime trace file: %s", cputimelog);
-                  fprintf(fp, "cputime trace file: %s", cputimelog);
+                  log_println(1, "cputime trace file: %s\n", cputimelog);
+                  fprintf(fp, "cputime trace file: %s\n", cputimelog);
               }
           }
           I2AddrFree(tmp_addr);
