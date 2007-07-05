@@ -797,6 +797,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
           pthread_mutex_lock(&mainmutex);
           workerLoop = 1;
+          web100_snap(snapArgs.snap);
+          web100_log_write(snapArgs.log, snapArgs.snap);
           pthread_cond_wait(&maincond, &mainmutex);
           pthread_mutex_unlock(&mainmutex);
       }
