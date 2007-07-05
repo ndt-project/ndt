@@ -150,7 +150,10 @@ plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
 
     fprintf(fn, "timeval double\ntitle\n");
     fprintf(fn, "%s:%s (%s)\n", title, remport, name);
-    fprintf(fn, "xlabel\nTime\nylabel\nKilo Bytes\n");
+    if ((strncmp(name, "Throughput", 10)) == 0) 
+    	fprintf(fn, "xlabel\nTime\nylabel\nMbits/sec\n");
+    else
+    	fprintf(fn, "xlabel\nTime\nylabel\nKilo Bytes\n");
 
     x1 = x2 = 0;
     for (i=0; i<32; i++) {
@@ -446,7 +449,7 @@ throughput(const int arg, const int value)
         printf("%10d\t", value);
     }
     else { /* DataBytesOut */
-        printf("%10.2f", (((double) value) / ((double) duration)) * 1000000.0 / 1024.0);
+        printf("%10.2f", ((8*((double) value)) / ((double) duration)) * 1000000.0 / 1024.0 / 1024.0);
     }
 }
 
