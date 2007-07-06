@@ -109,6 +109,14 @@ public class JAnalyze extends JFrame
             	result.parseRunAvg(line);
             	continue;
             }
+            if (line.startsWith("snaplog file:")) {
+            	result.parseSnaplogFilename(line);
+            	continue;
+            }
+            if (line.startsWith("cputime trace file:")) {
+            	result.parseCputimeFilename(line);
+            	continue;
+            }
             if (line.contains("port")) {
             	result = new ResultsContainer();
             	result.parsePort(line);

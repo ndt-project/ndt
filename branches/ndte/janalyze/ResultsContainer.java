@@ -12,7 +12,7 @@ public class ResultsContainer {
 	private double[] runave = new double[4];
 	private int[][] links = new int[4][16];
 	private int n = 0, m = 0, port;
-	private String date, ip_addr, ip_addr2, btlneck;
+	private String date, ip_addr, ip_addr2, btlneck, cputraceFilename, snaplogFilename;
 	private int s2c2spd, s2cspd, c2sspd;
 	private int timeouts, sumRTT, countRTT, pktsRetrans, fastRetrans,
 	            dataPktsOut, ackPktsOut, currentMSS, dupAcksIn, ackPktsIn,
@@ -68,6 +68,14 @@ public class ResultsContainer {
 		date = dateAndHost.substring(0, dateAndHost.lastIndexOf(" ")).trim();
 		ip_addr = dateAndHost.substring(dateAndHost.lastIndexOf(" ")).trim();
 		port = Integer.parseInt(line.substring(line.indexOf("port") + 5));
+	}
+
+	public void parseSnaplogFilename(String line) {
+		snaplogFilename = line.substring(14);
+	}
+
+	public void parseCputimeFilename(String line) {
+		cputraceFilename = line.substring(20);
 	}
 
 	public boolean parseWeb100Var(String line) {
@@ -490,6 +498,23 @@ public class ResultsContainer {
 		mismatchText += ", Cable fault = " + bad_cable + ", Congestion = " + congestion2 +
 				", Duplex = " + half_duplex + "\n";
 		panel.add(new JLabel(mismatchText));
+		panel.add(new JLabel(" "));
+		String snaplogText = "Snaplog file: ";
+		if (snaplogFilename != null) {
+			snaplogText += snaplogFilename;
+		}
+		else {
+			snaplogText += "N/A";
+		}
+		panel.add(new JLabel(snaplogText));
+		String cputraceText = "Cputime trace file: ";
+		if (cputraceFilename != null) {
+			cputraceText += cputraceFilename;
+		}
+		else {
+			cputraceText += "N/A";
+		}
+		panel.add(new JLabel(cputraceText));
 		return new JScrollPane(panel);
 	}
 }
