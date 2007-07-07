@@ -1,11 +1,30 @@
 import java.awt.Component;
+import java.awt.Color;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 import java.util.StringTokenizer;
+import java.util.Vector;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.File;
 
 import javax.swing.BoxLayout;
+import java.awt.BorderLayout;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JButton;
+import javax.swing.JFileChooser;
+import javax.swing.border.TitledBorder;
 
+import de.progra.charting.DefaultChart;
+import de.progra.charting.model.EditableChartDataModel;
+import de.progra.charting.render.LineChartRenderer;
+import de.progra.charting.swing.ChartPanel;
 
 public class ResultsContainer {
 	private double[] run_ave = new double[4];
@@ -417,7 +436,7 @@ public class ResultsContainer {
 	}
 
 	public Component getInfoPane() {
-		JPanel panel = new JPanel();
+		final JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 		panel.add(new JLabel("Client --> Server data detects link = " + describeDetLink(c2sdata)));
 		panel.add(new JLabel("Client <-- Server Ack's detect link = " + describeDetLink(c2sack)));
@@ -499,22 +518,101 @@ public class ResultsContainer {
 				", Duplex = " + half_duplex + "\n";
 		panel.add(new JLabel(mismatchText));
 		panel.add(new JLabel(" "));
-		String snaplogText = "Snaplog file: ";
+		JPanel tmpPanel = new JPanel();
+	        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
+		tmpPanel.setBorder(new TitledBorder("Snaplog file"));
 		if (snaplogFilename != null) {
-			snaplogText += snaplogFilename;
+			tmpPanel.add(new JLabel(snaplogFilename));
 		}
 		else {
-			snaplogText += "N/A";
+			JLabel tmpLabel = new JLabel("        N/A        ");
+			tmpLabel.setForeground(Color.RED);
+		        tmpPanel.add(tmpLabel);
 		}
-		panel.add(new JLabel(snaplogText));
-		String cputraceText = "Cputime trace file: ";
+		panel.add(tmpPanel);
+		tmpPanel = new JPanel();
+	        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
+		tmpPanel.setBorder(new TitledBorder("Cputime trace file"));
 		if (cputraceFilename != null) {
-			cputraceText += cputraceFilename;
+		        tmpPanel.add(new JLabel(cputraceFilename));
+			JButton viewButton = new JButton("View");
+			viewButton.addActionListener(new ActionListener()
+					{
+						public void actionPerformed(ActionEvent e) {
+    JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
+							BufferedReader br = null;
+							try {
+        br = new BufferedReader(new FileReader(cputraceFilename));
+							}
+							catch (FileNotFoundException exc) {
+                int returnVal = fc.showOpenDialog(panel);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                        File file = fc.getSelectedFile();
+                    try {
+                        br = new BufferedReader(new FileReader(file.getAbsolutePath()));
+                    }
+                    catch (Exception ex) {
+                        System.out.println("Loading of the cputime file: " + file.getAbsolutePath() + " failed!");
+                        ex.printStackTrace();
+			return;
+                    }
 		}
 		else {
-			cputraceText += "N/A";
+			return;
 		}
-		panel.add(new JLabel(cputraceText));
+							}
+        String line;
+	Vector<Double> time = new Vector<Double>();
+	Vector<Double> userTime = new Vector<Double>();
+	Vector<Double> systemTime = new Vector<Double>();
+	Vector<Double> cuserTime = new Vector<Double>();
+	Vector<Double> csystemTime = new Vector<Double>();
+	try {
+        while ((line = br.readLine()) != null) {
+		StringTokenizer st = new StringTokenizer(line.trim(), " ");
+		time.add(Double.parseDouble(st.nextToken()));
+		userTime.add(Double.parseDouble(st.nextToken()));
+		systemTime.add(Double.parseDouble(st.nextToken()));
+		cuserTime.add(Double.parseDouble(st.nextToken()));
+		csystemTime.add(Double.parseDouble(st.nextToken()));
+	}
+	br.close();
+	}
+	catch (IOException exc) {
+		exc.printStackTrace();
+		return;
+	}
+	double[][] model = new double[4][time.size()];
+	double[] columns = new double[time.size()];
+	for (int i = 0; i < time.size(); ++i) {
+                model[0][i] = userTime.elementAt(i);
+                model[1][i] = systemTime.elementAt(i);
+                model[2][i] = cuserTime.elementAt(i);
+                model[3][i] = csystemTime.elementAt(i);
+	        columns[i] = time.elementAt(i);
+        }
+	String[] rows = { "user time", "system time",
+		"user time of dead children", "system time of dead children" };
+	String title = "Cputime usage: " + ResultsContainer.this.toString();
+	EditableChartDataModel data = new EditableChartDataModel(model, columns, rows);
+        ChartPanel panel = new ChartPanel(data, title, DefaultChart.LINEAR_X_LINEAR_Y);
+        panel.addChartRenderer(new LineChartRenderer(panel.getCoordSystem(), data), 1);
+
+        JFrame frame = new JFrame(title);
+        frame.getContentPane().add(panel, BorderLayout.CENTER);
+        frame.setSize(800, 600);
+        frame.setVisible(true);
+						}
+					});
+			tmpPanel.add(viewButton);
+		}
+		else {
+			JLabel tmpLabel = new JLabel("            N/A            ");
+			tmpLabel.setForeground(Color.RED);
+		        tmpPanel.add(tmpLabel);
+		}
+		panel.add(tmpPanel);
 		return new JScrollPane(panel);
 	}
 }
