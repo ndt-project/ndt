@@ -435,6 +435,10 @@ public class ResultsContainer {
 		return date + " " + ip_addr + " " + port;
 	}
 
+    public String getIP() {
+        return ip_addr;
+    }
+
 	public Component getInfoPane() {
 		final JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));

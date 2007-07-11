@@ -33,9 +33,13 @@ public class JAnalyze extends JFrame
 	
 	JMenuBar menuBar = new JMenuBar();
     JMenu fileMenu = new JMenu("File");
+    JMenu optionsMenu = new JMenu("Options");
     JMenuItem exitMenuItem = new JMenuItem("Exit");
     JMenuItem loadMenuItem = new JMenuItem("Load");
+    JMenuItem filterMenuItem = new JMenuItem("Filter");
     final JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
+
+    FilterFrame filterFrame = null;
     
     JPanel listPanel = new JPanel();
     JPanel infoPanel = new JPanel();
@@ -47,7 +51,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.2");
+        setTitle("JAnalyze v0.3");
 
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
@@ -77,6 +81,17 @@ public class JAnalyze extends JFrame
         });
         fileMenu.add(exitMenuItem);
         menuBar.add(fileMenu);
+
+        filterMenuItem.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if (filterFrame == null) {
+                    filterFrame = new FilterFrame(JAnalyze.this, results);
+                }
+                filterFrame.setVisible(true);
+            }
+        });
+        optionsMenu.add(filterMenuItem);
+        menuBar.add(optionsMenu);
 
         setJMenuBar(menuBar);
         
@@ -136,13 +151,26 @@ public class JAnalyze extends JFrame
         }
         results.clear();
         results.addAll(newResults);
+        if (filterFrame != null) {
+            filterFrame.resultsChange();
+        }
+        rebuildResultsList();
+    }
+
+    void rebuildResultsList() {
         listPanel.removeAll();
         infoPanel.removeAll();
         fillListPanel();
     }
 
     private void fillListPanel() {    	
-    	final JList list = new JList(new ResultsList(results));
+    	final JList list;
+        if (filterFrame != null) {
+            list = new JList(new ResultsList(filterFrame.getResults()));
+        }
+        else {
+            list = new JList(new ResultsList(results));
+        }
     	list.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     	list.addMouseListener(new
     	        MouseAdapter() {
@@ -171,7 +199,7 @@ public class JAnalyze extends JFrame
     		}
     	});
     	JPanel tmpPanel = new JPanel();
-    	tmpPanel.add(new JLabel("Loaded results: " + results.size()));
+    	tmpPanel.add(new JLabel("Shown results: " + list.getModel().getSize() + "/" + results.size()));
     	listPanel.add(tmpPanel, BorderLayout.NORTH);
     	listPanel.add(new JScrollPane(list));
     	listPanel.revalidate();
