@@ -5,6 +5,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JComboBox;
 import javax.swing.border.TitledBorder;
 
 import java.util.Collection;
@@ -24,7 +25,10 @@ public class FilterFrame extends JFrame
     private Collection<ResultsContainer> results;
 
     private final Map<String, Integer> ips = new HashMap<String, Integer>();
+    private int mismatchFilter = 2;
+    private int cableFaultFilter = 2;
     private int congestionFilter = 2;
+    private int duplexFilter = 2;
 
     public FilterFrame(JAnalyze mainWindow, Collection<ResultsContainer> results) {
         this.mainWindow = mainWindow;
@@ -39,6 +43,14 @@ public class FilterFrame extends JFrame
     public Collection<ResultsContainer> getResults() {
         Collection<ResultsContainer> newResults = new Vector<ResultsContainer>();
         for (ResultsContainer result : results) {
+            if (mismatchFilter != 2 && result.getMismatch() != mismatchFilter)
+                continue;
+            if (cableFaultFilter != 2 && result.getCable() != cableFaultFilter)
+                continue;
+            if (congestionFilter != 2 && result.getCongestion() != congestionFilter)
+                continue;
+            if (duplexFilter != 2 && result.getDuplex() != duplexFilter)
+                continue;
             if (ips.get(result.getIP()).equals(1)) {
                 newResults.add(result);
             }
@@ -75,6 +87,7 @@ public class FilterFrame extends JFrame
             ipsPanel.add(checkBox);
         }
         cp.add(new JScrollPane(ipsPanel), BorderLayout.WEST);
+
         JPanel applyPanel = new JPanel();
         JButton applyButton = new JButton("Apply");
         applyButton.addActionListener( new ActionListener() {
@@ -84,6 +97,70 @@ public class FilterFrame extends JFrame
         });
         applyPanel.add(applyButton);
         cp.add(applyPanel, BorderLayout.SOUTH);
+
+        JPanel optPanel = new JPanel();
+        optPanel.setLayout(new BoxLayout(optPanel, BoxLayout.Y_AXIS));
+        String[] optStrings = {"no", "yes", "both"};
+
+        JComboBox mismatchBox = new JComboBox(optStrings);
+        mismatchBox.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                mismatchFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+            }
+        });
+
+        mismatchBox.setSelectedIndex(mismatchFilter);
+        JPanel horizontalPanel = new JPanel();
+        horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
+        horizontalPanel.add(new JLabel("Mismatch: "));
+        horizontalPanel.add(mismatchBox);
+        optPanel.add(horizontalPanel);
+
+        JComboBox cableFaultBox = new JComboBox(optStrings);
+        cableFaultBox.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                cableFaultFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+            }
+        });
+
+        cableFaultBox.setSelectedIndex(cableFaultFilter);
+        horizontalPanel = new JPanel();
+        horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
+        horizontalPanel.add(new JLabel("Cable fault: "));
+        horizontalPanel.add(cableFaultBox);
+        optPanel.add(horizontalPanel);
+
+        JComboBox congestionBox = new JComboBox(optStrings);
+        congestionBox.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                congestionFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+            }
+        });
+
+        congestionBox.setSelectedIndex(congestionFilter);
+        horizontalPanel = new JPanel();
+        horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
+        horizontalPanel.add(new JLabel("Congestion: "));
+        horizontalPanel.add(congestionBox);
+        optPanel.add(horizontalPanel);
+
+        JComboBox duplexBox = new JComboBox(optStrings);
+        duplexBox.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                duplexFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+            }
+        });
+
+        duplexBox.setSelectedIndex(duplexFilter);
+        horizontalPanel = new JPanel();
+        horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
+        horizontalPanel.add(new JLabel("Duplex: "));
+        horizontalPanel.add(duplexBox);
+        optPanel.add(horizontalPanel);
+
+        JPanel tmpPanel = new JPanel();
+        tmpPanel.add(new JScrollPane(optPanel));
+        cp.add(tmpPanel);
 
         validate();
         cp.repaint();

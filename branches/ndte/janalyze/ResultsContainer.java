@@ -439,6 +439,22 @@ public class ResultsContainer {
         return ip_addr;
     }
 
+    public int getCongestion() {
+        return congestion2;
+    }
+
+    public int getMismatch() {
+        return mismatch;
+    }
+
+    public int getDuplex() {
+        return half_duplex;
+    }
+
+    public int getCable() {
+        return bad_cable;
+    }
+
 	public Component getInfoPane() {
 		final JPanel panel = new JPanel();
 		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
