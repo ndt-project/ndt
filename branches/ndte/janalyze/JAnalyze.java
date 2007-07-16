@@ -103,7 +103,7 @@ public class JAnalyze extends JFrame
         cp.add(infoPanel);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(900, 550);
+        setSize(900, 700);
         setVisible(true);
     }
 

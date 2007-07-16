@@ -29,6 +29,7 @@ public class FilterFrame extends JFrame
     private int cableFaultFilter = 2;
     private int congestionFilter = 2;
     private int duplexFilter = 2;
+    private int newCongestionFilter = 2;
 
     public FilterFrame(JAnalyze mainWindow, Collection<ResultsContainer> results) {
         this.mainWindow = mainWindow;
@@ -50,6 +51,8 @@ public class FilterFrame extends JFrame
             if (congestionFilter != 2 && result.getCongestion() != congestionFilter)
                 continue;
             if (duplexFilter != 2 && result.getDuplex() != duplexFilter)
+                continue;
+            if (newCongestionFilter != 2 && result.getNewCongestion() != newCongestionFilter)
                 continue;
             if (ips.get(result.getIP()).equals(1)) {
                 newResults.add(result);
@@ -156,6 +159,20 @@ public class FilterFrame extends JFrame
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
         horizontalPanel.add(new JLabel("Duplex: "));
         horizontalPanel.add(duplexBox);
+        optPanel.add(horizontalPanel);
+
+        JComboBox newCongestionBox = new JComboBox(optStrings);
+        newCongestionBox.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                newCongestionFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+            }
+        });
+
+        newCongestionBox.setSelectedIndex(newCongestionFilter);
+        horizontalPanel = new JPanel();
+        horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
+        horizontalPanel.add(new JLabel("New congestion: "));
+        horizontalPanel.add(newCongestionBox);
         optPanel.add(horizontalPanel);
 
         JPanel tmpPanel = new JPanel();

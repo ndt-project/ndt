@@ -43,7 +43,7 @@ public class ResultsContainer {
     private int congestionSignals = -1, minRTT = -1, rcvWinScale = -1, autotune = -1,
             congAvoid = -1, congestionOverCount = 0, maxRTT = 0, otherReductions = 0,
             curTimeouts = 0, abruptTimeouts = 0, sendStall = 0, slowStart = 0,
-            subsequentTimeouts = 0, thruBytesAcked = 0;
+            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime;
     private int linkcnt, mismatch2, mismatch3;	
     private double idle, cpu_idle1 = -1, cpu_idle2 = -1, loss, loss2, order, bw, bw2;
     private double rwintime, cwndtime, sendtime, timesec;
@@ -54,6 +54,12 @@ public class ResultsContainer {
     private double retransec, mmorder;
     private int[] tail = new int[4];
     private int[] head = new int[4];
+
+        /* --- experimental congestion detection code --- */
+    int linkType, sspd, mspd;
+    double minrtt, ispd, n1, T1, lspd, n2, T2, teeth;
+    boolean limited, normalOperation;
+        /* ---------------------------------------------- */
 
     public void parseSpds(String line) {
         String spdsLine = line.substring(line.indexOf("'") + 1, line.lastIndexOf("'"));		
@@ -165,7 +171,7 @@ public class ResultsContainer {
     }
 
     public void calculate() {		
-        int i, j, totaltime;
+        int i, j;
         double k, rttsec, spd;
 
         tail[0] = tail[1] = tail[2] = tail[3] = 0;
@@ -410,6 +416,46 @@ public class ResultsContainer {
         //			System.out.print(" [H=H, S=F]");
         //		System.out.println(", Cable fault = " + bad_cable + ", Congestion = " + congestion2 +
         //				", Duplex = " + half_duplex + "\n");			      
+        				
+        /* --- experimental congestion detection code --- */
+
+        // 1) extract the bottleneck link type and the average & minimum RTT
+        // values.  (If min == 0 then set min = 1msec)
+
+        linkType = c2sdata < 1 ? 1 : c2sdata;
+        minrtt = minRTT <= 0 ? 1 : minRTT;
+
+        // 2) find the time required to overshoot link type
+
+        sspd = linkType;
+        ispd = currentMSS * 8 / avgrtt;
+        n1 = Math.log(sspd/ispd) / Math.log(2);
+        T1 = n1 * avgrtt;
+
+        // 3) find the number of teeth (assume single loss on overshoot)
+
+        mspd = linkType;
+        lspd = ((double) mspd) / 2.0;
+        // ispd = currentMSS * 8 / avgrtt;
+        n2 = lspd / ispd;
+        T2 = n2 * avgrtt;
+        teeth = totaltime / T2;
+
+        // 4) find out if the connection is buffer limited
+
+        limited = false;
+        if (currentRwinRcvd * 8 / avgrtt < linkType)
+            limited = true;
+
+        // 5)
+        if (Math.abs(teeth - congestionSignals) < 0.9 && !limited) {
+            normalOperation = true;
+        }
+        else {
+            normalOperation = false;
+        }
+
+        /* ---------------------------------------------- */
     }
 
     private String describeDetLink(int num) {		
@@ -453,6 +499,10 @@ public class ResultsContainer {
 
     public int getCable() {
         return bad_cable;
+    }
+
+    public int getNewCongestion() {
+        return normalOperation ? 0 : 1;
     }
 
     private void setLabelColor(JLabel label, int value) {
@@ -656,6 +706,42 @@ public class ResultsContainer {
             tmpPanel.add(tmpLabel);
         }
         panel.add(tmpPanel);
+
+        /* --- experimental congestion detection code --- */
+
+        panel.add(new JLabel(" "));
+        panel.add(new JLabel("--- experimental congestion detection code ---"));
+        panel.add(new JLabel(" "));
+
+        // 1) extract the bottleneck link type and the average & minimum RTT
+        // values.  (If min == 0 then set min = 1msec)
+        panel.add(new JLabel("1) Bottleneck link type = " + linkType +
+                    ", minimum RTT = " + Helpers.formatDouble(minrtt, 2) +
+                    ", average RTT = " + Helpers.formatDouble(avgrtt, 2)));
+
+        // 2) find the time required to overshoot link type
+        panel.add(new JLabel("2) sspd = " + sspd + ", ispd = " + Helpers.formatDouble(ispd, 2) +
+                    ", n1 = " + Helpers.formatDouble(n1, 2) + ", T1 = " + Helpers.formatDouble(T1, 2)));
+
+        // 3) find the number of teeth (assume single loss on overshoot)
+        panel.add(new JLabel("3) mspd = " + mspd + ", lspd = " + Helpers.formatDouble(lspd, 2) +
+                    ", ispd = " + Helpers.formatDouble(ispd, 2) +
+                    ", n2 = " + Helpers.formatDouble(n2, 2) + ", T2 = " + Helpers.formatDouble(T2, 2)));
+        panel.add(new JLabel("   teeth = " + Helpers.formatDouble(teeth, 2) +
+                    ", CongestionSignals = " + congestionSignals));
+
+        // 4) find out if the connection is buffer limited
+        panel.add(new JLabel("4) limited = " + limited));
+
+        // 5
+        if (normalOperation) {
+            panel.add(new JLabel("RESULT: normal operation"));
+        }
+        else {
+            panel.add(new JLabel("RESULT: something went wrong"));
+        }
+
+        /* ---------------------------------------------- */
         return new JScrollPane(panel);
     }
 }
