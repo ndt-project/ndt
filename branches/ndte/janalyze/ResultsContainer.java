@@ -56,7 +56,7 @@ public class ResultsContainer {
     private int[] head = new int[4];
 
         /* --- experimental congestion detection code --- */
-    int linkType, sspd, mspd;
+    double linkType, sspd, mspd;
     double minrtt, ispd, n1, T1, lspd, n2, T2, teeth;
     boolean limited, normalOperation;
         /* ---------------------------------------------- */
@@ -422,24 +422,24 @@ public class ResultsContainer {
         // 1) extract the bottleneck link type and the average & minimum RTT
         // values.  (If min == 0 then set min = 1msec)
 
-        linkType = c2sdata < 1 ? 1 : c2sdata;
+        linkType = decodeLinkSpeed(c2sdata) < 0 ? 1 : decodeLinkSpeed(c2sdata);
         minrtt = minRTT <= 0 ? 1 : minRTT;
 
         // 2) find the time required to overshoot link type
 
         sspd = linkType;
-        ispd = currentMSS * 8 / avgrtt;
+        ispd = (currentMSS * 8 / 1024.0) / avgrtt;
         n1 = Math.log(sspd/ispd) / Math.log(2);
         T1 = n1 * avgrtt;
 
         // 3) find the number of teeth (assume single loss on overshoot)
 
         mspd = linkType;
-        lspd = ((double) mspd) / 2.0;
+        lspd = mspd / 2.0;
         // ispd = currentMSS * 8 / avgrtt;
         n2 = lspd / ispd;
         T2 = n2 * avgrtt;
-        teeth = totaltime / T2;
+        teeth = (totaltime / 1000) / T2;
 
         // 4) find out if the connection is buffer limited
 
@@ -475,6 +475,22 @@ public class ResultsContainer {
             case 10: return "Retransmissions";
         }
         return "Unknown";
+    }
+
+    private double decodeLinkSpeed(int num) {
+        switch (num) {
+            case 1: return .064;
+            case 0:
+            case 2: return 3;
+            case 3: return 10;
+            case 4: return 45;
+            case 5: return 100;
+            case 6: return 622;
+            case 7: return 1000;
+            case 8: return 2400;
+            case 9: return 10000;
+        }
+        return -1;
     }
 
     public String toString() {
