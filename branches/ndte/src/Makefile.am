@@ -49,7 +49,7 @@ fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c \
-                    protocol.c test_sfw_srv.c
+                    protocol.c test_sfw_srv.c ndt_odbc.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'

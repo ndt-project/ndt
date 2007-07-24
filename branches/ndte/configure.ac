@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.4.1],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.4.2],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -63,6 +63,18 @@ else
     CFLAGS="$CFLAGS -DEXPERIMENTAL_ENABLED"
     AC_MSG_RESULT(yes)
 fi
+
+# Enabling/disabling database support
+AC_MSG_CHECKING(whether to enable database support)
+AC_ARG_ENABLE(database, [  --enable-database=[yes/no] turn on database support
+              [default=yes]],, enable_database=yes)
+if test "x$enable_database" = "xno"; then
+    AC_MSG_RESULT(no)
+else
+    CFLAGS="$CFLAGS -DDATABASE_ENABLED"
+    AC_MSG_RESULT(yes)
+fi
+
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
@@ -142,16 +154,27 @@ AC_CHECK_LIB([pcap], [pcap_open_live],
                INCLUDED_PCAPLIB=""
                ])
 
+AC_CHECK_LIB([odbc], [SQLDriverConnect],
+             [
+              LINKED_ODBCLIB="-lodbc"
+              AC_DEFINE(HAVE_ODBC, 1, [Define to 1 if you have the 'odbc' library (-lodbc).])
+              ],
+              [
+               LINKED_ODBCLIB=""
+               ])
+
+
 NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
 AC_SUBST(LINKED_WEB100LIB)
 AC_SUBST(INCLUDED_WEB100LIB)
 AC_SUBST(LINKED_PCAPLIB)
 AC_SUBST(INCLUDED_PCAPLIB)
+AC_SUBST(LINKED_ODBCLIB)
 AC_SUBST(NDTINCS)
 AC_SUBST(NDTLDFLAGS)
 AC_SUBST(NDTLIBS)

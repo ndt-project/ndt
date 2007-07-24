@@ -81,6 +81,13 @@ srv_long_usage(char* info)
     printf("  --cputime              - enable the cputime writing\n");
     printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
 #endif
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+    printf(" Database support:\n\n");
+    printf("  --enableDBlogging      - enable the test results logging to the database\n");
+    printf("  --dbDSN                - specify the DSN to use (this doesn't enable DBlogging)\n");
+    printf("  --dbUIN                - specify the UIN to use (this doesn't enable DBlogging)\n");
+    printf("  --dbPWD                - specify the PWD to use (this doesn't enable DBlogging)\n\n");
+#endif
 #ifdef AF_INET6
     printf(" IP family:\n\n");
     printf("  -4, --ipv4             - use IPv4 addresses only\n");

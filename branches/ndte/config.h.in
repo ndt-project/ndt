@@ -61,6 +61,9 @@
 /* Define to 1 if you have the <net/ethernet.h> header file. */
 #undef HAVE_NET_ETHERNET_H
 
+/* Define to 1 if you have the 'odbc' library (-lodbc). */
+#undef HAVE_ODBC
+
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT
 

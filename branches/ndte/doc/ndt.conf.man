@@ -118,6 +118,9 @@ program to use old Duplex Mismatch heuristic. Replaces \fI-o\fR option.
 program should use the experimental throughput limiting code with the
 multiplication factor set to \fIvalue\fR. Replaces \fI-y\fR option.
 .PP
+\fBcputime\fR (3) - This boolean flag causes the \fBweb100srv\fR program
+to write cputime trace. Replaces \fI--cputime\fR option.
+.PP
 \fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR
 program to analyze the cwnd changes during the S2C test. Replaces
 \fI--avoidsndblockup\fR option.

@@ -80,6 +80,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "protocol.h"
 #include "web100-admin.h"
 #include "test_sfw.h"
+#include "ndt_odbc.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -110,6 +111,11 @@ int cputime = 0;
 char cputimelog[256];
 pthread_t workerThreadId;
 int workerLoop = 1;
+
+int useDB = 0;
+char *dbDSN=NULL;
+char *dbUID=NULL;
+char *dbPWD=NULL;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
@@ -164,6 +170,12 @@ static struct option long_options[] = {
   {"refresh", 1, 0, 'T'},
   {"adminfile", 1, 0, 'A'},
   {"logfacility", 1, 0, 'S'},
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+  {"enableDBlogging", 0, 0, 310},
+  {"dbDSN", 1, 0, 311},
+  {"dbUID", 1, 0, 312},
+  {"dbPWD", 1, 0, 313},
+#endif
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
@@ -444,6 +456,11 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     
     else if (strncasecmp(key, "old_mismatch", 3) == 0) {
       old_mismatch = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "cputime", 3) == 0) {
+      cputime = 1;
       continue;
     }
 
@@ -880,6 +897,17 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
         SubsequentTimeouts, ThruBytesAcked);
     fclose(fp);
   }
+  db_insert(date, rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
+          SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
+          AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
+          Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
+          DataBytesOut, SndLimTransRwin, SndLimTransCwnd, SndLimTransSender,
+          MaxSsthresh, CurrentRTO, CurrentRwinRcvd, link, mismatch,
+          bad_cable, half_duplex, congestion, c2sdata, c2sack, s2cdata,
+          s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
+          autotune, CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
+          CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
+          SubsequentTimeouts, ThruBytesAcked);
   if (usesyslog == 1) {
     sprintf(logstr1,"client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
         rmt_host, s2cspd, c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
@@ -1103,6 +1131,18 @@ main(int argc, char** argv)
       case 309:
         cputime = 1;
         break;
+      case 310:
+        useDB = 1;
+        break;
+      case 311:
+        dbDSN = optarg;
+        break;
+      case 312:
+        dbUID = optarg;
+        break;
+      case 313:
+        dbPWD = optarg;
+        break;
       case 'T':
         refresh = atoi(optarg);
         break;
@@ -1172,6 +1212,8 @@ main(int argc, char** argv)
     log_println(1, "\tSyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
   }
   log_println(1, "\tDebug level set to %d", debug);
+
+  initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
   memset(&new, 0, sizeof(new));
   new.sa_handler = cleanup;
