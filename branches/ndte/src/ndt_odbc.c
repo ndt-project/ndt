@@ -20,10 +20,22 @@
 SQLHENV env;
 SQLHDBC dbc;
 SQLHSTMT stmt = NULL;
-char* createTableStmt = "CREATE TABLE ndt_test_results ("
+char* ctStmt_1 = "CREATE TABLE ndt_test_results ("
+                          "spds1 TEXT,"
+                          "spds2 TEXT,"
+                          "spds3 TEXT,"
+                          "spds4 TEXT,"
+                          "runave1 FLOAT,"
+                          "runave2 FLOAT,"
+                          "runave3 FLOAT,"
+                          "runave4 FLOAT,"
+                          "cputimelog TEXT,"
+                          "snaplog TEXT,"
+                          "hostName TEXT,"
+                          "testPort INT,"
                           "date TEXT,"
-                          "rmt_host TEXT,"
-                          "s2c2spd INT,"
+                          "rmt_host TEXT,";
+char* ctStmt_2 = "s2c2spd INT,"
                           "s2cspd INT,"
                           "c2sspd INT,"
                           "Timeouts INT,"
@@ -38,8 +50,8 @@ char* createTableStmt = "CREATE TABLE ndt_test_results ("
                           "AckPktsIn INT,"
                           "MaxRwinRcvd INT,"
                           "Sndbuf INT,"
-                          "MaxCwnd INT,"
-                          "SndLimTimeRwin INT,"
+                          "MaxCwnd INT,";
+char* ctStmt_3 = "SndLimTimeRwin INT,"
                           "SndLimTimeCwnd INT,"
                           "SndLimTimeSender INT,"
                           "DataBytesOut INT,"
@@ -54,8 +66,8 @@ char* createTableStmt = "CREATE TABLE ndt_test_results ("
                           "bad_cable INT,"
                           "half_duplex INT,"
                           "congestion INT,"
-                          "c2sdata INT,"
-                          "c2sack INT,"
+                          "c2sdata INT,";
+char* ctStmt_4 = "c2sack INT,"
                           "s2cdata INT,"
                           "s2cack INT,"
                           "CongestionSignals INT,"
@@ -74,6 +86,7 @@ char* createTableStmt = "CREATE TABLE ndt_test_results ("
                           "SubsequentTimeouts INT,"
                           "ThruBytesAcked INT"
                           ");";
+char createTableStmt[2048];
 
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
 static void
@@ -110,6 +123,7 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
         char loginstring[1024];
 
         log_println(1, "Initializing DB with DSN='%s', UID='%s', PWD=%s", dsn, uid, pwd ? "yes" : "no");
+        sprintf(createTableStmt, "%s%s%s%s", ctStmt_1, ctStmt_2, ctStmt_3, ctStmt_4);
 
         /* Allocate an environment handle */
         SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
@@ -200,7 +214,8 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
 }
 
 int
-db_insert(char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd, int Timeouts,
+db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, char* hostName, int testPort,
+        char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd, int Timeouts,
         int SumRTT, int CountRTT, int PktsRetrans, int FastRetran, int DataPktsOut,
         int AckPktsOut, int CurrentMSS, int DupAcksIn, int AckPktsIn, int MaxRwinRcvd,
         int Sndbuf, int MaxCwnd, int SndLimTimeRwin, int SndLimTimeCwnd, int SndLimTimeSender,
@@ -218,7 +233,10 @@ db_insert(char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd, int T
     if (!stmt) {
         return 1;
     }
-    snprintf(insertStmt, 2040, "INSERT INTO ndt_test_results VALUES ('%s','%s',%d,%d,%d,%d,"
+    snprintf(insertStmt, 2040, "INSERT INTO ndt_test_results VALUES ("
+            "'%s','%s','%s','%s',%f,%f,%f,%f,"
+            "'%s','%s','%s', %d,"
+            "'%s','%s',%d,%d,%d,%d,"
             "%d,%d,%d,%d,%d,"
             "%d,%d,%d,%d,%d,"
             "%d,%d,%d,%d,%d,"
@@ -230,6 +248,8 @@ db_insert(char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd, int T
             "%d,%d,%d,%d,"
             "%d,%d"
             ");",
+            spds[0], spds[1], spds[2], spds[3], runave[0], runave[1], runave[2], runave[3],
+            cputimelog, snaplog, hostName, testPort,
             date, rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
             SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
             AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
@@ -244,7 +264,7 @@ db_insert(char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd, int T
             );
         ret = SQLExecDirect(stmt, (unsigned char*) insertStmt, strlen(insertStmt));
         if (!SQL_SUCCEEDED(ret)) {
-            log_println(0, "  Failed to create table\n Continuing without DB logging");
+            log_println(0, "  Failed to insert test results into the table\n Continuing without DB logging");
             extract_error("SQLExecDirect", dbc, SQL_HANDLE_DBC);
             stmt = NULL;
             return 1;

@@ -140,6 +140,8 @@ float run_ave[4];
 int conn_options = 0;
 struct ndtchild *head_ptr;
 int ndtpid;
+int testPort;
+char testName[256];
 
 static struct option long_options[] = {
   {"adminview", 0, 0, 'a'},
@@ -632,7 +634,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   double s2c2spd;
   double spd;
   double acks, aspd = 0, tmouts, rtran, dack;
-  float runave;
+  float runave[4];
 
   FILE *fp;
 
@@ -697,7 +699,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   for (n=0; n<spd_index; n++) {
     sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d", &links[0],
         &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
-        &links[7], &links[8], &links[9], &links[10], &links[11], &runave,
+        &links[7], &links[8], &links[9], &links[10], &links[11], &runave[n],
         &inc_cnt, &dec_cnt, &same_cnt, &timeout, &dupack);
     max = 0;
     index = 0;
@@ -923,7 +925,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
         SubsequentTimeouts, ThruBytesAcked);
     fclose(fp);
   }
-  db_insert(date, rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
+  db_insert(spds, runave, cputimelog, options.logname, testName, testPort, date,
+          rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
           SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
           AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
           Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
@@ -1559,28 +1562,33 @@ multi_client:
           }
         }
 
+        {
+            I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
+            testPort = I2AddrPort(tmp_addr);
+            snprintf(testName, 250, "%s", name);
+            I2AddrFree(tmp_addr);
+            memset(cputimelog, 0, 256);
+            if (cputime) {
+                sprintf(cputimelog, "cputime.%s.%d", name, testPort);
+              if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
+                  log_println(0, "Cannot create worker thread for writing cpu usage!");
+                  workerThreadId = 0;
+                  memset(cputimelog, 0, 256);
+              }
+            }
+        }
         /* write the incoming connection data into the log file */
         fp = fopen(get_logfile(),"a");
         if (fp == NULL) {
           log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
         }
         else {
-          I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
           fprintf(fp,"%15.15s  %s port %d\n",
-              ctime(&tt)+4, name, I2AddrPort(tmp_addr));
-          if (cputime) {
-              memset(cputimelog, 0, 256);
-              sprintf(cputimelog, "cputime.%s.%d", name, I2AddrPort(tmp_addr));
-              if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
-                  log_println(0, "Cannot create worker thread for writing cpu usage!");
-                  workerThreadId = 0;
-              }
-              else {
-                  log_println(1, "cputime trace file: %s\n", cputimelog);
-                  fprintf(fp, "cputime trace file: %s\n", cputimelog);
-              }
+              ctime(&tt)+4, name, testPort);
+          if (cputime && workerThreadId) {
+              log_println(1, "cputime trace file: %s\n", cputimelog);
+              fprintf(fp, "cputime trace file: %s\n", cputimelog);
           }
-          I2AddrFree(tmp_addr);
           fclose(fp);
         }
         close(chld_pipe[0]);
