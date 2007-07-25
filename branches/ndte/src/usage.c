@@ -84,9 +84,9 @@ srv_long_usage(char* info)
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
     printf(" Database support:\n\n");
     printf("  --enableDBlogging      - enable the test results logging to the database\n");
-    printf("  --dbDSN                - specify the DSN to use (this doesn't enable DBlogging)\n");
-    printf("  --dbUIN                - specify the UIN to use (this doesn't enable DBlogging)\n");
-    printf("  --dbPWD                - specify the PWD to use (this doesn't enable DBlogging)\n\n");
+    printf("  --dbDSN #dsn           - specify the DSN to use (this doesn't enable DBlogging)\n");
+    printf("  --dbUID #uid           - specify the UID to use (this doesn't enable DBlogging)\n");
+    printf("  --dbPWD #pwd           - specify the PWD to use (this doesn't enable DBlogging)\n\n");
 #endif
 #ifdef AF_INET6
     printf(" IP family:\n\n");

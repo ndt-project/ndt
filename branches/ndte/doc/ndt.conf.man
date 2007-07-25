@@ -121,6 +121,19 @@ multiplication factor set to \fIvalue\fR. Replaces \fI-y\fR option.
 \fBcputime\fR (3) - This boolean flag causes the \fBweb100srv\fR program
 to write cputime trace. Replaces \fI--cputime\fR option.
 .PP
+\fBenableDBlogging\fR (8) - This boolean flag causes the \fBweb100srv\fR
+program to put the test results into the database. Replaces
+\fI--enableDBlogging\fR option.
+.PP
+\fBdbDSN\fR \fIdsn\fR (5) - This tag indicates that the parameter contains
+the DSN to use. Replaces \fI--dbDSN\fR option.
+.PP
+\fBdbUID\fR \fIuid\fR (5) - This tag indicates that the parameter contains
+the UID to use. Replaces \fI--dbUID\fR option.
+.PP
+\fBdbPWD\fR \fIpwd\fR (5) - This tag indicates that the parameter contains
+the PWD to use. Replaces \fI--dbPWD\fR option.
+.PP
 \fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR
 program to analyze the cwnd changes during the S2C test. Replaces
 \fI--avoidsndblockup\fR option.

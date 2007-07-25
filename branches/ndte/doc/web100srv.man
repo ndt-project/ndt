@@ -205,6 +205,18 @@ Note, that this automatically enables 'snaplog' option.
 \fB\--cputime\fR
 Enable the experimental cputime writing.
 .TP
+\fB\--enableDBlogging\fR
+Enable the test results logging to the database.
+.TP
+\fB\--dbDSN\fR \fIdsn\fR
+Specify the DSN to use.
+.TP
+\fB\--dbUID\fR \fIuid\fR
+Specify the UID to use.
+.TP
+\fB\--dbPWD\fR \fIpwd\fR
+Specify the PWD to use.
+.TP
 \fB\-b, --buffer\fR \fIbuffer_size\fR
 This option allows the \fBNDT\fR administrator to set the TCP send
 and receive buffer sizes via the \fBsetsockopt(2)\fR function. 

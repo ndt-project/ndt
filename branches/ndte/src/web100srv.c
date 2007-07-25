@@ -88,6 +88,9 @@ static char apfn[256];
 static char slfa[256];
 static char portbuf[10];
 static char devicebuf[100];
+static char dbDSNbuf[256];
+static char dbUIDbuf[256];
+static char dbPWDbuf[256];
 
 /* list of global variables used throughout this program. */
 int window = 64000;
@@ -113,9 +116,9 @@ pthread_t workerThreadId;
 int workerLoop = 1;
 
 int useDB = 0;
-char *dbDSN=NULL;
-char *dbUID=NULL;
-char *dbPWD=NULL;
+char* dbDSN = NULL;
+char* dbUID = NULL;
+char* dbPWD = NULL;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
@@ -461,6 +464,29 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 
     else if (strncasecmp(key, "cputime", 3) == 0) {
       cputime = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "enableDBlogging", 8) == 0) {
+      useDB = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "dbDSN", 5) == 0) {
+      snprintf(dbDSNbuf, 255, "%s", val);
+      dbDSN = dbDSNbuf;
+      continue;
+    }
+
+    else if (strncasecmp(key, "dbUID", 5) == 0) {
+      snprintf(dbUIDbuf, 255, "%s", val);
+      dbUID = dbUIDbuf;
+      continue;
+    }
+
+    else if (strncasecmp(key, "dbPWD", 5) == 0) {
+      snprintf(dbPWDbuf, 255, "%s", val);
+      dbPWD = dbPWDbuf;
       continue;
     }
 
