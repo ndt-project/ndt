@@ -27,6 +27,12 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Vector;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 public class JAnalyze extends JFrame
 {
 	private static final long serialVersionUID = 1L;
@@ -36,10 +42,13 @@ public class JAnalyze extends JFrame
     JMenu optionsMenu = new JMenu("Options");
     JMenuItem exitMenuItem = new JMenuItem("Exit");
     JMenuItem loadMenuItem = new JMenuItem("Load");
+    JMenuItem loadDBMenuItem = new JMenuItem("Load from DB");
     JMenuItem filterMenuItem = new JMenuItem("Filter");
+    JMenuItem dbConfMenuItem = new JMenuItem("DB conf");
     final JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
 
     FilterFrame filterFrame = null;
+    DBConfFrame dbConfFrame = new DBConfFrame(JAnalyze.this);
     
     JPanel listPanel = new JPanel();
     JPanel infoPanel = new JPanel();
@@ -51,7 +60,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.3");
+        setTitle("JAnalyze v0.4");
 
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
@@ -73,6 +82,14 @@ public class JAnalyze extends JFrame
             }
         });
         fileMenu.add(loadMenuItem);
+        loadDBMenuItem.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFrame loadingFrame = new LoadingDBFrame(JAnalyze.this); 
+                loadingFrame.setSize(150, 100);
+                loadingFrame.setVisible(true);
+            } 
+        });
+        fileMenu.add(loadDBMenuItem);
         fileMenu.addSeparator();
         exitMenuItem.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -91,6 +108,13 @@ public class JAnalyze extends JFrame
             }
         });
         optionsMenu.add(filterMenuItem);
+        dbConfMenuItem.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                dbConfFrame.setVisible(true);
+            }
+        });
+        optionsMenu.add(dbConfMenuItem);
+
         menuBar.add(optionsMenu);
 
         setJMenuBar(menuBar);
@@ -105,6 +129,44 @@ public class JAnalyze extends JFrame
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(900, 700);
         setVisible(true);
+    }
+    
+    protected void loadDB(LoadingDBFrame frame) throws SQLException
+    {
+        stopLoading = false;
+        try {
+            Class.forName ("com.mysql.jdbc.Driver").newInstance ();
+        }
+        catch (Exception e) {
+            System.out.println("Failed to load mysql jdbc driver: " + e.getMessage());
+        }
+        Connection con = DriverManager.getConnection(dbConfFrame.getDSN(),
+                dbConfFrame.getUID(), dbConfFrame.getPWD());
+
+        Statement stmt = con.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM ndt_test_results;");
+        Collection<ResultsContainer> newResults = new Vector<ResultsContainer>();
+        while (!stopLoading && rs.next()) {
+            ResultsContainer result = new ResultsContainer();
+            try {
+              result.parseDBRow(rs);
+            }
+            catch (SQLException e) {
+                continue;
+            }
+            result.calculate();
+            newResults.add(result);
+            frame.loadedResult();
+        }
+        if (stopLoading) {
+        	return;
+        }
+        results.clear();
+        results.addAll(newResults);
+        if (filterFrame != null) {
+            filterFrame.resultsChange();
+        }
+        rebuildResultsList();
     }
 
     protected void loadWeb100srvLog(String filename, LoadingFrame frame) throws FileNotFoundException, IOException

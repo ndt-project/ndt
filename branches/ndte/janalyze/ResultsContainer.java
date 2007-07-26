@@ -21,6 +21,9 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.border.TitledBorder;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import de.progra.charting.DefaultChart;
 import de.progra.charting.model.EditableChartDataModel;
 import de.progra.charting.render.LineChartRenderer;
@@ -45,7 +48,7 @@ public class ResultsContainer {
             curTimeouts = 0, abruptTimeouts = 0, sendStall = 0, slowStart = 0,
             subsequentTimeouts = 0, thruBytesAcked = 0, totaltime;
     private int linkcnt, mismatch2, mismatch3;	
-    private double idle, cpu_idle1 = -1, cpu_idle2 = -1, loss, loss2, order, bw, bw2;
+    private double idle, loss, loss2, order, bw, bw2;
     private double rwintime, cwndtime, sendtime, timesec;
     private double recvbwd, cwndbwd, sendbwd;		  
     private int congestion2=0;		  
@@ -61,9 +64,80 @@ public class ResultsContainer {
     boolean limited, normalOperation;
         /* ---------------------------------------------- */
 
-    public void parseSpds(String line) {
-        String spdsLine = line.substring(line.indexOf("'") + 1, line.lastIndexOf("'"));		
-        StringTokenizer st = new StringTokenizer(spdsLine.trim(), " ");
+    public void parseDBRow(ResultSet rs) throws SQLException {
+        subParseSpds(rs.getString("spds1"));
+        subParseSpds(rs.getString("spds2"));
+        subParseSpds(rs.getString("spds3"));
+        subParseSpds(rs.getString("spds4"));
+        run_ave[0] = rs.getFloat("runave1");
+        run_ave[1] = rs.getFloat("runave2");
+        run_ave[2] = rs.getFloat("runave3");
+        run_ave[3] = rs.getFloat("runave4");
+        cputraceFilename = rs.getString("cputimelog");
+        if (cputraceFilename.length() == 0)
+            cputraceFilename = null;
+        snaplogFilename = rs.getString("snaplog");
+        if (snaplogFilename.length() == 0)
+            snaplogFilename = null;
+        ip_addr = rs.getString("hostName");
+        port = rs.getInt("testPort");
+        date = rs.getString("date");
+        ip_addr2 = rs.getString("rmt_host");
+        s2c2spd = rs.getInt("s2c2spd");
+        s2cspd = rs.getInt("s2cspd");
+        c2sspd = rs.getInt("c2sspd");
+        timeouts = rs.getInt("Timeouts");
+        sumRTT = rs.getInt("SumRTT");
+        countRTT = rs.getInt("CountRTT");
+        pktsRetrans = rs.getInt("PktsRetrans");
+        fastRetrans = rs.getInt("FastRetran");
+        dataPktsOut = rs.getInt("DataPktsOut");
+        ackPktsOut = rs.getInt("AckPktsOut");
+        currentMSS = rs.getInt("CurrentMSS");
+        dupAcksIn = rs.getInt("DupAcksIn");
+        ackPktsIn = rs.getInt("AckPktsIn");
+        maxRwinRcvd = rs.getInt("MaxRwinRcvd");
+        sndBuf = rs.getInt("Sndbuf");
+        currentCwnd = rs.getInt("MaxCwnd");
+        sndLimTimeRwin = rs.getInt("SndLimTimeRwin");
+        sndLimTimeCwnd = rs.getInt("SndLimTimeCwnd");
+        sndLimTimeSender = rs.getInt("SndLimTimeSender");
+        dataBytesOut = rs.getInt("DataBytesOut");
+        sndLimTransRwin = rs.getInt("SndLimTransRwin");
+        sndLimTransCwnd = rs.getInt("SndLimTransCwnd");
+        sndLimTransSender = rs.getInt("SndLimTransSender");
+        maxSsthresh = rs.getInt("MaxSsthresh");
+        currentRTO = rs.getInt("CurrentRTO");
+        currentRwinRcvd = rs.getInt("CurrentRwinRcvd");
+        link = rs.getInt("link");
+        mismatch = rs.getInt("mismatch");
+        bad_cable = rs.getInt("bad_cable");
+        half_duplex = rs.getInt("half_duplex");
+        congestion = rs.getInt("congestion");
+        c2sdata = rs.getInt("c2sdata");
+        c2sack = rs.getInt("c2sack");
+        s2cdata = rs.getInt("s2cdata");
+        s2cack = rs.getInt("s2cack");
+        congestionSignals = rs.getInt("CongestionSignals");
+        pktsOut = rs.getInt("PktsOut");
+        minRTT = rs.getInt("MinRTT");
+        rcvWinScale = rs.getInt("RcvWinScale");
+        autotune = rs.getInt("autotune");
+        congAvoid = rs.getInt("CongAvoid");
+        congestionOverCount = rs.getInt("CongestionOverCount");
+        maxRTT = rs.getInt("MaxRTT");
+        otherReductions = rs.getInt("OtherReductions");
+        curTimeouts = rs.getInt("CurTimeoutCount");
+        abruptTimeouts = rs.getInt("AbruptTimeouts");
+        sendStall = rs.getInt("SendStall");
+        slowStart = rs.getInt("SlowStart");
+        subsequentTimeouts = rs.getInt("SubsequentTimeouts");
+        thruBytesAcked = rs.getInt("ThruBytesAcked");
+
+    }
+
+    private void subParseSpds(String line) {
+        StringTokenizer st = new StringTokenizer(line, " ");
         linkcnt = 0;
         while (st.hasMoreTokens()) {
             String number = st.nextToken();
@@ -78,6 +152,12 @@ public class ResultsContainer {
             }			
         }		
         n++;
+
+    }
+
+    public void parseSpds(String line) {
+        String spdsLine = line.substring(line.indexOf("'") + 1, line.lastIndexOf("'"));		
+        subParseSpds(spdsLine.trim());
     }
 
     public void parseRunAvg(String line) {
@@ -161,8 +241,6 @@ public class ResultsContainer {
             slowStart = Integer.parseInt(st.nextToken());
             subsequentTimeouts = Integer.parseInt(st.nextToken());
             thruBytesAcked = Integer.parseInt(st.nextToken());
-            cpu_idle1 = Integer.parseInt(st.nextToken());
-            cpu_idle2 = Integer.parseInt(st.nextToken());
         }
         catch (Exception exc) {
             // do nothing			
