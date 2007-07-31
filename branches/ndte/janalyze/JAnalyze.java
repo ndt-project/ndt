@@ -135,7 +135,7 @@ public class JAnalyze extends JFrame
     {
         stopLoading = false;
         try {
-            Class.forName ("com.mysql.jdbc.Driver").newInstance ();
+            Class.forName (dbConfFrame.getDriver()).newInstance ();
         }
         catch (Exception e) {
             System.out.println("Failed to load mysql jdbc driver: " + e.getMessage());

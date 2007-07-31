@@ -24,7 +24,8 @@ public class DBConfFrame extends JFrame
 {
     private JAnalyze mainWindow;
     private static final long serialVersionUID = 1L;
-    private JTextField dsn = new JTextField(20);
+    private JTextField driver = new JTextField("com.mysql.jdbc.Driver", 20);
+    private JTextField dsn = new JTextField("jdbc:mysql://localhost/test", 20);
     private JTextField uid = new JTextField(20);
     private JPasswordField pwd = new JPasswordField(20);
 
@@ -35,6 +36,13 @@ public class DBConfFrame extends JFrame
         cp.setLayout(new BoxLayout(cp, BoxLayout.Y_AXIS));
         JPanel panel = new JPanel();
         JPanel tmpPanel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        panel.add(new JLabel("Driver:"));
+        panel.add(driver);
+        tmpPanel.add(panel);
+        cp.add(tmpPanel);
+        panel = new JPanel();
+        tmpPanel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("DSN:"));
         panel.add(dsn);
@@ -55,7 +63,11 @@ public class DBConfFrame extends JFrame
         tmpPanel.add(panel);
         cp.add(tmpPanel);
 
-        setSize(260, 130);
+        setSize(270, 150);
+    }
+
+    public String getDriver() {
+        return driver.getText();
     }
 
     public String getDSN() {
