@@ -17,6 +17,7 @@
 #include "ndt_odbc.h"
 #include "logging.h"
 
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
 SQLHENV env;
 SQLHDBC dbc;
 SQLHSTMT stmt = NULL;
@@ -88,7 +89,6 @@ char* ctStmt_4 = "c2sack INT,"
                           ");";
 char createTableStmt[2048];
 
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
 static void
 extract_error(char *fn, SQLHANDLE handle, SQLSMALLINT type)
 {
