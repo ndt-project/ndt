@@ -86,10 +86,13 @@ import javax.swing.text.DefaultStyledDocument;
 import javax.swing.text.BadLocationException;
 import javax.swing.JOptionPane;
 import javax.swing.BoxLayout;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.JComboBox;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.5.1";
+  private static final String VERSION = "5.5.2";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -114,57 +117,61 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
   private static final double VIEW_DIFF = 0.1;
   
-	JTextArea diagnosis, statistics;
+  JTextArea diagnosis, statistics;
   MyTextPane results;
-	String inresult, outresult, errmsg;
-	JButton startTest;
-	JButton disMiss, disMiss2;
-	JButton copy, copy2;
-	JButton deTails;
-	JButton sTatistics;
-	JButton mailTo;
+  String inresult, outresult, errmsg;
+  JButton startTest;
+  JButton disMiss, disMiss2;
+  JButton copy, copy2;
+  JButton deTails;
+  JButton sTatistics;
+  JButton mailTo;
   JButton options;
   JCheckBox defaultTest = new JCheckBox("Default tests"),
             preferIPv6 = new JCheckBox("prefer IPv6");
-	boolean Randomize, failed, cancopy;
-	URL location;
-	clsFrame f, ff, optionsFrame;
-	String s;
-	double t;
-	int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
-	int SACKEnabled, TimestampsEnabled, WinScaleRcvd;
-	int FastRetran, AckPktsOut, SmoothedRTT, CurrentCwnd, MaxCwnd;
-	int SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender;
-	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
-	int SumRTT, CountRTT, CurrentMSS, Timeouts, PktsRetrans;
-	int SACKsRcvd, DupAcksIn, MaxRwinRcvd, MaxRwinSent;
-	int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
-	int PktsOut, CongestionSignals, RcvWinScale;
-	int pkts, lth=8192, CurrentRTO;
-	int c2sData, c2sAck, s2cData, s2cAck;
-	// added for mailto url
-	protected URL targetURL;
-	private String TARGET1 = "U";
-	private String TARGET2 = "H";
-	String emailText;
-	double s2cspd, c2sspd, sc2sspd, ss2cspd;
+  JSpinner numOfTests = new JSpinner();
+  String[] delays = { "immediate", "1 min", "5 mins", "10 mins", "30 mins", "2 hours", "12 hours", "1 day" };
+  JComboBox delay = new JComboBox(delays);
+
+  boolean Randomize, failed, cancopy;
+  URL location;
+  clsFrame f, ff, optionsFrame;
+  String s;
+  double t;
+  int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
+  int SACKEnabled, TimestampsEnabled, WinScaleRcvd;
+  int FastRetran, AckPktsOut, SmoothedRTT, CurrentCwnd, MaxCwnd;
+  int SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender;
+  int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
+  int SumRTT, CountRTT, CurrentMSS, Timeouts, PktsRetrans;
+  int SACKsRcvd, DupAcksIn, MaxRwinRcvd, MaxRwinSent;
+  int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
+  int PktsOut, CongestionSignals, RcvWinScale;
+  int pkts, lth=8192, CurrentRTO;
+  int c2sData, c2sAck, s2cData, s2cAck;
+  // added for mailto url
+  protected URL targetURL;
+  private String TARGET1 = "U";
+  private String TARGET2 = "H";
+  String emailText;
+  double s2cspd, c2sspd, sc2sspd, ss2cspd;
   int ssndqueue;
   double sbytes;
 
-/*************************************************************************
- * Added by Seth Peery
- * Adds public variables to store upstream and downstream speeds in kbps
- */
-        public String downstream = "No data";
-        public String upstream = "No data";
-/************************************************************************/
+  /*************************************************************************
+   * Added by Seth Peery
+   * Adds public variables to store upstream and downstream speeds in kbps
+   */
+  public String downstream = "No data";
+  public String upstream = "No data";
+  /************************************************************************/
 
 
-	int half_duplex, congestion, bad_cable, mismatch;
-	double mylink;
-	double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
-	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
-	double aspd;
+  int half_duplex, congestion, bad_cable, mismatch;
+  double mylink;
+  double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
+  double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
+  double aspd;
 
   boolean isApplication = false;
   boolean testInProgress = false;
@@ -266,6 +273,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
     public void run()
     {
       if (!testInProgress) {
+        int testNo = 1;
+        int testsNum = ((Integer)numOfTests.getValue()).intValue();
         testInProgress = true;
         diagnose();
         statistics();
@@ -274,9 +283,63 @@ public class Tcpbw100 extends JApplet implements ActionListener
         sTatistics.setEnabled(false);
         mailTo.setEnabled(false);
         options.setEnabled(false);
+        numOfTests.setEnabled(false);
 
         try {
-          dottcp();
+            while (true) {
+                if (testsNum == 0) {
+                    results.append("\n** Starting test " + testNo + " **\n");
+                }
+                else {
+                    results.append("\n** Starting test " + testNo + " of " + testsNum + " **\n");
+                }
+                dottcp();
+                if (testNo == testsNum) {
+                    break;
+                }
+                testNo += 1;
+                deTails.setEnabled(true);
+                sTatistics.setEnabled(true);
+                mailTo.setEnabled(true);
+                options.setEnabled(true);
+                statistics.append("\n** Test " + testNo + " **\n");
+                diagnosis.append("\n** Test " + testNo + " **\n");
+                try {
+                    switch (delay.getSelectedIndex()) {
+                        case 1:
+                                results.append("\n** Sleeping for 1 min... **\n");
+                                Thread.sleep(1000 * 60);
+                                break;
+                        case 2:
+                                results.append("\n** Sleeping for 5 mins... **\n");
+                                Thread.sleep(1000 * 60 * 5);
+                                break;
+                        case 3:
+                                results.append("\n** Sleeping for 10 mins... **\n");
+                                Thread.sleep(1000 * 60 * 10);
+                                break;
+                        case 4:
+                                results.append("\n** Sleeping for 30 mins... **\n");
+                                Thread.sleep(1000 * 60 * 30);
+                                break;
+                        case 5:
+                                results.append("\n** Sleeping for 2 hours... **\n");
+                                Thread.sleep(1000 * 60 * 120);
+                                break;
+                        case 6:
+                                results.append("\n** Sleeping for 12 hours... **\n");
+                                Thread.sleep(1000 * 60 * 720);
+                                break;
+                        case 7:
+                                results.append("\n** Sleeping for 1 day... **\n");
+                                Thread.sleep(1000 * 60 * 1440);
+                                break;
+                    }
+                }
+                catch (InterruptedException e) {
+                    // do nothing.
+                }
+            }
         } catch(IOException e) {
           e.printStackTrace();
           failed=true;
@@ -291,6 +354,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
         sTatistics.setEnabled(true);
         mailTo.setEnabled(true);
         options.setEnabled(true);
+        numOfTests.setEnabled(true);
         showStatus("Tcpbw100 done");
         results.append("\nclick START to re-test\n");
         startTest.setEnabled(true);
@@ -2044,6 +2108,26 @@ public class Tcpbw100 extends JApplet implements ActionListener
       protocolPanel.add(preferIPv6);
       optionsPanel.add(protocolPanel);
 
+      JPanel generalPanel = new JPanel();
+      generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
+      generalPanel.setBorder(BorderFactory.createTitledBorder("General"));
+      JPanel tmpPanel = new JPanel();
+      tmpPanel.add(new JLabel("Number of tests:"));
+      SpinnerNumberModel model = new SpinnerNumberModel();
+      model.setMinimum(new Integer(0));
+      model.setValue(new Integer(1));
+      numOfTests.setModel(model);
+      numOfTests.setPreferredSize(new Dimension(60, 20));
+      tmpPanel.add(numOfTests);
+      generalPanel.add(tmpPanel);
+      tmpPanel = new JPanel();
+      tmpPanel.add(new JLabel("Delay between tests:"));
+      delay.setSelectedIndex(0);
+      tmpPanel.add(delay);
+      generalPanel.add(tmpPanel);
+
+      optionsPanel.add(generalPanel);
+
       optionsFrame.getContentPane().add(optionsPanel);      
       Panel buttons = new Panel();
       optionsFrame.getContentPane().add("South", buttons);
@@ -2062,7 +2146,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       optionsFrame.pack();
     }
-    optionsFrame.setResizable(true);
+    optionsFrame.setResizable(false);
     optionsFrame.setVisible(true);
   }
 
