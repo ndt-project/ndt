@@ -686,7 +686,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       ServerSocket srvSocket;
       try {
-        srvSocket = new ServerSocket(0);
+          SecurityManager security = System.getSecurityManager();
+          if (security != null) {
+              System.out.println("Asking security manager for listen permissions...");
+              security.checkListen(0);
+          }
+          srvSocket = new ServerSocket(0);
       }
       catch (Exception e) {
         e.printStackTrace();
