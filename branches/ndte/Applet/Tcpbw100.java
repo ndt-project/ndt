@@ -89,10 +89,11 @@ import javax.swing.BoxLayout;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JComboBox;
+import javax.swing.JProgressBar;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.5.2";
+  private static final String VERSION = "5.5.3";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -196,57 +197,63 @@ public class Tcpbw100 extends JApplet implements ActionListener
     return null;
   }
 
-	public void init() {
-		getContentPane().setLayout(new BorderLayout());
-		showStatus("Tcpbw100 ready");
-		failed = false ;
-		Randomize = false;
-		cancopy = false;
-    results = new MyTextPane();
-    results.append("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n");
-		results.setEditable(false);
-		getContentPane().add(new JScrollPane(results));
-		results.append("click START to begin\n");
-		Panel mPanel = new Panel();
-		startTest = new JButton("START");
-		startTest.addActionListener(this);
-		mPanel.add(startTest);
-		sTatistics = new JButton("Statistics");
-		sTatistics.addActionListener(this);
-    if (getParameter("disableStatistics") == null) {
-      mPanel.add(sTatistics);
-    }
-		sTatistics.setEnabled(false);
-		deTails = new JButton("More Details...");
-		deTails.addActionListener(this);
-    if (getParameter("disableDetails") == null) {
-      mPanel.add(deTails);
-    }
-		deTails.setEnabled(false);
-		mailTo = new JButton("Report Problem");
-		mailTo.addActionListener(this);
-    if (getParameter("disableMailto") == null) {
-      mPanel.add(mailTo);
-    }
-		mailTo.setEnabled(false);
-    options = new JButton("Options");
-    options.addActionListener(new ActionListener() {
-
-      public void actionPerformed(ActionEvent e) {
-        options.setEnabled(false);
-        showOptions();
-        options.setEnabled(true);
+  public void init() {
+      getContentPane().setLayout(new BorderLayout());
+      showStatus("Tcpbw100 ready");
+      failed = false ;
+      Randomize = false;
+      cancopy = false;
+      results = new MyTextPane();
+      results.append("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n");
+      results.setEditable(false);
+      getContentPane().add(new JScrollPane(results));
+      results.append("click START to begin\n");
+      Panel mPanel = new Panel();
+      startTest = new JButton("START");
+      startTest.addActionListener(this);
+      mPanel.add(startTest);
+      sTatistics = new JButton("Statistics");
+      sTatistics.addActionListener(this);
+      if (getParameter("disableStatistics") == null) {
+          mPanel.add(sTatistics);
       }
-      
-    });
-    if (getParameter("disableOptions") == null) {
-      mPanel.add(options);
-    }
-		getContentPane().add(BorderLayout.SOUTH, mPanel);
-    preferIPv6.setSelected(true);
-    defaultTest.setSelected(true);
-    defaultTest.setEnabled(false);
-	}
+      sTatistics.setEnabled(false);
+      deTails = new JButton("More Details...");
+      deTails.addActionListener(this);
+      if (getParameter("disableDetails") == null) {
+          mPanel.add(deTails);
+      }
+      deTails.setEnabled(false);
+      mailTo = new JButton("Report Problem");
+      mailTo.addActionListener(this);
+      if (getParameter("disableMailto") == null) {
+          mPanel.add(mailTo);
+      }
+      mailTo.setEnabled(false);
+      options = new JButton("Options");
+      options.addActionListener(new ActionListener() {
+
+          public void actionPerformed(ActionEvent e) {
+              options.setEnabled(false);
+              showOptions();
+              options.setEnabled(true);
+          }
+
+      });
+      if (getParameter("disableOptions") == null) {
+          mPanel.add(options);
+      }
+      getContentPane().add(BorderLayout.SOUTH, mPanel);
+      preferIPv6.setSelected(true);
+      defaultTest.setSelected(true);
+      defaultTest.setEnabled(false);
+      SpinnerNumberModel model = new SpinnerNumberModel();
+      model.setMinimum(new Integer(0));
+      model.setValue(new Integer(1));
+      numOfTests.setModel(model);
+      numOfTests.setPreferredSize(new Dimension(60, 20));
+      delay.setSelectedIndex(0);
+  }
 
   class MyTextPane extends JTextPane
   {
@@ -268,7 +275,67 @@ public class Tcpbw100 extends JApplet implements ActionListener
     }
   }
 
-	class TestWorker implements Runnable
+  class StatusPanel extends JPanel
+  {
+      private int _testNo;
+      private int _testsNum;
+      private boolean _stop = false;
+
+      private JLabel testNoLabel = new JLabel();
+      private JButton stopButton= new JButton("STOP");
+      private JProgressBar progressBar = new JProgressBar();
+
+      StatusPanel(int testsNum) {
+          this._testNo = 1;
+          this._testsNum = testsNum;
+
+          setTestNoLabelText();
+          add(testNoLabel);
+          progressBar.setMinimum(0);
+          progressBar.setMaximum(_testsNum);
+          progressBar.setValue(0);
+          progressBar.setStringPainted(true);
+          if (_testsNum == 0) {
+              progressBar.setString("");
+              progressBar.setIndeterminate(true);
+          }
+          else {
+              progressBar.setString("initialization...");
+          }
+          add(progressBar);
+          stopButton.addActionListener(new ActionListener() {
+
+              public void actionPerformed(ActionEvent e) {
+                  _stop = true;
+                  stopButton.setEnabled(false);
+              }
+
+          });
+          add(stopButton);
+      }
+
+      private void setTestNoLabelText() {
+          testNoLabel.setText("Test " + _testNo + " of " + _testsNum);
+      }
+
+      public boolean wantToStop() {
+          return _stop;
+      }
+
+      public void endTest() {
+          progressBar.setValue(_testNo);
+          _testNo++;
+          setTestNoLabelText();
+      }
+
+      public void setText(String text) {
+          if (!progressBar.isIndeterminate()) {
+              progressBar.setString(text);
+          }
+      }
+  }
+
+  class TestWorker implements Runnable
   {
     public void run()
     {
@@ -284,19 +351,31 @@ public class Tcpbw100 extends JApplet implements ActionListener
         mailTo.setEnabled(false);
         options.setEnabled(false);
         numOfTests.setEnabled(false);
+        StatusPanel sPanel = new StatusPanel(testsNum);
+		getContentPane().add(BorderLayout.NORTH, sPanel);
+        getContentPane().validate();
+        getContentPane().repaint();
 
         try {
             while (true) {
+                if (sPanel.wantToStop()) {
+                    break;
+                }
                 if (testsNum == 0) {
                     results.append("\n** Starting test " + testNo + " **\n");
                 }
                 else {
                     results.append("\n** Starting test " + testNo + " of " + testsNum + " **\n");
                 }
-                dottcp();
+                dottcp(sPanel);
                 if (testNo == testsNum) {
                     break;
                 }
+                if (sPanel.wantToStop()) {
+                    break;
+                }
+                sPanel.setText("");
+                sPanel.endTest();
                 testNo += 1;
                 deTails.setEnabled(true);
                 sTatistics.setEnabled(true);
@@ -359,6 +438,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
         results.append("\nclick START to re-test\n");
         startTest.setEnabled(true);
         testInProgress = false;
+		getContentPane().remove(sPanel);
+        getContentPane().validate();
+        getContentPane().repaint();
       }
     }
   }
@@ -955,7 +1037,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
     return false;
   }
 
-  public void dottcp() throws IOException {
+  public void dottcp(StatusPanel sPanel) throws IOException {
       Socket ctlSocket = null;
       if (!isApplication) {
           /*************************************************************************
@@ -1091,6 +1173,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
           int testId = Integer.parseInt(tokenizer.nextToken());
           switch (testId) {
               case TEST_MID:
+                  sPanel.setText("Middlebox");
                   if (test_mid(ctl)) {
                       results.append(errmsg);
                       results.append("Middlebox test FAILED!\n");
@@ -1098,6 +1181,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
                   }
                   break;
               case TEST_SFW:
+                  sPanel.setText("Simple firewall");
                   if (test_sfw(ctl)) {
                       results.append(errmsg);
                       results.append("Simple firewall test FAILED!\n");
@@ -1105,6 +1189,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
                   }
                   break;
               case TEST_C2S:
+                  sPanel.setText("C2S throughput");
                   if (test_c2s(ctl)) {
                       results.append(errmsg);
                       results.append("C2S throughput test FAILED!\n");
@@ -1112,6 +1197,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
                   }
                   break;
               case TEST_S2C:
+                  sPanel.setText("S2C throughput");
                   if (test_s2c(ctl, ctlSocket)) {
                       results.append(errmsg);
                       results.append("S2C throughput test FAILED!\n");
@@ -1125,6 +1211,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
           }
       }
 
+      sPanel.setText("Receiving results...");
       i = 0;
 
       try {  
@@ -2113,16 +2200,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
       generalPanel.setBorder(BorderFactory.createTitledBorder("General"));
       JPanel tmpPanel = new JPanel();
       tmpPanel.add(new JLabel("Number of tests:"));
-      SpinnerNumberModel model = new SpinnerNumberModel();
-      model.setMinimum(new Integer(0));
-      model.setValue(new Integer(1));
-      numOfTests.setModel(model);
-      numOfTests.setPreferredSize(new Dimension(60, 20));
       tmpPanel.add(numOfTests);
       generalPanel.add(tmpPanel);
       tmpPanel = new JPanel();
       tmpPanel.add(new JLabel("Delay between tests:"));
-      delay.setSelectedIndex(0);
       tmpPanel.add(delay);
       generalPanel.add(tmpPanel);
 
