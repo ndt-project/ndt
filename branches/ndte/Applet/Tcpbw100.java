@@ -93,7 +93,7 @@ import javax.swing.JProgressBar;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.5.3";
+  private static final String VERSION = "5.5.4";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -290,7 +290,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
           this._testsNum = testsNum;
 
           setTestNoLabelText();
-          add(testNoLabel);
+          if (getParameter("enableMultipleTests") != null) {
+              add(testNoLabel);
+          }
           progressBar.setMinimum(0);
           progressBar.setMaximum(_testsNum);
           progressBar.setValue(0);
@@ -308,10 +310,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
               public void actionPerformed(ActionEvent e) {
                   _stop = true;
                   stopButton.setEnabled(false);
+                  StatusPanel.this.setText("Stopping...");
               }
 
           });
-          add(stopButton);
+          if (getParameter("enableMultipleTests") != null) {
+              add(stopButton);
+          }
       }
 
       private void setTestNoLabelText() {
@@ -1170,6 +1175,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
       StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
 
       while (tokenizer.hasMoreTokens()) {
+          if (sPanel.wantToStop()) {
+              ctl.send_msg(MSG_ERROR, "Manually stopped by the user".getBytes());
+              ctl.close();
+              ctlSocket.close();
+              errmsg = "\nThe tests were stopped!\n";
+              failed = true;
+              return;
+          }
           int testId = Integer.parseInt(tokenizer.nextToken());
           switch (testId) {
               case TEST_MID:
@@ -1209,6 +1222,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
                   failed = true;
                   return;
           }
+      }
+      if (sPanel.wantToStop()) {
+          ctl.send_msg(MSG_ERROR, "Manually stopped by the user".getBytes());
+          ctl.close();
+          ctlSocket.close();
+          errmsg = "The tests were stopped!\n";
+          failed = true;
+          return;
       }
 
       sPanel.setText("Receiving results...");
@@ -2195,19 +2216,21 @@ public class Tcpbw100 extends JApplet implements ActionListener
       protocolPanel.add(preferIPv6);
       optionsPanel.add(protocolPanel);
 
-      JPanel generalPanel = new JPanel();
-      generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
-      generalPanel.setBorder(BorderFactory.createTitledBorder("General"));
-      JPanel tmpPanel = new JPanel();
-      tmpPanel.add(new JLabel("Number of tests:"));
-      tmpPanel.add(numOfTests);
-      generalPanel.add(tmpPanel);
-      tmpPanel = new JPanel();
-      tmpPanel.add(new JLabel("Delay between tests:"));
-      tmpPanel.add(delay);
-      generalPanel.add(tmpPanel);
+      if (getParameter("enableMultipleTests") != null) {
+          JPanel generalPanel = new JPanel();
+          generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
+          generalPanel.setBorder(BorderFactory.createTitledBorder("General"));
+          JPanel tmpPanel = new JPanel();
+          tmpPanel.add(new JLabel("Number of tests:"));
+          tmpPanel.add(numOfTests);
+          generalPanel.add(tmpPanel);
+          tmpPanel = new JPanel();
+          tmpPanel.add(new JLabel("Delay between tests:"));
+          tmpPanel.add(delay);
+          generalPanel.add(tmpPanel);
 
-      optionsPanel.add(generalPanel);
+          optionsPanel.add(generalPanel);
+      }
 
       optionsFrame.getContentPane().add(optionsPanel);      
       Panel buttons = new Panel();
