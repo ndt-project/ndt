@@ -638,6 +638,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   FILE *fp;
 
+  web100_connection* conn;
+
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
 
@@ -646,7 +648,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
       spds[spd_index][ret] = 0x00;
   spd_index = 0;
 
-  autotune = web100_autotune(ctlsockfd, agent);
+  conn = web100_connection_from_socket(agent, ctlsockfd);
+  autotune = web100_autotune(ctlsockfd, agent, conn);
 
   sprintf(buff, "v%s", VERSION);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));

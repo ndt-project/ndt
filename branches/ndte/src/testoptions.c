@@ -197,6 +197,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   char listenmidport[10];
   int msgType;
   int msgLen;
+  web100_connection* conn;
   
   assert(ctlsockfd != -1);
   assert(agent);
@@ -280,7 +281,11 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
 
     buff[0] = '\0';
-    web100_middlebox(midfd, agent, buff);
+    if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
+        log_println(0, "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d", errno);
+        exit(-1);
+    }
+    web100_middlebox(midfd, agent, conn, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
@@ -405,6 +410,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     clilen = sizeof(cli_addr);
     recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
 
+    conn = web100_connection_from_socket(agent, recvsfd);
+
     if (getuid() == 0) {
       pipe(mon_pipe1);
       if ((mon_pid1 = fork()) == 0) {
@@ -435,7 +442,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
      */
 
     if (autotune > 0) 
-      web100_setbuff(recvsfd, agent, autotune);
+      web100_setbuff(recvsfd, agent, conn, autotune);
 
     /* ok, We are now read to start the throughput tests.  First
      * the client will stream data to the server for 10 seconds.
@@ -450,7 +457,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
         if (options->limit > 0) {
             log_print(1, "Setting Cwnd limit - ");
-            if ((conn = web100_connection_from_socket(agent, recvsfd)) != NULL) {
+            if (conn != NULL) {
                 log_println(1, "Got web100 connection pointer for recvsfd socket\n");
                 web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
                 web100_raw_read(yar, conn, yuff);
@@ -498,7 +505,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     /* get receiver side Web100 stats and write them to the log file */
     if (record_reverse == 1)
-      web100_get_data_recv(recvsfd, agent, count_vars);
+      web100_get_data_recv(recvsfd, agent, conn, count_vars);
     /* shutdown(recvsfd, SHUT_RD); */
     close(recvsfd);
     close(testOptions->c2ssockfd);
@@ -682,6 +689,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if (++j == 4)
         break;
     } 
+    conn = web100_connection_from_socket(agent, xmitsfd); 
 
     if (xmitsfd > 0) {
       if (getuid() == 0) {
@@ -712,9 +720,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
        */
 
       if (autotune > 0) 
-        web100_setbuff(xmitsfd, agent, autotune);
-
-      conn = web100_connection_from_socket(agent, xmitsfd); 
+        web100_setbuff(xmitsfd, agent, conn, autotune);
 
       /* experimental code, delete when finished */
       {
