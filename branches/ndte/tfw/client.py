@@ -75,7 +75,7 @@ class TFWclient:
         try:
             print 'reading...'
             while self._working:
-                data = conn.recv(4096)
+                data = conn.recv(65536)
                 if len(data) == 0:
                     break
         except:
@@ -89,16 +89,21 @@ class TFWclient:
     def worker(self, host, port, speed):
         socket = network.connect(host, port)
     
-        rspeed = float(int(speed) * 128)
+        rspeed = float(speed)
         
-        data = '12345678901234567890123456789012345678901234567890123456789012345678901234567890'
-        delay = 1.0 / (rspeed / 80.0)
+        data = '1234567890-=qwertyuiopsdfghjkl;zxcvbnm,QWERTYUIOPASDFGHJLZXCVBNM'
+        for i in range(10):
+            data += data
+        delay = 0.5 / (rspeed / 512.0)
         
         print 'delay:', delay
         
         while self._working:
+            back = time.time()
             socket.sendall(data)
-            time.sleep(delay)
+            back = time.time() - back
+            if (delay - back) > 0.0:
+                time.sleep(delay - back)
 
         print 'stop writing...'
         try:
