@@ -46,7 +46,7 @@ public class ResultsContainer {
     private int congestionSignals = -1, minRTT = -1, rcvWinScale = -1, autotune = -1,
             congAvoid = -1, congestionOverCount = 0, maxRTT = 0, otherReductions = 0,
             curTimeouts = 0, abruptTimeouts = 0, sendStall = 0, slowStart = 0,
-            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime;
+            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime, minPeek, maxPeek, peeks, realTeeth;
     private int linkcnt, mismatch2, mismatch3;	
     private double idle, loss, loss2, order, bw, bw2;
     private double rwintime, cwndtime, sendtime, timesec;
@@ -133,7 +133,9 @@ public class ResultsContainer {
         slowStart = rs.getInt("SlowStart");
         subsequentTimeouts = rs.getInt("SubsequentTimeouts");
         thruBytesAcked = rs.getInt("ThruBytesAcked");
-
+        minPeek = rs.getInt("minPeek");
+        maxPeek = rs.getInt("maxPeek");
+        peeks = rs.getInt("peeks");
     }
 
     private void subParseSpds(String line) {
@@ -241,6 +243,9 @@ public class ResultsContainer {
             slowStart = Integer.parseInt(st.nextToken());
             subsequentTimeouts = Integer.parseInt(st.nextToken());
             thruBytesAcked = Integer.parseInt(st.nextToken());
+            minPeek = Integer.parseInt(st.nextToken());
+            maxPeek = Integer.parseInt(st.nextToken());
+            peeks = Integer.parseInt(st.nextToken());
         }
         catch (Exception exc) {
             // do nothing			
@@ -526,7 +531,13 @@ public class ResultsContainer {
             limited = true;
 
         // 5)
-        if (Math.abs(teeth - congestionSignals) < 0.9 && !limited) {
+        if (peeks != -1) {
+            realTeeth = peeks;
+        }
+        else {
+            realTeeth = congestionSignals;
+        }
+        if (Math.abs(teeth - realTeeth) < 0.9 && !limited) {
             normalOperation = true;
         }
         else {
@@ -823,6 +834,9 @@ public class ResultsContainer {
                     ", n2 = " + Helpers.formatDouble(n2, 2) + ", T2 = " + Helpers.formatDouble(T2, 2)));
         panel.add(new JLabel("   teeth = " + Helpers.formatDouble(teeth, 2) +
                     ", CongestionSignals = " + congestionSignals));
+        if (peeks != -1) {
+            panel.add(new JLabel("   minPeek = " + minPeek + ", maxPeek = " + maxPeek + ", peeks = " + peeks));
+        }
 
         // 4) find out if the connection is buffer limited
         panel.add(new JLabel("4) limited = " + limited));
