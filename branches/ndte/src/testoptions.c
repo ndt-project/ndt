@@ -26,6 +26,12 @@ typedef struct snapArgs {
   int delay;
 } SnapArgs;
 
+typedef struct workerArgs {
+    SnapArgs* snapArgs;
+    web100_agent* agent;
+    CwndPeeks* peeks;
+} WorkerArgs;
+
 static int workerLoop = 0;
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
@@ -103,14 +109,17 @@ catch_s2c_alrm(int signo)
 void*
 snapWorker(void* arg)
 {
-    SnapArgs *snapArgs = (SnapArgs*) arg;
+    WorkerArgs *workerArgs = (WorkerArgs*) arg;
+    SnapArgs *snapArgs = workerArgs->snapArgs;
+    web100_agent* agent = workerArgs->agent;
+    CwndPeeks* peeks = workerArgs->peeks;
+
     double delay = ((double) snapArgs->delay) / 1000.0;
 
     while (1) {
         pthread_mutex_lock(&mainmutex);
         if (workerLoop) {
             pthread_mutex_unlock(&mainmutex);
-            web100_snap(snapArgs->snap);
             pthread_cond_broadcast(&maincond);
             break;
         }
@@ -125,6 +134,7 @@ snapWorker(void* arg)
             break;
         }
         web100_snap(snapArgs->snap);
+        findCwndPeeks(agent, peeks, snapArgs->snap);
         web100_log_write(snapArgs->log, snapArgs->snap);
         pthread_mutex_unlock(&mainmutex);
         mysleep(delay);
@@ -842,7 +852,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       s = t + 10.0;
 
       if (options->snaplog) {
-          if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &snapArgs)) {
+          WorkerArgs workerArgs;
+          workerArgs.snapArgs = &snapArgs;
+          workerArgs.agent = agent;
+          workerArgs.peeks = peeks;
+          if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &workerArgs)) {
               log_println(0, "Cannot create worker thread for writing snap log!");
               workerThreadId = 0;
           }
@@ -862,7 +876,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
             if (options->snaplog == 0) {
                 web100_snap(snapArgs.snap);
             }
-            findCwndPeeks(agent, peeks, snapArgs.snap);
             web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
             web100_snap_read(var, snapArgs.snap, tmpstr);
             SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
@@ -874,14 +887,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
                 c1++;
                 continue;
             }
-        }
-        else {
-            pthread_mutex_lock(&mainmutex);
-            if (options->snaplog == 0) {
-                web100_snap(snapArgs.snap);
-            }
-            findCwndPeeks(agent, peeks, snapArgs.snap);
-            pthread_mutex_unlock(&mainmutex);
         }
 
         n = write(xmitsfd, buff, RECLTH);
