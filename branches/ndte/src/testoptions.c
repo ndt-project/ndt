@@ -30,6 +30,7 @@ typedef struct workerArgs {
     SnapArgs* snapArgs;
     web100_agent* agent;
     CwndPeeks* peeks;
+    int writeSnap;
 } WorkerArgs;
 
 static int workerLoop = 0;
@@ -58,7 +59,6 @@ findCwndPeeks(web100_agent* agent, CwndPeeks* peeks, web100_snapshot* snap)
   web100_snap_read(var, snap, tmpstr);
   CurCwnd = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
 
-  printf("findCwndPeeks: CurCwnd=%d, prevCWNDval=%d\n", CurCwnd, prevCWNDval);
   if (slowStart) {
       if (CurCwnd < prevCWNDval) {
           slowStart = 0;
@@ -113,6 +113,7 @@ snapWorker(void* arg)
     SnapArgs *snapArgs = workerArgs->snapArgs;
     web100_agent* agent = workerArgs->agent;
     CwndPeeks* peeks = workerArgs->peeks;
+    int writeSnap = workerArgs->writeSnap;
 
     double delay = ((double) snapArgs->delay) / 1000.0;
 
@@ -135,7 +136,9 @@ snapWorker(void* arg)
         }
         web100_snap(snapArgs->snap);
         findCwndPeeks(agent, peeks, snapArgs->snap);
-        web100_log_write(snapArgs->log, snapArgs->snap);
+        if (writeSnap) {
+            web100_log_write(snapArgs->log, snapArgs->snap);
+        }
         pthread_mutex_unlock(&mainmutex);
         mysleep(delay);
     }
@@ -851,11 +854,12 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       t = secs();
       s = t + 10.0;
 
-      if (options->snaplog) {
+      {
           WorkerArgs workerArgs;
           workerArgs.snapArgs = &snapArgs;
           workerArgs.agent = agent;
           workerArgs.peeks = peeks;
+          workerArgs.writeSnap = options->snaplog;
           if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &workerArgs)) {
               log_println(0, "Cannot create worker thread for writing snap log!");
               workerThreadId = 0;
@@ -864,7 +868,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           pthread_mutex_lock(&mainmutex);
           workerLoop = 1;
           web100_snap(snapArgs.snap);
-          web100_log_write(snapArgs.log, snapArgs.snap);
+          if (options->snaplog) {
+              web100_log_write(snapArgs.log, snapArgs.snap);
+          }
           pthread_cond_wait(&maincond, &mainmutex);
           pthread_mutex_unlock(&mainmutex);
       }
@@ -873,9 +879,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         c3++;
         if (options->avoidSndBlockUp) {
             pthread_mutex_lock(&mainmutex);
-            if (options->snaplog == 0) {
-                web100_snap(snapArgs.snap);
-            }
             web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
             web100_snap_read(var, snapArgs.snap, tmpstr);
             SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
@@ -906,18 +909,16 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
       s = secs() - t;
       x2cspd = (8.e-3 * bytes) / s;
-      if (options->avoidSndBlockUp || options->snaplog) {
-        if (options->snaplog) {
-            if (workerThreadId) {
-                pthread_mutex_lock(&mainmutex);
-                workerLoop = 0;
-                pthread_mutex_unlock(&mainmutex);
-                pthread_join(workerThreadId, NULL);
-            }
-            web100_log_close_write(snapArgs.log);
-        }
-        web100_snapshot_free(snapArgs.snap);
+      if (workerThreadId) {
+          pthread_mutex_lock(&mainmutex);
+          workerLoop = 0;
+          pthread_mutex_unlock(&mainmutex);
+          pthread_join(workerThreadId, NULL);
       }
+      if (options->snaplog) {
+          web100_log_close_write(snapArgs.log);
+      }
+      web100_snapshot_free(snapArgs.snap);
       /* send the x2cspd to the client */
       sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
