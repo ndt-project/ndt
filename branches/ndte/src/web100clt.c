@@ -37,6 +37,7 @@ int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
 int winssent, winsrecv, msglvl=0;
 int sndqueue, ssndqueue, sbytes;
+int minPeek, maxPeek, peeks;
 double spdin, spdout, c2sspd, s2cspd;
 double aspd;
 
@@ -548,6 +549,12 @@ save_int_values(char *sysvar, int sysval)
     else
       RcvWinScale = sysval;
   }
+  else if(strcmp("minCWNDpeek:", sysvar) == 0)
+      minPeek = sysval;
+  else if(strcmp("maxCWNDpeek:", sysvar) == 0)
+      maxPeek = sysval;
+  else if(strcmp("CWNDpeeks:", sysvar) == 0)
+      peeks = sysval;
 }
 
 void

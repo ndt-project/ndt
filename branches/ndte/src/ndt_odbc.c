@@ -85,7 +85,10 @@ char* ctStmt_4 = "c2sack INT,"
                           "SendStall INT,"
                           "SlowStart INT,"
                           "SubsequentTimeouts INT,"
-                          "ThruBytesAcked INT"
+                          "ThruBytesAcked INT,"
+                          "minPeeks INT,"
+                          "maxPeeks INT,"
+                          "peeks INT"
                           ");";
 char createTableStmt[2048];
 
@@ -225,7 +228,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
         int s2cack, int CongestionSignals, int PktsOut, int MinRTT, int RcvWinScale,
         int autotune, int CongAvoid, int CongestionOverCount, int MaxRTT, int OtherReductions,
         int CurTimeoutCount, int AbruptTimeouts, int SendStall, int SlowStart,
-        int SubsequentTimeouts, int ThruBytesAcked)
+        int SubsequentTimeouts, int ThruBytesAcked, int minPeeks, int maxPeeks, int peeks)
 {
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
     SQLRETURN    ret;
@@ -246,7 +249,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
             "%d,%d,%d,%d,%d,"
             "%d,%d,%d,%d,%d,"
             "%d,%d,%d,%d,"
-            "%d,%d"
+            "%d,%d,%d,%d,%d"
             ");",
             spds[0], spds[1], spds[2], spds[3], runave[0], runave[1], runave[2], runave[3],
             cputimelog, snaplog, hostName, testPort,
@@ -260,7 +263,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
             s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
             autotune, CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
             CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
-            SubsequentTimeouts, ThruBytesAcked
+            SubsequentTimeouts, ThruBytesAcked, minPeeks, maxPeeks, peeks
             );
         ret = SQLExecDirect(stmt, (unsigned char*) insertStmt, strlen(insertStmt));
         if (!SQL_SUCCEEDED(ret)) {

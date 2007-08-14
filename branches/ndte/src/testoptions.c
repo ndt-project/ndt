@@ -29,6 +29,52 @@ typedef struct snapArgs {
 static int workerLoop = 0;
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
+static int slowStart = 1;
+static int prevCWNDval = -1;
+
+/**
+ * Function name: findCwndPeeks
+ * Description: Count the CWND peeks and record the minimal and maximum one.
+ * Arguments: agent - the Web100 agent used to track the connection
+ *            peeks - the structure containing CWND peeks information
+ *            snap - the web100 snapshot structure
+ */
+
+void
+findCwndPeeks(web100_agent* agent, CwndPeeks* peeks, web100_snapshot* snap)
+{
+  web100_group* group;
+  web100_var* var;
+  int CurCwnd;
+  char tmpstr[256];
+
+  web100_agent_find_var_and_group(agent, "CurCwnd", &group, &var);
+  web100_snap_read(var, snap, tmpstr);
+  CurCwnd = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+
+  printf("findCwndPeeks: CurCwnd=%d, prevCWNDval=%d\n", CurCwnd, prevCWNDval);
+  if (slowStart) {
+      if (CurCwnd < prevCWNDval) {
+          slowStart = 0;
+          peeks->max = prevCWNDval;
+          peeks->amount = 1;
+      }
+  }
+  else {
+      if (CurCwnd < prevCWNDval) {
+          if (prevCWNDval > peeks->max) {
+              peeks->max = prevCWNDval;
+          }
+          peeks->amount += 1;
+      }
+      else if (CurCwnd > prevCWNDval) {
+          if ((peeks->min == -1) || (prevCWNDval < peeks->min)) {
+              peeks->min = prevCWNDval;
+          }
+      }
+  }
+  prevCWNDval = CurCwnd;
+}
 
 /*
  * Function name: catch_s2c_alrm
@@ -573,7 +619,7 @@ read3:
 int
 test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd,
     int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256],
-    int* spd_index, int count_vars)
+    int* spd_index, int count_vars, CwndPeeks* peeks)
 {
   int largewin=16*1024*1024;
   int ret, j, k, n;
@@ -743,7 +789,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       }
       /* End of test code */
 
-      if (options->avoidSndBlockUp || options->snaplog) {
+      {
         I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
         char namebuf[200];
         size_t nameBufLen = 199;
@@ -816,6 +862,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
             if (options->snaplog == 0) {
                 web100_snap(snapArgs.snap);
             }
+            findCwndPeeks(agent, peeks, snapArgs.snap);
             web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
             web100_snap_read(var, snapArgs.snap, tmpstr);
             SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
@@ -827,6 +874,14 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
                 c1++;
                 continue;
             }
+        }
+        else {
+            pthread_mutex_lock(&mainmutex);
+            if (options->snaplog == 0) {
+                web100_snap(snapArgs.snap);
+            }
+            findCwndPeeks(agent, peeks, snapArgs.snap);
+            pthread_mutex_unlock(&mainmutex);
         }
 
         n = write(xmitsfd, buff, RECLTH);

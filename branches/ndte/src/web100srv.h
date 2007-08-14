@@ -66,6 +66,12 @@
 #define PORT3 "3003"
 #define PORT4 "3003"
 
+typedef struct CwndPeeks {
+    int min;
+    int max;
+    int amount;
+} CwndPeeks;
+
 typedef struct options {
     u_int32_t limit;
     int snapDelay;

@@ -110,6 +110,7 @@ int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
 
 Options options;
+CwndPeeks peeks;
 int cputime = 0;
 char cputimelog[256];
 pthread_t workerThreadId;
@@ -693,7 +694,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   alarm(30);
   if (test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, &options, spds, &spd_index, count_vars)) {
+      device, &options, spds, &spd_index, count_vars, &peeks)) {
       log_println(0, "S2C throughput test FAILED!");
       testopt.s2copt = TOPT_DISABLED;
   }
@@ -903,6 +904,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
       cwin, rttsec, Sndbuf, aspd, s2c2spd);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
+  sprintf(buff, "minCWNDpeek: %d\nmaxCWNDpeek: %d\nCWNDpeeks: %d\n", peeks.min, peeks.max, peeks.amount);
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+
   send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
   fp = fopen(get_logfile(),"a");
@@ -923,9 +927,10 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
         link, mismatch, bad_cable, half_duplex, congestion);
     fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
         CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
-    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", CongAvoid, CongestionOverCount, MaxRTT, 
+    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
         OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
         SubsequentTimeouts, ThruBytesAcked);
+    fprintf(fp, ",%d,%d,%d\n", peeks.min, peeks.max, peeks.amount);
     fclose(fp);
   }
   db_insert(spds, runave, cputimelog, options.logname, testName, testPort, date,
@@ -939,7 +944,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
           s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
           autotune, CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
           CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
-          SubsequentTimeouts, ThruBytesAcked);
+          SubsequentTimeouts, ThruBytesAcked, peeks.min, peeks.max, peeks.amount);
   if (usesyslog == 1) {
     sprintf(logstr1,"client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
         rmt_host, s2cspd, c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
@@ -1009,6 +1014,9 @@ main(int argc, char** argv)
   options.snaplog = 0;
   options.cwndDecrease = 0;
   memset(options.logname, 0, 128);
+  peeks.min = -1;
+  peeks.max = -1;
+  peeks.amount = -1;
 
   memset(&testopt, 0, sizeof(testopt));
 
