@@ -46,7 +46,8 @@ public class ResultsContainer {
     private int congestionSignals = -1, minRTT = -1, rcvWinScale = -1, autotune = -1,
             congAvoid = -1, congestionOverCount = 0, maxRTT = 0, otherReductions = 0,
             curTimeouts = 0, abruptTimeouts = 0, sendStall = 0, slowStart = 0,
-            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime, minPeek, maxPeek, peeks, realTeeth;
+            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime,
+            minPeek = -1, maxPeek = -1, peeks = -1, realTeeth;
     private int linkcnt, mismatch2, mismatch3;	
     private double idle, loss, loss2, order, bw, bw2;
     private double rwintime, cwndtime, sendtime, timesec;
@@ -522,7 +523,7 @@ public class ResultsContainer {
         // ispd = currentMSS * 8 / avgrtt;
         n2 = lspd / ispd;
         T2 = n2 * avgrtt;
-        teeth = (totaltime / 1000) / T2;
+        teeth = (((totaltime / 1000) - T1) / T2) + 1;
 
         // 4) find out if the connection is buffer limited
 
@@ -537,7 +538,7 @@ public class ResultsContainer {
         else {
             realTeeth = congestionSignals;
         }
-        if (Math.abs(teeth - realTeeth) < 0.9 && !limited) {
+        if (Math.abs((realTeeth/teeth) - 1.0) < (0.05 + (1.0/teeth)) && !limited) {
             normalOperation = true;
         }
         else {
@@ -843,10 +844,14 @@ public class ResultsContainer {
 
         // 5
         if (normalOperation) {
-            panel.add(new JLabel("RESULT: normal operation"));
+            JLabel tmpLabel = new JLabel("RESULT: normal operation");
+            tmpLabel.setForeground(Color.GREEN);
+            panel.add(tmpLabel);
         }
         else {
-            panel.add(new JLabel("RESULT: something went wrong"));
+            JLabel tmpLabel = new JLabel("RESULT: something went wrong");
+            tmpLabel.setForeground(Color.RED);
+            panel.add(tmpLabel);
         }
 
         /* ---------------------------------------------- */
