@@ -537,6 +537,57 @@ public class ResultsContainer {
         if (currentRwinRcvd * 8 / avgrtt < linkType)
             limited = true;
 
+        if (ssCurCwnd == -1) {
+            String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT", 0, true);
+            StringTokenizer st = new StringTokenizer(snaplogData);
+            boolean slowStart = true;
+            boolean decreasing = false;
+            int prevCWNDval = -1;
+            int CurCwnd = -1;
+            try {
+                while (st.hasMoreTokens()) {
+                    st.nextToken(); st.nextToken();
+                    CurCwnd = Integer.parseInt(st.nextToken());
+                    if (slowStart) {
+                        if (CurCwnd < prevCWNDval) {
+                            slowStart = false;
+                            maxPeak = prevCWNDval;
+                            minPeak = -1;
+                            peaks = 1;
+                            decreasing = true;
+                            st.nextToken();
+                        }
+                        else {
+                            ssCurCwnd = CurCwnd;
+                            ssSampleRTT = Integer.parseInt(st.nextToken());
+                        }
+                    }
+                    else {
+                        if (CurCwnd < prevCWNDval) {
+                            if (prevCWNDval > maxPeak) {
+                                maxPeak = prevCWNDval;
+                            }
+                            if (!decreasing) {
+                                peaks += 1;
+                            }
+                            decreasing = true;
+                        }
+                        else if (CurCwnd > prevCWNDval) {
+                            if ((minPeak == -1) || (prevCWNDval < minPeak)) {
+                                minPeak = prevCWNDval;
+                            }
+                            decreasing = false;
+                        }
+                        st.nextToken();
+                    }
+                    prevCWNDval = CurCwnd;
+                }
+            }
+            catch (Exception e) {
+                // do nothing
+            }
+        }
+
         // 5)
         if (peaks != -1) {
             realTeeth = peaks;
@@ -550,13 +601,6 @@ public class ResultsContainer {
         else {
             normalOperation = false;
         }
-
-        /* ---------------------------------------------- */
-        
-        /* --- read some values from the snaplog  --- */
-
-//        String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT");
-//        System.out.println("snaplogData=[" + snaplogData + "]");
 
         /* ---------------------------------------------- */
     }
@@ -729,23 +773,6 @@ public class ResultsContainer {
         setLabelColor(duplexLabel, half_duplex);
         panel.add(duplexLabel);
 
-        if (ssCurCwnd == -1) {
-            String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT", 100, true);
-            StringTokenizer st = new StringTokenizer(snaplogData);
-            int prevCWNDval = -1;
-            int CurCwnd = -1;
-            while (st.hasMoreTokens()) {
-                st.nextToken(); st.nextToken();
-                CurCwnd = Integer.parseInt(st.nextToken());
-                if (CurCwnd < prevCWNDval) {
-                    break;
-                }
-                ssCurCwnd = CurCwnd;
-                ssSampleRTT = Integer.parseInt(st.nextToken());
-                prevCWNDval = CurCwnd;
-            }
-        }
-
         panel.add(new JLabel(" "));
         JPanel tmpPanel = new JPanel();
         tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
@@ -894,8 +921,13 @@ public class ResultsContainer {
         }
 
         if (ssCurCwnd != -1) {
-            panel.add(new JLabel("   peak speed = " +
-                        Helpers.formatDouble((ssCurCwnd * 8.0 / 1000.0) / (ssSampleRTT * 1000000.0), 2) + " Mbps"));
+            double pSpeed = (ssCurCwnd * 8.0) / (ssSampleRTT * 1000000.0);
+            if (pSpeed < 1000.0) {
+                panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed, 4) + " kbps"));
+            }
+            else {
+                panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed / 1000.0, 4) + " Mbps"));
+            }
         }
 
 
