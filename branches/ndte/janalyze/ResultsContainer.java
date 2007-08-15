@@ -30,6 +30,7 @@ import de.progra.charting.render.LineChartRenderer;
 import de.progra.charting.swing.ChartPanel;
 
 public class ResultsContainer {
+    private JAnalyze mainWindow;
     private double[] run_ave = new double[4];
     private double[] runave = new double[4];
     private int[][] links = new int[4][16];
@@ -46,8 +47,7 @@ public class ResultsContainer {
     private int congestionSignals = -1, minRTT = -1, rcvWinScale = -1, autotune = -1,
             congAvoid = -1, congestionOverCount = 0, maxRTT = 0, otherReductions = 0,
             curTimeouts = 0, abruptTimeouts = 0, sendStall = 0, slowStart = 0,
-            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime,
-            minPeek = -1, maxPeek = -1, peeks = -1, realTeeth;
+            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime;
     private int linkcnt, mismatch2, mismatch3;	
     private double idle, loss, loss2, order, bw, bw2;
     private double rwintime, cwndtime, sendtime, timesec;
@@ -63,7 +63,12 @@ public class ResultsContainer {
     double linkType, sspd, mspd;
     double minrtt, ispd, n1, T1, lspd, n2, T2, teeth;
     boolean limited, normalOperation;
+    private int minPeak = -1, maxPeak = -1, peaks = -1, realTeeth, ssCurCwnd = -1, ssSampleRTT = -1;
         /* ---------------------------------------------- */
+
+    ResultsContainer(JAnalyze mainWindow) {
+        this.mainWindow = mainWindow;
+    }
 
     public void parseDBRow(ResultSet rs) throws SQLException {
         subParseSpds(rs.getString("spds1"));
@@ -134,9 +139,9 @@ public class ResultsContainer {
         slowStart = rs.getInt("SlowStart");
         subsequentTimeouts = rs.getInt("SubsequentTimeouts");
         thruBytesAcked = rs.getInt("ThruBytesAcked");
-        minPeek = rs.getInt("minPeek");
-        maxPeek = rs.getInt("maxPeek");
-        peeks = rs.getInt("peeks");
+        minPeak = rs.getInt("minPeak");
+        maxPeak = rs.getInt("maxPeak");
+        peaks = rs.getInt("peaks");
     }
 
     private void subParseSpds(String line) {
@@ -244,9 +249,9 @@ public class ResultsContainer {
             slowStart = Integer.parseInt(st.nextToken());
             subsequentTimeouts = Integer.parseInt(st.nextToken());
             thruBytesAcked = Integer.parseInt(st.nextToken());
-            minPeek = Integer.parseInt(st.nextToken());
-            maxPeek = Integer.parseInt(st.nextToken());
-            peeks = Integer.parseInt(st.nextToken());
+            minPeak = Integer.parseInt(st.nextToken());
+            maxPeak = Integer.parseInt(st.nextToken());
+            peaks = Integer.parseInt(st.nextToken());
         }
         catch (Exception exc) {
             // do nothing			
@@ -532,8 +537,8 @@ public class ResultsContainer {
             limited = true;
 
         // 5)
-        if (peeks != -1) {
-            realTeeth = peeks;
+        if (peaks != -1) {
+            realTeeth = peaks;
         }
         else {
             realTeeth = congestionSignals;
@@ -544,6 +549,13 @@ public class ResultsContainer {
         else {
             normalOperation = false;
         }
+
+        /* ---------------------------------------------- */
+        
+        /* --- read some values from the snaplog  --- */
+
+//        String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT");
+//        System.out.println("snaplogData=[" + snaplogData + "]");
 
         /* ---------------------------------------------- */
     }
@@ -716,12 +728,33 @@ public class ResultsContainer {
         setLabelColor(duplexLabel, half_duplex);
         panel.add(duplexLabel);
 
+        if (ssCurCwnd == -1) {
+            String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT", 100);
+            StringTokenizer st = new StringTokenizer(snaplogData);
+            int prevCWNDval = -1;
+            int CurCwnd = -1;
+            while (st.hasMoreTokens()) {
+                st.nextToken(); st.nextToken();
+                CurCwnd = Integer.parseInt(st.nextToken());
+                if (CurCwnd < prevCWNDval) {
+                    break;
+                }
+                ssCurCwnd = CurCwnd;
+                ssSampleRTT = Integer.parseInt(st.nextToken());
+                prevCWNDval = CurCwnd;
+            }
+        }
+
         panel.add(new JLabel(" "));
         JPanel tmpPanel = new JPanel();
         tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
         tmpPanel.setBorder(new TitledBorder("Snaplog file"));
         if (snaplogFilename != null) {
-            tmpPanel.add(new JLabel(snaplogFilename));
+            JLabel tmpLabel = new JLabel(snaplogFilename);
+            if (ssCurCwnd == -1) {
+                tmpLabel.setForeground(Color.RED);
+            }
+            tmpPanel.add(tmpLabel);
         }
         else {
             JLabel tmpLabel = new JLabel("        N/A        ");
@@ -835,9 +868,15 @@ public class ResultsContainer {
                     ", n2 = " + Helpers.formatDouble(n2, 2) + ", T2 = " + Helpers.formatDouble(T2, 2)));
         panel.add(new JLabel("   teeth = " + Helpers.formatDouble(teeth, 2) +
                     ", CongestionSignals = " + congestionSignals));
-        if (peeks != -1) {
-            panel.add(new JLabel("   minPeek = " + minPeek + ", maxPeek = " + maxPeek + ", peeks = " + peeks));
+        if (peaks != -1) {
+            panel.add(new JLabel("   minPeak = " + minPeak + ", maxPeak = " + maxPeak + ", peaks = " + peaks));
         }
+
+        if (ssCurCwnd != -1) {
+            panel.add(new JLabel("   peak speed = " +
+                        Helpers.formatDouble((ssCurCwnd * 8.0) / (ssSampleRTT * 1000000.0), 2)));
+        }
+
 
         // 4) find out if the connection is buffer limited
         panel.add(new JLabel("4) limited = " + limited));

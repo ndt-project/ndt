@@ -66,11 +66,11 @@
 #define PORT3 "3003"
 #define PORT4 "3003"
 
-typedef struct CwndPeeks {
+typedef struct CwndPeaks {
     int min;
     int max;
     int amount;
-} CwndPeeks;
+} CwndPeaks;
 
 typedef struct options {
     u_int32_t limit;

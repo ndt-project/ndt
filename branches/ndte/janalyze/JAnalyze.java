@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Vector;
@@ -44,11 +45,13 @@ public class JAnalyze extends JFrame
     JMenuItem loadMenuItem = new JMenuItem("Load");
     JMenuItem loadDBMenuItem = new JMenuItem("Load from DB");
     JMenuItem filterMenuItem = new JMenuItem("Filter");
+    JMenuItem snaplogMenuItem = new JMenuItem("Snaplogs");
     JMenuItem dbConfMenuItem = new JMenuItem("DB conf");
     final JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
 
     FilterFrame filterFrame = null;
-    DBConfFrame dbConfFrame = new DBConfFrame(JAnalyze.this);
+    DBConfFrame dbConfFrame = new DBConfFrame(this);
+    SnaplogFrame snaplogFrame = new SnaplogFrame(this);
     
     JPanel listPanel = new JPanel();
     JPanel infoPanel = new JPanel();
@@ -114,6 +117,12 @@ public class JAnalyze extends JFrame
             }
         });
         optionsMenu.add(dbConfMenuItem);
+        snaplogMenuItem.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                snaplogFrame.setVisible(true);
+            }
+        });
+        optionsMenu.add(snaplogMenuItem);
 
         menuBar.add(optionsMenu);
 
@@ -147,7 +156,7 @@ public class JAnalyze extends JFrame
         ResultSet rs = stmt.executeQuery("SELECT * FROM ndt_test_results;");
         Collection<ResultsContainer> newResults = new Vector<ResultsContainer>();
         while (!stopLoading && rs.next()) {
-            ResultsContainer result = new ResultsContainer();
+            ResultsContainer result = new ResultsContainer(this);
             try {
               result.parseDBRow(rs);
             }
@@ -175,7 +184,7 @@ public class JAnalyze extends JFrame
 //        System.out.println("Loading file: " + filename);
         BufferedReader br = new BufferedReader(new FileReader(filename));
         String line;
-        ResultsContainer result = new ResultsContainer();
+        ResultsContainer result = new ResultsContainer(this);
         Collection<ResultsContainer> newResults = new Vector<ResultsContainer>();
         while (!stopLoading && (line = br.readLine()) != null) {
             if (line.startsWith("spds")) {
@@ -195,7 +204,7 @@ public class JAnalyze extends JFrame
             	continue;
             }
             if (line.contains("port")) {
-            	result = new ResultsContainer();
+            	result = new ResultsContainer(this);
             	result.parsePort(line);
             	continue;
             }
@@ -217,6 +226,36 @@ public class JAnalyze extends JFrame
             filterFrame.resultsChange();
         }
         rebuildResultsList();
+    }
+
+    protected String getSnaplogData(String snaplogFilename, String variables, int numOfLines) {
+        String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-tm", variables,
+            snaplogFrame.getSnaplogs() + snaplogFilename};
+        Process genplotProcess;
+        try {
+            genplotProcess = Runtime.getRuntime().exec(cmdarray);
+        }
+        catch (IOException e) {
+            System.out.println(e);
+            return null;
+        }
+        BufferedReader in = new BufferedReader(new InputStreamReader(genplotProcess.getInputStream()));
+        String toReturn = "";
+        try {
+            int counter = 1;
+            in.readLine();in.readLine();in.readLine();
+            String line = in.readLine();
+            while (line != null && counter != numOfLines) {
+                toReturn += line + "\n";
+                line = in.readLine();
+                counter += 1;
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        genplotProcess.destroy();
+        return toReturn;
     }
 
     void rebuildResultsList() {

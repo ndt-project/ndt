@@ -20,6 +20,6 @@ int db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog
         int s2cack, int CongestionSignals, int PktsOut, int MinRTT, int RcvWinScale,
         int autotune, int CongAvoid, int CongestionOverCount, int MaxRTT, int OtherReductions,
         int CurTimeoutCount, int AbruptTimeouts, int SendStall, int SlowStart,
-        int SubsequentTimeouts, int ThruBytesAcked, int minPeeks, int maxPeeks, int peeks);
+        int SubsequentTimeouts, int ThruBytesAcked, int minPeaks, int maxPeaks, int peaks);
 
 #endif

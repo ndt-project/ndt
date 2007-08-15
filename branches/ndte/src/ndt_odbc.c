@@ -86,9 +86,9 @@ char* ctStmt_4 = "c2sack INT,"
                           "SlowStart INT,"
                           "SubsequentTimeouts INT,"
                           "ThruBytesAcked INT,"
-                          "minPeek INT,"
-                          "maxPeek INT,"
-                          "peeks INT"
+                          "minPeak INT,"
+                          "maxPeak INT,"
+                          "peaks INT"
                           ");";
 char createTableStmt[2048];
 
@@ -228,7 +228,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
         int s2cack, int CongestionSignals, int PktsOut, int MinRTT, int RcvWinScale,
         int autotune, int CongAvoid, int CongestionOverCount, int MaxRTT, int OtherReductions,
         int CurTimeoutCount, int AbruptTimeouts, int SendStall, int SlowStart,
-        int SubsequentTimeouts, int ThruBytesAcked, int minPeek, int maxPeek, int peeks)
+        int SubsequentTimeouts, int ThruBytesAcked, int minPeak, int maxPeak, int peaks)
 {
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
     SQLRETURN    ret;
@@ -263,7 +263,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
             s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
             autotune, CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
             CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
-            SubsequentTimeouts, ThruBytesAcked, minPeek, maxPeek, peeks
+            SubsequentTimeouts, ThruBytesAcked, minPeak, maxPeak, peaks
             );
         ret = SQLExecDirect(stmt, (unsigned char*) insertStmt, strlen(insertStmt));
         if (!SQL_SUCCEEDED(ret)) {

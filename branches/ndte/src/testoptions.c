@@ -29,7 +29,7 @@ typedef struct snapArgs {
 typedef struct workerArgs {
     SnapArgs* snapArgs;
     web100_agent* agent;
-    CwndPeeks* peeks;
+    CwndPeaks* peaks;
     int writeSnap;
 } WorkerArgs;
 
@@ -40,15 +40,15 @@ static int slowStart = 1;
 static int prevCWNDval = -1;
 
 /**
- * Function name: findCwndPeeks
- * Description: Count the CWND peeks and record the minimal and maximum one.
+ * Function name: findCwndPeaks
+ * Description: Count the CWND peaks and record the minimal and maximum one.
  * Arguments: agent - the Web100 agent used to track the connection
- *            peeks - the structure containing CWND peeks information
+ *            peaks - the structure containing CWND peaks information
  *            snap - the web100 snapshot structure
  */
 
 void
-findCwndPeeks(web100_agent* agent, CwndPeeks* peeks, web100_snapshot* snap)
+findCwndPeaks(web100_agent* agent, CwndPeaks* peaks, web100_snapshot* snap)
 {
   web100_group* group;
   web100_var* var;
@@ -62,20 +62,20 @@ findCwndPeeks(web100_agent* agent, CwndPeeks* peeks, web100_snapshot* snap)
   if (slowStart) {
       if (CurCwnd < prevCWNDval) {
           slowStart = 0;
-          peeks->max = prevCWNDval;
-          peeks->amount = 1;
+          peaks->max = prevCWNDval;
+          peaks->amount = 1;
       }
   }
   else {
       if (CurCwnd < prevCWNDval) {
-          if (prevCWNDval > peeks->max) {
-              peeks->max = prevCWNDval;
+          if (prevCWNDval > peaks->max) {
+              peaks->max = prevCWNDval;
           }
-          peeks->amount += 1;
+          peaks->amount += 1;
       }
       else if (CurCwnd > prevCWNDval) {
-          if ((peeks->min == -1) || (prevCWNDval < peeks->min)) {
-              peeks->min = prevCWNDval;
+          if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
+              peaks->min = prevCWNDval;
           }
       }
   }
@@ -112,7 +112,7 @@ snapWorker(void* arg)
     WorkerArgs *workerArgs = (WorkerArgs*) arg;
     SnapArgs *snapArgs = workerArgs->snapArgs;
     web100_agent* agent = workerArgs->agent;
-    CwndPeeks* peeks = workerArgs->peeks;
+    CwndPeaks* peaks = workerArgs->peaks;
     int writeSnap = workerArgs->writeSnap;
 
     double delay = ((double) snapArgs->delay) / 1000.0;
@@ -135,7 +135,7 @@ snapWorker(void* arg)
             break;
         }
         web100_snap(snapArgs->snap);
-        findCwndPeeks(agent, peeks, snapArgs->snap);
+        findCwndPeaks(agent, peaks, snapArgs->snap);
         if (writeSnap) {
             web100_log_write(snapArgs->log, snapArgs->snap);
         }
@@ -632,7 +632,7 @@ read3:
 int
 test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd,
     int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256],
-    int* spd_index, int count_vars, CwndPeeks* peeks)
+    int* spd_index, int count_vars, CwndPeaks* peaks)
 {
   int largewin=16*1024*1024;
   int ret, j, k, n;
@@ -858,7 +858,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           WorkerArgs workerArgs;
           workerArgs.snapArgs = &snapArgs;
           workerArgs.agent = agent;
-          workerArgs.peeks = peeks;
+          workerArgs.peaks = peaks;
           workerArgs.writeSnap = options->snaplog;
           if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &workerArgs)) {
               log_println(0, "Cannot create worker thread for writing snap log!");

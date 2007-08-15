@@ -148,7 +148,7 @@ plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
         fn = fopen(lname, "w");
     }
 
-    fprintf(fn, "timeval double\ntitle\n");
+    fprintf(fn, "double double\ntitle\n");
     fprintf(fn, "%s:%s (%s)\n", title, remport, name);
     if ((strncmp(name, "Throughput", 10)) == 0) 
     	fprintf(fn, "xlabel\nTime\nylabel\nMbits/sec\n");
@@ -277,7 +277,7 @@ plot_cwndtime(char *name, web100_snapshot* snap,
         fn = fopen(lname, "w");
     }
 
-    fprintf(fn, "timeval double\ntitle\n");
+    fprintf(fn, "double double\ntitle\n");
     fprintf(fn, "%s:%s (%s)\n", title, remport, name);
     fprintf(fn, "xlabel\nTime\nylabel\nPercentage\n");
 
@@ -368,7 +368,7 @@ print_var(char *varlist, web100_snapshot* snap, web100_log* log,
         web100_agent* agent, web100_group* group, void(*func)(const int arg, const int value))
 {
 
-    char *varg, savelist[256];
+    char *varg, savelist[256], *text;
     char buf[256], title[256], remport[8];
     int i, j;
     web100_var* var;
@@ -419,7 +419,13 @@ print_var(char *varlist, web100_snapshot* snap, web100_log* log,
                 func(j, atoi(web100_value_to_text(web100_get_var_type(var), buf)));
             }
             else {
-                printf("%10s\t", web100_value_to_text(web100_get_var_type(var), buf));
+                text = web100_value_to_text(web100_get_var_type(var), buf);
+                if (strcmp(text, "4294966376") == 0) {
+                    printf("%10s\t", "-1");
+                }
+                else {
+                    printf("%10s\t", text);
+                }
             }
             varg = strtok(NULL, ",");
         }
