@@ -230,7 +230,9 @@ public class JAnalyze extends JFrame
 
     protected String getSnaplogData(String snaplogFilename, String variables, int numOfLines) {
         String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-tm", variables,
-            snaplogFrame.getSnaplogs() + snaplogFilename};
+            snaplogFrame.getSnaplogs().endsWith("/") ?
+                snaplogFrame.getSnaplogs() + snaplogFilename :
+                snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
         Process genplotProcess;
         try {
             genplotProcess = Runtime.getRuntime().exec(cmdarray);
