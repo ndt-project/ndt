@@ -26,6 +26,8 @@ public class SnaplogFrame extends JFrame
     private static final long serialVersionUID = 1L;
     private JTextField genplot = new JTextField("/usr/local/bin/genplot", 20);
     private JTextField snaplogs = new JTextField(20);
+    private JTextField variables =
+        new JTextField("CurCwnd,SampleRTT,SlowStart,MaxRTT,CurSsthresh,CongestionSignals", 40);
 
     public SnaplogFrame(JAnalyze mainWindow) {
         this.mainWindow = mainWindow;
@@ -46,8 +48,15 @@ public class SnaplogFrame extends JFrame
         panel.add(snaplogs);
         tmpPanel.add(panel);
         cp.add(tmpPanel);
+        panel = new JPanel();
+        tmpPanel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        panel.add(new JLabel("Variables:"));
+        panel.add(variables);
+        tmpPanel.add(panel);
+        cp.add(tmpPanel);
 
-        setSize(350, 80);
+        setSize(515, 110);
     }
 
     public String getGenplot() {
@@ -56,5 +65,9 @@ public class SnaplogFrame extends JFrame
 
     public String getSnaplogs() {
         return snaplogs.getText();
+    }
+
+    public String getVariables() {
+        return variables.getText();
     }
 }

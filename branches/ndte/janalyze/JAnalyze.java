@@ -136,7 +136,7 @@ public class JAnalyze extends JFrame
         cp.add(infoPanel);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(900, 700);
+        setSize(900, 720);
         setVisible(true);
     }
     
@@ -228,8 +228,9 @@ public class JAnalyze extends JFrame
         rebuildResultsList();
     }
 
-    protected String getSnaplogData(String snaplogFilename, String variables, int numOfLines) {
-        String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-tm", variables,
+    protected String getSnaplogData(String snaplogFilename, String variables, int numOfLines, boolean trim) {
+        String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-tm", variables == null ?
+            snaplogFrame.getVariables() : variables,
             snaplogFrame.getSnaplogs().endsWith("/") ?
                 snaplogFrame.getSnaplogs() + snaplogFilename :
                 snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
@@ -245,7 +246,9 @@ public class JAnalyze extends JFrame
         String toReturn = "";
         try {
             int counter = 1;
-            in.readLine();in.readLine();in.readLine();
+            if (trim) {
+                in.readLine();in.readLine();in.readLine();
+            }
             String line = in.readLine();
             while (line != null && counter != numOfLines) {
                 toReturn += line + "\n";

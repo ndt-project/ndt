@@ -20,6 +20,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.border.TitledBorder;
+import javax.swing.JTextArea;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -729,7 +730,7 @@ public class ResultsContainer {
         panel.add(duplexLabel);
 
         if (ssCurCwnd == -1) {
-            String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT", 100);
+            String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT", 100, true);
             StringTokenizer st = new StringTokenizer(snaplogData);
             int prevCWNDval = -1;
             int CurCwnd = -1;
@@ -755,6 +756,19 @@ public class ResultsContainer {
                 tmpLabel.setForeground(Color.RED);
             }
             tmpPanel.add(tmpLabel);
+            JButton viewButton = new JButton("View");
+            viewButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    String snaplogData = mainWindow.getSnaplogData(snaplogFilename, null, 0, false);
+                    JTextArea area = new JTextArea(snaplogData);
+                    area.setEditable(false);
+                    JFrame frame = new JFrame("Snaplog variables");
+                    frame.getContentPane().add(new JScrollPane(area), BorderLayout.CENTER);
+                    frame.setSize(800, 600);
+                    frame.setVisible(true);
+                }
+            });
+            tmpPanel.add(viewButton);
         }
         else {
             JLabel tmpLabel = new JLabel("        N/A        ");
