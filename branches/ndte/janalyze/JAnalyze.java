@@ -136,7 +136,7 @@ public class JAnalyze extends JFrame
         cp.add(infoPanel);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(900, 720);
+        setSize(900, 750);
         setVisible(true);
     }
     
@@ -261,6 +261,26 @@ public class JAnalyze extends JFrame
         }
         genplotProcess.destroy();
         return toReturn.toString();
+    }
+
+    protected void plotSnaplog(String snaplogFilename) {
+        String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-m", snaplogFrame.getVariables(),
+            snaplogFrame.getSnaplogs().endsWith("/") ?
+                snaplogFrame.getSnaplogs() + snaplogFilename :
+                snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
+        String[] cmdarray2 = new String[] {snaplogFrame.getXplot(),
+        "User Defined" + snaplogFilename.substring(snaplogFilename.lastIndexOf(".")) + ".xpl"};
+        try {
+            Runtime.getRuntime().exec(cmdarray);
+            Thread.sleep(1000);
+            Runtime.getRuntime().exec(cmdarray2);
+        }
+        catch (InterruptedException e) {
+            // do nothing
+        }
+        catch (IOException e) {
+            System.out.println(e);
+        }
     }
 
     void rebuildResultsList() {

@@ -769,6 +769,13 @@ public class ResultsContainer {
                 }
             });
             tmpPanel.add(viewButton);
+            JButton plotButton = new JButton("Plot");
+            plotButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    mainWindow.plotSnaplog(snaplogFilename);
+                }
+            });
+            tmpPanel.add(plotButton);
         }
         else {
             JLabel tmpLabel = new JLabel("        N/A        ");
@@ -888,7 +895,7 @@ public class ResultsContainer {
 
         if (ssCurCwnd != -1) {
             panel.add(new JLabel("   peak speed = " +
-                        Helpers.formatDouble((ssCurCwnd * 8.0) / (ssSampleRTT * 1000000.0), 2)));
+                        Helpers.formatDouble((ssCurCwnd * 8.0 / 1000.0) / (ssSampleRTT * 1000000.0), 2) + " Mbps"));
         }
 
 

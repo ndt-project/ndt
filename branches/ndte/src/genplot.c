@@ -58,6 +58,15 @@ static struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
+int
+checkmz(int x)
+{
+    if (x == 2147483647) {
+        return -1;
+    }
+    return x;
+}
+
 void get_title(web100_snapshot* snap, web100_log* log, web100_agent* agent,
 		web100_group* group, char* title, char* remport)
 {
@@ -186,10 +195,10 @@ plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
             if (i == 0) {
                 if (first == 0) {
                     if (func) {
-                        x1 = func(i, atoi(web100_value_to_text(web100_get_var_type(var), buf)));
+                        x1 = func(i, checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf))));
                     }
                     else {
-                        x1 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                        x1 = checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf)));
                     }
                 } else {
                     x1 = x2;
@@ -197,10 +206,10 @@ plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
             } else {
                 if (first == 0) {
                     if (func) {
-                        y1[i-1] = func(i, atoi(web100_value_to_text(web100_get_var_type(var), buf)));
+                        y1[i-1] = func(i, checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf))));
                     }
                     else {
-                        y1[i-1] = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                        y1[i-1] = checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf)));
                     }
                 } else {
                     y1[i-1] = y2[i-1];
@@ -225,18 +234,18 @@ plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
 
             if (i == 0) {
                 if (func) {
-                    x2 = func(i, atoi(web100_value_to_text(web100_get_var_type(var), buf)));
+                    x2 = func(i, checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf))));
                 }
                 else {
-                    x2 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                    x2 = checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf)));
                 }
             }
             else {
                 if (func) {
-                    y2[i-1] = func(i, atoi(web100_value_to_text(web100_get_var_type(var), buf)));
+                    y2[i-1] = func(i, checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf))));
                 }
                 else {
-                    y2[i-1] = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+                    y2[i-1] = checkmz(atoi(web100_value_to_text(web100_get_var_type(var), buf)));
                 }
                 fprintf(fn, "%s\nline %0.4f %0.4f %0.4f %0.4f\n", color[i-1], x1/1000000, y1[i-1]/1024,
                         x2/1000000, y2[i-1]/1024);

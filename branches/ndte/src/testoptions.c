@@ -38,6 +38,7 @@ static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
 static int slowStart = 1;
 static int prevCWNDval = -1;
+static int decreasing = 0;
 
 /**
  * Function name: findCwndPeaks
@@ -64,6 +65,7 @@ findCwndPeaks(web100_agent* agent, CwndPeaks* peaks, web100_snapshot* snap)
           slowStart = 0;
           peaks->max = prevCWNDval;
           peaks->amount = 1;
+          decreasing = 1;
       }
   }
   else {
@@ -71,12 +73,16 @@ findCwndPeaks(web100_agent* agent, CwndPeaks* peaks, web100_snapshot* snap)
           if (prevCWNDval > peaks->max) {
               peaks->max = prevCWNDval;
           }
-          peaks->amount += 1;
+          if (!decreasing) {
+              peaks->amount += 1;
+          }
+          decreasing = 1;
       }
       else if (CurCwnd > prevCWNDval) {
           if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
               peaks->min = prevCWNDval;
           }
+          decreasing = 0;
       }
   }
   prevCWNDval = CurCwnd;
