@@ -243,7 +243,7 @@ public class JAnalyze extends JFrame
             return null;
         }
         BufferedReader in = new BufferedReader(new InputStreamReader(genplotProcess.getInputStream()));
-        String toReturn = "";
+        StringBuffer toReturn = new StringBuffer();
         try {
             int counter = 1;
             if (trim) {
@@ -251,7 +251,7 @@ public class JAnalyze extends JFrame
             }
             String line = in.readLine();
             while (line != null && counter != numOfLines) {
-                toReturn += line + "\n";
+                toReturn.append(line + "\n");
                 line = in.readLine();
                 counter += 1;
             }
@@ -260,7 +260,7 @@ public class JAnalyze extends JFrame
             e.printStackTrace();
         }
         genplotProcess.destroy();
-        return toReturn;
+        return toReturn.toString();
     }
 
     void rebuildResultsList() {
