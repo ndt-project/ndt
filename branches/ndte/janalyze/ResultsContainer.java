@@ -36,7 +36,7 @@ public class ResultsContainer {
     private double[] runave = new double[4];
     private int[][] links = new int[4][16];
     private int n = 0, m = 0, port;
-    private String date, ip_addr, ip_addr2, btlneck, cputraceFilename, snaplogFilename;
+    private String date, ip_addr, ip_addr2, btlneck, cputraceFilename, snaplogFilename, ndttraceFilename;
     private int s2c2spd, s2cspd, c2sspd;
     private int timeouts, sumRTT, countRTT, pktsRetrans, fastRetrans,
             dataPktsOut, ackPktsOut, currentMSS, dupAcksIn, ackPktsIn,
@@ -603,6 +603,13 @@ public class ResultsContainer {
         }
 
         /* ---------------------------------------------- */
+
+        if (snaplogFilename != null) {
+            ndttraceFilename = "ndttrace." + snaplogFilename.substring(snaplogFilename.indexOf("-")+1);
+            if (!mainWindow.checkTcpDump(ndttraceFilename)) {
+                ndttraceFilename = null;
+            }
+        }
     }
 
     private String describeDetLink(int num) {		
@@ -781,15 +788,59 @@ public class ResultsContainer {
             JLabel tmpLabel = new JLabel(snaplogFilename);
             if (ssCurCwnd == -1) {
                 tmpLabel.setForeground(Color.RED);
+                tmpPanel.add(tmpLabel);
             }
+            else {
+                tmpPanel.add(tmpLabel);
+                JButton viewButton = new JButton("View");
+                viewButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        String snaplogData = mainWindow.getSnaplogData(snaplogFilename, null, 0, false);
+                        JTextArea area = new JTextArea(snaplogData);
+                        area.setEditable(false);
+                        JFrame frame = new JFrame("Snaplog variables");
+                        frame.getContentPane().add(new JScrollPane(area), BorderLayout.CENTER);
+                        frame.setSize(800, 600);
+                        frame.setVisible(true);
+                    }
+                });
+                tmpPanel.add(viewButton);
+                JButton plotButton = new JButton("Plot");
+                plotButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        mainWindow.plotSnaplog(snaplogFilename);
+                    }
+                });
+                tmpPanel.add(plotButton);
+                JButton cPlotButton = new JButton("Plot CWND");
+                cPlotButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        mainWindow.plotSnaplogCWND(snaplogFilename);
+                    }
+                });
+                tmpPanel.add(cPlotButton);
+            }
+        }
+        else {
+            JLabel tmpLabel = new JLabel("        N/A        ");
+            tmpLabel.setForeground(Color.RED);
             tmpPanel.add(tmpLabel);
+        }
+        panel.add(tmpPanel);
+        tmpPanel = new JPanel();
+        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
+        tmpPanel.setBorder(new TitledBorder("Tcpdump trace file"));
+        if (ndttraceFilename != null) {
+            JLabel tmpLabel = new JLabel(ndttraceFilename);
+            tmpPanel.add(tmpLabel);
+
             JButton viewButton = new JButton("View");
             viewButton.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    String snaplogData = mainWindow.getSnaplogData(snaplogFilename, null, 0, false);
-                    JTextArea area = new JTextArea(snaplogData);
+                    String tcpdumpData = mainWindow.getTcpdumpData(ndttraceFilename);
+                    JTextArea area = new JTextArea(tcpdumpData);
                     area.setEditable(false);
-                    JFrame frame = new JFrame("Snaplog variables");
+                    JFrame frame = new JFrame("tcpdump trace");
                     frame.getContentPane().add(new JScrollPane(area), BorderLayout.CENTER);
                     frame.setSize(800, 600);
                     frame.setVisible(true);
@@ -799,17 +850,10 @@ public class ResultsContainer {
             JButton plotButton = new JButton("Plot");
             plotButton.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    mainWindow.plotSnaplog(snaplogFilename);
+                    mainWindow.plotTcpdumpS(ndttraceFilename);
                 }
             });
             tmpPanel.add(plotButton);
-            JButton cPlotButton = new JButton("Plot CWND");
-            cPlotButton.addActionListener(new ActionListener() {
-                public void actionPerformed(ActionEvent e) {
-                    mainWindow.plotSnaplogCWND(snaplogFilename);
-                }
-            });
-            tmpPanel.add(cPlotButton);
         }
         else {
             JLabel tmpLabel = new JLabel("        N/A        ");

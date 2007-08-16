@@ -63,7 +63,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.5");
+        setTitle("JAnalyze v0.6");
 
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
@@ -262,6 +262,63 @@ public class JAnalyze extends JFrame
         genplotProcess.destroy();
         return toReturn.toString();
     }
+
+    protected boolean checkTcpDump(String ndttraceFilename) {
+        File file = new File(snaplogFrame.getSnaplogs(), ndttraceFilename);
+        return file.exists() && file.canRead();
+    }
+
+    protected String getTcpdumpData(String ndttraceFilename) {
+        String[] cmdarray = new String[] {snaplogFrame.getTcptrace(), "-l",
+            snaplogFrame.getSnaplogs().endsWith("/") ?
+                snaplogFrame.getSnaplogs() + ndttraceFilename :
+                snaplogFrame.getSnaplogs() + "/" +  ndttraceFilename};
+        Process tcptraceProcess;
+        try {
+            tcptraceProcess = Runtime.getRuntime().exec(cmdarray);
+        }
+        catch (IOException e) {
+            System.out.println(e);
+            return null;
+        }
+        BufferedReader in = new BufferedReader(new InputStreamReader(tcptraceProcess.getInputStream()));
+        StringBuffer toReturn = new StringBuffer();
+        try {
+            String line = in.readLine();
+            while (line != null) {
+                toReturn.append(line + "\n");
+                line = in.readLine();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        tcptraceProcess.destroy();
+        return toReturn.toString();
+
+    }
+
+    protected void plotTcpdumpS(String ndttraceFilename) {
+        String[] cmdarray = new String[] {snaplogFrame.getTcptrace(), "-S",
+            snaplogFrame.getSnaplogs().endsWith("/") ?
+                snaplogFrame.getSnaplogs() + ndttraceFilename :
+                snaplogFrame.getSnaplogs() + "/" +  ndttraceFilename};
+        String[] cmdarray2 = new String[] {snaplogFrame.getXplot(), "a2b_tsg.xpl"};
+        String[] cmdarray3 = new String[] {snaplogFrame.getXplot(), "b2a_tsg.xpl"};
+        try {
+            Runtime.getRuntime().exec(cmdarray);
+            Thread.sleep(1000);
+            Runtime.getRuntime().exec(cmdarray2);
+            Runtime.getRuntime().exec(cmdarray3);
+        }
+        catch (InterruptedException e) {
+            // do nothing
+        }
+        catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+
 
     protected void plotSnaplog(String snaplogFilename) {
         String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-m", snaplogFrame.getVariables(),
