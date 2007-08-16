@@ -803,6 +803,13 @@ public class ResultsContainer {
                 }
             });
             tmpPanel.add(plotButton);
+            JButton cPlotButton = new JButton("Plot CWND");
+            cPlotButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    mainWindow.plotSnaplogCWND(snaplogFilename);
+                }
+            });
+            tmpPanel.add(cPlotButton);
         }
         else {
             JLabel tmpLabel = new JLabel("        N/A        ");
@@ -921,12 +928,15 @@ public class ResultsContainer {
         }
 
         if (ssCurCwnd != -1) {
-            double pSpeed = (ssCurCwnd * 8.0) / (ssSampleRTT * 1000000.0);
+            double pSpeed = (ssCurCwnd * 8.0) / ssSampleRTT;
             if (pSpeed < 1000.0) {
                 panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed, 4) + " kbps"));
             }
-            else {
+            else if (pSpeed < 1000000.0) {
                 panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed / 1000.0, 4) + " Mbps"));
+            }
+            else {
+                panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed / 1000000.0, 4) + " Gbps"));
             }
         }
 

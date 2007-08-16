@@ -63,7 +63,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.4");
+        setTitle("JAnalyze v0.5");
 
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
@@ -136,7 +136,7 @@ public class JAnalyze extends JFrame
         cp.add(infoPanel);
 
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(900, 750);
+        setSize(900, 770);
         setVisible(true);
     }
     
@@ -282,6 +282,27 @@ public class JAnalyze extends JFrame
             System.out.println(e);
         }
     }
+
+    protected void plotSnaplogCWND(String snaplogFilename) {
+        String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-C",
+            snaplogFrame.getSnaplogs().endsWith("/") ?
+                snaplogFrame.getSnaplogs() + snaplogFilename :
+                snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
+        String[] cmdarray2 = new String[] {snaplogFrame.getXplot(),
+        "CurCwnd" + snaplogFilename.substring(snaplogFilename.lastIndexOf(".")) + ".xpl"};
+        try {
+            Runtime.getRuntime().exec(cmdarray);
+            Thread.sleep(1000);
+            Runtime.getRuntime().exec(cmdarray2);
+        }
+        catch (InterruptedException e) {
+            // do nothing
+        }
+        catch (IOException e) {
+            System.out.println(e);
+        }
+    }
+
 
     void rebuildResultsList() {
         listPanel.removeAll();
