@@ -62,9 +62,10 @@ public class ResultsContainer {
 
         /* --- experimental congestion detection code --- */
     double linkType, sspd, mspd;
-    double minrtt, ispd, n1, T1, lspd, n2, T2, teeth;
+    double minrtt, ispd, n1, T1, lspd, n2, T2, lT2, uT2, teeth, lTeeth, uTeeth;
     boolean limited, normalOperation;
-    private int minPeak = -1, maxPeak = -1, peaks = -1, realTeeth, ssCurCwnd = -1, ssSampleRTT = -1;
+    private int minPeak = -1, maxPeak = -1, peaks = -1, realTeeth, ssCurCwnd = -1,
+            ssSampleRTT = -1, fSampleRTT = -1;
         /* ---------------------------------------------- */
 
     ResultsContainer(JAnalyze mainWindow) {
@@ -506,36 +507,8 @@ public class ResultsContainer {
         //			System.out.print(" [H=H, S=F]");
         //		System.out.println(", Cable fault = " + bad_cable + ", Congestion = " + congestion2 +
         //				", Duplex = " + half_duplex + "\n");			      
-        				
+
         /* --- experimental congestion detection code --- */
-
-        // 1) extract the bottleneck link type and the average & minimum RTT
-        // values.  (If min == 0 then set min = 1msec)
-
-        linkType = decodeLinkSpeed(c2sdata) < 0 ? 1 : decodeLinkSpeed(c2sdata);
-        minrtt = minRTT <= 0 ? 1 : minRTT;
-
-        // 2) find the time required to overshoot link type
-
-        sspd = linkType;
-        ispd = (currentMSS * 8 / 1024.0) / avgrtt;
-        n1 = Math.log(sspd/ispd) / Math.log(2);
-        T1 = n1 * avgrtt;
-
-        // 3) find the number of teeth (assume single loss on overshoot)
-
-        mspd = linkType;
-        lspd = mspd / 2.0;
-        // ispd = currentMSS * 8 / avgrtt;
-        n2 = lspd / ispd;
-        T2 = n2 * avgrtt;
-        teeth = (((totaltime / 1000) - T1) / T2) + 1;
-
-        // 4) find out if the connection is buffer limited
-
-        limited = false;
-        if (currentRwinRcvd * 8 / avgrtt < linkType)
-            limited = true;
 
         if (ssCurCwnd == -1) {
             String snaplogData = mainWindow.getSnaplogData(snaplogFilename, "CurCwnd,SampleRTT", 0, true);
@@ -560,6 +533,9 @@ public class ResultsContainer {
                         else {
                             ssCurCwnd = CurCwnd;
                             ssSampleRTT = Integer.parseInt(st.nextToken());
+                            if (ssSampleRTT > 0 && fSampleRTT == -1) {
+                                fSampleRTT = ssSampleRTT;
+                            }
                         }
                     }
                     else {
@@ -587,6 +563,38 @@ public class ResultsContainer {
                 // do nothing
             }
         }
+
+        // 1) extract the bottleneck link type and the average & minimum RTT
+        // values.  (If min == 0 then set min = 1msec)
+
+        linkType = decodeLinkSpeed(c2sdata) < 0 ? 1 : decodeLinkSpeed(c2sdata);
+        minrtt = minRTT <= 0 ? 1 : minRTT;
+
+        // 2) find the time required to overshoot link type
+
+        sspd = linkType;
+        ispd = (currentMSS * 8 / 1024.0) / avgrtt;
+        n1 = Math.log(sspd/ispd) / Math.log(2);
+        T1 = n1 * avgrtt;
+
+        // 3) find the number of teeth (assume single loss on overshoot)
+
+        mspd = linkType;
+        lspd = mspd / 2.0;
+        // ispd = currentMSS * 8 / avgrtt;
+        n2 = lspd / ispd;
+        T2 = n2 * avgrtt;
+        lT2 = n2 * maxRTT;
+        uT2 = n2 * fSampleRTT;
+        teeth = (((totaltime / 1000) - T1) / T2) + 1;
+        lTeeth = (((totaltime / 1000) - T1) / lT2) + 1;
+        uTeeth = (((totaltime / 1000) - T1) / uT2) + 1;
+
+        // 4) find out if the connection is buffer limited
+
+        limited = false;
+        if (currentRwinRcvd * 8 / avgrtt < linkType)
+            limited = true;
 
         // 5)
         if (peaks != -1) {
@@ -967,6 +975,14 @@ public class ResultsContainer {
                     ", n2 = " + Helpers.formatDouble(n2, 2) + ", T2 = " + Helpers.formatDouble(T2, 2)));
         panel.add(new JLabel("   teeth = " + Helpers.formatDouble(teeth, 2) +
                     ", CongestionSignals = " + congestionSignals));
+        panel.add(new JLabel("   lower teeth = " + Helpers.formatDouble(lTeeth, 2) +
+                    ", lT2 = " + Helpers.formatDouble(lT2, 2) +
+                    ", maxRTT = " + maxRTT));
+        if (fSampleRTT != -1) {
+            panel.add(new JLabel("   upper teeth = " + Helpers.formatDouble(uTeeth, 2) +
+                        ", uT2 = " + Helpers.formatDouble(uT2, 2) +
+                        ", fSampleRTT = " + fSampleRTT));
+        }
         if (peaks != -1) {
             panel.add(new JLabel("   minPeak = " + minPeak + ", maxPeak = " + maxPeak + ", peaks = " + peaks));
         }
