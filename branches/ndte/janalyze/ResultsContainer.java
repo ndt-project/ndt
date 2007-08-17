@@ -2,6 +2,7 @@ import java.awt.Component;
 import java.awt.Color;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.util.Collection;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
@@ -66,6 +67,7 @@ public class ResultsContainer {
     boolean limited, normalOperation;
     private int minPeak = -1, maxPeak = -1, peaks = -1, realTeeth, ssCurCwnd = -1,
             ssSampleRTT = -1, fSampleRTT = -1;
+    private Collection<PeakInfo> peakInfos = new Vector<PeakInfo>();
         /* ---------------------------------------------- */
 
     ResultsContainer(JAnalyze mainWindow) {
@@ -516,11 +518,14 @@ public class ResultsContainer {
             boolean slowStart = true;
             boolean decreasing = false;
             int prevCWNDval = -1;
+            int prevSampleRTT = -1;
             int CurCwnd = -1;
+            int CurSampleRTT = - 1;
             try {
                 while (st.hasMoreTokens()) {
                     st.nextToken(); st.nextToken();
                     CurCwnd = Integer.parseInt(st.nextToken());
+                    CurSampleRTT = Integer.parseInt(st.nextToken());
                     if (slowStart) {
                         if (CurCwnd < prevCWNDval) {
                             slowStart = false;
@@ -528,11 +533,11 @@ public class ResultsContainer {
                             minPeak = -1;
                             peaks = 1;
                             decreasing = true;
-                            st.nextToken();
+                            peakInfos.add(new MaxPeakInfo(ssCurCwnd, ssSampleRTT));
                         }
                         else {
                             ssCurCwnd = CurCwnd;
-                            ssSampleRTT = Integer.parseInt(st.nextToken());
+                            ssSampleRTT = CurSampleRTT;
                             if (ssSampleRTT > 0 && fSampleRTT == -1) {
                                 fSampleRTT = ssSampleRTT;
                             }
@@ -544,6 +549,8 @@ public class ResultsContainer {
                                 maxPeak = prevCWNDval;
                             }
                             if (!decreasing) {
+                                // the max peak
+                                peakInfos.add(new MaxPeakInfo(prevCWNDval, prevSampleRTT));
                                 peaks += 1;
                             }
                             decreasing = true;
@@ -552,11 +559,15 @@ public class ResultsContainer {
                             if ((minPeak == -1) || (prevCWNDval < minPeak)) {
                                 minPeak = prevCWNDval;
                             }
+                            if (decreasing) {
+                                // the min peak
+                                peakInfos.add(new MinPeakInfo(prevCWNDval, prevSampleRTT));
+                            }
                             decreasing = false;
                         }
-                        st.nextToken();
                     }
                     prevCWNDval = CurCwnd;
+                    prevSampleRTT = CurSampleRTT;
                 }
             }
             catch (Exception e) {
@@ -988,16 +999,17 @@ public class ResultsContainer {
         }
 
         if (ssCurCwnd != -1) {
-            double pSpeed = (ssCurCwnd * 8.0) / ssSampleRTT;
-            if (pSpeed < 1000.0) {
-                panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed, 4) + " kbps"));
+            panel.add(new JLabel("   " + PeakInfo.getPeakSpeed(ssCurCwnd, ssSampleRTT)));
+        }
+
+        if (peakInfos.size() > 0) {
+            int counter = 0;
+            panel.add(new JLabel("Peaks:"));
+            for (PeakInfo peakInfo: peakInfos) {
+                panel.add(new JLabel(((counter/2)+1) + ". " + peakInfo.toString()));
+                counter += 1;
             }
-            else if (pSpeed < 1000000.0) {
-                panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed / 1000.0, 4) + " Mbps"));
-            }
-            else {
-                panel.add(new JLabel("   peak speed = " + Helpers.formatDouble(pSpeed / 1000000.0, 4) + " Gbps"));
-            }
+            panel.add(new JLabel("---"));
         }
 
 
