@@ -11,6 +11,7 @@ import javax.swing.UIManager;
 import javax.swing.JFileChooser;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.JTextArea;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
@@ -27,12 +28,18 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Vector;
+import java.util.StringTokenizer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import de.progra.charting.DefaultChart;
+import de.progra.charting.model.EditableChartDataModel;
+import de.progra.charting.render.LineChartRenderer;
+import de.progra.charting.swing.ChartPanel;
 
 public class JAnalyze extends JFrame
 {
@@ -41,12 +48,22 @@ public class JAnalyze extends JFrame
 	JMenuBar menuBar = new JMenuBar();
     JMenu fileMenu = new JMenu("File");
     JMenu optionsMenu = new JMenu("Options");
+    JMenu actionsMenu = new JMenu("Actions");
     JMenuItem exitMenuItem = new JMenuItem("Exit");
     JMenuItem loadMenuItem = new JMenuItem("Load");
     JMenuItem loadDBMenuItem = new JMenuItem("Load from DB");
     JMenuItem filterMenuItem = new JMenuItem("Filter");
     JMenuItem snaplogMenuItem = new JMenuItem("Snaplogs");
     JMenuItem dbConfMenuItem = new JMenuItem("DB conf");
+    JMenu snaplogsMenu = new JMenu("Snaplogs");
+    JMenuItem viewSnaplogMenuItem = new JMenuItem("View");
+    JMenuItem plotSnaplogMenuItem = new JMenuItem("Plot");
+    JMenuItem plotSnaplogCWNDMenuItem = new JMenuItem("Plot CWND");
+    JMenu tcpdumpsMenu = new JMenu("Tcpdumps");
+    JMenuItem viewTcpdumpMenuItem = new JMenuItem("View");
+    JMenuItem plotTcpdumpMenuItem = new JMenuItem("Plot");
+    JMenu cputimesMenu = new JMenu("Cputimes");
+    JMenuItem viewCputimeMenuItem = new JMenuItem("View");
     final JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
 
     FilterFrame filterFrame = null;
@@ -63,7 +80,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.6");
+        setTitle("JAnalyze v0.7");
 
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
@@ -125,6 +142,96 @@ public class JAnalyze extends JFrame
         optionsMenu.add(snaplogMenuItem);
 
         menuBar.add(optionsMenu);
+
+        viewSnaplogMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+                int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = chooser.getSelectedFile();
+                    String snaplogData = getSnaplogData(file.getAbsolutePath(), null, 0, false);
+                    JTextArea area = new JTextArea(snaplogData);
+                    area.setEditable(false);
+                    JFrame frame = new JFrame("Snaplog variables");
+                    frame.getContentPane().add(new JScrollPane(area), BorderLayout.CENTER);
+                    frame.setSize(800, 600);
+                    frame.setVisible(true);
+                } 
+            }
+        });
+        snaplogsMenu.add(viewSnaplogMenuItem);
+        plotSnaplogMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+                int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = chooser.getSelectedFile();
+                    plotSnaplog(file.getAbsolutePath());
+                } 
+            }
+        });
+        snaplogsMenu.add(plotSnaplogMenuItem);
+        plotSnaplogCWNDMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+                int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = chooser.getSelectedFile();
+                    plotSnaplogCWND(file.getAbsolutePath());
+                } 
+            }
+        });
+        snaplogsMenu.add(plotSnaplogCWNDMenuItem);
+        actionsMenu.add(snaplogsMenu);
+        viewTcpdumpMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+                int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = chooser.getSelectedFile();
+                    String tcpdumpData = getTcpdumpData(file.getAbsolutePath());
+                    JTextArea area = new JTextArea(tcpdumpData);
+                    area.setEditable(false);
+                    JFrame frame = new JFrame("tcpdump trace");
+                    frame.getContentPane().add(new JScrollPane(area), BorderLayout.CENTER);
+                    frame.setSize(800, 600);
+                    frame.setVisible(true);
+                } 
+            }
+        });
+        tcpdumpsMenu.add(viewTcpdumpMenuItem);
+        plotTcpdumpMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+                int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = chooser.getSelectedFile();
+                    plotTcpdumpS(file.getAbsolutePath());
+                } 
+            }
+        });
+        tcpdumpsMenu.add(plotTcpdumpMenuItem);
+        actionsMenu.add(tcpdumpsMenu);
+        viewCputimeMenuItem.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+                int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file = chooser.getSelectedFile();
+                    plotCputime(file.getAbsolutePath());
+                } 
+            }
+        });
+        cputimesMenu.add(viewCputimeMenuItem);
+        actionsMenu.add(cputimesMenu);
+
+        menuBar.add(actionsMenu);
 
         setJMenuBar(menuBar);
         
@@ -229,9 +336,13 @@ public class JAnalyze extends JFrame
     }
 
     protected String getSnaplogData(String snaplogFilename, String variables, int numOfLines, boolean trim) {
+        if (snaplogFilename == null) {
+            return "";
+        }
         String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-tm", variables == null ?
             snaplogFrame.getVariables() : variables,
-            snaplogFrame.getSnaplogs().endsWith("/") ?
+            snaplogFilename.startsWith("/") ? snaplogFilename :
+                snaplogFrame.getSnaplogs().endsWith("/") ?
                 snaplogFrame.getSnaplogs() + snaplogFilename :
                 snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
         Process genplotProcess;
@@ -269,8 +380,12 @@ public class JAnalyze extends JFrame
     }
 
     protected String getTcpdumpData(String ndttraceFilename) {
+        if (ndttraceFilename == null) {
+            return "";
+        }
         String[] cmdarray = new String[] {snaplogFrame.getTcptrace(), "-l",
-            snaplogFrame.getSnaplogs().endsWith("/") ?
+            ndttraceFilename.startsWith("/") ? ndttraceFilename :
+                snaplogFrame.getSnaplogs().endsWith("/") ?
                 snaplogFrame.getSnaplogs() + ndttraceFilename :
                 snaplogFrame.getSnaplogs() + "/" +  ndttraceFilename};
         Process tcptraceProcess;
@@ -299,8 +414,12 @@ public class JAnalyze extends JFrame
     }
 
     protected void plotTcpdumpS(String ndttraceFilename) {
+        if (ndttraceFilename == null) {
+            return;
+        }
         String[] cmdarray = new String[] {snaplogFrame.getTcptrace(), "-S",
-            snaplogFrame.getSnaplogs().endsWith("/") ?
+            ndttraceFilename.startsWith("/") ? ndttraceFilename :
+                snaplogFrame.getSnaplogs().endsWith("/") ?
                 snaplogFrame.getSnaplogs() + ndttraceFilename :
                 snaplogFrame.getSnaplogs() + "/" +  ndttraceFilename};
         String[] cmdarray2 = new String[] {snaplogFrame.getXplot(), "a2b_tsg.xpl"};
@@ -321,8 +440,12 @@ public class JAnalyze extends JFrame
 
 
     protected void plotSnaplog(String snaplogFilename) {
+        if (snaplogFilename == null) {
+            return;
+        }
         String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-m", snaplogFrame.getVariables(),
-            snaplogFrame.getSnaplogs().endsWith("/") ?
+            snaplogFilename.startsWith("/") ? snaplogFilename :
+                snaplogFrame.getSnaplogs().endsWith("/") ?
                 snaplogFrame.getSnaplogs() + snaplogFilename :
                 snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
         String[] cmdarray2 = new String[] {snaplogFrame.getXplot(),
@@ -341,8 +464,12 @@ public class JAnalyze extends JFrame
     }
 
     protected void plotSnaplogCWND(String snaplogFilename) {
+        if (snaplogFilename == null) {
+            return;
+        }
         String[] cmdarray = new String[] {snaplogFrame.getGenplot(), "-C",
-            snaplogFrame.getSnaplogs().endsWith("/") ?
+            snaplogFilename.startsWith("/") ? snaplogFilename :
+                snaplogFrame.getSnaplogs().endsWith("/") ?
                 snaplogFrame.getSnaplogs() + snaplogFilename :
                 snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
         String[] cmdarray2 = new String[] {snaplogFrame.getXplot(),
@@ -358,6 +485,80 @@ public class JAnalyze extends JFrame
         catch (IOException e) {
             System.out.println(e);
         }
+    }
+
+    protected void plotCputime(String cputraceFilename) {
+        if (cputraceFilename == null) {
+            return;
+        }
+        String fileName = cputraceFilename.startsWith("/") ? cputraceFilename :
+                snaplogFrame.getSnaplogs().endsWith("/") ?
+                snaplogFrame.getSnaplogs() + cputraceFilename :
+                snaplogFrame.getSnaplogs() + "/" +  cputraceFilename;
+        JFileChooser chooser = new JFileChooser(new File(snaplogFrame.getSnaplogs()));
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(fileName));
+        }
+        catch (FileNotFoundException exc) {
+            int returnVal = chooser.showOpenDialog(JAnalyze.this);
+
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = chooser.getSelectedFile();
+                try {
+                    br = new BufferedReader(new FileReader(file.getAbsolutePath()));
+                }
+                catch (Exception ex) {
+                    System.out.println("Loading of the cputime file: " + file.getAbsolutePath() + " failed!");
+                    ex.printStackTrace();
+                    return;
+                }
+            }
+            else {
+                return;
+            }
+        }
+        String line;
+        Vector<Double> time = new Vector<Double>();
+        Vector<Double> userTime = new Vector<Double>();
+        Vector<Double> systemTime = new Vector<Double>();
+        Vector<Double> cuserTime = new Vector<Double>();
+        Vector<Double> csystemTime = new Vector<Double>();
+        try {
+            while ((line = br.readLine()) != null) {
+                StringTokenizer st = new StringTokenizer(line.trim(), " ");
+                time.add(Double.parseDouble(st.nextToken()));
+                userTime.add(Double.parseDouble(st.nextToken()));
+                systemTime.add(Double.parseDouble(st.nextToken()));
+                cuserTime.add(Double.parseDouble(st.nextToken()));
+                csystemTime.add(Double.parseDouble(st.nextToken()));
+            }
+            br.close();
+        }
+        catch (IOException exc) {
+            exc.printStackTrace();
+            return;
+        }
+        double[][] model = new double[4][time.size()];
+        double[] columns = new double[time.size()];
+        for (int i = 0; i < time.size(); ++i) {
+            model[0][i] = userTime.elementAt(i);
+            model[1][i] = systemTime.elementAt(i);
+            model[2][i] = cuserTime.elementAt(i);
+            model[3][i] = csystemTime.elementAt(i);
+            columns[i] = time.elementAt(i);
+        }
+        String[] rows = { "user time", "system time",
+            "user time of dead children", "system time of dead children" };
+        String title = "Cputime usage: " + cputraceFilename;
+        EditableChartDataModel data = new EditableChartDataModel(model, columns, rows);
+        ChartPanel panel = new ChartPanel(data, title, DefaultChart.LINEAR_X_LINEAR_Y);
+        panel.addChartRenderer(new LineChartRenderer(panel.getCoordSystem(), data), 1);
+
+        JFrame frame = new JFrame(title);
+        frame.getContentPane().add(panel, BorderLayout.CENTER);
+        frame.setSize(800, 600);
+        frame.setVisible(true);
     }
 
 

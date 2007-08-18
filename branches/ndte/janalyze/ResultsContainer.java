@@ -26,11 +26,6 @@ import javax.swing.JTextArea;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import de.progra.charting.DefaultChart;
-import de.progra.charting.model.EditableChartDataModel;
-import de.progra.charting.render.LineChartRenderer;
-import de.progra.charting.swing.ChartPanel;
-
 public class ResultsContainer {
     private JAnalyze mainWindow;
     private double[] run_ave = new double[4];
@@ -889,70 +884,7 @@ public class ResultsContainer {
             viewButton.addActionListener(new ActionListener()
                     {
                         public void actionPerformed(ActionEvent e) {
-                            JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
-                            BufferedReader br = null;
-                            try {
-                                br = new BufferedReader(new FileReader(cputraceFilename));
-                            }
-                            catch (FileNotFoundException exc) {
-                                int returnVal = fc.showOpenDialog(panel);
-
-                                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                                    File file = fc.getSelectedFile();
-                                    try {
-                                        br = new BufferedReader(new FileReader(file.getAbsolutePath()));
-                                    }
-                                    catch (Exception ex) {
-                                        System.out.println("Loading of the cputime file: " + file.getAbsolutePath() + " failed!");
-                                        ex.printStackTrace();
-                                        return;
-                                    }
-                                }
-                                else {
-                                    return;
-                                }
-                            }
-                            String line;
-                            Vector<Double> time = new Vector<Double>();
-                            Vector<Double> userTime = new Vector<Double>();
-                            Vector<Double> systemTime = new Vector<Double>();
-                            Vector<Double> cuserTime = new Vector<Double>();
-                            Vector<Double> csystemTime = new Vector<Double>();
-                            try {
-                                while ((line = br.readLine()) != null) {
-                                    StringTokenizer st = new StringTokenizer(line.trim(), " ");
-                                    time.add(Double.parseDouble(st.nextToken()));
-                                    userTime.add(Double.parseDouble(st.nextToken()));
-                                    systemTime.add(Double.parseDouble(st.nextToken()));
-                                    cuserTime.add(Double.parseDouble(st.nextToken()));
-                                    csystemTime.add(Double.parseDouble(st.nextToken()));
-                                }
-                                br.close();
-                            }
-                            catch (IOException exc) {
-                                exc.printStackTrace();
-                                return;
-                            }
-                            double[][] model = new double[4][time.size()];
-                            double[] columns = new double[time.size()];
-                            for (int i = 0; i < time.size(); ++i) {
-                                model[0][i] = userTime.elementAt(i);
-                                model[1][i] = systemTime.elementAt(i);
-                                model[2][i] = cuserTime.elementAt(i);
-                                model[3][i] = csystemTime.elementAt(i);
-                                columns[i] = time.elementAt(i);
-                            }
-                            String[] rows = { "user time", "system time",
-                                "user time of dead children", "system time of dead children" };
-                            String title = "Cputime usage: " + ResultsContainer.this.toString();
-                            EditableChartDataModel data = new EditableChartDataModel(model, columns, rows);
-                            ChartPanel panel = new ChartPanel(data, title, DefaultChart.LINEAR_X_LINEAR_Y);
-                            panel.addChartRenderer(new LineChartRenderer(panel.getCoordSystem(), data), 1);
-
-                            JFrame frame = new JFrame(title);
-                            frame.getContentPane().add(panel, BorderLayout.CENTER);
-                            frame.setSize(800, 600);
-                            frame.setVisible(true);
+                            mainWindow.plotCputime(cputraceFilename);
                         }
                     });
             tmpPanel.add(viewButton);
