@@ -20,13 +20,19 @@
  */
 
 int
-check_msg_type(char* prefix, int expected, int received)
+check_msg_type(char* prefix, int expected, int received, char* buff, int len)
 {
   if (expected != received) {
     if (prefix) {
       log_print(0, "%s: ", prefix);
     }
-    log_println(0, "ERROR: received message type %d (expected %d)", received, expected);
+    if (received == MSG_ERROR) {
+        buff[len] = 0;
+        log_println(0, "ERROR MSG: %s", buff);
+    }
+    else {
+        log_println(0, "ERROR: received message type %d (expected %d)", received, expected);
+    }
     return 1;
   }
   return 0;

@@ -15,6 +15,7 @@ int check_long(char* text, long* number);
 double secs();
 void err_sys(char* s);
 int sndq_len(int fd);
+void mysleep(double time);
 
 #endif
 

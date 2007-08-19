@@ -63,17 +63,6 @@ prints to the stderr.
 \fB\-h, --help\fR 
 Print a simple usage page and exit.
 .TP
-\fB\-l, --log\fR \fIlog_file\fR
-Create a log file and log client activity.
-.TP
-\fB\-p, --port\fR \fIport number\fR
-Specify a different TCP port number to listen for client requests.
-.TP
-\fB\-t, --ttl\fR \fInumber\fR
-Specify the maximum number of hops that traceroute should follow. 
-This number needs to be larger than the maximum number of hops
-between servers in the federation.  
-.TP
 \fB\-F, --federated\fR 
 Operate in \fBfederated mode\fR.  In this mode several servers operate
 together to handle client requests.  The federated servers form a
@@ -88,11 +77,32 @@ this will be the server \fIclosest\fR to the ingress point of the
 \fB\-f, --file\fR \fIfile\fR
 Add the specified file to the list of allowed ones.
 .TP
-\fB\-b, --basedir\fR \fIpath\fR
-Specify a basedir for the documents.
+\fB\-s, --syslog\fR
+use the syslog() to log some information
 .TP
 \fB\-v, --version\fR 
 Print version number and exit.
+.TP
+\fB\-l, --alog\fR \fIalog_FN\fR
+specify the access log filename
+.TP
+\fB\-e, --elog\fR \fIelog_FN\fR
+specify the error log filename
+.TP
+\fB\-b, --basedir\fR \fIpath\fR
+Specify a basedir for the documents.
+.TP
+\fB\-S, --logfacility\fR \fI#F\fR
+specify syslog facility name.
+Note: this doesn't enable 'syslog'
+.TP
+\fB\-p, --port\fR \fIport number\fR
+Specify a different TCP port number to listen for client requests.
+.TP
+\fB\-t, --ttl\fR \fInumber\fR
+Specify the maximum number of hops that traceroute should follow. 
+This number needs to be larger than the maximum number of hops
+between servers in the federation.  
 .TP
 \fB\--dflttree\fR \fIfn\fR
 Specify alternate 'Default.tree' file.
@@ -111,10 +121,10 @@ Better diagnostic algorithms are being developed to improve the
 accuracy and reliability of this service.
 .SH EXAMPLES
 .LP
-\fBfakewww -l /var/log/fakewww.log >& /dev/null &\fR
+\fBfakewww -l /var/log/access.log -e /var/log/error.log >& /dev/null &\fR
 .IP
-Run a fakewww server on TCP port 7123 and log the results in the
-\fB/var/log/fakewww.log\fR log file.
+Run a fakewww server on TCP port 7123 and log the access log to the
+\fB/var/log/access.log\fR file and error log to the \fB/var/log/error.log\fR file.
 .LP
 \fBfakewww -p80 >& /dev/null\fR
 .IP

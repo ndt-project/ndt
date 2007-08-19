@@ -16,5 +16,6 @@ void www_long_usage(char* info);
 void analyze_long_usage(char* info);
 void mkmap_long_usage(char* info);
 void vt_long_usage(char* info);
+void genplot_long_usage(char* info, char* argv0);
 
 #endif

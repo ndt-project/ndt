@@ -27,6 +27,15 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the 'pcap' library (-lpcap). */
+#undef HAVE_LIBPCAP
+
+/* Define to 1 if you have the 'Web100' library (-lweb100). */
+#undef HAVE_LIBWEB100
+
+/* Define to 1 if you have the <linux/icmpv6.h> header file. */
+#undef HAVE_LINUX_ICMPV6_H
+
 /* Define to 1 if you have the <linux/sockios.h> header file. */
 #undef HAVE_LINUX_SOCKIOS_H
 
@@ -45,6 +54,15 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <netinet/ip6.h> header file. */
+#undef HAVE_NETINET_IP6_H
+
+/* Define to 1 if you have the <net/ethernet.h> header file. */
+#undef HAVE_NET_ETHERNET_H
+
+/* Define to 1 if you have the 'odbc' library (-lodbc). */
+#undef HAVE_ODBC
 
 /* Define to 1 if you have the `select' function. */
 #undef HAVE_SELECT

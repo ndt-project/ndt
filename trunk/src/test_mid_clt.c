@@ -36,26 +36,26 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
   if (tests & TEST_MID) {
     log_println(1, " <-- Middlebox test -->");
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Middlebox test", TEST_PREPARE, msgType)) {
-      exit(2);
+    if (check_msg_type("Middlebox test", TEST_PREPARE, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0;
     if (check_int(buff, &midport)) {
       log_println(0, "Invalid port number");
-      exit(4);
+      return 4;
     }
     log_println(1, "  -- port: %d", midport);
     if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
+      log_println(0, "Unable to resolve server address: %s", strerror(errno));
+      return -3;
     }
     I2AddrSetPort(sec_addr, midport);
 
@@ -68,8 +68,8 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     }
 
     if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
-      perror("Connect() for middlebox failed");
-      exit(-10);
+      log_println(0, "Connect() for middlebox failed: %s", strerror(errno));
+      return -10;
     }
 
     largewin = 128*1024;
@@ -118,22 +118,16 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
         break;
       }
     }
-    /*
-     * TODO: check why this line causes problems on clients from
-     *       FreeBSD
-     *
-    shutdown(in2Socket, SHUT_RD);
-    */
     t =  secs() - t + 5.0;
     spdin = ((8.0 * bytes) / 1000) / t;
 
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Middlebox test results", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("Middlebox test results", TEST_MSG, msgType, buff, msgLen)) {
+      return 2;
     }
     strncat(tmpstr2, buff, msgLen);
 
@@ -146,12 +140,12 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     I2AddrFree(sec_addr);
 
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("Middlebox test", TEST_FINALIZE, msgType)) {
-      exit(2);
+    if (check_msg_type("Middlebox test", TEST_FINALIZE, msgType, buff, msgLen)) {
+      return 2;
     }
     log_println(1, " <-------------------->");
   }

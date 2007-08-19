@@ -60,14 +60,17 @@ The Software was developed at least in part by the University of Chicago,
 as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
  */
 
+#include "../config.h"
+
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
 #define SYSLOG_NAMES
 #include  <syslog.h>
+#include <pthread.h>
+#include <sys/times.h>
 
 #include "web100srv.h"
-#include "../config.h"
 #include "network.h"
 #include "usage.h"
 #include "utils.h"
@@ -77,6 +80,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "protocol.h"
 #include "web100-admin.h"
 #include "test_sfw.h"
+#include "ndt_odbc.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -84,6 +88,9 @@ static char apfn[256];
 static char slfa[256];
 static char portbuf[10];
 static char devicebuf[100];
+static char dbDSNbuf[256];
+static char dbUIDbuf[256];
+static char dbPWDbuf[256];
 
 /* list of global variables used throughout this program. */
 int window = 64000;
@@ -98,13 +105,21 @@ int queue=1;
 int view_flag=0;
 int record_reverse=0;
 int testing, waiting;
-int experimental=0;
 int refresh = 30;
 int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
 
-/* experimental limit code, can remove later */
-u_int32_t limit=0;
+Options options;
+CwndPeaks peaks;
+int cputime = 0;
+char cputimelog[256];
+pthread_t workerThreadId;
+int workerLoop = 1;
+
+int useDB = 0;
+char* dbDSN = NULL;
+char* dbUID = NULL;
+char* dbPWD = NULL;
 
 char *VarFileName=NULL;
 char *AdminFileName=NULL;
@@ -126,6 +141,8 @@ float run_ave[4];
 int conn_options = 0;
 struct ndtchild *head_ptr;
 int ndtpid;
+int testPort;
+char testName[256];
 
 static struct option long_options[] = {
   {"adminview", 0, 0, 'a'},
@@ -138,10 +155,16 @@ static struct option long_options[] = {
   {"record", 0, 0, 'r'},
   {"syslog", 0, 0, 's'},
   {"tcpdump", 0, 0, 't'},
-  {"experimental", 0, 0, 'x'},
   {"version", 0, 0, 'v'},
   {"config", 1, 0, 'c'},
+#ifdef EXPERIMENTAL_ENABLED
+  {"avoidsndblockup", 0, 0, 306},
+  {"snaplog", 0, 0, 307},
+  {"snapdelay", 1, 0, 305},
+  {"cwnddecrease", 0, 0, 308},
+  {"cputime", 0, 0, 309},
   {"limit", 1, 0, 'y'},
+#endif
   {"buffer", 1, 0, 'b'},
   {"file", 1, 0, 'f'},
   {"interface", 1, 0, 'i'},
@@ -153,6 +176,12 @@ static struct option long_options[] = {
   {"refresh", 1, 0, 'T'},
   {"adminfile", 1, 0, 'A'},
   {"logfacility", 1, 0, 'S'},
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+  {"enableDBlogging", 0, 0, 310},
+  {"dbDSN", 1, 0, 311},
+  {"dbUID", 1, 0, 312},
+  {"dbPWD", 1, 0, 313},
+#endif
 #ifdef AF_INET6
   {"ipv4", 0, 0, '4'},
   {"ipv6", 0, 0, '6'},
@@ -431,18 +460,62 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
       continue;
     }
     
-    else if (strncasecmp(key, "experimental", 5) == 0) {
-      experimental = atoi(val);
-      continue;
-    }
-    
     else if (strncasecmp(key, "old_mismatch", 3) == 0) {
       old_mismatch = 1;
       continue;
     }
+
+    else if (strncasecmp(key, "cputime", 3) == 0) {
+      cputime = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "enableDBlogging", 8) == 0) {
+      useDB = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "dbDSN", 5) == 0) {
+      snprintf(dbDSNbuf, 255, "%s", val);
+      dbDSN = dbDSNbuf;
+      continue;
+    }
+
+    else if (strncasecmp(key, "dbUID", 5) == 0) {
+      snprintf(dbUIDbuf, 255, "%s", val);
+      dbUID = dbUIDbuf;
+      continue;
+    }
+
+    else if (strncasecmp(key, "dbPWD", 5) == 0) {
+      snprintf(dbPWDbuf, 255, "%s", val);
+      dbPWD = dbPWDbuf;
+      continue;
+    }
+
+    else if (strncasecmp(key, "cwnddecrease", 5) == 0) {
+      options.cwndDecrease = 1;
+      options.snaplog = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "snaplog", 5) == 0) {
+      options.snaplog = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "avoidsndblockup", 5) == 0) {
+      options.avoidSndBlockUp = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "snapdelay", 5) == 0) {
+      options.snapDelay = atoi(val);
+      continue;
+    }
     
     else if (strncasecmp(key, "limit", 5) == 0) {
-      limit = atoi(val);
+      options.limit = atoi(val);
       continue;
     }
     
@@ -499,6 +572,33 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   fclose(conf);
 }
 
+void*
+cputimeWorker(void* arg)
+{
+    char *logname = (char*) arg;
+    FILE* file = fopen(logname, "w");
+    struct tms buf;
+    double start = secs();
+
+    if (!file)
+        return NULL;
+
+    while (1) {
+        if (!workerLoop) {
+            break;
+        }
+        times(&buf);
+        fprintf(file, "%.2f %ld %ld %ld %ld\n", secs() - start, buf.tms_utime, buf.tms_stime,
+                buf.tms_cutime, buf.tms_cstime);
+        fflush(file);
+        mysleep(0.1);
+    }
+
+    fclose(file);
+
+    return NULL;
+}
+
 void
 run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 {
@@ -535,14 +635,11 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   double s2c2spd;
   double spd;
   double acks, aspd = 0, tmouts, rtran, dack;
-  float runave;
+  float runave[4];
 
   FILE *fp;
 
-  /* experimental code to capture and log multiple copies of the the
-   * web100 variables using the web100_snap() & log() functions.
-   */
-  char logname[128];
+  web100_connection* conn;
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -552,7 +649,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
       spds[spd_index][ret] = 0x00;
   spd_index = 0;
 
-  autotune = web100_autotune(ctlsockfd, agent);
+  conn = web100_connection_from_socket(agent, ctlsockfd);
+  autotune = web100_autotune(ctlsockfd, agent, conn);
 
   sprintf(buff, "v%s", VERSION);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
@@ -576,24 +674,36 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   }
   
   alarm(15);
-  test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd);
+  if (test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd)) {
+      log_println(0, "Middlebox test FAILED!");
+      testopt.midopt = TOPT_DISABLED;
+  }
   
   alarm(30);
-  test_sfw_srv(ctlsockfd, agent, &testopt, conn_options);
+  if (test_sfw_srv(ctlsockfd, agent, &testopt, conn_options)) {
+      log_println(0, "Simple firewall test FAILED!");
+      testopt.sfwopt = TOPT_DISABLED;
+  }
 
   alarm(30);
-  test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
-      device, limit, record_reverse, count_vars, spds, &spd_index);
+  if (test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
+      device, &options, record_reverse, count_vars, spds, &spd_index)) {
+      log_println(0, "C2S throughput test FAILED!");
+      testopt.c2sopt = TOPT_DISABLED;
+  }
 
   alarm(30);
-  test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, limit, experimental, logname, spds, &spd_index, count_vars);
+  if (test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
+      device, &options, spds, &spd_index, count_vars, &peaks)) {
+      log_println(0, "S2C throughput test FAILED!");
+      testopt.s2copt = TOPT_DISABLED;
+  }
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
     sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d", &links[0],
         &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
-        &links[7], &links[8], &links[9], &links[10], &links[11], &runave,
+        &links[7], &links[8], &links[9], &links[10], &links[11], &runave[n],
         &inc_cnt, &dec_cnt, &same_cnt, &timeout, &dupack);
     max = 0;
     index = 0;
@@ -648,9 +758,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   }
 
   /* get some web100 vars */
-  if (experimental > 2) {
+  if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(agent, logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(agent, options.logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d", dec_cnt, inc_cnt, same_cnt);
   }
 
@@ -794,6 +904,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
       cwin, rttsec, Sndbuf, aspd, s2c2spd);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
+  sprintf(buff, "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n", peaks.min, peaks.max, peaks.amount);
+  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+
   send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
   fp = fopen(get_logfile(),"a");
@@ -814,11 +927,24 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
         link, mismatch, bad_cable, half_duplex, congestion);
     fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
         CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
-    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", CongAvoid, CongestionOverCount, MaxRTT, 
+    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
         OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
         SubsequentTimeouts, ThruBytesAcked);
+    fprintf(fp, ",%d,%d,%d\n", peaks.min, peaks.max, peaks.amount);
     fclose(fp);
   }
+  db_insert(spds, runave, cputimelog, options.logname, testName, testPort, date,
+          rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
+          SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
+          AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
+          Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
+          DataBytesOut, SndLimTransRwin, SndLimTransCwnd, SndLimTransSender,
+          MaxSsthresh, CurrentRTO, CurrentRwinRcvd, link, mismatch,
+          bad_cable, half_duplex, congestion, c2sdata, c2sack, s2cdata,
+          s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
+          autotune, CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
+          CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
+          SubsequentTimeouts, ThruBytesAcked, peaks.min, peaks.max, peaks.amount);
   if (usesyslog == 1) {
     sprintf(logstr1,"client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
         rmt_host, s2cspd, c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
@@ -882,6 +1008,15 @@ main(int argc, char** argv)
   int listenfd;
   char* srcname = NULL;
   int debug = 0;
+  options.limit = 0;
+  options.snapDelay = 5;
+  options.avoidSndBlockUp = 0;
+  options.snaplog = 0;
+  options.cwndDecrease = 0;
+  memset(options.logname, 0, 128);
+  peaks.min = -1;
+  peaks.max = -1;
+  peaks.amount = -1;
 
   memset(&testopt, 0, sizeof(testopt));
 
@@ -890,10 +1025,16 @@ main(int argc, char** argv)
 #else
 #define GETOPT_LONG_INET6(x) x
 #endif
+
+#ifdef EXPERIMENTAL_ENABLED
+#define GETOPT_LONG_EXP(x) "y:"x
+#else
+#define GETOPT_LONG_EXP(x) x
+#endif
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:S:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -922,7 +1063,7 @@ main(int argc, char** argv)
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("adhmoqrstxvc:y:b:f:i:l:p:T:A:S:"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1010,14 +1151,37 @@ main(int argc, char** argv)
         }
         set_buff = 1;
         break;
-      case 'x':
-        experimental++;
-        break;
       case 'd':
         debug++;
         break;
+      case 305:
+        options.snapDelay = atoi(optarg);
+        break;
       case 'y':
-        limit = atoi(optarg);
+        options.limit = atoi(optarg);
+        break;
+      case 306:
+        options.avoidSndBlockUp = 1;
+        break;
+      case 308:
+        options.cwndDecrease = 1;
+      case 307:
+        options.snaplog = 1;
+        break;
+      case 309:
+        cputime = 1;
+        break;
+      case 310:
+        useDB = 1;
+        break;
+      case 311:
+        dbDSN = optarg;
+        break;
+      case 312:
+        dbUID = optarg;
+        break;
+      case 313:
+        dbPWD = optarg;
         break;
       case 'T':
         refresh = atoi(optarg);
@@ -1085,9 +1249,11 @@ main(int argc, char** argv)
     log_println(1, "\tAdmin file = %s", AdminFileName);
   }
   if (usesyslog) {
-    log_println(1, "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
+    log_println(1, "\tSyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
   }
   log_println(1, "\tDebug level set to %d", debug);
+
+  initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
   memset(&new, 0, sizeof(new));
   new.sa_handler = cleanup;
@@ -1142,7 +1308,7 @@ main(int argc, char** argv)
     fclose(fp);
   }
   if (usesyslog == 1)
-    syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started\n",
+    syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started",
         VERSION);
   /*
    * Wait at accept() for a new connection from a client process.
@@ -1407,16 +1573,33 @@ multi_client:
           }
         }
 
+        {
+            I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
+            testPort = I2AddrPort(tmp_addr);
+            snprintf(testName, 250, "%s", name);
+            I2AddrFree(tmp_addr);
+            memset(cputimelog, 0, 256);
+            if (cputime) {
+                sprintf(cputimelog, "cputime.%s.%d", name, testPort);
+              if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
+                  log_println(0, "Cannot create worker thread for writing cpu usage!");
+                  workerThreadId = 0;
+                  memset(cputimelog, 0, 256);
+              }
+            }
+        }
         /* write the incoming connection data into the log file */
         fp = fopen(get_logfile(),"a");
         if (fp == NULL) {
           log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
         }
         else {
-          I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
           fprintf(fp,"%15.15s  %s port %d\n",
-              ctime(&tt)+4, name, I2AddrPort(tmp_addr));
-          I2AddrFree(tmp_addr);
+              ctime(&tt)+4, name, testPort);
+          if (cputime && workerThreadId) {
+              log_println(1, "cputime trace file: %s\n", cputimelog);
+              fprintf(fp, "cputime trace file: %s\n", cputimelog);
+          }
           fclose(fp);
         }
         close(chld_pipe[0]);
@@ -1428,6 +1611,12 @@ multi_client:
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
         web100_detach(agent);
+
+        if (cputime && workerThreadId) {
+            workerLoop = 0;
+            pthread_join(workerThreadId, NULL);
+        }
+
         exit(0);
         break;
     }

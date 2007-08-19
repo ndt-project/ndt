@@ -15,13 +15,8 @@
 #
 #	Description:
 
-# JAVAROOT = /home/rcarlson/jdk1.4.2
-# JAVAC = $(JAVAROOT)bin/javac
 GCJLINK = $(GCJLD)
-
 CLASSPATH_ENV = 
-
-# Admindir = $(srcdir)/Admin
 
 noinst_PROGRAMS	= Admin.class
 
@@ -31,9 +26,6 @@ Admindir = $(ndtdir)
 
 Admin_JAVA	= Admin.java
 Admin_class_SOURCES	= Admin.java
-
-#am_Admin_OBJECTS = Admin.java
-#Admin_LDADD = 
 
 Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	@rm -f Admin$(EXEEXT)

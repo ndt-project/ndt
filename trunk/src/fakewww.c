@@ -8,6 +8,8 @@
  * to run a web server
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -24,8 +26,9 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#define SYSLOG_NAMES
+#include  <syslog.h>
 
-#include "../config.h"
 #include "usage.h"
 #include "troute.h"
 #include "tr-tree.h"
@@ -33,20 +36,31 @@
 #include "logging.h"
 #include "web100-admin.h"
 
-#define PORT           "7123"
+#define PORT            "7123"
+#define AC_TIME_FORMAT  "%d/%b/%Y:%H:%M:%S %z"
+#define ER_TIME_FORMAT  "%a %b %d %H:%M:%S %Y"
+#define ACLOGFILE       "access_log"
+#define ERLOGFILE       "error_log"
+#define LOG_FACILITY    LOG_LOCAL0
+
+char* ac_time_format = AC_TIME_FORMAT;
+char* er_time_format = ER_TIME_FORMAT;
 char buff[BUFFSIZE];
 /* html message */
-char *MsgOK  = "HTTP/1.0 200 OK\n\n";
-char *MsgNope = "HTTP/1.0 404 Not found\n\n"
-    "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
-        "<BODY><H1>The requested file could not be found</H1></BODY>\n";
+char *MsgOK    = "HTTP/1.0 200 OK\r\n\r\n";
+char *MsgNope1 = "HTTP/1.0 404 Not found\r\n\r\n";
+char *MsgNope2 = "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
+                 "<BODY><H1>The requested file could not be found</H1></BODY>\n";
 
-char *MsgRedir1 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
+char *MsgRedir1 = "HTTP/1.0 307 Temporary Redirect\r\n";
+char *MsgRedir2 = "Location: ";
+char *MsgRedir3 = "\r\n\r\n";
+char *MsgRedir4 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
     "  <BODY>\n    <meta http-equiv=\"refresh\" content=\"2; ";
-char *MsgRedir2 = "\">\n\n<h2>FLM server re-direction page</h2>\n"
+char *MsgRedir5 = "\">\n\n<h2>FLM server re-direction page</h2>\n"
     "<p><font size=\"+2\">Your client is being redirected to the 'closest' FLM server "
     "for configuration testing.\n <a ";
-char *MsgRedir3 = ">Click Here  </a> if you are not "
+char *MsgRedir6 = ">Click Here  </a> if you are not "
     "automatically redirected in the next 2 seconds.\n  "
     "</font></BODY>\n</HTML>";
 
@@ -70,15 +84,23 @@ char* DefaultTree6 = NULL;
 static char dt6fn[256];
 #endif
 
+int usesyslog=0;
+char *SysLogFacility=NULL;
+int syslogfacility = LOG_FACILITY;
+char *ProcessName={"fakewww"};
+
 static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
-  {"log", 1, 0, 'l'},
+  {"alog", 1, 0, 'l'},
+  {"elog", 1, 0, 'e'},
   {"port", 1, 0, 'p'},
   {"ttl", 1, 0, 't'},
   {"federated", 0, 0, 'F'},
   {"file", 1, 0, 'f'},
   {"basedir", 1, 0, 'b'},
+  {"syslog", 0, 0, 's'},
+  {"logfacility", 1, 0, 'S'},
   {"version", 0, 0, 'v'},
   {"dflttree", 1, 0, 301},
 #ifdef AF_INET6
@@ -90,8 +112,11 @@ static struct option long_options[] = {
 };
 
 
-void dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl);
+void dowww(int, I2Addr, char*, char*, char*, int, int);
 void reap();
+char* getTime(time_t*, char*);
+void logErLog(char*, time_t*, char*, char*, ...);
+void logAcLog(char*, time_t*, char*, char*, int, int, char*, char*);
 
 void
 err_sys(char* s)
@@ -112,10 +137,10 @@ main(int argc, char** argv)
   char* listenport = PORT;
   int conn_options = 0;
 
-  char *LogFileName=NULL, *ctime();
+  char *ErLogFileName= BASEDIR"/"ERLOGFILE;
+  char *AcLogFileName= BASEDIR"/"ACLOGFILE;
   struct sockaddr_storage cli_addr;
   I2Addr listenaddr = NULL;
-  FILE *fp;
   Allowed* ptr;
 
 #ifdef AF_INET6
@@ -125,7 +150,7 @@ main(int argc, char** argv)
 #endif
   
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6("dhl:p:t:Ff:b:v"), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:sS:v"), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -144,7 +169,10 @@ main(int argc, char** argv)
         exit(0);
         break;
       case 'l':
-        LogFileName = optarg;
+        AcLogFileName = optarg;
+        break;
+      case 'e':
+        ErLogFileName = optarg;
         break;
       case 'p':
         listenport = optarg;
@@ -163,6 +191,12 @@ main(int argc, char** argv)
         break;
       case 'b':
         basedir = optarg;
+        break;
+      case 's':
+        usesyslog = 1;
+        break;
+      case 'S':
+        SysLogFacility = optarg;
         break;
       case 301:
         DefaultTree = optarg;
@@ -183,6 +217,22 @@ main(int argc, char** argv)
   }
 
   log_init(argv[0], debug);
+
+  if (SysLogFacility != NULL) {
+    int i = 0;
+    while (facilitynames[i].c_name) {
+      if (strcmp(facilitynames[i].c_name, SysLogFacility) == 0) {
+        syslogfacility = facilitynames[i].c_val;
+        break;
+      }
+      ++i;
+    }
+    if (facilitynames[i].c_name == NULL) {
+      log_println(0, "Warning: Unknown syslog facility [%s] --> using default (%d)",
+          SysLogFacility, syslogfacility);
+      SysLogFacility = NULL;
+    }
+  }
 
   if (DefaultTree == NULL) {
     sprintf(dtfn, "%s/%s", BASEDIR, DFLT_TREE);
@@ -208,20 +258,31 @@ main(int argc, char** argv)
   sockfd = I2AddrFD(listenaddr);
 
   tt = time(0);
-  log_println(1, "%15.15s server started, listening on port %d%s", ctime(&tt)+4, I2AddrPort(listenaddr),
-      (federated == 1) ? ", operating in Federated mode" : "");
-  if (LogFileName != NULL) {
-    fp = fopen(LogFileName, "a");
-    if (fp != NULL) {
-      fprintf(fp, "%15.15s server started, listening on port %d",
-          ctime(&tt)+4, I2AddrPort(listenaddr));
-      if (federated == 1)
-        fprintf(fp, ", operating in Federated mode");
-      fprintf(fp, "\n");
-      fclose(fp);
-    }
+  log_println(1, "%15.15s fakewww server started (NDT version %s)", ctime(&tt)+4, VERSION);
+  log_println(1, "\tport = %d", I2AddrPort(listenaddr));
+  log_println(1, "\tfederated mode = %s", (federated == 1) ? "on" : "off");
+  log_println(1, "\taccess log = %s\n\terror log = %s", AcLogFileName, ErLogFileName);
+  log_println(1, "\tbasedir = %s", basedir);
+  if (usesyslog) {
+    log_println(1, "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
   }
-  signal(SIGCHLD, (__sighandler_t)reap);    /* get rid of zombies */
+  log_println(1, "\tdebug level set to %d", debug);
+
+  logErLog(ErLogFileName, &tt, "notice", "fakewww server started (NDT version %s)", VERSION);
+  logErLog(ErLogFileName, &tt, "notice", "\tport = %d", I2AddrPort(listenaddr));
+  logErLog(ErLogFileName, &tt, "notice", "\tfederated mode = %s", (federated == 1) ? "on" : "off");
+  logErLog(ErLogFileName, &tt, "notice", "\taccess log = %s", AcLogFileName);
+  logErLog(ErLogFileName, &tt, "notice", "\terror log = %s", ErLogFileName);
+  logErLog(ErLogFileName, &tt, "notice", "\tbasedir = %s", basedir);
+  if (usesyslog) {
+    logErLog(ErLogFileName, &tt, "notice", "\tsyslog facility = %s (%d)", SysLogFacility ? SysLogFacility : "default", syslogfacility);
+  }
+  logErLog(ErLogFileName, &tt, "notice", "\tdebug level set to %d", debug);
+
+  if (usesyslog == 1)
+      syslog(LOG_FACILITY|LOG_INFO, "Fakewww (ver %s) process started",
+              VERSION);
+  signal(SIGCHLD, reap);    /* get rid of zombies */
 
   /*
    * Wait for a connection from a client process.
@@ -240,7 +301,7 @@ main(int argc, char** argv)
       I2Addr caddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
       alarm(300);     /* kill child off after 5 minutes, should never happen */
       close(sockfd);
-      dowww(newsockfd, caddr, listenport, LogFileName, federated, max_ttl);
+      dowww(newsockfd, caddr, listenport, AcLogFileName, ErLogFileName, federated, max_ttl);
       exit(0);
     }
     close(newsockfd);
@@ -250,7 +311,7 @@ main(int argc, char** argv)
 
 #include        <sys/wait.h>
 void
-reap()
+reap(int signo)
 {
   /*
    * avoid zombies, since we run forever
@@ -299,7 +360,18 @@ register int  maxlen;
 }
 
 void
-dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_ttl)
+trim(char* ptr) {
+    while (*ptr) {
+        if ((*ptr == '\r') || (*ptr == '\n')) {
+            *ptr = 0;
+            break;
+        }
+        ptr++;
+    }
+}
+
+void
+dowww(int sd, I2Addr addr, char* port, char* AcLogFileName, char* ErLogFileName, int fed_mode, int max_ttl)
 {
   /* process web request */
   int fd, n, i, ok;
@@ -311,25 +383,44 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
   u_int32_t srv_addr6[4];
 #endif
   I2Addr serv_addr = NULL;
-  I2Addr loc_addr=NULL, rem_addr=NULL;
-  FILE *lfd;
+  I2Addr loc_addr=NULL;
   time_t tt;
   char nodename[200];
   char onenodename[200];
   size_t nlen = 199;
   Allowed* ptr;
+  char lineBuf[100];
+  char useragentBuf[100];
+  char refererBuf[100];
+  int answerSize;
   
   memset(nodename, 0, 200);
   I2AddrNodeName(addr, nodename, &nlen);
 
-  while ((n = readline(sd, buff, sizeof(buff))) > 0){
-    buff[n] = '\0';
+  while ((n = readline(sd, buff, sizeof(buff))) > 0) {
     if (n < 3)
       break;  /* end of html input */
     p = (char *) strstr(buff, "GET");
     if (p == NULL) 
       continue;
+    memset(lineBuf, 0, 100);
+    memset(useragentBuf, 0, 100);
+    memset(refererBuf, 0, 100);
+    strncpy(lineBuf, buff, 99);
+    trim(lineBuf);
     sscanf(p+4, "%s", filename);
+    while ((n = readline(sd, buff, sizeof(buff))) > 0) {
+        if ((p = (char *) strstr(buff, "User-Agent"))) {
+            strncpy(useragentBuf, p+12, 99);
+            trim(useragentBuf);
+        }
+        if ((p = (char *) strstr(buff, "Referer"))) {
+            strncpy(refererBuf, p+9, 99);
+            trim(refererBuf);
+        }
+        if (n < 3)
+            break;  /* end of html input */
+    }
     if (strcmp(filename, "/") == 0) {
       /* feed em the default page */
       /* strcpy(filename, Mypagefile); */
@@ -387,36 +478,43 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
            * RAC 3/9/04
            */
 
-          writen(sd, MsgOK, strlen(MsgOK));
           writen(sd, MsgRedir1, strlen(MsgRedir1));
-          sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
-              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
-              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
-              port);
-          writen(sd, line, strlen(line));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          sprintf(line, "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"", 
+          sprintf(line, "http://%u.%u.%u.%u:%s/tcpbw100.html", 
               srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
               port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
+          writen(sd, MsgRedir4, strlen(MsgRedir4));
+          answerSize = strlen(MsgRedir4);
+          sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html", 
+              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
+              port);
+          writen(sd, line, strlen(line));
+          answerSize += strlen(line);
+          writen(sd, MsgRedir5, strlen(MsgRedir5));
+          answerSize += strlen(MsgRedir5);
+          sprintf(line, "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"", 
+              srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+              (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
+              port);
+          writen(sd, line, strlen(line));
+          answerSize += strlen(line);
+          writen(sd, MsgRedir6, strlen(MsgRedir6));
+          answerSize += strlen(MsgRedir6);
           log_println(3, "%s redirected to remote server [%u.%u.%u.%u:%s]",
               inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff, (srv_addr >> 8) & 0xff,
               (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
           tt = time(0);
-          if (LogFileName != NULL) {
-            lfd = fopen(LogFileName, "a");
-            if (lfd != NULL) {
-              fprintf(lfd, "%15.15s [%s] redirected to remote server [%u.%u.%u.%u:%s]\n",
-                  ctime(&tt)+4, inet_ntoa(cli_addr->sin_addr),
+          logErLog(ErLogFileName, &tt, "notice", "[%s] redirected to remote server [%u.%u.%u.%u:%s]",
+                  inet_ntoa(cli_addr->sin_addr),
                   srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                   (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff, port);
-
-              fclose(lfd);
-            }
-          }
-          continue;
+          logAcLog(AcLogFileName, &tt, inet_ntoa(cli_addr->sin_addr), lineBuf, 307, answerSize,
+                  useragentBuf, refererBuf);
+          break;
         }
 #ifdef AF_INET6
         else if (csaddr->sa_family == AF_INET6) {
@@ -459,26 +557,30 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
           log_println(4, "Client host [%s] should be redirected to FLM server [%s]",
               nodename, onenodename);
 
-          writen(sd, MsgOK, strlen(MsgOK));
           writen(sd, MsgRedir1, strlen(MsgRedir1));
-          sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
-          writen(sd, line, strlen(line));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
+          sprintf(line, "http://[%s]:%s/tcpbw100.html", onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
-          log_println(3, "%s redirected to remote server [%s:%s]", nodename, onenodename, port);
+          writen(sd, MsgRedir4, strlen(MsgRedir4));
+          answerSize = strlen(MsgRedir4);
+          sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
+          writen(sd, line, strlen(line));
+          answerSize += strlen(line);
+          writen(sd, MsgRedir5, strlen(MsgRedir5));
+          answerSize += strlen(MsgRedir5);
+          sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
+          writen(sd, line, strlen(line));
+          answerSize += strlen(line);
+          writen(sd, MsgRedir6, strlen(MsgRedir6));
+          answerSize += strlen(MsgRedir6);
+          log_println(3, "%s redirected to remote server [[%s]:%s]", nodename, onenodename, port);
           tt = time(0);
-          if (LogFileName != NULL) {
-            lfd = fopen(LogFileName, "a");
-            if (lfd != NULL) {
-              fprintf(lfd, "%15.15s [%s] redirected to remote server [%s:%s]\n",
-                  ctime(&tt)+4, nodename, onenodename, port);
-
-              fclose(lfd);
-            }
-          }
-          continue;
+          logErLog(ErLogFileName, &tt, "notice", "[%s] redirected to remote server [[%s]:%s]",
+                  nodename, onenodename, port);
+          logAcLog(AcLogFileName, &tt, nodename, lineBuf, 307, answerSize,
+                  useragentBuf, refererBuf);
+          break;
         }
 #endif
       }
@@ -486,15 +588,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
 
     /* try to open and give em what they want */
     tt = time(0);
-    log_print(3, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4, nodename, filename);
-    if (LogFileName != NULL) {
-      lfd = fopen(LogFileName, "a");
-      if (lfd != NULL) {
-        fprintf(lfd, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4,
-            nodename, filename);
-        fclose(lfd);
-      }
-    }
     ok = 0;
     if (strcmp(filename, "/") == 0)
       strncpy(filename, "/tcpbw100.html", 15);
@@ -502,14 +595,6 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
       /* restrict file access */
       if (strcmp(okfile[i], filename) == 0) {
         ok=1;
-        log_println(3, "sent to client");
-        if (LogFileName != NULL) {
-          lfd = fopen(LogFileName, "a");
-          if (lfd != NULL) {
-            fprintf(lfd, "sent to client\n");
-            fclose(lfd);
-          }
-        }
         break;
       }
     }
@@ -517,47 +602,51 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
       ptr = a_root;
       while (ptr != NULL) {
         if (strcmp(ptr->filename, filename) == 0) {
-          ok=1;
-          log_println(3, "sent to client [A]");
-          if (LogFileName != NULL) {
-            lfd = fopen(LogFileName, "a");
-            if (lfd != NULL) {
-              fprintf(lfd, "sent to client [A]\n");
-              fclose(lfd);
-            }
-          }
+          ok=2;
           break;
         }       
         ptr = ptr->next;
       }
     }
+    log_print(3, "%15.15s [%s] requested file '%s' - ", ctime(&tt)+4, nodename, filename);
     if (ok == 0) {
-      writen(sd, MsgNope, strlen(MsgNope));
+      writen(sd, MsgNope1, strlen(MsgNope1));
+      writen(sd, MsgNope2, strlen(MsgNope2));
+      answerSize = strlen(MsgNope2);
       log_println(3, "access denied");
-      if (LogFileName != NULL) {
-        lfd = fopen(LogFileName, "a");
-        if (lfd != NULL) {
-          fprintf(lfd, "access denied\n");
-          fclose(lfd);
-        }
-      }
-      continue;
+      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 403, answerSize,
+              useragentBuf, refererBuf);
+      logErLog(ErLogFileName, &tt, "error", "[client %s] Permission denied: path not allowed: %s",
+              nodename, filename);
+      if (usesyslog == 1)
+          syslog(LOG_FACILITY|LOG_WARNING, "[client %s] Permission denied: path not allowed: %s",
+                  nodename, filename);
+      break;
     }
     sprintf(htmlfile, "%s/%s", basedir, filename+1);
     fd = open(htmlfile, 0);  /* open file for read */
     if (fd < 0) {
       close(fd);
-      writen(sd, MsgNope, strlen(MsgNope));
+      writen(sd, MsgNope1, strlen(MsgNope1));
+      writen(sd, MsgNope2, strlen(MsgNope2));
+      answerSize = strlen(MsgNope2);
       log_println(3, " not found");
-      if (LogFileName != NULL) {
-        lfd = fopen(LogFileName, "a");
-        if (lfd != NULL) {
-          fprintf(lfd, " not found\n");
-          fclose(lfd);
-        }
-      }
-      continue;
+      logAcLog(AcLogFileName, &tt, nodename, lineBuf, 404, answerSize,
+              useragentBuf, refererBuf);
+      logErLog(ErLogFileName, &tt, "error", "[client %s] File does not exist: %s",
+              nodename, filename);
+      if (usesyslog == 1)
+          syslog(LOG_FACILITY|LOG_WARNING, "[client %s] File does not exist: %s",
+                  nodename, filename);
+      break;
     }
+    if (ok == 1) {
+        log_println(3, "sent to client");
+    }
+    else {
+        log_println(3, "sent to client [A]");
+    }
+
     /* reply: */
 
 
@@ -565,16 +654,10 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
      * run Les Cottrell's traceroute program
      */
     if (strncmp(htmlfile, "/usr/local/ndt/traceroute.pl", 28) == 0) {
-	/* fprintf(stderr, "running traceroute script\n"); */
         loc_addr = I2AddrByLocalSockFD(get_errhandle(), sd, False);
         memset(onenodename, 0, 200);
         nlen = 199;
         I2AddrNodeName(loc_addr, onenodename, &nlen);
-        /* fprintf(stderr, "query_string=%s", nodename);
-         * fprintf(stderr, " server_name=%s", onenodename);
-         * fprintf(stderr, " remote_host=%s", nodename);
-         * fprintf(stderr, " remote_addr=%s\n", nodename);
-	 */
 
 	setenv("QUERY_STRING", nodename, 1);
 	setenv("SERVER_NAME", onenodename, 1);
@@ -586,10 +669,59 @@ dowww(int sd, I2Addr addr, char* port, char* LogFileName, int fed_mode, int max_
     }
         
     writen(sd, MsgOK, strlen(MsgOK));
+    answerSize = 0;
     while( (n = read(fd, buff, sizeof(buff))) > 0){
       writen(sd, buff, n);
+      answerSize += n;
     }
+    logAcLog(AcLogFileName, &tt, nodename, lineBuf, 200, answerSize,
+            useragentBuf, refererBuf);
     close(fd);
+    break;
   }
   close(sd);
+}
+
+char*
+getTime(time_t* tt, char* format)
+{
+    static char timeBuf[100];
+
+    if (strftime(timeBuf, 99, format, localtime(tt))) {
+        return timeBuf;
+    }
+    else {
+        return (ctime(tt)+4);
+    }
+}
+
+void
+logErLog(char* LogFileName, time_t* tt, char* severity, char* format, ...)
+{
+    FILE *fp;
+    va_list ap;
+    if (LogFileName != NULL) {
+        fp = fopen(LogFileName, "a");
+        if (fp != NULL) {
+            fprintf(fp, "[%s] [%s] ", getTime(tt, er_time_format), severity);
+            va_start(ap, format);
+            vfprintf(fp, format, ap);
+            va_end(ap);
+            fprintf(fp, "\n");
+            fclose(fp);
+        }
+    }
+}
+
+void
+logAcLog(char* LogFileName, time_t* tt, char* host, char* line, int res, int size, char* agent, char* referer)
+{
+    FILE *fp;
+    if (LogFileName != NULL) {
+        fp = fopen(LogFileName, "a");
+        if (fp != NULL) {
+            fprintf(fp, "%s - - [%s] \"%s\" %d %d \"%s\" \"%s\"\n", host, getTime(tt, ac_time_format), line, res, size, agent, referer);
+            fclose(fp);
+        }
+    }
 }

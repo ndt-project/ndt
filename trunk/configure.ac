@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.3.19],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.4.3],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -52,6 +52,29 @@ else
   CFLAGS="$CFLAGS -DNDEBUG"
   AC_MSG_RESULT(no)
 fi
+
+# Enabling/disabling experimental code
+AC_MSG_CHECKING(whether to enable experimental code)
+AC_ARG_ENABLE(experimental, [  --enable-experimental=[yes/no] turn on experimental code
+              [default=yes]],, enable_experimental=yes)
+if test "x$enable_experimental" = "xno"; then
+    AC_MSG_RESULT(no)
+else
+    CFLAGS="$CFLAGS -DEXPERIMENTAL_ENABLED"
+    AC_MSG_RESULT(yes)
+fi
+
+# Enabling/disabling database support
+AC_MSG_CHECKING(whether to enable database support)
+AC_ARG_ENABLE(database, [  --enable-database=[yes/no] turn on database support
+              [default=yes]],, enable_database=yes)
+if test "x$enable_database" = "xno"; then
+    AC_MSG_RESULT(no)
+else
+    CFLAGS="$CFLAGS -DDATABASE_ENABLED"
+    AC_MSG_RESULT(yes)
+fi
+
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
@@ -107,16 +130,51 @@ AC_SUBST(I2UTILLIBDEPS)
 AC_SUBST(I2UTILLIBMAKE)
 AC_SUBST(I2UTILINCS)
 
-#
-# set local vars
-#
+AC_CHECK_LIB([web100], [web100_snap],
+             [
+              LINKED_WEB100LIB="-lweb100"
+              INCLUDED_WEB100LIB="-I/usr/local/include/web100"
+              AC_DEFINE(HAVE_LIBWEB100, 1, [Define to 1 if you have the 'Web100' library (-lweb100).])
+              AM_CONDITIONAL(HAVE_WEB100, true)
+              ],
+              [
+               LINKED_WEB100LIB=""
+               INCLUDED_WEB100LIB=""
+               AM_CONDITIONAL(HAVE_WEB100, false)
+               ])
 
-NDTINCDIR='-I/usr/local/include/web100 -I/usr/include/pcap'
+AC_CHECK_LIB([pcap], [pcap_open_live],
+             [
+              LINKED_PCAPLIB="-lpcap"
+              INCLUDED_PCAPLIB="-I/usr/include/pcap"
+              AC_DEFINE(HAVE_LIBPCAP, 1, [Define to 1 if you have the 'pcap' library (-lpcap).])
+              ],
+              [
+               LINKED_PCAPLIB=""
+               INCLUDED_PCAPLIB=""
+               ])
+
+AC_CHECK_LIB([odbc], [SQLDriverConnect],
+             [
+              LINKED_ODBCLIB="-lodbc"
+              AC_DEFINE(HAVE_ODBC, 1, [Define to 1 if you have the 'odbc' library (-lodbc).])
+              ],
+              [
+               LINKED_ODBCLIB=""
+               ])
+
+
+NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='-lweb100 -lpcap -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
+AC_SUBST(LINKED_WEB100LIB)
+AC_SUBST(INCLUDED_WEB100LIB)
+AC_SUBST(LINKED_PCAPLIB)
+AC_SUBST(INCLUDED_PCAPLIB)
+AC_SUBST(LINKED_ODBCLIB)
 AC_SUBST(NDTINCS)
 AC_SUBST(NDTLDFLAGS)
 AC_SUBST(NDTLIBS)
@@ -129,12 +187,9 @@ AC_SUBST(TOP_BUILD_DIRS)
 # Java config files
 #
 GCJ=javac
-# NDTGCJFLAGS="-source 1.3"
-# GCJFLAGS="-source 1.3"
 NDTGCJFLAGS="-source 1.4"
 GCJFLAGS="-source 1.4"
 
-AC_SUBST(GCJ)
 AC_SUBST(NDTGCJFLAGS)
 
 NDTJAR=jar
@@ -146,13 +201,15 @@ AC_SUBST(NDTJARFLAG)
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_GCJ
+AC_CHECK_PROGS(SGCJ, javac)
+AM_CONDITIONAL(HAVE_GCJ, test -n "$SGCJ")
 
 # Checks for libraries.
 
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h])
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h stdlib.h string.h sys/socket.h sys/time.h unistd.h linux/sockios.h net/ethernet.h netinet/ip6.h linux/icmpv6.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

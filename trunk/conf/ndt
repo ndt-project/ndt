@@ -14,7 +14,7 @@ path=/usr/local/sbin
 
 # Specify some default options.
 WEB100SRV_OPTIONS="-a"
-FAKEWWW_OPTIONS="-l /var/log/fakewww.log"
+FAKEWWW_OPTIONS=""
 RETVAL=0
 
 start ()

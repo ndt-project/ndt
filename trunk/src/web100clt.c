@@ -1,3 +1,5 @@
+#include "../config.h"
+
 #include <errno.h>
 #include <string.h>
 #include <getopt.h>
@@ -6,7 +8,6 @@
 #include <time.h>
 #include <ctype.h>
 
-#include "../config.h"
 #include "network.h"
 #include "usage.h"
 #include "logging.h"
@@ -36,6 +37,7 @@ int pkts, lth=8192, CurrentRTO;
 int c2sData, c2sAck, s2cData, s2cAck;
 int winssent, winsrecv, msglvl=0;
 int sndqueue, ssndqueue, sbytes;
+int minPeak, maxPeak, peaks;
 double spdin, spdout, c2sspd, s2cspd;
 double aspd;
 
@@ -547,6 +549,12 @@ save_int_values(char *sysvar, int sysval)
     else
       RcvWinScale = sysval;
   }
+  else if(strcmp("minCWNDpeak:", sysvar) == 0)
+      minPeak = sysval;
+  else if(strcmp("maxCWNDpeak:", sysvar) == 0)
+      maxPeak = sysval;
+  else if(strcmp("CWNDpeaks:", sysvar) == 0)
+      peaks = sysval;
 }
 
 void
@@ -727,11 +735,11 @@ main(int argc, char *argv[])
 
   for (;;) {
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
       exit(1);
     }
-    if (check_msg_type("Logging to server", SRV_QUEUE, msgType)) {
+    if (check_msg_type("Logging to server", SRV_QUEUE, msgType, buff, msgLen)) {
       exit(2);
     }
     if (msgLen <= 0) {
@@ -759,11 +767,11 @@ main(int argc, char *argv[])
   }
 
   msgLen = sizeof(buff);
-  if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+  if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
     log_println(0, "Protocol error!");
     exit(1);
   }
-  if (check_msg_type("Negotiating NDT version", MSG_LOGIN, msgType)) {
+  if (check_msg_type("Negotiating NDT version", MSG_LOGIN, msgType, buff, msgLen)) {
     exit(2);
   }
   if (msgLen <= 0) {
@@ -781,11 +789,11 @@ main(int argc, char *argv[])
   }
   
   msgLen = sizeof(buff);
-  if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+  if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
     log_println(0, "Protocol error!");
     exit(1);
   }
-  if (check_msg_type("Negotiating test suite", MSG_LOGIN, msgType)) {
+  if (check_msg_type("Negotiating test suite", MSG_LOGIN, msgType, buff, msgLen)) {
     exit(2);
   }
   if (msgLen <= 0) {
@@ -807,16 +815,28 @@ main(int argc, char *argv[])
     }
     switch (testId) {
       case TEST_MID:
-        test_mid_clt(ctlSocket, tests, host, conn_options, buf_size, tmpstr2);
+        if (test_mid_clt(ctlSocket, tests, host, conn_options, buf_size, tmpstr2)) {
+          log_println(0, "Middlebox test FAILED!");
+          tests &= (~TEST_MID);
+        }
         break;
       case TEST_C2S:
-        test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size);
+        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size)) {
+          log_println(0, "C2S throughput test FAILED!");
+          tests &= (~TEST_C2S);
+        }
         break;
       case TEST_S2C:
-        test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size, tmpstr);
+        if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size, tmpstr)) {
+          log_println(0, "S2C throughput test FAILED!");
+          tests &= (~TEST_S2C);
+        }
         break;
       case TEST_SFW:
-        test_sfw_clt(ctlSocket, tests, host, conn_options);
+        if (test_sfw_clt(ctlSocket, tests, host, conn_options)) {
+          log_println(0, "Simple firewall test FAILED!");
+          tests &= (~TEST_SFW);
+        }
         break;
       default:
         log_println(0, "Unknown test ID");
@@ -832,14 +852,14 @@ main(int argc, char *argv[])
    */
   for (;;) {
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
       exit(1);
     }
     if (msgType == MSG_LOGOUT) {
       break;
     }
-    if (check_msg_type("Tests results", MSG_RESULTS, msgType)) {
+    if (check_msg_type("Tests results", MSG_RESULTS, msgType, buff, msgLen)) {
       exit(2);
     }
     strncat(tmpstr, buff, msgLen);

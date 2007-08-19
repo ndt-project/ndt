@@ -11,8 +11,11 @@
  * may need a better (hash) random (uncompressable) data stream
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
@@ -27,7 +30,6 @@
 #include <sys/select.h>
 #include <math.h>
 
-#include "../config.h"
 #include "usage.h"
 #include "logging.h"
 
@@ -40,12 +42,11 @@ char buff[BUFFSIZE+1];
 int window = 64000;
 int randomize=0;
 char *rmt_host;
-double bwin, bwout;
 char *VarFileName=NULL;
 char *LogFileName=NULL;
 double avgrtt, loss, loss2, rttsec, bw, bw2, rwin, swin, cwin, speed;
 double rwintime, cwndtime, sendtime, timesec;
-int experimental=0, n, m, one=1;
+int n, m, one=1;
 int Timeouts, SumRTT, CountRTT, MinRTT, PktsRetrans, FastRetran, DataPktsOut;
 int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
 int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
@@ -296,8 +297,7 @@ void calculate()
     bad_cable = 1;
 
   /* test for Ethernet link (assume Fast E.) */
-  if ((spd < 9.5) && (spd > 3.0) && ((bwin/1000) < 9.5) &&
-      (loss < .01) && (order < .035) && (link > 0))
+  if ((spd < 9.5) && (spd > 3.0) && (loss < .01) && (order < .035) && (link > 0))
     link = 10;
 
   /* test for DSL/Cable modem link */

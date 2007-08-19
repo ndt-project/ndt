@@ -111,18 +111,39 @@ variable file name.  This file contains a list of all \fBWeb100\fR
 KIS variables used by the \fBweb100srv\fR program.  Replaces
 \fI-f\fR option.
 .PP
-\fBexperimental\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
-program should run with experimental flag set to \fIvalue\fR. The server program
-is constantly being modified and, from time to time, experimental code is
-installed. When the experimental flag is set, then this code is invoked at run time.
-Replaces \fI-x\fR option.
-.PP
 \fBold_mismatch\fR (3) - This boolean flag causes the \fBweb100srv\fR
 program to use old Duplex Mismatch heuristic. Replaces \fI-o\fR option.
 .PP
 \fBlimit\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
 program should use the experimental throughput limiting code with the
 multiplication factor set to \fIvalue\fR. Replaces \fI-y\fR option.
+.PP
+\fBcputime\fR (3) - This boolean flag causes the \fBweb100srv\fR program
+to write cputime trace. Replaces \fI--cputime\fR option.
+.PP
+\fBenableDBlogging\fR (8) - This boolean flag causes the \fBweb100srv\fR
+program to put the test results into the database. Replaces
+\fI--enableDBlogging\fR option.
+.PP
+\fBdbDSN\fR \fIdsn\fR (5) - This tag indicates that the parameter contains
+the DSN to use. Replaces \fI--dbDSN\fR option.
+.PP
+\fBdbUID\fR \fIuid\fR (5) - This tag indicates that the parameter contains
+the UID to use. Replaces \fI--dbUID\fR option.
+.PP
+\fBdbPWD\fR \fIpwd\fR (5) - This tag indicates that the parameter contains
+the PWD to use. Replaces \fI--dbPWD\fR option.
+.PP
+\fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR
+program to analyze the cwnd changes during the S2C test. Replaces
+\fI--avoidsndblockup\fR option.
+.PP
+\fBsnaplog\fR (5) - This boolean flag causes the \fBweb100srv\fR program
+to write the snaplogs. Replaces \fI--snaplog\fR option.
+.PP
+\fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR program
+to avoid send buffers blocking in the S2C test. Replaces \fI--avoidsndblockup\fR
+option.
 .PP
 \fBrefresh\fR \fItime\fR (5) - This tag indicates that the \fBweb100srv\fR
 program should generate the \fIadmin.html\fR web page with the refresh time
@@ -134,6 +155,10 @@ to the free pool. The following format is recognized: \fBmin:max\fR. This will
 result in a range from \fBmin\fR to \fBmax\fR (inclusive in both cases).
 The ranges can be separated by the commas or can be added by the multiple use of
 this tag. Note, that this enables multi-test mode. Replaces \fI--mrange\fR option.
+.PP
+\fBsnapdelay\fR \fImsec\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should write the snaplog every \fImsec\fR milliseconds in the S2C test.
+Replaces \fI--snapdelay\fR option.
 .PP
 \fBmidport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
 program should use the specified TCP \fIport\fR for the Middlebox test.
