@@ -39,33 +39,33 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     struct sigaction new, old;
     log_println(1, " <-- C2S throughput test -->");
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_PREPARE, msgType)) {
-      exit(2);
+    if (check_msg_type("C2S throughput test", TEST_PREPARE, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0;
     if (check_int(buff, &c2sport)) {
       log_println(0, "Invalid port number");
-      exit(4);
+      return 4;
     }
     log_println(1, "  -- port: %d", c2sport);
 
     if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
+      log_println(0, "Unable to resolve server address: %s", strerror(errno));
+      return -3;
     }
     I2AddrSetPort(sec_addr, c2sport);
 
     if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options))) {
-      perror("Connect() for client to server failed");
-      exit(-11);
+      log_println(0, "Connect() for client to server failed", strerror(errno));
+      return -11;
     }
 
     optlen = sizeof(set_size);
@@ -83,12 +83,12 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
       log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
     }
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_START, msgType)) {
-      exit(2);
+    if (check_msg_type("C2S throughput test", TEST_START, msgType, buff, msgLen)) {
+      return 2;
     }
 
     printf("running 10s outbound test (client to server) . . . . . ");
@@ -119,16 +119,16 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     /* receive the c2sspd from the server */
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("C2S throughput test", TEST_MSG, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) { 
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0; 
     c2sspd = atoi(buff);
@@ -139,12 +139,12 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
       printf(" %0.2f Mb/s\n", c2sspd/1000);
     
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_FINALIZE, msgType)) {
-      exit(2);
+    if (check_msg_type("C2S throughput test", TEST_FINALIZE, msgType, buff, msgLen)) {
+      return 2;
     }
     log_println(1, " <------------------------->");
   }

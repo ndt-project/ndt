@@ -47,19 +47,11 @@ web100_init(char *VarFileName)
   return(count_vars);
 }
 
-web100_connection*
-local_find_connection(int sock, web100_agent* agent)
-{
-  assert(agent);
-  return web100_connection_from_socket(agent, sock);
-}
-
 void
-web100_middlebox(int sock, web100_agent* agent, char *results)
+web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *results)
 {
 
   web100_var* var;
-  web100_connection* cn;
   web100_group* group;
   web100_snapshot* snap;
   char buff[8192], line[256];
@@ -84,11 +76,6 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
   assert(results);
 
   log_println(4, "Looking for Web100 data on socketid %d", sock);
-  cn = local_find_connection(sock, agent);
-  if (cn == NULL) {
-    log_println(0, "!!!!!!!!!!!  web100_middlebox() failed to get web100 connection data, rc=%d", errno);
-    exit(-1);
-  }
   
   addr = I2AddrByLocalSockFD(get_errhandle(), sock, False);
   memset(tmpstr, 0, 200);
@@ -178,17 +165,14 @@ web100_middlebox(int sock, web100_agent* agent, char *results)
 }
  
 void
-web100_get_data_recv(int sock, web100_agent* agent, int count_vars)
+web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int count_vars)
 {
   int i, ok;
   web100_var* var;
-  web100_connection* cn;
   char buf[32], line[256], *ctime();
   web100_group* group;
   FILE *fp;
   time_t tt;
-
-  cn = local_find_connection(sock, agent);
 
   tt=time(0);
   fp=fopen(get_logfile(),"a");
@@ -273,15 +257,13 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
 }
 
 int
-web100_rtt(int sock, web100_agent* agent)
+web100_rtt(int sock, web100_agent* agent, web100_connection* cn)
 {
   web100_var* var;
-  web100_connection* cn;
   char buf[32];
   web100_group* group;
   double count, sum;
 
-  cn = local_find_connection(sock, agent);
   if (cn == NULL)
     return(-10);
 
@@ -302,15 +284,13 @@ web100_rtt(int sock, web100_agent* agent)
 }
 
 int
-web100_autotune(int sock, web100_agent* agent)
+web100_autotune(int sock, web100_agent* agent, web100_connection* cn)
 {
   web100_var* var;
-  web100_connection* cn;
   char buf[32];
   web100_group* group;
   int i, j=0;
 
-  cn = local_find_connection(sock, agent);
   if (cn == NULL)
     return(10);
 
@@ -345,16 +325,14 @@ web100_autotune(int sock, web100_agent* agent)
 }
 
 int
-web100_setbuff(int sock, web100_agent* agent, int autotune)
+web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotune)
 {
   web100_var* var;
-  web100_connection* cn;
   char buf[32];
   web100_group* group;
   int buff;
   int sScale, rScale;
 
-  cn = local_find_connection(sock, agent);
   if (cn == NULL)
     return(10);
 
@@ -595,9 +573,6 @@ KillHung(void)
   char *pkt, buff[64];
   struct in_addr src, dst;
   struct iphdr *ip = NULL;
-#if defined(AF_INET6)
-  struct ip6_hdr *ip6;
-#endif
   struct tcphdr *tcp;
   struct sockaddr_in sin;
   struct pseudo_hdr *phdr;

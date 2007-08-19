@@ -38,21 +38,21 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
   if (tests & TEST_S2C) {
     log_println(1, " <-- S2C throughput test -->");
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("S2C throughput test", TEST_PREPARE, msgType)) {
-      exit(2);
+    if (check_msg_type("S2C throughput test", TEST_PREPARE, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0;
     if (check_int(buff, &s2cport)) {
       log_println(0, "Invalid port number");
-      exit(4);
+      return 4;
     }
     log_println(1, "  -- port: %d", s2cport);
 
@@ -64,14 +64,14 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
 
     if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
-      perror("Unable to resolve server address\n");
-      exit(-3);
+      log_println(0, "Unable to resolve server address: %s", strerror(errno));
+      return -3;
     }
     I2AddrSetPort(sec_addr, s2cport);
 
     if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
-      perror("Connect() for Server to Client failed");
-      exit(-15);
+      log_println(0, "Connect() for Server to Client failed", strerror(errno));
+      return -15;
     }
 
     setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
@@ -99,12 +99,12 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
      */
     
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("S2C throughput test", TEST_START, msgType)) {
-      exit(2);
+    if (check_msg_type("S2C throughput test", TEST_START, msgType, buff, msgLen)) {
+      return 2;
     }
 
     printf("running 10s inbound test (server to client) . . . . . . ");
@@ -129,8 +129,9 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
         bytes += inlth;
         continue;
       }
-      if (get_debuglvl() > 5)
-        perror("s2c read loop exiting:");
+      if (get_debuglvl() > 5) {
+        log_println(0, "s2c read loop exiting:", strerror(errno));
+      }
       break;
     }
     t = secs() - t + 15.0;
@@ -138,34 +139,34 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     /* receive the s2cspd from the server */
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      return 1;
     }
-    if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
+      return 2;
     }
     if (msgLen <= 0) { 
       log_println(0, "Improper message");
-      exit(3);
+      return 3;
     }
     buff[msgLen] = 0; 
     ptr = strtok(buff, " ");
     if (ptr == NULL) {
       log_println(0, "S2C: Improper message");
-      exit(4);
+      return 4;
     }
     s2cspd = atoi(ptr);
     ptr = strtok(NULL, " ");
     if (ptr == NULL) {
       log_println(0, "S2C: Improper message");
-      exit(4);
+      return 4;
     }
     ssndqueue = atoi(ptr);
     ptr = strtok(NULL, " ");
     if (ptr == NULL) {
       log_println(0, "S2C: Improper message");
-      exit(4);
+      return 4;
     }
     sbytes = atoi(ptr);
     
@@ -183,15 +184,15 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     tmpstr[0] = '\0';
     for (;;) {
       msgLen = sizeof(buff);
-      if (recv_msg(ctlSocket, &msgType, &buff, &msgLen)) {
+      if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
         log_println(0, "Protocol error!");
-        exit(1);
+        return 1;
       }
       if (msgType == TEST_FINALIZE) {
         break;
       }
-      if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
-        exit(2);
+      if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
+        return 2;
       }
       strncat(tmpstr, buff, msgLen);
       log_println(6, "tmpstr = '%s'", tmpstr);

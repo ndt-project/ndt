@@ -15,31 +15,18 @@
 #
 #	Description:
 
-#JAVAROOT = /home/rcarlson/jdk1.4.2
-# JAVAC = $(JAVAROOT)bin/javac
 GCJLINK = $(GCJLD)
-
-# .SUFFIXES = .java .jar
-
 CLASSPATH_ENV =
 
-# Tcpbw100dir = $(srcdir)/Applet
-
 ndtdir = $(prefix)/ndt
-# ndt_DATA	= Tcpbw100 Tcpbw100.jar
+
 ndt_DATA	= Tcpbw100.jar
 Tcpbw100dir = $(ndtdir)
 
-# noinst_PROGRAMS	= Tcpbw100 Tcpbw100.jar
 noinst_PROGRAMS = Tcpbw100.jar
 
 Tcpbw100_JAVA	= Tcpbw100.java
 Tcpbw100_jar_SOURCES	= Tcpbw100.java
-
-#Tcpbw100_jar_SOURCES = Tcpbw100.jar
-
-#am_Tcpbw100_OBJECTS = Tcpbw100.java
-#Tcpbw100_LDADD = 
 
 Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
 	@rm -f Tcpbw100$(EXEEXT)

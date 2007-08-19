@@ -28,6 +28,7 @@ OpenSocket(I2Addr addr, char* serv, int options)
   struct addrinfo *fai;
   struct addrinfo *ai;
   int             on;
+  socklen_t       onSize;
   int             fd=-1;
 
   if (!(fai = I2AddrAddrInfo(addr, NULL, serv))) {
@@ -94,8 +95,9 @@ OpenSocket(I2Addr addr, char* serv, int options)
 
     if (errno == EADDRINUSE) {
       /* RAC debug statemement 10/11/06 */
-      getsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-      log_println(1, "bind(%d) failed: Address already in use given as the reason, getsockopt() returend %d", fd, on);
+      onSize = sizeof(on);
+      getsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, &onSize);
+      log_println(1, "bind(%d) failed: Address already in use given as the reason, getsockopt() returned %d", fd, on);
       return -2;
     }
 
@@ -300,7 +302,7 @@ send_msg(int ctlSocket, int type, void* msg, int len)
  * Description: Receives the protocol message from the control socket.
  * Arguments: ctlSocket - the control socket
  *            type - the target place for type of the message
- *            buf - the target place for the message body
+ *            msg - the target place for the message body
  *            len - the target place for the length of the message
  * Returns: 0 - success
  *          !0 - error code.
@@ -377,14 +379,14 @@ writen(int fd, void* buf, int amount)
 int
 readn(int fd, void* buf, int amount)
 {
-  int sent, n;
+  int received, n;
   char* ptr = buf;
-  sent = 0;
+  received = 0;
   assert(amount >= 0);
-  while (sent < amount) {
-    n = read(fd, ptr+sent, amount - sent);
+  while (received < amount) {
+    n = read(fd, ptr+received, amount - received);
     if (n != -1) {
-      sent += n;
+      received += n;
     }
     if (n == 0)
       return 0;

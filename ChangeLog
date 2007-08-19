@@ -7,7 +7,10 @@ The web100 variables are shipped to this process for analysis
 on the desktop. 
 
 2) the fakewww.c program.  This process runs on the server and
-listens for new connections from user desktop's.  
+listens for new connections from user desktop's. It writes some
+messages to the access log (default location:
+/usr/local/ndt/access_log) and error log (default location:
+/usr/local/ndt/error_log).
 
 3) the web100srv.c program.  This process communicates with the
 Java applet, runs the throughput tests, and gathers the web100
@@ -19,7 +22,361 @@ of the client code.  It augments the Tcpbw100.java program, allowing
 the user to pre-install a version of the client code.  This allows
 non-browser based clients, helpful for remote access testing.
 
-Rich Carlson	6/7/02  Modified 10/17/06
+Rich Carlson	6/7/02  Modified 8/19/07
+
+2007-08-15 19:18  jslawins
+
+	* src/genplot.c, src/testoptions.c: Fixes in plotting negative
+	  values. Modified the CWND peaks counting.
+
+2007-08-15 17:03  jslawins
+
+	* src/genplot.c, src/ndt_odbc.c, src/ndt_odbc.h,
+	  src/testoptions.c, src/testoptions.h, src/web100clt.c,
+	  src/web100srv.c, src/web100srv.h: Fixes in the genplot
+	  application: printing the negative values and the x-axis label.
+	  Fixed some misspellings.
+
+2007-08-14 20:40  jslawins
+
+	* configure, configure.ac, src/testoptions.c: Start the snaplog
+	  thread by default. Removed the debug messages.
+	  
+	  Increased the NDT version to 3.4.3.
+
+2007-08-14 20:01  jslawins
+
+	* src/testoptions.c: Moved the Cwnd peeks counting to the snaplog
+	  thread. Fixed the start sequence of the snaplog thread.
+
+2007-08-14 19:33  jslawins
+
+	* src/ndt_odbc.c, src/ndt_odbc.h, src/testoptions.c,
+	  src/testoptions.h, src/web100clt.c, src/web100srv.c,
+	  src/web100srv.h: Added counting CWND peeks (min, max and
+	  amount).
+
+2007-08-06 21:33  jslawins
+
+	* src/testoptions.c, src/web100-util.c, src/web100srv.c,
+	  src/web100srv.h: Removed the redundant calls to functions from
+	  web100 library, which uses the refresh_connections function.
+
+2007-08-03 22:18  jslawins
+
+	* Applet/Tcpbw100.java: Added the direct security manager check
+	  for listen permissions.
+
+2007-08-03 20:20  jslawins
+
+	* Applet/Tcpbw100.java: Disabled by default the multiple tests
+	  feature. Hid the multiple tests options when the feature is
+	  disabled. Allow the administrators to enable the multiple tests
+	  feature by the appropriate applet parameter. Allow the users to
+	  stop the tests before completion.
+	  
+	  Increased the Java applet version to 5.5.4.
+
+2007-08-03 19:11  jslawins
+
+	* Applet/Tcpbw100.java: Added the progress bar during the tests
+	  with the notification what test is currently executed. Added the
+	  possibility to stop testing.
+	  
+	  Increased the Java applet version to 5.5.3.
+
+2007-08-02 20:51  jslawins
+
+	* Applet/Tcpbw100.java: Added the option to set number of tests
+	  run in one set. Added the option to set the delay between tests
+	  in one set.
+	  
+	  Increased the Java applet version to 5.5.2.
+
+2007-08-02 19:12  jslawins
+
+	* src/ndt_odbc.c: Fixed the compilation problems on the systems
+	  without ODBC support.
+
+2007-07-25 21:21  jslawins
+
+	* src/ndt_odbc.c, src/ndt_odbc.h, src/web100srv.c: Extended the DB
+	  logging in the server. Fixed generation of the cputime trace
+	  filename.
+
+2007-07-25 20:18  jslawins
+
+	* doc/ndt.conf.man, doc/web100srv.man, src/usage.c,
+	  src/web100srv.c: Added DB options to the conf file.
+	  Fixed web100srv usage screen.
+	  Added info about new DB options to the web100srv and ndt.conf
+	  manual pages.
+
+2007-07-24 18:50  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in, aclocal.m4,
+	  conf/Makefile.in, config.h.in, configure, configure.ac,
+	  doc/Makefile.in, doc/ndt.conf.man, src/Makefile.am,
+	  src/Makefile.in, src/ndt_odbc.c, src/ndt_odbc.h, src/usage.c,
+	  src/web100srv.c: Added support for logging test results into the
+	  database (via ODBC).
+	  Added cputime config option to the conf file.
+	  Added new options: --enableDBlogging, --dbDSN, --dbUIN, --dbPWD.
+	  
+	  Increased the NDT version to 3.4.2.
+
+2007-07-05 19:56  racarlson
+
+	* src/testoptions.c: Updated snaplog routine to capture initial
+	  log entry just before test loop is entered. This compensates for
+	  the long delay between the time the connection is opened and the
+	  test begins.
+
+2007-07-05 16:46  racarlson
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in, aclocal.m4,
+	  conf/Makefile.in, conf/create-html.sh, configure, doc/Makefile.in,
+	  src/Makefile.in, src/genplot.c: Bug fix for create-html.sh
+	  script. Script now looks in current and parent (..) directory
+	  for tcpbw100.template file. This allows the user to run the
+	  create-html.sh script inside the conf directory.
+	  
+	  Minor change to genplot.c to label speed plots as Mbps instead of
+	  KBytes
+
+2007-07-04 22:56  jslawins
+
+	* src/testoptions.c, src/web100srv.c: Added info about snaplog
+	  filename to the logs.
+
+2007-06-18 17:05  jslawins
+
+	* Applet/Tcpbw100.java, ChangeLog: Modified the protocol in the
+	  Java Applet to be more robust (failed tests are not interrupting
+	  the whole process). Fixed the parsing of the broken results.
+
+	  Increased the Java applet version to 5.5.1.
+
+2007-06-17 20:22  jslawins
+
+	* configure, configure.ac, src/network.c, src/protocol.c,
+	  src/protocol.h, src/test_c2s_clt.c, src/test_mid_clt.c,
+	  src/test_s2c_clt.c, src/test_sfw_clt.c, src/test_sfw_srv.c,
+	  src/testoptions.c, src/web100clt.c, src/web100srv.c: Removed the
+	  majority of the exit() calls.
+	  Started using the MSG_ERROR messages.
+	  Modified the protocol to be more robust (failed tests are not
+	  interrupting the whole process).
+	  
+	  Increased the NDT version to 3.4.1.
+
+2007-06-10 15:07  jslawins
+
+	* doc/web100srv.man, src/usage.c, src/web100srv.c: web100srv:
+	  Added new option: --cputime
+
+2007-06-10 11:49  jslawins
+
+	* doc/genplot.man, src/genplot.c, src/usage.c: Added
+	  plotting/printing Cwnd time (genplot: Added new option:
+	  --cwndtime)
+
+2007-06-09 21:15  jslawins
+
+	* src/genplot.c: Fixed throughput plotting/printing.
+	  Changed the msecs to secs in the xlabels of the plots.
+
+2007-06-09 19:06  jslawins
+
+	* configure, configure.ac, ndt.conf.man, web100srv.man, analyze.c,
+	  testoptions.c, testoptions.h, usage.c, web100srv.c, web100srv.h:
+	  Added new configure option: '--enable-experimental'.
+	  Removed '--experimental' option from the web100srv.
+	  web100srv: Added new option: --avoidsndblockup
+	  web100srv: Added new option: --snaplog
+	  web100srv: Added new option: --cwnddecrease
+
+2007-06-07 14:24  jslawins
+
+	* doc/Makefile.am, doc/Makefile.in, doc/genplot.man, src/usage.c:
+	  Added the genplot manual page.
+	  Fixed some misspellings.
+
+2007-06-07 12:44  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in, aclocal.m4,
+	  conf/Makefile.in, configure, doc/Makefile.in, src/Makefile.am,
+	  src/Makefile.in, src/genplot.c, src/usage.c, src/usage.h: Added
+	  standardized usage screen to the genplot.
+	  Genplot: Added new option: --version.
+	  Genplot: Added support for the long options.
+
+2007-06-06 13:20  jslawins
+
+	* src/genplot.c: Fixed the warnings during compilation of the
+	  genplot.
+
+2007-06-05 20:27  jslawins
+
+	* doc/ndt.conf.man, doc/web100srv.man, src/testoptions.c,
+	  src/testoptions.h, src/usage.c, src/web100srv.c: Added the
+	  possibility to set delay in the snap thread.
+	  New option: --snapdelay #msec.
+
+2007-06-04 21:27  racarlson
+
+	* src/Makefile.am, src/Makefile.in, src/genplot.c: Added new
+	  genplot.c program. This program will generate xplot graphs, or
+	  text files, using the Web100 varialbes.
+	  Options let you plot Duration vs CurCwnd, Duration vs CurRwinRcvd
+	  or you can specify a comma ',' separated list of variables.
+	  
+	  The '-t' flag controls the output format set and you get a text
+	  file output to stdout, not set and you get an xpl plot file.
+	  
+	  Updated src/Makefile.am file was updated to automatically build
+	  the genplot program
+
+2007-06-01 14:45  racarlson
+	
+	* src/testoptions.c, ChangeLog:  Removed extra calls to 
+	  web100_connection_from_socket().  Still a possible bug
+	  somewhere, but for now it returns the correct connection data.
+	  Changed thread loop timer to record a snaplog entry every 5msec.
+
+2007-05-31 18:50  jslawins
+
+	* configure, src/testoptions.c, configure.ac, ChangeLog: Fixed the
+	  show-stopper bug in the s2c test.
+
+	  Increased the NDT version to 3.3.21.
+
+2007-05-30 14:28  racarlson
+
+	* contrib/README, contrib/loadmap.intro, contrib/loadmap.js,
+	  contrib/loadmap.txt: VT.edu mashup files and text to describe
+	  what these files do.
+	  README contains a brief description about who submitted the
+	  code, how to contact them, and what it does. This file will be
+	  update when new contrib code is added to the directory.
+	  
+	  loadmap.js is the javascript file from vt.edu. The loadmap.intro
+	  and loadmap.txt
+	  files are extracted from an email Seth Peery sent me describing
+	  how their mashup
+	  code works.
+	  
+	  Rich Carlson
+
+2007-05-29 20:31  jslawins
+
+	* src/testoptions.c: Better synchronization of the threads.
+
+2007-05-28 19:45  jslawins
+
+	* src/testoptions.c: Move updating of the snap to the separate
+	  thread.
+
+2007-05-28 19:32  jslawins
+
+	* src/testoptions.c, src/utils.c, src/utils.h: Modified the snap
+	  log writing to use different thread to write to file.
+
+
+2007-05-23 16:59  jslawins
+
+	* Makefile.am, Makefile.in, contrib/Tcpbw1001.java: Added the
+	  Tcpbw1001.java to the contrib directory.
+
+
+2007-05-17 20:14  jslawins
+
+	* ChangeLog, conf/ndt, doc/fakewww.man: Updated the manual page of
+	  the fakewww.
+	  Removed the '-l' option for the fakewww from the ndt startup
+	  script.
+	  Written some info about the new fakewww logs default locations to
+	  the
+	  ChangeLog.
+
+
+2007-05-17 12:30  jslawins
+
+	* configure, configure.ac: Increased the NDT version to 3.3.20.
+
+2007-05-15 18:10  jslawins
+
+	* Admin/Makefile.am, Admin/Makefile.in, Applet/Makefile.am,
+	  Applet/Makefile.in, Makefile.am, Makefile.in, conf/Makefile.in,
+	  config.h.in, configure, configure.ac, doc/Makefile.in,
+	  src/Makefile.am, src/Makefile.in, src/fakewww.c: Added
+	  conditional compilation of the java code (depends on the
+	  existence of the javac compiler) and other applications (depend
+	  on the availability of the Web100 library).
+
+2007-05-13 20:52  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in,
+	  conf/Makefile.in, config.h.in, configure, configure.ac,
+	  doc/Makefile.in, src/Makefile.in, src/analyze.c, src/fakewww.c,
+	  src/tr-mkmap.c, src/usage.c, src/viewtrace.c, src/web100-pcap.c,
+	  src/web100clt.c, src/web100srv.c, src/web100srv.h: Added
+	  checking for the pcap library.
+	  Added some conditional macros to allow building NDT under
+	  some non-GNU/Linux environments [not completed].
+
+2007-05-13 16:11  jslawins
+
+	* Admin/Makefile.in, Applet/Makefile.in, Makefile.in, aclocal.m4,
+	  conf/Makefile.in, config.h.in, configure, configure.ac,
+	  doc/Makefile.in, src/Makefile.in: Added checking for the web100
+	  library to the configure file.
+
+2007-05-12 08:24  jslawins
+
+	* src/fakewww.c, src/usage.c, src/web100srv.c: Added the support
+	  for the syslog to the fakewww.
+	  Enabled the access log and error log by default.
+	  Modified the usage/start screens of the fakewww.
+
+2007-05-10 19:04  jslawins
+
+	* src/fakewww.c: Changed Common Log Format to the Combined Log
+	  format.
+
+2007-05-05 19:27  jslawins
+
+	* src/fakewww.c, src/network.c, src/usage.c, src/web100-util.c:
+	  Added the error log and the access log (in the Common Log
+	  Format)
+	  to the fakewww.
+	  Removed the unwanted files from the repository.
+	  Fixed several warnings.
+
+2007-05-05 11:29  jslawins
+
+	* src/tr-mkmap.c, src/usage.c: Changed the default operation mode
+	  of the tr-mkmap from building to printing.
+
+2007-05-05 11:13  jslawins
+
+	* src/fakewww.c: Added 'HTTP/1.0 307 Temporary Redirect' response.
+
+2006-12-13 23:18  racarlson
+
+	* Applet/Tcpbw100.java, INSTALL, configure, configure.ac,
+	  src/fakewww.c, src/network.c, src/network.h, src/testoptions.c,
+	  src/web100-admin.c, src/web100-util.c, src/web100clt.c,
+	  src/web100srv.c, src/web100srv.h: merging Jakub's changes with
+	  mine.
+	  Updated src files to find/kill stuck processes
+	  
+	  Rich
+
+2006-11-14 19:41  jslawins
+
+	* src/web100-pcap.c, src/web100-util.c: Fixed the bugs in the
+	  logging functions.
 
 2006-10-17 19:30  jslawins
 

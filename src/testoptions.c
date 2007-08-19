@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <pthread.h>
 
 #include "testoptions.h"
 #include "network.h"
@@ -18,6 +19,74 @@
 
 int mon_pipe1[2], mon_pipe2[2];
 static int currentTest = TEST_NONE;
+
+typedef struct snapArgs {
+  web100_snapshot* snap;
+  web100_log* log;
+  int delay;
+} SnapArgs;
+
+typedef struct workerArgs {
+    SnapArgs* snapArgs;
+    web100_agent* agent;
+    CwndPeaks* peaks;
+    int writeSnap;
+} WorkerArgs;
+
+static int workerLoop = 0;
+static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
+static int slowStart = 1;
+static int prevCWNDval = -1;
+static int decreasing = 0;
+
+/**
+ * Function name: findCwndPeaks
+ * Description: Count the CWND peaks and record the minimal and maximum one.
+ * Arguments: agent - the Web100 agent used to track the connection
+ *            peaks - the structure containing CWND peaks information
+ *            snap - the web100 snapshot structure
+ */
+
+void
+findCwndPeaks(web100_agent* agent, CwndPeaks* peaks, web100_snapshot* snap)
+{
+  web100_group* group;
+  web100_var* var;
+  int CurCwnd;
+  char tmpstr[256];
+
+  web100_agent_find_var_and_group(agent, "CurCwnd", &group, &var);
+  web100_snap_read(var, snap, tmpstr);
+  CurCwnd = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+
+  if (slowStart) {
+      if (CurCwnd < prevCWNDval) {
+          slowStart = 0;
+          peaks->max = prevCWNDval;
+          peaks->amount = 1;
+          decreasing = 1;
+      }
+  }
+  else {
+      if (CurCwnd < prevCWNDval) {
+          if (prevCWNDval > peaks->max) {
+              peaks->max = prevCWNDval;
+          }
+          if (!decreasing) {
+              peaks->amount += 1;
+          }
+          decreasing = 1;
+      }
+      else if (CurCwnd > prevCWNDval) {
+          if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
+              peaks->min = prevCWNDval;
+          }
+          decreasing = 0;
+      }
+  }
+  prevCWNDval = CurCwnd;
+}
 
 /*
  * Function name: catch_s2c_alrm
@@ -33,6 +102,54 @@ catch_s2c_alrm(int signo)
     return;
   }
   log_println(0, "Unknown (%d) signal was caught", signo);
+}
+
+/*
+ * Function name: snapWorker
+ * Description: Writes the snap logs with fixed time intervals in separate
+ *              thread.
+ * Arguments: arg - pointer to the snapshot structure
+ * Returns: NULL
+ */
+
+void*
+snapWorker(void* arg)
+{
+    WorkerArgs *workerArgs = (WorkerArgs*) arg;
+    SnapArgs *snapArgs = workerArgs->snapArgs;
+    web100_agent* agent = workerArgs->agent;
+    CwndPeaks* peaks = workerArgs->peaks;
+    int writeSnap = workerArgs->writeSnap;
+
+    double delay = ((double) snapArgs->delay) / 1000.0;
+
+    while (1) {
+        pthread_mutex_lock(&mainmutex);
+        if (workerLoop) {
+            pthread_mutex_unlock(&mainmutex);
+            pthread_cond_broadcast(&maincond);
+            break;
+        }
+        pthread_mutex_unlock(&mainmutex);
+        mysleep(0.01);
+    }
+
+    while (1) {
+        pthread_mutex_lock(&mainmutex);
+        if (!workerLoop) {
+            pthread_mutex_unlock(&mainmutex);
+            break;
+        }
+        web100_snap(snapArgs->snap);
+        findCwndPeaks(agent, peaks, snapArgs->snap);
+        if (writeSnap) {
+            web100_log_write(snapArgs->log, snapArgs->snap);
+        }
+        pthread_mutex_unlock(&mainmutex);
+        mysleep(delay);
+    }
+
+    return NULL;
 }
 
 /*
@@ -59,13 +176,19 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
 
   /* read the test suite request */
   if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
-    return 1;
+      sprintf(buff, "Invalid test suite request");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 1;
   }
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
-    return 2;
+      sprintf(buff, "Invalid test suite request");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 2;
   }
   if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW))) {
-    return 3;
+      sprintf(buff, "Invalid test suite request");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 3;
   }
   if (useropt & TEST_MID) {
     options->midopt = TOPT_ENABLED;
@@ -139,6 +262,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   char listenmidport[10];
   int msgType;
   int msgLen;
+  web100_connection* conn;
   
   assert(ctlsockfd != -1);
   assert(agent);
@@ -168,23 +292,26 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 	log_println(5, "KillHung(): returned non-0 response, nothing to kill or kill failed");
 
     while (midsrv_addr == NULL) {
-      midsrv_addr = CreateListenSocket(NULL,
-          (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options);
-      if (midsrv_addr == NULL) {
-        log_println(5, " Calling KillHung() because midsrv_address failed to bind");
-	if (KillHung() == 0)
-	  continue;
-      }
-      if (strcmp(listenmidport, "0") == 0) {
-        log_println(0, "WARNING: ephemeral port number was bound");
-        break;
-      }
-      if (options->multiple == 0) {
-        break;
-      }
+        midsrv_addr = CreateListenSocket(NULL,
+                (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options);
+        if (midsrv_addr == NULL) {
+            log_println(5, " Calling KillHung() because midsrv_address failed to bind");
+            if (KillHung() == 0)
+                continue;
+        }
+        if (strcmp(listenmidport, "0") == 0) {
+            log_println(0, "WARNING: ephemeral port number was bound");
+            break;
+        }
+        if (options->multiple == 0) {
+            break;
+        }
     }
     if (midsrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
+      log_println(0, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
+      sprintf(buff, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return -1;
     }
     options->midsockfd = I2AddrFD(midsrv_addr);
     options->midsockport = I2AddrPort(midsrv_addr);
@@ -219,19 +346,29 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
 
     buff[0] = '\0';
-    web100_middlebox(midfd, agent, buff);
+    if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
+        log_println(0, "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d", errno);
+        exit(-1);
+    }
+    web100_middlebox(midfd, agent, conn, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 1;
     }
-    if (check_msg_type("Middlebox test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff, msgLen)) {
+      sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 3;
     }
     buff[msgLen] = 0;
     *s2c2spd = atof(buff);
@@ -252,15 +389,15 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
  * Description: Performs the C2S Throughput test.
  * Arguments: ctlsockfd - the client control socket descriptor
  *            agent - the Web100 agent used to track the connection
- *            options - the test options
+ *            testOptions - the test options
  *            conn_options - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */
 
 int
-test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* c2sspd,
-    int set_buff, int window, int autotune, char* device, int limit,
+test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* c2sspd,
+    int set_buff, int window, int autotune, char* device, Options* options,
     int record_reverse, int count_vars, char spds[4][256], int* spd_index)
 {
   int largewin=16*1024*1024;
@@ -282,64 +419,69 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   web100_group* group;
   web100_connection* conn;
 
-  if (options->c2sopt) {
+  if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
     log_println(1, " <-- C2S throughput test -->");
     strcpy(listenc2sport, PORT2);
     
-    if (options->c2ssockport) {
-      sprintf(listenc2sport, "%d", options->c2ssockport);
+    if (testOptions->c2ssockport) {
+      sprintf(listenc2sport, "%d", testOptions->c2ssockport);
     }
-    else if (options->mainport) {
-      sprintf(listenc2sport, "%d", options->mainport + 1);
+    else if (testOptions->mainport) {
+      sprintf(listenc2sport, "%d", testOptions->mainport + 1);
     }
     
-    if (options->multiple) {
+    if (testOptions->multiple) {
       strcpy(listenc2sport, "0");
     }
     
     while (c2ssrv_addr == NULL) {
       c2ssrv_addr = CreateListenSocket(NULL,
-          (options->multiple ? mrange_next(listenc2sport) : listenc2sport), conn_options);
+          (testOptions->multiple ? mrange_next(listenc2sport) : listenc2sport), conn_options);
       if (strcmp(listenc2sport, "0") == 0) {
         log_println(0, "WARNING: ephemeral port number was bound");
         break;
       }
-      if (options->multiple == 0) {
+      if (testOptions->multiple == 0) {
         break;
       }
     }
     if (c2ssrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
+      log_println(0, "Server (C2S throughput test): CreateListenSocket failed: %s", strerror(errno));
+      sprintf(buff, "Server (C2S throughput test): CreateListenSocket failed: %s", strerror(errno));
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return -1;
     }
-    options->c2ssockfd = I2AddrFD(c2ssrv_addr);
-    options->c2ssockport = I2AddrPort(c2ssrv_addr);
-    log_println(1, "  -- port: %d", options->c2ssockport);
-    pair.port1 = options->c2ssockport;
+    testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
+    testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
+    log_println(1, "  -- port: %d", testOptions->c2ssockport);
+    pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
     
     if (set_buff > 0) {
-      setsockopt(options->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-      setsockopt(options->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
     }
     if (autotune > 0) {
-      setsockopt(options->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-      setsockopt(options->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
     }
-    log_println(1, "listening for Inet connection on options->c2ssockfd, fd=%d", options->c2ssockfd);
+    log_println(1, "listening for Inet connection on testOptions->c2ssockfd, fd=%d", testOptions->c2ssockfd);
 
     log_println(1, "Sending 'GO' signal, to tell client to head for the next test");
-    sprintf(buff, "%d", options->c2ssockport);
+    sprintf(buff, "%d", testOptions->c2ssockport);
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
 
     clilen = sizeof(cli_addr);
-    recvsfd = accept(options->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
+    recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
+
+    conn = web100_connection_from_socket(agent, recvsfd);
 
     if (getuid() == 0) {
       pipe(mon_pipe1);
       if ((mon_pid1 = fork()) == 0) {
         close(ctlsockfd);
-        close(options->c2ssockfd);
+        close(testOptions->c2ssockfd);
         close(recvsfd);
         log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
         log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
@@ -365,7 +507,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
      */
 
     if (autotune > 0) 
-      web100_setbuff(recvsfd, agent, autotune);
+      web100_setbuff(recvsfd, agent, conn, autotune);
 
     /* ok, We are now read to start the throughput tests.  First
      * the client will stream data to the server for 10 seconds.
@@ -374,24 +516,25 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
     /* experimental code, delete when finished */
     {
-      web100_var *LimRwin, *yar;
-      u_int32_t limrwin_val;
-      char yuff[32];
+        web100_var *LimRwin, *yar;
+        u_int32_t limrwin_val;
+        char yuff[32];
 
-      if (limit > 0) {
-        log_print(0, "Setting Cwnd limit - ");
-        if ((conn = web100_connection_from_socket(agent, recvsfd)) != NULL) {
-          web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
-          web100_raw_read(yar, conn, yuff);
-          log_println(0, "MSS = %s, multiplication factor = %d",
-              web100_value_to_text(web100_get_var_type(yar), yuff), limit);
-          limrwin_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
-          web100_agent_find_var_and_group(agent, "LimRwin", &group, &LimRwin);
-          log_print(0, "now write %d to limit the Receive window", limrwin_val);
-          web100_raw_write(LimRwin, conn, &limrwin_val);
-          log_println(0, "  ---  Done");
+        if (options->limit > 0) {
+            log_print(1, "Setting Cwnd limit - ");
+            if (conn != NULL) {
+                log_println(1, "Got web100 connection pointer for recvsfd socket\n");
+                web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
+                web100_raw_read(yar, conn, yuff);
+                log_println(1, "MSS = %s, multiplication factor = %d",
+                        web100_value_to_text(web100_get_var_type(yar), yuff), options->limit);
+                limrwin_val = options->limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
+                web100_agent_find_var_and_group(agent, "LimRwin", &group, &LimRwin);
+                log_print(1, "now write %d to limit the Receive window", limrwin_val);
+                web100_raw_write(LimRwin, conn, &limrwin_val);
+                log_println(1, "  ---  Done");
+            }
         }
-      }
     }
     /* End of test code */
 
@@ -427,10 +570,10 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     /* get receiver side Web100 stats and write them to the log file */
     if (record_reverse == 1)
-      web100_get_data_recv(recvsfd, agent, count_vars);
+      web100_get_data_recv(recvsfd, agent, conn, count_vars);
     /* shutdown(recvsfd, SHUT_RD); */
     close(recvsfd);
-    close(options->c2ssockfd);
+    close(testOptions->c2ssockfd);
 
     /* Next send speed-chk a flag to retrieve the data it collected.
      * Skip this step if speed-chk isn't running.
@@ -486,16 +629,16 @@ read3:
  * Description: Performs the S2C Throughput test.
  * Arguments: ctlsockfd - the client control socket descriptor
  *            agent - the Web100 agent used to track the connection
- *            options - the test options
+ *            testOptions - the test options
  *            conn_options - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */
 
 int
-test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2cspd,
-    int set_buff, int window, int autotune, char* device, int limit,
-    int experimental, char* logname, char spds[4][256], int* spd_index, int count_vars)
+test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd,
+    int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256],
+    int* spd_index, int count_vars, CwndPeaks* peaks)
 {
   int largewin=16*1024*1024;
   int ret, j, k, n;
@@ -527,32 +670,34 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   web100_group* tgroup;
   web100_group* rgroup;
   web100_connection* conn;
-  web100_connection* xconn;
-  web100_snapshot* snap = NULL;
-  web100_log* log = NULL;
   web100_var* var;
+  pthread_t workerThreadId;
   int SndMax=0, SndUna=0;
   int c1=0, c2=0;
+  SnapArgs snapArgs;
+  snapArgs.snap = NULL;
+  snapArgs.log = NULL;
+  snapArgs.delay = options->snapDelay;
   
-  if (options->s2copt) {
+  if (testOptions->s2copt) {
     setCurrentTest(TEST_S2C);
     log_println(1, " <-- S2C throughput test -->");
     strcpy(listens2cport, PORT4);
     
-    if (options->s2csockport) {
-      sprintf(listens2cport, "%d", options->s2csockport);
+    if (testOptions->s2csockport) {
+      sprintf(listens2cport, "%d", testOptions->s2csockport);
     }
-    else if (options->mainport) {
-      sprintf(listens2cport, "%d", options->mainport + 2);
+    else if (testOptions->mainport) {
+      sprintf(listens2cport, "%d", testOptions->mainport + 2);
     }
     
-    if (options->multiple) {
+    if (testOptions->multiple) {
       strcpy(listens2cport, "0");
     }
     
     while (s2csrv_addr == NULL) {
       s2csrv_addr = CreateListenSocket(NULL,
-          (options->multiple ? mrange_next(listens2cport) : listens2cport), conn_options);
+          (testOptions->multiple ? mrange_next(listens2cport) : listens2cport), conn_options);
       if (s2csrv_addr == NULL) {
         log_println(1, " Calling KillHung() because s2csrv_address failed to bind");
 	if (KillHung() == 0)
@@ -562,42 +707,45 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         log_println(0, "WARNING: ephemeral port number was bound");
         break;
       }
-      if (options->multiple == 0) {
+      if (testOptions->multiple == 0) {
         break;
       }
     }
     if (s2csrv_addr == NULL) {
-      err_sys("server: CreateListenSocket failed");
+      log_println(0, "Server (S2C throughput test): CreateListenSocket failed: %s", strerror(errno));
+      sprintf(buff, "Server (S2C throughput test): CreateListenSocket failed: %s", strerror(errno));
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return -1;
     }
-    options->s2csockfd = I2AddrFD(s2csrv_addr);
-    options->s2csockport = I2AddrPort(s2csrv_addr);
-    log_println(1, "  -- port: %d", options->s2csockport);
+    testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
+    testOptions->s2csockport = I2AddrPort(s2csrv_addr);
+    log_println(1, "  -- port: %d", testOptions->s2csockport);
     pair.port1 = -1;
-    pair.port2 = options->s2csockport;
+    pair.port2 = testOptions->s2csockport;
     
     if (set_buff > 0) {
-      setsockopt(options->s2csockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-      setsockopt(options->s2csockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+      setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
+      setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
     }
     if (autotune > 0) {
-      setsockopt(options->s2csockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-      setsockopt(options->s2csockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+      setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+      setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
     }
 
     /* Data received from speed-chk, tell applet to start next test */
-    sprintf(buff, "%d", options->s2csockport);
+    sprintf(buff, "%d", testOptions->s2csockport);
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
     
     /* ok, await for connect on 3rd port
      * This is the second throughput test, with data streaming from
      * the server back to the client.  Again stream data for 10 seconds.
      */
-    log_println(1, "waiting for data on options->s2csockfd");
+    log_println(1, "waiting for data on testOptions->s2csockfd");
 
     j = 0;
     clilen = sizeof(cli_addr);
     for (;;) {
-      if ((xmitsfd = accept(options->s2csockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+      if ((xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
         break;
 
       sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
@@ -606,13 +754,14 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       if (++j == 4)
         break;
     } 
+    conn = web100_connection_from_socket(agent, xmitsfd); 
 
     if (xmitsfd > 0) {
       if (getuid() == 0) {
         pipe(mon_pipe2);
         if ((mon_pid2 = fork()) == 0) {
           close(ctlsockfd);
-          close(options->s2csockfd);
+          close(testOptions->s2csockfd);
           close(xmitsfd);
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
           log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
@@ -636,39 +785,50 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
        */
 
       if (autotune > 0) 
-        web100_setbuff(xmitsfd, agent, autotune);
+        web100_setbuff(xmitsfd, agent, conn, autotune);
 
       /* experimental code, delete when finished */
       {
-        web100_var *LimCwnd, *yar;
-        u_int32_t limcwnd_val;
-        char yuff[32];
+          web100_var *LimCwnd, *yar;
+          u_int32_t limcwnd_val;
+          char yuff[32];
 
-        if (limit > 0) {
-          log_println(0, "Setting Cwnd Limit");
-          if ((conn = web100_connection_from_socket(agent, xmitsfd)) != NULL) {
-            web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
-            web100_raw_read(yar, conn, yuff);
-            web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
-            limcwnd_val = limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
-            web100_raw_write(LimCwnd, conn, &limcwnd_val);
+          if (options->limit > 0) {
+              log_println(1, "Setting Cwnd limit");
+              web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
+              web100_raw_read(yar, conn, yuff);
+              log_println(1, "MSS = %s, multiplication factor = %d",
+                      web100_value_to_text(web100_get_var_type(yar), yuff), options->limit);
+              web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
+              limcwnd_val = options->limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
+              log_print(1, "now write %d to limit the Congestion window", limcwnd_val);
+              web100_raw_write(LimCwnd, conn, &limcwnd_val);
+              log_println(1, "  ---  Done");
           }
-        }
       }
       /* End of test code */
 
-      if (experimental > 0) {
+      {
         I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
         char namebuf[200];
         size_t nameBufLen = 199;
         memset(namebuf, 0, 200);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-        sprintf(logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
-        conn = web100_connection_from_socket(agent, xmitsfd);
+        sprintf(options->logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
         group = web100_group_find(agent, "read");
-        snap = web100_snapshot_alloc(group, conn);
-        if (experimental > 1)
-          log = web100_log_open_write(logname, conn, group);
+        snapArgs.snap = web100_snapshot_alloc(group, conn);
+        if (options->snaplog) {
+            FILE* fp = fopen(get_logfile(),"a");
+            snapArgs.log = web100_log_open_write(options->logname, conn, group);
+            if (fp == NULL) {
+                log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
+            }
+            else {
+                log_println(1, "snaplog file: %s\n", options->logname);
+                fprintf(fp, "snaplog file: %s\n", options->logname);
+                fclose(fp);
+            }
+        }
       }
 
       /* Kludge way of nuking Linux route cache.  This should be done
@@ -678,11 +838,10 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
         /* system("/sbin/sysctl -w net.ipv4.route.flush=1"); */
         system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
-      xconn = web100_connection_from_socket(agent, xmitsfd);
       rgroup = web100_group_find(agent, "read");
-      rsnap = web100_snapshot_alloc(rgroup, xconn);
+      rsnap = web100_snapshot_alloc(rgroup, conn);
       tgroup = web100_group_find(agent, "tune");
-      tsnap = web100_snapshot_alloc(tgroup, xconn);
+      tsnap = web100_snapshot_alloc(tgroup, conn);
 
       bytes = 0;
       k = 0;
@@ -701,24 +860,42 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       t = secs();
       s = t + 10.0;
 
+      {
+          WorkerArgs workerArgs;
+          workerArgs.snapArgs = &snapArgs;
+          workerArgs.agent = agent;
+          workerArgs.peaks = peaks;
+          workerArgs.writeSnap = options->snaplog;
+          if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &workerArgs)) {
+              log_println(0, "Cannot create worker thread for writing snap log!");
+              workerThreadId = 0;
+          }
+
+          pthread_mutex_lock(&mainmutex);
+          workerLoop = 1;
+          web100_snap(snapArgs.snap);
+          if (options->snaplog) {
+              web100_log_write(snapArgs.log, snapArgs.snap);
+          }
+          pthread_cond_wait(&maincond, &mainmutex);
+          pthread_mutex_unlock(&mainmutex);
+      }
+
       while(secs() < s) { 
         c3++;
-        if (experimental > 0) {
-          web100_snap(snap);
-          if (experimental > 1)
-            web100_log_write(log, snap);
-          web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-          web100_snap_read(var, snap, tmpstr);
-          SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-          web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-          web100_snap_read(var, snap, tmpstr);
-          SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-        }
-        if (experimental > 0) {
-          if ((RECLTH<<2) < (SndMax - SndUna - 1)) {
-            c1++;
-            continue;
-          }
+        if (options->avoidSndBlockUp) {
+            pthread_mutex_lock(&mainmutex);
+            web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
+            web100_snap_read(var, snapArgs.snap, tmpstr);
+            SndMax = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+            web100_snap_read(var, snapArgs.snap, tmpstr);
+            SndUna = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            pthread_mutex_unlock(&mainmutex);
+            if ((RECLTH<<2) < (SndMax - SndUna - 1)) {
+                c1++;
+                continue;
+            }
         }
 
         n = write(xmitsfd, buff, RECLTH);
@@ -726,7 +903,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
           break;
         bytes += n;
 
-        if (experimental > 0) {
+        if (options->avoidSndBlockUp) {
           c2++;
         }
       }
@@ -738,14 +915,19 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
       s = secs() - t;
       x2cspd = (8.e-3 * bytes) / s;
+      if (workerThreadId) {
+          pthread_mutex_lock(&mainmutex);
+          workerLoop = 0;
+          pthread_mutex_unlock(&mainmutex);
+          pthread_join(workerThreadId, NULL);
+      }
+      if (options->snaplog) {
+          web100_log_close_write(snapArgs.log);
+      }
+      web100_snapshot_free(snapArgs.snap);
       /* send the x2cspd to the client */
       sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
-      if (experimental > 0) {
-        web100_snapshot_free(snap);
-        if (experimental > 1)
-          web100_log_close_write(log);
-      }
 
       web100_snap(rsnap);
       web100_snap(tsnap);
@@ -796,16 +978,22 @@ read2:
     web100_snapshot_free(rsnap);
 
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, &buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
-      exit(1);
+      sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 1;
     }
-    if (check_msg_type("S2C throughput test", TEST_MSG, msgType)) {
-      exit(2);
+    if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
+      sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
-      exit(3);
+      sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      return 3;
     }
     buff[msgLen] = 0;
     *s2cspd = atoi(buff);

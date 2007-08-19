@@ -71,7 +71,15 @@ echo "s/YOURSITE/$yoursite/" >> /tmp/$$
 echo "s/YOURLOCATION/$yourloc/" >> /tmp/$$
 echo "s/YOURSPEED/$yourspeed/"   >> /tmp/$$
 
-/bin/sed -f /tmp/$$ tcpbw100.template > tcpbw100.html
+
+if test -f tcpbw100.template ; then
+	TEMPLATE=tcpbw100.template
+elif test -f ../tcpbw100.template ; then
+	TEMPLATE=../tcpbw100.template
+fi
+
+# /bin/sed -f /tmp/$$ tcpbw100.template > tcpbw100.html
+/bin/sed -f /tmp/$$ $TEMPLATE > tcpbw100.html
 /bin/rm -f /tmp/$$
 
 echo "The base web page 'tcpbw100.html' has now been created.  You"

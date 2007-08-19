@@ -15,12 +15,19 @@
 #
 #	Description:	toplevel build for bwctl
 #
+
+if HAVE_GCJ
 SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
+else
+SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
+endif
 
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template copyright.html web100variables.html \
 	web100_variables COPYRIGHT \
-	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv
+	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv \
+	contrib/README contrib/loadmap.intro contrib/loadmap.js \
+	contrib/loadmap.txt contrib/Tcpbw1001.java
 
 ndtdir = $(prefix)/ndt
 ndt_DATA = admin_description.html admin.html \

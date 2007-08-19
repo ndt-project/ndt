@@ -23,6 +23,8 @@
  * IPv6 port by Jakub S³awiñski <jeremian@poczta.fm>
  */
 
+#include "../config.h"
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -35,7 +37,6 @@
 #include <netdb.h>
 #include <getopt.h>
 
-#include "../config.h"
 #include "tr-tree.h"
 #include "usage.h"
 #include "logging.h"
@@ -826,7 +827,7 @@ main(int argc, char *argv[])
   int v6only = 0;
   int debug = 0;
 
-  flag = 'b';
+  flag = 'p';
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
