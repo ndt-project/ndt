@@ -629,7 +629,7 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   if (dumptrace == 1) {
     fprintf(stderr, "Creating trace file for connection\n");
     memset(cmdbuf, 0, 256);
-    sprintf(cmdbuf, "ndttrace.%s.%d", namebuf, I2AddrPort(sockAddr));
+    sprintf(cmdbuf, "ndttrace.%s.%d.%ld", namebuf, I2AddrPort(sockAddr), get_timestamp());
     pdump = pcap_dump_open(pd, cmdbuf);
     if (pdump == NULL) {
       fprintf(stderr, "Unable to create trace file '%s'\n", cmdbuf);

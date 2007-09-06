@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 #include "logging.h"
 
@@ -18,6 +19,7 @@ static I2ErrHandle        _errorhandler_nl   = NULL;
 static I2ErrHandle        _errorhandler      = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
+static time_t             timestamp;
 
 /*
  * Function name: log_init
@@ -153,4 +155,25 @@ log_println(int lvl, const char* format, ...)
   va_start(ap, format);
   I2ErrLogVT(_errorhandler_nl,-1,0,format,ap);
   va_end(ap);
+}
+
+/**
+ * Function name: set_timestamp
+ * Description: Sets the timestamp to actual time.
+ */
+void
+set_timestamp()
+{
+    timestamp = time(NULL);
+}
+
+/**
+ * Function name: get_timestamp
+ * Description: Returns the previously recorded timestamp.
+ * Returns: The timestamp
+ */
+time_t
+get_timestamp()
+{
+    return timestamp;
 }

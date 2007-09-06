@@ -21,5 +21,7 @@ char* get_logfile();
 I2ErrHandle get_errhandle();
 void log_print(int lvl, const char* format, ...);
 void log_println(int lvl, const char* format, ...);
+void set_timestamp();
+time_t get_timestamp();
 
 #endif
