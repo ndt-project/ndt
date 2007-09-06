@@ -814,7 +814,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         size_t nameBufLen = 199;
         memset(namebuf, 0, 200);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-        sprintf(options->logname, "snaplog-%s.%d", namebuf, I2AddrPort(sockAddr));
+        sprintf(options->logname, "snaplog-%s.%d.%ld", namebuf, I2AddrPort(sockAddr), get_timestamp());
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (options->snaplog) {

@@ -1573,6 +1573,7 @@ multi_client:
           }
         }
 
+        set_timestamp();
         {
             I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
             testPort = I2AddrPort(tmp_addr);
@@ -1580,7 +1581,7 @@ multi_client:
             I2AddrFree(tmp_addr);
             memset(cputimelog, 0, 256);
             if (cputime) {
-                sprintf(cputimelog, "cputime.%s.%d", name, testPort);
+                sprintf(cputimelog, "cputime.%s.%d.%ld", name, testPort, get_timestamp());
               if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
                   log_println(0, "Cannot create worker thread for writing cpu usage!");
                   workerThreadId = 0;
