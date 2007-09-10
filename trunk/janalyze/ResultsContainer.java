@@ -60,7 +60,7 @@ public class ResultsContainer {
     double linkType, sspd, mspd;
     double minrtt, ispd, n1, T1, lspd, n2, T2, lT2, uT2, teeth, lTeeth, uTeeth;
     boolean limited, normalOperation;
-    private int minPeak = -1, maxPeak = -1, peaks = -1, realTeeth, ssCurCwnd = -1,
+    private int minPeak = -1, maxPeak = -1, peaks = -1, rawPeaks = -1, realTeeth, ssCurCwnd = -1,
             ssSampleRTT = -1, fSampleRTT = -1;
     private Collection<PeakInfo> peakInfos = new Vector<PeakInfo>();
         /* ---------------------------------------------- */
@@ -527,6 +527,7 @@ public class ResultsContainer {
                             maxPeak = prevCWNDval;
                             minPeak = -1;
                             peaks = 1;
+                            rawPeaks = 1;
                             decreasing = true;
                             peakInfos.add(new MaxPeakInfo(ssCurCwnd, ssSampleRTT));
                         }
@@ -543,6 +544,7 @@ public class ResultsContainer {
                             if (prevCWNDval > maxPeak) {
                                 maxPeak = prevCWNDval;
                             }
+                            rawPeaks += 1;
                             if (!decreasing) {
                                 // the max peak
                                 peakInfos.add(new MaxPeakInfo(prevCWNDval, prevSampleRTT));
@@ -927,7 +929,8 @@ public class ResultsContainer {
                         ", fSampleRTT = " + fSampleRTT));
         }
         if (peaks != -1) {
-            panel.add(new JLabel("   minPeak = " + minPeak + ", maxPeak = " + maxPeak + ", peaks = " + peaks));
+            panel.add(new JLabel("   minPeak = " + minPeak + ", maxPeak = " + maxPeak + ", peaks = " + peaks +
+                        (rawPeaks == -1 ? "" : " [" + rawPeaks + "]")));
         }
 
         if (ssCurCwnd != -1) {
