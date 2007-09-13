@@ -19,6 +19,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import java.io.File;
 import java.io.FileReader;
@@ -26,9 +28,12 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Collection;
 import java.util.Vector;
 import java.util.StringTokenizer;
+import java.util.Properties;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -65,10 +70,12 @@ public class JAnalyze extends JFrame
     JMenu cputimesMenu = new JMenu("Cputimes");
     JMenuItem viewCputimeMenuItem = new JMenuItem("View");
     final JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
+    final Properties properties = new Properties();
+    final File propertyFile = new File(System.getenv("HOME") + "/.jAnalyze.properties");
 
     FilterFrame filterFrame = null;
-    DBConfFrame dbConfFrame = new DBConfFrame(this);
-    SnaplogFrame snaplogFrame = new SnaplogFrame(this);
+    DBConfFrame dbConfFrame = null;
+    SnaplogFrame snaplogFrame = null;
     
     JPanel listPanel = new JPanel();
     JPanel infoPanel = new JPanel();
@@ -81,6 +88,33 @@ public class JAnalyze extends JFrame
     {
         // Title
         setTitle("JAnalyze v0.7");
+
+        try {
+            properties.load(new FileInputStream(propertyFile));
+        }
+        catch (FileNotFoundException e) {
+            // do nothing
+        }
+        catch (IOException e) {
+            // do nothing
+        }
+
+        dbConfFrame = new DBConfFrame(this);
+        snaplogFrame = new SnaplogFrame(this);
+
+        addWindowListener(new WindowAdapter() {
+            public void windowClosing(WindowEvent event) {
+                try {
+                    properties.store(new FileOutputStream(propertyFile), "JAnalyze properties file");
+                }
+                catch (FileNotFoundException e) {
+                    // do nothing
+                }
+                catch (IOException e) {
+                    // do nothing
+                }
+            }
+        });
 
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
@@ -112,7 +146,16 @@ public class JAnalyze extends JFrame
         fileMenu.add(loadDBMenuItem);
         fileMenu.addSeparator();
         exitMenuItem.addActionListener( new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent event) {
+                try {
+                    properties.store(new FileOutputStream(propertyFile), "JAnalyze properties file");
+                }
+                catch (FileNotFoundException e) {
+                    // do nothing
+                }
+                catch (IOException e) {
+                    // do nothing
+                }
                 System.exit(0);
             }
         });
@@ -624,4 +667,8 @@ public class JAnalyze extends JFrame
 	public void stopLoading() {
 		stopLoading = true;
 	}
+
+    public Properties getProperties() {
+        return properties;
+    }
 }

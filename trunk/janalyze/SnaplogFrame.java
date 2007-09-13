@@ -9,6 +9,9 @@ import javax.swing.JComboBox;
 import javax.swing.JTextField;
 import javax.swing.JPasswordField;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.text.BadLocationException;
 
 import java.util.Collection;
 import java.util.Map;
@@ -61,6 +64,36 @@ public class SnaplogFrame extends JFrame
         tmpPanel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("Snaplog directory:"));
+        snaplogs.setText(mainWindow.getProperties().getProperty("snaplogs", ""));
+        snaplogs.getDocument().addDocumentListener(new DocumentListener() {
+            public void changedUpdate(DocumentEvent e) {
+                try {
+                    SnaplogFrame.this.mainWindow.getProperties().setProperty("snaplogs",
+                        e.getDocument().getText(0, e.getDocument().getLength()));
+                }
+                catch (BadLocationException exc) {
+                    // do nothing
+                }
+            }
+            public void insertUpdate(DocumentEvent e) {
+                try {
+                    SnaplogFrame.this.mainWindow.getProperties().setProperty("snaplogs",
+                        e.getDocument().getText(0, e.getDocument().getLength()));
+                }
+                catch (BadLocationException exc) {
+                    // do nothing
+                }
+            }
+            public void removeUpdate(DocumentEvent e) {
+                try {
+                    SnaplogFrame.this.mainWindow.getProperties().setProperty("snaplogs",
+                            e.getDocument().getText(0, e.getDocument().getLength()));
+                }
+                catch (BadLocationException exc) {
+                    // do nothing
+                }
+            }
+        });
         panel.add(snaplogs);
         tmpPanel.add(panel);
         cp.add(tmpPanel);
