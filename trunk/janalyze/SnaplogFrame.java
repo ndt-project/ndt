@@ -27,12 +27,11 @@ public class SnaplogFrame extends JFrame
 {
     private JAnalyze mainWindow;
     private static final long serialVersionUID = 1L;
-    private JTextField genplot = new JTextField("/usr/local/bin/genplot", 20);
-    private JTextField xplot = new JTextField("/usr/local/bin/xplot", 20);
-    private JTextField tcptrace = new JTextField("/usr/local/bin/tcptrace", 20);
+    private JTextField genplot = new JTextField(20);
+    private JTextField xplot = new JTextField(20);
+    private JTextField tcptrace = new JTextField(20);
     private JTextField snaplogs = new JTextField(20);
-    private JTextField variables =
-        new JTextField("CurCwnd,SampleRTT,SlowStart,MaxRTT,CurSsthresh,CongestionSignals", 40);
+    private JTextField variables = new JTextField(40);
 
     public SnaplogFrame(JAnalyze mainWindow) {
         this.mainWindow = mainWindow;
@@ -43,6 +42,8 @@ public class SnaplogFrame extends JFrame
         JPanel tmpPanel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("Genplot:"));
+        genplot.setText(mainWindow.getProperties().getProperty("genplot", "/usr/local/bin/genplot"));
+        genplot.getDocument().addDocumentListener(new PropertyListener(mainWindow, "genplot"));
         panel.add(genplot);
         tmpPanel.add(panel);
         cp.add(tmpPanel);
@@ -50,6 +51,8 @@ public class SnaplogFrame extends JFrame
         tmpPanel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("Xplot:"));
+        xplot.setText(mainWindow.getProperties().getProperty("xplot", "/usr/local/bin/xplot"));
+        xplot.getDocument().addDocumentListener(new PropertyListener(mainWindow, "xplot"));
         panel.add(xplot);
         tmpPanel.add(panel);
         cp.add(tmpPanel);
@@ -57,6 +60,8 @@ public class SnaplogFrame extends JFrame
         tmpPanel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("Tcptrace:"));
+        tcptrace.setText(mainWindow.getProperties().getProperty("tcptrace", "/usr/local/bin/tcptrace"));
+        tcptrace.getDocument().addDocumentListener(new PropertyListener(mainWindow, "tcptrace"));
         panel.add(tcptrace);
         tmpPanel.add(panel);
         cp.add(tmpPanel);
@@ -65,35 +70,7 @@ public class SnaplogFrame extends JFrame
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("Snaplog directory:"));
         snaplogs.setText(mainWindow.getProperties().getProperty("snaplogs", ""));
-        snaplogs.getDocument().addDocumentListener(new DocumentListener() {
-            public void changedUpdate(DocumentEvent e) {
-                try {
-                    SnaplogFrame.this.mainWindow.getProperties().setProperty("snaplogs",
-                        e.getDocument().getText(0, e.getDocument().getLength()));
-                }
-                catch (BadLocationException exc) {
-                    // do nothing
-                }
-            }
-            public void insertUpdate(DocumentEvent e) {
-                try {
-                    SnaplogFrame.this.mainWindow.getProperties().setProperty("snaplogs",
-                        e.getDocument().getText(0, e.getDocument().getLength()));
-                }
-                catch (BadLocationException exc) {
-                    // do nothing
-                }
-            }
-            public void removeUpdate(DocumentEvent e) {
-                try {
-                    SnaplogFrame.this.mainWindow.getProperties().setProperty("snaplogs",
-                            e.getDocument().getText(0, e.getDocument().getLength()));
-                }
-                catch (BadLocationException exc) {
-                    // do nothing
-                }
-            }
-        });
+        snaplogs.getDocument().addDocumentListener(new PropertyListener(mainWindow, "snaplogs"));
         panel.add(snaplogs);
         tmpPanel.add(panel);
         cp.add(tmpPanel);
@@ -101,6 +78,9 @@ public class SnaplogFrame extends JFrame
         tmpPanel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.add(new JLabel("Variables:"));
+        variables.setText(mainWindow.getProperties().getProperty("variables",
+                    "CurCwnd,SampleRTT,SlowStart,MaxRTT,CurSsthresh,CongestionSignals"));
+        variables.getDocument().addDocumentListener(new PropertyListener(mainWindow, "variables"));
         panel.add(variables);
         tmpPanel.add(panel);
         cp.add(tmpPanel);

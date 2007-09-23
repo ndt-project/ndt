@@ -12,6 +12,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Vector;
+import java.util.HashSet;
+import java.util.StringTokenizer;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
@@ -23,9 +25,10 @@ public class FilterFrame extends JFrame
     private JAnalyze mainWindow;
     private static final long serialVersionUID = 1L;
     private Collection<ResultsContainer> results;
+    private Collection<String> disabled = new HashSet<String>();
 
     private final Map<String, Integer> ips = new HashMap<String, Integer>();
-    private int mismatchFilter = 2;
+    private int mismatchFilter;
     private int cableFaultFilter = 2;
     private int congestionFilter = 2;
     private int duplexFilter = 2;
@@ -37,8 +40,12 @@ public class FilterFrame extends JFrame
 
         resultsChange();
 
+        StringTokenizer st = new StringTokenizer(mainWindow.getProperties().getProperty("disabled", ""), ",");
+        while (st.hasMoreTokens()) {
+            disabled.add(st.nextToken());
+        }
+
         setSize(400, 350);
-        setVisible(true);
     }
 
     public Collection<ResultsContainer> getResults() {
@@ -70,7 +77,7 @@ public class FilterFrame extends JFrame
         ips.clear();
         for (ResultsContainer result : results) {
             if (!oldIPs.containsKey(result.getIP())) {
-                ips.put(result.getIP(), 1);
+                ips.put(result.getIP(), disabled.contains(result.getIP()) ? 0 : 1);
             }
             else {
                 ips.put(result.getIP(), oldIPs.get(result.getIP()));
@@ -85,8 +92,8 @@ public class FilterFrame extends JFrame
             ipsPanel.add(new JLabel("           "));
         }
         for (String ip : ips.keySet()) {
-            JCheckBox checkBox = new JCheckBox(ip, true);
-            checkBox.addActionListener( new IPCheckBoxActionListener(checkBox, ip));
+            JCheckBox checkBox = new JCheckBox(ip, ips.get(ip) == 1);
+            checkBox.addActionListener( new IPCheckBoxActionListener(checkBox, ip, disabled));
             ipsPanel.add(checkBox);
         }
         cp.add(new JScrollPane(ipsPanel), BorderLayout.WEST);
@@ -109,9 +116,11 @@ public class FilterFrame extends JFrame
         mismatchBox.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 mismatchFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+                mainWindow.getProperties().setProperty("mismatchFilter", Integer.toString(mismatchFilter));
             }
         });
 
+        mismatchFilter = Integer.parseInt(mainWindow.getProperties().getProperty("mismatchFilter", "2"));
         mismatchBox.setSelectedIndex(mismatchFilter);
         JPanel horizontalPanel = new JPanel();
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
@@ -123,9 +132,11 @@ public class FilterFrame extends JFrame
         cableFaultBox.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 cableFaultFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+                mainWindow.getProperties().setProperty("cableFaultFilter", Integer.toString(cableFaultFilter));
             }
         });
 
+        cableFaultFilter = Integer.parseInt(mainWindow.getProperties().getProperty("cableFaultFilter", "2"));
         cableFaultBox.setSelectedIndex(cableFaultFilter);
         horizontalPanel = new JPanel();
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
@@ -137,9 +148,11 @@ public class FilterFrame extends JFrame
         congestionBox.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 congestionFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+                mainWindow.getProperties().setProperty("congestionFilter", Integer.toString(congestionFilter));
             }
         });
 
+        congestionFilter = Integer.parseInt(mainWindow.getProperties().getProperty("congestionFilter", "2"));
         congestionBox.setSelectedIndex(congestionFilter);
         horizontalPanel = new JPanel();
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
@@ -151,9 +164,11 @@ public class FilterFrame extends JFrame
         duplexBox.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 duplexFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+                mainWindow.getProperties().setProperty("duplexFilter", Integer.toString(duplexFilter));
             }
         });
 
+        duplexFilter = Integer.parseInt(mainWindow.getProperties().getProperty("duplexFilter", "2"));
         duplexBox.setSelectedIndex(duplexFilter);
         horizontalPanel = new JPanel();
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
@@ -165,9 +180,12 @@ public class FilterFrame extends JFrame
         newCongestionBox.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 newCongestionFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+                mainWindow.getProperties().setProperty("newCongestionFilter",
+                    Integer.toString(newCongestionFilter));
             }
         });
 
+        newCongestionFilter=Integer.parseInt(mainWindow.getProperties().getProperty("newCongestionFilter","2"));
         newCongestionBox.setSelectedIndex(newCongestionFilter);
         horizontalPanel = new JPanel();
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
@@ -186,19 +204,35 @@ public class FilterFrame extends JFrame
     class IPCheckBoxActionListener implements ActionListener {
         private JCheckBox checkBox;
         private String ip;
+        private Collection<String> disabled;
 
-        IPCheckBoxActionListener(JCheckBox checkBox, String ip) {
+        IPCheckBoxActionListener(JCheckBox checkBox, String ip, Collection<String> disabled) {
             this.checkBox = checkBox;
             this.ip = ip;
+            this.disabled = disabled;
         }
 
         public void actionPerformed(ActionEvent e) {
             if (checkBox.isSelected()) {
                 ips.put(ip, 1);
+                disabled.remove(ip);
             }
             else {
                 ips.put(ip, 0);
+                if (!disabled.contains(ip)) {
+                    disabled.add(ip);
+                }
             }
+            StringBuffer newDisabled = new StringBuffer();
+            boolean first = true;
+            for (String ip : disabled) {
+                if (!first) {
+                    newDisabled.append(",");
+                }
+                newDisabled.append(ip);
+                first = false;
+            }
+            mainWindow.getProperties().setProperty("disabled", newDisabled.toString());
         }
     }
 }

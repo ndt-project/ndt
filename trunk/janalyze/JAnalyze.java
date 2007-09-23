@@ -69,7 +69,7 @@ public class JAnalyze extends JFrame
     JMenuItem plotTcpdumpMenuItem = new JMenuItem("Plot");
     JMenu cputimesMenu = new JMenu("Cputimes");
     JMenuItem viewCputimeMenuItem = new JMenuItem("View");
-    final JFileChooser fc = new JFileChooser(new File("/usr/local/ndt/"));
+    JFileChooser fc;
     final Properties properties = new Properties();
     final File propertyFile = new File(System.getenv("HOME") + "/.jAnalyze.properties");
 
@@ -87,7 +87,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.7");
+        setTitle("JAnalyze v0.8");
 
         try {
             properties.load(new FileInputStream(propertyFile));
@@ -101,6 +101,7 @@ public class JAnalyze extends JFrame
 
         dbConfFrame = new DBConfFrame(this);
         snaplogFrame = new SnaplogFrame(this);
+        filterFrame = new FilterFrame(JAnalyze.this, results);
 
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent event) {
@@ -119,7 +120,11 @@ public class JAnalyze extends JFrame
         // Menu        
         loadMenuItem.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
+                if (fc == null) {
+                    fc = new JFileChooser(new File(getProperties().getProperty("loadDir", "/usr/local/ndt/")));
+                }
                 int returnVal = fc.showOpenDialog(JAnalyze.this);
+                getProperties().setProperty("loadDir", fc.getCurrentDirectory().getAbsolutePath());
 
                 if (returnVal == JFileChooser.APPROVE_OPTION) {
                     try {
@@ -164,9 +169,6 @@ public class JAnalyze extends JFrame
 
         filterMenuItem.addActionListener( new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                if (filterFrame == null) {
-                    filterFrame = new FilterFrame(JAnalyze.this, results);
-                }
                 filterFrame.setVisible(true);
             }
         });
@@ -322,9 +324,7 @@ public class JAnalyze extends JFrame
         }
         results.clear();
         results.addAll(newResults);
-        if (filterFrame != null) {
-            filterFrame.resultsChange();
-        }
+        filterFrame.resultsChange();
         rebuildResultsList();
     }
 
@@ -372,9 +372,7 @@ public class JAnalyze extends JFrame
         }
         results.clear();
         results.addAll(newResults);
-        if (filterFrame != null) {
-            filterFrame.resultsChange();
-        }
+        filterFrame.resultsChange();
         rebuildResultsList();
     }
 
@@ -613,12 +611,7 @@ public class JAnalyze extends JFrame
 
     private void fillListPanel() {    	
     	final JList list;
-        if (filterFrame != null) {
-            list = new JList(new ResultsList(filterFrame.getResults()));
-        }
-        else {
-            list = new JList(new ResultsList(results));
-        }
+        list = new JList(new ResultsList(filterFrame.getResults()));
     	list.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     	list.addMouseListener(new
     	        MouseAdapter() {
