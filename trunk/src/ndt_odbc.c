@@ -32,6 +32,7 @@ char* ctStmt_1 = "CREATE TABLE ndt_test_results ("
                           "runave4 FLOAT,"
                           "cputimelog TEXT,"
                           "snaplog TEXT,"
+                          "c2s_snaplog TEXT,"
                           "hostName TEXT,"
                           "testPort INT,"
                           "date TEXT,"
@@ -217,7 +218,8 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
 }
 
 int
-db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, char* hostName, int testPort,
+db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, char* c2s_snaplog,
+        char* hostName, int testPort,
         char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd, int Timeouts,
         int SumRTT, int CountRTT, int PktsRetrans, int FastRetran, int DataPktsOut,
         int AckPktsOut, int CurrentMSS, int DupAcksIn, int AckPktsIn, int MaxRwinRcvd,
@@ -238,7 +240,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
     }
     snprintf(insertStmt, 2040, "INSERT INTO ndt_test_results VALUES ("
             "'%s','%s','%s','%s',%f,%f,%f,%f,"
-            "'%s','%s','%s', %d,"
+            "'%s','%s','%s','%s',%d,"
             "'%s','%s',%d,%d,%d,%d,"
             "%d,%d,%d,%d,%d,"
             "%d,%d,%d,%d,%d,"
@@ -252,7 +254,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
             "%d,%d,%d,%d,%d"
             ");",
             spds[0], spds[1], spds[2], spds[3], runave[0], runave[1], runave[2], runave[3],
-            cputimelog, snaplog, hostName, testPort,
+            cputimelog, snaplog, c2s_snaplog, hostName, testPort,
             date, rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
             SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
             AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
