@@ -32,7 +32,8 @@ public class ResultsContainer {
     private double[] runave = new double[4];
     private int[][] links = new int[4][16];
     private int n = 0, m = 0, port;
-    private String date, ip_addr, ip_addr2, btlneck, cputraceFilename, snaplogFilename, ndttraceFilename;
+    private String date, ip_addr, ip_addr2, btlneck, cputraceFilename, snaplogFilename,
+            c2sSnaplogFilename, ndttraceFilename;
     private int s2c2spd, s2cspd, c2sspd;
     private int timeouts, sumRTT, countRTT, pktsRetrans, fastRetrans,
             dataPktsOut, ackPktsOut, currentMSS, dupAcksIn, ackPktsIn,
@@ -84,6 +85,9 @@ public class ResultsContainer {
         snaplogFilename = rs.getString("snaplog");
         if (snaplogFilename.length() == 0)
             snaplogFilename = null;
+        c2sSnaplogFilename = rs.getString("c2s_snaplog");
+        if (c2sSnaplogFilename.length() == 0)
+            c2sSnaplogFilename = null;
         ip_addr = rs.getString("hostName");
         port = rs.getInt("testPort");
         date = rs.getString("date");
@@ -184,6 +188,10 @@ public class ResultsContainer {
 
     public void parseSnaplogFilename(String line) {
         snaplogFilename = line.substring(14);
+    }
+
+    public void parseC2sSnaplogFilename(String line) {
+        c2sSnaplogFilename = line.substring(18);
     }
 
     public void parseCputimeFilename(String line) {
@@ -799,7 +807,7 @@ public class ResultsContainer {
         panel.add(new JLabel(" "));
         JPanel tmpPanel = new JPanel();
         tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
-        tmpPanel.setBorder(new TitledBorder("Snaplog file"));
+        tmpPanel.setBorder(new TitledBorder("S2C Snaplog file"));
         if (snaplogFilename != null) {
             JLabel tmpLabel = new JLabel(snaplogFilename);
             if (ssCurCwnd == -1) {
@@ -838,7 +846,53 @@ public class ResultsContainer {
             }
         }
         else {
-            JLabel tmpLabel = new JLabel("        N/A        ");
+            JLabel tmpLabel = new JLabel("            N/A            ");
+            tmpLabel.setForeground(Color.RED);
+            tmpPanel.add(tmpLabel);
+        }
+        panel.add(tmpPanel);
+        tmpPanel = new JPanel();
+        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
+        tmpPanel.setBorder(new TitledBorder("C2S Snaplog file"));
+        if (c2sSnaplogFilename != null) {
+            JLabel tmpLabel = new JLabel(c2sSnaplogFilename);
+            if (ssCurCwnd == -1) {
+                tmpLabel.setForeground(Color.RED);
+                tmpPanel.add(tmpLabel);
+            }
+            else {
+                tmpPanel.add(tmpLabel);
+                JButton viewButton = new JButton("View");
+                viewButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        String snaplogData = mainWindow.getSnaplogData(c2sSnaplogFilename, null, 0, false);
+                        JTextArea area = new JTextArea(snaplogData);
+                        area.setEditable(false);
+                        JFrame frame = new JFrame("Snaplog variables");
+                        frame.getContentPane().add(new JScrollPane(area), BorderLayout.CENTER);
+                        frame.setSize(800, 600);
+                        frame.setVisible(true);
+                    }
+                });
+                tmpPanel.add(viewButton);
+                JButton plotButton = new JButton("Plot");
+                plotButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        mainWindow.plotSnaplog(c2sSnaplogFilename);
+                    }
+                });
+                tmpPanel.add(plotButton);
+                JButton cPlotButton = new JButton("Plot CWND");
+                cPlotButton.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        mainWindow.plotSnaplogCWND(c2sSnaplogFilename);
+                    }
+                });
+                tmpPanel.add(cPlotButton);
+            }
+        }
+        else {
+            JLabel tmpLabel = new JLabel("            N/A            ");
             tmpLabel.setForeground(Color.RED);
             tmpPanel.add(tmpLabel);
         }
@@ -872,7 +926,7 @@ public class ResultsContainer {
             tmpPanel.add(plotButton);
         }
         else {
-            JLabel tmpLabel = new JLabel("        N/A        ");
+            JLabel tmpLabel = new JLabel("            N/A            ");
             tmpLabel.setForeground(Color.RED);
             tmpPanel.add(tmpLabel);
         }

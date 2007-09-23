@@ -933,7 +933,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
     fprintf(fp, ",%d,%d,%d\n", peaks.min, peaks.max, peaks.amount);
     fclose(fp);
   }
-  db_insert(spds, runave, cputimelog, options.logname, testName, testPort, date,
+  db_insert(spds, runave, cputimelog, options.logname, options.c2s_logname, testName, testPort, date,
           rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
           SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
           AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
@@ -1014,6 +1014,7 @@ main(int argc, char** argv)
   options.snaplog = 0;
   options.cwndDecrease = 0;
   memset(options.logname, 0, 128);
+  memset(options.c2s_logname, 0, 128);
   peaks.min = -1;
   peaks.max = -1;
   peaks.amount = -1;

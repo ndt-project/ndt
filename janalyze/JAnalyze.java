@@ -349,6 +349,10 @@ public class JAnalyze extends JFrame
             	result.parseSnaplogFilename(line);
             	continue;
             }
+            if (line.startsWith("c2s_snaplog file:")) {
+            	result.parseC2sSnaplogFilename(line);
+            	continue;
+            }
             if (line.startsWith("cputime trace file:")) {
             	result.parseCputimeFilename(line);
             	continue;
@@ -472,7 +476,7 @@ public class JAnalyze extends JFrame
             Runtime.getRuntime().exec(cmdarray3);
         }
         catch (InterruptedException e) {
-            // do nothing
+            System.out.println(e);
         }
         catch (IOException e) {
             System.out.println(e);
@@ -490,14 +494,19 @@ public class JAnalyze extends JFrame
                 snaplogFrame.getSnaplogs() + snaplogFilename :
                 snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
         String[] cmdarray2 = new String[] {snaplogFrame.getXplot(),
-        "User Defined" + snaplogFilename.substring(snaplogFilename.lastIndexOf(".")) + ".xpl"};
+        "User Defined" +
+            (snaplogFilename.substring(snaplogFilename.lastIndexOf(".")).length() > 6 ?
+             snaplogFilename.substring(
+                 snaplogFilename.substring(0, snaplogFilename.lastIndexOf(".")).lastIndexOf("."),
+                     snaplogFilename.lastIndexOf(".")) :
+             snaplogFilename.substring(snaplogFilename.lastIndexOf("."))) + ".xpl"};
         try {
             Runtime.getRuntime().exec(cmdarray);
             Thread.sleep(1000);
             Runtime.getRuntime().exec(cmdarray2);
         }
         catch (InterruptedException e) {
-            // do nothing
+            System.out.println(e);
         }
         catch (IOException e) {
             System.out.println(e);
@@ -514,14 +523,19 @@ public class JAnalyze extends JFrame
                 snaplogFrame.getSnaplogs() + snaplogFilename :
                 snaplogFrame.getSnaplogs() + "/" +  snaplogFilename};
         String[] cmdarray2 = new String[] {snaplogFrame.getXplot(),
-        "CurCwnd" + snaplogFilename.substring(snaplogFilename.lastIndexOf(".")) + ".xpl"};
+        "CurCwnd" +
+            (snaplogFilename.substring(snaplogFilename.lastIndexOf(".")).length() > 6 ?
+             snaplogFilename.substring(
+                 snaplogFilename.substring(0, snaplogFilename.lastIndexOf(".")).lastIndexOf("."),
+                     snaplogFilename.lastIndexOf(".")) :
+             snaplogFilename.substring(snaplogFilename.lastIndexOf("."))) + ".xpl"};
         try {
             Runtime.getRuntime().exec(cmdarray);
             Thread.sleep(1000);
             Runtime.getRuntime().exec(cmdarray2);
         }
         catch (InterruptedException e) {
-            // do nothing
+            System.out.println(e);
         }
         catch (IOException e) {
             System.out.println(e);

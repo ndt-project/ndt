@@ -141,7 +141,9 @@ snapWorker(void* arg)
             break;
         }
         web100_snap(snapArgs->snap);
-        findCwndPeaks(agent, peaks, snapArgs->snap);
+        if (peaks) {
+            findCwndPeaks(agent, peaks, snapArgs->snap);
+        }
         if (writeSnap) {
             web100_log_write(snapArgs->log, snapArgs->snap);
         }
@@ -414,10 +416,15 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   PortPair pair;
   I2Addr c2ssrv_addr = NULL;
   char listenc2sport[10];
-
+  pthread_t workerThreadId;
 
   web100_group* group;
   web100_connection* conn;
+
+  SnapArgs snapArgs;
+  snapArgs.snap = NULL;
+  snapArgs.log = NULL;
+  snapArgs.delay = options->snapDelay;
 
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
@@ -538,11 +545,54 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     }
     /* End of test code */
 
+    {
+        I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
+        char namebuf[200];
+        size_t nameBufLen = 199;
+        memset(namebuf, 0, 200);
+        I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
+        sprintf(options->c2s_logname, "c2s_snaplog-%s.%d.%ld", namebuf, I2AddrPort(sockAddr), get_timestamp());
+        group = web100_group_find(agent, "read");
+        snapArgs.snap = web100_snapshot_alloc(group, conn);
+        if (options->snaplog) {
+            FILE* fp = fopen(get_logfile(),"a");
+            snapArgs.log = web100_log_open_write(options->c2s_logname, conn, group);
+            if (fp == NULL) {
+                log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
+            }
+            else {
+                log_println(1, "c2s_snaplog file: %s\n", options->c2s_logname);
+                fprintf(fp, "c2s_snaplog file: %s\n", options->c2s_logname);
+                fclose(fp);
+            }
+        }
+    }
+
     sleep(2);
     send_msg(ctlsockfd, TEST_START, "", 0);
     alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
 
+    {
+        WorkerArgs workerArgs;
+        workerArgs.snapArgs = &snapArgs;
+        workerArgs.agent = agent;
+        workerArgs.peaks = NULL;
+        workerArgs.writeSnap = options->snaplog;
+        if (pthread_create(&workerThreadId, NULL, snapWorker, (void*) &workerArgs)) {
+            log_println(0, "Cannot create worker thread for writing snap log!");
+            workerThreadId = 0;
+        }
+
+        pthread_mutex_lock(&mainmutex);
+        workerLoop = 1;
+        web100_snap(snapArgs.snap);
+        if (options->snaplog) {
+            web100_log_write(snapArgs.log, snapArgs.snap);
+        }
+        pthread_cond_wait(&maincond, &mainmutex);
+        pthread_mutex_unlock(&mainmutex);
+    }
 
     t = secs();
     sel_tv.tv_sec = 11;
@@ -563,6 +613,17 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     t = secs()-t;
     *c2sspd = (8.e-3 * bytes) / t;
+
+    if (workerThreadId) {
+        pthread_mutex_lock(&mainmutex);
+        workerLoop = 0;
+        pthread_mutex_unlock(&mainmutex);
+        pthread_join(workerThreadId, NULL);
+    }
+    if (options->snaplog) {
+        web100_log_close_write(snapArgs.log);
+    }
+
     sprintf(buff, "%6.0f kbps outbound", *c2sspd);
     log_println(1, "%s", buff);
     /* send the c2sspd to the client */
@@ -856,9 +917,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       memset(&new, 0, sizeof(new));
       new.sa_handler = catch_s2c_alrm;
       sigaction(SIGALRM, &new, &old);
-      alarm(11);
-      t = secs();
-      s = t + 10.0;
 
       {
           WorkerArgs workerArgs;
@@ -880,6 +938,10 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           pthread_cond_wait(&maincond, &mainmutex);
           pthread_mutex_unlock(&mainmutex);
       }
+
+      alarm(11);
+      t = secs();
+      s = t + 10.0;
 
       while(secs() < s) { 
         c3++;

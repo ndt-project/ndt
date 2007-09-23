@@ -79,6 +79,7 @@ typedef struct options {
     char snaplog;
     char cwndDecrease;
     char logname[128];
+    char c2s_logname[128];
 } Options;
 
 typedef struct portpair {
