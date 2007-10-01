@@ -87,7 +87,7 @@ public class JAnalyze extends JFrame
     public JAnalyze()
     {
         // Title
-        setTitle("JAnalyze v0.8");
+        setTitle("JAnalyze v0.9");
 
         try {
             properties.load(new FileInputStream(propertyFile));

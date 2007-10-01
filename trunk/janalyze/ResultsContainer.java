@@ -22,6 +22,8 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.border.TitledBorder;
 import javax.swing.JTextArea;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.SimpleAttributeSet;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -699,59 +701,52 @@ public class ResultsContainer {
         return normalOperation ? 0 : 1;
     }
 
-    private void setLabelColor(JLabel label, int value) {
-        if (value == 0) {
-            label.setForeground(Color.GREEN);
-        }
-        else {
-            label.setForeground(Color.RED);
-        }
-    }
-
     public Component getInfoPane() {
-        final JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.add(new JLabel("Client --> Server data detects link = " + describeDetLink(c2sdata)));
-        panel.add(new JLabel("Client <-- Server Ack's detect link = " + describeDetLink(c2sack)));
-        panel.add(new JLabel("Server --> Client data detects link = " + describeDetLink(s2cdata)));
-        panel.add(new JLabel("Server <-- Client Ack's detect link = " + describeDetLink(s2cack)));
-        panel.add(new JLabel(" "));
-        panel.add(new JLabel("Acks = " + Helpers.formatDouble(acks, 4) + ", async speed = " + Helpers.formatDouble(aspeed, 4) +
-                    ", mismatch3 = " + Helpers.formatDouble(cong, 4) + ", CongOver = " + congestionOverCount));
-        panel.add(new JLabel("idle = " + Helpers.formatDouble(idle, 4) + ", timeout/pkts = " + Helpers.formatDouble(touts, 2) +
-                    ", %retranmissions = " + Helpers.formatDouble(retrn*100, 2) + ", %increase = " + Helpers.formatDouble(increase*100, 2)));
-        panel.add(new JLabel("FastRetrans/Total = " + Helpers.formatDouble(retrn, 4) + ", Fast/Retrans = " +
-                    Helpers.formatDouble(fr_ratio, 4) + ", Retrans/sec = " + Helpers.formatDouble(retransec, 4)));
-        panel.add(new JLabel(" "));
-        panel.add(new JLabel("Throughput to host [" + ip_addr + "] is limited by " + btlneck));
-        panel.add(new JLabel(" "));
-        panel.add(new JLabel("\tWeb100 says link = " + link + ", speed-chk says link = " + c2sdata));
-        panel.add(new JLabel("\tSpeed-chk says {" + c2sdata + ", " + c2sack + ", " + s2cdata + ", " + s2cack +
-                    "}, Running average = {" + Helpers.formatDouble(runave[0], 1) + ", " + Helpers.formatDouble(runave[1], 1) +
-                    ", " + Helpers.formatDouble(runave[2], 1) + ", " + Helpers.formatDouble(runave[3], 1) + "}"));
+        final SimpleTextPane panel = new SimpleTextPane();
+        panel.append("Client --> Server data detects link = " + describeDetLink(c2sdata) + "\n");
+        panel.append("Client <-- Server Ack's detect link = " + describeDetLink(c2sack) + "\n");
+        panel.append("Server --> Client data detects link = " + describeDetLink(s2cdata) + "\n");
+        panel.append("Server <-- Client Ack's detect link = " + describeDetLink(s2cack) + "\n\n");
+        panel.append("Acks = " + Helpers.formatDouble(acks, 4) + ", async speed = " +
+                Helpers.formatDouble(aspeed, 4) + ", mismatch3 = " + Helpers.formatDouble(cong, 4) +
+                ", CongOver = " + congestionOverCount + "\n");
+        panel.append(("idle = " + Helpers.formatDouble(idle, 4) + ", timeout/pkts = " +
+                    Helpers.formatDouble(touts, 2) + ", %retranmissions = " +
+                    Helpers.formatDouble(retrn*100, 2) + ", %increase = " +
+                    Helpers.formatDouble(increase*100, 2)) + "\n");
+        panel.append("FastRetrans/Total = " + Helpers.formatDouble(retrn, 4) + ", Fast/Retrans = " +
+                    Helpers.formatDouble(fr_ratio, 4) + ", Retrans/sec = " +
+                    Helpers.formatDouble(retransec, 4) + "\n\n");
+        panel.append("Throughput to host [" + ip_addr + "] is limited by " + btlneck + "\n\n");
+        panel.append("\tWeb100 says link = " + link + ", speed-chk says link = " + c2sdata + "\n");
+        panel.append("\tSpeed-chk says {" + c2sdata + ", " + c2sack + ", " + s2cdata + ", " + s2cack +
+                    "}, Running average = {" + Helpers.formatDouble(runave[0], 1) + ", " +
+                    Helpers.formatDouble(runave[1], 1) + ", " + Helpers.formatDouble(runave[2], 1) + ", " +
+                    Helpers.formatDouble(runave[3], 1) + "}\n");
         if ((c2sspd > 1000) && (bw > 1)) {
-            panel.add(new JLabel("\tC2Sspeed = " + Helpers.formatDouble(c2sspd/1000.0, 2) + " Mbps, S2Cspeed = " +
-                        Helpers.formatDouble(s2cspd/1000.0, 2) + " Mbps"));
-            panel.add(new JLabel("CWND-Limited = " + Helpers.formatDouble(s2c2spd/1000.0, 2) + " Mbps, " +
-                        "Estimate = " + Helpers.formatDouble(bw, 2) + " Mbps (" + Helpers.formatDouble(bw2, 2) + " Mbps)"));
+            panel.append("\tC2Sspeed = " + Helpers.formatDouble(c2sspd/1000.0, 2) + " Mbps, S2Cspeed = " +
+                        Helpers.formatDouble(s2cspd/1000.0, 2) + " Mbps\n");
+            panel.append("CWND-Limited = " + Helpers.formatDouble(s2c2spd/1000.0, 2) + " Mbps, " +
+                        "Estimate = " + Helpers.formatDouble(bw, 2) + " Mbps (" +
+                        Helpers.formatDouble(bw2, 2) + " Mbps)\n");
         }
         else if (c2sspd > 1000) {
-            panel.add(new JLabel("\tC2Sspeed = " + Helpers.formatDouble(c2sspd/1000.0, 2) + " Mbps, S2Cspeed = " +
-                        Helpers.formatDouble(s2cspd/1000.0, 2) + " Mbps"));
-            panel.add(new JLabel("CWND-Limited = " + Helpers.formatDouble(s2c2spd/1000.0, 2) + " Mbps, " +
+            panel.append("\tC2Sspeed = " + Helpers.formatDouble(c2sspd/1000.0, 2) + " Mbps, S2Cspeed = " +
+                        Helpers.formatDouble(s2cspd/1000.0, 2) + " Mbps\n");
+            panel.append("CWND-Limited = " + Helpers.formatDouble(s2c2spd/1000.0, 2) + " Mbps, " +
                         "Estimate = " + Helpers.formatDouble(bw*1000, 2) + " kbps (" +
-                        Helpers.formatDouble(bw2*1000, 2) + " kbps)"));
+                        Helpers.formatDouble(bw2*1000, 2) + " kbps)\n");
         }
         else if (bw > 1) {
-            panel.add(new JLabel("\tC2Sspeed = " + c2sspd + " kbps, S2Cspeed = " + s2cspd + " kbps"));
-            panel.add(new JLabel("CWND-Limited: " + s2c2spd + " kbps, " +
-                        "Estimate = " + Helpers.formatDouble(bw, 2) + " Mbps (" + Helpers.formatDouble(bw2, 2) + " Mbps)"));
+            panel.append("\tC2Sspeed = " + c2sspd + " kbps, S2Cspeed = " + s2cspd + " kbps\n");
+            panel.append("CWND-Limited: " + s2c2spd + " kbps, Estimate = " +
+                    Helpers.formatDouble(bw, 2) + " Mbps (" + Helpers.formatDouble(bw2, 2) + " Mbps)\n");
         }
         else {
-            panel.add(new JLabel("\tC2Sspeed = " + c2sspd + " kbps, S2Cspeed = " + s2cspd + " kbps"));
-            panel.add(new JLabel("CWND-Limited: " + s2c2spd + " kbps, " +
+            panel.append("\tC2Sspeed = " + c2sspd + " kbps, S2Cspeed = " + s2cspd + " kbps\n");
+            panel.append("CWND-Limited: " + s2c2spd + " kbps, " +
                         "Estimate = " + Helpers.formatDouble(bw*1000, 2) + " kbps (" +
-                        Helpers.formatDouble(bw2*1000, 2) + " kbps)"));
+                        Helpers.formatDouble(bw2*1000, 2) + " kbps)\n");
         }
         String estimates;
         if ((bw*1000) > s2cspd)
@@ -767,55 +762,52 @@ public class ResultsContainer {
             else
                 estimates += "New estimate is less than measured";
         }
-        panel.add(new JLabel(estimates));
-        panel.add(new JLabel("\tLoss = " + Helpers.formatDouble(loss*100, 2) + "% (" + Helpers.formatDouble(loss2*100, 2) +
-                    "%), Out-of-Order = " + Helpers.formatDouble(order*100, 2) +
-                    "%, Long tail = {" + tail[0] + ", " + tail[1] + ", " + tail[2] + ", " + tail[3] + "}"));
-        panel.add(new JLabel("\tDistribution = {" + head[0] + ", " + head[1] + ", " + head[2] + ", " + head[3] +
-                    "}, time spent {r=" + Helpers.formatDouble(rwintime*100, 1) + "% c=" + Helpers.formatDouble(cwndtime*100, 1) +
-                    "% s=" + Helpers.formatDouble(sendtime*100, 1) + "%}"));
-        panel.add(new JLabel("\tAve(min) RTT = " + Helpers.formatDouble(avgrtt, 2) + " (" + minRTT +
-                    ") msec, Buffers = {r=" + maxRwinRcvd + ", c=" + currentCwnd + ", s=" + sndBuf/2 + "}"));
-        panel.add(new JLabel("\tbw*delay = {r=" + Helpers.formatDouble(recvbwd, 2) + ", c=" +
+        panel.append(estimates + "\n");
+        panel.append("\tLoss = " + Helpers.formatDouble(loss*100, 2) + "% (" +
+                Helpers.formatDouble(loss2*100, 2) + "%), Out-of-Order = " +
+                Helpers.formatDouble(order*100, 2) + "%, Long tail = {" + tail[0] +
+                ", " + tail[1] + ", " + tail[2] + ", " + tail[3] + "}\n");
+        panel.append("\tDistribution = {" + head[0] + ", " + head[1] + ", " + head[2] + ", " + head[3] +
+                "}, time spent {r=" + Helpers.formatDouble(rwintime*100, 1) + "% c=" +
+                Helpers.formatDouble(cwndtime*100, 1) + "% s=" + Helpers.formatDouble(sendtime*100, 1)+"%}\n");
+        panel.append("\tAve(min) RTT = " + Helpers.formatDouble(avgrtt, 2) + " (" + minRTT +
+                    ") msec, Buffers = {r=" + maxRwinRcvd + ", c=" + currentCwnd + ", s=" + sndBuf/2 + "}\n");
+        panel.append("\tbw*delay = {r=" + Helpers.formatDouble(recvbwd, 2) + ", c=" +
                     Helpers.formatDouble(cwndbwd, 2) + ", s=" + Helpers.formatDouble(sendbwd, 2) +
                     "}, Transitions/sec = {r=" + Helpers.formatDouble(sndLimTransRwin/timesec, 1) + ", c=" +
                     Helpers.formatDouble(sndLimTransCwnd/timesec, 1) + ", s=" +
-                    Helpers.formatDouble(sndLimTransSender/timesec, 1) + "}"));
-        panel.add(new JLabel("\tRetransmissions/sec = " + Helpers.formatDouble(pktsRetrans/timesec, 1) + ", Timeouts/sec = " + Helpers.formatDouble(timeouts/timesec, 1) + ", SSThreshold = " + maxSsthresh));
-        String mismatchText = "\tMismatch = " + mismatch + " (" + mismatch2 + ":" + mismatch3 + "[" + Helpers.formatDouble(mmorder, 2) + "])";
+                    Helpers.formatDouble(sndLimTransSender/timesec, 1) + "}\n");
+        panel.append("\tRetransmissions/sec = " + Helpers.formatDouble(pktsRetrans/timesec, 1) +
+                ", Timeouts/sec = " + Helpers.formatDouble(timeouts/timesec, 1) + ", SSThreshold = " +
+                maxSsthresh + "\n");
+        String mismatchText = "\tMismatch = " + mismatch + " (" + mismatch2 + ":" + mismatch3 + "[" +
+            Helpers.formatDouble(mmorder, 2) + "])";
         if (mismatch3 == 1)
             mismatchText += " [H=F, S=H]";
         if (mismatch2 == 1)
             mismatchText += " [H=H, S=F]";
 
-        JLabel mismatchLabel = new JLabel(mismatchText);
-        setLabelColor(mismatchLabel, mismatch);
-        panel.add(mismatchLabel);
+        SimpleAttributeSet green = new SimpleAttributeSet();
+        green.addAttribute(StyleConstants.ColorConstants.Foreground, Color.GREEN);
 
-        JLabel cableLabel = new JLabel("Cable fault = " + bad_cable);
-        setLabelColor(cableLabel, bad_cable);
-        panel.add(cableLabel);
+        SimpleAttributeSet red = new SimpleAttributeSet();
+        red.addAttribute(StyleConstants.ColorConstants.Foreground, Color.RED);
 
-        JLabel congestionLabel = new JLabel("Congestion = " + congestion2);
-        setLabelColor(congestionLabel, congestion2);
-        panel.add(congestionLabel);
+        panel.appendColored(mismatchText + "\n", mismatch == 0 ? green : red);
 
-        JLabel duplexLabel = new JLabel("Duplex = " + half_duplex);
-        setLabelColor(duplexLabel, half_duplex);
-        panel.add(duplexLabel);
+        panel.appendColored("Cable fault = " + bad_cable + "\n", bad_cable == 0 ? green : red);
 
-        panel.add(new JLabel(" "));
-        JPanel tmpPanel = new JPanel();
-        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
-        tmpPanel.setBorder(new TitledBorder("S2C Snaplog file"));
+        panel.appendColored("Congestion = " + congestion2 + "\n", congestion2 == 0 ? green : red);
+
+        panel.appendColored("Duplex = " + half_duplex + "\n\n", half_duplex == 0 ? green : red);
+
+        panel.append("S2C Snaplog file: ");
         if (snaplogFilename != null) {
-            JLabel tmpLabel = new JLabel(snaplogFilename);
             if (ssCurCwnd == -1) {
-                tmpLabel.setForeground(Color.RED);
-                tmpPanel.add(tmpLabel);
+                panel.appendColored(snaplogFilename + "\n", red);
             }
             else {
-                tmpPanel.add(tmpLabel);
+                panel.append(snaplogFilename + " ");
                 JButton viewButton = new JButton("View");
                 viewButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -828,40 +820,34 @@ public class ResultsContainer {
                         frame.setVisible(true);
                     }
                 });
-                tmpPanel.add(viewButton);
+                panel.insertComponent(viewButton);
                 JButton plotButton = new JButton("Plot");
                 plotButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         mainWindow.plotSnaplog(snaplogFilename);
                     }
                 });
-                tmpPanel.add(plotButton);
+                panel.insertComponent(plotButton);
                 JButton cPlotButton = new JButton("Plot CWND");
                 cPlotButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         mainWindow.plotSnaplogCWND(snaplogFilename);
                     }
                 });
-                tmpPanel.add(cPlotButton);
+                panel.insertComponent(cPlotButton);
             }
         }
         else {
-            JLabel tmpLabel = new JLabel("            N/A            ");
-            tmpLabel.setForeground(Color.RED);
-            tmpPanel.add(tmpLabel);
+            panel.appendColored("N/A", red);
         }
-        panel.add(tmpPanel);
-        tmpPanel = new JPanel();
-        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
-        tmpPanel.setBorder(new TitledBorder("C2S Snaplog file"));
+
+        panel.append("\nC2S Snaplog file: ");
         if (c2sSnaplogFilename != null) {
-            JLabel tmpLabel = new JLabel(c2sSnaplogFilename);
             if (ssCurCwnd == -1) {
-                tmpLabel.setForeground(Color.RED);
-                tmpPanel.add(tmpLabel);
+                panel.appendColored(c2sSnaplogFilename + "\n", red);
             }
             else {
-                tmpPanel.add(tmpLabel);
+                panel.append(c2sSnaplogFilename + " ");
                 JButton viewButton = new JButton("View");
                 viewButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -874,35 +860,30 @@ public class ResultsContainer {
                         frame.setVisible(true);
                     }
                 });
-                tmpPanel.add(viewButton);
+                panel.insertComponent(viewButton);
                 JButton plotButton = new JButton("Plot");
                 plotButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         mainWindow.plotSnaplog(c2sSnaplogFilename);
                     }
                 });
-                tmpPanel.add(plotButton);
+                panel.insertComponent(plotButton);
                 JButton cPlotButton = new JButton("Plot CWND");
                 cPlotButton.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
                         mainWindow.plotSnaplogCWND(c2sSnaplogFilename);
                     }
                 });
-                tmpPanel.add(cPlotButton);
+                panel.insertComponent(cPlotButton);
             }
         }
         else {
-            JLabel tmpLabel = new JLabel("            N/A            ");
-            tmpLabel.setForeground(Color.RED);
-            tmpPanel.add(tmpLabel);
+            panel.appendColored("N/A", red);
         }
-        panel.add(tmpPanel);
-        tmpPanel = new JPanel();
-        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
-        tmpPanel.setBorder(new TitledBorder("Tcpdump trace file"));
+
+        panel.append("\nTcpdump trace file: ");
         if (ndttraceFilename != null) {
-            JLabel tmpLabel = new JLabel(ndttraceFilename);
-            tmpPanel.add(tmpLabel);
+            panel.append(ndttraceFilename + " ");
 
             JButton viewButton = new JButton("View");
             viewButton.addActionListener(new ActionListener() {
@@ -916,26 +897,22 @@ public class ResultsContainer {
                     frame.setVisible(true);
                 }
             });
-            tmpPanel.add(viewButton);
+            panel.insertComponent(viewButton);
             JButton plotButton = new JButton("Plot");
             plotButton.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
                     mainWindow.plotTcpdumpS(ndttraceFilename);
                 }
             });
-            tmpPanel.add(plotButton);
+            panel.insertComponent(plotButton);
         }
         else {
-            JLabel tmpLabel = new JLabel("            N/A            ");
-            tmpLabel.setForeground(Color.RED);
-            tmpPanel.add(tmpLabel);
+            panel.appendColored("N/A", red);
         }
-        panel.add(tmpPanel);
-        tmpPanel = new JPanel();
-        tmpPanel.setLayout(new BoxLayout(tmpPanel, BoxLayout.Y_AXIS));
-        tmpPanel.setBorder(new TitledBorder("Cputime trace file"));
+
+        panel.append("\nCputime trace file: ");
         if (cputraceFilename != null) {
-            tmpPanel.add(new JLabel(cputraceFilename));
+            panel.append(cputraceFilename + " ");
             JButton viewButton = new JButton("View");
             viewButton.addActionListener(new ActionListener()
                     {
@@ -943,78 +920,69 @@ public class ResultsContainer {
                             mainWindow.plotCputime(cputraceFilename);
                         }
                     });
-            tmpPanel.add(viewButton);
+            panel.insertComponent(viewButton);
         }
         else {
-            JLabel tmpLabel = new JLabel("            N/A            ");
-            tmpLabel.setForeground(Color.RED);
-            tmpPanel.add(tmpLabel);
+            panel.appendColored("N/A", red);
         }
-        panel.add(tmpPanel);
 
         /* --- experimental congestion detection code --- */
 
-        panel.add(new JLabel(" "));
-        panel.add(new JLabel("--- experimental congestion detection code ---"));
-        panel.add(new JLabel(" "));
+        panel.append("\n\n--- experimental congestion detection code ---\n");
 
         // 1) extract the bottleneck link type and the average & minimum RTT
         // values.  (If min == 0 then set min = 1msec)
-        panel.add(new JLabel("1) Bottleneck link type = " + linkType +
+        panel.append("1) Bottleneck link type = " + linkType +
                     ", minimum RTT = " + Helpers.formatDouble(minrtt, 2) +
-                    ", average RTT = " + Helpers.formatDouble(avgrtt, 2)));
+                    ", average RTT = " + Helpers.formatDouble(avgrtt, 2) + "\n");
 
         // 2) find the time required to overshoot link type
-        panel.add(new JLabel("2) sspd = " + sspd + ", ispd = " + Helpers.formatDouble(ispd, 2) +
-                    ", n1 = " + Helpers.formatDouble(n1, 2) + ", T1 = " + Helpers.formatDouble(T1, 2)));
+        panel.append("2) sspd = " + sspd + ", ispd = " + Helpers.formatDouble(ispd, 2) +
+                    ", n1 = " + Helpers.formatDouble(n1, 2) + ", T1 = " + Helpers.formatDouble(T1, 2) + "\n");
 
         // 3) find the number of teeth (assume single loss on overshoot)
-        panel.add(new JLabel("3) mspd = " + mspd + ", lspd = " + Helpers.formatDouble(lspd, 2) +
+        panel.append("3) mspd = " + mspd + ", lspd = " + Helpers.formatDouble(lspd, 2) +
                     ", ispd = " + Helpers.formatDouble(ispd, 2) +
-                    ", n2 = " + Helpers.formatDouble(n2, 2) + ", T2 = " + Helpers.formatDouble(T2, 2)));
-        panel.add(new JLabel("   teeth = " + Helpers.formatDouble(teeth, 2) +
-                    ", CongestionSignals = " + congestionSignals));
-        panel.add(new JLabel("   lower teeth = " + Helpers.formatDouble(lTeeth, 2) +
+                    ", n2 = " + Helpers.formatDouble(n2, 2) + ", T2 = " + Helpers.formatDouble(T2, 2) + "\n");
+        panel.append("   teeth = " + Helpers.formatDouble(teeth, 2) +
+                    ", CongestionSignals = " + congestionSignals + "\n");
+        panel.append("   lower teeth = " + Helpers.formatDouble(lTeeth, 2) +
                     ", lT2 = " + Helpers.formatDouble(lT2, 2) +
-                    ", maxRTT = " + maxRTT));
+                    ", maxRTT = " + maxRTT + "\n");
         if (fSampleRTT != -1) {
-            panel.add(new JLabel("   upper teeth = " + Helpers.formatDouble(uTeeth, 2) +
+            panel.append("   upper teeth = " + Helpers.formatDouble(uTeeth, 2) +
                         ", uT2 = " + Helpers.formatDouble(uT2, 2) +
-                        ", fSampleRTT = " + fSampleRTT));
+                        ", fSampleRTT = " + fSampleRTT + "\n");
         }
         if (peaks != -1) {
-            panel.add(new JLabel("   minPeak = " + minPeak + ", maxPeak = " + maxPeak + ", peaks = " + peaks +
-                        (rawPeaks == -1 ? "" : " [" + rawPeaks + "]")));
+            panel.append("   minPeak = " + minPeak + ", maxPeak = " + maxPeak + ", peaks = " + peaks +
+                        (rawPeaks == -1 ? "" : " [" + rawPeaks + "]") + "\n");
         }
 
         if (ssCurCwnd != -1) {
-            panel.add(new JLabel("   " + PeakInfo.getPeakSpeed(ssCurCwnd, ssSampleRTT)));
+            panel.append("   " + PeakInfo.getPeakSpeed(ssCurCwnd, ssSampleRTT) + "\n");
         }
 
         if (peakInfos.size() > 0) {
             int counter = 0;
-            panel.add(new JLabel("Peaks:"));
+            panel.append("Peaks:\n");
             for (PeakInfo peakInfo: peakInfos) {
-                panel.add(new JLabel(((counter/2)+1) + ". " + peakInfo.toString()));
+                panel.append(((counter/2)+1) + ". " + peakInfo.toString() + "\n");
                 counter += 1;
             }
-            panel.add(new JLabel("---"));
+            panel.append("---\n");
         }
 
 
         // 4) find out if the connection is buffer limited
-        panel.add(new JLabel("4) limited = " + limited));
+        panel.append("4) limited = " + limited + "\n");
 
         // 5
         if (normalOperation) {
-            JLabel tmpLabel = new JLabel("RESULT: normal operation");
-            tmpLabel.setForeground(Color.GREEN);
-            panel.add(tmpLabel);
+            panel.appendColored("RESULT: normal operation", green);
         }
         else {
-            JLabel tmpLabel = new JLabel("RESULT: something went wrong");
-            tmpLabel.setForeground(Color.RED);
-            panel.add(tmpLabel);
+            panel.appendColored("RESULT: something went wrong", red);
         }
 
         /* ---------------------------------------------- */
