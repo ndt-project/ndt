@@ -62,4 +62,59 @@ JAnalyze.jar:  JAnalyze.class
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF JAnalyze.jar @classes.list
 	echo timestamp > classJAnalyze.stamp
 
-EXTRA_DIST = MANIFEST.MF
+EXTRA_DIST = MANIFEST.MF ./de/progra/charting/test/TestChartDataModel.class \
+			 ./de/progra/charting/test/FunctionPlotApplet.class \
+			 ./de/progra/charting/test/ImageFilter.class \
+			 ./de/progra/charting/test/GraphFrame$1.class \
+			 ./de/progra/charting/test/TestChart.class \
+			 ./de/progra/charting/test/GraphFrame$2.class \
+			 ./de/progra/charting/test/FunctionPlotApplet$1.class \
+			 ./de/progra/charting/test/GraphFrame$3.class \
+			 ./de/progra/charting/test/GraphFrame.class \
+			 ./de/progra/charting/PointToPixelTranslator.class \
+			 ./de/progra/charting/event/ChartDataModelListener.class \
+			 ./de/progra/charting/event/ChartDataModelEvent.class \
+			 ./de/progra/charting/Axis.class \
+			 ./de/progra/charting/model/ObjectChartDataModel.class \
+			 ./de/progra/charting/model/AbstractChartDataModel.class \
+			 ./de/progra/charting/model/DefaultChartDataModelConstraints.class \
+			 ./de/progra/charting/model/EditableDataSet.class \
+			 ./de/progra/charting/model/JDBCPlotterException.class \
+			 ./de/progra/charting/model/DefaultDataSet.class \
+			 ./de/progra/charting/model/StackedChartDataModelConstraints.class \
+			 ./de/progra/charting/model/DataSet.class \
+			 ./de/progra/charting/model/JDBCPlotter.class \
+			 ./de/progra/charting/model/ChartDataModel.class \
+			 ./de/progra/charting/model/DefaultChartDataModel.class \
+			 ./de/progra/charting/model/ChartDataModelConstraints.class \
+			 ./de/progra/charting/model/EditableChartDataModel.class \
+			 ./de/progra/charting/model/FunctionPlotter.class \
+			 ./de/progra/charting/swing/ChartPanel.class \
+			 ./de/progra/charting/DefaultChart.class \
+			 ./de/progra/charting/servlet/ChartServlet.class \
+			 ./de/progra/charting/CoordSystem$1.class \
+			 ./de/progra/charting/Chart.class \
+			 ./de/progra/charting/ChartUtilities.class \
+			 ./de/progra/charting/CoordSystem.class \
+			 ./de/progra/charting/render/BarChartRenderer.class \
+			 ./de/progra/charting/render/ChartRenderingHints.class \
+			 ./de/progra/charting/render/shape/Diamond2D.class \
+			 ./de/progra/charting/render/shape/Triangle2D.class \
+			 ./de/progra/charting/render/shape/Diamond2D$1.class \
+			 ./de/progra/charting/render/shape/Triangle2D$1.class \
+			 ./de/progra/charting/render/AbstractChartRenderer.class \
+			 ./de/progra/charting/render/StackedBarChartRenderer.class \
+			 ./de/progra/charting/render/PlotChartRenderer.class \
+			 ./de/progra/charting/render/RowColorModel.class \
+			 ./de/progra/charting/render/AbstractRenderer.class \
+			 ./de/progra/charting/render/InterpolationChartRenderer.class \
+			 ./de/progra/charting/render/Renderer.class \
+			 ./de/progra/charting/render/LineChartRenderer.class \
+			 ./de/progra/charting/render/PieChartRenderer.class \
+			 ./de/progra/charting/render/RadarChartRenderer.class \
+			 ./de/progra/charting/ChartEncoder.class \
+			 ./de/progra/charting/Legend.class \
+			 ./de/progra/charting/AbstractChart.class \
+			 ./de/progra/charting/CoordSystemUtilities.class \
+			 ./de/progra/charting/Title.class \
+			 ./de/progra/charting/EncodingException.class
