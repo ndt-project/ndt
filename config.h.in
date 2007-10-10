@@ -70,6 +70,9 @@
 /* Define to 1 if you have the `socket' function. */
 #undef HAVE_SOCKET
 
+/* Define to 1 if you have the <sql.h> header file. */
+#undef HAVE_SQL_H
+
 /* Define to 1 if you have the `sqrt' function. */
 #undef HAVE_SQRT
 

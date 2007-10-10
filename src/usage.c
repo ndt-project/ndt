@@ -81,7 +81,7 @@ srv_long_usage(char* info)
     printf("  --cputime              - enable the cputime writing\n");
     printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
 #endif
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
     printf(" Database support:\n\n");
     printf("  --enableDBlogging      - enable the test results logging to the database\n");
     printf("  --dbDSN #dsn           - specify the DSN to use (this doesn't enable DBlogging)\n");
