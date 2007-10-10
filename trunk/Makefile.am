@@ -17,7 +17,7 @@
 #
 
 if HAVE_GCJ
-SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
+SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc janalyze
 else
 SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
 endif

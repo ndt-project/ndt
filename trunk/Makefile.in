@@ -86,7 +86,7 @@ ndtDATA_INSTALL = $(INSTALL_DATA)
 DATA = $(ndt_DATA)
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = @TOP_BUILD_DIRS@ src conf doc Admin Applet
+DIST_SUBDIRS = @TOP_BUILD_DIRS@ src conf doc Admin Applet janalyze
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -208,7 +208,7 @@ subdirs = @subdirs@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 @HAVE_GCJ_FALSE@SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
-@HAVE_GCJ_TRUE@SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc
+@HAVE_GCJ_TRUE@SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc janalyze
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template copyright.html web100variables.html \
 	web100_variables COPYRIGHT \
