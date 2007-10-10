@@ -176,7 +176,7 @@ static struct option long_options[] = {
   {"refresh", 1, 0, 'T'},
   {"adminfile", 1, 0, 'A'},
   {"logfacility", 1, 0, 'S'},
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
   {"enableDBlogging", 0, 0, 310},
   {"dbDSN", 1, 0, 311},
   {"dbUID", 1, 0, 312},

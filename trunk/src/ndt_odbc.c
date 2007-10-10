@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
 #include <sql.h>
 #include <sqlext.h>
 #endif
@@ -17,7 +17,7 @@
 #include "ndt_odbc.h"
 #include "logging.h"
 
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
 SQLHENV env;
 SQLHDBC dbc;
 SQLHSTMT stmt = NULL;
@@ -118,7 +118,7 @@ extract_error(char *fn, SQLHANDLE handle, SQLSMALLINT type)
 int
 initialize_db(int options, char* dsn, char* uid, char* pwd)
 {
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
     if (options) {
         SQLRETURN ret; /* ODBC API return status */
         SQLSMALLINT columns; /* number of columns in result-set */
@@ -232,7 +232,7 @@ db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, ch
         int CurTimeoutCount, int AbruptTimeouts, int SendStall, int SlowStart,
         int SubsequentTimeouts, int ThruBytesAcked, int minPeak, int maxPeak, int peaks)
 {
-#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED)
+#if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
     SQLRETURN    ret;
     char insertStmt[2048];
     if (!stmt) {
