@@ -27,7 +27,9 @@ EXTRA_DIST = admin_description.html admin.html \
 	web100_variables COPYRIGHT \
 	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv \
 	contrib/README contrib/loadmap.intro contrib/loadmap.js \
-	contrib/loadmap.txt contrib/Tcpbw1001.java
+	contrib/loadmap.txt contrib/Tcpbw1001.java \
+	tfw/client.py tfw/communication.py tfw/hosts.py tfw/network.py \
+	tfw/Readme tfw/scenarios.py tfw/server.py tfw/traffics.py tfw/widgets.py
 
 ndtdir = $(prefix)/ndt
 ndt_DATA = admin_description.html admin.html \

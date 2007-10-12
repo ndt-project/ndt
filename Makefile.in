@@ -214,7 +214,9 @@ EXTRA_DIST = admin_description.html admin.html \
 	web100_variables COPYRIGHT \
 	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv \
 	contrib/README contrib/loadmap.intro contrib/loadmap.js \
-	contrib/loadmap.txt contrib/Tcpbw1001.java
+	contrib/loadmap.txt contrib/Tcpbw1001.java \
+	tfw/client.py tfw/communication.py tfw/hosts.py tfw/network.py \
+	tfw/Readme tfw/scenarios.py tfw/server.py tfw/traffics.py tfw/widgets.py
 
 ndtdir = $(prefix)/ndt
 ndt_DATA = admin_description.html admin.html \
@@ -428,7 +430,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/config $(distdir)/contrib
+	$(mkdir_p) $(distdir)/config $(distdir)/contrib $(distdir)/tfw
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
