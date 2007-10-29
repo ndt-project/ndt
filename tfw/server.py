@@ -354,11 +354,12 @@ class TFW(wx.Frame):
         while host.IsOk():
             asHost = self.tree.GetPyData(host)
             if asHost.isValidClientAssigned():
+                sendMsg(self.getClient(asHost.getAssignedClient())[0], 'STOP')
                 traffic, tcook = self.tree.GetFirstChild(host)
                 while traffic.IsOk():
                     asTraffic = self.tree.GetPyData(traffic)
                     if asTraffic.isValidClientAssigned():
-                        sendMsg(self.getClient(asHost.getAssignedClient())[0], 'STOP')
+                        sendMsg(self.getClient(asTraffic.getAssignedClient())[0], 'STOP')
                     traffic, tcook = self.tree.GetNextChild(host, tcook)
             else:
                 print 'Warning: valid client not assigned to host: %s!' % (asHost.getName())
