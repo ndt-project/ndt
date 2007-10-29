@@ -5,6 +5,7 @@ import threading
 import sys
 import time
 from communication import *
+from stats import SpeedStats
 
 
 class TFWclient:
@@ -31,7 +32,7 @@ class TFWclient:
         while 1:
             msg = recvMsg(self._sock)
             if len(msg) > 0:
-                print msg
+                print '>>>', msg
                 if msg == 'OPEN':
                     print 'opening...'
                     s = network.listen('::', None)
@@ -71,15 +72,24 @@ class TFWclient:
                 self._working = 0
                 sys.exit()
 
+    def speedPrinter(self, addr1, addr2, stats):
+        while self._working:
+            time.sleep(1)
+            print '%s %s: speed=%.2f kb/s' % (addr1, addr2, stats.getSpeed())
+
     def garbageListener(self, conn, addr):
         try:
-            print 'reading...'
+            print '%s %s: reading...' % (addr[0], addr[1])
+            stats = SpeedStats()
+            thread = threading.Thread(target=self.speedPrinter, args=(addr[0], addr[1], stats))
+            thread.start()
             while self._working:
                 data = conn.recv(65536)
                 if len(data) == 0:
                     break
-        except:
-            pass
+                stats.addData(len(data))
+        except Exception, p:
+            print p
         print 'closing connection...'
         try:
             conn.close()
@@ -94,9 +104,9 @@ class TFWclient:
         data = '1234567890-=qwertyuiopsdfghjkl;zxcvbnm,QWERTYUIOPASDFGHJLZXCVBNM'
         for i in range(10):
             data += data
-        delay = 0.5 / (rspeed / 512.0)
+        delay = 0.75 / (rspeed / 512.0)
         
-        print 'delay:', delay
+        print 'delay:', delay, 'chunk:', len(data)
         
         while self._working:
             back = time.time()
