@@ -32,4 +32,9 @@ class PeakInfo {
         }
 
     }
+
+    public static double getPeakSpeedInMbps(int cwnd, int sampleRTT) {
+        double pSpeed = (cwnd * 8.0) / sampleRTT;
+        return pSpeed / 1000.0;
+    }
 }

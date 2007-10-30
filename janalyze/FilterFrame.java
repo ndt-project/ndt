@@ -33,6 +33,7 @@ public class FilterFrame extends JFrame
     private int congestionFilter = 2;
     private int duplexFilter = 2;
     private int newCongestionFilter = 2;
+    private int initialPeakSpeedFilter = 4;
 
     public FilterFrame(JAnalyze mainWindow, Collection<ResultsContainer> results) {
         this.mainWindow = mainWindow;
@@ -60,6 +61,8 @@ public class FilterFrame extends JFrame
             if (duplexFilter != 2 && result.getDuplex() != duplexFilter)
                 continue;
             if (newCongestionFilter != 2 && result.getNewCongestion() != newCongestionFilter)
+                continue;
+            if (initialPeakSpeedFilter != 4 && result.getInitialPeakSpeedEquality() != initialPeakSpeedFilter)
                 continue;
             if (ips.get(result.getIP()).equals(1)) {
                 newResults.add(result);
@@ -191,6 +194,23 @@ public class FilterFrame extends JFrame
         horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
         horizontalPanel.add(new JLabel("New congestion: "));
         horizontalPanel.add(newCongestionBox);
+        optPanel.add(horizontalPanel);
+
+        JComboBox initialPeakSpeedBox = new JComboBox(new String[] {"n/a", "equal", "greater", "less", "all"});
+        initialPeakSpeedBox.addActionListener( new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                initialPeakSpeedFilter = ((JComboBox) e.getSource()).getSelectedIndex();
+                mainWindow.getProperties().setProperty("initialPeakSpeedFilter",
+                    Integer.toString(initialPeakSpeedFilter));
+            }
+        });
+
+        initialPeakSpeedFilter=Integer.parseInt(mainWindow.getProperties().getProperty("initialPeakSpeedFilter","4"));
+        initialPeakSpeedBox.setSelectedIndex(initialPeakSpeedFilter);
+        horizontalPanel = new JPanel();
+        horizontalPanel.setLayout(new BoxLayout(horizontalPanel, BoxLayout.X_AXIS));
+        horizontalPanel.add(new JLabel("Initial peak speed: "));
+        horizontalPanel.add(initialPeakSpeedBox);
         optPanel.add(horizontalPanel);
 
         JPanel tmpPanel = new JPanel();
