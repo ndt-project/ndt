@@ -64,7 +64,7 @@ public class ResultsContainer {
     double minrtt, ispd, n1, T1, lspd, n2, T2, lT2, uT2, teeth, lTeeth, uTeeth;
     boolean limited, normalOperation;
     private int minPeak = -1, maxPeak = -1, peaks = -1, rawPeaks = -1, realTeeth, ssCurCwnd = -1,
-            ssSampleRTT = -1, fSampleRTT = -1;
+            ssSampleRTT = -1, fSampleRTT = -1, initPeakSpeed = -1;
     private Collection<PeakInfo> peakInfos = new Vector<PeakInfo>();
         /* ---------------------------------------------- */
 
@@ -628,6 +628,10 @@ public class ResultsContainer {
             normalOperation = false;
         }
 
+        if (ssCurCwnd != -1) {
+            initPeakSpeed = encodeLinkSpeed(PeakInfo.getPeakSpeedInMbps(ssCurCwnd, ssSampleRTT));
+        }
+
         /* ---------------------------------------------- */
 
         if (snaplogFilename != null) {
@@ -673,6 +677,37 @@ public class ResultsContainer {
         return -1;
     }
 
+    private int encodeLinkSpeed(double linkSpeed) {
+        if (linkSpeed < .128) {
+            return 1;
+        }
+        if (linkSpeed >= 3 && linkSpeed <= 6) {
+            return 2;
+        }
+        if (linkSpeed >= 10 && linkSpeed <= 20) {
+            return 3;
+        }
+        if (linkSpeed >= 45 && linkSpeed <= 90) {
+            return 4;
+        }
+        if (linkSpeed >= 100 && linkSpeed <= 200) {
+            return 5;
+        }
+        if (linkSpeed >= 622 && linkSpeed < 1000) {
+            return 6;
+        }
+        if (linkSpeed >= 1000 && linkSpeed <= 2000) {
+            return 7;
+        }
+        if (linkSpeed >= 2400 && linkSpeed <= 4800) {
+            return 8;
+        }
+        if (linkSpeed >= 10000 && linkSpeed <= 20000) {
+            return 9;
+        }
+        return -1;
+    }
+
     public String toString() {
         return date + " " + ip_addr + " " + port;
     }
@@ -699,6 +734,21 @@ public class ResultsContainer {
 
     public int getNewCongestion() {
         return normalOperation ? 0 : 1;
+    }
+
+    public int getInitialPeakSpeedEquality() {
+        if (initPeakSpeed == -1) {
+            return 0;
+        }
+        if (initPeakSpeed == linkType) {
+            return 1;
+        }
+        else if (initPeakSpeed > linkType) {
+            return 2;
+        }
+        else {
+            return 3;
+        }
     }
 
     public Component getInfoPane() {
@@ -961,6 +1011,21 @@ public class ResultsContainer {
 
         if (ssCurCwnd != -1) {
             panel.append("   " + PeakInfo.getPeakSpeed(ssCurCwnd, ssSampleRTT) + "\n");
+            if (initPeakSpeed == -1) {
+                panel.append("   initial peak speed is not available\n");
+            }
+            else {
+                panel.append("   initial peak speed says link = " + initPeakSpeed + " ");
+                if (initPeakSpeed == linkType) {
+                    panel.append("EQUAL\n");
+                }
+                else if (initPeakSpeed > linkType) {
+                    panel.append("GREATER\n");
+                }
+                else {
+                    panel.append("LESS\n");
+                }
+            }
         }
 
         if (peakInfos.size() > 0) {
