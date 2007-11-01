@@ -15,8 +15,10 @@ import java.util.Vector;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import java.awt.Dimension;
 import java.awt.BorderLayout;
 import java.awt.Container;
+import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -88,18 +90,55 @@ public class FilterFrame extends JFrame
         }
 
         cp.setLayout(new BorderLayout());
-        JPanel ipsPanel = new JPanel();
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BorderLayout());
+        final JPanel ipsPanel = new JPanel();
         ipsPanel.setBorder(new TitledBorder("Show IPs"));
         ipsPanel.setLayout(new BoxLayout(ipsPanel, BoxLayout.Y_AXIS));
         if (ips.keySet().size() == 0) {
             ipsPanel.add(new JLabel("           "));
         }
+        else {
+            JPanel tmpPanel = new JPanel();
+            tmpPanel.setBorder(new TitledBorder("select IPs"));
+            JButton allButton = new JButton("all");
+            allButton.addActionListener( new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    for (Component component : ipsPanel.getComponents()) {
+                        JCheckBox checkBox = (JCheckBox) component;
+                        checkBox.setSelected(true);
+                    }
+                }
+            });
+            allButton.setPreferredSize(new Dimension(55, 20));
+            JButton noneButton = new JButton("none");
+            noneButton.addActionListener( new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    for (Component component : ipsPanel.getComponents()) {
+                        JCheckBox checkBox = (JCheckBox) component;
+                        checkBox.setSelected(false);
+                    }
+                }
+            });
+            noneButton.setPreferredSize(new Dimension(70, 20));
+            tmpPanel.add(allButton);
+            tmpPanel.add(noneButton);
+            leftPanel.add(tmpPanel, BorderLayout.SOUTH);
+        }
         for (String ip : ips.keySet()) {
-            JCheckBox checkBox = new JCheckBox(ip, ips.get(ip) == 1);
+            JCheckBox checkBox = new JCheckBox(ip, ips.get(ip) == 1) {
+                public void setSelected(boolean value) {
+                    super.setSelected(value);
+                    fireActionPerformed(new ActionEvent(FilterFrame.this,
+                                ActionEvent.ACTION_PERFORMED,
+                                ""));
+                }
+            };
             checkBox.addActionListener( new IPCheckBoxActionListener(checkBox, ip, disabled));
             ipsPanel.add(checkBox);
         }
-        cp.add(new JScrollPane(ipsPanel), BorderLayout.WEST);
+        leftPanel.add(new JScrollPane(ipsPanel));
+        cp.add(leftPanel, BorderLayout.WEST);
 
         JPanel applyPanel = new JPanel();
         JButton applyButton = new JButton("Apply");
