@@ -5,6 +5,8 @@ import java.awt.event.ActionEvent;
 import java.util.Collection;
 import java.util.StringTokenizer;
 import java.util.Vector;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -66,6 +68,10 @@ public class ResultsContainer {
     private int minPeak = -1, maxPeak = -1, peaks = -1, rawPeaks = -1, realTeeth, ssCurCwnd = -1,
             ssSampleRTT = -1, fSampleRTT = -1, initPeakSpeed = -1;
     private Collection<PeakInfo> peakInfos = new Vector<PeakInfo>();
+    private MaxPeakInfo maxPeakSpeed = null;
+    private MinPeakInfo minPeakSpeed = null;
+    private int max25 = -1, max50 = -1, max75 = -1, maxJitter = -1;
+    private int min25 = -1, min50 = -1, min75 = -1, minJitter = -1;
         /* ---------------------------------------------- */
 
     ResultsContainer(JAnalyze mainWindow) {
@@ -539,7 +545,7 @@ public class ResultsContainer {
                             peaks = 1;
                             rawPeaks = 1;
                             decreasing = true;
-                            peakInfos.add(new MaxPeakInfo(ssCurCwnd, ssSampleRTT));
+                            peakInfos.add(new MaxPeakInfo(ssCurCwnd, ssSampleRTT == 0 ? 1 : ssSampleRTT));
                         }
                         else {
                             ssCurCwnd = CurCwnd;
@@ -557,7 +563,7 @@ public class ResultsContainer {
                             rawPeaks += 1;
                             if (!decreasing) {
                                 // the max peak
-                                peakInfos.add(new MaxPeakInfo(prevCWNDval, prevSampleRTT));
+                                peakInfos.add(new MaxPeakInfo(prevCWNDval, prevSampleRTT == 0 ? 1 : prevSampleRTT));
                                 peaks += 1;
                             }
                             decreasing = true;
@@ -568,7 +574,7 @@ public class ResultsContainer {
                             }
                             if (decreasing) {
                                 // the min peak
-                                peakInfos.add(new MinPeakInfo(prevCWNDval, prevSampleRTT));
+                                peakInfos.add(new MinPeakInfo(prevCWNDval, prevSampleRTT == 0 ? 1 : prevSampleRTT));
                             }
                             decreasing = false;
                         }
@@ -615,6 +621,7 @@ public class ResultsContainer {
             limited = true;
 
         // 5)
+
         if (peaks != -1) {
             realTeeth = peaks;
         }
@@ -631,6 +638,45 @@ public class ResultsContainer {
         if (ssCurCwnd != -1) {
             initPeakSpeed = encodeLinkSpeed(PeakInfo.getPeakSpeedInMbps(ssCurCwnd, ssSampleRTT));
         }
+
+        /* Statistical analysis */
+
+        SortedSet<Integer> curMaxCwnds = new TreeSet<Integer>();
+        SortedSet<Integer> curMinCwnds = new TreeSet<Integer>();
+
+        for (PeakInfo peak : peakInfos) {
+            if (peak instanceof MaxPeakInfo) {
+                curMaxCwnds.add(peak.getCwnd());
+                if (maxPeakSpeed == null ||
+                        PeakInfo.getPeakSpeedInMbps(peak.getCwnd(), peak.getSampleRTT()) >
+                        PeakInfo.getPeakSpeedInMbps(maxPeakSpeed.getCwnd(), maxPeakSpeed.getSampleRTT())) {
+                    maxPeakSpeed = (MaxPeakInfo) peak;
+                        }
+            }
+            else {
+                curMinCwnds.add(peak.getCwnd());
+                if (minPeakSpeed == null ||
+                        PeakInfo.getPeakSpeedInMbps(peak.getCwnd(), peak.getSampleRTT()) <
+                        PeakInfo.getPeakSpeedInMbps(minPeakSpeed.getCwnd(), minPeakSpeed.getSampleRTT())) {
+                    minPeakSpeed = (MinPeakInfo) peak;
+                        }
+            }
+        }
+
+        // fetch percentiles
+        if (curMaxCwnds.size() > 0) {
+            max25 = curMaxCwnds.toArray(new Integer[]{})[curMaxCwnds.size() * 1 / 4];
+            max50 = curMaxCwnds.toArray(new Integer[]{})[curMaxCwnds.size() * 2 / 4];
+            max75 = curMaxCwnds.toArray(new Integer[]{})[curMaxCwnds.size() * 3 / 4];
+            maxJitter = max75 - max25;
+        }
+        if (curMinCwnds.size() > 0) {
+            min25 = curMaxCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 1 / 4];
+            min50 = curMaxCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 2 / 4];
+            min75 = curMaxCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 3 / 4];
+            minJitter = min75 - min25;
+        }
+        
 
         /* ---------------------------------------------- */
 
@@ -1026,6 +1072,18 @@ public class ResultsContainer {
                     panel.append("LESS\n");
                 }
             }
+        }
+
+        if (max25 > -1) {
+            panel.append("   peaks: 25th: " + max25 + ", 50th: " + max50 + ", 75th: " + max75 +
+                    "\n            jitter: " + maxJitter + ", max " +
+                    PeakInfo.getPeakSpeed(maxPeakSpeed.getCwnd(), maxPeakSpeed.getSampleRTT()) + "\n");
+        }
+
+        if (min25 > -1) {
+            panel.append("   valleys: 25th: " + min25 + ", 50th: " + min50 + ", 75th: " + min75 +
+                    "\n            jitter: " + minJitter + ", min " +
+                    PeakInfo.getPeakSpeed(minPeakSpeed.getCwnd(), minPeakSpeed.getSampleRTT()) + "\n");
         }
 
         if (peakInfos.size() > 0) {
