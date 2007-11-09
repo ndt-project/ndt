@@ -671,9 +671,9 @@ public class ResultsContainer {
             maxJitter = max75 - max25;
         }
         if (curMinCwnds.size() > 0) {
-            min25 = curMaxCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 1 / 4];
-            min50 = curMaxCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 2 / 4];
-            min75 = curMaxCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 3 / 4];
+            min25 = curMinCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 1 / 4];
+            min50 = curMinCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 2 / 4];
+            min75 = curMinCwnds.toArray(new Integer[]{})[curMinCwnds.size() * 3 / 4];
             minJitter = min75 - min25;
         }
         
