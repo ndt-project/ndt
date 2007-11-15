@@ -6,7 +6,9 @@ import java.awt.Component;
 
 public class SimpleTextPane extends JTextPane
   {
-    public void append(String text)
+	private static final long serialVersionUID = 1L;
+
+	public void append(String text)
     {
       try {
         getStyledDocument().insertString(getStyledDocument().getLength(), text, null);

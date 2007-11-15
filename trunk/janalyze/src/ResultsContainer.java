@@ -8,21 +8,10 @@ import java.util.Vector;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.File;
-
-import javax.swing.BoxLayout;
 import java.awt.BorderLayout;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.border.TitledBorder;
 import javax.swing.JTextArea;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.SimpleAttributeSet;
@@ -36,7 +25,7 @@ public class ResultsContainer {
     private double[] runave = new double[4];
     private int[][] links = new int[4][16];
     private int n = 0, m = 0, port;
-    private String date, ip_addr, ip_addr2, btlneck, cputraceFilename, snaplogFilename,
+    private String date, ip_addr, btlneck, cputraceFilename, snaplogFilename,
             c2sSnaplogFilename, ndttraceFilename;
     private int s2c2spd, s2cspd, c2sspd;
     private int timeouts, sumRTT, countRTT, pktsRetrans, fastRetrans,
@@ -44,18 +33,16 @@ public class ResultsContainer {
             maxRwinRcvd, sndBuf, currentCwnd, sndLimTimeRwin, sndLimTimeCwnd,
             sndLimTimeSender, dataBytesOut, sndLimTransRwin, sndLimTransCwnd,
             sndLimTransSender, maxSsthresh, currentRTO, currentRwinRcvd, link,
-            mismatch, bad_cable, half_duplex, congestion, c2sdata, c2sack,
+            mismatch, bad_cable, half_duplex, c2sdata, c2sack,
             s2cdata, s2cack, pktsOut;
-    private int congestionSignals = -1, minRTT = -1, rcvWinScale = -1, autotune = -1,
-            congAvoid = -1, congestionOverCount = 0, maxRTT = 0, otherReductions = 0,
-            curTimeouts = 0, abruptTimeouts = 0, sendStall = 0, slowStart = 0,
-            subsequentTimeouts = 0, thruBytesAcked = 0, totaltime;
+    private int congestionSignals = -1, minRTT = -1, congAvoid = -1,
+            congestionOverCount = 0, maxRTT = 0, slowStart = 0, totaltime;
     private int linkcnt, mismatch2, mismatch3;	
     private double idle, loss, loss2, order, bw, bw2;
     private double rwintime, cwndtime, sendtime, timesec;
     private double recvbwd, cwndbwd, sendbwd;		  
     private int congestion2=0;		  
-    private double acks, aspeed, pureacks, avgrtt;
+    private double acks, aspeed, avgrtt;
     private double cong, retrn, increase, touts, fr_ratio = 0;
     private double retransec, mmorder;
     private int[] tail = new int[4];
@@ -99,7 +86,6 @@ public class ResultsContainer {
         ip_addr = rs.getString("hostName");
         port = rs.getInt("testPort");
         date = rs.getString("date");
-        ip_addr2 = rs.getString("rmt_host");
         s2c2spd = rs.getInt("s2c2spd");
         s2cspd = rs.getInt("s2cspd");
         c2sspd = rs.getInt("c2sspd");
@@ -130,7 +116,6 @@ public class ResultsContainer {
         mismatch = rs.getInt("mismatch");
         bad_cable = rs.getInt("bad_cable");
         half_duplex = rs.getInt("half_duplex");
-        congestion = rs.getInt("congestion");
         c2sdata = rs.getInt("c2sdata");
         c2sack = rs.getInt("c2sack");
         s2cdata = rs.getInt("s2cdata");
@@ -138,21 +123,23 @@ public class ResultsContainer {
         congestionSignals = rs.getInt("CongestionSignals");
         pktsOut = rs.getInt("PktsOut");
         minRTT = rs.getInt("MinRTT");
-        rcvWinScale = rs.getInt("RcvWinScale");
-        autotune = rs.getInt("autotune");
         congAvoid = rs.getInt("CongAvoid");
         congestionOverCount = rs.getInt("CongestionOverCount");
         maxRTT = rs.getInt("MaxRTT");
-        otherReductions = rs.getInt("OtherReductions");
-        curTimeouts = rs.getInt("CurTimeoutCount");
-        abruptTimeouts = rs.getInt("AbruptTimeouts");
-        sendStall = rs.getInt("SendStall");
         slowStart = rs.getInt("SlowStart");
-        subsequentTimeouts = rs.getInt("SubsequentTimeouts");
-        thruBytesAcked = rs.getInt("ThruBytesAcked");
         minPeak = rs.getInt("minPeak");
         maxPeak = rs.getInt("maxPeak");
         peaks = rs.getInt("peaks");
+        /*ip_addr2 = rs.getString("rmt_host");*/
+        /*congestion = rs.getInt("congestion");*/
+        /*rcvWinScale = rs.getInt("RcvWinScale");*/
+        /*autotune = rs.getInt("autotune");*/
+        /*otherReductions = rs.getInt("OtherReductions");*/
+        /*curTimeouts = rs.getInt("CurTimeoutCount");*/
+        /*abruptTimeouts = rs.getInt("AbruptTimeouts");*/
+        /*sendStall = rs.getInt("SendStall");*/
+        /*subsequentTimeouts = rs.getInt("SubsequentTimeouts");*/
+        /*thruBytesAcked = rs.getInt("ThruBytesAcked");*/
     }
 
     private void subParseSpds(String line) {
@@ -209,7 +196,7 @@ public class ResultsContainer {
     public boolean parseWeb100Var(String line) {
         StringTokenizer st = new StringTokenizer(line.trim(), ",");
         st.nextToken();
-        ip_addr2 = st.nextToken();
+        /* ip_addr2 */ st.nextToken();
         if (st.hasMoreTokens() == false) {
             return false;
         }
@@ -244,7 +231,7 @@ public class ResultsContainer {
             mismatch = Integer.parseInt(st.nextToken());
             bad_cable = Integer.parseInt(st.nextToken());
             half_duplex = Integer.parseInt(st.nextToken());
-            congestion = Integer.parseInt(st.nextToken());
+            /* congestion */ Integer.parseInt(st.nextToken());
             c2sdata = Integer.parseInt(st.nextToken());
             c2sack = Integer.parseInt(st.nextToken());
             s2cdata = Integer.parseInt(st.nextToken());
@@ -252,18 +239,18 @@ public class ResultsContainer {
             congestionSignals = Integer.parseInt(st.nextToken());
             pktsOut = Integer.parseInt(st.nextToken());
             minRTT = Integer.parseInt(st.nextToken());
-            rcvWinScale = Integer.parseInt(st.nextToken());
-            autotune = Integer.parseInt(st.nextToken());
+            /* rcvWinScale */ Integer.parseInt(st.nextToken());
+            /* autotune */ Integer.parseInt(st.nextToken());
             congAvoid = Integer.parseInt(st.nextToken());
             congestionOverCount = Integer.parseInt(st.nextToken());
             maxRTT = Integer.parseInt(st.nextToken());
-            otherReductions = Integer.parseInt(st.nextToken());
-            curTimeouts = Integer.parseInt(st.nextToken());
-            abruptTimeouts = Integer.parseInt(st.nextToken());
-            sendStall = Integer.parseInt(st.nextToken());
+            /* otherReductions */ Integer.parseInt(st.nextToken());
+            /* curTimeouts */ Integer.parseInt(st.nextToken());
+            /* abruptTimeouts */ Integer.parseInt(st.nextToken());
+            /* sendStall */ Integer.parseInt(st.nextToken());
             slowStart = Integer.parseInt(st.nextToken());
-            subsequentTimeouts = Integer.parseInt(st.nextToken());
-            thruBytesAcked = Integer.parseInt(st.nextToken());
+            /* subsequentTimeouts */ Integer.parseInt(st.nextToken());
+            /* thruBytesAcked */ Integer.parseInt(st.nextToken());
             minPeak = Integer.parseInt(st.nextToken());
             maxPeak = Integer.parseInt(st.nextToken());
             peaks = Integer.parseInt(st.nextToken());
@@ -418,18 +405,12 @@ public class ResultsContainer {
 
         /* new test based on analysis of TCP behavior in duplex mismatch condition. */
 
-        acks = (double) ackPktsIn / (double) dataPktsOut;
-        pureacks = (double) (ackPktsIn - dupAcksIn) / (double) dataPktsOut;
+        acks = (double) ackPktsIn / (double) dataPktsOut;        
         if (s2cspd < c2sspd)
             aspeed = (double)c2sspd / (double)s2cspd; 
         else
             aspeed = (double)s2cspd / (double)c2sspd;
-        //		System.out.println("Acks = " + Helpers.formatDouble(acks, 4) + ", async speed = " + Helpers.formatDouble(aspeed, 4) +
-        //				", mismatch3 = " + Helpers.formatDouble(cong, 4) + ", CongOver = " + congestionOverCount);
-        //		System.out.println("idle = " + Helpers.formatDouble(idle, 4) + ", timeout/pkts = " + Helpers.formatDouble(touts, 2) +
-        //				", %retranmissions = " + Helpers.formatDouble(retrn*100, 2) + ", %increase = " + Helpers.formatDouble(increase*100, 2));
-        //		System.out.println("FastRetrans/Total = " + Helpers.formatDouble(retrn, 4) + ", Fast/Retrans = " +
-        //				Helpers.formatDouble(fr_ratio, 4) + ", Retrans/sec = " + Helpers.formatDouble(retransec, 4));
+
         if (((acks > 0.7) || (acks < 0.3)) && (retrn > 0.03) && (congAvoid > slowStart)) {
             if ((2*currentMSS) == maxSsthresh) {
                 mismatch2 = 1;

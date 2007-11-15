@@ -127,7 +127,9 @@ public class FilterFrame extends JFrame
         }
         for (String ip : ips.keySet()) {
             JCheckBox checkBox = new JCheckBox(ip, ips.get(ip) == 1) {
-                public void setSelected(boolean value) {
+				private static final long serialVersionUID = 1L;
+
+				public void setSelected(boolean value) {
                     super.setSelected(value);
                     fireActionPerformed(new ActionEvent(FilterFrame.this,
                                 ActionEvent.ACTION_PERFORMED,
