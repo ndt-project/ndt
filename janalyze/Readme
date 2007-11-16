@@ -28,10 +28,11 @@ by clicking the 'view' button. The duration of the test is printed on
 the X-axis, the cpu time spent executing instructions
 (user/system/cuser/csystem) is displayed on the Y-axis.
 
-The results can be filtered out by the several criteria:
+The results can be filtered out by several criteria:
  - IP of the client (only the selected ones are displayed)
  - mismatch condition
  - cable fault condition
  - congestion condition
  - duplex condition
  - new congestion condition
+ - initial peak speed condition
