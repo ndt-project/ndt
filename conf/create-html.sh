@@ -100,6 +100,11 @@ fi
 
 if test -w $answer; then
 	/bin/cp -p tcpbw100.html $answer
+
+	# create a default directory to store snaplog and tcpdump files in
+	if test ! -d $answer/serverdata; then
+		/bin/mkdir $answer/serverdata
+	fi
 else
 	echo "Unable to write into directory $answer, check permissions"
 fi
