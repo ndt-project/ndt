@@ -67,7 +67,10 @@ char *MsgRedir6 = ">Click Here  </a> if you are not "
 char *Mypagefile = "/tcpbw100.html";   /* we throw the slash away */
 char *okfile[] = {"/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
       "/Tcpbw100$clsFrame.class", "/Tcpbw100.jar", "/copyright.html", "/web100variables.html",
-      "/"ADMINFILE, "/Admin.class", "/tr.sh", "/traceroute.pl", 0};
+      "/"ADMINFILE, "/Admin.class", "/tr.sh", "/traceroute.pl", "/Tcpbw100$MyTextPane.class",
+      "/Tcpbw100$Protocol.class", "/Tcpbw100$StatusPanel.class", "/Tcpbw100$3.class",
+      "/Tcpbw100$OsfwWorker.class", "/Tcpbw100$Message.class", "/Tcpbw100$StatusPanel$1.class",
+      "/Tcpbw100$clsFrame$1.class", "/Tcpbw100$TestWorker.class", 0};
 
 typedef struct allowed {
   char* filename;
