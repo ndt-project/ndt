@@ -93,7 +93,7 @@ import javax.swing.JProgressBar;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.5.4";
+  private static final String VERSION = "5.5.4a";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -763,7 +763,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
   public boolean test_c2s(Protocol ctl) throws IOException
   {
-		byte buff2[] = new byte[8192];
+		// byte buff2[] = new byte[8192];
+		byte buff2[] = new byte[64*1024];
     Message msg = new Message();
     if ((tests & TEST_C2S) == TEST_C2S) {
       showStatus("Tcpbw100 outbound test...");
