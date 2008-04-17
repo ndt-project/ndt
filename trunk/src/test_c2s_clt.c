@@ -25,7 +25,8 @@ double spdout, c2sspd;
 int
 test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_size)
 {
-  char buff[BUFFSIZE+1];
+  /* char buff[BUFFSIZE+1]; */
+  char buff[64*1024];
   int msgLen, msgType;
   int c2sport = 3002;
   I2Addr sec_addr = NULL;
@@ -96,7 +97,7 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     pkts = 0;
     k = 0;
-    for (i=0; i<8192; i++) {
+    for (i=0; i<(64*1024); i++) {
       while (!isprint(k&0x7f))
         k++;
       buff[i] = (k++ % 0x7f);
