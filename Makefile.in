@@ -280,6 +280,7 @@ uninstall-info-am:
 install-ndtDATA: $(ndt_DATA)
 	@$(NORMAL_INSTALL)
 	test -z "$(ndtdir)" || $(mkdir_p) "$(DESTDIR)$(ndtdir)"
+	test -z "$(ndtdir)/serverdata" || $(mkdir_p) "$(DESTDIR)$(ndtdir)/serverdata"
 	@list='$(ndt_DATA)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  f=$(am__strip_dir) \
