@@ -108,8 +108,7 @@ You can find the Web100 variables descriptions gathered on the following <a href
 <h3>Other publicly accessible NDT servers:</h3>
 <ul>
 <li><a href="http://ndt.anl.gov:7123">Argonne National Laboratory - IL (USA)</a>
-<li><a href="http://cemp1.switch.ch/network/performance/web100/tcpbw100.html">Swiss Education
-and Research Network (Switzerland)</a>
+<li><a href="http://ndt.switch.ch">Swiss Education and Research Network (Switzerland)</a>
 <li><a href="http://web100.rit.edu:7123">Rochester Institute of Technology - Rochester NY (USA)</a>
 <li><a href="http://speedtest.umflint.edu">University of Michigan - Flint MI (USA)</a>
 <li><a href="http://nitro.ucsc.edu/">University of California - Santa Cruz CA (USA)</a>
