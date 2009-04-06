@@ -295,7 +295,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
     while (midsrv_addr == NULL) {
         midsrv_addr = CreateListenSocket(NULL,
-                (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options);
+                (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options, 0);
         if (midsrv_addr == NULL) {
             log_println(5, " Calling KillHung() because midsrv_address failed to bind");
             if (KillHung() == 0)
@@ -325,6 +325,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     /* set mss to 1456 (strange value), and large snd/rcv buffers
      * should check to see if server supports window scale ?
      */
+/*
     setsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
     setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
     setsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
@@ -338,6 +339,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       getsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
       log_println(2, "Sending Window size set to %dKB", win_size);
     }
+*/
 
     /* Post a listen on port 3003.  Client will connect here to run the 
      * middlebox test.  At this time it really only checks the MSS value
@@ -445,7 +447,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     
     while (c2ssrv_addr == NULL) {
       c2ssrv_addr = CreateListenSocket(NULL,
-          (testOptions->multiple ? mrange_next(listenc2sport) : listenc2sport), conn_options);
+          (testOptions->multiple ? mrange_next(listenc2sport) : listenc2sport), conn_options, 0);
       if (strcmp(listenc2sport, "0") == 0) {
         log_println(0, "WARNING: ephemeral port number was bound");
         break;
@@ -466,6 +468,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
     
+/*
     if (set_buff > 0) {
       setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
       setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
@@ -478,6 +481,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         log_println(2, "Sending Window size set to %dKB", win_size);
       }
     }
+*/
     /* if (autotune > 0) {
      *  setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
      *  setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
@@ -770,7 +774,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     
     while (s2csrv_addr == NULL) {
       s2csrv_addr = CreateListenSocket(NULL,
-          (testOptions->multiple ? mrange_next(listens2cport) : listens2cport), conn_options);
+          (testOptions->multiple ? mrange_next(listens2cport) : listens2cport), conn_options, 0);
       if (s2csrv_addr == NULL) {
         log_println(1, " Calling KillHung() because s2csrv_address failed to bind");
 	if (KillHung() == 0)
@@ -796,6 +800,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     pair.port1 = -1;
     pair.port2 = testOptions->s2csockport;
     
+/*
     if (set_buff > 0) {
       setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
       setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
@@ -808,6 +813,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         log_println(2, "Sending Window size set to %dKB", win_size);
       }
     }
+*/
     /* if (autotune > 0) {
      *   setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
      *  setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));

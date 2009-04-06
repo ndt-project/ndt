@@ -696,7 +696,7 @@ main(int argc, char *argv[])
   }
   I2AddrSetPort(server_addr, ctlport);
 
-  if ((ret = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options))) {
+  if ((ret = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options, 0))) {
     printf("Connect() for control socket failed\n");
     exit(-4);
   }
@@ -753,8 +753,12 @@ main(int argc, char *argv[])
     }
     if (xwait == 0)	/* signal from ver 3.0.x NDT servers */
       break;
+    if (xwait == 9988) {
+      fprintf(stderr, "Server Busy: Too many clients waiting in queue, plase try again later.\n");
+      exit(0);
+    }
     if (xwait == 9999) {
-      fprintf(stderr, "Server Busy: Please wait 60 seconds for the current test to finish\n");
+      fprintf(stderr, "Server Busy: Please wait 60 seconds for the current test to finish.\n");
       exit(0);
     }
 

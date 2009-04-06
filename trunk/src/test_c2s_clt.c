@@ -32,8 +32,6 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
   I2Addr sec_addr = NULL;
   int ret, one=1, i, k;
   int outSocket;
-  socklen_t optlen;
-  int set_size;
   double t, stop_time;
 
   if (tests & TEST_C2S) {
@@ -64,25 +62,13 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     }
     I2AddrSetPort(sec_addr, c2sport);
 
-    if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options))) {
+    if ((ret = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options, buf_size))) {
       log_println(0, "Connect() for client to server failed", strerror(errno));
       return -11;
     }
 
-    optlen = sizeof(set_size);
     setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(9, "\nSend buffer set to %d, ", set_size);
-    getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(9, "Receive buffer set to %d", set_size);
-    if (buf_size > 0) {
-      setsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-      setsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-      getsockopt(outSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-      log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-      getsockopt(outSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-      log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
-    }
+
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
