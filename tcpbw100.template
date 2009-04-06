@@ -65,7 +65,7 @@ Two of the best are:
 <ul>
 <li)<a href=http://www.psc.edu/networking/projects/tcptune>PSC's Enabling High
 Performance Data Transfers</a>
-<li><a href=http://dsd.lbl.gov/TCP-tuning>LBNL's TCP Tuning Guide</a>
+<li><a href=http://fasterdata.es.net/TCP-tuning>ESnet's TCP Tuning Guide</a>
 </ul>
 The throughput an application achieves is dependant on the amount of buffer space
 available in the sending and receiving hosts, packet loss due to errors or congestion,
