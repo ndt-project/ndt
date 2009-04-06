@@ -338,7 +338,7 @@ testResults(char tests, char *tmpstr, char* host)
         printf("OFF\n");
       else
         printf("ON; Scaling Factors - Server=%d, Client=%d\n",
-            WinScaleSent, WinScaleRcvd);
+            WinScaleRcvd, WinScaleSent);
 
       if ((RcvWinScale == 0) && (Sndbuf > 65535))
         Sndbuf = 65535;

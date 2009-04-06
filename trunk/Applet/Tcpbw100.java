@@ -1134,8 +1134,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
               break;
           }
 
+          if (wait == 9988) {
+              errmsg = "Server Busy: Too many clients waiting in server queue.  Please try again later.\n";
+              failed = true;
+              return;
+          }
+
           if (wait == 9999) {
-              errmsg = "Server Busy: Please wait 60 seconds for the current test to finish\n";
+              errmsg = "Server Busy: Please wait 60 seconds for the current test to finish.\n";
               failed = true;
               return;
           }
@@ -1789,7 +1795,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
 				statistics.append ("OFF\n");
 			else
-				statistics.append ("ON\n");
+				statistics.append ("ON; Scaling Factors -  Server=" + WinScaleRcvd + ", Client=" + WinScaleSent + "\n");
 
       statistics.append("\n");
 
