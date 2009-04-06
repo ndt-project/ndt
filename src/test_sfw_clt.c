@@ -177,7 +177,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     }
     I2AddrSetPort(sfwsrv_addr, sfwport);
 
-    sfwcli_addr = CreateListenSocket(NULL, "0", conn_options);
+    sfwcli_addr = CreateListenSocket(NULL, "0", conn_options, 0);
     if (sfwcli_addr == NULL) {
       log_println(0, "Client (Simple firewall test): CreateListenSocket failed: %s", strerror(errno));
       return -1;
@@ -204,7 +204,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     new.sa_handler = catch_alrm;
     sigaction(SIGALRM, &new, &old);
     alarm(testTime + 1);
-    if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr, conn_options) == 0) {
+    if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr, conn_options, 0) == 0) {
       send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
     }
     alarm(0);

@@ -118,13 +118,16 @@ failsock:
  *                   created
  *            serv - the port number
  *            options - the binding socket options
+ *            buf_sixe - manually set the TCP send/receive socket buffer
  * Returns: The I2Addr structure with the listen socket.
  */
 
 I2Addr
-CreateListenSocket(I2Addr addr, char* serv, int options)
+CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size)
 {
   int fd = -1;
+  socklen_t optlen;
+  int set_size;
 
   if (addr && (I2AddrFD(addr) > -1)) {
     log_println(1, "Invalid I2Addr record - fd already specified.");
@@ -148,6 +151,27 @@ CreateListenSocket(I2Addr addr, char* serv, int options)
     goto error;
   }
 
+/* Set sock opt code from Marion Nakanson <hakansom@ohsu.edu
+ *  OHSU Advanced Computing Center
+ * email on 2/19/09 correctly notes that setsockops must be made before open()
+ * or listen() calls are made
+ */
+
+  optlen = sizeof(set_size);
+  getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+  log_print(5, "\nSend buffer initialized to %d, ", set_size);
+  getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+  log_println(5, "Receive buffer initialized to %d", set_size);
+  if (buf_size > 0) {
+    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+    getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+    log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+    getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+    log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
+  }
+
+
   if (listen(fd, NDT_BACKLOG) < 0) {
     log_println(1, "listen(%d,%d):%s", fd, NDT_BACKLOG, strerror(errno));
     goto error;
@@ -170,17 +194,20 @@ error:
  *            server_addr - the I2Addr structure with the remote
  *                          server address
  *            options - the connect socket options
+ *            buf_size - manually set the TCP send/receive buffer size`
  * Returns: 0 - success,
  *          !0 - error code.
  */
 
 int
-CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int options)
+CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int options, int buf_size)
 {
   struct addrinfo *fai  = NULL;
   struct addrinfo *ai   = NULL;
   struct addrinfo *lfai = NULL;
   struct addrinfo *lai  = NULL;
+  socklen_t optlen;
+  int set_size; 
 
   assert(sockfd);
   assert(server_addr);
@@ -245,6 +272,26 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
         continue;
       }
     }
+
+/* Set sock opt code from Marion Nakanson <hakansom@ohsu.edu
+ *  OHSU Advanced Computing Center
+ * email on 2/19/09 correctly notes that setsockops must be made before open()
+ * or listen() calls are made
+ */
+
+  optlen = sizeof(set_size);
+  getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+  log_print(5, "\nSend buffer initialized to %d, ", set_size);
+  getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+  log_println(5, "Receive buffer initialized to %d", set_size);
+  if (buf_size > 0) {
+    setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+    getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+    log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
+    getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+    log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
+  }
 
     if (connect(*sockfd,ai->ai_addr,ai->ai_addrlen) == 0) {
       if(I2AddrSetSAddr(server_addr,ai->ai_addr,ai->ai_addrlen) &&

@@ -255,7 +255,7 @@ main(int argc, char** argv)
   if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
     err_sys("server: Invalid source address specified");
   }
-  if ((listenaddr = CreateListenSocket(listenaddr, listenport, conn_options)) == NULL) {
+  if ((listenaddr = CreateListenSocket(listenaddr, listenport, conn_options, 0)) == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   sockfd = I2AddrFD(listenaddr);

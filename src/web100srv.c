@@ -99,6 +99,7 @@ int count_vars=0;
 int dumptrace=0;
 int usesyslog=0;
 int multiple=0;
+int max_clients=50;
 int set_buff=0;
 int admin_view=0;
 int queue=1;
@@ -149,6 +150,7 @@ static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"help", 0, 0, 'h'},
   {"multiple", 0, 0, 'm'},
+  {"max_clients", 1, 0, 'x'},
   {"mrange", 1, 0, 301},
   {"old", 0, 0, 'o'},
   {"disable-queue", 0, 0, 'q'},
@@ -386,6 +388,11 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 
     else if (strncasecmp(key, "multiple_clients", 5) == 0) {
       multiple = 1;
+      continue;
+    }
+
+    else if (strncasecmp(key, "max_clients", 5) == 0) {
+      max_clients = atoi(val);
       continue;
     }
 
@@ -1135,6 +1142,9 @@ main(int argc, char** argv)
       case 'm':
         multiple = 1;
         break;
+      case 'x':
+        max_clients = atoi(optarg);
+        break;
       case 'q':
         queue = 0;
         break;
@@ -1272,15 +1282,11 @@ main(int argc, char** argv)
   if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
     err_sys("server: Invalid source address specified");
   }
-  if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options)) == NULL) {
+  if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options, 
+					((set_buff > 0)? window : 0))) == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   listenfd = I2AddrFD(listenaddr);
-
-  if (set_buff > 0) {
-    setsockopt(listenfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-    setsockopt(listenfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
-  }
 
   log_println(1, "server ready on port %s", port);
 
@@ -1455,6 +1461,19 @@ main(int argc, char** argv)
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
           send_msg(ctlsockfd, SRV_QUEUE, "9999", 4);
+          free(new_child);
+          continue;
+        }
+
+        /* Check to see if we have more than max_clients waiting in the queue
+         * If so, tell them to go away.
+         * changed for M-Lab deployment  1/28/09  RAC
+         */
+        if (waiting > max_clients) {
+          log_println(0, "Too many clients waiting to be served, Please try again later.");
+          sprintf(tmpstr, "9988");
+          send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+          kill(new_child->pid, SIGKILL);
           free(new_child);
           continue;
         }

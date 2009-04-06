@@ -24,10 +24,7 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
   int midport = 3003;
   I2Addr sec_addr = NULL;
   int ret, one=1, i, inlth;
-  int largewin;
-  int set_size;
   int in2Socket;
-  socklen_t optlen;
   double t, spdin;
   uint32_t bytes;
   struct timeval sel_tv;
@@ -67,25 +64,9 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
       log_println(5, "connecting to %s:%d", tmpbuff, I2AddrPort(sec_addr));
     }
 
-    if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options))) {
+    if ((ret = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options, buf_size))) {
       log_println(0, "Connect() for middlebox failed: %s", strerror(errno));
       return -10;
-    }
-
-    largewin = 128*1024;
-    optlen = sizeof(set_size);
-    setsockopt(in2Socket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "\nSend buffer set to %d, ", set_size);
-    getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(5, "Receive buffer set to %d", set_size);
-    if (buf_size > 0) {
-      setsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-      setsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-      getsockopt(in2Socket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-      log_print(5, "Changed buffer sizes: Send buffer set to %d, ", set_size);
-      getsockopt(in2Socket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-      log_println(5, "Receive buffer set to %d", set_size);
     }
 
     printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");

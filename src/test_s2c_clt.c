@@ -69,24 +69,12 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     }
     I2AddrSetPort(sec_addr, s2cport);
 
-    if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options))) {
+    if ((ret = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options, buf_size))) {
       log_println(0, "Connect() for Server to Client failed", strerror(errno));
       return -15;
     }
 
     setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-    getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-    log_print(5, "\nSend buffer set to %d, ", set_size);
-    getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-    log_println(5, "Receive buffer set to %d", set_size);
-    if (buf_size > 0) {
-      setsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-      setsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-      getsockopt(inSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-      log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-      getsockopt(inSocket, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
-      log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
-    }
 
     /* Linux updates the sel_tv time values everytime select returns.  This
      * means that eventually the timer will reach 0 seconds and select will

@@ -60,7 +60,7 @@ test_osfw_srv(void* vptr)
   new.sa_handler = catch_alrm;
   sigaction(SIGALRM, &new, &old);
   alarm(testTime + 1);
-  if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0) == 0) {
+  if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0, 0) == 0) {
     send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
   }
   alarm(0);
@@ -129,7 +129,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     setCurrentTest(TEST_SFW);
     log_println(1, " <-- Simple firewall test -->");
     
-    sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options);
+    sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options, 0);
     if (sfwsrv_addr == NULL) {
       log_println(0, "Server (Simple firewall test): CreateListenSocket failed: %s", strerror(errno));
       sprintf(buff, "Server (Simple firewall test): CreateListenSocket failed: %s", strerror(errno));
