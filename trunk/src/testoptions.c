@@ -406,8 +406,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   int recvsfd;
   int mon_pid1 = 0;
   int ret, n;
+  int seg_size, win_size;
   struct sockaddr_storage cli_addr;
-  socklen_t clilen;
+  socklen_t optlen, clilen;
   char tmpstr[256];
   double t, bytes=0;
   struct timeval sel_tv;
@@ -468,11 +469,20 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     if (set_buff > 0) {
       setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
       setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+      if (get_debuglvl() > 1) {
+        optlen = sizeof(seg_size);
+        getsockopt(testOptions->c2ssockfd, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
+        getsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
+        log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
+        getsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
+        log_println(2, "Sending Window size set to %dKB", win_size);
+      }
     }
-    if (autotune > 0) {
-      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-    }
+    /* if (autotune > 0) {
+     *  setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+     *  setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+     * }
+     */
     log_println(1, "listening for Inet connection on testOptions->c2ssockfd, fd=%d", testOptions->c2ssockfd);
 
     log_println(1, "Sending 'GO' signal, to tell client to head for the next test");
@@ -513,8 +523,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
      * when reporting the buffer / RTT limit.
      */
 
-    if (autotune > 0) 
-      web100_setbuff(recvsfd, agent, conn, autotune);
+    /* if (autotune > 0) 
+     *  web100_setbuff(recvsfd, agent, conn, autotune);
+     */
 
     /* ok, We are now read to start the throughput tests.  First
      * the client will stream data to the server for 10 seconds.
@@ -705,9 +716,10 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   int ret, j, k, n;
   int xmitsfd;
   int mon_pid2 = 0;
+  int seg_size, win_size;
   char tmpstr[256];
   struct sockaddr_storage cli_addr;
-  socklen_t clilen;
+  socklen_t optlen, clilen;
   double bytes, s, t;
   double x2cspd;
   struct timeval sel_tv;
@@ -787,11 +799,20 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     if (set_buff > 0) {
       setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
       setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
+      if (get_debuglvl() > 1) {
+        optlen = sizeof(seg_size);
+        getsockopt(testOptions->s2csockfd, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
+        getsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
+        log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
+        getsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
+        log_println(2, "Sending Window size set to %dKB", win_size);
+      }
     }
-    if (autotune > 0) {
-      setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-      setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-    }
+    /* if (autotune > 0) {
+     *   setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+     *  setsockopt(testOptions->s2csockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
+     * }
+     */
 
     /* Data received from speed-chk, tell applet to start next test */
     sprintf(buff, "%d", testOptions->s2csockport);
@@ -845,8 +866,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
        * when reporting the buffer / RTT limit.
        */
 
-      if (autotune > 0) 
-        web100_setbuff(xmitsfd, agent, conn, autotune);
+    /*   if (autotune > 0) 
+     *    web100_setbuff(xmitsfd, agent, conn, autotune);
+     */
 
       /* experimental code, delete when finished */
       {
