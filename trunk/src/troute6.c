@@ -649,7 +649,7 @@ char * pr_type(unsigned char t)
     return (ttab1[t]);
   }
 
-  if (t >= 128 && t <= 132)
+  if (t >= 128 && t <= 131)
   {
     return (ttab2[t]);
   }

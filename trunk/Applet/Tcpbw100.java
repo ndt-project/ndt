@@ -93,7 +93,7 @@ import javax.swing.JProgressBar;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.5.4a";
+  private static final String VERSION = "5.5.4b";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -140,7 +140,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   String s;
   double t;
   int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
-  int SACKEnabled, TimestampsEnabled, WinScaleRcvd;
+  int SACKEnabled, TimestampsEnabled, WinScaleRcvd, WinScaleSent;
   int FastRetran, AckPktsOut, SmoothedRTT, CurrentCwnd, MaxCwnd;
   int SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender;
   int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
@@ -1066,6 +1066,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
               host = getCodeBase().getHost();
           }
       }
+
+// RAC Debug message
+	results.append("Connecting to '" + host + "' [" + InetAddress.getByName(host) + "] to run test\n");
+
       int ctlport = 3001;
       double wait2;
       int sbuf, rbuf;
@@ -2068,6 +2072,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			TimestampsEnabled = sysval;
 		else if(sysvar.equals("WinScaleRcvd:")) 
 			WinScaleRcvd = sysval;
+		else if(sysvar.equals("WinScaleSent:")) 
+			WinScaleSent = sysval;
 		else if(sysvar.equals("SumRTT:")) 
 			SumRTT = sysval;
 		else if(sysvar.equals("CountRTT:")) 

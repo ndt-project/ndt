@@ -24,7 +24,11 @@ ndtdir = $(prefix)/ndt
 
 if HAVE_WEB100
 bin_PROGRAMS = web100clt analyze viewtrace tr-mkmap genplot
+if HAVE_PCAP_H
 sbin_PROGRAMS = fakewww web100srv 
+else
+sbin_PROGRAMS = fakewww
+endif
 else
 bin_PROGRAMS = web100clt
 endif

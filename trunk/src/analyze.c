@@ -74,7 +74,7 @@ static struct option long_options[] = {
   {"debug", 0, 0, 'd'},
   {"nodns", 0, 0, 'n'},
   {"help", 0, 0, 'h'},
-  {"log", 1, 0, 'h'},
+  {"log", 1, 0, 'l'},
   {"version", 0, 0, 'v'},
   {0, 0, 0, 0}
 };
