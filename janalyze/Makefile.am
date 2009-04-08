@@ -43,6 +43,31 @@ JAnalyze$(EXEEXT): $(JAnalyze_OBJECTS) $(JAnalyze_DEPENDENCIES)
 		echo timestamp > classJAnalyze.stamp; \
 		else :; fi
 
+install-JAnalyzeJAVA: classJAnalyze.stamp
+	@$(NORMAL_INSTALL)
+	test -z "$(JAnalyzedir)" || $(MKDIR_P) "$(DESTDIR)$(JAnalyzedir)"
+	@test -z "$(JAnalyze_JAVA/bin)" || for p in *.class; do \
+		echo " $(INSTALL_DATA) '$$p' '$(DESTDIR)$(JAnalyzedir)/$$p'"; \
+		$(INSTALL_DATA) "$$p" "$(DESTDIR)$(JAnalyzedir)/$$p"; \
+	done
+
+install-ndtDATA: $(ndt_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(ndtdir)" || $(MKDIR_P) "$(DESTDIR)$(ndtdir)"
+	@list='dist/$(ndt_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(ndtDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(ndtdir)/$$f'"; \
+	   $(ndtDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(ndtdir)/$$f"; \
+	done
+	@list='bin/*.class'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(ndtDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(ndtdir)/$$f'"; \
+	   $(ndtDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(ndtdir)/$$f"; \
+	done
+	/bin/cp -Rp external/de $(DESTDIR)$(ndtdir)/
+
 classJAnalyzestamp: $(JAnalyze_JAVA)
 	if test -n "$?"; then \
 		echo '$(GCJ) $(NDTGCJFLAGS) $?' ; \
@@ -57,14 +82,18 @@ dist:
 	mkdir -p dist
 
 JAnalyze.class: $(JAnalyze_JAVA) $(TEMPDIRS)
-	$(GCJ) $(NDTGCJFLAGS) $(JAnalyze_jar_SOURCES)
+	@if test ! -f "classJAnalyze.stamp"; then \
+		$(GCJ) $(NDTGCJFLAGS) $(JAnalyze_jar_SOURCES); \
+		else :; fi
 
 JAnalyze.jar:  JAnalyze.class
-	find ./bin -name '*.class' -print | awk '{sub("./bin/", "-C bin "); print}' > classes.list
-	find ./external -name '*.class' -print | awk '{sub("./external/", "-C external "); print}' >> classes.list
-	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/JAnalyze.jar @classes.list
-	echo timestamp > classJAnalyze.stamp
-	rm classes.list
+	@if test ! -f "classJAnalyze.stamp"; then \
+		find ./bin -name '*.class' -print | awk '{sub("./bin/", "-C bin "); print}' > classes.list; \
+		find ./external -name '*.class' -print | awk '{sub("./external/", "-C external "); print}' >> classes.list; \
+		$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/JAnalyze.jar @classes.list; \
+		echo timestamp > classJAnalyze.stamp; \
+		rm classes.list; \
+		else :; fi
 
 mostlyclean-generic:
 	rm -rf META-INF $(TEMPDIRS) *~

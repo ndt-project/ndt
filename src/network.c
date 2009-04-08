@@ -280,16 +280,16 @@ CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int opti
  */
 
   optlen = sizeof(set_size);
-  getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+  getsockopt(*sockfd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
   log_print(5, "\nSend buffer initialized to %d, ", set_size);
-  getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+  getsockopt(*sockfd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
   log_println(5, "Receive buffer initialized to %d", set_size);
   if (buf_size > 0) {
-    setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
-    getsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
+    setsockopt(*sockfd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+    setsockopt(*sockfd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
+    getsockopt(*sockfd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
     log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ", set_size, buf_size);
-    getsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
+    getsockopt(*sockfd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
     log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
   }
 

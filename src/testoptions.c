@@ -254,11 +254,13 @@ initialize_tests(int ctlsockfd, TestOptions* options, int conn_options)
 int
 test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd)
 {
-  int maxseg=1456, largewin=16*1024*1024;
-  int seg_size, win_size;
+  int maxseg=1456;
+  /* int maxseg=1456, largewin=16*1024*1024; */
+  /* int seg_size, win_size; */
   int midfd;
   struct sockaddr_storage cli_addr;
-  socklen_t optlen, clilen;
+  /* socklen_t optlen, clilen; */
+  socklen_t clilen;
   char buff[BUFFSIZE+1];
   I2Addr midsrv_addr = NULL;
   char listenmidport[10];
@@ -325,9 +327,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     /* set mss to 1456 (strange value), and large snd/rcv buffers
      * should check to see if server supports window scale ?
      */
-/*
     setsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
-    setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
+    /* setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
     setsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
     log_println(2, "Middlebox test, Port %d waiting for incoming connection (fd=%d)",
         options->midsockport, options->midsockfd);
@@ -404,13 +405,14 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     int set_buff, int window, int autotune, char* device, Options* options,
     int record_reverse, int count_vars, char spds[4][256], int* spd_index)
 {
-  int largewin=16*1024*1024;
+  /* int largewin=16*1024*1024; */
   int recvsfd;
   int mon_pid1 = 0;
   int ret, n;
-  int seg_size, win_size;
+  /* int seg_size, win_size; */
   struct sockaddr_storage cli_addr;
-  socklen_t optlen, clilen;
+  /* socklen_t optlen, clilen; */
+  socklen_t clilen;
   char tmpstr[256];
   double t, bytes=0;
   struct timeval sel_tv;
@@ -505,7 +507,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         close(testOptions->c2ssockfd);
         close(recvsfd);
         log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
-        log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
+        /* log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
         init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair);
         exit(0);    /* Packet trace finished, terminate gracefully */
       }
@@ -716,14 +718,15 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256],
     int* spd_index, int count_vars, CwndPeaks* peaks)
 {
-  int largewin=16*1024*1024;
+  /* int largewin=16*1024*1024; */
   int ret, j, k, n;
   int xmitsfd;
   int mon_pid2 = 0;
-  int seg_size, win_size;
+  /* int seg_size, win_size; */
   char tmpstr[256];
   struct sockaddr_storage cli_addr;
-  socklen_t optlen, clilen;
+  /* socklen_t optlen, clilen; */
+  socklen_t  clilen;
   double bytes, s, t;
   double x2cspd;
   struct timeval sel_tv;
@@ -852,7 +855,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           close(testOptions->s2csockfd);
           close(xmitsfd);
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
-          log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
+          /* log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
           init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair);
           exit(0);    /* Packet trace finished, terminate gracefully */
         }

@@ -35,6 +35,11 @@ ndtdir = $(prefix)/ndt
 ndt_DATA = admin_description.html admin.html \
 	   copyright.html web100variables.html web100_variables
 
+sdatadir:
+	test -z "$(ndtdir)/serverdata" || $(MKDIR_P) "$(ndtdir)/serverdata"
+
+install: sdatadir install-recursive
+
 # uncomment this when we stop using broken automake 1.5
 # (then remove from DIST_EXTRA in subdir)
 #nobase_include_HEADERS = bwlib/bwlib.h

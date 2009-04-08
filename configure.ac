@@ -154,6 +154,14 @@ AC_CHECK_LIB([pcap], [pcap_open_live],
                INCLUDED_PCAPLIB=""
                ])
 
+AC_CHECK_HEADER(pcap.h, [] [a=0])
+if test $a == 0
+then
+	AM_CONDITIONAL(HAVE_PCAP_H, true)
+else
+	AM_CONDITIONAL(HAVE_PCAP_H, false)
+fi
+
 AC_CHECK_LIB([odbc], [SQLDriverConnect],
              [
               LINKED_ODBCLIB="-lodbc"
