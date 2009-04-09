@@ -9,27 +9,31 @@
 
 path=/usr/local/sbin
 
-[ -f $path/web100srv ] || exit 0
+# [ -f $path/web100srv ] || exit 0
+[ -f $path/ndtd ] || exit 0
 [ -f $path/fakewww ] || exit 0
 
 # Specify some default options.
-WEB100SRV_OPTIONS="-a"
+WEB100SRV_OPTIONS="-a --snaplog --tcpdump"
 FAKEWWW_OPTIONS=""
 RETVAL=0
 
 start ()
 {
-   cnt=`ps auxw | grep web100srv | grep -v grep | wc -l`
+   # cnt=`ps auxw | grep web100srv | grep -v grep | wc -l`
+   cnt=`ps auxw | grep ndtd | grep -v grep | wc -l`
    if [ $cnt = 0 ]
    then
-      echo -n "Starting web100srv:"
+      cd /usr/local/ndt/serverdata
+      echo -n "Starting ndtd:"
 #     $path/web100srv -r -a -i eth0 > /dev/null 2>&1 & 
-      $path/web100srv $WEB100SRV_OPTIONS > /dev/null 2>&1 &
+      $path/ndtd $WEB100SRV_OPTIONS > /dev/null 2>&1 &
       RETVAL=$?
       if [ $RETVAL = 0 ]
       then 
 	success
-        touch /var/lock/subsys/web100srv
+        # touch /var/lock/subsys/web100srv
+        touch /var/lock/subsys/ndtd
       else
 	failure
       fi
@@ -59,7 +63,8 @@ stop()
    killproc web100srv -TERM
    RETVAL=$?
    echo
-   [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/web100srv
+   # [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/web100srv
+   [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/ndtd
 
    echo -n "Stopping fakewww:"
    killproc fakewww -TERM
@@ -69,7 +74,8 @@ stop()
 }
 
 rhstatus() {
-	status web100srv
+	# status web100srv
+	status ndtd
 	status fakewww
 }
 restart() {

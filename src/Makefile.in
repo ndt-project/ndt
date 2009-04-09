@@ -168,6 +168,7 @@ LIBS = @LIBS@
 LINKED_ODBCLIB = @LINKED_ODBCLIB@
 LINKED_PCAPLIB = @LINKED_PCAPLIB@
 LINKED_WEB100LIB = @LINKED_WEB100LIB@
+LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -287,9 +288,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  src/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  src/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  src/Makefile
+	  $(AUTOMAKE) --foreign  src/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -1151,7 +1152,6 @@ installdirs:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(sbindir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
-install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
 uninstall: uninstall-am
@@ -1249,6 +1249,16 @@ uninstall-am: uninstall-binPROGRAMS uninstall-sbinPROGRAMS
 	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
 	uninstall-am uninstall-binPROGRAMS uninstall-sbinPROGRAMS
 
+
+install-ln:
+	if test -f "$(prefix)/sbin/web100srv" && test ! -L "$(prefix)/sbin/ndtd"; then \
+		(cd $(prefix)/sbin && $(LN_S) web100srv ndtd ); \
+	else :; fi
+	if test -f "$(prefix)/bin/web100clt" && test ! -L "$(prefix)/bin/ndtclt"; then \
+		(cd $(prefix)/bin && $(LN_S) web100clt ndtclt ); \
+	else :; fi
+
+install: install-am install-ln
 
 $(I2UTILLIBDEPS):
 	$(I2UTILLIBMAKE)

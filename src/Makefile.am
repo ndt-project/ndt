@@ -67,6 +67,19 @@ tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c
 tr_mkmap_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 tr_mkmap_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
+install-ln:
+	@if test -f "$(prefix)/sbin/web100srv" && test ! -L "$(prefix)/sbin/ndtd"; then \
+		echo '(cd $(prefix)/sbin && $(LN_S) web100srv ndtd )' ; \
+		(cd $(prefix)/sbin && $(LN_S) web100srv ndtd ); \
+	else :; fi
+	@if test -f "$(prefix)/bin/web100clt" && test ! -L "$(prefix)/bin/ndtclt"; then \
+		echo '(cd $(prefix)/bin && $(LN_S) web100clt ndtclt )' ; \
+		(cd $(prefix)/bin && $(LN_S) web100clt ndtclt ); \
+	else :; fi
+
+
+install: install-am install-ln
+
 $(I2UTILLIBDEPS):
 	$(I2UTILLIBMAKE)
 

@@ -462,7 +462,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #else
   if (fwd.saddr == current.saddr) {
 #endif
-    if (current.sport == port2) {
+    if (current.dport == port2) {
       calculate_spd(&current, &fwd, port2, port4);
       return;
     }
@@ -476,7 +476,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #else
   if (rev.saddr == current.saddr) {
 #endif
-    if (current.dport == port2) {
+    if (current.sport == port2) {
       calculate_spd(&current, &rev, port2, port4);
       return;
     }
