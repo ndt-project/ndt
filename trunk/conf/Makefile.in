@@ -84,6 +84,7 @@ LIBS = @LIBS@
 LINKED_ODBCLIB = @LINKED_ODBCLIB@
 LINKED_PCAPLIB = @LINKED_PCAPLIB@
 LINKED_WEB100LIB = @LINKED_WEB100LIB@
+LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
@@ -186,9 +187,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  conf/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  conf/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  conf/Makefile
+	  $(AUTOMAKE) --foreign  conf/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
