@@ -9,6 +9,9 @@
 #include <assert.h>
 #include <string.h>
 #include <time.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <sys/time.h>
 
 #include "logging.h"
 
@@ -20,6 +23,7 @@ static I2ErrHandle        _errorhandler      = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
 static time_t             timestamp;
+static long int		  utimestamp;
 
 /*
  * Function name: log_init
@@ -164,7 +168,17 @@ log_println(int lvl, const char* format, ...)
 void
 set_timestamp()
 {
-    timestamp = time(NULL);
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    timestamp = tv.tv_sec;
+    utimestamp = tv.tv_usec;
+
+/*  Changed function to use gettimeofday() need usec value for ISO8601 file names
+ *  RAC 5/6/09
+ *  timestamp = time(NULL);
+ */
+
 }
 
 /**
@@ -176,4 +190,138 @@ time_t
 get_timestamp()
 {
     return timestamp;
+}
+
+/**
+ * Function name: get_utimestamp
+ * Description: Returns the previously recorded utimestamp.
+ * Returns: The utimestamp
+ */
+long int
+get_utimestamp()
+{
+    return utimestamp;
+}
+
+/**
+ * Function name get_YYYY
+ * Description: Returns a character string YYYY for the current year
+ * Author: Rich Carlson - 6/29/09
+ */
+
+void
+ get_YYYY (char *year)
+{
+
+struct tm *result;
+time_t now;
+
+setenv("TZ", NULL, 0);
+now = get_timestamp();
+result = gmtime(&now);
+
+sprintf(year, "%d", 1900+result->tm_year);
+}
+
+
+/**
+ * Function name get_MM
+ * Description: Returns a character string MM for the current year
+ * Author: Rich Carlson - 6/29/09
+ */
+
+void
+ get_MM (char *month)
+{
+
+struct tm *result;
+time_t now;
+
+setenv("TZ", NULL, 0);
+now = get_timestamp();
+result = gmtime(&now);
+
+if (1+result->tm_mon < 10)
+    sprintf(month, "0%d", 1+result->tm_mon);
+else
+    sprintf(month, "%d", 1+result->tm_mon);
+}
+
+/**
+ * Function name get_DD
+ * Description: Returns a character string DD for the current year
+ * Author: Rich Carlson - 6/29/09
+ */
+
+void
+ get_DD (char *day)
+{
+
+struct tm *result;
+time_t now;
+
+setenv("TZ", NULL, 0);
+now = get_timestamp();
+result = gmtime(&now);
+
+if (result->tm_mday < 10)
+    sprintf(day, "0%d", result->tm_mday);
+else
+    sprintf(day, "%d", result->tm_mday);
+}
+
+/**
+ * Function name get_ISOtime
+ * Description: Returns a character string in the ISO8601 time foramt
+ * 		used to create snaplog and trace file names
+ * Returns: character string with ISO time string.
+ * Author: Rich Carlson - 5/6/09
+ */
+
+char *
+ get_ISOtime (char *isoTime)
+{
+
+struct tm *result;
+time_t now;
+char tmpstr[16];
+
+setenv("TZ", NULL, 0);
+now = get_timestamp();
+result = gmtime(&now);
+
+sprintf(isoTime, "%d", 1900+result->tm_year);
+if (1+result->tm_mon < 10)
+    sprintf(tmpstr, "0%d", 1+result->tm_mon);
+else
+    sprintf(tmpstr, "%d", 1+result->tm_mon);
+strncat(isoTime, tmpstr, 2);
+
+if (result->tm_mday < 10)
+    sprintf(tmpstr, "0%d", result->tm_mday);
+else
+    sprintf(tmpstr, "%d", result->tm_mday);
+strncat(isoTime, tmpstr, 2);
+
+if (result->tm_hour < 10)
+    sprintf(tmpstr, "T0%d", result->tm_hour);
+else
+    sprintf(tmpstr, "T%d", result->tm_hour);
+strncat(isoTime, tmpstr, 3);
+
+if (result->tm_min < 10)
+    sprintf(tmpstr, ":0%d", result->tm_min);
+else
+    sprintf(tmpstr, ":%d", result->tm_min);
+strncat(isoTime, tmpstr, 3);
+
+if (result->tm_sec < 10)
+    sprintf(tmpstr, ":0%d", result->tm_sec);
+else
+    sprintf(tmpstr, ":%d", result->tm_sec);
+strncat(isoTime, tmpstr, 3);
+
+sprintf(tmpstr, ".%ldZ", get_utimestamp()*1000);
+strncat(isoTime, tmpstr, 11);
+return isoTime;
 }

@@ -469,7 +469,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     log_println(1, "  -- port: %d", testOptions->c2ssockport);
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
-    
+
 /*
     if (set_buff > 0) {
       setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
@@ -498,6 +498,21 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     clilen = sizeof(cli_addr);
     recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
 
+  /* RAC */
+	I2Addr rac_addr=NULL;
+	struct sockaddr_in rac_saddr;
+	socklen_t rac_len;
+
+	rac_len = sizeof(rac_saddr);
+	log_println(2, "looking for I2Addr structrue for socket %d", recvsfd);
+	getsockname(recvsfd, &rac_saddr, &rac_len);
+	log_println(2, "getsockname struct is %x:%d",  rac_saddr.sin_addr.s_addr, ntohs(rac_saddr.sin_port));
+
+	/* rac_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
+	log_println(2, "C2S test with server using addr:port = %s:%d",
+		((struct sockaddr_in *)I2AddrSAddr(rac_addr, 0))->sin_addr.s_addr, ((struct sockaddr_in *)I2AddrSAddr(rac_addr,0))->sin_port);
+	*/
+    
     conn = web100_connection_from_socket(agent, recvsfd);
 
     if (getuid() == 0) {
@@ -508,7 +523,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         close(recvsfd);
         log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
         /* log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-        init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair);
+        init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair, "c2s");
         exit(0);    /* Packet trace finished, terminate gracefully */
       }
       if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
@@ -564,11 +579,31 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     {
         I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
-        char namebuf[200];
-        size_t nameBufLen = 199;
-        memset(namebuf, 0, 200);
+        char namebuf[256], dir[128];
+        size_t nameBufLen = 255;
+	char isoTime[64];
+        memset(namebuf, 0, 256);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-        sprintf(options->c2s_logname, "c2s_snaplog-%s.%d.%ld", namebuf, I2AddrPort(sockAddr), get_timestamp());
+	strncpy(options->c2s_logname, DataDirName, strlen(DataDirName));
+    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->c2s_logname, 0755);
+    	get_YYYY(dir);
+    	strncat(options->c2s_logname, dir, 4); 
+    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->c2s_logname, 0755);
+    	strncat(options->c2s_logname, "/", 1);
+    	get_MM(dir);
+    	strncat(options->c2s_logname, dir, 2); 
+    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->c2s_logname, 0755);
+    	strncat(options->c2s_logname, "/", 1);
+    	get_DD(dir);
+    	strncat(options->c2s_logname, dir, 2); 
+    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->c2s_logname, 0755);
+    	strncat(options->c2s_logname, "/", 1);
+    	sprintf(dir, "%s_%s:%d.c2s_snaplog", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr));
+	strncat(options->c2s_logname, dir, strlen(dir));
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (options->snaplog) {
@@ -694,7 +729,8 @@ read3:
       close(mon_pipe1[1]);
     }
     /* we should wait for the SIGCHLD signal here */
-    wait(NULL);
+    /* wait(NULL);  */
+    waitpid(mon_pid1, NULL, 0);
     
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
@@ -856,7 +892,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           close(xmitsfd);
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
           /* log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-          init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair);
+          init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair, "s2c");
           exit(0);    /* Packet trace finished, terminate gracefully */
         }
         if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
@@ -902,22 +938,42 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
       {
         I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
-        char namebuf[200];
-        size_t nameBufLen = 199;
-        memset(namebuf, 0, 200);
+        char namebuf[256], dir[126];
+	char isoTime[64];
+        size_t nameBufLen = 255;
+        memset(namebuf, 0, 256);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-        sprintf(options->logname, "snaplog-%s.%d.%ld", namebuf, I2AddrPort(sockAddr), get_timestamp());
+	strncpy(options->s2c_logname, DataDirName, strlen(DataDirName));
+    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->s2c_logname, 0755);
+    	get_YYYY(dir);
+    	strncat(options->s2c_logname, dir, 4); 
+    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->s2c_logname, 0755);
+    	strncat(options->s2c_logname, "/", 1);
+    	get_MM(dir);
+    	strncat(options->s2c_logname, dir, 2); 
+    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->s2c_logname, 0755);
+    	strncat(options->s2c_logname, "/", 1);
+    	get_DD(dir);
+    	strncat(options->s2c_logname, dir, 2); 
+    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+		mkdir(options->s2c_logname, 0755);
+    	strncat(options->s2c_logname, "/", 1);
+    	sprintf(dir, "%s_%s:%d.s2c_snaplog", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr));
+	strncat(options->s2c_logname, dir, strlen(dir));
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (options->snaplog) {
             FILE* fp = fopen(get_logfile(),"a");
-            snapArgs.log = web100_log_open_write(options->logname, conn, group);
+            snapArgs.log = web100_log_open_write(options->s2c_logname, conn, group);
             if (fp == NULL) {
                 log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
             }
             else {
-                log_println(1, "snaplog file: %s\n", options->logname);
-                fprintf(fp, "snaplog file: %s\n", options->logname);
+                log_println(1, "snaplog file: %s\n", options->s2c_logname);
+                fprintf(fp, "snaplog file: %s\n", options->s2c_logname);
                 fclose(fp);
             }
         }

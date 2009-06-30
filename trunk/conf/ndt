@@ -14,7 +14,8 @@ path=/usr/local/sbin
 [ -f $path/fakewww ] || exit 0
 
 # Specify some default options.
-WEB100SRV_OPTIONS="-a --snaplog --tcpdump"
+# WEB100SRV_OPTIONS="-a --snaplog --tcpdump"
+NDTD_OPTIONS="-a --snaplog --tcpdump"
 FAKEWWW_OPTIONS=""
 RETVAL=0
 
@@ -27,7 +28,8 @@ start ()
       cd /usr/local/ndt/serverdata
       echo -n "Starting ndtd:"
 #     $path/web100srv -r -a -i eth0 > /dev/null 2>&1 & 
-      $path/ndtd $WEB100SRV_OPTIONS > /dev/null 2>&1 &
+#     $path/web100srv $WEB100SRV_OPTIONS > /dev/null 2>&1 &
+      $path/ndtd $NDTD_OPTIONS > /dev/null 2>&1 &
       RETVAL=$?
       if [ $RETVAL = 0 ]
       then 
@@ -59,8 +61,10 @@ start ()
 
 stop()
 {
-   echo -n "Stopping web100srv:"
-   killproc web100srv -TERM
+   # echo -n "Stopping web100srv:"
+   # killproc web100srv -TERM
+   echo -n "Stopping ndtd:"
+   killproc ndtd -TERM
    RETVAL=$?
    echo
    # [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/web100srv

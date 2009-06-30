@@ -1251,10 +1251,12 @@ uninstall-am: uninstall-binPROGRAMS uninstall-sbinPROGRAMS
 
 
 install-ln:
-	if test -f "$(prefix)/sbin/web100srv" && test ! -L "$(prefix)/sbin/ndtd"; then \
+	@if test -f "$(prefix)/sbin/web100srv" && test ! -L "$(prefix)/sbin/ndtd"; then \
+		echo '(cd $(prefix)/sbin && $(LN_S) web100srv ndtd )' ; \
 		(cd $(prefix)/sbin && $(LN_S) web100srv ndtd ); \
 	else :; fi
-	if test -f "$(prefix)/bin/web100clt" && test ! -L "$(prefix)/bin/ndtclt"; then \
+	@if test -f "$(prefix)/bin/web100clt" && test ! -L "$(prefix)/bin/ndtclt"; then \
+		echo '(cd $(prefix)/bin && $(LN_S) web100clt ndtclt )' ; \
 		(cd $(prefix)/bin && $(LN_S) web100clt ndtclt ); \
 	else :; fi
 

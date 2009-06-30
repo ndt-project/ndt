@@ -69,6 +69,8 @@ srv_long_usage(char* info)
     printf("                           Note: this enables multi-test mode\n");
     printf("  -A, --adminfile #FN    - specify atlernate filename for Admin web page\n");
     printf("                           Note: this doesn't enable 'adminview'\n");
+    printf("  -L, --log_dir DIR      - specify the base directory for snaplog and tcpdump files\n");
+    printf("                           (default %s/serverdata)\n", BASEDIR);
     printf("  -S, --logfacility #F   - specify syslog facility name\n");
     printf("                           Note: this doesn't enable 'syslog'\n\n");
 #ifdef EXPERIMENTAL_ENABLED

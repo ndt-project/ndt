@@ -86,6 +86,7 @@ static char lgfn[256];
 static char wvfn[256];
 static char apfn[256];
 static char slfa[256];
+static char logd[256];
 static char portbuf[10];
 static char devicebuf[100];
 static char dbDSNbuf[256];
@@ -177,6 +178,7 @@ static struct option long_options[] = {
   {"s2cport", 1, 0, 304},
   {"refresh", 1, 0, 'T'},
   {"adminfile", 1, 0, 'A'},
+  {"log_dir", 1, 0, 'L'},
   {"logfacility", 1, 0, 'S'},
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
   {"enableDBlogging", 0, 0, 310},
@@ -767,7 +769,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   /* get some web100 vars */
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(agent, options.logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(agent, options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d", dec_cnt, inc_cnt, same_cnt);
   }
 
@@ -839,7 +841,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   old_mismatch = 1;
   if (old_mismatch == 1) {
     if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-        (MaxSsthresh > 0) && (RTOidle > .01) && (link > 2))
+        (MaxSsthresh > 0) && (RTOidle > .01) && (link > 2) && (s2cspd < s2c2spd))
     {  if (s2cspd < c2sspd)
       mismatch = 1;
       else
@@ -940,7 +942,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
     fprintf(fp, ",%d,%d,%d\n", peaks.min, peaks.max, peaks.amount);
     fclose(fp);
   }
-  db_insert(spds, runave, cputimelog, options.logname, options.c2s_logname, testName, testPort, date,
+  db_insert(spds, runave, cputimelog, options.s2c_logname, options.c2s_logname, testName, testPort, date,
           rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
           SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
           AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
@@ -1014,17 +1016,19 @@ main(int argc, char** argv)
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
+  char isoTime[64];
   int debug = 0;
   options.limit = 0;
   options.snapDelay = 5;
   options.avoidSndBlockUp = 0;
   options.snaplog = 0;
   options.cwndDecrease = 0;
-  memset(options.logname, 0, 128);
+  memset(options.s2c_logname, 0, 128);
   memset(options.c2s_logname, 0, 128);
   peaks.min = -1;
   peaks.max = -1;
   peaks.amount = -1;
+  DataDirName = NULL;
 
   memset(&testopt, 0, sizeof(testopt));
 
@@ -1200,6 +1204,9 @@ main(int argc, char** argv)
       case 'A':
         AdminFileName = optarg;
         break;
+      case 'L':
+        DataDirName = optarg;
+        break;
       case 'S':
         SysLogFacility = optarg;
         break;
@@ -1236,6 +1243,15 @@ main(int argc, char** argv)
   if (AdminFileName == NULL) {
     sprintf(apfn, "%s/%s", BASEDIR, ADMINFILE);
     AdminFileName = apfn;
+  }
+
+  if (DataDirName == NULL) {
+    sprintf(logd, "%s/%s/", BASEDIR, LOGDIR);
+    DataDirName = logd;
+  }
+  else if (DataDirName[0] != '/') {
+    sprintf(logd, "%s/%s/", BASEDIR, DataDirName);
+    DataDirName = logd;
   }
 
   if (SysLogFacility != NULL) {
@@ -1601,7 +1617,7 @@ multi_client:
             I2AddrFree(tmp_addr);
             memset(cputimelog, 0, 256);
             if (cputime) {
-                sprintf(cputimelog, "cputime.%s.%d.%ld", name, testPort, get_timestamp());
+                sprintf(cputimelog, "%s_%s:%d.cputime", get_ISOtime(isoTime), name, testPort);
               if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
                   log_println(0, "Cannot create worker thread for writing cpu usage!");
                   workerThreadId = 0;

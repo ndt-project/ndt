@@ -568,16 +568,16 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 void
 init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
-    char *device, PortPair* pair)
+    char *device, PortPair* pair, char *direction)
 {
-  char cmdbuf[256];
+  char cmdbuf[256], dir[256];
   pcap_handler printer;
   u_char * pcap_userdata = (u_char*) pair;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
   int cnt, pflag = 0;
   char c;
-  char namebuf[200];
+  char namebuf[200], isoTime[64];
   size_t nameBufLen = 199;
   I2Addr sockAddr = NULL;
 
@@ -629,8 +629,28 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   if (dumptrace == 1) {
     fprintf(stderr, "Creating trace file for connection\n");
     memset(cmdbuf, 0, 256);
-    sprintf(cmdbuf, "ndttrace.%s.%d.%ld", namebuf, I2AddrPort(sockAddr), get_timestamp());
+    strncpy(cmdbuf, DataDirName, strlen(DataDirName));
+    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+	mkdir(cmdbuf, 0755);
+    get_YYYY(dir);
+    strncat(cmdbuf, dir, 4); 
+    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+	mkdir(cmdbuf, 0755);
+    strncat(cmdbuf, "/", 1);
+    get_MM(dir);
+    strncat(cmdbuf, dir, 2); 
+    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+	mkdir(cmdbuf, 0755);
+    strncat(cmdbuf, "/", 1);
+    get_DD(dir);
+    strncat(cmdbuf, dir, 2); 
+    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+	mkdir(cmdbuf, 0755);
+    strncat(cmdbuf, "/", 1);
+    sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr), direction);
+    strncat(cmdbuf, dir, strlen(dir));
     pdump = pcap_dump_open(pd, cmdbuf);
+    fprintf(stderr, "Opening '%s' log fine\n", cmdbuf);
     if (pdump == NULL) {
       fprintf(stderr, "Unable to create trace file '%s'\n", cmdbuf);
       dumptrace = 0;

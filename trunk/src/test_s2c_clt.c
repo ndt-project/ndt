@@ -39,7 +39,7 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     log_println(1, " <-- S2C throughput test -->");
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed prepare message!");
       return 1;
     }
     if (check_msg_type("S2C throughput test", TEST_PREPARE, msgType, buff, msgLen)) {
@@ -88,7 +88,7 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed start message!");
       return 1;
     }
     if (check_msg_type("S2C throughput test", TEST_START, msgType, buff, msgLen)) {
@@ -128,7 +128,7 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     /* receive the s2cspd from the server */
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed text message!");
       return 1;
     }
     if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
@@ -173,7 +173,7 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     for (;;) {
       msgLen = sizeof(buff);
       if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-        log_println(0, "Protocol error!");
+        log_println(0, "Protocol error - missed text/finalize message!");
         return 1;
       }
       if (msgType == TEST_FINALIZE) {
