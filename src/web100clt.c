@@ -736,7 +736,7 @@ main(int argc, char *argv[])
   for (;;) {
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - expected hello  message!");
       exit(1);
     }
     if (check_msg_type("Logging to server", SRV_QUEUE, msgType, buff, msgLen)) {
@@ -772,7 +772,7 @@ main(int argc, char *argv[])
 
   msgLen = sizeof(buff);
   if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-    log_println(0, "Protocol error!");
+    log_println(0, "Protocol error - expected version message!");
     exit(1);
   }
   if (check_msg_type("Negotiating NDT version", MSG_LOGIN, msgType, buff, msgLen)) {
@@ -794,7 +794,7 @@ main(int argc, char *argv[])
   
   msgLen = sizeof(buff);
   if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-    log_println(0, "Protocol error!");
+    log_println(0, "Protocol error - expected test suite message!");
     exit(1);
   }
   if (check_msg_type("Negotiating test suite", MSG_LOGIN, msgType, buff, msgLen)) {
@@ -857,7 +857,7 @@ main(int argc, char *argv[])
   for (;;) {
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - expected results!");
       exit(1);
     }
     if (msgType == MSG_LOGOUT) {

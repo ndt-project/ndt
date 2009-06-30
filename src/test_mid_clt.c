@@ -34,7 +34,7 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     log_println(1, " <-- Middlebox test -->");
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed prepare message!");
       return 1;
     }
     if (check_msg_type("Middlebox test", TEST_PREPARE, msgType, buff, msgLen)) {
@@ -104,7 +104,7 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed text message!");
       return 1;
     }
     if (check_msg_type("Middlebox test results", TEST_MSG, msgType, buff, msgLen)) {
@@ -122,7 +122,7 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed finalize message!");
       return 1;
     }
     if (check_msg_type("Middlebox test", TEST_FINALIZE, msgType, buff, msgLen)) {

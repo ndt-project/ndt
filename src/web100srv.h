@@ -55,6 +55,7 @@
 #define WEB100_VARS 128			/* number of web100 variables you want to access*/
 #define WEB100_FILE "web100_variables"  /* names of the variables to access*/
 #define LOG_FACILITY LOG_LOCAL0		/* Syslog facility to log at */
+#define LOGDIR "serverdata"		/* directory for detailed snaplog and tcpdump files */
 
 
 /* Location of default config file */
@@ -78,7 +79,7 @@ typedef struct options {
     char avoidSndBlockUp;
     char snaplog;
     char cwndDecrease;
-    char logname[128];
+    char s2c_logname[128];
     char c2s_logname[128];
 } Options;
 
@@ -151,7 +152,7 @@ void init_vars(struct spdpair *cur);
 void print_bins(struct spdpair *cur, int monitor_pipe[2]);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
 void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
-    char *device, PortPair* pair);
+    char *device, PortPair* pair, char * direction);
 int check_signal_flags();
 #endif
 

@@ -140,7 +140,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     fflush(stdout);
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed prepare message!");
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_PREPARE, msgType, buff, msgLen)) {
@@ -190,7 +190,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed text message!");
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_START, msgType, buff, msgLen)) {
@@ -212,7 +212,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed start message!");
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
@@ -234,7 +234,7 @@ test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)
     
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed finalize message!");
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_FINALIZE, msgType, buff, msgLen)) {

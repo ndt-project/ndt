@@ -39,7 +39,7 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     log_println(1, " <-- C2S throughput test -->");
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed prepare message!");
       return 1;
     }
     if (check_msg_type("C2S throughput test", TEST_PREPARE, msgType, buff, msgLen)) {
@@ -71,7 +71,7 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed start message!");
       return 1;
     }
     if (check_msg_type("C2S throughput test", TEST_START, msgType, buff, msgLen)) {
@@ -107,7 +107,7 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     /* receive the c2sspd from the server */
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed text message!");
       return 1;
     }
     if (check_msg_type("C2S throughput test", TEST_MSG, msgType, buff, msgLen)) {
@@ -127,7 +127,7 @@ test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error!");
+      log_println(0, "Protocol error - missed finalize message!");
       return 1;
     }
     if (check_msg_type("C2S throughput test", TEST_FINALIZE, msgType, buff, msgLen)) {
