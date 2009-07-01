@@ -21,7 +21,7 @@ int dumptrace;
 pcap_t *pd;
 pcap_dumper_t *pdump;
 int mon_pipe1[2], mon_pipe2[2];
-int sig1, sig2;
+int sig1, sig2, sigj=0;
 
 int
 check_signal_flags()
@@ -400,94 +400,111 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #if defined(AF_INET6)
   if (ip->ip_v == 4) {
 #endif
-  p += (ip->ip_hl) * 4;
-  tcp = (const struct tcphdr *)p;
+
+/* This section grabs the IP & TCP header values from an IPv4 packet and loads the various
+ * variables with the packet's values.  
+ */
+    p += (ip->ip_hl) * 4;
+    tcp = (const struct tcphdr *)p;
 #if defined(AF_INET6)
-  current.saddr[0] = ip->ip_src.s_addr;
-  current.daddr[0] = ip->ip_dst.s_addr;
+    current.saddr[0] = ip->ip_src.s_addr;
+    current.daddr[0] = ip->ip_dst.s_addr;
 #else
-  current.saddr = ip->ip_src.s_addr;
-  current.daddr = ip->ip_dst.s_addr;
+    current.saddr = ip->ip_src.s_addr;
+    current.daddr = ip->ip_dst.s_addr;
 #endif
 
-  current.sport = ntohs(tcp->source);
-  current.dport = ntohs(tcp->dest);
-  current.seq = ntohl(tcp->seq);
-  current.ack = ntohl(tcp->ack_seq);
-  current.win = ntohs(tcp->window);
+    current.sport = ntohs(tcp->source);
+    current.dport = ntohs(tcp->dest);
+    current.seq = ntohl(tcp->seq);
+    current.ack = ntohl(tcp->ack_seq);
+    current.win = ntohs(tcp->window);
+
+/* the current structure now has copies of the IP/TCP header values, if this is the
+ * first packet, then there is nothing to compare them to, so just finish the initialization
+ * step and return.
+ */
 
 #if defined(AF_INET6)
-  if (fwd.saddr[0] == 0) {
-    log_println(1, "New packet trace started -- initializing counters");
-    fwd.saddr[0] = current.saddr[0];
-    fwd.daddr[0] = current.daddr[0];
+    if (fwd.saddr[0] == 0) {
+      log_println(1, "New IPv4 packet trace started -- initializing counters");
+      fwd.saddr[0] = current.saddr[0];
+      fwd.daddr[0] = current.daddr[0];
 #else
-  if (fwd.saddr == 0) {
-    log_println(1, "New packet trace started -- initializing counters");
-    fwd.saddr = current.saddr;
-    fwd.daddr = current.daddr;
+    if (fwd.saddr == 0) {
+      log_println(1, "New IPv4 packet trace started -- initializing counters");
+      fwd.saddr = current.saddr;
+      fwd.daddr = current.daddr;
 #endif
-    fwd.sport = current.sport;
-    fwd.dport = current.dport;
-    fwd.st_sec = current.sec;
-    fwd.st_usec = current.usec;
+      fwd.sport = current.sport;
+      fwd.dport = current.dport;
+      fwd.st_sec = current.sec;
+      fwd.st_usec = current.usec;
 #if defined(AF_INET6)
-    rev.saddr[0] = current.daddr[0];
-    rev.daddr[0] = current.saddr[0];
+      rev.saddr[0] = current.daddr[0];
+      rev.daddr[0] = current.saddr[0];
 #else
-    rev.saddr = current.daddr;
-    rev.daddr = current.saddr;
+      rev.saddr = current.daddr;
+      rev.daddr = current.saddr;
 #endif
-    rev.sport = current.dport;
-    rev.dport = current.sport;
-    rev.st_sec = current.sec;
-    rev.st_usec = current.usec;
-    fwd.dec_cnt = 0;
-    fwd.inc_cnt = 0;
-    fwd.same_cnt = 0;
-    fwd.timeout = 0;
-    fwd.dupack = 0;
-    rev.dec_cnt = 0;
-    rev.inc_cnt = 0;
-    rev.same_cnt = 0;
-    rev.timeout = 0;
-    rev.dupack = 0;
-    fwd.family = 4;
-    rev.family = 4;
+      rev.sport = current.dport;
+      rev.dport = current.sport;
+      rev.st_sec = current.sec;
+      rev.st_usec = current.usec;
+      fwd.dec_cnt = 0;
+      fwd.inc_cnt = 0;
+      fwd.same_cnt = 0;
+      fwd.timeout = 0;
+      fwd.dupack = 0;
+      rev.dec_cnt = 0;
+      rev.inc_cnt = 0;
+      rev.same_cnt = 0;
+      rev.timeout = 0;
+      rev.dupack = 0;
+      fwd.family = 4;
+      rev.family = 4;
     return;
   }
 
+/* a new IPv4 packet has been received and it isn't the 1st one, so calculate the bottleneck link
+ * capacity based on the times between this packet and the previous one.
+ */
+
 #if defined(AF_INET6)
-  if (fwd.saddr[0] == current.saddr[0]) {
+    if (fwd.saddr[0] == current.saddr[0]) {
 #else
-  if (fwd.saddr == current.saddr) {
+    if (fwd.saddr == current.saddr) {
 #endif
-    if (current.dport == port2) {
-      calculate_spd(&current, &fwd, port2, port4);
-      return;
+      if (current.dport == port2) {
+        calculate_spd(&current, &fwd, port2, port4);
+        return;
+      }
+      if (current.sport == port4) {
+        calculate_spd(&current, &fwd, port2, port4);
+        return;
+      }
     }
-    if (current.sport == port4) {
-      calculate_spd(&current, &fwd, port2, port4);
-      return;
-    }
-  }
 #if defined(AF_INET6)
-  if (rev.saddr[0] == current.saddr[0]) {
+    if (rev.saddr[0] == current.saddr[0]) {
 #else
-  if (rev.saddr == current.saddr) {
+    if (rev.saddr == current.saddr) {
 #endif
-    if (current.sport == port2) {
-      calculate_spd(&current, &rev, port2, port4);
-      return;
+      if (current.sport == port2) {
+        calculate_spd(&current, &rev, port2, port4);
+        return;
+      }
+      if (current.dport == port4) {
+        calculate_spd(&current, &rev, port2, port4);
+        return;
+      }
     }
-    if (current.dport == port4) {
-      calculate_spd(&current, &rev, port2, port4);
-      return;
-    }
-  }
 #if defined(AF_INET6)
   }
-  else {
+  else { 	/*  IP header value is not = 4, so must be IPv6 */
+
+/* This is an IPv6 packet, grab the IP & TCP header values for further use.
+ */
+
     ip6 = (const struct ip6_hdr *)p;
 
     p += 40;
@@ -501,8 +518,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     current.ack = ntohl(tcp->ack_seq);
     current.win = ntohs(tcp->window);
 
+/* The 1st packet has been received, finish the initialization process and return.
+ */
+
     if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
-      log_println(1, "New packet trace started -- initializing counters");
+      log_println(1, "New IPv6 packet trace started -- initializing counters");
       memcpy(fwd.saddr, (void *) current.saddr, 16);
       memcpy(fwd.daddr, (void *) current.daddr, 16);
       fwd.sport = current.sport;
@@ -530,15 +550,21 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       return;
     }
 
+/* A new packet has been recieved, and it's not the 1st.  Use it to calculate the
+ * bottleneck link capacity for this flow.
+ */
+
     if ((fwd.saddr[0] == current.saddr[0]) &&
         (fwd.saddr[1] == current.saddr[1]) &&
         (fwd.saddr[2] == current.saddr[2]) &&
         (fwd.saddr[3] == current.saddr[3])) {
       if (current.dport == port2) {
+      /* if (current.sport == port2) { */
         calculate_spd(&current, &fwd, port2, port4);
         return;
       }
       if (current.sport == port4) {
+      /* if (current.dport == port4) { */
         calculate_spd(&current, &fwd, port2, port4);
         return;
       }
@@ -548,17 +574,46 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (rev.saddr[2] == current.saddr[2]) &&
         (rev.saddr[3] == current.saddr[3])) {
       if (current.sport == port2) {
+      /* if (current.dport == port2) { */
         calculate_spd(&current, &rev, port2, port4);
         return;
       }
-      if (current.dport == port4) {
+       if (current.dport == port4) {
+      /* if (current.sport == port4) { */
         calculate_spd(&current, &rev, port2, port4);
         return;
       }
     }
   }
 #endif
+
+/* a packet has been recieved, so it matched the filter, but the src/dst ports are backward for some reason.
+ * Need to fix this by reversing the values.
+ */
+
   log_println(6, "Fault: unknown packet received with src/dst port = %d/%d", current.sport, current.dport);
+  if (sigj == 0) {
+      log_println(6, "Ports should have been reversed now port2/port4 = %d/%d", port2, port4);
+      int tport = pair->port1;
+      pair->port1 = pair->port2;
+      pair->port2 = tport;;
+      fwd.st_sec = current.sec;
+      fwd.st_usec = current.usec;
+      rev.st_sec = current.sec;
+      rev.st_usec = current.usec;
+      fwd.dec_cnt = 0;
+      fwd.inc_cnt = 0;
+      fwd.same_cnt = 0;
+      fwd.timeout = 0;
+      fwd.dupack = 0;
+      rev.dec_cnt = 0;
+      rev.inc_cnt = 0;
+      rev.same_cnt = 0;
+      rev.timeout = 0;
+      rev.dupack = 0;
+      log_println(6, "Ports should have been reversed now port2/port4 = %d/%d", port2, port4);
+      sigj = 1;
+  }
 }
 
 /* This routine performs the open and initialization functions needed
@@ -707,7 +762,7 @@ endLoop:
   alarm(45);
 
   if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
-    log_println(5, "pcap_loop failed %s", pcap_geterr(pd));
+    log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
   }
   log_println(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
   pcap_freealldevs(alldevs);
