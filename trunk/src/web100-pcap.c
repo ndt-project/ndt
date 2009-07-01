@@ -567,7 +567,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  */
 
 void
-init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
+init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
     char *device, PortPair* pair, char *direction)
 {
   char cmdbuf[256], dir[256];
@@ -580,6 +580,9 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   char namebuf[200], isoTime[64];
   size_t nameBufLen = 199;
   I2Addr sockAddr = NULL;
+  struct sockaddr *src_addr;
+  pcap_if_t *alldevs, *dp;
+  pcap_addr_t *curAddr;
 
   cnt = -1;  /* read forever, or until end of file */
   sig1 = 0;
@@ -588,19 +591,59 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
   init_vars(&fwd);
   init_vars(&rev);
 
+  sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
+  sock_addr = I2AddrSAddr(sockAddr, 0);
+  src_addr = I2AddrSAddr(srcAddr, 0);
+  /* special check for localhost, set device accordingly */
+  if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
+    strncpy(device, "lo", 3);
+
   if (device == NULL) {
-    device = pcap_lookupdev(errbuf);
+    if (pcap_findalldevs(&alldevs, errbuf) == 0) {
+	for (dp=alldevs; dp!=NULL; dp=dp->next) {
+	    for (curAddr=dp->addresses; curAddr!=NULL; curAddr=curAddr->next) {
+		switch (curAddr->addr->sa_family) {
+		    case AF_INET:
+  			memset(namebuf, 0, 200);
+			inet_ntop(AF_INET, &((struct sockaddr_in *)curAddr->addr)->sin_addr,
+					namebuf, INET_ADDRSTRLEN);
+			 log_println(3, "IPv4 interface found address=%s", namebuf);
+			if (((struct sockaddr_in *)curAddr->addr)->sin_addr.s_addr ==
+					((struct sockaddr_in *)src_addr)->sin_addr.s_addr) {
+			    log_println(4, "IPv4 address match, setting device to '%s'", dp->name);
+			    device = dp->name;
+			    goto endLoop;
+			}
+			break;
+#if defined(AF_INET6)
+		    case AF_INET6:
+  			memset(namebuf, 0, 200);
+			inet_ntop(AF_INET6, &((struct sockaddr_in6 *)curAddr->addr)->sin6_addr,
+					namebuf, INET6_ADDRSTRLEN);
+  			/* I2AddrNodeName(srcAddr, namebuf, &nameBufLen); */
+			log_println(3, "IPv6 interface found address=%s", namebuf);
+			if (memcmp(((struct sockaddr_in6 *)curAddr->addr)->sin6_addr.s6_addr,
+					((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr,
+					16) == 0) {
+			    log_println(4, "IPv6 address match, setting device to '%s'", dp->name);
+			    device = dp->name;
+			    goto endLoop;
+			}
+			break;
+#endif
+		    default:
+			log_println(4, "Unknown address family=%d found", curAddr->addr->sa_family);
+		}
+	    }
+	}
+    } 
+  }
+endLoop:
+
+  /*  device = pcap_lookupdev(errbuf); */
     if (device == NULL) {
       fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
     }
-  }
-
-  sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
-  sock_addr = I2AddrSAddr(sockAddr, 0);
-  /* special check for localhost, set device accordingly */
-  if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0) {
-    strncpy(device, "lo", 3);
-  }
 
   log_println(1, "Opening network interface '%s' for packet-pair timing", device);
 
@@ -667,6 +710,8 @@ init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2
     log_println(5, "pcap_loop failed %s", pcap_geterr(pd));
   }
   log_println(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
+  pcap_freealldevs(alldevs);
+
 
   if (sig1 == 2) {
     read(mon_pipe1[0], &c, 1);

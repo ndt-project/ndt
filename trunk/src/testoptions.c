@@ -16,6 +16,7 @@
 #include "logging.h"
 #include "utils.h"
 #include "protocol.h"
+#include "I2util/util.h"
 
 int mon_pipe1[2], mon_pipe2[2];
 static int currentTest = TEST_NONE;
@@ -419,7 +420,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   fd_set rfd;
   char buff[BUFFSIZE+1];
   PortPair pair;
-  I2Addr c2ssrv_addr = NULL;
+  I2Addr c2ssrv_addr=NULL, src_addr=NULL;
   char listenc2sport[10];
   pthread_t workerThreadId;
 
@@ -497,22 +498,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     clilen = sizeof(cli_addr);
     recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
-
-  /* RAC */
-	I2Addr rac_addr=NULL;
-	struct sockaddr_in rac_saddr;
-	socklen_t rac_len;
-
-	rac_len = sizeof(rac_saddr);
-	log_println(2, "looking for I2Addr structrue for socket %d", recvsfd);
-	getsockname(recvsfd, &rac_saddr, &rac_len);
-	log_println(2, "getsockname struct is %x:%d",  rac_saddr.sin_addr.s_addr, ntohs(rac_saddr.sin_port));
-
-	/* rac_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
-	log_println(2, "C2S test with server using addr:port = %s:%d",
-		((struct sockaddr_in *)I2AddrSAddr(rac_addr, 0))->sin_addr.s_addr, ((struct sockaddr_in *)I2AddrSAddr(rac_addr,0))->sin_port);
-	*/
-    
+    src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
     conn = web100_connection_from_socket(agent, recvsfd);
 
     if (getuid() == 0) {
@@ -523,7 +509,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         close(recvsfd);
         log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
         /* log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-        init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair, "c2s");
+        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair, "c2s");
         exit(0);    /* Packet trace finished, terminate gracefully */
       }
       if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
@@ -770,7 +756,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   char buff[BUFFSIZE+1];
   int c3 = 0;
   PortPair pair;
-  I2Addr s2csrv_addr = NULL;
+  I2Addr s2csrv_addr=NULL, src_addr=NULL;
   char listens2cport[10];
   int msgType;
   int msgLen;
@@ -881,6 +867,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if (++j == 4)
         break;
     } 
+    src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
     conn = web100_connection_from_socket(agent, xmitsfd); 
 
     if (xmitsfd > 0) {
@@ -892,7 +879,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           close(xmitsfd);
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
           /* log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-          init_pkttrace((struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair, "s2c");
+          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair, "s2c");
           exit(0);    /* Packet trace finished, terminate gracefully */
         }
         if (read(mon_pipe2[0], tmpstr, 128) <= 0) {

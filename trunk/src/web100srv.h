@@ -47,6 +47,7 @@
 #include  <net/ethernet.h>
 #endif
 #include  <arpa/inet.h>
+#include <I2util/util.h>
 
 /* move version to configure.ac file for package name */
 /* #define VERSION   "3.0.7" */		/* version number */
@@ -151,7 +152,7 @@ int32_t gmt2local(time_t);
 void init_vars(struct spdpair *cur);
 void print_bins(struct spdpair *cur, int monitor_pipe[2]);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
-void init_pkttrace(struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
+void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
     char *device, PortPair* pair, char * direction);
 int check_signal_flags();
 #endif
