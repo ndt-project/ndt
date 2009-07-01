@@ -425,6 +425,11 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * step and return.
  */
 
+    if (fwd.seq == 0) {
+      log_println(1, "New IPv4 packet trace started -- initializing counters");
+      fwd.seq = current.seq;
+      
+/*
 #if defined(AF_INET6)
     if (fwd.saddr[0] == 0) {
       log_println(1, "New IPv4 packet trace started -- initializing counters");
@@ -438,8 +443,10 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
       fwd.sport = current.sport;
       fwd.dport = current.dport;
+*/
       fwd.st_sec = current.sec;
       fwd.st_usec = current.usec;
+/*
 #if defined(AF_INET6)
       rev.saddr[0] = current.daddr[0];
       rev.daddr[0] = current.saddr[0];
@@ -449,6 +456,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 #endif
       rev.sport = current.dport;
       rev.dport = current.sport;
+*/
       rev.st_sec = current.sec;
       rev.st_usec = current.usec;
       fwd.dec_cnt = 0;
@@ -521,18 +529,20 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 /* The 1st packet has been received, finish the initialization process and return.
  */
 
-    if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
+    /* if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) { */
+    if (fwd.seq == 0) {
       log_println(1, "New IPv6 packet trace started -- initializing counters");
-      memcpy(fwd.saddr, (void *) current.saddr, 16);
-      memcpy(fwd.daddr, (void *) current.daddr, 16);
+      fwd.seq = current.seq;
+      /* memcpy(fwd.saddr, (void *) current.saddr, 16);
+      memcpy(fwd.daddr, (void *) current.daddr, 16);/
       fwd.sport = current.sport;
-      fwd.dport = current.dport;
+      fwd.dport = current.dport; */
       fwd.st_sec = current.sec;
       fwd.st_usec = current.usec;
-      memcpy(rev.saddr, (void *) current.daddr, 16);
+      /* memcpy(rev.saddr, (void *) current.daddr, 16);
       memcpy(rev.daddr, (void *) current.saddr, 16);
       rev.sport = current.dport;
-      rev.dport = current.sport;
+      rev.dport = current.sport; */
       rev.st_sec = current.sec;
       rev.st_usec = current.usec;
       fwd.dec_cnt = 0;
@@ -558,14 +568,22 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (fwd.saddr[1] == current.saddr[1]) &&
         (fwd.saddr[2] == current.saddr[2]) &&
         (fwd.saddr[3] == current.saddr[3])) {
-      if (current.dport == port2) {
-      /* if (current.sport == port2) { */
-        calculate_spd(&current, &fwd, port2, port4);
+      if (current.dport == port2) { 
+            calculate_spd(&current, &fwd, port2, port4);
+      /*if (current.sport == port2) {
+	if (sigj == 0)
+            calculate_spd(&current, &fwd, port2, port4);
+	else
+            calculate_spd(&current, &rev, port2, port4); */
         return;
       }
-      if (current.sport == port4) {
-      /* if (current.dport == port4) { */
-        calculate_spd(&current, &fwd, port2, port4);
+      if (current.sport == port4) { 
+            calculate_spd(&current, &fwd, port2, port4);
+      /* if (current.dport == port4) {
+	if (sigj == 0)
+            calculate_spd(&current, &fwd, port2, port4);
+	else
+            calculate_spd(&current, &rev, port2, port4); */
         return;
       }
     }
@@ -573,14 +591,22 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (rev.saddr[1] == current.saddr[1]) &&
         (rev.saddr[2] == current.saddr[2]) &&
         (rev.saddr[3] == current.saddr[3])) {
-      if (current.sport == port2) {
-      /* if (current.dport == port2) { */
-        calculate_spd(&current, &rev, port2, port4);
+      if (current.sport == port2) { 
+            calculate_spd(&current, &rev, port2, port4);
+      /* if (current.dport == port2) {
+	if (sigj == 0)
+            calculate_spd(&current, &rev, port2, port4);
+	else
+            calculate_spd(&current, &fwd, port2, port4); */
         return;
       }
-       if (current.dport == port4) {
-      /* if (current.sport == port4) { */
-        calculate_spd(&current, &rev, port2, port4);
+      if (current.dport == port4) { 
+            calculate_spd(&current, &rev, port2, port4);
+      /* if (current.sport == port4) { 
+	if (sigj == 0)
+            calculate_spd(&current, &rev, port2, port4);
+	else
+            calculate_spd(&current, &fwd, port2, port4); */
         return;
       }
     }
@@ -593,7 +619,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
   log_println(6, "Fault: unknown packet received with src/dst port = %d/%d", current.sport, current.dport);
   if (sigj == 0) {
-      log_println(6, "Ports should have been reversed now port2/port4 = %d/%d", port2, port4);
+      log_println(6, "Ports need to be reversed now port1/port2 = %d/%d", pair->port1, pair->port2);
       int tport = pair->port1;
       pair->port1 = pair->port2;
       pair->port2 = tport;;
@@ -611,7 +637,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       rev.same_cnt = 0;
       rev.timeout = 0;
       rev.dupack = 0;
-      log_println(6, "Ports should have been reversed now port2/port4 = %d/%d", port2, port4);
+      log_println(6, "Ports should have been reversed now port1/port2 = %d/%d", pair->port1, pair->port2);
       sigj = 1;
   }
 }
@@ -667,6 +693,39 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					((struct sockaddr_in *)src_addr)->sin_addr.s_addr) {
 			    log_println(4, "IPv4 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
+			    if (direction[0] == 's') {
+#if defined(AF_INET6)
+      			    	fwd.saddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+      			    	fwd.daddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	rev.saddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	rev.daddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+#else
+      			    	fwd.saddr = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+      			    	fwd.daddr = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	rev.saddr = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	rev.daddr = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+#endif
+      			    	fwd.sport = ntohs(((struct sockaddr_in *)src_addr)->sin_port);
+      			    	fwd.dport = ntohs(((struct sockaddr_in *)sock_addr)->sin_port);
+      			    	rev.sport = ntohs(((struct sockaddr_in *)sock_addr)->sin_port);
+      			    	rev.dport = ntohs(((struct sockaddr_in *)src_addr)->sin_port);
+			    } else {
+#if defined(AF_INET6)
+      			    	rev.saddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+      			    	rev.daddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	fwd.saddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	fwd.daddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+#else
+      			    	rev.saddr = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+      			    	rev.daddr = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	fwd.saddr = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+      			    	fwd.daddr = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+#endif
+      			    	rev.sport = ntohs(((struct sockaddr_in *)src_addr)->sin_port);
+      			    	rev.dport = ntohs(((struct sockaddr_in *)sock_addr)->sin_port);
+      			    	fwd.sport = ntohs(((struct sockaddr_in *)sock_addr)->sin_port);
+      			    	fwd.dport = ntohs(((struct sockaddr_in *)src_addr)->sin_port);
+			    }
 			    goto endLoop;
 			}
 			break;
@@ -682,6 +741,25 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					16) == 0) {
 			    log_println(4, "IPv6 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
+			    if (direction[0] == 's') {
+      			    	memcpy(fwd.saddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
+      			    	memcpy(fwd.daddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
+      			    	memcpy(rev.saddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
+      			    	memcpy(rev.daddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
+      			    	fwd.sport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
+      			    	fwd.dport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
+      			    	rev.sport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
+      			    	rev.dport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
+			    } else {
+      			    	memcpy(rev.saddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
+      			    	memcpy(rev.daddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
+      			    	memcpy(fwd.saddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
+      			    	memcpy(fwd.daddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
+      			    	rev.sport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
+      			    	rev.dport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
+      			    	fwd.sport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
+      			    	fwd.dport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
+			    }
 			    goto endLoop;
 			}
 			break;
