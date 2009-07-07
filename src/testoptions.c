@@ -593,6 +593,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (options->snaplog) {
+	    memcpy(meta.c2s_snaplog, dir, strlen(dir));
             FILE* fp = fopen(get_logfile(),"a");
             snapArgs.log = web100_log_open_write(options->c2s_logname, conn, group);
             if (fp == NULL) {
@@ -953,6 +954,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
         if (options->snaplog) {
+	    memcpy(meta.s2c_snaplog, dir, strlen(dir));
             FILE* fp = fopen(get_logfile(),"a");
             snapArgs.log = web100_log_open_write(options->s2c_logname, conn, group);
             if (fp == NULL) {

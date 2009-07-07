@@ -97,6 +97,7 @@ struct ndtchild {
 	time_t qtime;
 	int pipe;
 	int ctlsockfd;
+	int oldclient;
 	struct ndtchild *next;
 };
 

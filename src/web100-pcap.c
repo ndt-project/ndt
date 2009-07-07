@@ -693,6 +693,13 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					((struct sockaddr_in *)src_addr)->sin_addr.s_addr) {
 			    log_println(4, "IPv4 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
+			    /* if (meta.server_ip[0] == 0) { 
+				memcpy(meta.server_ip, namebuf, INET_ADDRSTRLEN);
+				inet_ntop(AF_INET, &((struct sockaddr_in *)curAddr->addr)->sin_addr,
+					meta.server_ip, INET_ADDRSTRLEN);
+				log_println(5, "Set meta.server_ip to '%s'", meta.server_ip);
+			    } */
+				
 			    if (direction[0] == 's') {
 #if defined(AF_INET6)
       			    	fwd.saddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
@@ -741,6 +748,13 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					16) == 0) {
 			    log_println(4, "IPv6 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
+			    /* if (meta.server_ip[0] == 0) { 
+				memcpy(meta.server_ip, namebuf, INET6_ADDRSTRLEN);
+			 	inet_ntop(AF_INET6, &((struct sockaddr_in6 *)curAddr->addr)->sin6_addr,
+					meta.server_ip, INET6_ADDRSTRLEN); 
+				log_println(5, "Set meta.server_ip to '%s'", meta.server_ip);
+			     } */
+				
 			    if (direction[0] == 's') {
       			    	memcpy(fwd.saddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
       			    	memcpy(fwd.daddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
@@ -825,6 +839,10 @@ endLoop:
     strncat(cmdbuf, "/", 1);
     sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr), direction);
     strncat(cmdbuf, dir, strlen(dir));
+    if (direction[0] == 'c')
+	memcpy(meta.c2s_ndttrace, dir, strlen(dir));
+    else
+	memcpy(meta.s2c_ndttrace, dir, strlen(dir));
     pdump = pcap_dump_open(pd, cmdbuf);
     fprintf(stderr, "Opening '%s' log fine\n", cmdbuf);
     if (pdump == NULL) {
