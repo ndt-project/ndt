@@ -216,7 +216,7 @@ void
 struct tm *result;
 time_t now;
 
-setenv("TZ", NULL, 0);
+setenv("TZ", "UTC", 0);
 now = get_timestamp();
 result = gmtime(&now);
 
@@ -237,7 +237,8 @@ void
 struct tm *result;
 time_t now;
 
-setenv("TZ", NULL, 0);
+/* setenv("TZ", NULL, 0); */
+setenv("TZ", "UTC", 0);
 now = get_timestamp();
 result = gmtime(&now);
 
@@ -260,7 +261,7 @@ void
 struct tm *result;
 time_t now;
 
-setenv("TZ", NULL, 0);
+setenv("TZ", "UTC", 0);
 now = get_timestamp();
 result = gmtime(&now);
 
@@ -286,7 +287,7 @@ struct tm *result;
 time_t now;
 char tmpstr[16];
 
-setenv("TZ", NULL, 0);
+setenv("TZ", "UTC", 0);
 now = get_timestamp();
 result = gmtime(&now);
 
@@ -324,4 +325,77 @@ strncat(isoTime, tmpstr, 3);
 sprintf(tmpstr, ".%ldZ", get_utimestamp()*1000);
 strncat(isoTime, tmpstr, 11);
 return isoTime;
+}
+
+/* Write meta data out to log file.  This file contains details and
+ * names of the other log files.
+ * RAC 7/7/09
+ */
+
+void writeMeta(void)
+{
+    FILE *fp;
+    char tmpstr[256], dir[128];
+    char isoTime[64];
+    size_t tmpstrlen=sizeof(tmpstr);
+    struct hostent *hp;
+
+/* Get the clients domain name and same in metadata file 
+ * RAC 7/7/09
+ */
+#ifdef AF_INET4
+    if (meta.family == AF_INET6)
+	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, , AF_INET6);
+#endif
+    if (meta.family == AF_INET)
+	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, 4, AF_INET);
+    if (hp == NULL)
+	memcpy(meta.client_name, "No FQDN name", 12);
+    else
+	memcpy(meta.client_name, hp->h_name, strlen(hp->h_name));
+
+    memset(tmpstr, 0, tmpstrlen);
+    strncpy(tmpstr, DataDirName, strlen(DataDirName));
+    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+            mkdir(tmpstr, 0755);
+    get_YYYY(dir);
+    strncat(tmpstr, dir, 4);
+    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+            mkdir(tmpstr, 0755);
+    strncat(tmpstr, "/", 1);
+    get_MM(dir);
+    strncat(tmpstr, dir, 2);
+    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+            mkdir(tmpstr, 0755);
+    strncat(tmpstr, "/", 1);
+    get_DD(dir);
+    strncat(tmpstr, dir, 2);
+    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+            mkdir(tmpstr, 0755);
+    strncat(tmpstr, "/", 1);
+    sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime), meta.client_ip, meta.ctl_port);
+    strncat(tmpstr, dir, strlen(dir));
+
+    fp = fopen(tmpstr,"w");
+    if (fp == NULL) {
+        log_println(1, "Unable to open metadata log file, continuing on without logging");
+    }
+    else {
+        log_println(1, "Opened '%s' metadata log file", tmpstr);
+        fprintf(fp, "Date/Time: %s\n", meta.date);
+        fprintf(fp, "c2s_snaplog file: %s\n", meta.c2s_snaplog);
+        fprintf(fp, "c2s_ndttrace file: %s\n", meta.c2s_ndttrace);
+        fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_snaplog);
+        fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_ndttrace);
+        fprintf(fp, "cputime file: %s\n", meta.CPU_time);
+        fprintf(fp, "server IP address: %s\n", meta.server_ip);
+        fprintf(fp, "server hostname: %s\n", meta.server_name);
+        fprintf(fp, "server kernel version: %s\n", meta.server_os);
+        fprintf(fp, "client IP address: %s\n", meta.client_ip);
+        fprintf(fp, "client hostname: %s\n", meta.client_name);
+        fprintf(fp, "client OS name: %s\n", meta.client_os);
+        fprintf(fp, "client_browser name: %s\n", meta.client_browser);
+        fprintf(fp, "Summary data: %s\n", meta.summary);
+        fclose(fp);
+    }
 }

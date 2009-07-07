@@ -84,6 +84,8 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
   memset(tmpstr, 0, 200);
   I2AddrServName(addr, tmpstr, &tmpstrlen);
   log_print(3, "Server: %s%s ",  line, tmpstr);
+  memcpy(meta.server_ip, line, strlen(line));
+  meta.server_ip[(strlen(line)-1)] = 0;
   strncat(results, line, strlen(line));
   I2AddrFree(addr);
   tmpstrlen = sizeof(tmpstr);

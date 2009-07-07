@@ -615,6 +615,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
   char date[32];
   char spds[4][256];
   char logstr1[4096], logstr2[1024];
+  char tmpstr[256];
+  char isoTime[64];
 
   int n;
   int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
@@ -918,11 +920,77 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
+    sprintf(meta.date, "%s", get_ISOtime(isoTime));
+    memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
+    memset(tmpstr, 0, 255);
+    sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+        (int)s2c2spd,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
+        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
+    memcpy(meta.summary, tmpstr, strlen(tmpstr));
+    memset(tmpstr, 0, 255);
+    sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
+        SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
+        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memset(tmpstr, 0, 255);
+    sprintf(tmpstr,"%d,%d,%d,%d,%d",
+        link, mismatch, bad_cable, half_duplex, congestion);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memset(tmpstr, 0, 255);
+    sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
+        CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memset(tmpstr, 0, 255);
+    sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
+        OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
+        SubsequentTimeouts, ThruBytesAcked);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memset(tmpstr, 0, 255);
+    sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+   log_println(1, "RRRAAACCC, calling writeMeta() to ouput metadata");
+    writeMeta();
+
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
     log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
   }
   else {
+/*
+    sprintf(meta.date, "%s", get_ISOtime(isoTime));
+    memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
+    memcpy(tmpstr, 0, 255);
+    sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+        (int)s2c2spd,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
+        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
+    memcpy(meta.summary, tmpstr, strlen(tmpstr));
+    memcpy(tmpstr, 0, 255);
+    sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
+        SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
+        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memcpy(tmpstr, 0, 255);
+    sprintf(tmpstr,"%d,%d,%d,%d,%d",
+        link, mismatch, bad_cable, half_duplex, congestion);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memcpy(tmpstr, 0, 255);
+    sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
+        CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memcpy(tmpstr, 0, 255);
+    sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
+        OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
+        SubsequentTimeouts, ThruBytesAcked);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    memcpy(tmpstr, 0, 255);
+    sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
+    strncat(meta.summary, tmpstr, strlen(tmpstr));
+   log_println(1, "RRRAAACCC, calling writeMeta() to ouput metadata");
+    writeMeta();
+*/
+
     sprintf(date,"%15.15s", ctime(&stime)+4);
     fprintf(fp, "%s,", date);
     fprintf(fp,"%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
@@ -1016,7 +1084,7 @@ main(int argc, char** argv)
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
-  char isoTime[64];
+  char isoTime[64], dir[64];
   int debug = 0;
   options.limit = 0;
   options.snapDelay = 5;
@@ -1318,6 +1386,23 @@ main(int argc, char** argv)
   if (admin_view == 1)
     view_init(refresh);
 
+  /* Get the server's metadata info (OS name and kernel version
+   * RAC 7/7/09
+   */
+  if ((fp = fopen("/proc/sys/kernel/hostname", "r")) == NULL)
+    log_println(0, "Unable to determine server Hostname.");
+  else {
+    fscanf(fp, "%s", meta.server_name);
+    fclose(fp);
+  }
+  if ((fp = fopen("/proc/sys/kernel/osrelease", "r")) == NULL)
+    log_println(0, "Unable to determine server OS Version.");
+  else {
+    fscanf(fp, "%s", meta.server_os);
+    fclose(fp);
+  }
+  
+
   /* create a log file entry every time the web100srv process starts up. */
   ndtpid = getpid();
   tt = time(0);
@@ -1472,6 +1557,7 @@ main(int argc, char** argv)
         new_child->qtime = tt;
         new_child->pipe = chld_pipe[1];
         new_child->ctlsockfd = ctlsockfd;
+	new_child->oldclient = 0;
         new_child->next = NULL;
 
         if ((testing == 1) && (queue == 0)) {
@@ -1613,11 +1699,32 @@ multi_client:
         {
             I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
             testPort = I2AddrPort(tmp_addr);
+	    meta.ctl_port = testPort;
             snprintf(testName, 250, "%s", name);
             I2AddrFree(tmp_addr);
             memset(cputimelog, 0, 256);
             if (cputime) {
-                sprintf(cputimelog, "%s_%s:%d.cputime", get_ISOtime(isoTime), name, testPort);
+		strncpy(cputimelog, DataDirName, strlen(DataDirName));
+		if ((opendir(cputime) == NULL) && (errno == ENOENT))
+		    mkdir(cputimelog, 0755);
+		get_YYYY(dir);
+		strncat(cputimelog, dir, 4);
+		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		    mkdir(cputimelog, 0755);
+		strncat(cputimelog, "/", 1);
+		get_MM(dir);
+		strncat(cputimelog, dir, 2);
+		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		    mkdir(cputimelog, 0755);
+		strncat(cputimelog, "/", 1);
+		get_DD(dir);
+		strncat(cputimelog, dir, 2);
+		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		    mkdir(cputimelog, 0755);
+		strncat(cputimelog, "/", 1);
+		sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime), name, testPort);
+		strncat(cputimelog, dir, strlen(dir));
+		memcpy(meta.CPU_time, dir, strlen(dir));
               if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
                   log_println(0, "Cannot create worker thread for writing cpu usage!");
                   workerThreadId = 0;

@@ -43,11 +43,15 @@ struct metadata {
     char date[32];
     char time[16];
     char client_ip[64];
+    char client_name[64];
     char client_os[32];
     char client_browser[32];
+    int  ctl_port;
     char server_ip[64];
     char server_name[64];
     char server_os[32];
+    int  family;
 };
 
+struct metadata meta;
 #endif
