@@ -356,6 +356,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
      */
     clilen = sizeof(cli_addr);
     midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
+    meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
 
     buff[0] = '\0';
     if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
@@ -522,6 +523,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         log_println(0, "error & exit");
         exit(0);
       }
+      if (strlen(tmpstr) > 5)
+        memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
     }
 
     log_println(5, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
@@ -893,6 +896,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           log_println(0, "error & exit");
           exit(0);
         }
+	if (strlen(tmpstr) > 5)
+	    memcpy(meta.s2c_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
       }
 
       /* Check, and if needed, set the web100 autotuning function on.  This improves

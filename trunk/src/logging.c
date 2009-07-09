@@ -343,9 +343,9 @@ void writeMeta(void)
 /* Get the clients domain name and same in metadata file 
  * RAC 7/7/09
  */
-#ifdef AF_INET4
+#ifdef AF_INET6
     if (meta.family == AF_INET6)
-	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, , AF_INET6);
+	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, 16, AF_INET6);
 #endif
     if (meta.family == AF_INET)
 	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, 4, AF_INET);

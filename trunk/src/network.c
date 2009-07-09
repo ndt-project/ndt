@@ -50,8 +50,9 @@ OpenSocket(I2Addr addr, char* serv, int options)
 
     fd = socket(ai->ai_family,ai->ai_socktype,ai->ai_protocol);
 
-    if (meta.family == 0)
+   /*  if (meta.family == 0)
 	meta.family = ai->ai_family;
+    */
 
     if (fd < 0) {
       continue;
@@ -110,6 +111,8 @@ failsock:
     while((close(fd) < 0) && (errno == EINTR));
   }
   
+  if (meta.family == 0)
+    meta.family = ai->ai_family;
   return fd;
 }
 
