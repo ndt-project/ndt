@@ -381,7 +381,7 @@ void writeMeta(void)
         log_println(1, "Unable to open metadata log file, continuing on without logging");
     }
     else {
-        log_println(1, "Opened '%s' metadata log file", tmpstr);
+        log_println(5, "Opened '%s' metadata log file", tmpstr);
         fprintf(fp, "Date/Time: %s\n", meta.date);
         fprintf(fp, "c2s_snaplog file: %s\n", meta.c2s_snaplog);
         fprintf(fp, "c2s_ndttrace file: %s\n", meta.c2s_ndttrace);

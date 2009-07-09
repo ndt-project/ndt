@@ -115,8 +115,8 @@ Options options;
 CwndPeaks peaks;
 int cputime = 0;
 char cputimelog[256];
-pthread_t workerThreadId;
-int workerLoop = 1;
+pthread_t workerThreadId, zombieThreadId;
+int workerLoop=1, zombie_check=0;
 
 int useDB = 0;
 char* dbDSN = NULL;
@@ -247,7 +247,7 @@ child_sig(void)
           return;
         }
         tmp1 = tmp1->next;
-        log_println(6, "Looping through service queue ptr = 0x%x", (int) tmp1);
+        log_println(6, "Looping through service queue ptr = 0x%x", (u_int64_t) tmp1);
       }
     }
     log_println(3, "SIGCHLD routine finished!");
@@ -581,6 +581,74 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   fclose(conf);
 }
 
+/* This routine walks through the list of queued clients and kills off those
+ * that don't respond.  New clients (after v3.5.5) will reqpond to this query
+ * older clients wouldn't, so use the oldclient flag to tell them apart.
+ * RAC 7/8/09
+ */
+void *
+zombieWorker(void *head_ptr) {
+
+    struct ndtchild *tmp_ptr, *tmp, *pre_ptr;
+    int i=0, rc;
+    struct timeval sel_tv;
+    fd_set rfd;
+    char tmpstr[8], buff[32];
+    int msgType, msgLen=1;
+
+    tmp_ptr = (struct ndtchild *)head_ptr;
+    /* walk through this chain until the 4th client is reached, this helps
+     * prevent cases where the current client finishes and the next one begins
+     * before we are done looking
+     * RAC 7/8/09
+     */
+    for (i=0; i<4; i++) {
+	log_println(6, "Bumping queue pointer by 1 child=%d", tmp_ptr->pid);
+	if (i == 3)
+	    pre_ptr = tmp_ptr;
+	tmp_ptr = tmp_ptr->next;
+    }
+    sprintf(tmpstr, "9990");
+    i = 0;
+    while (tmp_ptr != NULL) {
+	if (tmp_ptr->oldclient == 0)  {
+	    log_println(6, "old client found in queue, can't tell if it's a zombie, child=%d", tmp_ptr->pid);
+	    tmp_ptr = tmp_ptr->next;
+	    pre_ptr = pre_ptr->next;
+	    continue;
+	}
+	log_println(6, "New client found, checking for response, child=%d", tmp_ptr->pid);
+	send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+	FD_ZERO(&rfd);
+	FD_SET(tmp_ptr->ctlsockfd, &rfd);
+	sel_tv.tv_sec = 1;
+	sel_tv.tv_usec = 500000;
+	rc = select((tmp_ptr->ctlsockfd)+1, &rfd, NULL, NULL, &sel_tv);
+	switch (rc) {
+	  case 0:
+	    /*  a timeout occurred, remove zombie client from list */
+	    log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
+	    tmp = tmp_ptr;
+	    pre_ptr->next = tmp_ptr->next;
+	    tmp_ptr = tmp_ptr->next;
+	    free(tmp);
+	    i++;
+	    break;
+	  default:
+	    log_println(6, "new client responded, bumping pointers child=%d", tmp_ptr->pid);
+	    recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
+	    tmp_ptr = tmp_ptr->next;
+	    pre_ptr = pre_ptr->next;
+	    break;
+	  case -1:
+	    log_println(6, "select returned errno=%d do nothing, child=%d", errno, tmp_ptr->pid);
+	    break;
+	}
+    }
+    zombie_check = i;
+    return NULL;
+}
+
 void*
 cputimeWorker(void* arg)
 {
@@ -609,7 +677,7 @@ cputimeWorker(void* arg)
 }
 
 void
-run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
+run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt, char *test_suite)
 {
 
   char date[32];
@@ -665,10 +733,14 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
 
   sprintf(buff, "v%s", VERSION);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
-  if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
+
+log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
+  send_msg(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite));
+  /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
     log_println(0, "ERROR: Tests initialization failed (%d)", n);
     return;
   }
+  */
 
   log_println(1, "Starting test suite:");
   if (testopt.midopt) {
@@ -949,7 +1021,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
     strncat(meta.summary, tmpstr, strlen(tmpstr));
-   log_println(1, "RRRAAACCC, calling writeMeta() to ouput metadata");
     writeMeta();
 
   fp = fopen(get_logfile(),"a");
@@ -957,40 +1028,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt)
     log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
   }
   else {
-/*
-    sprintf(meta.date, "%s", get_ISOtime(isoTime));
-    memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
-    memcpy(tmpstr, 0, 255);
-    sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
-        (int)s2c2spd,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
-        FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn);
-    memcpy(meta.summary, tmpstr, strlen(tmpstr));
-    memcpy(tmpstr, 0, 255);
-    sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
-        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
-        SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
-        SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
-    memcpy(tmpstr, 0, 255);
-    sprintf(tmpstr,"%d,%d,%d,%d,%d",
-        link, mismatch, bad_cable, half_duplex, congestion);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
-    memcpy(tmpstr, 0, 255);
-    sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
-        CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
-    memcpy(tmpstr, 0, 255);
-    sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
-        OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
-        SubsequentTimeouts, ThruBytesAcked);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
-    memcpy(tmpstr, 0, 255);
-    sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
-   log_println(1, "RRRAAACCC, calling writeMeta() to ouput metadata");
-    writeMeta();
-*/
-
     sprintf(date,"%15.15s", ctime(&stime)+4);
     fprintf(fp, "%s,", date);
     fprintf(fp,"%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
@@ -1067,12 +1104,13 @@ main(int argc, char** argv)
   int chld_pid, rc;
   int ctlsockfd = -1;
   int c, chld_pipe[2];
-  int i, loopcnt;
+  int i, loopcnt, t_opts=0;
   struct sockaddr_storage cli_addr;
   struct sigaction new;
   web100_agent* agent;
   char *lbuf=NULL, *ctime();
   char buff[32], tmpstr[256];
+  char test_suite[16];
   FILE *fp;
   size_t lbuf_max=0;
   fd_set rfd;
@@ -1440,7 +1478,8 @@ main(int argc, char** argv)
     if (head_ptr == NULL)
       log_println(3, "nothing in queue");
     else
-      log_println(3, "Queue pointer = %d, testing = %d, waiting = %d", head_ptr->pid, testing, waiting);
+      log_println(3, "Queue pointer = %d, testing = %d, waiting = %d, zombie_check = %d",
+		head_ptr->pid, testing, waiting, zombie_check);
 
     if (sig17 == 1) {
       child_sig();
@@ -1550,6 +1589,7 @@ main(int argc, char** argv)
         if (multiple == 1)
           goto multi_client;
 
+	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
         strncpy(new_child->host, name, strlen(name));
@@ -1557,8 +1597,14 @@ main(int argc, char** argv)
         new_child->qtime = tt;
         new_child->pipe = chld_pipe[1];
         new_child->ctlsockfd = ctlsockfd;
-	new_child->oldclient = 0;
+	if (t_opts & TEST_STATUS)
+	    new_child->oldclient = 1;
+	else
+	    new_child->oldclient = 0;
+	memcpy(new_child->tests, test_suite, strlen(test_suite));
         new_child->next = NULL;
+
+log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s", new_child->oldclient, new_child->tests);
 
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
@@ -1596,7 +1642,7 @@ main(int argc, char** argv)
             tmp_ptr = head_ptr;
             while (tmp_ptr != NULL) {
               log_println(4, "\tChild %d, host: %s [%s], next=0x%x", tmp_ptr->pid,
-                  tmp_ptr->host, tmp_ptr->addr, (int) tmp_ptr->next);
+                  tmp_ptr->host, tmp_ptr->addr, (u_int64_t) tmp_ptr->next);
               if (tmp_ptr->next == NULL)
                 break;
               tmp_ptr = tmp_ptr->next;
@@ -1616,6 +1662,7 @@ main(int argc, char** argv)
           sprintf(tmpstr, "%d", (waiting-1));
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
         }
+	  
         if (testing == 1) 
           continue;
 
@@ -1626,6 +1673,8 @@ ChldRdy:
         if (waiting > 1) {
           i = waiting - 1;
           tmp_ptr = head_ptr->next;
+	  if (tmp_ptr == NULL)
+	      waiting = 1;
           while (tmp_ptr != NULL) {
             log_println(3, "%d clients waiting, updating client %d testing will begin within %d minutes",
                 (waiting-1), tmp_ptr->pid, (waiting-i));
@@ -1635,6 +1684,19 @@ ChldRdy:
             tmp_ptr = tmp_ptr->next;
             i--;
           }
+	  if ((waiting > 5) && (zombie_check == 0)) {
+	    zombie_check = -1;
+	    log_println(4, "More than 5 clients in the queue, remove zombies");
+              if (pthread_create(&zombieThreadId, NULL, zombieWorker, (void *)head_ptr)) {
+		log_println(0, "Cannot create thread to kill off zonbie clients!");
+		zombie_check = 0;
+	      }
+	      if (zombie_check > 0) {
+		waiting -= zombie_check;
+		zombie_check = 0;
+	      }
+	  }
+	
         }
         log_println(3, "Telling client %d testing will begin now", head_ptr->pid);
 
@@ -1654,16 +1716,18 @@ ChldRdy:
 
         head_ptr->stime = time(0);
 multi_client:
-        sprintf(tmpstr, "go");
+	memset(tmpstr, 0, strlen(tmpstr));
         if (multiple == 1) {
+          sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(ctlsockfd, SRV_QUEUE, "0", 1);
-          write(chld_pipe[1], tmpstr, 3);
+          write(chld_pipe[1], tmpstr, strlen(tmpstr));
           close(chld_pipe[1]);
           close(ctlsockfd);
         }
         else {
+          sprintf(tmpstr, "go %d %s", t_opts, head_ptr->tests);
           send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
-          write(head_ptr->pipe, tmpstr, 3);
+          write(head_ptr->pipe, tmpstr, strlen(tmpstr));
           close(head_ptr->pipe);
           close(head_ptr->ctlsockfd);
         }
@@ -1696,6 +1760,18 @@ multi_client:
         }
 
         set_timestamp();
+
+	/* The next 3 instructions retrieve the passed in values for the tests to run.
+	 * t_opts will be the bitmapped version of this data and test_suite will be a 
+	 * character string with the same info.  Note: this assumes that the structure
+	 * of buff is fixed with the character strings starting in these locations.
+	 * RAC 7/8/09
+	 */
+	memset(test_suite, 0, 16);
+	t_opts = atoi(buff+3);
+	memcpy(test_suite, buff+6, (strlen(buff)-6));
+	log_println(5, "extracting test_suite '%s' and t_opts '%x' from buff '%s'", test_suite, t_opts, buff);
+
         {
             I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
             testPort = I2AddrPort(tmp_addr);
@@ -1705,7 +1781,7 @@ multi_client:
             memset(cputimelog, 0, 256);
             if (cputime) {
 		strncpy(cputimelog, DataDirName, strlen(DataDirName));
-		if ((opendir(cputime) == NULL) && (errno == ENOENT))
+		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
 		    mkdir(cputimelog, 0755);
 		get_YYYY(dir);
 		strncat(cputimelog, dir, 4);
@@ -1747,10 +1823,18 @@ multi_client:
           fclose(fp);
         }
         close(chld_pipe[0]);
+	if (t_opts & TEST_MID)
+	    testopt.midopt = TOPT_ENABLED;
+	if (t_opts & TEST_SFW)
+	    testopt.sfwopt = TOPT_ENABLED;
+	if (t_opts & TEST_C2S)
+	    testopt.c2sopt = TOPT_ENABLED;
+	if (t_opts & TEST_S2C)
+	    testopt.s2copt = TOPT_ENABLED;
         alarm(30);  /* die in 30 seconds, but only if a test doesn't get started 
                      * reset alarm() before every test */
 
-        run_test(agent, ctlsockfd, testopt);
+        run_test(agent, ctlsockfd, testopt, test_suite);
 
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
