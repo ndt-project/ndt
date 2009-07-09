@@ -93,11 +93,12 @@ import javax.swing.JProgressBar;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "5.5.4b";
+  private static final String VERSION = "3.5.5";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
   private static final byte TEST_SFW = (1 << 3);
+  private static final byte TEST_STATUS = (1 << 4);
 
   /* we really should do some clean-up in this java code... maybe later ;) */
   private static final byte COMM_FAILURE  = 0;
@@ -110,6 +111,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private static final byte MSG_ERROR     = 7;
   private static final byte MSG_RESULTS   = 8;
   private static final byte MSG_LOGOUT    = 9;
+  private static final byte MSG_WAITING   = 10;
 
   private static final int SFW_NOTTESTED  = 0;
   private static final int SFW_NOFIREWALL = 1;
@@ -178,7 +180,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   boolean testInProgress = false;
   String host = null;
   String tmpstr, tmpstr2;
-  byte tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW;
+  byte tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS;
   int c2sResult = SFW_NOTTESTED;
   int s2cResult = SFW_NOTTESTED;
 
@@ -1149,6 +1151,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
               failed = true;
               return;
           }
+
+	  if (wait == 9990) {  // signal from the server to see if the client is still alive
+      	      ctl.send_msg(MSG_WAITING, tests);
+	      continue;
+	  }
+
           // Each test should take less than 30 seconds, so tell them 45 sec * number of 
           // tests in the queue.
           wait = (wait * 45);

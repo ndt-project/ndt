@@ -98,6 +98,7 @@ struct ndtchild {
 	int pipe;
 	int ctlsockfd;
 	int oldclient;
+	char tests[16];
 	struct ndtchild *next;
 };
 
@@ -180,5 +181,6 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *SubsequentTimeouts, int *ThruBytesAcked);
 #endif
 int KillHung(void);
+void writeMeta(void);
 
 #endif

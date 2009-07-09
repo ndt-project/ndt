@@ -598,7 +598,7 @@ main(int argc, char *argv[])
 {
   int c;
   char tmpstr2[512], tmpstr[16384], varstr[16384];
-  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW;
+  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS;
   int ctlSocket;
   int ctlport = 3001;
   int ret, xwait;
@@ -721,6 +721,14 @@ main(int argc, char *argv[])
   if (tests & TEST_S2C) {
     log_println(1, " > S2C throughput test");
   }
+
+  /* set the TEST_STATUS flag so the server knows this client will respond to status requests.
+   * this will let the server kill off zombie clients from the queue
+   * RAC 7/7/09
+   */
+  if (tests & TEST_STATUS) {
+    log_println(1, " > New Client, impliments queuing feedback");
+  }
   
   /* The beginning of the protocol */
 
@@ -760,6 +768,10 @@ main(int argc, char *argv[])
     if (xwait == 9999) {
       fprintf(stderr, "Server Busy: Please wait 60 seconds for the current test to finish.\n");
       exit(0);
+    }
+    if (xwait == 9990) {	/* Signal from the server to see if the client is still alive */
+      send_msg(ctlSocket, MSG_WAITING, &tests, 1);
+      continue;
     }
 
     /* Each test should take less than 30 seconds, so tell them 45 sec * number of 
