@@ -839,10 +839,12 @@ endLoop:
     strncat(cmdbuf, "/", 1);
     sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr), direction);
     strncat(cmdbuf, dir, strlen(dir));
+/* 
     if (direction[0] == 'c')
 	memcpy(meta.c2s_ndttrace, dir, strlen(dir));
     else
 	memcpy(meta.s2c_ndttrace, dir, strlen(dir));
+ */
     pdump = pcap_dump_open(pd, cmdbuf);
     fprintf(stderr, "Opening '%s' log fine\n", cmdbuf);
     if (pdump == NULL) {
@@ -852,7 +854,10 @@ endLoop:
   }
 
   printer = (pcap_handler) print_speed;
-  write(monitor_pipe[1], "Ready", 128);
+  if (dumptrace == 0)
+     write(monitor_pipe[1], "Ready", 128); 
+  else
+     write(monitor_pipe[1], dir, strlen(dir));
 
   /* kill process off if parent doesn't send a signal. */
   alarm(45);
