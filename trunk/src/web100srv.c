@@ -1769,7 +1769,8 @@ multi_client:
 	 */
 	memset(test_suite, 0, 16);
 	t_opts = atoi(buff+3);
-	memcpy(test_suite, buff+6, (strlen(buff)-6));
+	/* memcpy(test_suite, buff+6, (strlen(buff)-6)); */
+	memcpy(test_suite, buff+6, 7);
 	log_println(5, "extracting test_suite '%s' and t_opts '%x' from buff '%s'", test_suite, t_opts, buff);
 
         {
