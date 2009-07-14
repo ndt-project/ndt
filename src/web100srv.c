@@ -1586,8 +1586,10 @@ main(int argc, char** argv)
         log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", chld_pipe[0], chld_pipe[1]);
 
         close(chld_pipe[0]);
-        if (multiple == 1)
-          goto multi_client;
+/*  Move code below new_child struct filling
+ *  if (multiple == 1)
+ *           goto multi_client;
+ */
 
         /* Check to see if we have more than max_clients waiting in the queue
          * If so, tell them to go away.
@@ -1614,10 +1616,14 @@ main(int argc, char** argv)
 	    new_child->oldclient = 1;
 	else
 	    new_child->oldclient = 0;
+	memset(new_child->tests, 0, sizeof(test_suite));
 	memcpy(new_child->tests, test_suite, strlen(test_suite));
         new_child->next = NULL;
 
 log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s", new_child->oldclient, new_child->tests);
+
+        if (multiple == 1)
+          goto multi_client;
 
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
@@ -1730,7 +1736,7 @@ ChldRdy:
 
         head_ptr->stime = time(0);
 multi_client:
-	memset(tmpstr, 0, strlen(tmpstr));
+	memset(tmpstr, 0, sizeof(tmpstr));
         if (multiple == 1) {
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(ctlsockfd, SRV_QUEUE, "0", 1);
@@ -1766,6 +1772,7 @@ multi_client:
          * Rich Carlson 3/11/04
          */
         for (;;) {
+	  memset(buff, 0, sizeof(buff));
           read(chld_pipe[0], buff, 32);
           if (strncmp(buff, "go", 2) == 0) {
             log_println(6, "Got 'go' signal from parent, ready to start testing");
@@ -1783,8 +1790,8 @@ multi_client:
 	 */
 	memset(test_suite, 0, 16);
 	t_opts = atoi(buff+3);
-	/* memcpy(test_suite, buff+6, (strlen(buff)-6)); */
-	memcpy(test_suite, buff+6, 7);
+	memcpy(test_suite, buff+5, (strlen(buff)-5));
+	/* memcpy(test_suite, buff+6, 7); */
 	log_println(5, "extracting test_suite '%s' and t_opts '%x' from buff '%s'", test_suite, t_opts, buff);
 
         {
