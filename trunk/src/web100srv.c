@@ -905,7 +905,7 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   spd = ((double)DataBytesOut / (double)totaltime) * 8;
   waitsec = (double) (CurrentRTO * Timeouts)/1000;
   log_println(2, "CWND limited test = %0.2f while unlimited = %0.2f", s2c2spd, s2cspd);
-  if (s2c2spd > s2cspd) 
+  if ((s2c2spd > s2cspd) && (multiple == 0))
     log_println(2, "Better throughput when CWND is limited, may be duplex mismatch");
   else
     log_println(2, "Better throughput without CWND limits - normal operation");
@@ -915,7 +915,8 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   old_mismatch = 1;
   if (old_mismatch == 1) {
     if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-        (MaxSsthresh > 0) && (RTOidle > .01) && (link > 2) && (s2cspd < s2c2spd))
+        (MaxSsthresh > 0) && (RTOidle > .01) && (link > 2) && (s2cspd < s2c2spd) &&
+	(multiple == 0))
     {  if (s2cspd < c2sspd)
       mismatch = 1;
       else
