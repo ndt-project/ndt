@@ -782,6 +782,11 @@ main(int argc, char *argv[])
     log_println(0,  "begin within %d seconds", xwait);
   }
 
+  /* add alarm() signal to kill off client if the server never finishes the tests
+   * RAC 7/13/09
+   */
+  alarm(90);
+
   msgLen = sizeof(buff);
   if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
     log_println(0, "Protocol error - expected version message!");
