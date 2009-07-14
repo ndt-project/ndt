@@ -1589,6 +1589,19 @@ main(int argc, char** argv)
         if (multiple == 1)
           goto multi_client;
 
+        /* Check to see if we have more than max_clients waiting in the queue
+         * If so, tell them to go away.
+         * changed for M-Lab deployment  1/28/09  RAC
+         */
+        if (waiting > max_clients) {
+          log_println(0, "Too many clients waiting to be served, Please try again later.");
+          sprintf(tmpstr, "9988");
+          send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+          kill(new_child->pid, SIGKILL);
+          free(new_child);
+          continue;
+        }
+
 	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
@@ -1617,7 +1630,7 @@ log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
          * If so, tell them to go away.
          * changed for M-Lab deployment  1/28/09  RAC
          */
-        if (waiting > max_clients) {
+/*        if (waiting > max_clients) {
           log_println(0, "Too many clients waiting to be served, Please try again later.");
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
@@ -1625,6 +1638,7 @@ log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
           free(new_child);
           continue;
         }
+*/
 
         waiting++;
         log_println(5, "Incrementing waiting variable now = %d", waiting);

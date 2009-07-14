@@ -696,7 +696,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       sel_tv.tv_sec = 1;
       sel_tv.tv_usec = 100000;
 read3:
-      if ((select(32, &rfd, NULL, NULL, &sel_tv)) > 0) {
+      if ((ret = select(mon_pipe1[0]+1, &rfd, NULL, NULL, &sel_tv)) > 0) {
         if ((ret = read(mon_pipe1[0], spds[*spd_index], 128)) < 0)
           sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
         log_println(1, "%d bytes read '%s' from monitor pipe", ret, spds[*spd_index]);
@@ -706,9 +706,9 @@ read3:
         log_println(1, "%d bytes read '%s' from monitor pipe", ret, spds[*spd_index]);
         (*spd_index)++;
       } else {
-        if (errno == EINTR)
+        log_println(4, "Failed to read pkt-pair data from C2S flow, retcode=%d, reason=%d", ret, errno);
+        if ((ret == -1) && (errno == EINTR))
           goto read3;
-        log_println(4, "Failed to read pkt-pair data from C2S flow, reason = %d", errno);
         sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
         sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
       }
@@ -1106,7 +1106,7 @@ read2:
           (*spd_index)++;
         } else {
           log_println(4, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d", ret, errno);
-          if (errno == EINTR)
+          if ((ret == -1) && (errno == EINTR))
             goto read2;
           sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
           sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0");
