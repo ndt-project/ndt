@@ -1694,7 +1694,7 @@ ChldRdy:
                 (waiting-1), tmp_ptr->pid, (waiting-i));
 
             sprintf(tmpstr, "%d", (waiting-i));
-            send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+            send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
             tmp_ptr = tmp_ptr->next;
             i--;
           }
