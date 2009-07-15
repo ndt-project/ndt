@@ -703,6 +703,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt, char *test_sui
   int totalcnt;
   int autotune;
   int dec_cnt, same_cnt, inc_cnt, timeout, dupack;
+  int ifspeed;
 
   time_t stime;
 
@@ -784,14 +785,15 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
   for (n=0; n<spd_index; n++) {
-    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d", &links[0],
+    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d %d", &links[0],
         &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
         &links[7], &links[8], &links[9], &links[10], &links[11], &runave[n],
-        &inc_cnt, &dec_cnt, &same_cnt, &timeout, &dupack);
+        &inc_cnt, &dec_cnt, &same_cnt, &timeout, &dupack, &ifspeed);
     max = 0;
     index = 0;
     total = 0;
-    for (j=0; j<10; j++) {
+    /* for (j=0; j<10; j++) { */
+    for (j=0; j<=ifspeed; j++) {
       total += links[j];
       if (max < links[j]) {
         max = links[j];
@@ -1457,6 +1459,18 @@ main(int argc, char** argv)
   if (usesyslog == 1)
     syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started",
         VERSION);
+
+  /* scan through the interface device list and get the names/speeds of each
+   * if.  The speed data can be used to cap the search for the bottleneck link
+   * capacity.  The intent is to reduce the impact of interrupt coalescing on 
+   * the bottleneck link detection algorithm
+   * RAC 7/14/09
+   */
+  get_iflist();
+
+  for (i=0; iflist.speed[i]>0; i++)
+     log_println(4, "Generated iflist with device=%s and if_speed=%d", iflist.name[i], iflist.speed[i]);
+
   /*
    * Wait at accept() for a new connection from a client process.
    */

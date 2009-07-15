@@ -149,6 +149,37 @@ struct pseudo_hdr {   /* used to compute TCP checksum */
 
 int32_t gmt2local(time_t);
 
+/* struct's and other data borrowed from ethtool */
+/* CMDs currently supported */
+#define ETHTOOL_GSET            0x00000001 /* Get settings. */
+
+#define SPEED_10       10
+#define SPEED_100     100
+#define SPEED_1000   1000
+#define SPEED_10000 10000
+
+/* This should work for both 32 and 64 bit userland. */
+struct ethtool_cmd {
+        u_int32_t     cmd;
+        u_int32_t     supported;      /* Features this interface supports */
+        u_int32_t     advertising;    /* Features this interface advertises */
+        u_int16_t     speed;          /* The forced speed, 10Mb, 100Mb, gigabit */
+        u_int8_t      duplex;         /* Duplex, half or full */
+        u_int8_t      port;           /* Which connector port */
+        u_int8_t      phy_address;
+        u_int8_t      transceiver;    /* Which tranceiver to use */
+        u_int8_t      autoneg;        /* Enable or disable autonegotiation */
+        u_int32_t     maxtxpkt;       /* Tx pkts before generating tx int */
+        u_int32_t     maxrxpkt;       /* Rx pkts before generating rx int */
+        u_int32_t     reserved[4];
+};
+
+struct iflists {
+	char      name[8][32];
+	u_int16_t speed[32];
+} iflist;
+
+
 /* web100-pcap */
 #ifdef HAVE_LIBPCAP
 void init_vars(struct spdpair *cur);

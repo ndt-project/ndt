@@ -16,12 +16,70 @@
 #include "web100srv.h"
 #include "network.h"
 #include "logging.h"
+#include <net/if.h>
+#include <linux/sockios.h>
+#include <sys/ioctl.h>
 
 int dumptrace;
 pcap_t *pd;
 pcap_dumper_t *pdump;
 int mon_pipe1[2], mon_pipe2[2];
 int sig1, sig2, sigj=0;
+int ifspeed;
+
+void get_iflist(void) 
+{
+	  /* pcap_addr_t *ifaceAddr; */
+  pcap_if_t *alldevs, *dp;
+  struct ethtool_cmd ecmd;
+  int fd, cnt, i, err;
+  struct ifreq ifr;
+  char errbuf[256];
+
+  /* scan through the interface device list and get the names/speeds of each
+ *    * if.  The speed data can be used to cap the search for the bottleneck link
+ *       * capacity.  The intent is to reduce the impact of interrupt coalescing on 
+ *          * the bottleneck link detection algorithm
+ *             * RAC 7/14/09
+ *                */
+  cnt=0;
+  if (pcap_findalldevs(&alldevs, errbuf) == 0) {
+    for (dp=alldevs; dp!=NULL; dp=dp->next) {
+      memcpy(iflist.name[cnt++], dp->name, strlen(dp->name));
+    }
+  }
+  for (i=0; i<cnt; i++) {
+    if (strncmp((char *)iflist.name[i], "eth", 3) != 0)
+      continue;
+    memset(&ifr, 0, sizeof(ifr));
+    memcpy(ifr.ifr_name, (char *)iflist.name[i], strlen(iflist.name[i]));
+    /* strcpy(ifr.ifr_name, iflist.name[i]); */
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ecmd.cmd = ETHTOOL_GSET;
+    ifr.ifr_data = (caddr_t) &ecmd;
+    err = ioctl(fd, SIOCETHTOOL, &ifr);
+    if (err == 0) {
+        switch (ecmd.speed) {
+          case SPEED_10:
+            iflist.speed[i] = 3;
+            break;
+          case SPEED_100:
+            iflist.speed[i] = 5;
+            break;
+          case SPEED_1000:
+            iflist.speed[i] = 7;
+            break;
+          case SPEED_10000:
+            iflist.speed[i] = 9;
+            break;
+	  default :
+	    iflist.speed[i] = 0;
+      }
+    }
+  }
+  pcap_freealldevs(alldevs);
+}
+
 
 int
 check_signal_flags()
@@ -274,10 +332,11 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
     fclose(fp);
   }
 
-	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d", cur->links[0], cur->links[1],
-		cur->links[2], cur->links[3], cur->links[4], cur->links[5], cur->links[6],
-		cur->links[7], cur->links[8], cur->links[9], cur->links[10], cur->links[11],
-		cur->totalspd2, cur->inc_cnt, cur->dec_cnt, cur->same_cnt, cur->timeout, cur->dupack);
+	sprintf(buff, "  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d %d",
+		cur->links[0], cur->links[1], cur->links[2], cur->links[3], cur->links[4],
+		cur->links[5], cur->links[6], cur->links[7], cur->links[8], cur->links[9],
+		cur->links[10], cur->links[11], cur->totalspd2, cur->inc_cnt, cur->dec_cnt,
+		cur->same_cnt, cur->timeout, cur->dupack, ifspeed);
 	i = write(monitor_pipe[1], buff, 128);
   log_println(6, "wrote %d bytes: link counters are '%s'", i, buff);
   log_println(6, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
@@ -653,14 +712,14 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 {
   char cmdbuf[256], dir[256];
   pcap_handler printer;
-  u_char * pcap_userdata = (u_char*) pair;
+  u_char * pcap_userdata=(u_char*) pair;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
-  int cnt, pflag = 0;
+  int cnt, pflag=0, i;
   char c;
   char namebuf[200], isoTime[64];
-  size_t nameBufLen = 199;
-  I2Addr sockAddr = NULL;
+  size_t nameBufLen=199;
+  I2Addr sockAddr=NULL;
   struct sockaddr *src_addr;
   pcap_if_t *alldevs, *dp;
   pcap_addr_t *curAddr;
@@ -693,12 +752,13 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					((struct sockaddr_in *)src_addr)->sin_addr.s_addr) {
 			    log_println(4, "IPv4 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
-			    /* if (meta.server_ip[0] == 0) { 
-				memcpy(meta.server_ip, namebuf, INET_ADDRSTRLEN);
-				inet_ntop(AF_INET, &((struct sockaddr_in *)curAddr->addr)->sin_addr,
-					meta.server_ip, INET_ADDRSTRLEN);
-				log_println(5, "Set meta.server_ip to '%s'", meta.server_ip);
-			    } */
+			    ifspeed -1;
+			    for(i=0; iflist.name[0][i]!='0'; i++) {
+				if (strncmp((char *)iflist.name[i], device, 4) == 0) {
+				    ifspeed = iflist.speed[i];
+				    break;
+				}
+			    }
 				
 			    if (direction[0] == 's') {
 #if defined(AF_INET6)
@@ -748,12 +808,6 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					16) == 0) {
 			    log_println(4, "IPv6 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
-			    /* if (meta.server_ip[0] == 0) { 
-				memcpy(meta.server_ip, namebuf, INET6_ADDRSTRLEN);
-			 	inet_ntop(AF_INET6, &((struct sockaddr_in6 *)curAddr->addr)->sin6_addr,
-					meta.server_ip, INET6_ADDRSTRLEN); 
-				log_println(5, "Set meta.server_ip to '%s'", meta.server_ip);
-			     } */
 				
 			    if (direction[0] == 's') {
       			    	memcpy(fwd.saddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
