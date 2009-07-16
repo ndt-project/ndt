@@ -793,6 +793,8 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
     index = 0;
     total = 0;
     /* for (j=0; j<10; j++) { */
+    if (ifspeed == -1)
+	ifspeed = 10;
     for (j=0; j<=ifspeed; j++) {
       total += links[j];
       if (max < links[j]) {
