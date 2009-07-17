@@ -106,7 +106,7 @@ int admin_view=0;
 int queue=1;
 int view_flag=0;
 int record_reverse=0;
-int testing, waiting;
+int testing, waiting, mclients;
 int refresh = 30;
 int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 int sig1, sig2, sig17;
@@ -1484,6 +1484,7 @@ main(int argc, char** argv)
    */
 
   testing = 0;
+  mclients = 0;
   waiting = 0;
   loopcnt = 0;
   head_ptr = NULL;
@@ -1612,7 +1613,7 @@ main(int argc, char** argv)
          * If so, tell them to go away.
          * changed for M-Lab deployment  1/28/09  RAC
          */
-        if (waiting > max_clients) {
+        if ((waiting > max_clients) || (mclients > max_clients)) {
           log_println(0, "Too many clients waiting to be served, Please try again later.");
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
@@ -1755,6 +1756,7 @@ ChldRdy:
 multi_client:
 	memset(tmpstr, 0, sizeof(tmpstr));
         if (multiple == 1) {
+	  mclients++;
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(ctlsockfd, SRV_QUEUE, "0", 1);
           write(chld_pipe[1], tmpstr, strlen(tmpstr));
@@ -1875,6 +1877,8 @@ multi_client:
 
         run_test(agent, ctlsockfd, testopt, test_suite);
 
+	if (multiple == 1)
+	  mclients--;
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
         web100_detach(agent);
