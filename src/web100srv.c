@@ -220,8 +220,11 @@ child_sig(void)
     }
     if (status != 0) 
       return;
-    if (multiple == 1)
+    if (multiple == 1) {
+      log_println(5, "mclient child '%d' has finished its test", mclients);
+      mclients--;
       return;
+    }
 
     log_println(4, "Attempting to clean up child %d, head pid = %d", pid, head_ptr->pid);
     if (head_ptr->pid == pid) {
@@ -1613,12 +1616,14 @@ main(int argc, char** argv)
          * If so, tell them to go away.
          * changed for M-Lab deployment  1/28/09  RAC
          */
-        if ((waiting > max_clients) || (mclients > max_clients)) {
-          log_println(0, "Too many clients waiting to be served, Please try again later.");
+        if ((waiting >= max_clients) || (mclients >= max_clients)) {
+          log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.", chld_pid);
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
-          kill(new_child->pid, SIGKILL);
-          free(new_child);
+	  kill(chld_pid, SIGKILL);
+          /* kill(new_child->pid, SIGKILL);
+           * free(new_child);
+	   */
           continue;
         }
 
@@ -1757,6 +1762,7 @@ multi_client:
 	memset(tmpstr, 0, sizeof(tmpstr));
         if (multiple == 1) {
 	  mclients++;
+	  log_println(5, "New mclient '%d'(%d) asking for service", mclients, chld_pid);
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(ctlsockfd, SRV_QUEUE, "0", 1);
           write(chld_pipe[1], tmpstr, strlen(tmpstr));
@@ -1877,8 +1883,6 @@ multi_client:
 
         run_test(agent, ctlsockfd, testopt, test_suite);
 
-	if (multiple == 1)
-	  mclients--;
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
         web100_detach(agent);
