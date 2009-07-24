@@ -43,6 +43,7 @@ struct metadata {
     char date[32];
     char time[16];
     char client_ip[64];
+    struct sockaddr_storage c_addr;
     char client_name[64];
     char client_os[32];
     char client_browser[32];

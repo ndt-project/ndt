@@ -752,7 +752,7 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
 					((struct sockaddr_in *)src_addr)->sin_addr.s_addr) {
 			    log_println(4, "IPv4 address match, setting device to '%s'", dp->name);
 			    device = dp->name;
-			    ifspeed -1;
+			    ifspeed = -1;
 			    for(i=0; iflist.name[0][i]!='0'; i++) {
 				if (strncmp((char *)iflist.name[i], device, 4) == 0) {
 				    ifspeed = iflist.speed[i];

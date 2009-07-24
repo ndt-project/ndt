@@ -356,6 +356,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
      */
     clilen = sizeof(cli_addr);
     midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
+    /* memcpy(meta.c_addr, cli_addr, clilen); */
+    meta.c_addr = cli_addr;
     meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
 
     buff[0] = '\0';
