@@ -1621,6 +1621,8 @@ main(int argc, char** argv)
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 	  kill(chld_pid, SIGKILL);
+	  if (new_child != NULL)
+		free(new_child);
           /* kill(new_child->pid, SIGKILL);
            * free(new_child);
 	   */
@@ -1628,6 +1630,13 @@ main(int argc, char** argv)
         }
 
 	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
+	if (t_opts < 0) {
+	    log_println(3, "Invalid test suite string '%s' received, terminate child", test_suite);
+	    kill(chld_pid, SIGKILL);
+	    if (new_child != NULL)
+		free(new_child);
+	    continue;
+	}
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
         strncpy(new_child->host, name, strlen(name));

@@ -183,17 +183,17 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
   if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
-      return 1;
+      return (-1);
   }
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
-      return 2;
+      return (-2);
   }
   if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS))) {
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
-      return 3;
+      return (-3);
   }
   if (useropt & TEST_MID) {
     /* options->midopt = TOPT_ENABLED; */
