@@ -77,7 +77,8 @@ void get_iflist(void)
       }
     }
   }
-  pcap_freealldevs(alldevs);
+  if (alldevs != NULL)
+    pcap_freealldevs(alldevs);
 }
 
 
@@ -124,7 +125,7 @@ check_signal_flags()
 
     if (sig2 == 1) {
       log_println(4, "Sending pkt-pair data back to parent on pipe %d, %d", mon_pipe2[0], mon_pipe2[1]);
-    if (get_debuglvl() > 3) {
+      if (get_debuglvl() > 3) {
 #ifdef AF_INET6
         if (fwd.family == 4) {
           fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
@@ -920,7 +921,8 @@ endLoop:
     log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
   }
   log_println(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
-  pcap_freealldevs(alldevs);
+  if (alldevs != NULL)
+    pcap_freealldevs(alldevs);
 
 
   if (sig1 == 2) {
