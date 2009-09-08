@@ -340,22 +340,20 @@ void writeMeta(void)
     char tmpstr[256], dir[128];
     char isoTime[64];
     size_t tmpstrlen=sizeof(tmpstr);
-    /* struct hostent *hp; */
     socklen_t len;
 
 /* Get the clients domain name and same in metadata file 
  * changed to use getnameinfo 7/24/09
  * RAC 7/7/09
  */
-/*
- * #ifdef AF_INET6
- *     if (meta.family == AF_INET6)
- * 	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, 16, AF_INET6);
- * #endif
- *     if (meta.family == AF_INET)
- * 	hp = (struct hostent *)gethostbyaddr((char *) &meta.client_ip, 4, AF_INET);
- *     if (hp == NULL)
- */
+
+#ifdef AF_INET6
+    if (meta.family == AF_INET6)
+	len = sizeof(struct sockaddr_in6);
+#endif
+    if (meta.family == AF_INET)
+	len = sizeof(struct sockaddr_in);
+
     if (getnameinfo((struct sockaddr *)&meta.c_addr, len, tmpstr, tmpstrlen,
 	NULL, 0, NI_NAMEREQD))
 	memcpy(meta.client_name, "No FQDN name", 12);

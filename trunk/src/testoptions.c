@@ -727,8 +727,7 @@ read3:
       close(mon_pipe1[1]);
     }
     /* we should wait for the SIGCHLD signal here */
-    /* wait(NULL);  */
-    waitpid(mon_pid1, NULL, 0);
+    wait(NULL); 
     
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
