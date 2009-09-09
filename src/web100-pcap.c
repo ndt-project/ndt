@@ -24,7 +24,7 @@ int dumptrace;
 pcap_t *pd;
 pcap_dumper_t *pdump;
 int mon_pipe1[2], mon_pipe2[2];
-int sig1, sig2, sigj=0;
+int sig1, sig2, sigj=0, sigk=0;
 int ifspeed;
 
 void get_iflist(void) 
@@ -489,34 +489,8 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
       log_println(1, "New IPv4 packet trace started -- initializing counters");
       fwd.seq = current.seq;
       
-/*
-#if defined(AF_INET6)
-    if (fwd.saddr[0] == 0) {
-      log_println(1, "New IPv4 packet trace started -- initializing counters");
-      fwd.saddr[0] = current.saddr[0];
-      fwd.daddr[0] = current.daddr[0];
-#else
-    if (fwd.saddr == 0) {
-      log_println(1, "New IPv4 packet trace started -- initializing counters");
-      fwd.saddr = current.saddr;
-      fwd.daddr = current.daddr;
-#endif
-      fwd.sport = current.sport;
-      fwd.dport = current.dport;
-*/
       fwd.st_sec = current.sec;
       fwd.st_usec = current.usec;
-/*
-#if defined(AF_INET6)
-      rev.saddr[0] = current.daddr[0];
-      rev.daddr[0] = current.saddr[0];
-#else
-      rev.saddr = current.daddr;
-      rev.daddr = current.saddr;
-#endif
-      rev.sport = current.dport;
-      rev.dport = current.sport;
-*/
       rev.st_sec = current.sec;
       rev.st_usec = current.usec;
       fwd.dec_cnt = 0;
@@ -593,16 +567,8 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
     if (fwd.seq == 0) {
       log_println(1, "New IPv6 packet trace started -- initializing counters");
       fwd.seq = current.seq;
-      /* memcpy(fwd.saddr, (void *) current.saddr, 16);
-      memcpy(fwd.daddr, (void *) current.daddr, 16);/
-      fwd.sport = current.sport;
-      fwd.dport = current.dport; */
       fwd.st_sec = current.sec;
       fwd.st_usec = current.usec;
-      /* memcpy(rev.saddr, (void *) current.daddr, 16);
-      memcpy(rev.daddr, (void *) current.saddr, 16);
-      rev.sport = current.dport;
-      rev.dport = current.sport; */
       rev.st_sec = current.sec;
       rev.st_usec = current.usec;
       fwd.dec_cnt = 0;
@@ -630,20 +596,10 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (fwd.saddr[3] == current.saddr[3])) {
       if (current.dport == port2) { 
             calculate_spd(&current, &fwd, port2, port4);
-      /*if (current.sport == port2) {
-	if (sigj == 0)
-            calculate_spd(&current, &fwd, port2, port4);
-	else
-            calculate_spd(&current, &rev, port2, port4); */
         return;
       }
       if (current.sport == port4) { 
             calculate_spd(&current, &fwd, port2, port4);
-      /* if (current.dport == port4) {
-	if (sigj == 0)
-            calculate_spd(&current, &fwd, port2, port4);
-	else
-            calculate_spd(&current, &rev, port2, port4); */
         return;
       }
     }
@@ -653,20 +609,10 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
         (rev.saddr[3] == current.saddr[3])) {
       if (current.sport == port2) { 
             calculate_spd(&current, &rev, port2, port4);
-      /* if (current.dport == port2) {
-	if (sigj == 0)
-            calculate_spd(&current, &rev, port2, port4);
-	else
-            calculate_spd(&current, &fwd, port2, port4); */
         return;
       }
       if (current.dport == port4) { 
             calculate_spd(&current, &rev, port2, port4);
-      /* if (current.sport == port4) { 
-	if (sigj == 0)
-            calculate_spd(&current, &rev, port2, port4);
-	else
-            calculate_spd(&current, &fwd, port2, port4); */
         return;
       }
     }
@@ -677,7 +623,10 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
  * Need to fix this by reversing the values.
  */
 
-  log_println(6, "Fault: unknown packet received with src/dst port = %d/%d", current.sport, current.dport);
+  if (sigk == 0) {
+    sigk++;
+    log_println(6, "Fault: unknown packet received with src/dst port = %d/%d", current.sport, current.dport);
+  }
   if (sigj == 0) {
       log_println(6, "Ports need to be reversed now port1/port2 = %d/%d", pair->port1, pair->port2);
       int tport = pair->port1;
@@ -709,7 +658,7 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 
 void
 init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
-    char *device, PortPair* pair, char *direction)
+    char *device, PortPair* pair, char *direction, int compress)
 {
   char cmdbuf[256], dir[256];
   pcap_handler printer;
@@ -894,12 +843,6 @@ endLoop:
     strncat(cmdbuf, "/", 1);
     sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr), direction);
     strncat(cmdbuf, dir, strlen(dir));
-/* 
-    if (direction[0] == 'c')
-	memcpy(meta.c2s_ndttrace, dir, strlen(dir));
-    else
-	memcpy(meta.s2c_ndttrace, dir, strlen(dir));
- */
     pdump = pcap_dump_open(pd, cmdbuf);
     fprintf(stderr, "Opening '%s' log fine\n", cmdbuf);
     if (pdump == NULL) {
@@ -923,7 +866,6 @@ endLoop:
   log_println(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
   if (alldevs != NULL)
     pcap_freealldevs(alldevs);
-
 
   if (sig1 == 2) {
     read(mon_pipe1[0], &c, 1);

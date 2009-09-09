@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.5.8],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.5.9],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -162,6 +162,26 @@ else
 	AM_CONDITIONAL(HAVE_PCAP_H, false)
 fi
 
+AC_CHECK_LIB([z], [deflateInit],
+             [
+              LINKED_ZLIB="-lz"
+              AC_DEFINE(HAVE_ZLIB, 1, [Define to 1 if you have the 'zlib' library (-lz).])
+              AM_CONDITIONAL(HAVE_Z, true)
+              ],
+              [
+               LINKED_ZLIB=""
+               INCLUDED_ZLIB=""
+               AM_CONDITIONAL(HAVE_Z, false)
+               ])
+
+AC_CHECK_HEADER(zlib.h, [], [a=0])
+if test $a == 0
+then
+	AM_CONDITIONAL(HAVE_ZLIB, true)
+else
+	AM_CONDITIONAL(HAVE_ZLIB, false)
+fi
+
 AC_CHECK_LIB([odbc], [SQLDriverConnect],
              [
               LINKED_ODBCLIB="-lodbc"
@@ -175,7 +195,7 @@ AC_CHECK_LIB([odbc], [SQLDriverConnect],
 NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) $(LINKED_ZLIB) -lm -lz'
 NDTINCS='-I$(NDTINCDIR)'
 
 AC_SUBST(LINKED_WEB100LIB)

@@ -82,6 +82,7 @@ typedef struct options {
     char cwndDecrease;
     char s2c_logname[128];
     char c2s_logname[128];
+    int  compress;
 } Options;
 
 typedef struct portpair {
@@ -187,7 +188,7 @@ void init_vars(struct spdpair *cur);
 void print_bins(struct spdpair *cur, int monitor_pipe[2]);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2, int port3);
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2],
-    char *device, PortPair* pair, char * direction);
+    char *device, PortPair* pair, char * direction, int compress);
 int check_signal_flags();
 #endif
 
@@ -213,6 +214,6 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
     int *SubsequentTimeouts, int *ThruBytesAcked);
 #endif
 int KillHung(void);
-void writeMeta(void);
+void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
 
 #endif

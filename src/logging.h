@@ -33,6 +33,8 @@ void   get_MM(char * month);
 void   get_DD(char * day);
 char * DataDirName;
 
+int zlib_def(char *src_fn);
+
 struct metadata {
     char c2s_snaplog[64];
     char c2s_ndttrace[64];

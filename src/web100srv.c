@@ -100,6 +100,7 @@ int count_vars=0;
 int dumptrace=0;
 int usesyslog=0;
 int multiple=0;
+int compress=1;
 int max_clients=50;
 int set_buff=0;
 int admin_view=0;
@@ -159,6 +160,7 @@ static struct option long_options[] = {
   {"syslog", 0, 0, 's'},
   {"tcpdump", 0, 0, 't'},
   {"version", 0, 0, 'v'},
+  {"gzip", 0, 0, 'z'},
   {"config", 1, 0, 'c'},
 #ifdef EXPERIMENTAL_ENABLED
   {"avoidsndblockup", 0, 0, 306},
@@ -1033,7 +1035,7 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
     strncat(meta.summary, tmpstr, strlen(tmpstr));
-    writeMeta();
+    writeMeta(compress, cputime, options.snaplog, dumptrace);
 
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
@@ -1164,7 +1166,7 @@ main(int argc, char** argv)
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -1193,7 +1195,7 @@ main(int argc, char** argv)
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1261,6 +1263,9 @@ main(int argc, char** argv)
           snprintf(tmpText, 300, "Invalid range: %s", optarg);
           short_usage(argv[0], tmpText);
         }
+      case 'z':
+        compress = 0;
+        break;
       case 'm':
         multiple = 1;
         break;
@@ -1490,6 +1495,7 @@ main(int argc, char** argv)
    * Rich Carlson 3/11/04
    */
 
+  options.compress = compress;
   testing = 0;
   mclients = 0;
   waiting = 0;
