@@ -131,6 +131,9 @@
 /* Define to 1 if `vfork' works. */
 #undef HAVE_WORKING_VFORK
 
+/* Define to 1 if you have the 'zlib' library (-lz). */
+#undef HAVE_ZLIB
+
 /* Name of package */
 #undef PACKAGE
 

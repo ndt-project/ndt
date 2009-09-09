@@ -432,6 +432,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   I2Addr c2ssrv_addr=NULL, src_addr=NULL;
   char listenc2sport[10];
   pthread_t workerThreadId;
+  char namebuf[256], dir[128];
+  size_t nameBufLen = 255;
+  char isoTime[64];
 
   web100_group* group;
   web100_connection* conn;
@@ -518,14 +521,18 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         close(recvsfd);
         log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
         /* log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair, "c2s");
+        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair, "c2s", options->compress);
         exit(0);    /* Packet trace finished, terminate gracefully */
       }
+      memset(tmpstr, 0, 256);
       if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
         log_println(0, "error & exit");
         exit(0);
       }
       if (strlen(tmpstr) > 5)
+	/* if (options->compress == 1)
+	    strncat(tmpstr, ".gz", 3);
+	*/
         memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
     }
 
@@ -576,9 +583,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     {
         I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
-        char namebuf[256], dir[128];
-        size_t nameBufLen = 255;
-	char isoTime[64];
         memset(namebuf, 0, 256);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
 	strncpy(options->c2s_logname, DataDirName, strlen(DataDirName));
@@ -728,6 +732,14 @@ read3:
     }
     /* we should wait for the SIGCHLD signal here */
     wait(NULL); 
+    if ((options->snaplog) && (options->compress == 1)) {
+      log_println(5, "compressing c2s snaplog file.");
+      /* zlib_def(options->c2s_logname);
+      if (options->compress == 1)
+ 	strncat(dir, ".gz", 3);
+      memcpy(meta.c2s_snaplog, dir, strlen(dir));
+	*/
+    }
     
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
@@ -773,6 +785,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   int msgLen;
   int sndqueue;
   struct sigaction new, old;
+  char namebuf[256], dir[126];
+  char isoTime[64];
+  size_t nameBufLen = 255;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -890,15 +905,19 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           close(xmitsfd);
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
           /* log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair, "s2c");
+          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair, "s2c", options->compress);
           exit(0);    /* Packet trace finished, terminate gracefully */
         }
+	memset(tmpstr, 0, 256);
         if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
           log_println(0, "error & exit");
           exit(0);
         }
 	if (strlen(tmpstr) > 5)
-	    memcpy(meta.s2c_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
+	  /* if (options->compress == 1)
+	    strncat(tmpstr, ".gz", 3);
+	  */
+	  memcpy(meta.s2c_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
       }
 
       /* Check, and if needed, set the web100 autotuning function on.  This improves
@@ -938,9 +957,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
       {
         I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
-        char namebuf[256], dir[126];
-	char isoTime[64];
-        size_t nameBufLen = 255;
         memset(namebuf, 0, 256);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
 	strncpy(options->s2c_logname, DataDirName, strlen(DataDirName));
@@ -1158,6 +1174,14 @@ read2:
     }
     /* we should wait for the SIGCHLD signal here */
     wait(NULL);
+    if ((options->snaplog) && (options->compress == 1)) {
+      log_println(5, "compressing s2c snaplog file.");
+      /* zlib_def(options->s2c_logname);
+      if (options->compress == 1)
+	 strncat(dir, ".gz", 3);
+       memcpy(meta.s2c_snaplog, dir, strlen(dir));
+	*/
+    }
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);

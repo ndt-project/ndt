@@ -53,7 +53,8 @@ srv_long_usage(char* info)
     printf("  -s, --syslog           - use the syslog() to log some information\n");
     printf("  -t, --tcpdump          - write tcpdump formatted file to disk\n");
     printf("  -v, --version          - print version number\n");
-    printf("  -x, --max_clients      - maximum numbers of clients permited in FIFO queue (default=50)\n\n");
+    printf("  -x, --max_clients      - maximum numbers of clients permited in FIFO queue (default=50)\n");
+    printf("  -z, --gzip	     - disable compression of tcptrace, snaplog, and cputime files\n\n");
     printf(" Configuration:\n\n");
     printf("  -c, --config #filename - specify the name of the file with configuration\n");
     printf("  -b, --buffer #size     - set TCP send/recv buffers to user value\n");
