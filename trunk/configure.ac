@@ -162,14 +162,14 @@ else
 	AM_CONDITIONAL(HAVE_PCAP_H, false)
 fi
 
-AC_CHECK_LIB([z], [deflateInit],
+AC_CHECK_LIB([z], [deflateInit_],
              [
-              LINKED_ZLIB="-lz"
+              ZLIB="-lz"
               AC_DEFINE(HAVE_ZLIB, 1, [Define to 1 if you have the 'zlib' library (-lz).])
               AM_CONDITIONAL(HAVE_Z, true)
               ],
               [
-               LINKED_ZLIB=""
+               ZLIB=""
                INCLUDED_ZLIB=""
                AM_CONDITIONAL(HAVE_Z, false)
                ])
@@ -195,7 +195,7 @@ AC_CHECK_LIB([odbc], [SQLDriverConnect],
 NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) $(LINKED_ZLIB) -lm -lz'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
 AC_SUBST(LINKED_WEB100LIB)
@@ -208,6 +208,7 @@ AC_SUBST(NDTLDFLAGS)
 AC_SUBST(NDTLIBS)
 AC_SUBST(NDTLIBDIR)
 AC_SUBST(NDTINCDIR)
+AC_SUBST(ZLIB)
 
 AC_SUBST(TOP_BUILD_DIRS)
 
