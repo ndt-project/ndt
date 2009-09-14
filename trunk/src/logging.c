@@ -14,7 +14,10 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netdb.h>
+
+#ifdef HAVE_ZLIB
 #include <zlib.h>
+#endif
 
 #include "logging.h"
 
@@ -28,6 +31,7 @@ static I2LogImmediateAttr _immediateattr;
 static time_t             timestamp;
 static long int		  utimestamp;
 
+#ifdef HAVE_ZLIB
 /* Compress snaplog, tcpdump, and cputime files to save disk space.  These files compress by 2 to 3 orders of
  * magnitude (100 - 1000 times).  This can save a lot of disk space.  9/9/09  RAC
  */
@@ -100,6 +104,7 @@ int zlib_def(char *src_fn) {
    
    return Z_OK;
 }
+#endif
 
 /*
  * Function name: log_init
@@ -457,6 +462,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime), meta.client_ip, meta.ctl_port);
     strncat(tmpstr, dir, strlen(dir));
 
+#ifdef HAVE_ZLIB
     if (compress == 1) {
 	log_println(5, "Compression is enabled, compress all files in '%s' basedir", tmp2str);
       if (snaplog) {
@@ -496,6 +502,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	  strncat(meta.CPU_time, ".gz", 3);
       }
     }
+#endif
 
     fp = fopen(tmpstr,"w");
     if (fp == NULL) {
