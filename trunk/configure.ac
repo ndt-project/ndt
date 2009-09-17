@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.5.9],[rcarlson@internet2.edu])
+AC_INIT([NDT],[3.5.10],[rcarlson@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -157,6 +157,7 @@ AC_CHECK_LIB([pcap], [pcap_open_live],
 AC_CHECK_HEADER(pcap.h, [] [a=0])
 if test $a == 0
 then
+	AC_DEFINE(HAVE_PCAP_H, 1, [Have PCAP header file.])
 	AM_CONDITIONAL(HAVE_PCAP_H, true)
 else
 	AM_CONDITIONAL(HAVE_PCAP_H, false)
@@ -177,9 +178,10 @@ AC_CHECK_LIB([z], [deflateInit_],
 AC_CHECK_HEADER(zlib.h, [], [a=0])
 if test $a == 0
 then
-	AM_CONDITIONAL(HAVE_ZLIB, true)
+	AM_CONDITIONAL(HAVE_ZLIB_H, true)
+	AC_DEFINE(HAVE_ZLIB_H, 1, [Have ZLIB header file.])
 else
-	AM_CONDITIONAL(HAVE_ZLIB, false)
+	AM_CONDITIONAL(HAVE_ZLIB_H, false)
 fi
 
 AC_CHECK_LIB([odbc], [SQLDriverConnect],
