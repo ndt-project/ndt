@@ -372,6 +372,7 @@ cleanup(int signo)
        * will attempt to do something with it.
        */
       /* sig17 = 1; */
+      if (ndtpid == getppid())
 	sig17++;
       break;
   }
@@ -1538,7 +1539,7 @@ main(int argc, char** argv)
           }
           tmp_ptr = head_ptr->next;
           kill(head_ptr->pid, SIGKILL);
-	  child_sig();
+	  /* child_sig(); */
 /*
  *         free(head_ptr);
  *         head_ptr = tmp_ptr;
