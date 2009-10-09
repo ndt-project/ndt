@@ -1540,10 +1540,9 @@ main(int argc, char** argv)
           tmp_ptr = head_ptr->next;
           kill(head_ptr->pid, SIGKILL);
 	  /* child_sig(); */
-/*
- *         free(head_ptr);
- *         head_ptr = tmp_ptr;
- */
+          free(head_ptr);
+          head_ptr = tmp_ptr;
+
           testing = 0;
           if (waiting > 0)
             waiting--;
