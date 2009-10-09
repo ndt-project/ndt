@@ -730,8 +730,9 @@ read3:
       close(mon_pipe1[0]);
       close(mon_pipe1[1]);
     }
-    /* we should wait for the SIGCHLD signal here */
-    wait(NULL); 
+    /* wait for the SIGCHLD signal here */
+    waitpid(mon_pid1, &ret, NULL);
+    /* wait(NULL);  */
     if ((options->snaplog) && (options->compress == 1)) {
       log_println(5, "compressing c2s snaplog file.");
       /* zlib_def(options->c2s_logname);
@@ -1173,7 +1174,8 @@ read2:
       close(mon_pipe2[1]);
     }
     /* we should wait for the SIGCHLD signal here */
-    wait(NULL);
+    waitpid(mon_pid2, &ret, NULL);
+    /* wait(NULL); */
     if ((options->snaplog) && (options->compress == 1)) {
       log_println(5, "compressing s2c snaplog file.");
       /* zlib_def(options->s2c_logname);
