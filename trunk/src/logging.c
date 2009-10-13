@@ -136,6 +136,22 @@ log_init(char* progname, int debuglvl)
   _debuglevel = debuglvl;
 }
 
+/* 
+ * Function name: log_free
+ * Description: Free malloc'ed memmory after child process ends.  Allocation without 
+ * a corresponding free() causes a memory leak, and the main process never ends so
+ * memory is not free'ed on a close.
+ * Arguments: none
+ * Added RAC 10/13/09
+ */
+
+void
+log_free(void)
+{
+  free(_errorhandler);
+  free(_errorhandler_nl);
+}
+
 /*
  * Function name: set_debuglvl
  * Description: Sets the debug level to the given value.
@@ -420,6 +436,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     char isoTime[64], filename[256];
     size_t tmpstrlen=sizeof(tmpstr);
     socklen_t len;
+    DIR *dp;
 
 /* Get the clients domain name and same in metadata file 
  * changed to use getnameinfo 7/24/09
@@ -441,22 +458,26 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 
     memset(tmpstr, 0, tmpstrlen);
     strncpy(tmpstr, DataDirName, strlen(DataDirName));
-    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+    if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
             mkdir(tmpstr, 0755);
+    closedir(dp);
     get_YYYY(dir);
     strncat(tmpstr, dir, 4);
-    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+    if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
             mkdir(tmpstr, 0755);
+    closedir(dp);
     strncat(tmpstr, "/", 1);
     get_MM(dir);
     strncat(tmpstr, dir, 2);
-    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+    if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
             mkdir(tmpstr, 0755);
+    closedir(dp);
     strncat(tmpstr, "/", 1);
     get_DD(dir);
     strncat(tmpstr, dir, 2);
-    if ((opendir(tmpstr) == NULL) && (errno == ENOENT))
+    if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
             mkdir(tmpstr, 0755);
+    closedir(dp);
     memcpy(tmp2str, tmpstr, tmpstrlen);
     strncat(tmpstr, "/", 1);
     sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime), meta.client_ip, meta.ctl_port);

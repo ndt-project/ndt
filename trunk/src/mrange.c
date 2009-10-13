@@ -63,18 +63,21 @@ mrange_parse(char* text)
       ptr = "1";
     }
     if (check_rint(ptr, &mr_ptr->min, 1, 65535)) {
+      free(mr_ptr);
       return 1;
     }
     if (*sptr == 0) {
       sptr = "65535";
     }
     if (check_rint(sptr, &mr_ptr->max, 1, 65535)) {
+      free(mr_ptr);
       return 1;
     }
     mr_ptr->next = mrange_root;
     mrange_root = mr_ptr;
     ptr = strtok(NULL, ",");
   }
+  free(mr_ptr);
   return 0;
 }
 

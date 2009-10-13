@@ -147,6 +147,9 @@ int ndtpid;
 int testPort;
 char testName[256];
 
+#include <semaphore.h>
+sem_t ndtq;	/* create semaphone to allow only 1 process to modify the wait queue */
+
 static struct option long_options[] = {
   {"adminview", 0, 0, 'a'},
   {"debug", 0, 0, 'd'},
@@ -199,7 +202,7 @@ static struct option long_options[] = {
 void
 child_sig(void)
 {
-  int pid, status;
+  int pid, status, rc;
   struct ndtchild *tmp1, *tmp2;
 
   /*
@@ -207,7 +210,7 @@ child_sig(void)
    * Use the wait3() system call with the WNOHANG option.
    */
   tmp1 = head_ptr;
-  log_println(2, "Received SIGCHLD signal for active web100srv process [%d]", getpid());
+  log_println(2, "Received SIGCHLD signal for active web100srv process [%d], sig17=%d", getpid(), sig17);
 
   while ((pid = wait3(&status, WNOHANG, (struct rusage *) 0)) > 0) {
     log_println(3, "wait3() returned %d for PID=%d", status, pid);
@@ -232,18 +235,28 @@ child_sig(void)
 
     log_println(4, "Attempting to clean up child %d, head pid = %d", pid, head_ptr->pid);
     if (head_ptr->pid == pid) {
+      while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+	log_println(6, "Waiting for ndtq semaphone to free - 1");
+        continue;
+      }
       log_println(5, "Child process %d causing head pointer modification", pid);
       tmp1 = head_ptr;
       head_ptr = head_ptr->next;
-      free(tmp1);
+      if (tmp1 != NULL)
+        free(tmp1);
       testing = 0;
       waiting--;
       log_println(3, "Removing Child from head, decremented waiting/mclients %d/%d", waiting, mclients);
+      sem_post(&ndtq);
       return;
     }
     else {
       while (tmp1->next != NULL) {
         if (tmp1->next->pid == pid) {
+          while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+	    log_println(6, "Waiting for ndtq semaphore to free - 2");
+            continue;
+	  }
           log_println(4, "Child process %d causing task list modification", pid);
           tmp2 = tmp1->next;
           tmp1->next = tmp2->next;
@@ -251,6 +264,7 @@ child_sig(void)
           testing = 0;
           waiting--;
           log_println(3, "Removing Child from list, decremented waiting/mclients %d/%d", waiting, mclients);
+          sem_post(&ndtq);
           return;
         }
         tmp1 = tmp1->next;
@@ -372,8 +386,10 @@ cleanup(int signo)
        * will attempt to do something with it.
        */
       /* sig17 = 1; */
-      if (ndtpid == getppid())
+      if (ndtpid != getppid()) {
 	sig17++;
+	log_println(5, "Signal 17 (SIGCHLD) received count=%d", sig17);
+      }
       break;
   }
 }
@@ -638,11 +654,16 @@ zombieWorker(void *head_ptr) {
 	  case 0:
 	    /*  a timeout occurred, remove zombie client from list */
 	    log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
+            while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+	      log_println(6, "Waiting for ndtq semaphone to free - adding new client 1");
+              continue;
+	    }
 	    tmp = tmp_ptr;
 	    pre_ptr->next = tmp_ptr->next;
 	    tmp_ptr = tmp_ptr->next;
 	    free(tmp);
 	    i++;
+	    sem_post(&ndtq);
 	    break;
 	  default:
 	    log_println(6, "new client responded, bumping pointers child=%d", tmp_ptr->pid);
@@ -1117,6 +1138,7 @@ int
 main(int argc, char** argv)
 {
   int chld_pid, rc;
+  int mwaiting = 0;
   int ctlsockfd = -1;
   int c, chld_pipe[2];
   int i, loopcnt, t_opts=0;
@@ -1139,6 +1161,9 @@ main(int argc, char** argv)
   char* srcname = NULL;
   char isoTime[64], dir[64];
   int debug = 0;
+
+  DIR *dp;
+
   options.limit = 0;
   options.snapDelay = 5;
   options.avoidSndBlockUp = 0;
@@ -1503,6 +1528,8 @@ main(int argc, char** argv)
   loopcnt = 0;
   head_ptr = NULL;
   sig17 = 0;
+  sem_init(&ndtq, 0, 1);
+
   for(;;){
     int i;
     char *name;
@@ -1516,7 +1543,17 @@ main(int argc, char** argv)
     while (sig17 > 0) {
 	child_sig();
 	sig17--;
+	log_println(5, "Handled pending SIGCHLD signal, now count=%d", sig17);
     } 
+
+    if ((multiple == 1) && (mclients > waiting)) {
+      log_println(5, "Multi-client mode has uncaught terminated clients mclient=%d, waiting=%d", mclients, waiting);
+      while (mclients > waiting) {
+	child_sig();
+	mclients--;
+	log_println(5, "Removed terminated client from count mclients=%d", mclients);
+      }
+    }
 
     FD_ZERO(&rfd);
     FD_SET(listenfd, &rfd);
@@ -1539,7 +1576,7 @@ main(int argc, char** argv)
           }
           tmp_ptr = head_ptr->next;
           kill(head_ptr->pid, SIGKILL);
-	  /* child_sig(); */
+	  child_sig();
           free(head_ptr);
           head_ptr = tmp_ptr;
 
@@ -1648,6 +1685,10 @@ main(int argc, char** argv)
 		free(new_child);
 	    continue;
 	}
+        while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+	  log_println(6, "Waiting for ndtq semaphone to free - 1");
+          continue;
+        }
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
         strncpy(new_child->host, name, strlen(name));
@@ -1663,9 +1704,13 @@ main(int argc, char** argv)
 	memset(new_child->tests, 0, sizeof(test_suite));
 	memcpy(new_child->tests, test_suite, strlen(test_suite));
         new_child->next = NULL;
+	sem_post(&ndtq);
+	if (multiple == 1)
+	  mwaiting++;
 	mchild = new_child;
 
-log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s", new_child->oldclient, new_child->tests);
+	log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
+			new_child->oldclient, new_child->tests);
 
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
@@ -1682,10 +1727,15 @@ log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
           head_ptr = new_child;
         else {
           log_println(4, "New request has arrived, adding request to queue list");
+          while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+	    log_println(6, "Waiting for ndtq semaphone to free, adding new client 2");
+            continue;
+	  }
           tmp_ptr = head_ptr;
           while (tmp_ptr->next != NULL)
             tmp_ptr = tmp_ptr->next;
           tmp_ptr->next = new_child;
+	  sem_post(&ndtq);
 
           if (get_debuglvl() > 3) {
             log_println(4, "Walking scheduling queue");
@@ -1713,7 +1763,6 @@ log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
 	  continue;
         }
 
-	/* todo -- send message to waiting client in multi-client mode */
 	if ((multiple == 1) && (waiting >= max_clients)) {
 	  int xx = waiting/max_clients;
 	  log_println(3, "%d mclients waiting, tell client test will being within %d minutes",
@@ -1771,6 +1820,7 @@ ChldRdy:
         } 
 
 	if ((multiple == 1) && (mclients < max_clients)) {
+	  /*
 	  tmp_ptr = head_ptr;
 	  mchild = head_ptr;
 	  log_println(2, "starting queue look for non-running client current=%d, running=%d, next=0x%x",
@@ -1784,8 +1834,10 @@ ChldRdy:
 	    }
 	    tmp_ptr = tmp_ptr->next;
 	  }
-	  if (mchild->running == 1)
+	   */
+	  if (mwaiting == 0)
 	    continue;
+	  mwaiting--;
 	  log_println(3, "Multi-client mode operation, dispatch a new client.");
 	}
         log_println(3, "Telling client %d testing will begin now", head_ptr->pid);
@@ -1813,7 +1865,6 @@ multi_client:
 	  mchild->stime = time(0);
 	  mchild->running = 1;
 	  mclients++;
-	  log_println(5, "New mclient '%d'(%d) asking for service", mclients, mchild->pid);
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
           write(mchild->pipe, tmpstr, strlen(tmpstr));
@@ -1881,22 +1932,26 @@ multi_client:
             memset(cputimelog, 0, 256);
             if (cputime) {
 		strncpy(cputimelog, DataDirName, strlen(DataDirName));
-		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
+		closedir(dp);
 		get_YYYY(dir);
 		strncat(cputimelog, dir, 4);
-		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
+		closedir(dp);
 		strncat(cputimelog, "/", 1);
 		get_MM(dir);
 		strncat(cputimelog, dir, 2);
-		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
+		closedir(dp);
 		strncat(cputimelog, "/", 1);
 		get_DD(dir);
 		strncat(cputimelog, dir, 2);
-		if ((opendir(cputimelog) == NULL) && (errno == ENOENT))
+		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
+		closedir(dp);
 		strncat(cputimelog, "/", 1);
 		sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime), name, testPort);
 		strncat(cputimelog, dir, strlen(dir));
@@ -1939,6 +1994,7 @@ multi_client:
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
         web100_detach(agent);
+	log_free();
 
         if (cputime && workerThreadId) {
             workerLoop = 0;
