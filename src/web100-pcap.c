@@ -673,6 +673,7 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
   struct sockaddr *src_addr;
   pcap_if_t *alldevs, *dp;
   pcap_addr_t *curAddr;
+  DIR *dip;
 
   cnt = -1;  /* read forever, or until end of file */
   sig1 = 0;
@@ -824,22 +825,26 @@ endLoop:
     fprintf(stderr, "Creating trace file for connection\n");
     memset(cmdbuf, 0, 256);
     strncpy(cmdbuf, DataDirName, strlen(DataDirName));
-    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
+    closedir(dip);
     get_YYYY(dir);
     strncat(cmdbuf, dir, 4); 
-    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
+    closedir(dip);
     strncat(cmdbuf, "/", 1);
     get_MM(dir);
     strncat(cmdbuf, dir, 2); 
-    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
+    closedir(dip);
     strncat(cmdbuf, "/", 1);
     get_DD(dir);
     strncat(cmdbuf, dir, 2); 
-    if ((opendir(cmdbuf) == NULL) && (errno == ENOENT))
+    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
+    closedir(dip);
     strncat(cmdbuf, "/", 1);
     sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr), direction);
     strncat(cmdbuf, dir, strlen(dir));

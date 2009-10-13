@@ -396,6 +396,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     log_println(1, " <-------------------->");
     setCurrentTest(TEST_NONE);
   }
+  I2AddrFree(midsrv_addr);
   return 0;
 }
 
@@ -435,6 +436,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   char namebuf[256], dir[128];
   size_t nameBufLen = 255;
   char isoTime[64];
+  DIR *dp;
 
   web100_group* group;
   web100_connection* conn;
@@ -586,27 +588,32 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         memset(namebuf, 0, 256);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
 	strncpy(options->c2s_logname, DataDirName, strlen(DataDirName));
-    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->c2s_logname)) == NULL && errno == ENOENT)
 		mkdir(options->c2s_logname, 0755);
+	closedir(dp);
     	get_YYYY(dir);
     	strncat(options->c2s_logname, dir, 4); 
-    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->c2s_logname)) == NULL && errno == ENOENT)
 		mkdir(options->c2s_logname, 0755);
+	closedir(dp);
     	strncat(options->c2s_logname, "/", 1);
     	get_MM(dir);
     	strncat(options->c2s_logname, dir, 2); 
-    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->c2s_logname)) == NULL && errno == ENOENT)
 		mkdir(options->c2s_logname, 0755);
+	closedir(dp);
     	strncat(options->c2s_logname, "/", 1);
     	get_DD(dir);
     	strncat(options->c2s_logname, dir, 2); 
-    	if ((opendir(options->c2s_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->c2s_logname)) == NULL && errno == ENOENT)
 		mkdir(options->c2s_logname, 0755);
+	closedir(dp);
     	strncat(options->c2s_logname, "/", 1);
     	sprintf(dir, "%s_%s:%d.c2s_snaplog", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr));
 	strncat(options->c2s_logname, dir, strlen(dir));
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
+  	I2AddrFree(sockAddr);
         if (options->snaplog) {
 	    memcpy(meta.c2s_snaplog, dir, strlen(dir));
             FILE* fp = fopen(get_logfile(),"a");
@@ -745,6 +752,8 @@ read3:
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
+  I2AddrFree(c2ssrv_addr);
+  I2AddrFree(src_addr);
   return 0;
 }
 
@@ -789,6 +798,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   char namebuf[256], dir[126];
   char isoTime[64];
   size_t nameBufLen = 255;
+  DIR *dp;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -961,27 +971,32 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         memset(namebuf, 0, 256);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
 	strncpy(options->s2c_logname, DataDirName, strlen(DataDirName));
-    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->s2c_logname)) == NULL && errno == ENOENT)
 		mkdir(options->s2c_logname, 0755);
+	closedir(dp);
     	get_YYYY(dir);
     	strncat(options->s2c_logname, dir, 4); 
-    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->s2c_logname)) == NULL && errno == ENOENT)
 		mkdir(options->s2c_logname, 0755);
+	closedir(dp);
     	strncat(options->s2c_logname, "/", 1);
     	get_MM(dir);
     	strncat(options->s2c_logname, dir, 2); 
-    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->s2c_logname)) == NULL && errno == ENOENT)
 		mkdir(options->s2c_logname, 0755);
+	closedir(dp);
     	strncat(options->s2c_logname, "/", 1);
     	get_DD(dir);
     	strncat(options->s2c_logname, dir, 2); 
-    	if ((opendir(options->s2c_logname) == NULL) && (errno == ENOENT))
+    	if ((dp = opendir(options->s2c_logname)) == NULL && errno == ENOENT)
 		mkdir(options->s2c_logname, 0755);
+	closedir(dp);
     	strncat(options->s2c_logname, "/", 1);
     	sprintf(dir, "%s_%s:%d.s2c_snaplog", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr));
 	strncat(options->s2c_logname, dir, strlen(dir));
         group = web100_group_find(agent, "read");
         snapArgs.snap = web100_snapshot_alloc(group, conn);
+  	I2AddrFree(sockAddr);
         if (options->snaplog) {
 	    memcpy(meta.s2c_snaplog, dir, strlen(dir));
             FILE* fp = fopen(get_logfile(),"a");
@@ -1188,6 +1203,8 @@ read2:
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
+  I2AddrFree(s2csrv_addr);
+  I2AddrFree(src_addr);
   return 0;
 }
 

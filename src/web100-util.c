@@ -164,6 +164,7 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
       break;
   }
   web100_snapshot_free(snap);
+  free(sndbuff);
 }
  
 void
@@ -681,6 +682,8 @@ KillHung(void)
     conn = web100_connection_next(conn);
   }
 
+  web100_detach(agent);
+  free(pkt);
   if (hung == 0)
     return(-1);
   return(0);

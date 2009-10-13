@@ -161,6 +161,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       log_println(0, "Simple firewall test: Cannot find connection");
       sprintf(buff, "Server (Simple firewall test): Cannot find connection");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      I2AddrFree(sfwsrv_addr);
       return -1;
     }
     log_println(1, "  -- time: %d", testTime);
@@ -173,17 +174,20 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      I2AddrFree(sfwsrv_addr);
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      I2AddrFree(sfwsrv_addr);
       return 2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      I2AddrFree(sfwsrv_addr);
       return 3;
     }
     buff[msgLen] = 0;
@@ -191,6 +195,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       log_println(0, "Invalid port number");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      I2AddrFree(sfwsrv_addr);
       return 4;
     }
 
@@ -198,6 +203,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       log_println(0, "Unable to resolve server address");
       send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
       log_println(1, " <-------------------------->");
+      I2AddrFree(sfwsrv_addr);
       return 5;
     }
     I2AddrSetPort(sfwcli_addr, sfwport);
@@ -215,15 +221,17 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
         log_println(0, "Simple firewall test: select exited with error");
         sprintf(buff, "%d", SFW_UNKNOWN);
         send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
-        I2AddrFree(sfwsrv_addr);
         finalize_sfw(ctlsockfd);
+        I2AddrFree(sfwsrv_addr);
+        I2AddrFree(sfwcli_addr);
         return 1;
       case 0:
         log_println(0, "Simple firewall test: no connection for %d seconds", testTime);
         sprintf(buff, "%d", SFW_POSSIBLE);
         send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
-        I2AddrFree(sfwsrv_addr);
         finalize_sfw(ctlsockfd);
+        I2AddrFree(sfwsrv_addr);
+        I2AddrFree(sfwcli_addr);
         return 2;
     }
     clilen = sizeof(cli_addr);
@@ -235,16 +243,18 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
-      I2AddrFree(sfwsrv_addr);
       finalize_sfw(ctlsockfd);
+      I2AddrFree(sfwsrv_addr);
+      I2AddrFree(sfwcli_addr);
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
-      I2AddrFree(sfwsrv_addr);
       finalize_sfw(ctlsockfd);
+      I2AddrFree(sfwsrv_addr);
+      I2AddrFree(sfwcli_addr);
       return 1;
     }
     if (msgLen != 20) {
@@ -252,8 +262,9 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
-      I2AddrFree(sfwsrv_addr);
       finalize_sfw(ctlsockfd);
+      I2AddrFree(sfwsrv_addr);
+      I2AddrFree(sfwcli_addr);
       return 1;
     }
     buff[msgLen] = 0;
@@ -262,16 +273,18 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
-      I2AddrFree(sfwsrv_addr);
       finalize_sfw(ctlsockfd);
+      I2AddrFree(sfwsrv_addr);
+      I2AddrFree(sfwcli_addr);
       return 1;
     }
     
     sprintf(buff, "%d", SFW_NOFIREWALL);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     close(sockfd);
-    I2AddrFree(sfwsrv_addr);
     finalize_sfw(ctlsockfd);
+    I2AddrFree(sfwsrv_addr);
+    I2AddrFree(sfwcli_addr);
   }
   return 0;
 }
