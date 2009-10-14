@@ -483,6 +483,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime), meta.client_ip, meta.ctl_port);
     strncat(tmpstr, dir, strlen(dir));
 
+    log_println(6, "Should compress snaplog and tcpdump files compress=%d", compress);
 #ifdef HAVE_ZLIB_H
     if (compress == 1) {
 	log_println(5, "Compression is enabled, compress all files in '%s' basedir", tmp2str);
@@ -522,6 +523,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	else
 	  strncat(meta.CPU_time, ".gz", 3);
       }
+      else
+	log_println(5, "Zlib compression disabled, log files will not be compressed");
     }
 #endif
 
