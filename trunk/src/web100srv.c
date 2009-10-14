@@ -148,7 +148,7 @@ int testPort;
 char testName[256];
 
 #include <semaphore.h>
-sem_t ndtq;	/* create semaphone to allow only 1 process to modify the wait queue */
+sem_t ndtq;	/* create semaphore to allow only 1 process to modify the wait queue */
 
 static struct option long_options[] = {
   {"adminview", 0, 0, 'a'},
@@ -235,11 +235,24 @@ child_sig(void)
 
     log_println(4, "Attempting to clean up child %d, head pid = %d", pid, head_ptr->pid);
     if (head_ptr->pid == pid) {
+
+          if (get_debuglvl() > 5) {
+            log_println(5, "Walkingqueue");
+            tmp1 = head_ptr;
+            while (tmp1 != NULL) {
+              log_println(5, "\tChild %d, host: %s [%s], next=0x%x", tmp1->pid,
+                  tmp1->host, tmp1->addr, (u_int64_t) tmp1->next);
+              if (tmp1->next == NULL)
+                break;
+              tmp1 = tmp1->next;
+            }
+          }
+
       while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-	log_println(6, "Waiting for ndtq semaphone to free - 1");
+	log_println(6, "Waiting for ndtq semaphore to free - 1");
         continue;
       }
-      log_println(5, "Child process %d causing head pointer modification", pid);
+      log_println(5, "Child process %d causing head pointer modification, semaphore locked", pid);
       tmp1 = head_ptr;
       head_ptr = head_ptr->next;
       if (tmp1 != NULL)
@@ -248,6 +261,7 @@ child_sig(void)
       waiting--;
       log_println(3, "Removing Child from head, decremented waiting/mclients %d/%d", waiting, mclients);
       sem_post(&ndtq);
+      log_println(6, "Free'd ndtq semaphore lock - 3");
       return;
     }
     else {
@@ -257,7 +271,7 @@ child_sig(void)
 	    log_println(6, "Waiting for ndtq semaphore to free - 2");
             continue;
 	  }
-          log_println(4, "Child process %d causing task list modification", pid);
+          log_println(4, "Child process %d causing task list modification, semaphore locked", pid);
           tmp2 = tmp1->next;
           tmp1->next = tmp2->next;
           free(tmp2);
@@ -265,6 +279,7 @@ child_sig(void)
           waiting--;
           log_println(3, "Removing Child from list, decremented waiting/mclients %d/%d", waiting, mclients);
           sem_post(&ndtq);
+	  log_println(6, "Free'd ndtq semaphore lock - 4");
           return;
         }
         tmp1 = tmp1->next;
@@ -655,15 +670,17 @@ zombieWorker(void *head_ptr) {
 	    /*  a timeout occurred, remove zombie client from list */
 	    log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
             while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-	      log_println(6, "Waiting for ndtq semaphone to free - adding new client 1");
+	      log_println(6, "Waiting for ndtq semaphore to free - adding new client 1");
               continue;
 	    }
+	    log_println(6, "removing client from FIFO, semaphore locked");
 	    tmp = tmp_ptr;
 	    pre_ptr->next = tmp_ptr->next;
 	    tmp_ptr = tmp_ptr->next;
 	    free(tmp);
 	    i++;
 	    sem_post(&ndtq);
+	    log_println(6, "Free'd semaphore lock - 4");
 	    break;
 	  default:
 	    log_println(6, "new client responded, bumping pointers child=%d", tmp_ptr->pid);
@@ -1057,7 +1074,7 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
     strncat(meta.summary, tmpstr, strlen(tmpstr));
-    writeMeta(compress, cputime, options.snaplog, dumptrace);
+    writeMeta(options.compress, cputime, options.snaplog, dumptrace);
 
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
@@ -1574,11 +1591,18 @@ main(int argc, char** argv)
                 waiting, head_ptr->pid, ctime(&tt)+4);
             fclose(fp);
           }
+          while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+    	    log_println(6, "Waiting for ndtq semaphore to free - 1");
+            continue;
+          }
+	  log_println(6, "Client terminated - semaphore locked");
           tmp_ptr = head_ptr->next;
           kill(head_ptr->pid, SIGKILL);
-	  child_sig();
           free(head_ptr);
           head_ptr = tmp_ptr;
+	  sem_post(&ndtq);
+	  log_println(6, "Free'd ndtq semaphore lock - 5");
+	  child_sig();
 
           testing = 0;
           if (waiting > 0)
@@ -1628,6 +1652,7 @@ main(int argc, char** argv)
       /* the specially crafted data that kicks off the old clients */
       write(ctlsockfd, "123456 654321", 13);
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
+      memset(new_child, 0, sizeof(struct ndtchild));
       tt = time(0);
       name = tmpstr;
       rmt_host = tmpstr;
@@ -1686,9 +1711,10 @@ main(int argc, char** argv)
 	    continue;
 	}
         while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-	  log_println(6, "Waiting for ndtq semaphone to free - 1");
+	  log_println(6, "Waiting for ndtq semaphore to free - 1");
           continue;
         }
+	log_println(6, "creating new child - semaphore locked");
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
         strncpy(new_child->host, name, strlen(name));
@@ -1705,6 +1731,7 @@ main(int argc, char** argv)
 	memcpy(new_child->tests, test_suite, strlen(test_suite));
         new_child->next = NULL;
 	sem_post(&ndtq);
+	log_println(6, "Free'd ndtq semaphore lock - 1");
 	if (multiple == 1)
 	  mwaiting++;
 	mchild = new_child;
@@ -1728,14 +1755,16 @@ main(int argc, char** argv)
         else {
           log_println(4, "New request has arrived, adding request to queue list");
           while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-	    log_println(6, "Waiting for ndtq semaphone to free, adding new client 2");
+	    log_println(6, "Waiting for ndtq semaphore to free, adding new client 2");
             continue;
 	  }
+	  log_println(6, "Adding new client to fifo queue - semaphore locked");
           tmp_ptr = head_ptr;
           while (tmp_ptr->next != NULL)
             tmp_ptr = tmp_ptr->next;
           tmp_ptr->next = new_child;
 	  sem_post(&ndtq);
+	  log_println(6, "Free'd ndtq semaphore lock - 2");
 
           if (get_debuglvl() > 3) {
             log_println(4, "Walking scheduling queue");

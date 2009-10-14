@@ -224,9 +224,9 @@ top_srcdir = @top_srcdir@
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV = 
 TEMPDIRS = bin dist
-ndtdir = $(prefix)/ndt/janalyze
+ndtdir = $(prefix)/ndt
 ndt_DATA = JAnalyze.jar
-JAnalyzedir = $(ndtdir)
+JAnalyzedir = $(ndtdir)/janalyze
 JAnalyze_JAVA = src/JAnalyze.java src/DBConfFrame.java src/FilterFrame.java \
 				 src/Helpers.java src/LoadingDBFrame.java src/LoadingFrame.java \
 				 src/MaxPeakInfo.java src/MinPeakInfo.java src/PeakInfo.java \

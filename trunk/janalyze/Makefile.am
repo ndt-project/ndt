@@ -20,10 +20,10 @@ NDTGCJFLAGS = -cp external:src -d bin
 GCJFLAGS =
 TEMPDIRS = bin dist
 
-ndtdir = $(prefix)/ndt/janalyze
+ndtdir = $(prefix)/ndt
 
 ndt_DATA  = JAnalyze.jar
-JAnalyzedir = $(ndtdir)
+JAnalyzedir = $(ndtdir)/janalyze
 
 noinst_PROGRAMS = JAnalyze.jar
 
