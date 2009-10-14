@@ -163,8 +163,9 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
     if (k < 0 )
       break;
   }
+  log_println(5, "Finished with web100_middlebox() routine snap-0x%x, sndbuff=%x0x", snap, sndbuff);
   web100_snapshot_free(snap);
-  free(sndbuff);
+  /* free(sndbuff); */
 }
  
 void
@@ -683,7 +684,7 @@ KillHung(void)
   }
 
   web100_detach(agent);
-  free(pkt);
+  /* free(pkt); */
   if (hung == 0)
     return(-1);
   return(0);

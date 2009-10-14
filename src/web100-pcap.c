@@ -338,7 +338,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 		cur->links[5], cur->links[6], cur->links[7], cur->links[8], cur->links[9],
 		cur->links[10], cur->links[11], cur->totalspd2, cur->inc_cnt, cur->dec_cnt,
 		cur->same_cnt, cur->timeout, cur->dupack, ifspeed);
-	i = write(monitor_pipe[1], buff, 128);
+	i = write(monitor_pipe[1], buff, strlen(buff));
   log_println(6, "wrote %d bytes: link counters are '%s'", i, buff);
   log_println(6, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
       cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
@@ -815,10 +815,12 @@ endLoop:
 
   if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
     fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
+    return;
   }
 
   if (pcap_setfilter(pd, &fcode) < 0) {
     fprintf(stderr, "pcap_setfiler failed %s\n", pcap_geterr(pd));
+    return;
   }
 
   if (dumptrace == 1) {
@@ -858,7 +860,7 @@ endLoop:
 
   printer = (pcap_handler) print_speed;
   if (dumptrace == 0)
-     write(monitor_pipe[1], "Ready", 128); 
+     write(monitor_pipe[1], "Ready", 6); 
   else
      write(monitor_pipe[1], dir, strlen(dir));
 
@@ -869,8 +871,18 @@ endLoop:
     log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
   }
   log_println(5, "Pkt-Pair data collection ended, waiting for signal to terminate process");
-  if (alldevs != NULL)
-    pcap_freealldevs(alldevs);
+  /*    Temporarily remove these free statements, The memory should be free'd when
+   *      the child process terminates, so we don't have a leak.  There might be a bug in
+   *      the pcap lib (on-line reference found from 2003) and on 10/14/09 I was seeing
+   *      child crashes with a traceback pointing to the freecode() routine inside the pcap-lib
+   *      as the culprit.  RAC 10/15/09
+   *
+   * if (alldevs != NULL)
+   *    pcap_freealldevs(alldevs);
+   *  if (&fcode != NULL)
+   *    pcap_freecode(&fcode);
+   */
+  free(sockAddr);
 
   if (sig1 == 2) {
     read(mon_pipe1[0], &c, 1);

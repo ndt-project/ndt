@@ -297,18 +297,22 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     }
     
 /*  RAC debug  */
+/*
     if (KillHung() == 0)
 	log_println(5, "KillHung() returned 0, should have tried to kill off some LastAck process");
     else
 	log_println(5, "KillHung(): returned non-0 response, nothing to kill or kill failed");
+*/
 
     while (midsrv_addr == NULL) {
         midsrv_addr = CreateListenSocket(NULL,
                 (options->multiple ? mrange_next(listenmidport) : listenmidport), conn_options, 0);
         if (midsrv_addr == NULL) {
+	  /*
             log_println(5, " Calling KillHung() because midsrv_address failed to bind");
             if (KillHung() == 0)
                 continue;
+	   */
         }
         if (strcmp(listenmidport, "0") == 0) {
             log_println(0, "WARNING: ephemeral port number was bound");
@@ -838,9 +842,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       s2csrv_addr = CreateListenSocket(NULL,
           (testOptions->multiple ? mrange_next(listens2cport) : listens2cport), conn_options, 0);
       if (s2csrv_addr == NULL) {
+	/*
         log_println(1, " Calling KillHung() because s2csrv_address failed to bind");
 	if (KillHung() == 0)
 	  continue;
+	 */
       }
       if (strcmp(listens2cport, "0") == 0) {
         log_println(0, "WARNING: ephemeral port number was bound");
