@@ -367,7 +367,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     buff[0] = '\0';
     if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
         log_println(0, "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d", errno);
-        exit(-1);
+        /* exit(-1); */
+	return -1;
     }
     web100_middlebox(midfd, agent, conn, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -441,6 +442,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   size_t nameBufLen = 255;
   char isoTime[64];
   DIR *dp;
+  pid_t wpid;
+  FILE *fp;
 
   web100_group* group;
   web100_connection* conn;
@@ -533,7 +536,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       memset(tmpstr, 0, 256);
       if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
         log_println(0, "error & exit");
-        exit(0);
+        /* exit(0); */
+	return -2;
       }
       if (strlen(tmpstr) > 5)
 	/* if (options->compress == 1)
@@ -620,7 +624,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   	I2AddrFree(sockAddr);
         if (options->snaplog) {
 	    memcpy(meta.c2s_snaplog, dir, strlen(dir));
-            FILE* fp = fopen(get_logfile(),"a");
+            fp = fopen(get_logfile(),"a");
             snapArgs.log = web100_log_open_write(options->c2s_logname, conn, group);
             if (fp == NULL) {
                 log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -742,16 +746,17 @@ read3:
       close(mon_pipe1[1]);
     }
     /* wait for the SIGCHLD signal here */
-    waitpid(mon_pid1, &ret, NULL);
+    do {
+      wpid = waitpid(mon_pid1, &ret, 0);
+      if (wpid == -1)
+	return -1;
+      if (WIFSIGNALED(ret)) {
+	if (WTERMSIG(ret)== SIGALRM)
+	continue;
+      }
+    } while (!WIFEXITED(ret));
+
     /* wait(NULL);  */
-    if ((options->snaplog) && (options->compress == 1)) {
-      log_println(5, "compressing c2s snaplog file.");
-      /* zlib_def(options->c2s_logname);
-      if (options->compress == 1)
- 	strncat(dir, ".gz", 3);
-      memcpy(meta.c2s_snaplog, dir, strlen(dir));
-	*/
-    }
     
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
@@ -803,6 +808,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   char isoTime[64];
   size_t nameBufLen = 255;
   DIR *dp;
+  pid_t wpid;
+  FILE *fp;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -928,7 +935,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 	memset(tmpstr, 0, 256);
         if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
           log_println(0, "error & exit");
-          exit(0);
+          /* exit(0); */
+	  return -2;
         }
 	if (strlen(tmpstr) > 5)
 	  /* if (options->compress == 1)
@@ -1005,7 +1013,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   	I2AddrFree(sockAddr);
         if (options->snaplog) {
 	    memcpy(meta.s2c_snaplog, dir, strlen(dir));
-            FILE* fp = fopen(get_logfile(),"a");
+            fp = fopen(get_logfile(),"a");
             snapArgs.log = web100_log_open_write(options->s2c_logname, conn, group);
             if (fp == NULL) {
                 log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -1194,17 +1202,18 @@ read2:
       close(mon_pipe2[0]);
       close(mon_pipe2[1]);
     }
-    /* we should wait for the SIGCHLD signal here */
-    waitpid(mon_pid2, &ret, NULL);
+    /* wait for the SIGCHLD signal here */
+    do {
+      wpid = waitpid(mon_pid2, &ret, 0);
+      if (wpid == -1)
+	return -1;
+      if (WIFSIGNALED(ret)) {
+	if (WTERMSIG(ret)== SIGALRM)
+	continue;
+      }
+    } while (!WIFEXITED(ret));
+
     /* wait(NULL); */
-    if ((options->snaplog) && (options->compress == 1)) {
-      log_println(5, "compressing s2c snaplog file.");
-      /* zlib_def(options->s2c_logname);
-      if (options->compress == 1)
-	 strncat(dir, ".gz", 3);
-       memcpy(meta.s2c_snaplog, dir, strlen(dir));
-	*/
-    }
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
