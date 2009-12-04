@@ -185,6 +185,10 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-1);
   }
+  if (msgLen == -1) {
+      sprintf(buff, "Client Timeout");
+      return (-4);
+  }
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -452,6 +456,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   snapArgs.snap = NULL;
   snapArgs.log = NULL;
   snapArgs.delay = options->snapDelay;
+  wait_sig = 0;
 
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
@@ -746,6 +751,7 @@ read3:
       close(mon_pipe1[1]);
     }
     /* wait for the SIGCHLD signal here */
+    wait_sig = 1;
     do {
       wpid = waitpid(mon_pid1, &ret, 0);
       if (wpid == -1)
@@ -756,8 +762,6 @@ read3:
       }
     } while (!WIFEXITED(ret));
 
-    /* wait(NULL);  */
-    
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
@@ -828,6 +832,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   snapArgs.snap = NULL;
   snapArgs.log = NULL;
   snapArgs.delay = options->snapDelay;
+  wait_sig = 0;
   
   if (testOptions->s2copt) {
     setCurrentTest(TEST_S2C);
@@ -1203,6 +1208,7 @@ read2:
       close(mon_pipe2[1]);
     }
     /* wait for the SIGCHLD signal here */
+    wait_sig = 1;
     do {
       wpid = waitpid(mon_pid2, &ret, 0);
       if (wpid == -1)
@@ -1212,8 +1218,6 @@ read2:
 	continue;
       }
     } while (!WIFEXITED(ret));
-
-    /* wait(NULL); */
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);

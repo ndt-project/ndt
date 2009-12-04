@@ -426,11 +426,32 @@ writen(int fd, void* buf, int amount)
 int
 readn(int fd, void* buf, int amount)
 {
-  int received, n;
+  int received, n, rc;
   char* ptr = buf;
   received = 0;
   assert(amount >= 0);
+  struct timeval sel_tv;
+  fd_set rfd;
+
+  FD_ZERO(&rfd);
+  FD_SET(fd, &rfd);
+  sel_tv.tv_sec = 10;
+  sel_tv.tv_usec = 0;
+
+  /* modified readn() routine 11/26/09 - RAC
+ *    * addedd in select() call, to timeout if no read occurs after 10 seconds of waiting.
+ *       * This should fix a bug where the server hangs at it looks like it's in this read
+ *          * state.  The select() should check to see if there is anything to read on this socket.
+ *             * if not, and the 3 second timer goes off, exit out and clean up.
+ *                */
   while (received < amount) {
+    rc = select(fd+1, &rfd, NULL, NULL, &sel_tv);
+    if (rc == 0) {  /* A timeout occurred, nothing to read from socket after 3 seconds */
+      log_println(6, "readn() routine timeout occurred, return error signal and kill off child");
+      return 0;
+    }
+    if (rc == -1) /* a signal was processed, ignore it */
+      continue;
     n = read(fd, ptr+received, amount - received);
     if (n != -1) {
       received += n;

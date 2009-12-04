@@ -30,6 +30,8 @@ typedef struct testoptions {
   int sfwopt;
 } TestOptions;
 
+int wait_sig;
+
 /* int initialize_tests(int ctlsockfd, TestOptions* options, int conn_options); */
 int initialize_tests(int ctlsockfd, TestOptions* options, char * test_suite);
 int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd);

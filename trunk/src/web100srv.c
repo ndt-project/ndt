@@ -232,6 +232,8 @@ child_sig(void)
  /*     return; */
     }
 
+    if (head_ptr == NULL)
+ 	return;
 
     log_println(4, "Attempting to clean up child %d, head pid = %d", pid, head_ptr->pid);
     if (head_ptr->pid == pid) {
@@ -253,10 +255,13 @@ child_sig(void)
         continue;
       }
       log_println(5, "Child process %d causing head pointer modification, semaphore locked", pid);
-      tmp1 = head_ptr;
-      head_ptr = head_ptr->next;
-      if (tmp1 != NULL)
+      if (head_ptr != NULL) {
+        tmp1 = head_ptr;
+	log_println(6, "modifying queue tmp1=0x%x, head_ptr=9x%x", tmp1, head_ptr);
+        head_ptr = head_ptr->next;
+	log_println(6, "free tmp1=0x%x", tmp1);
         free(tmp1);
+      }
       testing = 0;
       waiting--;
       log_println(3, "Removing Child from head, decremented waiting/mclients %d/%d", waiting, mclients);
@@ -274,6 +279,7 @@ child_sig(void)
           log_println(4, "Child process %d causing task list modification, semaphore locked", pid);
           tmp2 = tmp1->next;
           tmp1->next = tmp2->next;
+ 	  log_println(6, "free tmp2=0x%x", tmp2);
           free(tmp2);
           testing = 0;
           waiting--;
@@ -317,7 +323,12 @@ cleanup(int signo)
     case SIGSEGV:
       log_println(6, "DEBUG, caught SIGSEGV signal and terminated process (%d)", getpid());
     case SIGINT:
+      exit(0);
     case SIGTERM:
+      if (getpid() == ndtpid) {
+	log_println(6, "Debug, SIGTERM signal received for parent process (%d), ignore it", ndtpid);
+	break;
+      }
       exit(0);
     case SIGUSR1:
       log_println(6, "DEBUG, caught SIGUSR1, setting sig1 flag to force exit");
@@ -357,9 +368,13 @@ cleanup(int signo)
             break;
           case TEST_C2S:
             fprintf(fp, " [C2S throughput test]\n");
+	    if (wait_sig == 1)
+	      return;
             break;
           case TEST_S2C:
             fprintf(fp, " [S2C throughput test]\n");
+	    if (wait_sig == 1)
+	      return;
             break;
           case TEST_SFW:
             fprintf(fp, " [Simple firewall test]\n");
@@ -677,6 +692,7 @@ zombieWorker(void *head_ptr) {
 	    tmp = tmp_ptr;
 	    pre_ptr->next = tmp_ptr->next;
 	    tmp_ptr = tmp_ptr->next;
+	    log_println(6, "timeout occurred, free tmp=0x%x", tmp);
 	    free(tmp);
 	    i++;
 	    sem_post(&ndtq);
@@ -806,33 +822,33 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   }
   
   alarm(15);
+  log_println(6, "Setting 15 sec alarm() signal for middlebox test");
   if (test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd)) {
       log_println(0, "Middlebox test FAILED!");
       testopt.midopt = TOPT_DISABLED;
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   }
   
-  alarm(10);
+  alarm(20);
+  log_println(6, "re-Setting alarm() to 20 sec for simple firewall test");
   if (test_sfw_srv(ctlsockfd, agent, &testopt, conn_options)) {
       log_println(0, "Simple firewall test FAILED!");
       testopt.sfwopt = TOPT_DISABLED;
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   }
 
   alarm(20);
+  log_println(6, "re-Setting alarm() to 20 sec for c2s throughput test");
   if (test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
       device, &options, record_reverse, count_vars, spds, &spd_index)) {
       log_println(0, "C2S throughput test FAILED!");
       testopt.c2sopt = TOPT_DISABLED;
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   }
 
   alarm(20);
+  log_println(6, "re-Setting alarm() to 20 sec for s2c throughput test");
   if (test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
       device, &options, spds, &spd_index, count_vars, &peaks)) {
       log_println(0, "S2C throughput test FAILED!");
       testopt.s2copt = TOPT_DISABLED;
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   }
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
@@ -1600,10 +1616,11 @@ main(int argc, char** argv)
             continue;
           }
 	  log_println(6, "Client terminated - semaphore locked");
-          tmp_ptr = head_ptr->next;
-          kill(head_ptr->pid, SIGKILL);
-          free(head_ptr);
-          head_ptr = tmp_ptr;
+          tmp_ptr = head_ptr;
+          head_ptr = head_ptr->next;
+          kill(head_ptr->pid, SIGTERM);
+	  log_println(6, "Stuck process killed, freeing tmp_ptr=0x%x", tmp_ptr);
+          free(tmp_ptr);
 	  sem_post(&ndtq);
 	  log_println(6, "Free'd ndtq semaphore lock - 5");
 	  child_sig();
@@ -1699,8 +1716,10 @@ main(int argc, char** argv)
           close(chld_pipe[1]);
           close(ctlsockfd);
 	  kill(chld_pid, SIGKILL);
-	  if (new_child != NULL)
+	  if (new_child != NULL) {
+		log_println(6, "Too many clients - freeing child = 0x%x", new_child);
 		free(new_child);
+	  }
           continue;
         }
 
@@ -1710,8 +1729,10 @@ main(int argc, char** argv)
             close(chld_pipe[1]);
             close(ctlsockfd);
 	    kill(chld_pid, SIGKILL);
-	    if (new_child != NULL)
+	    if (new_child != NULL) {
+		log_println(6, "Invalid test suite, freeing new_child=0x%x", new_child);
 		free(new_child);
+	    }
 	    continue;
 	}
         while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
@@ -1748,6 +1769,7 @@ main(int argc, char** argv)
           send_msg(ctlsockfd, SRV_QUEUE, "9999", 4);
           close(chld_pipe[1]);
           close(ctlsockfd);
+	  log_println(6, "no queuing, free new_child=0x%x", new_child);
           free(new_child);
           continue;
         }
@@ -2019,8 +2041,9 @@ multi_client:
 	    testopt.c2sopt = TOPT_ENABLED;
 	if (t_opts & TEST_S2C)
 	    testopt.s2copt = TOPT_ENABLED;
-        alarm(30);  /* die in 30 seconds, but only if a test doesn't get started 
+        alarm(60);  /* die in 60 seconds, but only if a test doesn't get started 
                      * reset alarm() before every test */
+	log_println(6, "Setting master alarm() to 60 seconds, test must start (complete) before this timer expires");
 
         run_test(agent, ctlsockfd, testopt, test_suite);
 
