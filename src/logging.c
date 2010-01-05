@@ -14,11 +14,10 @@
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include "../config.h"
 
-#ifdef HAVE_ZLIB_H
+/* #ifdef HAVE_ZLIB_H */
 #include <zlib.h>
-#endif
+/* #endif */
 
 #include "logging.h"
 
@@ -32,7 +31,7 @@ static I2LogImmediateAttr _immediateattr;
 static time_t             timestamp;
 static long int		  utimestamp;
 
-#ifdef HAVE_ZLIB_H
+/* #ifdef HAVE_ZLIB_H */
 /* Compress snaplog, tcpdump, and cputime files to save disk space.  These files compress by 2 to 3 orders of
  * magnitude (100 - 1000 times).  This can save a lot of disk space.  9/9/09  RAC
  */
@@ -105,7 +104,7 @@ int zlib_def(char *src_fn) {
    
    return Z_OK;
 }
-#endif
+/* #endif */
 
 /*
  * Function name: log_init
@@ -437,6 +436,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     char isoTime[64], filename[256];
     size_t tmpstrlen=sizeof(tmpstr);
     socklen_t len;
+    int rc;
     DIR *dp;
 
 /* Get the clients domain name and same in metadata file 
@@ -454,8 +454,10 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     if (getnameinfo((struct sockaddr *)&meta.c_addr, len, tmpstr, tmpstrlen,
 	NULL, 0, NI_NAMEREQD))
 	memcpy(meta.client_name, "No FQDN name", 12);
-    else
-	memcpy(meta.client_name, tmpstr, tmpstrlen);
+    else {
+ 	log_println(2, "extracting hostname %s", tmpstr);
+	memcpy(meta.client_name, tmpstr, strlen(tmpstr));
+    }
 
     memset(tmpstr, 0, tmpstrlen);
     strncpy(tmpstr, DataDirName, strlen(DataDirName));
@@ -485,7 +487,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     strncat(tmpstr, dir, strlen(dir));
 
     log_println(6, "Should compress snaplog and tcpdump files compress=%d", compress);
-#ifdef HAVE_ZLIB_H
+/* #ifdef HAVE_ZLIB_H */
     if (compress == 1) {
 	log_println(5, "Compression is enabled, compress all files in '%s' basedir", tmp2str);
       if (snaplog) {
@@ -527,7 +529,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
       else
 	log_println(5, "Zlib compression disabled, log files will not be compressed");
     }
-#endif
+/* #endif */
 
     fp = fopen(tmpstr,"w");
     if (fp == NULL) {

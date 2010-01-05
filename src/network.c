@@ -50,6 +50,11 @@ OpenSocket(I2Addr addr, char* serv, int options)
 
     fd = socket(ai->ai_family,ai->ai_socktype,ai->ai_protocol);
 
+/* 
+    if (meta.family == 0)
+	meta.family = ai->ai_family;
+ */
+
     if (fd < 0) {
       continue;
     }
@@ -107,6 +112,8 @@ failsock:
     while((close(fd) < 0) && (errno == EINTR));
   }
   
+  if (meta.family == 0)
+    meta.family = ai->ai_family;
   return fd;
 }
 
@@ -439,11 +446,11 @@ readn(int fd, void* buf, int amount)
   sel_tv.tv_usec = 0;
 
   /* modified readn() routine 11/26/09 - RAC
- *    * addedd in select() call, to timeout if no read occurs after 10 seconds of waiting.
- *       * This should fix a bug where the server hangs at it looks like it's in this read
- *          * state.  The select() should check to see if there is anything to read on this socket.
- *             * if not, and the 3 second timer goes off, exit out and clean up.
- *                */
+   * addedd in select() call, to timeout if no read occurs after 10 seconds of waiting.
+   * This should fix a bug where the server hangs at it looks like it's in this read
+   * state.  The select() should check to see if there is anything to read on this socket.
+   * if not, and the 3 second timer goes off, exit out and clean up.
+   */
   while (received < amount) {
     rc = select(fd+1, &rfd, NULL, NULL, &sel_tv);
     if (rc == 0) {  /* A timeout occurred, nothing to read from socket after 3 seconds */

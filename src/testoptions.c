@@ -169,7 +169,7 @@ int
 /* initialize_tests(int ctlsockfd, TestOptions* options, int conn_options, char * buff) */
 initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
 {
-  unsigned char useropt;
+  unsigned char useropt=0;
   int msgType;
   int msgLen = 1;
   /* char buff[1024]; */
@@ -186,11 +186,11 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
       return (-1);
   }
   if (msgLen == -1) {
-      sprintf(buff, "Client Timeout");
+      sprintf(buff, "Client timeout");
       return (-4);
   }
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
-      sprintf(buff, "Invalid test suite request");
+      sprintf(buff, "Invalid test request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-2);
   }
@@ -364,15 +364,14 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
      */
     clilen = sizeof(cli_addr);
     midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
-    /* memcpy(meta.c_addr, cli_addr, clilen); */
-    meta.c_addr = cli_addr;
+    memcpy(&meta.c_addr, &cli_addr, clilen);
+    /* meta.c_addr = cli_addr; */
     meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
 
     buff[0] = '\0';
     if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
         log_println(0, "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d", errno);
-        /* exit(-1); */
-	return -1;
+        exit(-1);
     }
     web100_middlebox(midfd, agent, conn, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -405,7 +404,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     log_println(1, " <-------------------->");
     setCurrentTest(TEST_NONE);
   }
-  I2AddrFree(midsrv_addr);
+  /* I2AddrFree(midsrv_addr); */
   return 0;
 }
 
@@ -541,8 +540,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       memset(tmpstr, 0, 256);
       if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
         log_println(0, "error & exit");
-        /* exit(0); */
-	return -2;
+        exit(0);
       }
       if (strlen(tmpstr) > 5)
 	/* if (options->compress == 1)
@@ -746,7 +744,7 @@ read3:
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
 
     if (getuid() == 0) {
-      write(mon_pipe1[1], "", 1);
+      write(mon_pipe1[1], "c", 1);
       close(mon_pipe1[0]);
       close(mon_pipe1[1]);
     }
@@ -757,15 +755,15 @@ read3:
       if (wpid == -1)
 	return -1;
       if (WIFSIGNALED(ret)) {
-	if (WTERMSIG(ret)== SIGALRM)
-	continue;
+	if (WTERMSIG(ret) == SIGALRM)
+	  continue;
       }
     } while (!WIFEXITED(ret));
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
-  I2AddrFree(c2ssrv_addr);
+  /* I2AddrFree(c2ssrv_addr); */
   I2AddrFree(src_addr);
   return 0;
 }
@@ -940,8 +938,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 	memset(tmpstr, 0, 256);
         if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
           log_println(0, "error & exit");
-          /* exit(0); */
-	  return -2;
+          exit(0);
         }
 	if (strlen(tmpstr) > 5)
 	  /* if (options->compress == 1)
@@ -1203,7 +1200,7 @@ read2:
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
 
     if (getuid() == 0) {
-      write(mon_pipe2[1], "", 1);
+      write(mon_pipe2[1], "c", 1);
       close(mon_pipe2[0]);
       close(mon_pipe2[1]);
     }
@@ -1214,15 +1211,15 @@ read2:
       if (wpid == -1)
 	return -1;
       if (WIFSIGNALED(ret)) {
-	if (WTERMSIG(ret)== SIGALRM)
-	continue;
+	if (WTERMSIG(ret) == SIGALRM)
+	  continue;
       }
     } while (!WIFEXITED(ret));
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
-  I2AddrFree(s2csrv_addr);
+  /* I2AddrFree(s2csrv_addr); */
   I2AddrFree(src_addr);
   return 0;
 }

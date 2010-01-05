@@ -885,7 +885,8 @@ endLoop:
   free(sockAddr);
 
   if (sig1 == 2) {
-    read(mon_pipe1[0], &c, 1);
+    while ((read(mon_pipe1[0], &c, 1)) < 0)
+      ;
     close(mon_pipe1[0]);
     close(mon_pipe1[1]);
     sig1 = 0;
@@ -893,7 +894,7 @@ endLoop:
   if (sig2 == 2) {
     while ((read(mon_pipe2[0], &c, 1)) < 0)
       ;
-    sleep(5);
+    sleep(2);
     close(mon_pipe2[0]);
     close(mon_pipe2[1]);
     sig2 = 0;
