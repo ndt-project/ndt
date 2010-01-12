@@ -36,7 +36,7 @@ ndt_DATA = admin_description.html admin.html \
 	   copyright.html web100variables.html web100_variables
 
 sdatadir:
-	test -z "$(ndtdir)/serverdata" || $(MKDIR_P) "$(ndtdir)/serverdata"
+	test -z "$(ndtdir)/serverdata" || $(mkdir_p) "$(ndtdir)/serverdata"
 
 install: sdatadir install-recursive
 
