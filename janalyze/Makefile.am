@@ -45,7 +45,7 @@ JAnalyze$(EXEEXT): $(JAnalyze_OBJECTS) $(JAnalyze_DEPENDENCIES)
 
 install-JAnalyzeJAVA: classJAnalyze.stamp
 	@$(NORMAL_INSTALL)
-	test -z "$(JAnalyzedir)" || $(MKDIR_P) "$(DESTDIR)$(JAnalyzedir)"
+	test -z "$(JAnalyzedir)" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)"
 	@test -z "$(JAnalyze_JAVA/bin)" || for p in *.class; do \
 		echo " $(INSTALL_DATA) '$$p' '$(DESTDIR)$(JAnalyzedir)/$$p'"; \
 		$(INSTALL_DATA) "$$p" "$(DESTDIR)$(JAnalyzedir)/$$p"; \
@@ -53,7 +53,7 @@ install-JAnalyzeJAVA: classJAnalyze.stamp
 
 install-ndtDATA: $(ndt_DATA)
 	@$(NORMAL_INSTALL)
-	test -z "$(ndtdir)" || $(MKDIR_P) "$(DESTDIR)$(ndtdir)"
+	test -z "$(ndtdir)" || $(mkdir_p) "$(DESTDIR)$(ndtdir)"
 	@list='dist/$(ndt_DATA)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  f=$(am__strip_dir) \
