@@ -680,6 +680,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         bytes += n;
         continue;
       }
+      if ((ret == -1) && (errno == EINTR))
+	continue;
       break;
     }
 
@@ -737,6 +739,8 @@ read3:
         sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
       }
     } else {
+      if ((ret == -1) && (errno == EINTR))
+	goto read3;
       sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
       sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
     }
@@ -1161,6 +1165,8 @@ read2:
           sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
         }
       } else {
+        if ((ret == -1) && (errno == EINTR))
+	    goto read2;
         sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
         sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
       }

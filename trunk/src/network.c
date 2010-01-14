@@ -457,7 +457,7 @@ readn(int fd, void* buf, int amount)
       log_println(6, "readn() routine timeout occurred, return error signal and kill off child");
       return 0;
     }
-    if (rc == -1) /* a signal was processed, ignore it */
+    if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
       continue;
     n = read(fd, ptr+received, amount - received);
     if (n != -1) {

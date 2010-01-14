@@ -267,6 +267,8 @@ reap_child:
       }
       if (head_ptr == NULL)
         testing = 0;
+      if (multiple == 0)
+        testing = 0;
       waiting--;
       log_println(3, "Removing Child from head, decremented waiting/mclients %d/%d", waiting, mclients);
       sem_post(&ndtq);
@@ -690,34 +692,40 @@ zombieWorker(void *head_ptr) {
 	FD_SET(tmp_ptr->ctlsockfd, &rfd);
 	sel_tv.tv_sec = 1;
 	sel_tv.tv_usec = 500000;
-	rc = select((tmp_ptr->ctlsockfd)+1, &rfd, NULL, NULL, &sel_tv);
-	switch (rc) {
-	  case 0:
-	    /*  a timeout occurred, remove zombie client from list */
-	    log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
-            while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-	      log_println(6, "Waiting for ndtq semaphore to free - adding new client 1");
-              continue;
-	    }
-	    log_println(6, "removing client from FIFO, semaphore locked");
-	    tmp = tmp_ptr;
-	    pre_ptr->next = tmp_ptr->next;
-	    tmp_ptr = tmp_ptr->next;
-	    log_println(6, "timeout free tmp=0x%x", tmp);
-	    free(tmp);
-	    i++;
-	    sem_post(&ndtq);
-	    log_println(6, "Free'd semaphore lock - 4");
-	    break;
-	  default:
-	    log_println(6, "new client responded, bumping pointers child=%d", tmp_ptr->pid);
-	    recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
-	    tmp_ptr = tmp_ptr->next;
-	    pre_ptr = pre_ptr->next;
-	    break;
-	  case -1:
-	    log_println(6, "select returned errno=%d do nothing, child=%d", errno, tmp_ptr->pid);
-	    break;
+	for (;;) {
+	  rc = select((tmp_ptr->ctlsockfd)+1, &rfd, NULL, NULL, &sel_tv);
+	  switch (rc) {
+	    case 0:
+	      /*  a timeout occurred, remove zombie client from list */
+	      log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
+              while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+	        log_println(6, "Waiting for ndtq semaphore to free - adding new client 1");
+                continue;
+	      }
+	      log_println(6, "removing client from FIFO, semaphore locked");
+	      tmp = tmp_ptr;
+	      pre_ptr->next = tmp_ptr->next;
+	      tmp_ptr = tmp_ptr->next;
+	      log_println(6, "timeout free tmp=0x%x", tmp);
+	      free(tmp);
+	      i++;
+	      sem_post(&ndtq);
+	      log_println(6, "Free'd semaphore lock - 4");
+	      break;
+	    default:
+	      log_println(6, "new client responded, bumping pointers child=%d", tmp_ptr->pid);
+	      recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
+	      tmp_ptr = tmp_ptr->next;
+	      pre_ptr = pre_ptr->next;
+	      break;
+	    case -1:
+	      if (errno == EINTR) {
+		log_println(6, "select() interrupted by signal, continue waiting for action or timeout");
+		continue;
+	      }
+	      log_println(6, "select returned errno=%d do nothing, child=%d", errno, tmp_ptr->pid);
+	      break;
+	  }
 	}
     }
     zombie_check = i;
@@ -1634,7 +1642,10 @@ main(int argc, char** argv)
       sel_tv.tv_sec = 3;
       sel_tv.tv_usec = 0;
       log_println(3, "Waiting for new connection, timer running");
+loopx:
       rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
+      if ((rc == -1) && (errno == EINTR))
+	goto loopx;
       tt = time(0);
       if (head_ptr != NULL) {
         log_println(3, "now = %ld Process started at %ld, run time = %ld",
@@ -1697,9 +1708,15 @@ main(int argc, char** argv)
     if (rc == 0) {    /* select exited due to timer expired */
       log_println(3, "Timer expired while waiting for a new connection");
       /* if ((waiting > 0) && (testing == 0)) */
-      if (waiting > 0)
+      if (multiple == 0) {
+        if ((waiting > 0) && (testing == 0)) 
           goto ChldRdy;
-      continue;
+        continue;
+      } else {
+        if (waiting > 0) 
+            goto ChldRdy;
+        continue;
+      }
     } else {
         log_println(3, "New connection received, waiting for accept() to complete");
         if ((waiting > 0) && (testing == 0))
