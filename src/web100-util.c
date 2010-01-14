@@ -148,6 +148,9 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
   sel_tv.tv_sec = 5;
   sel_tv.tv_usec = 0;
   while ((ret = select(sock+1, NULL, &wfd, NULL, &sel_tv)) > 0) {
+    if ((ret == -1) && (errno == EINTR))  /* a signal arrived, ignore it */
+	continue;
+
     web100_snap(snap);
     web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
     web100_snap_read(var, snap, line);

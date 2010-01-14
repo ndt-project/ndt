@@ -18,6 +18,7 @@
 #include <assert.h>
 #include <sys/time.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 #include "utils.h"
 
@@ -169,8 +170,16 @@ sndq_len(int fd)
 void
 mysleep(double time)
 {
+    int rc;
     struct timeval tv;
     tv.tv_sec = (int) time;
     tv.tv_usec = (int)(time * 1000000)%1000000;
-    select(0, NULL, NULL, NULL, &tv);
+
+    for (;;) {
+        rc = select(0, NULL, NULL, NULL, &tv);
+        if ((rc == -1) && (errno == EINTR))
+	    continue;
+	if (rc == 0)
+	    return;
+    }
 }
