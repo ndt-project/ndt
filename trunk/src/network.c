@@ -342,12 +342,12 @@ send_msg(int ctlSocket, int type, void* msg, int len)
   buff[2] = len;
 
   if (writen(ctlSocket, buff, 3) != 3) {
-    return 1;
+    return -1;
   }
   if (writen(ctlSocket, msg, len) != len) {
-    return 2;
+    return -2;
   }
-  log_println(5, ">>> send_msg: type=%d, len=%d", type, len);
+  log_println(8, ">>> send_msg: type=%d, len=%d", type, len);
   return 0;
 }
 
@@ -373,21 +373,21 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   assert(len);
 
   if (readn(ctlSocket, buff, 3) != 3) {
-    return 1;
+    return -1;
   }
   *type = buff[0];
   length = buff[1];
   length = (length << 8) + buff[2];
   assert(length <= (*len));
   if (length > (*len)) {
-    log_println(0, "recv_msg: length [%d] > *len [%d]", length, *len);
-    return 2;
+    log_println(3, "recv_msg: length [%d] > *len [%d]", length, *len);
+    return -2;
   }
   *len = length;
   if (readn(ctlSocket, msg, length) != length) {
-    return 3;
+    return -3;
   }
-  log_println(5, "<<< recv_msg: type=%d, len=%d", *type, *len);
+  log_println(8, "<<< recv_msg: type=%d, len=%d", *type, *len);
   return 0;
 }
 
@@ -409,16 +409,18 @@ writen(int fd, void* buf, int amount)
   assert(amount >= 0);
   while (sent < amount) {
     n = write(fd, ptr+sent, amount - sent);
+    if (n == -1) {
+      if (errno == EINTR)
+	continue;
+      if (errno != EAGAIN)
+        return 0;
+    }
     assert(n != 0);
     if (n != -1) {
       sent += n;
     }
-    if (n == -1) {
-      if (errno != EAGAIN)
-        return 0;
-    }
   }
-  return amount;
+  return sent;
 }
 
 /*
@@ -455,20 +457,22 @@ readn(int fd, void* buf, int amount)
     rc = select(fd+1, &rfd, NULL, NULL, &sel_tv);
     if (rc == 0) {  /* A timeout occurred, nothing to read from socket after 3 seconds */
       log_println(6, "readn() routine timeout occurred, return error signal and kill off child");
-      return 0;
+      return received;
     }
-    if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
+    if ((rc == -1) && (errno == EINTR))  /* a signal was processed, ignore it */
       continue;
     n = read(fd, ptr+received, amount - received);
+    if (n == -1) {
+      if (errno == EINTR)
+	continue;
+      if (errno != EAGAIN)
+        return 0;
+    }
     if (n != -1) {
       received += n;
     }
     if (n == 0)
       return 0;
-    if (n == -1) {
-      if (errno != EAGAIN)
-        return 0;
-    }
   }
-  return amount;
+  return received;
 }

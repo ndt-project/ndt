@@ -110,7 +110,7 @@ int record_reverse=0;
 int testing, waiting, mclients;
 int refresh = 30;
 int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
-int sig1, sig2, sig17;
+/* int sig1, sig2, sig17; */
 
 Options options;
 CwndPeaks peaks;
@@ -200,9 +200,10 @@ static struct option long_options[] = {
 
 /* Process a SIGCHLD signal */
 void
-child_sig(int reason)
+child_sig(pid_t chld_pid)
 {
   int pid, status, rc;
+  int i=0, j=0;
   struct ndtchild *tmp1, *tmp2;
 
   /*
@@ -210,23 +211,75 @@ child_sig(int reason)
    * Use the wait3() system call with the WNOHANG option.
    */
   tmp1 = head_ptr;
-  log_println(2, "Received SIGCHLD signal for active web100srv process [%d], sig17=%d", getpid(), sig17);
+  log_println(2, "Processing SIGCHLD signal for active web100srv process [%d], sig17=%d", chld_pid, sig17);
 
-  while ((pid = wait3(&status, WNOHANG, (struct rusage *) 0)) > 0) {
-    log_println(3, "wait3() returned %d for PID=%d", status, pid);
+  /* this routine cleans up after a child process has terminated.  There are 2 types of
+   * child processes.  The pkt-pair timing children are type 1 and the spawnd children to run
+   * the test are type 0.  For the pkt-pair children, just acknowledge their signal to keep
+   * them from becoming defunt.  For the type 0 children, use wait3() to figure out which 
+   * child terminated and then clean up the FIFO queue.
+   * RAC 2/8/10
+   */
+  if (chld_pid > 0) {
+    while ((pid = wait4(chld_pid, &status, WNOHANG, (struct rusage *) 0)) > -1) {
+      log_println(3, "wait4() returned %d for PID=%d", status, pid);
+      if (WIFEXITED(status) != 0) {
+        log_println(3, "wexitstatus = '%d'", WEXITSTATUS(status));
+        break;
+      }
+      if (WIFSIGNALED(status) == 1) {
+        log_println(3, "wtermsig = %d", WTERMSIG(status));
+      }
+      if (WIFSTOPPED(status) == 1) {
+        log_println(3, "wstopsig = %d", WSTOPSIG(status));
+        }
+      if (status != 0) {
+        log_println(4, "child_sig() routine, wait4() non-zero status (%d) returned", status);
+        return;
+      }
+    }
+  return;
+  }
+
+  while ((pid = wait3(&status, WNOHANG, (struct rusage*) 0)) > 0) {
+    log_println(3, "wait3() returned status=%d for PID=%d", status, pid);
     if (WIFEXITED(status) != 0) {
       log_println(3, "wexitstatus = '%d'", WEXITSTATUS(status));
+      break;
     }
     if (WIFSIGNALED(status) == 1) {
       log_println(3, "wtermsig = %d", WTERMSIG(status));
     }
     if (WIFSTOPPED(status) == 1) {
       log_println(3, "wstopsig = %d", WSTOPSIG(status));
-    }
+      }
     if (status != 0) {
-      log_println(4, "child_sig() routine, wait3() non-zero status (%d) returned", status);
+      log_println(4, "child_sig() routine, wait4() non-zero status (%d) returned", status);
       return;
     }
+  }
+
+  /* the pid variable now holds the PID of the child that exited.  Find out if this is one
+   * of the queued children, and if so remove it from the queue and relink everything.  At
+   * the end of this, update the sig17 counter.
+   * RAC 2/8/10
+   */
+    
+    if (head_ptr == NULL)
+      return;
+    log_println(5, "checking for pktpair timing children, skip them");
+    tmp1 = head_ptr;
+    while (tmp1 != NULL) {
+        log_println(5, "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x", chld_pid, tmp1->pid,
+            tmp1->host, tmp1->addr, (u_int64_t) tmp1->next);
+        if (tmp1->pid == pid) {
+	  log_println(4, "Main test process %d terminated, remove from queue", pid);
+          break;
+	}
+        tmp1 = tmp1->next;
+    }
+    if (tmp1 == NULL)
+        return;
 
 reap_child:
     if (multiple == 1) {
@@ -234,9 +287,6 @@ reap_child:
       mclients--;
  /*     return; */
     }
-
-    if (head_ptr == NULL)
-      return;
 
     log_println(4, "Attempting to clean up child %d, head pid = %d", pid, head_ptr->pid);
     if (head_ptr->pid == pid) {
@@ -273,16 +323,19 @@ reap_child:
       log_println(3, "Removing Child from head, decremented waiting/mclients %d/%d", waiting, mclients);
       sem_post(&ndtq);
       log_println(6, "Free'd ndtq semaphore lock - 3");
+      if (sig17 > 0)
+	sig17--;
       return;
     }
     else {
+      tmp1 = head_ptr;
       while (tmp1->next != NULL) {
         if (tmp1->next->pid == pid) {
           while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
 	    log_println(6, "Waiting for ndtq semaphore to free - 2");
             continue;
 	  }
-          log_println(4, "Child process %d causing task list modification, semaphore locked", pid);
+          log_println(4, "Child process %d causing task list modification, semaphore locked", chld_pid);
           tmp2 = tmp1->next;
           tmp1->next = tmp2->next;
 	  log_println(6, "free tmp2=0x%x", tmp2);
@@ -292,20 +345,25 @@ reap_child:
           log_println(3, "Removing Child from list, decremented waiting/mclients %d/%d", waiting, mclients);
           sem_post(&ndtq);
 	  log_println(6, "Free'd ndtq semaphore lock - 4");
+          if (sig17 > 0)
+	      sig17--;
           return;
         }
         tmp1 = tmp1->next;
         log_println(6, "Looping through service queue ptr = 0x%x", (u_int64_t) tmp1);
       }
     }
-    log_println(3, "SIGCHLD routine finished!");
+    if (sig17 > 0)
+	sig17--;
+    log_println(3, "SIGCHLD routine finished!, decremented sig17 counter now =%d", sig17);
     return;
-  }
-    if (reason > 0) {
-	pid = head_ptr->pid;
+  /* } */
+    if (pid > 0) {
+	chld_pid = head_ptr->pid;
 	log_println(6, "stuck process or other problem, removing pointer from head of queue");
 	goto reap_child;
     }
+  log_println(6, "Did we get here???");
 }
 
 /* Catch termination signal(s) and print message in log file */
@@ -344,13 +402,13 @@ cleanup(int signo)
     case SIGUSR1:
       log_println(6, "DEBUG, caught SIGUSR1, setting sig1 flag to force exit");
       sig1 = 1;
-      check_signal_flags();
+      /* check_signal_flags(); */
       break;
 
     case SIGUSR2:
       log_println(6, "DEBUG, caught SIGUSR2, setting sig2 flag to force exit");
       sig2 = 1;
-      check_signal_flags();
+      /* check_signal_flags(); */
       break;
 
     case SIGALRM:
@@ -431,7 +489,7 @@ cleanup(int signo)
       /* sig17 = 1; */
       if (ndtpid != getppid()) {
 	sig17++;
-	log_println(5, "Signal 17 (SIGCHLD) received count=%d", sig17);
+	log_println(5, "Signal 17 (SIGCHLD) received - completed tests = %d", sig17);
       }
       break;
   }
@@ -717,6 +775,12 @@ zombieWorker(void *head_ptr) {
 	      recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
 	      tmp_ptr = tmp_ptr->next;
 	      pre_ptr = pre_ptr->next;
+	  /*
+	      if ((sig1 > 0) || (sig2 > 0))
+		check_signal_flags();
+	      if (sig17 > 0)
+		child_sig(0);
+	   */
 	      break;
 	    case -1:
 	      if (errno == EINTR) {
@@ -760,7 +824,7 @@ cputimeWorker(void* arg)
 }
 
 void
-run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt, char *test_suite)
+run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_suite)
 {
 
   char date[32];
@@ -806,6 +870,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions testopt, char *test_sui
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
+  testopt->child0 = getpid();
 
   for (spd_index=0; spd_index<4; spd_index++)
     for (ret=0; ret<256; ret++)
@@ -827,47 +892,47 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   */
 
   log_println(1, "Starting test suite:");
-  if (testopt.midopt) {
+  if (testopt->midopt) {
     log_println(1, " > Middlebox test");
   }
-  if (testopt.sfwopt) {
+  if (testopt->sfwopt) {
     log_println(1, " > Simple firewall test");
   }
-  if (testopt.c2sopt) {
+  if (testopt->c2sopt) {
     log_println(1, " > C2S throughput test");
   }
-  if (testopt.s2copt) {
+  if (testopt->s2copt) {
     log_println(1, " > S2C throughput test");
   }
   
-  alarm(15);
+/*  alarm(15); */
   log_println(6, "Setting 15 sec alarm for middlebox test");
-  if (test_mid(ctlsockfd, agent, &testopt, conn_options, &s2c2spd)) {
+  if (test_mid(ctlsockfd, agent, &*testopt, conn_options, &s2c2spd)) {
       log_println(0, "Middlebox test FAILED!");
-      testopt.midopt = TOPT_DISABLED;
+      testopt->midopt = TOPT_DISABLED;
   }
   
-  alarm(20);
+/*  alarm(20); */
   log_println(6, "re-Setting 20 sec alarm for simple firewall test");
-  if (test_sfw_srv(ctlsockfd, agent, &testopt, conn_options)) {
+  if (test_sfw_srv(ctlsockfd, agent, &*testopt, conn_options)) {
       log_println(0, "Simple firewall test FAILED!");
-      testopt.sfwopt = TOPT_DISABLED;
+      testopt->sfwopt = TOPT_DISABLED;
   }
 
-  alarm(20);
+/*  alarm(25); */
   log_println(6, "re-Setting 20 sec alarm for c2s throughput test");
-  if (test_c2s(ctlsockfd, agent, &testopt, conn_options, &c2sspd, set_buff, window, autotune,
+  if (test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd, set_buff, window, autotune,
       device, &options, record_reverse, count_vars, spds, &spd_index)) {
       log_println(0, "C2S throughput test FAILED!");
-      testopt.c2sopt = TOPT_DISABLED;
+      testopt->c2sopt = TOPT_DISABLED;
   }
 
-  alarm(20);
+/*  alarm(25); */
   log_println(6, "re-Setting 20 sec alarm for s2c throughput test");
-  if (test_s2c(ctlsockfd, agent, &testopt, conn_options, &s2cspd, set_buff, window, autotune,
+  if (test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd, set_buff, window, autotune,
       device, &options, spds, &spd_index, count_vars, &peaks)) {
       log_println(0, "S2C throughput test FAILED!");
-      testopt.s2copt = TOPT_DISABLED;
+      testopt->s2copt = TOPT_DISABLED;
   }
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
@@ -902,7 +967,7 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
     }
 
     /* When the C2S test is disabled, we have to skip the results */
-    switch (n  + (testopt.c2sopt ? 0 : 2)) {
+    switch (n  + (testopt->c2sopt ? 0 : 2)) {
       case 0: c2sdata = index;
               log_print(1, "Client --> Server data detects link = ");
               break;
@@ -1169,8 +1234,8 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
     closelog();
     log_println(4, "%s", logstr1);
   }
-  if (testopt.s2copt) {
-    close(testopt.s2csockfd);
+  if (testopt->s2copt) {
+    close(testopt->s2csockfd);
   }
 
   /* If the admin view is turned on then the client process is going to update these
@@ -1219,6 +1284,8 @@ main(int argc, char** argv)
   int debug = 0;
 
   DIR *dp;
+  int j;
+  char *name;
 
   options.limit = 0;
   options.snapDelay = 5;
@@ -1543,6 +1610,7 @@ main(int argc, char** argv)
   /* create a log file entry every time the web100srv process starts up. */
   ndtpid = getpid();
   tt = time(0);
+  log_println(6, "NDT server (v%s) proces [%d] started at %15.15s", VERSION, ndtpid, ctime(&tt)+4);
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
     log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -1584,11 +1652,11 @@ main(int argc, char** argv)
   loopcnt = 0;
   head_ptr = NULL;
   sig17 = 0;
+  sig1 = 0;
+  sig2 = 0;
   sem_init(&ndtq, 0, 1);
 
   for(;;){
-    int i;
-    char *name;
 
     if (head_ptr == NULL)
       log_println(3, "nothing in queue");
@@ -1596,11 +1664,34 @@ main(int argc, char** argv)
       log_println(3, "Queue pointer=%d, testing=%d, waiting=%d, mclients=%d, zombie_check=%d",
 		head_ptr->pid, testing, waiting, mclients, zombie_check);
 
-    while (sig17 > 0) {
+    /* moved condition from interrupt handler to here */
+    if ((sig1 > 0) || (sig2 > 0))
+	check_signal_flags;
+
+    while (sig17 > 0) { 
+	log_println(5, "Handle pending SIGCHLD signal, count=%d",  sig17);
 	child_sig(0);
-	sig17--;
-	log_println(5, "Handled pending SIGCHLD signal, now count=%d", sig17);
     } 
+
+    if ((waiting < 0) || (mclients < 0)) {
+	log_println(6, "Fault: Negtive numver of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
+	while (head_ptr != NULL) {
+	    kill(head_ptr->pid, SIGTERM);
+	    child_sig(0);
+	}
+	waiting = 0;
+	mclients = 0;
+    }
+
+    if ((waiting == 0) && (head_ptr != NULL)) {
+	log_println(6, "Fault: Something in queue, but no waiting clients");
+	while (head_ptr != NULL) {
+	    kill (head_ptr->pid, SIGTERM);
+	    child_sig(0);
+	}
+	waiting = 0;
+	mclients = 0;
+    }
 
     if ((multiple == 1) && (mclients < max_clients) && (waiting >= max_clients)) {
 	/* this condition means that there are clients waiting and there are open slots
@@ -1630,7 +1721,7 @@ main(int argc, char** argv)
     if ((multiple == 1) && (mclients > waiting)) {
       log_println(5, "Multi-client mode has uncaught terminated clients mclient=%d, waiting=%d", mclients, waiting);
       while (mclients > waiting) {
-	child_sig(1);
+	child_sig(0);
 	mclients--;
 	log_println(5, "Removed terminated client from count mclients=%d", mclients);
       }
@@ -1642,10 +1733,10 @@ main(int argc, char** argv)
       sel_tv.tv_sec = 3;
       sel_tv.tv_usec = 0;
       log_println(3, "Waiting for new connection, timer running");
-loopx:
       rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
       if ((rc == -1) && (errno == EINTR))
-	goto loopx;
+	/* continue; */  /* a signal caused the select() to exit, re-enter loop & check */
+	continue;
       tt = time(0);
       if (head_ptr != NULL) {
         log_println(3, "now = %ld Process started at %ld, run time = %ld",
@@ -1658,28 +1749,12 @@ loopx:
                 waiting, head_ptr->pid, ctime(&tt)+4);
             fclose(fp);
           }
-/* just kill off child and call child_sig() to clean up.
- *  RAC 12/11/09
- *
- *         while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
- *   	    log_println(6, "Waiting for ndtq semaphore to free - 1");
- *           continue;
- *         }
- *  	   log_println(6, "Client terminated - semaphore locked");
- *         tmp_ptr = head_ptr;
- *         head_ptr = head_ptr->next;
- *         kill(tmp_ptr->pid, SIGTERM);
- *  	   log_println(6, "stuck process, freeing tmp_ptr=0x%x", tmp_ptr);
- *         free(tmp_ptr);
- *  	   sem_post(&ndtq);
- *  	   log_println(6, "Free'd ndtq semaphore lock - 5");
- */
           log_println(6, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
                 waiting, head_ptr->pid, ctime(&tt)+4);
           /* kill(tmp_ptr->pid, SIGTERM); */
-          kill(tmp_ptr->pid, SIGCHLD);
-	  tpid = tmp_ptr->pid;
-	  child_sig(2);
+          kill(head_ptr->pid, SIGCHLD);
+	  tpid = head_ptr->pid;
+	  child_sig(0);
           kill(tpid, SIGTERM);
 
 	  if (((multiple == 0) && (waiting == 1)) ||
@@ -1774,7 +1849,7 @@ loopx:
          * changed for M-Lab deployment  1/28/09  RAC
          */
         if (((multiple == 0) && (waiting >= max_clients)) || 
-		((multiple == 1) && (waiting >= (3*max_clients)))) {
+		((multiple == 1) && (waiting >= (4*max_clients)))) {
           log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.", chld_pid);
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
@@ -1915,18 +1990,18 @@ ChldRdy:
 
         /* update all the clients so they have some idea that progress is occurring */
         if ((multiple == 0) && (waiting > 1)) {
-          i = waiting - 1;
+          j = waiting - 1;
           tmp_ptr = head_ptr->next;
 	  if (tmp_ptr == NULL)
 	      waiting = 1;
           while (tmp_ptr != NULL) {
             log_println(3, "%d clients waiting, updating client %d testing will begin within %d minutes",
-                (waiting-1), tmp_ptr->pid, (waiting-i));
+                (waiting-1), tmp_ptr->pid, (waiting-j));
 
-            sprintf(tmpstr, "%d", (waiting-i));
+            sprintf(tmpstr, "%d", (waiting-j));
             send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
             tmp_ptr = tmp_ptr->next;
-            i--;
+            j--;
           }
 	  if ((waiting > 5) && (zombie_check == 0)) {
 	    zombie_check = -1;
@@ -2099,7 +2174,7 @@ multi_client:
                      * reset alarm() before every test */
 	log_println(6, "setting master alarm() to 60 seconds, tests must start (complete?) before this timer expires");
 
-        run_test(agent, ctlsockfd, testopt, test_suite);
+        run_test(agent, ctlsockfd, &testopt, test_suite);
 
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
@@ -2111,6 +2186,18 @@ multi_client:
             pthread_join(workerThreadId, NULL);
         }
 
+/* At this point the tests have been run and we need to clean up and handle
+ * and child processes that might still be lying around.  If we don't we get
+ * zombies.  The pkt-pair handling created 2 childern and we need to get
+ * rid of them.  To know what PIDs to look for on 1/19/10 the run_test()
+ * routine was modified to pass around these values.  The values are set in 
+ * the proper routine in the testoptions.c file.
+ * Then add call to child_sig() routine and pass in these PID's so we handle
+ * each child in sequence
+ */ 
+	log_println(6, "remove pkt-pair children c2s=%d, s2c=%d", testopt.child1, testopt.child2);
+	child_sig(testopt.child1);
+	child_sig(testopt.child2);
         exit(0);
         break;
     }

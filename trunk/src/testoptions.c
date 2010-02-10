@@ -181,10 +181,26 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
 
   /* read the test suite request */
   if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
+/* don't process these signals here, do it only after all tests end
+ * RAC 1/19/10
+ *
+      if ((sig1 > 0) || (sig2 > 0))
+	check_signal_flags();
+      if (sig17 > 0)
+	child_sig(0);
+*/
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-1);
   }
+/* don't process these signals here, do it only after all tests end
+ * RAC 1/19/10
+ *
+  if ((sig1 > 0) || (sig2 > 0))
+	check_signal_flags();
+  if (sig17 > 0)
+	child_sig(0);
+*/
   if (msgLen == -1) {
       sprintf(buff, "Client timeout");
       return (-4);
@@ -268,7 +284,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int maxseg=1456;
   /* int maxseg=1456, largewin=16*1024*1024; */
   /* int seg_size, win_size; */
-  int midfd;
+  int midfd, j;
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
   socklen_t clilen;
@@ -278,6 +294,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int msgType;
   int msgLen;
   web100_connection* conn;
+  char tmpstr[256];
   
   assert(ctlsockfd != -1);
   assert(agent);
@@ -362,8 +379,21 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
      * and does NAT detection.  More analysis functions (window scale)
      * will be done in the future.
      */
+    j = 0;
     clilen = sizeof(cli_addr);
-    midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen);
+    for (;;) {
+      if ((midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+	break;
+
+      if ((midfd == -1) && (errno == EINTR))
+	continue;
+
+      sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
+      if (get_debuglvl() > 1)
+        perror(tmpstr);
+      if (++j == 4)
+        break;
+    } 
     memcpy(&meta.c_addr, &cli_addr, clilen);
     /* meta.c_addr = cli_addr; */
     meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
@@ -377,11 +407,27 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
+/* don't process these signals here, do it only after all tests end
+ * RAC 1/19/10
+ *
+      if ((sig1 > 0) || (sig2 > 0))
+	check_signal_flags();
+      if (sig17 > 0)
+	child_sig(0);
+*/
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return 1;
     }
+/* don't process these signals here, do it only after all tests end
+ * RAC 1/19/10
+ *
+    if ((sig1 > 0) || (sig2 > 0))
+	check_signal_flags();
+    if (sig17 > 0)
+	child_sig(0);
+*/
     if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff, msgLen)) {
       sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -426,8 +472,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 {
   /* int largewin=16*1024*1024; */
   int recvsfd;
-  int mon_pid1 = 0;
-  int ret, n;
+  pid_t mon_pid1 = 0;
+  int ret, n, i, j;
   /* int seg_size, win_size; */
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
@@ -522,7 +568,20 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
 
     clilen = sizeof(cli_addr);
-    recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
+    j = 0;
+    for (;;) {
+      if ((recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+	break;
+
+      if ((recvsfd == -1) && (errno == EINTR))
+	continue;
+
+      sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
+      if (get_debuglvl() > 1)
+        perror(tmpstr);
+      if (++j == 4)
+        break;
+    } 
     src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
     conn = web100_connection_from_socket(agent, recvsfd);
 
@@ -534,18 +593,18 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         close(recvsfd);
         log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
         /* log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
-        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe1, device, &pair, "c2s", options->compress);
+        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe1,
+		device, &pair, "c2s", options->compress);
         exit(0);    /* Packet trace finished, terminate gracefully */
       }
       memset(tmpstr, 0, 256);
-      if (read(mon_pipe1[0], tmpstr, 128) <= 0) {
-        log_println(0, "error & exit");
-        exit(0);
+      for (i=0; i< 5; i++) {
+          ret = read(mon_pipe1[0], tmpstr, 128);
+	  if ((ret == -1) && (errno == EINTR))
+	    continue;
+	  break;
       }
       if (strlen(tmpstr) > 5)
-	/* if (options->compress == 1)
-	    strncat(tmpstr, ".gz", 3);
-	*/
         memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
     }
 
@@ -642,7 +701,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     sleep(2);
     send_msg(ctlsockfd, TEST_START, "", 0);
-    alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
+    /* alarm(30); */  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
 
     {
@@ -673,6 +732,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     FD_SET(recvsfd, &rfd);
     for (;;) {
       ret = select(recvsfd+1, &rfd, NULL, NULL, &sel_tv);
+      if ((ret == -1) && (errno == EINTR)) {
+	continue;
+      }
       if (ret > 0) {
         n = read(recvsfd, buff, sizeof(buff));
         if (n == 0)
@@ -680,8 +742,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         bytes += n;
         continue;
       }
-      if ((ret == -1) && (errno == EINTR))
-	continue;
       break;
     }
 
@@ -716,33 +776,47 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     if (getuid() == 0) {
       log_println(1, "Signal USR1(%d) sent to child [%d]", SIGUSR1, mon_pid1);
+      testOptions->child1 = mon_pid1;
       kill(mon_pid1, SIGUSR1);
       FD_ZERO(&rfd);
       FD_SET(mon_pipe1[0], &rfd);
       sel_tv.tv_sec = 1;
       sel_tv.tv_usec = 100000;
-read3:
-      if ((ret = select(mon_pipe1[0]+1, &rfd, NULL, NULL, &sel_tv)) > 0) {
-        if ((ret = read(mon_pipe1[0], spds[*spd_index], 128)) < 0)
-          sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-        log_println(1, "%d bytes read '%s' from monitor pipe", ret, spds[*spd_index]);
-        (*spd_index)++;
-        if ((ret = read(mon_pipe1[0], spds[*spd_index], 128)) < 0)
-          sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-        log_println(1, "%d bytes read '%s' from monitor pipe", ret, spds[*spd_index]);
-        (*spd_index)++;
-      } else {
-        log_println(4, "Failed to read pkt-pair data from C2S flow, retcode=%d, reason=%d", ret, errno);
-        if ((ret == -1) && (errno == EINTR))
-          goto read3;
-        sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-        sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+      i = 0;
+
+      for (;;) {
+        ret = select(mon_pipe1[0]+1, &rfd, NULL, NULL, &sel_tv); 
+        if ((ret == -1) && (errno == EINTR)) 
+          continue;
+	if (((ret == -1) && (errno != EINTR)) ||(ret == 0)) {
+          log_println(4, "Failed to read pkt-pair data from C2S flow, retcode=%d, reason=%d", ret, errno);
+          sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+          sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+	  break;
+	}
+	/* There is something to read, so get it from the pktpair child.  If an interrupt occurs, 
+         * just skip the read and go on
+         * RAC 2/8/10
+         */
+	if (ret > 0) {
+          if ((ret = read(mon_pipe1[0], spds[*spd_index], 128)) < 0)
+            sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+          log_println(1, "%d bytes read '%s' from C2S monitor pipe", ret, spds[*spd_index]);
+          (*spd_index)++;
+	    if (i++ == 1)
+	      break;
+	    sel_tv.tv_sec = 1;
+	    sel_tv.tv_usec = 100000;
+	    continue;
+	  }
+          /* if ((ret = read(mon_pipe1[0], spds[*spd_index], 128)) < 0)
+           *  sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+           * log_println(1, "%d bytes read '%s' from C2S monitor pipe", ret, spds[*spd_index]);
+           * (*spd_index)++;
+	   * break;
+           * } 
+           */
       }
-    } else {
-      if ((ret == -1) && (errno == EINTR))
-	goto read3;
-      sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-      sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
     }
 
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
@@ -753,6 +827,11 @@ read3:
       close(mon_pipe1[1]);
     }
     /* wait for the SIGCHLD signal here */
+/* Skip over this for now, and use the sigchld handler
+ * to increment a counter.  Do the wait after all tests
+ * finish, instead of when each test ends
+ * RAC 1/19/10
+ *
     wait_sig = 1;
     do {
       wpid = waitpid(mon_pid1, &ret, 0);
@@ -763,13 +842,15 @@ read3:
 	  continue;
       }
     } while (!WIFEXITED(ret));
+*/
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
   /* I2AddrFree(c2ssrv_addr); */
   I2AddrFree(src_addr);
-  return 0;
+  /* testOptions->child1 = mon_pid1; */
+  return 0; 
 }
 
 /*
@@ -791,7 +872,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   /* int largewin=16*1024*1024; */
   int ret, j, k, n;
   int xmitsfd;
-  int mon_pid2 = 0;
+  pid_t mon_pid2 = 0;
   /* int seg_size, win_size; */
   char tmpstr[256];
   struct sockaddr_storage cli_addr;
@@ -802,7 +883,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   struct timeval sel_tv;
   fd_set rfd;
   char buff[BUFFSIZE+1];
-  int c3 = 0;
+  int c3=0, i;
   PortPair pair;
   I2Addr s2csrv_addr=NULL, src_addr=NULL;
   char listens2cport[10];
@@ -918,6 +999,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if ((xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
         break;
 
+      if ((xmitsfd == -1) && (errno == EINTR))
+	continue;
+
       sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
       if (get_debuglvl() > 1)
         perror(tmpstr);
@@ -937,17 +1021,18 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
           /* log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
           init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe2, device, &pair, "s2c", options->compress);
+	  log_println(6, "S2C test ended, why is timer still running?");
           exit(0);    /* Packet trace finished, terminate gracefully */
         }
 	memset(tmpstr, 0, 256);
-        if (read(mon_pipe2[0], tmpstr, 128) <= 0) {
-          log_println(0, "error & exit");
-          exit(0);
-        }
+	for (i=0; i< 5; i++) {
+          ret = read(mon_pipe2[0], tmpstr, 128);
+	  if ((ret == -1) && (errno == EINTR))
+	    continue;
+	  break;
+	}
+	  
 	if (strlen(tmpstr) > 5)
-	  /* if (options->compress == 1)
-	    strncat(tmpstr, ".gz", 3);
-	  */
 	  memcpy(meta.s2c_ndttrace, tmpstr, strlen(tmpstr));  /* name of nettrace file passed back from pcap child */
       }
 
@@ -1052,7 +1137,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         buff[j] = (k++ & 0x7f);
       }
 
-      send_msg(ctlsockfd, TEST_START, "", 0);
+      if (send_msg(ctlsockfd, TEST_START, "", 0) < 0)
+	log_println(6, "S2C test - Test-start message failed for pid=%d", mon_pid2);
       /* ignore the alrm signal */
       memset(&new, 0, sizeof(new));
       new.sa_handler = catch_s2c_alrm;
@@ -1079,7 +1165,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           pthread_mutex_unlock(&mainmutex);
       }
 
-      alarm(11);
+      alarm(20);
       t = secs();
       s = t + 10.0;
 
@@ -1109,7 +1195,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           c2++;
         }
       }
-      alarm(10);
+      /* alarm(10); */
       sigaction(SIGALRM, &old, NULL);
       sndqueue = sndq_len(xmitsfd);
 
@@ -1129,7 +1215,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       web100_snapshot_free(snapArgs.snap);
       /* send the x2cspd to the client */
       sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+      if (send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff)) < 0)
+	log_println(6, "S2C test - failed to send test message to pid=%d", mon_pid2);
 
       web100_snap(rsnap);
       web100_snap(tsnap);
@@ -1142,91 +1229,105 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
       if (getuid() == 0) {
         log_println(1, "Signal USR2(%d) sent to child [%d]", SIGUSR2, mon_pid2);
+        testOptions->child2 = mon_pid2;
         kill(mon_pid2, SIGUSR2);
         FD_ZERO(&rfd);
         FD_SET(mon_pipe2[0], &rfd);
         sel_tv.tv_sec = 1;
         sel_tv.tv_usec = 100000;
-read2:
-        if ((ret = select(mon_pipe2[0]+1, &rfd, NULL, NULL, &sel_tv)) > 0) {
-          if ((ret = read(mon_pipe2[0], spds[*spd_index], 128)) < 0)
-            sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-          log_println(1, "Read '%s' from monitor pipe", spds[*spd_index]);
-          (*spd_index)++;
-          if ((ret = read(mon_pipe2[0], spds[*spd_index], 128)) < 0)
-            sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-          log_println(1, "Read '%s' from monitor pipe", spds[*spd_index]);
-          (*spd_index)++;
-        } else {
-          log_println(4, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d", ret, errno);
-          if ((ret == -1) && (errno == EINTR))
-            goto read2;
-          sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-          sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+	i = 0;
+
+        for (;;) {
+          ret = select(mon_pipe2[0]+1, &rfd, NULL, NULL, &sel_tv); 
+          if ((ret == -1) && (errno == EINTR)) {
+	    log_println(6, "Inerrupt received while waiting for s2c select90 to finish, continuing");
+            continue;
+	  }
+	  if (((ret == -1) && (errno != EINTR)) || (ret == 0)) {
+            log_println(4, "Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d, EINTR=%d",
+			  ret, errno, EINTR);
+            sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+            sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+	    break;
+	  }
+	  /* There is something to read, so get it from the pktpair child.  If an interrupt occurs, 
+           * just skip the read and go on
+           * RAC 2/8/10
+           */
+	  if (ret > 0) {
+            if ((ret = read(mon_pipe2[0], spds[*spd_index], 128)) < 0)
+              sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+            log_println(1, "%d bytes read '%s' from S2C monitor pipe", ret, spds[*spd_index]);
+            (*spd_index)++;
+	    if (i++ == 1)
+	      break;
+	    sel_tv.tv_sec = 1;
+	    sel_tv.tv_usec = 100000;
+	    continue;
+	  }
+          /*   if ((ret = read(mon_pipe2[0], spds[*spd_index], 128)) < 0)
+           *    sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+           *  log_println(1, "%d bytes read '%s' from S2C monitor pipe", ret, spds[*spd_index]);
+           *  (*spd_index)++;
+	   *  break;
+           * } 
+          */
         }
-      } else {
-        if ((ret == -1) && (errno == EINTR))
-	    goto read2;
-        sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-        sprintf(spds[(*spd_index)++], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
       }
 
-      log_println(1, "%6.0f kbps inbound", x2cspd);
+      log_println(1, "%6.0f kbps inbound pid-%d", x2cspd, mon_pid2);
     }
 
-    alarm(30);  /* reset alarm() again, this 10 sec test should finish before this signal
+    /* alarm(30); */  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
+    log_println(6, "S2C-Send web100 data vars to client pid=%d", mon_pid2);
     ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars);
     web100_snapshot_free(tsnap);
     ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars);
     web100_snapshot_free(rsnap);
+    if (ret < 0) {
+	log_println(6, "S2C - No web100 data received for pid=%d", mon_pid2);
+        sprintf(buff, "No Data Collected: 000000");
+	send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+    }
 
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
-      return 1;
+      return -1;
     }
     if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
       sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
-      return 2;
+      return -2;
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       sprintf(buff, "Server (S2C throughput test): Invalid S2C throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
-      return 3;
+      return -3;
     }
     buff[msgLen] = 0;
     *s2cspd = atoi(buff);
 
     close(xmitsfd);
-    send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+    if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0)
+	log_println(6, "S2C test - failed to send finalize message to pid=%d", mon_pid2);
 
     if (getuid() == 0) {
       write(mon_pipe2[1], "c", 1);
       close(mon_pipe2[0]);
       close(mon_pipe2[1]);
     }
-    /* wait for the SIGCHLD signal here */
-    wait_sig = 1;
-    do {
-      wpid = waitpid(mon_pid2, &ret, 0);
-      if (wpid == -1)
-	return -1;
-      if (WIFSIGNALED(ret)) {
-	if (WTERMSIG(ret) == SIGALRM)
-	  continue;
-      }
-    } while (!WIFEXITED(ret));
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
   }
   /* I2AddrFree(s2csrv_addr); */
   I2AddrFree(src_addr);
+  /* testOptions->child2 = mon_pid2; */
   return 0;
 }
 
