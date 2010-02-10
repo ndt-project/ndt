@@ -24,7 +24,8 @@ int dumptrace;
 pcap_t *pd;
 pcap_dumper_t *pdump;
 int mon_pipe1[2], mon_pipe2[2];
-int sig1, sig2, sigj=0, sigk=0;
+/* int sig1, sig2; */
+int sigj=0, sigk=0; 
 int ifspeed;
 
 void get_iflist(void) 
@@ -115,7 +116,9 @@ check_signal_flags()
 #endif
       }
       print_bins(&fwd, mon_pipe1);
+      usleep(30000);	/* wait here 30 msec, for parent to read this data */
       print_bins(&rev, mon_pipe1);
+      usleep(30000);	/* wait here 30 msec, for parent to read this data */
       if (pd != NULL)
         pcap_close(pd);
       if (dumptrace == 1)
@@ -151,7 +154,9 @@ check_signal_flags()
 #endif
       }
       print_bins(&fwd, mon_pipe2);
+      usleep(30000);	/* wait here 30 msec, for parent to read this data */
       print_bins(&rev, mon_pipe2);
+      usleep(30000);	/* wait here 30 msec, for parent to read this data */
       if (pd != NULL)
         pcap_close(pd);
       if (dumptrace == 1)
@@ -678,6 +683,7 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
   cnt = -1;  /* read forever, or until end of file */
   sig1 = 0;
   sig2 = 0;
+  
 
   init_vars(&fwd);
   init_vars(&rev);
@@ -865,7 +871,7 @@ endLoop:
      write(monitor_pipe[1], dir, strlen(dir));
 
   /* kill process off if parent doesn't send a signal. */
-  alarm(45);
+  alarm(60);
 
   if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
     log_println(5, "pcap_loop exited %s", pcap_geterr(pd));

@@ -238,18 +238,19 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
 
   for(i=0; i<count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
-      log_println(1, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
+      log_println(9, "Variable %d (%s) not found in KIS", i, web_vars[i].name);
       continue;
     }
 
     if (snap == NULL) {
       fprintf(stderr, "Web100_get_data() failed, return to testing routine\n");
+      log_println(6, "Web100_get_data() failed, return to testing routine\n");
       return(-1);
     }
 
     if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
       if (get_debuglvl() > 4) {
-        log_print(4, "Variable %d (%s): ", i, web_vars[i].name);
+        log_print(9, "Variable %d (%s): ", i, web_vars[i].name);
         web100_perror("web100_snap_read()");
       }
       continue;
@@ -259,6 +260,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     send_msg(ctlsock, TEST_MSG, line, strlen(line));
     log_print(6, "%s", line);
   }
+  log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return(0);
 
 }

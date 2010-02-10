@@ -27,6 +27,10 @@ typedef struct testoptions {
   int s2csockfd;
   int s2csockport;
 
+  pid_t child0;
+  pid_t child1;
+  pid_t child2;
+
   int sfwopt;
 } TestOptions;
 
