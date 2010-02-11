@@ -206,10 +206,6 @@ child_sig(pid_t chld_pid)
   int i=0, j=0;
   struct ndtchild *tmp1, *tmp2;
 
-  /*
-   * avoid zombies, since we run forever
-   * Use the wait3() system call with the WNOHANG option.
-   */
   tmp1 = head_ptr;
   log_println(2, "Processing SIGCHLD signal for active web100srv process [%d], sig17=%d", chld_pid, sig17);
 
@@ -219,6 +215,14 @@ child_sig(pid_t chld_pid)
    * them from becoming defunt.  For the type 0 children, use wait3() to figure out which 
    * child terminated and then clean up the FIFO queue.
    * RAC 2/8/10
+   *
+   * Added new type (-1) on 2/11/10.  This type indicates a child has terminated due to
+   * a communications fault.  For some reason the child is stuck in the FIFO queue and
+   * it needs to be removed.  In this csse, the calling function will grab the head pointer's
+   * PID value, call this function with a -1 to remove the entry from the FIFO, issue a 
+   * SIGTERM signal and call this function with the childs PID.  This should prevent the
+   * code from entering into a loop.
+   * RAC 2/11/10
    */
   if (chld_pid > 0) {
     while ((pid = wait4(chld_pid, &status, WNOHANG, (struct rusage *) 0)) > -1) {
@@ -241,24 +245,38 @@ child_sig(pid_t chld_pid)
   return;
   }
 
-  while ((pid = wait3(&status, WNOHANG, (struct rusage*) 0)) > 0) {
-    log_println(3, "wait3() returned status=%d for PID=%d", status, pid);
-    if (WIFEXITED(status) != 0) {
-      log_println(3, "wexitstatus = '%d'", WEXITSTATUS(status));
-      break;
-    }
-    if (WIFSIGNALED(status) == 1) {
-      log_println(3, "wtermsig = %d", WTERMSIG(status));
-    }
-    if (WIFSTOPPED(status) == 1) {
-      log_println(3, "wstopsig = %d", WSTOPSIG(status));
+  if (chld_pid == 0) {
+    while ((pid = wait3(&status, WNOHANG, (struct rusage*) 0)) > 0) {
+      log_println(3, "wait3() returned status=%d for PID=%d", status, pid);
+      if (WIFEXITED(status) != 0) {
+        log_println(3, "wexitstatus = '%d'", WEXITSTATUS(status));
+        break;
       }
-    if (status != 0) {
-      log_println(4, "child_sig() routine, wait4() non-zero status (%d) returned", status);
-      return;
+      if (WIFSIGNALED(status) == 1) {
+        log_println(3, "wtermsig = %d", WTERMSIG(status));
+      }
+      if (WIFSTOPPED(status) == 1) {
+        log_println(3, "wstopsig = %d", WSTOPSIG(status));
+        }
+      if (status != 0) {
+        log_println(4, "child_sig() routine, wait4() non-zero status (%d) returned", status);
+        return;
+      }
+    }
+    log_println(6, "child_sig() called pid=%d, wait3 returned child=%d - status=%d",
+                chld_pid, pid, status);
+    if (pid == 0) {
+        log_println(6, "wait3() failed to return non-zero PID, ignore it");
+	if (sig17 > 0)
+            sig17--;
+	return;
     }
   }
-
+  else { /* chld_pid must be -1, the error condition */
+    pid = head_ptr->pid;
+    log_println(6, "Stuck child at head of queue, set pid=%d and remove it from queue", pid);
+  }
+  
   /* the pid variable now holds the PID of the child that exited.  Find out if this is one
    * of the queued children, and if so remove it from the queue and relink everything.  At
    * the end of this, update the sig17 counter.
@@ -270,7 +288,7 @@ child_sig(pid_t chld_pid)
     log_println(5, "checking for pktpair timing children, skip them");
     tmp1 = head_ptr;
     while (tmp1 != NULL) {
-        log_println(5, "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x", chld_pid, tmp1->pid,
+        log_println(5, "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x", pid, tmp1->pid,
             tmp1->host, tmp1->addr, (u_int64_t) tmp1->next);
         if (tmp1->pid == pid) {
 	  log_println(4, "Main test process %d terminated, remove from queue", pid);
@@ -357,7 +375,6 @@ reap_child:
 	sig17--;
     log_println(3, "SIGCHLD routine finished!, decremented sig17 counter now =%d", sig17);
     return;
-  /* } */
     if (pid > 0) {
 	chld_pid = head_ptr->pid;
 	log_println(6, "stuck process or other problem, removing pointer from head of queue");
@@ -1668,7 +1685,7 @@ main(int argc, char** argv)
     if ((sig1 > 0) || (sig2 > 0))
 	check_signal_flags;
 
-    while (sig17 > 0) { 
+    if (sig17 > 0) { 
 	log_println(5, "Handle pending SIGCHLD signal, count=%d",  sig17);
 	child_sig(0);
     } 
@@ -1676,8 +1693,10 @@ main(int argc, char** argv)
     if ((waiting < 0) || (mclients < 0)) {
 	log_println(6, "Fault: Negtive numver of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
-	    kill(head_ptr->pid, SIGTERM);
-	    child_sig(0);
+            tpid = head_ptr->pid;
+	    child_sig(-1);
+            kill(tpid, SIGTERM);
+	    child_sig(tpid);
 	}
 	waiting = 0;
 	mclients = 0;
@@ -1686,11 +1705,23 @@ main(int argc, char** argv)
     if ((waiting == 0) && (head_ptr != NULL)) {
 	log_println(6, "Fault: Something in queue, but no waiting clients");
 	while (head_ptr != NULL) {
-	    kill (head_ptr->pid, SIGTERM);
-	    child_sig(0);
+            tpid = head_ptr->pid;
+	    child_sig(-1);
+            kill(tpid, SIGTERM);
+	    child_sig(tpid);
 	}
 	waiting = 0;
 	mclients = 0;
+    }
+
+    if (head_ptr != NULL) {
+        if ((time(0) - head_ptr->stime) > 60)  {
+	    log_println(6, "Fault: Something in queue, but child has exceeded wait time");
+            tpid = head_ptr->pid;
+	    child_sig(-1);
+            kill(tpid, SIGTERM);
+	    child_sig(tpid);
+        }
     }
 
     if ((multiple == 1) && (mclients < max_clients) && (waiting >= max_clients)) {
@@ -1741,7 +1772,7 @@ main(int argc, char** argv)
       if (head_ptr != NULL) {
         log_println(3, "now = %ld Process started at %ld, run time = %ld",
             tt, head_ptr->stime, (tt - head_ptr->stime));
-        if (tt - head_ptr->stime > 60) {
+        if ((tt - head_ptr->stime) > 60) {
           /* process is stuck at the front of the queue. */
           fp = fopen(get_logfile(),"a");
           if (fp != NULL) {
@@ -1752,10 +1783,11 @@ main(int argc, char** argv)
           log_println(6, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
                 waiting, head_ptr->pid, ctime(&tt)+4);
           /* kill(tmp_ptr->pid, SIGTERM); */
-          kill(head_ptr->pid, SIGCHLD);
-	  tpid = head_ptr->pid;
-	  child_sig(0);
+          /* kill(head_ptr->pid, SIGCHLD); */
+          tpid = head_ptr->pid;
+	  child_sig(-1);
           kill(tpid, SIGTERM);
+	  child_sig(tpid);
 
 	  if (((multiple == 0) && (waiting == 1)) ||
 		((multiple == 1) && (mclients == 0)))
@@ -1798,18 +1830,25 @@ main(int argc, char** argv)
           goto ChldRdy;
       /* } */
       clilen = sizeof(cli_addr);
-      ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
+      for (;;) {
+        ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
         size_t tmpstrlen = sizeof(tmpstr);
         I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         I2AddrFree(tmp_addr);
-      log_println(4, "New connection received from [%s].", tmpstr);
-      if (ctlsockfd < 0) {
-        if (errno == EINTR)
-          continue; /*sig child */
-        perror("Web100srv server: accept error");
-        continue;
+        log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", tmp_addr, tmpstr, ctlsockfd);
+        if (ctlsockfd < 0) {
+          if (errno == EINTR)
+            continue; /*sig child */
+          perror("Web100srv server: accept error");
+          break;;
+        }
+	break;
       }
+      /* verify that accept really worked and don't process connections that hav
+       * failed
+       * RAC 2/11/10
+       */
       /* the specially crafted data that kicks off the old clients */
       write(ctlsockfd, "123456 654321", 13);
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
