@@ -1214,6 +1214,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       }
       web100_snapshot_free(snapArgs.snap);
       /* send the x2cspd to the client */
+      memset(buff, 0, sizeof(buff));
       sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes);
       if (send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff)) < 0)
 	log_println(6, "S2C test - failed to send test message to pid=%d", mon_pid2);
