@@ -135,7 +135,7 @@ void
 err_sys(char* s)
 {
     perror(s);
-    exit(1);
+    return -1;
 }
 
 /*
