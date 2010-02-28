@@ -2231,9 +2231,9 @@ multi_client:
 	    testopt.c2sopt = TOPT_ENABLED;
 	if (t_opts & TEST_S2C)
 	    testopt.s2copt = TOPT_ENABLED;
-        alarm(60);  /* die in 30 seconds, but only if a test doesn't get started 
+        alarm(120);  /* die in 120 seconds, but only if a test doesn't get started 
                      * reset alarm() before every test */
-	log_println(6, "setting master alarm() to 60 seconds, tests must start (complete?) before this timer expires");
+	log_println(6, "setting master alarm() to 120 seconds, tests must start (complete?) before this timer expires");
 
 	if (strncmp(test_suite, "Invalid", 7) != 0) {
 	  log_println(3, "Valid test sequence requested, run test for client=%d", getpid());
