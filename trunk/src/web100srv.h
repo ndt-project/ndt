@@ -194,6 +194,7 @@ int check_signal_flags();
 
 /* web100-util */
 #ifdef HAVE_LIBWEB100
+void get_iflist(void);
 int web100_init(char *VarFileName);
 int web100_autotune(int sock, web100_agent* agent, web100_connection* cn);
 void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *results);

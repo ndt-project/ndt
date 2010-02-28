@@ -778,7 +778,7 @@ main(int argc, char *argv[])
      * tests in the queue.
      */
     xwait = (xwait * 45);
-    log_print(0, "Another client is currently being served, your test will ");
+    log_print(0, "Another client is currently begin served, your test will ");
     log_println(0,  "begin within %d seconds", xwait);
   }
 
@@ -873,8 +873,11 @@ main(int argc, char *argv[])
    */
   for (;;) {
     msgLen = sizeof(buff);
-    if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
-      log_println(0, "Protocol error - expected results!");
+    if (ret = (recv_msg(ctlSocket, &msgType, buff, &msgLen))) {
+      if (errno == ECONNRESET)
+	log_println(0, "Connection closed by server, No test performed.");
+      else
+        log_println(0, "Protocol error - expected results!  got '%s', msgtype=%d", buff, msgType);
       exit(1);
     }
     if (msgType == MSG_LOGOUT) {

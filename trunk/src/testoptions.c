@@ -181,26 +181,10 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
 
   /* read the test suite request */
   if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
-/* don't process these signals here, do it only after all tests end
- * RAC 1/19/10
- *
-      if ((sig1 > 0) || (sig2 > 0))
-	check_signal_flags();
-      if (sig17 > 0)
-	child_sig(0);
-*/
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-1);
   }
-/* don't process these signals here, do it only after all tests end
- * RAC 1/19/10
- *
-  if ((sig1 > 0) || (sig2 > 0))
-	check_signal_flags();
-  if (sig17 > 0)
-	child_sig(0);
-*/
   if (msgLen == -1) {
       sprintf(buff, "Client timeout");
       return (-4);
@@ -258,11 +242,6 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
       strcat(buff, tmpbuff);
     }
   }
-  /* if (useropt & TEST_STATUS)  new style client capable of responding to a status request 
-   *  return 1;
-   */
-    
-  /* send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff)); */
   return useropt;
 }
 
@@ -388,11 +367,12 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
       if ((midfd == -1) && (errno == EINTR))
 	continue;
 
-      sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
+      sprintf(tmpstr, "-------     middlebox connection setup returned because (%d)", errno);
       if (get_debuglvl() > 1)
         perror(tmpstr);
       if (++j == 4)
-        break;
+        /* break; */
+	return -2;
     } 
     memcpy(&meta.c_addr, &cli_addr, clilen);
     /* meta.c_addr = cli_addr; */
@@ -401,33 +381,18 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     buff[0] = '\0';
     if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
         log_println(0, "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d", errno);
-        exit(-1);
+        /* exit(-1); */
+	return -3;
     }
     web100_middlebox(midfd, agent, conn, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
-/* don't process these signals here, do it only after all tests end
- * RAC 1/19/10
- *
-      if ((sig1 > 0) || (sig2 > 0))
-	check_signal_flags();
-      if (sig17 > 0)
-	child_sig(0);
-*/
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return 1;
     }
-/* don't process these signals here, do it only after all tests end
- * RAC 1/19/10
- *
-    if ((sig1 > 0) || (sig2 > 0))
-	check_signal_flags();
-    if (sig17 > 0)
-	child_sig(0);
-*/
     if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff, msgLen)) {
       sprintf(buff, "Server (Middlebox test): Invalid CWND limited throughput received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -491,7 +456,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   size_t nameBufLen = 255;
   char isoTime[64];
   DIR *dp;
-  pid_t wpid;
   FILE *fp;
 
   web100_group* group;
@@ -580,7 +544,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if (get_debuglvl() > 1)
         perror(tmpstr);
       if (++j == 4)
-        break;
+        return -2;
     } 
     src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
     conn = web100_connection_from_socket(agent, recvsfd);
@@ -826,23 +790,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       close(mon_pipe1[0]);
       close(mon_pipe1[1]);
     }
-    /* wait for the SIGCHLD signal here */
-/* Skip over this for now, and use the sigchld handler
- * to increment a counter.  Do the wait after all tests
- * finish, instead of when each test ends
- * RAC 1/19/10
- *
-    wait_sig = 1;
-    do {
-      wpid = waitpid(mon_pid1, &ret, 0);
-      if (wpid == -1)
-	return -1;
-      if (WIFSIGNALED(ret)) {
-	if (WTERMSIG(ret) == SIGALRM)
-	  continue;
-      }
-    } while (!WIFEXITED(ret));
-*/
 
     log_println(1, " <------------------------->");
     setCurrentTest(TEST_NONE);
@@ -895,7 +842,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   char isoTime[64];
   size_t nameBufLen = 255;
   DIR *dp;
-  pid_t wpid;
   FILE *fp;
   
   /* experimental code to capture and log multiple copies of the
@@ -1006,7 +952,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if (get_debuglvl() > 1)
         perror(tmpstr);
       if (++j == 4)
-        break;
+        return -2;
     } 
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
     conn = web100_connection_from_socket(agent, xmitsfd); 

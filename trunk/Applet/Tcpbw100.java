@@ -93,7 +93,7 @@ import javax.swing.JProgressBar;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "3.5.14";
+  private static final String VERSION = "3.6.1";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -544,7 +544,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
@@ -593,7 +593,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       s2cspd = ((8.0 * bytes) / 1000) / t;
 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error! Expected test data, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
@@ -632,7 +632,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       in2Socket.close();
 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
@@ -659,7 +659,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
       
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
@@ -705,7 +705,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected port number, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_START) {
@@ -731,7 +731,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
@@ -746,7 +746,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       osfwTest.finalize();
 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
@@ -775,7 +775,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       emailText += "running 10s outbound test (client-to-server [C2S]) . . . . . ";
       
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
@@ -805,7 +805,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       // wait here for signal from server application 
       // This signal tells the client to start pumping out data
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected start signal, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_START) {
@@ -851,7 +851,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       c2sspd = ((8.0 * pkts * lth) / 1000) / t;
       /* receive the c2sspd from the server */
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
@@ -883,7 +883,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 /************************************************************************/
       
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
@@ -908,7 +908,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       emailText += "running 10s inbound test (server-to-client [S2C]) . . . . . . ";
       
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
@@ -941,7 +941,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       // wait here for signal from server application 
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected start signal, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_START) {
@@ -970,7 +970,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       /* receive the s2cspd from the server */
       if (ctl.recv_msg(msg) != 0) {
-        errmsg = "Protocol error!\n";
+        errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
@@ -1028,7 +1028,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       try {  
         for (;;) {
           if (ctl.recv_msg(msg) != 0) {
-            errmsg = "Protocol error!\n";
+            errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
             return true;
           }
           if (msg.type == TEST_FINALIZE) {
@@ -1123,7 +1123,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
       for (;;) {
           if (ctl.recv_msg(msg) != 0) {
-              errmsg = "Protocol error!\n";
+              errmsg = "Protocol error!  Expected wait time, got: " + new String(msg.body) + "instead\n";
               failed = true;
               return;
           }
@@ -1168,7 +1168,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       ff.toBack();
 
       if (ctl.recv_msg(msg) != 0) {
-          errmsg = "Protocol error!\n";
+          errmsg = "Protocol error!  Expected hello signal, got: " + new String(msg.body) + "instead\n";
           failed = true;
           return;
       }
@@ -1187,7 +1187,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       System.out.println("Server version: " + vVersion.substring(1));
 
       if (ctl.recv_msg(msg) != 0) {
-          errmsg = "Protocol error!\n";
+          errmsg = "Protocol error!  Expected server version info, got: " + new String(msg.body) + "instead\n";
           failed = true;
           return;
       }
@@ -1262,7 +1262,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       try {  
           for (;;) {
               if (ctl.recv_msg(msg) != 0) {
-                  errmsg = "Protocol error!\n";
+                  errmsg = "Protocol error!  Expected test results, got: " + new String(msg.body) + "instead\n";
                   failed = true;
                   return;
               }

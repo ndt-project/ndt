@@ -56,17 +56,17 @@ install-ndtDATA: $(ndt_DATA)
 	test -z "$(ndtdir)" || $(mkdir_p) "$(DESTDIR)$(ndtdir)"
 	@list='dist/$(ndt_DATA)'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  f=$(am__strip_dir) \
-	  echo " $(ndtDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(ndtdir)/$$f'"; \
-	   $(ndtDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(ndtdir)/$$f"; \
+	  $(am__strip_dir) \
+	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(JAnalyzedir)/$$f'"; \
+	   $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(JAnalyzedir)/$$f"; \
 	done
 	@list='bin/*.class'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  f=$(am__strip_dir) \
-	  echo " $(ndtDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(ndtdir)/$$f'"; \
-	   $(ndtDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(ndtdir)/$$f"; \
+	  $(am__strip_dir) \
+	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(JAnalyzedir)/$$f'"; \
+	   $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(JAnalyzedir)/$$f"; \
 	done
-	/bin/cp -Rp external/de $(DESTDIR)$(ndtdir)/
+	/bin/cp -Rp external/de $(DESTDIR)$(JAnalyzedir)/
 
 classJAnalyzestamp: $(JAnalyze_JAVA)
 	if test -n "$?"; then \

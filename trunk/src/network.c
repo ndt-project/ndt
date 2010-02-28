@@ -435,16 +435,16 @@ writen(int fd, void* buf, int amount)
 int
 readn(int fd, void* buf, int amount)
 {
-  int received, n, rc;
+  int received=0, n, rc;
   char* ptr = buf;
-  received = 0;
-  assert(amount >= 0);
   struct timeval sel_tv;
   fd_set rfd;
 
+  assert(amount >= 0);
+
   FD_ZERO(&rfd);
   FD_SET(fd, &rfd);
-  sel_tv.tv_sec = 10;
+  sel_tv.tv_sec = 600;
   sel_tv.tv_usec = 0;
 
   /* modified readn() routine 11/26/09 - RAC
@@ -465,6 +465,8 @@ readn(int fd, void* buf, int amount)
     if (n == -1) {
       if (errno == EINTR)
 	continue;
+      if (errno == ECONNRESET)
+	return(ECONNRESET);
       if (errno != EAGAIN)
         return 0;
     }
