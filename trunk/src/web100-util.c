@@ -205,7 +205,7 @@ web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int c
     }
 
     if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-      if (get_debuglvl() > 1)
+      if (get_debuglvl() > 9)
         web100_perror("web100_raw_read()");
       continue;
     }
@@ -213,7 +213,7 @@ web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int c
       sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
       if (fp)
         fprintf(fp, "%d;", (int32_t)atoi(web_vars[i].value));
-      log_println(6, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
+      log_println(9, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
     }
     ok = 1;
   }
@@ -249,7 +249,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     }
 
     if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-      if (get_debuglvl() > 4) {
+      if (get_debuglvl() > 9) {
         log_print(9, "Variable %d (%s): ", i, web_vars[i].name);
         web100_perror("web100_snap_read()");
       }
