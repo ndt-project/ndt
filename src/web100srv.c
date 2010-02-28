@@ -203,7 +203,7 @@ void
 child_sig(pid_t chld_pid)
 {
   int pid, status, rc;
-  int i=0, j=0;
+  /* int i=0, j=0; */
   struct ndtchild *tmp1, *tmp2;
 
   tmp1 = head_ptr;
@@ -1597,6 +1597,10 @@ main(int argc, char** argv)
 
   /* Initialize Web100 structures */
   count_vars = web100_init(VarFileName);
+  if (count_vars == -1) {
+    log_println(0, "No web100 variables file found, terminating program");
+    exit (-5);
+  }
 
   /* The administrator view automatically generates a usage page for the
    * NDT server.  This page is then accessable to the general public.
@@ -1784,6 +1788,12 @@ main(int argc, char** argv)
                 waiting, head_ptr->pid, ctime(&tt)+4);
           /* kill(tmp_ptr->pid, SIGTERM); */
           /* kill(head_ptr->pid, SIGCHLD); */
+	  /* clean up more and inform the client that the test is ending
+	   * rac 2/27/10
+	   */
+          send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9999", 4);
+	  shutdown(head_ptr->ctlsockfd, SHUT_WR);
+	  close(head_ptr->ctlsockfd);
           tpid = head_ptr->pid;
 	  child_sig(-1);
           kill(tpid, SIGTERM);
@@ -1792,8 +1802,12 @@ main(int argc, char** argv)
 	  if (((multiple == 0) && (waiting == 1)) ||
 		((multiple == 1) && (mclients == 0)))
             testing = 0;
-          if (waiting > 0)
-            waiting--;
+	  /* should not decrement waiting here, it was decrementd in the child_sig() routine 
+	   * RAC 2/27/09
+	   */
+          /* if (waiting > 0)
+           *  waiting--;
+           */
 	  if (waiting == 0)
 	    mclients = 0;
         }
@@ -1832,23 +1846,28 @@ main(int argc, char** argv)
       clilen = sizeof(cli_addr);
       for (;;) {
         ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
+        if (ctlsockfd < 0) {
+          if (errno == EINTR)
+            continue; /*sig child */
+          perror("Web100srv server: accept error");
+          break;
+        }
         size_t tmpstrlen = sizeof(tmpstr);
         I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         I2AddrFree(tmp_addr);
         log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", tmp_addr, tmpstr, ctlsockfd);
-        if (ctlsockfd < 0) {
-          if (errno == EINTR)
-            continue; /*sig child */
-          perror("Web100srv server: accept error");
-          break;;
-        }
 	break;
       }
       /* verify that accept really worked and don't process connections that hav
        * failed
        * RAC 2/11/10
        */
+      if (ctlsockfd <= 0) {
+        log_println(4, "New connection request failed sockfd=%d reason-%d.", ctlsockfd, errno);
+	continue;
+      }
+
       /* the specially crafted data that kicks off the old clients */
       write(ctlsockfd, "123456 654321", 13);
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
@@ -1887,16 +1906,17 @@ main(int argc, char** argv)
          * If so, tell them to go away.
          * changed for M-Lab deployment  1/28/09  RAC
          */
-        if (((multiple == 0) && (waiting >= max_clients)) || 
-		((multiple == 1) && (waiting >= (4*max_clients)))) {
+        if (((multiple == 0) && (waiting >= (max_clients-1))) || 
+		((multiple == 1) && (waiting >= ((4*max_clients)-1)))) {
           log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.", chld_pid);
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
           close(chld_pipe[1]);
+	  shutdown(ctlsockfd, SHUT_WR);
           close(ctlsockfd);
 	  kill(chld_pid, SIGTERM);
 	  if (new_child != NULL) {
-		log_println(6, "Too may clients freeing child=0x%x", new_child);
+		log_println(6, "Too many clients freeing child=0x%x", new_child);
 		free(new_child);
 	  }
           continue;
@@ -1906,6 +1926,7 @@ main(int argc, char** argv)
 	if (t_opts < 1) {
 	    log_println(3, "Invalid test suite string '%s' received, terminate child", test_suite);
             close(chld_pipe[1]);
+	    shutdown(ctlsockfd, SHUT_WR);
             close(ctlsockfd);
 	    kill(chld_pid, SIGTERM);
 	    if (new_child != NULL) {
@@ -1950,6 +1971,7 @@ main(int argc, char** argv)
           log_println(3, "queuing disabled and testing in progress, tell client no");
           send_msg(ctlsockfd, SRV_QUEUE, "9999", 4);
           close(chld_pipe[1]);
+	  shutdown(ctlsockfd, SHUT_WR);
           close(ctlsockfd);
 	  log_println(6, "no queuing, free new_child=0x%x", new_child);
           free(new_child);
@@ -2002,7 +2024,7 @@ main(int argc, char** argv)
 
 	if ((multiple == 1) && (waiting >= max_clients)) {
 	  int xx = waiting/max_clients;
-	  log_println(3, "%d mclients waiting, tell client (%d) test will being within %d minutes",
+	  log_println(3, "%d mclients waiting, tell client (%d) test will begin within %d minutes",
 		(waiting-max_clients), mchild->pid, xx);
 	  sprintf(tmpstr, "%d",  xx);
 	  send_msg(mchild->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
@@ -2213,7 +2235,10 @@ multi_client:
                      * reset alarm() before every test */
 	log_println(6, "setting master alarm() to 60 seconds, tests must start (complete?) before this timer expires");
 
-        run_test(agent, ctlsockfd, &testopt, test_suite);
+	if (strncmp(test_suite, "Invalid", 7) != 0) {
+	  log_println(3, "Valid test sequence requested, run test for client=%d", getpid());
+          run_test(agent, ctlsockfd, &testopt, test_suite);
+	}
 
         log_println(3, "Successfully returned from run_test() routine");
         close(ctlsockfd);
@@ -2235,8 +2260,10 @@ multi_client:
  * each child in sequence
  */ 
 	log_println(6, "remove pkt-pair children c2s=%d, s2c=%d", testopt.child1, testopt.child2);
-	child_sig(testopt.child1);
-	child_sig(testopt.child2);
+	if (testopt.child1 != 0) 
+	    child_sig(testopt.child1);
+	if (testopt.child2 != 0) 
+	    child_sig(testopt.child2);
         exit(0);
         break;
     }
