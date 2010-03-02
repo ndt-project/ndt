@@ -91,6 +91,11 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.JComboBox;
 import javax.swing.JProgressBar;
 
+// Workaround for remote JavaScript start method
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
+
 public class Tcpbw100 extends JApplet implements ActionListener
 {
   private static final String VERSION = "3.6.1";
@@ -162,11 +167,277 @@ public class Tcpbw100 extends JApplet implements ActionListener
   double sbytes;
 
   /*************************************************************************
-   * Added by Seth Peery
-   * Adds public variables to store upstream and downstream speeds in kbps
+   * JavaScript access API extension
+   * Added by Seth Peery and Gregory Wilson, Virginia Tech
+   * October 28, 2009
+   * This section adds classwide variables, written to at runtime, 
+   * which are then exposed by public accessor methods that can be called
+   * from web applications using NDT as a back-end.  
    */
-  public String downstream = "No data";
-  public String upstream = "No data";
+
+  private double pub_c2sspd = 0.0;
+  private double pub_s2cspd = 0.0;
+  private int pub_CurRwinRcvd = 0; // source variable does not exist
+  private int pub_MaxRwinRcvd = 0;
+  private int  pub_MinRTT = 0; // source variable does not exist
+  private int  pub_MaxRTT = 0; // source variable does not exist
+  private double pub_loss = 0.0;
+  private double pub_avgrtt = 0.0;
+  private int pub_MinRTO = 0; // source variable does not exist
+  private int pub_MaxRTO = 0; // source variable does not exist
+  private int pub_CurRTO = 0;
+  // private String pub_CWNDpeaks = ""; // source variable does not exist
+  private int pub_SACKsRcvd = 0;
+  private String pub_osVer = "unknown"; 
+  private String pub_javaVer = "unknown";
+  private String pub_host = "unknown";
+  private String pub_osName = "unknown"; 
+  private String pub_osArch = "unknown";
+  private int pub_mismatch = 0;
+  private int pub_Bad_cable = 0;
+  private int pub_congestion = 0;
+  private double pub_cwndtime = 0.0;
+  private double pub_pctRcvrLimited = 0.0;
+  private String pub_AccessTech = "unknown";
+  private String pub_natBox = "unknown";
+  private int pub_DupAcksOut = 0;
+  private Date pub_TimeStamp;
+  private String pub_isReady = new String("no");
+  private String pub_clientIP = "unknown";
+  private int pub_jitter = 0;
+  private int pub_Timeouts = 0;
+  private String pub_errmsg = "Test not run.";
+  private String isAutoRun;
+  
+  
+  /**
+  * Accessor methods for public variables
+  **/
+  
+  public String get_c2sspd()
+  {
+  	// Expressed as MiB using base 10
+    return Double.toString((pub_c2sspd));  
+  }
+  
+  public String get_s2cspd()
+  {
+  	// Expressed as MiB using base 10
+    return Double.toString(pub_s2cspd);
+  }
+  
+  public String get_CurRwinRcvd()
+  {
+    return Integer.toString(pub_CurRwinRcvd);
+  }
+  
+  public String get_MaxRwinRcvd()
+  {
+    return Integer.toString(pub_MaxRwinRcvd);
+  }
+  
+  public String get_Ping()
+  {
+    return Integer.toString(pub_MinRTT);
+  } 	
+  
+  public String get_MaxRTT()
+  {
+    return Integer.toString(pub_MaxRTT);
+  }  
+  
+  public String get_loss()
+  {
+    return Double.toString(pub_loss);
+  }
+
+  public String get_avgrtt()
+  {
+    return Double.toString(pub_avgrtt); 
+  }
+  
+ /* public String get_MinRTO()
+  {
+    return pub_MinRTO;
+  }*/
+  
+ /* public String get_MaxRTO()
+  {
+    return pub_MaxRTO;
+  }*/
+
+  public String get_CurRTO()
+  {
+    return Integer.toString(pub_CurRTO);
+  }
+
+/*
+  public String get_CWNDpeaks()
+  {
+    return pub_CWNDpeaks;
+  } */
+
+  public String get_SACKsRcvd()
+  {
+    return Integer.toString(pub_SACKsRcvd);
+  }  
+  
+  public String get_osVer()
+  {
+    return pub_osVer;
+  }
+
+  public String get_javaVer()
+  {
+    return pub_javaVer;
+  }
+
+  public String get_host()
+  {
+    return pub_host;
+  }
+
+  public String get_osName()
+  {
+    return pub_osName;
+  }
+
+  public String get_osArch()
+  {
+    return pub_osArch;
+  }
+  
+  public String get_mismatch()
+  {
+  	String result;
+	if (pub_mismatch==0) {
+		result = "no";
+	} else {
+		result = "yes";
+	}
+    return result;
+  }
+ 
+  public String get_Bad_cable()
+  {
+  	String result;
+	if (pub_Bad_cable ==1) {
+		result = "yes";
+	} else {
+		result = "no";
+	}
+    return result;
+  }
+
+  public String get_congestion()
+  {
+   	String result;
+	if (pub_congestion == 1) {
+		result = "yes";
+	} else {
+		result = "no";
+	}
+    return result;
+  }
+
+  public String get_cwndtime()
+  {
+    return Double.toString(pub_cwndtime);
+  }
+  
+  public String get_AccessTech()
+  {
+    return pub_AccessTech;
+  }
+  
+  public String get_rcvrLimiting()
+  {
+	return Double.toString(pub_pctRcvrLimited);	
+  }
+  
+  public String get_optimalRcvrBuffer()
+  {
+    return Integer.toString(pub_MaxRwinRcvd*1024);
+  }
+  
+  public String get_clientIP()
+  {
+	  	return pub_clientIP;
+  }
+  
+  public String get_natStatus()
+  {
+  	return pub_natBox;
+  }
+  
+  public String get_DupAcksOut()
+  {
+  	return Integer.toString(pub_DupAcksOut);
+  }
+  
+  public String get_TimeStamp()
+  {
+  	String result = "unknown";
+	if (pub_TimeStamp != null) {
+		result =  pub_TimeStamp.toString();	
+    }
+	return result;
+  }
+  
+  public String isReady()
+  {
+
+	// if ((pub_isReady == null) || (pub_isReady.equals(""))) {
+	//	 pub_isReady = "no";
+	// }
+	// String result = "foo";
+
+     //if (failed) {
+	 //    pub_isReady = "failed1";
+     //}
+	 //result = pub_isReady;
+ 	 //   return result; 
+	 return pub_isReady;
+  }
+
+  public String get_jitter()
+  {
+  	return Integer.toString((pub_MaxRTT - pub_MinRTT));
+  }
+  
+  public String get_WaitSec()
+  {
+  	return Integer.toString((pub_CurRTO * pub_Timeouts)/1000);	
+  }
+  
+  public String get_errmsg() 
+  {
+    //String result = "Test not run";
+	//result = pub_errmsg;
+	//return result;
+	return pub_errmsg;
+  }
+
+  // "Remote Control" function - invoke NDT' runtest() method from the API
+  public void run_test()
+  {
+    // The Java security model considers calling a method that opens a socket
+	// from JavaScript to be a privileged action.  By using 
+	// java.security.privilegedAction here, we can grant JavaScript the 
+	// same expanded privileges as the signed applet to open a socket.
+	AccessController.doPrivileged(new PrivilegedAction() {
+       public Object run() {
+		pub_errmsg = "Test in progress.";
+		runtest();
+		return null;
+	   }
+	});
+  }
+
+
+/**
+    End of accessor methods
+**/	
   /************************************************************************/
 
 
@@ -198,6 +469,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
     }
     return null;
   }
+  
 
   public void init() {
       getContentPane().setLayout(new BorderLayout());
@@ -255,9 +527,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
       numOfTests.setModel(model);
       numOfTests.setPreferredSize(new Dimension(60, 20));
       delay.setSelectedIndex(0);
+
+	//Autorun functionality
+    isAutoRun = getParameter("autoRun");
+	if ((isAutoRun != null) && isAutoRun.equals("true")) {
+		  pub_errmsg = "Test in progress.";
+		  runtest();  
+  	}
+
   }
 
-  class MyTextPane extends JTextPane
+
+
+class MyTextPane extends JTextPane
   {
     public void append(String text)
     {
@@ -434,6 +716,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
         if (failed) {
           results.append(errmsg);
+
+		  pub_isReady = "failed";
+		  pub_errmsg = errmsg;
         }
 
         deTails.setEnabled(true);
@@ -578,6 +863,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       int bytes = 0;
       int inlth;
       t = System.currentTimeMillis();
+	  pub_TimeStamp = new Date();
 
       try {  
         while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
@@ -800,6 +1086,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
         return true;
       }
 
+	// Get client and server IP addresses from the outSocket.
+	pub_clientIP = outSocket.getLocalAddress().getHostAddress().toString();
+	pub_host	 = outSocket.getInetAddress().getHostAddress().toString();
+
+
       OutputStream out = outSocket.getOutputStream();
 
       // wait here for signal from server application 
@@ -875,13 +1166,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
         emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
       }
 
-/*************************************************************************
- * Added by Seth Peery
- * Write string representation of upstream speed to public String upstream
- */
-                upstream = ""+(prtdbl(sc2sspd*1000));
-/************************************************************************/
-      
+		// Expose upload speed to JavaScript clients
+           pub_c2sspd = sc2sspd;
+    
       if (ctl.recv_msg(msg) != 0) {
         errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
         return true;
@@ -1004,12 +1291,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
         emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
       }
 
-/*************************************************************************
- * Added by Seth Peery
- * Write string representation of downstream speed to public String upstream
- */
-                downstream = ""+(prtdbl(s2cspd*1000));
-/************************************************************************/
+
+		// Expose download speed to JavaScript clients
+           pub_s2cspd = s2cspd;
 
       srvin.close();
       inSocket.close();
@@ -1053,8 +1337,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
   public void dottcp(StatusPanel sPanel) throws IOException {
       Socket ctlSocket = null;
       if (!isApplication) {
+
           /*************************************************************************
-           * Added by Seth Peery
+           * Enable NDT to test against a web100srv instance on a remote server.
            * Instead of using the getCodeBase().getHost() value for the testing server,
            * which assumes this applet is being served from the web100srv server,
            * use a parameter provided in the APPLET tag.
@@ -1067,19 +1352,26 @@ public class Tcpbw100 extends JApplet implements ActionListener
           if (host == null) {
               host = getCodeBase().getHost();
           }
+		  
+		  pub_host = host;
       }
 
-// RAC Debug message
-	results.append("Connecting to '" + host + "' [" + InetAddress.getByName(host) + "] to run test\n");
 
-      int ctlport = 3001;
-      double wait2;
-      int sbuf, rbuf;
-      int i, wait;
 
-      failed = false;
+
+      	int ctlport = 3001;
+      	double wait2;
+      	int sbuf, rbuf;
+      	int i, wait;
+
+      	failed = false;
+          
       try {
-          if (preferIPv6.isSelected()) {
+		  
+		// RAC Debug message
+		results.append("Connecting to '" + host + "' [" + InetAddress.getByName(host) + "] to run test\n");
+
+		  if (preferIPv6.isSelected()) {
               try {
                   System.setProperty("java.net.preferIPv6Addresses", "true");
               }
@@ -1309,6 +1601,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
       if ((tests & TEST_MID) == TEST_MID) {
           middleboxResults(tmpstr2);
       }
+	  
+	  pub_isReady="yes";
+	  pub_errmsg ="All tests completed OK.";
   }
 
 
@@ -1447,11 +1742,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 		}
 
-		// Grap some client details from the applet environment
+		// Grab some client details from the applet environment
 		osName = System.getProperty("os.name");
+		pub_osName = osName;
+	    
 		osArch = System.getProperty("os.arch");
+		pub_osArch = osArch;
+		
 		osVer = System.getProperty("os.version");
+        pub_osVer = osVer;
+		
 		javaVer = System.getProperty("java.version");
+		pub_javaVer = javaVer;
+		
 		javaVendor = System.getProperty("java.vendor");
 
 		if (osArch.startsWith("x86") == true) {
@@ -1471,6 +1774,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				if (c2sData < 0) {
 					results.append("Server unable to determine bottleneck link type.\n");
 					emailText += "Server unable to determine bottleneck link type.\n%0A";
+					pub_AccessTech = "Connection type unknown";
+					
 				} 
 				else {
 					results.append("Your " + client + " is connected to a ");
@@ -1479,11 +1784,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 						results.append("Dial-up Modem\n");
 						emailText += "Dial-up Modem\n%0A";
 						mylink = .064;
+						pub_AccessTech = "Dial-up Modem";
 					} 
 					else {
 						results.append("Cable/DSL modem\n");
 						emailText += "Cable/DSL modem\n%0A";
 						mylink = 3;
+						pub_AccessTech = "Cable/DSL modem";
 					}
 				}
 			} 
@@ -1494,16 +1801,20 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					results.append("10 Mbps Ethernet subnet\n");
 					emailText += "10 Mbps Ethernet subnet\n%0A";
 					mylink = 10;
+					pub_AccessTech = "10 Mbps Ethernet";
 				} 
 				else if (c2sData == 4) {
 					results.append("45 Mbps T3/DS3 subnet\n");
 					emailText += "45 Mbps T3/DS3 subnet\n%0A";
 					mylink = 45;
+					pub_AccessTech = "45 Mbps T3/DS3 subnet";
 				} 
 				else if (c2sData == 5) {
 					results.append("100 Mbps ");
 					emailText += "100 Mbps ";
 					mylink = 100;
+					pub_AccessTech = "100 Mbps Ethernet";
+					
 					if (half_duplex == 0) {
 						results.append("Full duplex Fast Ethernet subnet\n");
 						emailText += "Full duplex Fast Ethernet subnet\n%0A";
@@ -1517,21 +1828,26 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					results.append("a 622 Mbps OC-12 subnet\n");
 					emailText += "a 622 Mbps OC-12 subnet\n%0A";
 					mylink = 622;
+					pub_AccessTech = "622 Mbps OC-12";
 				} 
 				else if (c2sData == 7) {
 					results.append("1.0 Gbps Gigabit Ethernet subnet\n");
 					emailText += "1.0 Gbps Gigabit Ethernet subnet\n%0A";
 					mylink = 1000;
+					pub_AccessTech = "1.0 Gbps Gigabit Ethernet";
 				} 
 				else if (c2sData == 8) {
 					results.append("2.4 Gbps OC-48 subnet\n");
 					emailText += "2.4 Gbps OC-48 subnet\n%0A";
 					mylink = 2400;
+					pub_AccessTech = "2.4 Gbps OC-48";
 				} 
 				else if (c2sData == 9) {
 					results.append("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
 					emailText += "10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n%0A";
 					mylink = 10000;
+					pub_AccessTech = "10 Gigabit Ethernet/OC-192";
+					
 				}
 			}
 
@@ -1744,6 +2060,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				"% of the time.\n");
 				emailText += "This connection is receiver limited " + prtdbl(rwintime*100) +
 				"% of the time.\n%0A";
+				pub_pctRcvrLimited = rwintime*100;
 
 			// I think there is a bug here, it sometimes tells you to increase the buffer
 			// size, but the new size is smaller than the current.
@@ -1928,8 +2245,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
     }
 		if (preserved) {
 			statistics.append("Server IP addresses are preserved End-to-End\n");
+			pub_natBox = "no";
 		}
 		else {
+			pub_natBox = "yes";
 			statistics.append("Information: Network Address Translation (NAT) box is " +
 			"modifying the Server's IP address\n");
 			statistics.append("\tServer says [" + ssip + "] but Client says [" + csip + "]\n");
@@ -2016,10 +2335,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	public void save_dbl_values(String sysvar, double sysval) {
 		if(sysvar.equals("bw:")) 
 			estimate = sysval;
-		else if(sysvar.equals("loss:")) 
+		else if(sysvar.equals("loss:")) { 
 			loss = sysval;
-		else if(sysvar.equals("avgrtt:")) 
+			pub_loss = loss;
+		}
+		else if(sysvar.equals("avgrtt:")) {
 			avgrtt = sysval;
+			pub_avgrtt = avgrtt;
+		}
 		else if(sysvar.equals("waitsec:")) 
 			waitsec = sysval;
 		else if(sysvar.equals("timesec:")) 
@@ -2030,8 +2353,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			rwintime = sysval;
 		else if(sysvar.equals("sendtime:")) 
 			sendtime = sysval;
-		else if(sysvar.equals("cwndtime:")) 
+		else if(sysvar.equals("cwndtime:")) {
 			cwndtime = sysval;
+			pub_cwndtime=cwndtime;
+		}
 		else if(sysvar.equals("rttsec:")) 
 			rttsec = sysval;
 		else if(sysvar.equals("rwin:")) 
@@ -2092,12 +2417,16 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			Timeouts = sysval;
 		else if(sysvar.equals("PktsRetrans:")) 
 			PktsRetrans = sysval;
-		else if(sysvar.equals("SACKsRcvd:")) 
+		else if(sysvar.equals("SACKsRcvd:")) {
 			SACKsRcvd = sysval;
+			pub_SACKsRcvd = SACKsRcvd;
+		}
 		else if(sysvar.equals("DupAcksIn:")) 
 			DupAcksIn = sysval;
-		else if(sysvar.equals("MaxRwinRcvd:")) 
+		else if(sysvar.equals("MaxRwinRcvd:")) {
 			MaxRwinRcvd = sysval;
+			pub_MaxRwinRcvd=MaxRwinRcvd;
+		}
 		else if(sysvar.equals("MaxRwinSent:")) 
 			MaxRwinSent = sysval;
 		else if(sysvar.equals("Sndbuf:")) 
@@ -2134,8 +2463,28 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			SndLimTransSender = sysval;
 		else if(sysvar.equals("MaxSsthresh:"))
 			MaxSsthresh = sysval;
-		else if(sysvar.equals("CurRTO:"))
+		else if(sysvar.equals("CurRTO:")) {
 			CurrentRTO = sysval;
+			pub_CurRTO = CurrentRTO;
+		}
+		else if(sysvar.equals("MaxRTO:")) {
+			pub_MaxRTO = sysval;
+		}
+		else if(sysvar.equals("MinRTO:")) {
+			pub_MinRTO = sysval;
+		}
+		else if(sysvar.equals("MinRTT:")) {
+			pub_MinRTT = sysval;
+		}
+		else if(sysvar.equals("MaxRTT:")) {
+			pub_MaxRTT = sysval;
+		}
+		else if(sysvar.equals("CurRwinRcvd:")) {
+			pub_CurRwinRcvd = sysval;
+		}		
+		else if(sysvar.equals("Timeouts:")) {
+			pub_Timeouts = sysval;
+		}	
 		else if(sysvar.equals("c2sData:"))
 			c2sData = sysval;
 		else if(sysvar.equals("c2sAck:"))
@@ -2146,12 +2495,18 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			s2cAck = sysval;
 		else if(sysvar.equals("PktsOut:"))
 			PktsOut = sysval;
-		else if(sysvar.equals("mismatch:"))
+		else if(sysvar.equals("mismatch:")) {
 			mismatch = sysval;
-		else if(sysvar.equals("congestion:"))
+			pub_mismatch=mismatch;
+		}
+		else if(sysvar.equals("congestion:")) {
 			congestion = sysval;
-		else if(sysvar.equals("bad_cable:"))
+			pub_congestion = congestion;
+		}
+		else if(sysvar.equals("bad_cable:")) {
 			bad_cable = sysval;
+			pub_Bad_cable = bad_cable;
+		}
 		else if(sysvar.equals("half_duplex:"))
 			half_duplex = sysval;
 		else if(sysvar.equals("CongestionSignals:"))
@@ -2297,6 +2652,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				ff.dispose();
 				ff = null;
 			}
+
+			pub_errmsg = "Test in progress.";
 			runtest();
 		}
 
