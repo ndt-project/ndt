@@ -1,0 +1,36 @@
+#summary NDT Common Warnings and Errors
+
+<wiki:toc max_depth="6" />
+
+= NDT Common Warnings and Errors =  
+
+The following sections compile a list of common NDT messages and warnings.  
+
+== Java Security Warning for Tcpbw100 - The application's digital signature has been verified. Do you want to run the application? ==
+
+NDT uses a signed-Java client applet Tcpbw100 signed by the New America Foundation, a partner in Measurement Lab.  By signing the NDT client, the user is assured that the that will run is the code that was released by Measurement Lab.  The certificate is required by some NDT integrators.  Some earlier versions of the Sun Java Runtime Environment will not display a warning when encountering NDT, and the most up-to-date versions will.  Users encountering a security warning should choose "Run" to allow NDT to run normally. 
+
+== NDT message - Another client is currently being served, your test will begin within NNN seconds ==
+
+NDT may handle multiple tests, but during very busy times, NDT may queue a small amount of newly arriving tests so that it can adequately serve tests that are already in progress.  Those newly arriving tests will get the above message and will begin shortly.  Users receiving this warning should either wait or test later.
+
+== Protocol error! or Protocol error!  expected XXXX got YYYY instead or Error in parsing test results! ==
+
+As part of testing, the NDT client and server are expected to have a scripted conversation.  This message from the client indicates that the client received results, messages or conditions that was unexpected.  Users receiving this message once should simply try again. If the condition persists, it may indicate a problem that NDT is unable to interpret.  Reproducible occasions resulting in these messages should be reported to the NDT developers.
+
+== Server process not running: start web100srv process on remote server ==
+
+NDT client needs to connect to port 3001 of the server.  If an attempt to connect to that port is not answered or is otherwise refused, the above message is displayed.  The message is a reminder to server operators to start the service.  Other users receiving this message should consider whether they are behind a security firewall that is configured to block outbound TCP connections to port 3001 (this will not be the case for most residential users).  If the condition persists, it may also be the case that the testing server is temporarily unavailable due to a network or server outage.
+
+== Server Busy: Too many clients waiting in server queue. Please try again later. ==
+
+To avoid extremely long waits during very busy times, NDT will reject newly arriving tests if the queue grows too large.  Those newly arriving tests will get the above message.  Users receiving this warning should test later.
+
+== About NDT ==
+
+NDT was written by Rich Carlson and volunteer contributors and is maintained by Internet2.  For more information, please see NDT's website at http://www.internet2.edu/performance/ndt/.
+
+== Last Updated ==
+
+$Id$
+
