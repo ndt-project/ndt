@@ -63,9 +63,9 @@ is setting the tunable network parametes to the proper value.  There are several
 web sites that provide detailed tuning instructions for various Operating Systems.
 Two of the best are:
 <ul>
-<li)<a href=http://www.psc.edu/networking/projects/tcptune>PSC's Enabling High
-Performance Data Transfers</a>
-<li><a href=http://fasterdata.es.net/TCP-tuning>ESnet's TCP Tuning Guide</a>
+<li><a href=http://www.psc.edu/networking/projects/tcptune>PSC's Enabling High
+Performance Data Transfers</a></li>
+<li><a href=http://fasterdata.es.net/TCP-tuning>ESnet's TCP Tuning Guide</a></li>
 </ul>
 The throughput an application achieves is dependant on the amount of buffer space
 available in the sending and receiving hosts, packet loss due to errors or congestion,
@@ -92,14 +92,14 @@ and the network infrastructure.  You may use these numbers as a guide to determi
 what your client's receive buffer is currently set to.  Divide the buffer size by
 the reported round trip time (RTT) to calculate the throughput value.
 <p>
-For more info on TCP tuning, visit
-<a href="http://cable-dsl.home.att.net/"> cable/dsl tuning</a>
-or dslreports.com <a href="http://www.dslreports.com/tweaks/">tweaks</a>
+For more info on TCP tuning, visit dslreports.com <a href="http://www.dslreports.com/tweaks/">tweaks</a>
 or <a href="http://www.psc.edu/networking/perf_tune.html">UNIX and
 Windows TCP/IP tuning tips</a>.
 <p>
 You can find the Web100 variables descriptions gathered on the following <a href="web100variables.html">web page</a>.
 <hr width="95%" noshade>
+
+<!--
 <h3>REN accessable NDT servers:</h3>
 <p>A list of servers known to the Researh and Education Network (REN) community is
    located on the <a href="http://e2epi.internet2.edu/ndt/ndt-server-list.html">Internet2
@@ -107,28 +107,24 @@ You can find the Web100 variables descriptions gathered on the following <a href
    accesible.
 <h3>Other publicly accessible NDT servers:</h3>
 <ul>
-<li><a href="http://ndt.anl.gov:7123">Argonne National Laboratory - IL (USA)</a>
-<li><a href="http://ndt.switch.ch">Swiss Education and Research Network (Switzerland)</a>
-<li><a href="http://web100.rit.edu:7123">Rochester Institute of Technology - Rochester NY (USA)</a>
-<li><a href="http://speedtest.umflint.edu">University of Michigan - Flint MI (USA)</a>
-<li><a href="http://nitro.ucsc.edu/">University of California - Santa Cruz CA (USA)</a>
-<li><a href="http://netspeed.stanford.edu/">Stanford University - Palo Alto CA (USA)</a>
-<li><a href="http://jlab4.jlab.org:7123">Thomas Jefferson National Accelerator Facility - VA (USA)</a>
-<li><a href="http://ciseweb100.cise-nsf.gov:7123">National Science Foundation - VA (USA)</a>
+<li><a href="http://ndt.anl.gov:7123">Argonne National Laboratory - IL (USA)</a></li>
+<li><a href="http://ndt.switch.ch">Swiss Education and Research Network (Switzerland)</a></li>
+<li><a href="http://web100.rit.edu:7123">Rochester Institute of Technology - Rochester NY (USA)</a></li>
+<li><a href="http://speedtest.umflint.edu">University of Michigan - Flint MI (USA)</a></li>
+<li><a href="http://nitro.ucsc.edu/">University of California - Santa Cruz CA (USA)</a></li>
+<li><a href="http://netspeed.stanford.edu/">Stanford University - Palo Alto CA (USA)</a></li>
+<li><a href="http://jlab4.jlab.org:7123">Thomas Jefferson National Accelerator Facility - VA (USA)</a></li>
+<li><a href="http://ciseweb100.cise-nsf.gov:7123">National Science Foundation - VA (USA)</a></li>
 </ul>
 <br><br>
+-->
+
+
 <h3>Other bandwidth testing sites:</h3>
 <ul>
-<li>microsoft's bandwidth <a href="http://www.msn.zdnet.com/partners/msn/bandwidth/speedtest.htm"> tester</a>
-<li> <a href="http://www.dslreports.com/tools"> upload/download tester</a>
-<li> <a href="http://www.browsertune.com/bt2kfast/">bt2kfast</a> 
-<li> <a href="http://www.dslreports.com/stest/0">www.dslreports.com speed test</a>
-browser/throughput tester
-<li> <a href="http://whisper.cs.utk.edu:7123">UT web100 bandwidth tester</a>,
- experimental (not always available)
-<li> the older ORNL java
- <a href="http://www.epm.ornl.gov/~dunigan/java/misc/tcpbw.html">
- bandwidth tester</a>
+<li> <a href="http://www.dslreports.com/tools"> upload/download tester</a></li>
+<li> <a href="http://www.dslreports.com/stest/0">www.dslreports.com speed test</a> browser/throughput tester</li>
+<li> the older ORNL java <a href="http://www.epm.ornl.gov/~dunigan/java/misc/tcpbw.html"> bandwidth tester</a></li>
 </ul>
 <p>
 You can see the hops (routers) that your packets pass through from
@@ -141,8 +137,7 @@ There are several
 traceroute servers</a> around the world that can show you the
 route back to your browser.
 Tom Dunigan at ORNL also has traceroute servers at
-<a href="http://www.epm.ornl.gov/~dunigan/cgi-bin/traceroute.cgi">ORNL</a>
-and at <a href="http://www.cs.utk.edu/~dunigan/cgi-bin/traceroute.cgi">UT</a>.
+<a href="http://www.epm.ornl.gov/~dunigan/cgi-bin/traceroute.cgi">ORNL</a>.
 
 <p>
 The NDT server window size for this Java tester is 64KB.
@@ -152,10 +147,7 @@ so you may be able to request more than 64 KB.
 and the network interface is 100 Mbs.)
 <p>
 
-The NDT software (source and compiled programs) is available via the Internet2
-End2End Performance Initiative web server
-at <a href="http://e2epi.internet2.edu/ndt/download.html">e2epi.internet2.edu/ndt/download.html</a>. 
-You can also learn more about the NDT system by subscribing to the 
+The NDT software (source and compiled programs) is available via the Internet2 Performance web site at <a href="http://www.internet2.edu/performance/ndt/download.html">www.internet2.edu/performance/ndt/download.html</a>.  You can also learn more about the NDT system by subscribing to the 
 <a href="https://mail.internet2.edu/wws/info/ndt-users">NDT user discussion</a>
 or <a href="https://mail.internet2.edu/wws/info/ndt-announce">NDT announcement</a>
 lists hosted by Internet2.  
@@ -165,8 +157,8 @@ at ANL.
 <br>
 Complete University of Chicago <a href="copyright.html">Copyright Notice</a>
 <hr noshade width="90%" size=-4>
-Comments to <a href="mailto:RCarlson@internet2.edu"> Rich Carlson </a> email:RCarlson@internet2.edu
+Comments to <a href="mailto:rcarlson501@gmail.com"> Rich Carlson </a> email:rcarlson501@gmail.com
 <br><i>Created: April 4, 2002 by Rich Carlson
-<br>Last Updated: June 8, 2005 by Rich Carlson </i>
+<br>Last Updated: March 16, 2010 by Jason Zurawski</i>
 </body>
 </html>
