@@ -46,7 +46,7 @@ Tcpbw100.class: $(Tcpbw100_JAVA)
 	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_JAVA)
 
 Tcpbw100.jar:	Tcpbw100.class
-	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class
+	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class Tcpbw100*.properties
 	echo timestamp > classTcpbw100.stamp
 
 EXTRA_DIST = MANIFEST.MF
