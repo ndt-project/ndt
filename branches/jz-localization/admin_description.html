@@ -1,0 +1,101 @@
+<br>
+<hr width="100%" noShade size=4>
+<h2 align=center>NDT Usage Statistics - Description</h2>
+<p>This page provides a summary view of how often the NDT server is used
+   and what problems it has found.  The purpose is to allow NDT administrators
+   and users to monitor the health of the NDT server.
+<p>The page contains:
+  <ul>
+    <li>A <b>Current Test Results</b> summary table.  This table shows several
+	important results from the latest user test.  
+    <li>A graph showing the <b>Bottleneck Link</b> distribution.  This graph
+	shows the usage distribution broken down by the slowest link in the
+	end-to-end path.
+    <li>A <b>Historical Summary</b> table.  This table shows a summary of several
+	NDT variables.
+    <li>A description of the tables and graphs.
+  </ul>
+<br>
+<h3>Current Test Results</h3>
+<p>This table provides insite into how the last NDT client performed.  It provides the
+   administrator with some of the basic troubleshooting information that was displayed
+   in the users desktop browser.  The table contains the following fields:
+<p><b>Date/Time</b> - The date and time of the latest test.
+<p><b>Total</b> - The total number of tests recorded in the <i>web100srv.log</i> file.
+<p><b>Bottleneck Link</b> - The slowest link in the end-to-end path as determined by
+	the NDT Link detection algorithm>
+<p><b>Theoritical Limit</b> - The maximum throughput that a connection could achieve
+	over the end-to-end path.  This value is calculated using web100 values for
+	Round-Trip-Time, Packet size, and Packet loss.  A properly functioning TCP
+	implementation will never exceed this value.  This value does not take the
+	physical network interface speeds into account.  This value is meaningful when
+	packet loss rates are large, RTT's are big, or packet sizes are small.
+<p><b>C2S Speed</b> - The Client-to-Server throughput measured by the NDT.
+<p><b>S2C Speed</b> - The Server-to-Client throughput measured by the NDT.
+<p><b>Packet Loss</b> - The packet loss calculated by the NDT using the Web100 variables.
+<p><b>Average RTT</b> - The average Round Trip Time (RTT) calculated by the NDT.  This is the
+	time it takes a data packet to go from the NDT server to the desktop client and an
+	Ack packet to return to the NDT server.
+<p><b>Minimum RTT</b> - The minimum Round Trip Time measured by the NDT server.  The NDT
+	server uses a 10 msec resolution clock so values are rounded down to the closest
+	10 msec value.
+<p><b>Retrans/sec</b> - The number of Packets Retransmitted per second over the 10 second
+	throughput test.
+<p><b>Timeouts/sec</b> - Them number of times per second the TCP needed to retransmit
+	a packet based on the Timeout timer expiring.
+<p><b>% Out of Order</b> - The percentage of packets that were received out-of-order.
+	This value is calculated based on the percentage of duplicate Ack packets that
+	were received that didn't result in a packet being retransmitted.
+<p><b>Send Buffer</b> - The size, in Bytes, of the NDT server's transmit buffer. 
+<p><b>BW*Delay</b> - The Bandwidth * Delay product for the Send buffer.  This value
+	is the maximum throughput that could be obtained over the end-to-end path
+	based on the NDT servers transmit buffer and the RTT of this path.  This value
+	is meaningful if the connection is reported to be sender limited.
+<p><b>Receive Buffer</b> - The size, in Bytes, of the Desktop Clients advertised receive
+	buffer.
+<p><b>BW*Delay</b> - The Bandwidth * Delay product for the receive buffer.  This value
+	is the maximum throughput that could be obtained over the end-to-end path
+	based on the Desktop Clients receive buffer and the RTT of this path.  This
+	value is meaningful if the connection is reported to be receiver limited.
+<p><b>Congestion Window</b> - The size, in Bytes, of the NDT servers congestion window (CWND)
+	variable.
+<p><b>BW*Delay</b> - The Bandwidth * Delay product for the NDT servers maximum congestion
+	window (CWND) value.  This value is the maximum throughput that could be obtained
+	over the end-to-end path based on the NDT servers CWND value and the RTT of this path.
+	This value is meaningful if the connection is reported to be Congestion Window limited.
+<br>
+<h3>Bottleneck Link Graph</h3>
+<p>The NDT contains a link detection algorithm that determines the slowest physical link in
+the end-to-end path.  The end-to-end network path is composed of numerous physical links,
+each with its own transmission rate.  The NDT link detection algorithm attempts to determine
+the slowest link in the end-to-end path.  This information is used to determine if problems
+exist or if the network is performing properly.  This graph shows the distribution of bottleneck
+link types reported by this detection algorithm.  The X axis shows the different link types
+the NDT is capable of detecting, the Y axis shows the percentage of connections that were
+determined to be a specific link type, and the numbers listed over each bar show the total
+number of connections of that type.
+<br>
+<h3>Historical Summary Statistics</h3>
+<p>This table shows some historical summary statistics.  They are generated based on data
+   stored in the <i>web100srv.log</i> log file.  The NDT is designed to log numerous Web100
+   variable data to aid the NDT administartor in debugging problems.  This table shows
+   some of the historical data collected in this log
+<p><b>Log Starts</b> - The date and time of the first entry in the log file.
+<p><b>Current</b> - The date/time and throughput values of the latest entry.  Note: this is the same
+	as that in the Current Statistics table.
+<p><b>Maximum</b> - The date/time and throughput values of the connection that achieved the
+	highest throughput since the Start Date.
+<p><b>Minimum</b> - The date/time and throughput values of the connection that achieved the
+	lowest throughput since the Start Date.
+<p><b>Duplex Mismatch</b> - A boolean flag that indicates if the current connection was reported
+	to have a duplex mismatch condition.
+<p><b>Errors</b> - A boolean flag that indicates if the current connection was reported to
+	have an excessive error rate indicating a faulty NIC or patch cable.
+<p><b>Total Mismatch</b> - The total number of duplex mismatch conditions detected since the 
+	Start Date.
+<p><b>Total Errors</b> - The total number of excessive error condition detected since the
+	Start Date.
+<br>
+<hr noshade size=3 width="100%">
+<p>For more details contact Richard Carlson email:rcarlson501@comcast.net
+</body></html>
