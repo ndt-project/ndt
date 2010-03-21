@@ -259,11 +259,11 @@ child_sig(pid_t chld_pid)
         log_println(3, "wstopsig = %d", WSTOPSIG(status));
         }
       if (status != 0) {
-        log_println(4, "child_sig() routine, wait4() non-zero status (%d) returned", status);
+        log_println(4, "child_sig() routine, wait3() non-zero status (%d) returned", status);
         return;
       }
     }
-    log_println(6, "child_sig() called pid=%d, wait3 returned child=%d - status=%d",
+    log_println(6, "child_sig() called pid=%d, wait returned child=%d - status=%d",
                 chld_pid, pid, status);
     if (pid == 0) {
         log_println(6, "wait3() failed to return non-zero PID, ignore it");
@@ -1276,7 +1276,8 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
 int
 main(int argc, char** argv)
 {
-  int chld_pid, rc;
+  pid_t chld_pid;
+  int rc;
   int tpid, mwaiting = 0;
   int ctlsockfd = -1;
   int c, chld_pipe[2];
@@ -1877,10 +1878,14 @@ main(int argc, char** argv)
       }
 
       /* the specially crafted data that kicks off the old clients */
-/* handle interrupt's to ensure that string is actually written
- * RAC 3/1/10
- */
-      write(ctlsockfd, "123456 654321", 13);
+      for (i=0; i<5; i++) {
+        rc = write(ctlsockfd, "123456 654321", 13);
+	if ((rc == -1) && (errno == EINTR))
+	  continue;
+	if (rc == 13)
+	  break;
+	/* todo: handle other error contitions */
+      }
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
       memset(new_child, 0, sizeof(struct ndtchild));
       tt = time(0);
@@ -2124,12 +2129,14 @@ multi_client:
 	  mclients++;
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
-/* the write() call could return before any data is written if a interrupt is processed
- * change code to detect this condition and redo the write() if it exits prematurely.
- * fix here, below, and above where we write the 123456 string.
- * RAC 3/18/10
- */
-          write(mchild->pipe, tmpstr, strlen(tmpstr));
+	  for (i=0; i<5; i++) {
+            rc = write(mchild->pipe, tmpstr, strlen(tmpstr));
+	    if ((rc == -1) && (errno == EINTR))
+	      continue;
+	    if (rc == strlen(tmpstr))
+	      break;
+	    /* TODO: handle other error conditions */
+	  }
           close(mchild->pipe);
           close(mchild->ctlsockfd);
         }
@@ -2138,7 +2145,14 @@ multi_client:
 	  head_ptr->running = 1;
           sprintf(tmpstr, "go %d %s", t_opts, head_ptr->tests);
           send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
-          write(head_ptr->pipe, tmpstr, strlen(tmpstr));
+	  for (i=0; i<5; i++) {
+            rc = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
+	    if ((rc == -1) && (errno == EINTR))
+	      continue;
+	    if (rc == strlen(tmpstr))
+	      break;
+	    /* TODO: handle other error conditions */
+	  }
           close(head_ptr->pipe);
           close(head_ptr->ctlsockfd);
         }
