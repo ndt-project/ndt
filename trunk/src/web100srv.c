@@ -480,6 +480,7 @@ cleanup(int signo)
             getpid());
         fclose(fp);
       }
+      sig13 = 1;
       break;
 
     case SIGHUP:
@@ -1672,6 +1673,7 @@ main(int argc, char** argv)
   waiting = 0;
   loopcnt = 0;
   head_ptr = NULL;
+  sig13 = 0;
   sig17 = 0;
   sig1 = 0;
   sig2 = 0;
@@ -1686,8 +1688,14 @@ main(int argc, char** argv)
 		head_ptr->pid, testing, waiting, mclients, zombie_check);
 
     /* moved condition from interrupt handler to here */
-    if ((sig1 > 0) || (sig2 > 0))
-	check_signal_flags;
+    /* if ((sig1 > 0) || (sig2 > 0))
+     * 	check_signal_flags;
+     */
+
+    if (sig13 == 1) {
+	log_println(5, "todo: Handle SIGPIPE signal, terminate child?");
+	sig13 = 0;
+    }
 
     if (sig17 > 0) { 
 	log_println(5, "Handle pending SIGCHLD signal, count=%d",  sig17);
@@ -1695,7 +1703,7 @@ main(int argc, char** argv)
     } 
 
     if ((waiting < 0) || (mclients < 0)) {
-	log_println(6, "Fault: Negtive numver of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
+	log_println(6, "Fault: Negtive number of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
             tpid = head_ptr->pid;
 	    child_sig(-1);
@@ -1869,6 +1877,9 @@ main(int argc, char** argv)
       }
 
       /* the specially crafted data that kicks off the old clients */
+/* handle interrupt's to ensure that string is actually written
+ * RAC 3/1/10
+ */
       write(ctlsockfd, "123456 654321", 13);
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
       memset(new_child, 0, sizeof(struct ndtchild));
@@ -1893,6 +1904,7 @@ main(int argc, char** argv)
     switch (chld_pid) {
       case -1:    /* an error occured, log it and quit */
         log_println(0, "fork() failed, errno = %d", errno);
+	/* todo: handle error and continue */
         break;
       default:    /* this is the parent process, handle scheduling and
                    * queuing of multiple incoming clients
@@ -2112,6 +2124,11 @@ multi_client:
 	  mclients++;
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
+/* the write() call could return before any data is written if a interrupt is processed
+ * change code to detect this condition and redo the write() if it exits prematurely.
+ * fix here, below, and above where we write the 123456 string.
+ * RAC 3/18/10
+ */
           write(mchild->pipe, tmpstr, strlen(tmpstr));
           close(mchild->pipe);
           close(mchild->ctlsockfd);
@@ -2147,6 +2164,10 @@ multi_client:
          */
         for (;;) {
 	  memset(buff, 0, sizeof(buff));
+/* the read() could return if an interrupt was caught.  This condition
+ * should be checked for and the read() restarted if necessary
+ * RAC 3/18/10
+ */
           read(chld_pipe[0], buff, 32);
           if (strncmp(buff, "go", 2) == 0) {
             log_println(6, "Got 'go' signal from parent, ready to start testing");

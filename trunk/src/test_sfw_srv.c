@@ -19,7 +19,7 @@
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
 static I2Addr sfwcli_addr = NULL;
-static int testTime = 30;
+static int testTime = 3;
 static int toWait = 1;
 static pthread_t threadId = -1;
 
@@ -33,7 +33,7 @@ void
 catch_alrm(int signo)
 {
   if (signo == SIGALRM) {
-    log_println(1, "SIGALRM was caught");
+    log_println(1, "SFW - SIGALRM was caught");
     if (threadId != -1) { /* we forward the signal to the osfw thread */
       pthread_kill(threadId, SIGALRM);
       threadId =-1;
@@ -59,7 +59,7 @@ test_osfw_srv(void* vptr)
   memset(&new, 0, sizeof(new));
   new.sa_handler = catch_alrm;
   sigaction(SIGALRM, &new, &old);
-  alarm(testTime + 1);
+  alarm(testTime);
   if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0, 0) == 0) {
     send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
   }
@@ -127,7 +127,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
 
   if (options->sfwopt) {
     setCurrentTest(TEST_SFW);
-    log_println(1, " <-- Simple firewall test -->");
+    log_println(1, " <-- %d - Simple firewall test -->", options->child0);
     
     sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options, 0);
     if (sfwsrv_addr == NULL) {
@@ -154,8 +154,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
       if (maxRTT > maxRTO)
         maxRTO = maxRTT;
-      if (((((double) maxRTO) / 1000.0) + 1) < 30.0)
-        testTime = ((double) maxRTO) / 1000.0 + 1;
+      if ((((double) maxRTO) / 1000.0) < 3.0)
+        testTime = (((double) maxRTO) / 1000.0) * 4 ;
     }
     else {
       log_println(0, "Simple firewall test: Cannot find connection");
@@ -164,7 +164,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       I2AddrFree(sfwsrv_addr);
       return -1;
     }
-    log_println(1, "  -- time: %d", testTime);
+    log_println(1, "  -- SFW time: %d", testTime);
     
     sprintf(buff, "%d %d", sfwsockport, testTime);
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
@@ -214,7 +214,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
 
     FD_ZERO(&fds);
     FD_SET(sfwsockfd, &fds);
-    sel_tv.tv_sec = testTime + 1;
+    sel_tv.tv_sec = testTime;
     sel_tv.tv_usec = 0;
     switch (select(sfwsockfd+1, &fds, NULL, NULL, &sel_tv)) {
       case -1:

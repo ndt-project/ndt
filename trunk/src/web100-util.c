@@ -258,7 +258,7 @@ web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int cou
     sprintf(web_vars[i].value, "%s", web100_value_to_text(web100_get_var_type(var), buf));
     sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
     send_msg(ctlsock, TEST_MSG, line, strlen(line));
-    log_print(6, "%s", line);
+    log_print(9, "%s", line);
   }
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return(0);

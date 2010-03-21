@@ -282,7 +282,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   
   if (options->midopt) {
     setCurrentTest(TEST_MID);
-    log_println(1, " <-- Middlebox test -->");
+    log_println(1, " <-- %d - Middlebox test -->", options->child0);
     strcpy(listenmidport, PORT3);
 
     if (options->midsockport) {
@@ -469,7 +469,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
-    log_println(1, " <-- C2S throughput test -->");
+    log_println(1, " <-- %d - C2S throughput test -->", testOptions->child0);
     strcpy(listenc2sport, PORT2);
     
     if (testOptions->c2ssockport) {
@@ -865,7 +865,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   
   if (testOptions->s2copt) {
     setCurrentTest(TEST_S2C);
-    log_println(1, " <-- S2C throughput test -->");
+    log_println(1, " <-- %d - S2C throughput test -->", testOptions->child0);
     strcpy(listens2cport, PORT4);
     
     if (testOptions->s2csockport) {
@@ -1111,7 +1111,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
           pthread_mutex_unlock(&mainmutex);
       }
 
-      alarm(20);
+      /* alarm(20); */
       t = secs();
       s = t + 10.0;
 
