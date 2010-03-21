@@ -829,16 +829,17 @@ class MyTextPane extends JTextPane
       emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'prepare', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected prepare, received something else.\n";
+        // errmsg = "Protocol error!  Expected prepare, received something else.\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "Middlebox test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -882,16 +883,17 @@ class MyTextPane extends JTextPane
       s2cspd = ((8.0 * bytes) / 1000) / t;
 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error! Expected test data, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error! Expected 'test data', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected test data, received something else.\n";
+        // errmsg = "Protocol error!  Expected test data, received something else.\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "Middlebox test results: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -924,16 +926,17 @@ class MyTextPane extends JTextPane
       in2Socket.close();
 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'finalize', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected finalize, received something else.\n";
+        // errmsg = "Protocol error!  Expected finalize, received something else.\n";
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
         errmsg = "Middlebox test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -954,16 +957,17 @@ class MyTextPane extends JTextPane
       emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
       
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'prepare', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected prepare, received something else.\n";
+        // errmsg = "Protocol error!  Expected prepare, received something else.\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1003,16 +1007,17 @@ class MyTextPane extends JTextPane
       ctl.send_msg(TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected port number, got: " + new String(msg.body) + "instead\n";
+       errmsg = "Protocol error!  Expected 'port number', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected port number, received something else.\n";
+        // errmsg = "Protocol error!  Expected port number, received something else.\n";
         return true;
       }
       if (msg.type != TEST_START) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }     
@@ -1032,16 +1037,17 @@ class MyTextPane extends JTextPane
       }
 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'test data', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected test data, received something else.\n";
+        // errmsg = "Protocol error!  Expected test data, received something else.\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1050,16 +1056,17 @@ class MyTextPane extends JTextPane
       osfwTest.finalize();
 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'finalize', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected finalize, received something else.\n";
+        // errmsg = "Protocol error!  Expected finalize, received something else.\n";
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
         errmsg = "Simple firewall test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1082,16 +1089,17 @@ class MyTextPane extends JTextPane
       emailText += "running 10s outbound test (client-to-server [C2S]) . . . . . ";
       
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'prepare', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected prepare, received something else.\n";
+        // errmsg = "Protocol error!  Expected prepare, received something else.\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1120,16 +1128,17 @@ class MyTextPane extends JTextPane
       // wait here for signal from server application 
       // This signal tells the client to start pumping out data
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected start signal, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'start signal', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected start signal, received something else.\n";
+        // errmsg = "Protocol error!  Expected start signal, received something else.\n";
         return true;
       }
       if (msg.type != TEST_START) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1169,16 +1178,17 @@ class MyTextPane extends JTextPane
       c2sspd = ((8.0 * pkts * lth) / 1000) / t;
       /* receive the c2sspd from the server */
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'test data', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected test data, received something else.\n";
+        // errmsg = "Protocol error!  Expected test data, received something else.\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1200,16 +1210,17 @@ class MyTextPane extends JTextPane
            pub_c2sspd = sc2sspd;
     
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'finalize', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected finalize, received something else.\n";
+        // errmsg = "Protocol error!  Expected finalize, received something else.\n";
         return true;
       }
       if (msg.type != TEST_FINALIZE) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1228,16 +1239,17 @@ class MyTextPane extends JTextPane
       emailText += "running 10s inbound test (server-to-client [S2C]) . . . . . . ";
       
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected prepare, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'prepare', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected prepare, received something else.\n";
+        // errmsg = "Protocol error!  Expected prepare, received something else.\n";
         return true;
       }
       if (msg.type != TEST_PREPARE) {
         errmsg = "C2S throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1264,16 +1276,17 @@ class MyTextPane extends JTextPane
 
       // wait here for signal from server application 
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected start signal, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'start signal', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected start signal, received something else.\n";
+        // errmsg = "Protocol error!  Expected start signal, received something else.\n";
         return true;
       }
       if (msg.type != TEST_START) {
         errmsg = "S2C throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1296,16 +1309,17 @@ class MyTextPane extends JTextPane
 
       /* receive the s2cspd from the server */
       if (ctl.recv_msg(msg) != 0) {
-        //errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
+        errmsg = "Protocol error!  Expected 'test data', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
         // XXX JZ: 03/08/2010
         // Reverting to old error message.  
-        errmsg = "Protocol error!  Expected test data, received something else.\n";
+        // errmsg = "Protocol error!  Expected test data, received something else.\n";
         return true;
       }
       if (msg.type != TEST_MSG) {
         errmsg = "S2C throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
         return true;
       }
@@ -1354,10 +1368,11 @@ class MyTextPane extends JTextPane
       try {  
         for (;;) {
           if (ctl.recv_msg(msg) != 0) {
-            //errmsg = "Protocol error!  Expected finalize, got: " + new String(msg.body) + "instead\n";
+            errmsg = "Protocol error!  Expected 'finalize', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
             // XXX JZ: 03/08/2010
             // Reverting to old error message.  
-            errmsg = "Protocol error!  Expected finalize, received something else.\n";
+            // errmsg = "Protocol error!  Expected finalize, received something else.\n";
             return true;
           }
           if (msg.type == TEST_FINALIZE) {
@@ -1366,7 +1381,7 @@ class MyTextPane extends JTextPane
           if (msg.type != TEST_MSG) {
             errmsg = "S2C throughput test: Received wrong type of the message\n";
         if (msg.type == MSG_ERROR) {
-            errmsg += "ERROR MSG: " + new String(msg.body) + "\n";
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
         }
             return true;
           }
@@ -1433,7 +1448,8 @@ class MyTextPane extends JTextPane
           return;
       } catch (IOException e) {
           System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
-          errmsg = "Server process not running: start web100srv process on remote server (" + host + ":" + ctlport + ")\n" ;
+          errmsg = "Server process not running: start web100srv process on remote server (" +
+		host + ":" + ctlport + ")\n" ;
           failed = true;
           return;
       }
@@ -1460,10 +1476,11 @@ class MyTextPane extends JTextPane
 
       for (;;) {
           if (ctl.recv_msg(msg) != 0) {
-              //errmsg = "Protocol error!  Expected wait time, got: " + new String(msg.body) + "instead\n";
+              errmsg = "Protocol error!  Expected 'wait time', got: 0x" +
+			Integer.parseInt(new String(msg.body), 16) + "instead\n";
               // XXX JZ: 03/08/2010
               // Reverting to old error message.  
-              errmsg = "Protocol error!  Expected wait time, received something else.\n";
+              // errmsg = "Protocol error!  Expected wait time, received something else.\n";
               failed = true;
               return;
           }
@@ -1508,10 +1525,11 @@ class MyTextPane extends JTextPane
       ff.toBack();
 
       if (ctl.recv_msg(msg) != 0) {
-          //errmsg = "Protocol error!  Expected hello signal, got: " + new String(msg.body) + "instead\n";
+          errmsg = "Protocol error!  Expected 'hello signal', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
           // XXX JZ: 03/08/2010
           // Reverting to old error message.  
-          errmsg = "Protocol error!  Expected hello signal, received something else.\n";
+          // errmsg = "Protocol error!  Expected hello signal, received something else.\n";
           failed = true;
           return;
       }
@@ -1530,10 +1548,11 @@ class MyTextPane extends JTextPane
       System.out.println("Server version: " + vVersion.substring(1));
 
       if (ctl.recv_msg(msg) != 0) {
-          //errmsg = "Protocol error!  Expected server version info, got: " + new String(msg.body) + "instead\n";
+          errmsg = "Protocol error!  Expected 'server version info', got: 0x" +
+		Integer.parseInt(new String(msg.body), 16) + "instead\n";
           // XXX JZ: 03/08/2010
           // Reverting to old error message.  
-          errmsg = "Protocol error!  Expected server version info, received something else.\n";
+          // errmsg = "Protocol error!  Expected server version info, received something else.\n";
           failed = true;
           return;
       }
@@ -1608,10 +1627,11 @@ class MyTextPane extends JTextPane
       try {  
           for (;;) {
               if (ctl.recv_msg(msg) != 0) {
-                  //errmsg = "Protocol error!  Expected test results, got: " + new String(msg.body) + "instead\n";
+                  errmsg = "Protocol error!  Expected 'test results', got: 0x" +
+			Integer.parseInt(new String(msg.body), 16) + "instead\n";
                   // XXX JZ: 03/08/2010
                   // Reverting to old error message.  
-                  errmsg = "Protocol error!  Expected test results, received something else.\n";
+                  // errmsg = "Protocol error!  Expected test results, received something else.\n";
                   failed = true;
                   return;
               }

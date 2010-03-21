@@ -70,7 +70,7 @@ char *okfile[] = {"/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
       "/"ADMINFILE, "/Admin.class", "/tr.sh", "/traceroute.pl", "/Tcpbw100$MyTextPane.class",
       "/Tcpbw100$Protocol.class", "/Tcpbw100$StatusPanel.class", "/Tcpbw100$3.class",
       "/Tcpbw100$OsfwWorker.class", "/Tcpbw100$Message.class", "/Tcpbw100$StatusPanel$1.class",
-      "/Tcpbw100$clsFrame$1.class", "/Tcpbw100$TestWorker.class", 0};
+      "/Tcpbw100$clsFrame$1.class", "/Tcpbw100$TestWorker.class", "/crossdomain.xml", 0};
 
 typedef struct allowed {
   char* filename;
