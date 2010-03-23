@@ -259,11 +259,11 @@ child_sig(pid_t chld_pid)
         log_println(3, "wstopsig = %d", WSTOPSIG(status));
         }
       if (status != 0) {
-        log_println(4, "child_sig() routine, wait4() non-zero status (%d) returned", status);
+        log_println(4, "child_sig() routine, wait3() non-zero status (%d) returned", status);
         return;
       }
     }
-    log_println(6, "child_sig() called pid=%d, wait3 returned child=%d - status=%d",
+    log_println(6, "child_sig() called pid=%d, wait returned child=%d - status=%d",
                 chld_pid, pid, status);
     if (pid == 0) {
         log_println(6, "wait3() failed to return non-zero PID, ignore it");
@@ -480,6 +480,7 @@ cleanup(int signo)
             getpid());
         fclose(fp);
       }
+      sig13 = 1;
       break;
 
     case SIGHUP:
@@ -1275,7 +1276,8 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
 int
 main(int argc, char** argv)
 {
-  int chld_pid, rc;
+  pid_t chld_pid;
+  int rc;
   int tpid, mwaiting = 0;
   int ctlsockfd = -1;
   int c, chld_pipe[2];
@@ -1672,6 +1674,7 @@ main(int argc, char** argv)
   waiting = 0;
   loopcnt = 0;
   head_ptr = NULL;
+  sig13 = 0;
   sig17 = 0;
   sig1 = 0;
   sig2 = 0;
@@ -1686,8 +1689,14 @@ main(int argc, char** argv)
 		head_ptr->pid, testing, waiting, mclients, zombie_check);
 
     /* moved condition from interrupt handler to here */
-    if ((sig1 > 0) || (sig2 > 0))
-	check_signal_flags;
+    /* if ((sig1 > 0) || (sig2 > 0))
+     * 	check_signal_flags;
+     */
+
+    if (sig13 == 1) {
+	log_println(5, "todo: Handle SIGPIPE signal, terminate child?");
+	sig13 = 0;
+    }
 
     if (sig17 > 0) { 
 	log_println(5, "Handle pending SIGCHLD signal, count=%d",  sig17);
@@ -1695,7 +1704,7 @@ main(int argc, char** argv)
     } 
 
     if ((waiting < 0) || (mclients < 0)) {
-	log_println(6, "Fault: Negtive numver of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
+	log_println(6, "Fault: Negtive number of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
             tpid = head_ptr->pid;
 	    child_sig(-1);
@@ -1869,7 +1878,14 @@ main(int argc, char** argv)
       }
 
       /* the specially crafted data that kicks off the old clients */
-      write(ctlsockfd, "123456 654321", 13);
+      for (i=0; i<5; i++) {
+        rc = write(ctlsockfd, "123456 654321", 13);
+	if ((rc == -1) && (errno == EINTR))
+	  continue;
+	if (rc == 13)
+	  break;
+	/* todo: handle other error contitions */
+      }
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
       memset(new_child, 0, sizeof(struct ndtchild));
       tt = time(0);
@@ -1893,6 +1909,7 @@ main(int argc, char** argv)
     switch (chld_pid) {
       case -1:    /* an error occured, log it and quit */
         log_println(0, "fork() failed, errno = %d", errno);
+	/* todo: handle error and continue */
         break;
       default:    /* this is the parent process, handle scheduling and
                    * queuing of multiple incoming clients
@@ -2112,7 +2129,14 @@ multi_client:
 	  mclients++;
           sprintf(tmpstr, "go %d %s", t_opts, test_suite);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
-          write(mchild->pipe, tmpstr, strlen(tmpstr));
+	  for (i=0; i<5; i++) {
+            rc = write(mchild->pipe, tmpstr, strlen(tmpstr));
+	    if ((rc == -1) && (errno == EINTR))
+	      continue;
+	    if (rc == strlen(tmpstr))
+	      break;
+	    /* TODO: handle other error conditions */
+	  }
           close(mchild->pipe);
           close(mchild->ctlsockfd);
         }
@@ -2121,7 +2145,14 @@ multi_client:
 	  head_ptr->running = 1;
           sprintf(tmpstr, "go %d %s", t_opts, head_ptr->tests);
           send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
-          write(head_ptr->pipe, tmpstr, strlen(tmpstr));
+	  for (i=0; i<5; i++) {
+            rc = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
+	    if ((rc == -1) && (errno == EINTR))
+	      continue;
+	    if (rc == strlen(tmpstr))
+	      break;
+	    /* TODO: handle other error conditions */
+	  }
           close(head_ptr->pipe);
           close(head_ptr->ctlsockfd);
         }
@@ -2147,6 +2178,10 @@ multi_client:
          */
         for (;;) {
 	  memset(buff, 0, sizeof(buff));
+/* the read() could return if an interrupt was caught.  This condition
+ * should be checked for and the read() restarted if necessary
+ * RAC 3/18/10
+ */
           read(chld_pipe[0], buff, 32);
           if (strncmp(buff, "go", 2) == 0) {
             log_println(6, "Got 'go' signal from parent, ready to start testing");

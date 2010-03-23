@@ -220,6 +220,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
 /* global variables for signal processing */
 sig_atomic_t sig1;
 sig_atomic_t sig2;
+sig_atomic_t sig13;
 sig_atomic_t sig17;
 pid_t sig17_pid[256];
 
