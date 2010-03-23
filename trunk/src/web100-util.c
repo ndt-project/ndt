@@ -163,6 +163,8 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
     }
 
     k = write(sock, sndbuff, octets);
+    if ((k == -1) && (errno == EINTR))
+      continue;
     if (k < 0 )
       break;
   }

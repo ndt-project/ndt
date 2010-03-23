@@ -1704,7 +1704,7 @@ main(int argc, char** argv)
     } 
 
     if ((waiting < 0) || (mclients < 0)) {
-	log_println(6, "Fault: Negtive number of clents waiting=$d, mclients=%d, nuke them", waiting, mclients);
+	log_println(6, "Fault: Negative number of clents waiting=%d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
             tpid = head_ptr->pid;
 	    child_sig(-1);
@@ -1745,9 +1745,7 @@ main(int argc, char** argv)
 	log_println(5, "Empty slot in test queue, find new client to dispatch");
 	tmp_ptr = head_ptr;
 	mchild = head_ptr;
-	log_println(2, "starting queue look for non-running client current=%d, running=%d, next=0x%x",
-			tmp_ptr->pid, tmp_ptr->running, tmp_ptr->next);
-	while (tmp_ptr->next != NULL) {
+	while (tmp_ptr != NULL) {
 	   log_println(2, "walking queue look for non-running client current=%d, running=%d, next=0x%x",
 			tmp_ptr->pid, tmp_ptr->running, tmp_ptr->next);
 	    if (tmp_ptr->running == 0) {
@@ -1758,8 +1756,32 @@ main(int argc, char** argv)
 	}
 	if ((tmp_ptr->next == NULL) && (tmp_ptr->running == 0))
 	  mchild = tmp_ptr;
-	if (mchild != head_ptr)
-	  goto multi_client;
+	if (mchild != head_ptr) {
+	  tmp_ptr = mchild;
+	  /* update queued clients, send message to client when it moves
+	   * up in the queue enough to get closer to running a test.  This happens
+	   * when the client falls into the next lower maxquee bin
+	   * RAC 3/21/10
+	   */
+	  if (waiting > (2*max_clients)) {
+	    for (i=max_clients; i<=waiting; i++) {
+	      if (tmp_ptr == NULL)
+		break;
+	      if (i == (2*max_clients)) {
+	        log_println(6, "Updating client list position client %d moved now 45 sec away",
+			tmp_ptr->pid);
+                send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1);
+	      }
+	      if (i == (3*max_clients)) {
+	      log_println(6, "Updating client list position client %d moved now 90 sec away",
+			tmp_ptr->pid);
+              send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1);
+	      }
+	      tmp_ptr = tmp_ptr->next;
+	    }
+	    goto multi_client;
+	  }
+	}
     }
 
     if ((multiple == 1) && (mclients > waiting)) {
@@ -2127,7 +2149,7 @@ multi_client:
 	  mchild->stime = time(0);
 	  mchild->running = 1;
 	  mclients++;
-          sprintf(tmpstr, "go %d %s", t_opts, test_suite);
+          sprintf(tmpstr, "go %d %s", t_opts, mchild->tests);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
 	  for (i=0; i<5; i++) {
             rc = write(mchild->pipe, tmpstr, strlen(tmpstr));
@@ -2182,7 +2204,9 @@ multi_client:
  * should be checked for and the read() restarted if necessary
  * RAC 3/18/10
  */
-          read(chld_pipe[0], buff, 32);
+          rc = read(chld_pipe[0], buff, 32);
+	  if ((rc == -1) && (errno == EINTR))
+	    continue;
           if (strncmp(buff, "go", 2) == 0) {
             log_println(6, "Got 'go' signal from parent, ready to start testing");
             break;

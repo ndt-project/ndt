@@ -207,6 +207,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 	char buff[256];
 	int tzoffset = 6;
 	FILE *fp;
+	int j;
 
   assert(cur);
 
@@ -343,10 +344,16 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2])
 		cur->links[5], cur->links[6], cur->links[7], cur->links[8], cur->links[9],
 		cur->links[10], cur->links[11], cur->totalspd2, cur->inc_cnt, cur->dec_cnt,
 		cur->same_cnt, cur->timeout, cur->dupack, ifspeed);
-	i = write(monitor_pipe[1], buff, strlen(buff));
-  log_println(6, "wrote %d bytes: link counters are '%s'", i, buff);
-  log_println(6, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
-      cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
+	for (j=0; j<5; j++) {
+	  i = write(monitor_pipe[1], buff, strlen(buff));
+	  if (i == strlen(buff))
+	    break;
+	  if ((i == -1) && (errno == EINTR))
+	    continue;
+	}
+        log_println(6, "wrote %d bytes: link counters are '%s'", i, buff);
+        log_println(6, "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
+       			 cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
 }
 
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA, int portB)
@@ -679,6 +686,7 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
   pcap_if_t *alldevs, *dp;
   pcap_addr_t *curAddr;
   DIR *dip;
+  int rc;
 
   cnt = -1;  /* read forever, or until end of file */
   sig1 = 0;
@@ -865,10 +873,23 @@ endLoop:
   }
 
   printer = (pcap_handler) print_speed;
-  if (dumptrace == 0)
-     write(monitor_pipe[1], "Ready", 6); 
-  else
-     write(monitor_pipe[1], dir, strlen(dir));
+  if (dumptrace == 0) {
+     for (i=0; i<5; i++) {
+       rc = write(monitor_pipe[1], "Ready", 6); 
+       if (rc == 6)
+	 break;
+       if ((rc == -1) && (errno == EINTR))
+	 continue;
+     }
+  } else {
+     for (i=0; i<5; i++) {
+       rc = write(monitor_pipe[1], dir, strlen(dir));
+       if (rc == strlen(dir))
+	 break;
+       if ((rc == -1) && (errno == EINTR))
+	 continue;
+     }
+  }
 
   /* kill process off if parent doesn't send a signal. */
   alarm(60);

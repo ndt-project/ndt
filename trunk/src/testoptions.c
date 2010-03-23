@@ -412,7 +412,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     close(midfd);
     close(options->midsockfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
-    log_println(1, " <-------------------->");
+    log_println(1, " <--------- %d ----------->", options->child0);
     setCurrentTest(TEST_NONE);
   }
   /* I2AddrFree(midsrv_addr); */
@@ -701,6 +701,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       }
       if (ret > 0) {
         n = read(recvsfd, buff, sizeof(buff));
+	if ((n == -1) && (errno == EINTR))
+	  continue;
         if (n == 0)
           break;
         bytes += n;
@@ -786,12 +788,18 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
 
     if (getuid() == 0) {
-      write(mon_pipe1[1], "c", 1);
+      for (i=0; i<5; i++) {
+        ret = write(mon_pipe1[1], "c", 1);
+	if (ret == 1)
+	  break;
+	if ((ret == -1) && (errno == EINTR))
+	  continue;
+      }
       close(mon_pipe1[0]);
       close(mon_pipe1[1]);
     }
 
-    log_println(1, " <------------------------->");
+    log_println(1, " <----------- %d -------------->", testOptions->child0);
     setCurrentTest(TEST_NONE);
   }
   /* I2AddrFree(c2ssrv_addr); */
@@ -1133,6 +1141,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         }
 
         n = write(xmitsfd, buff, RECLTH);
+	if ((n == -1) && (errno == EINTR))
+	  continue;
         if (n < 0)
           break;
         bytes += n;
@@ -1264,12 +1274,18 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 	log_println(6, "S2C test - failed to send finalize message to pid=%d", mon_pid2);
 
     if (getuid() == 0) {
-      write(mon_pipe2[1], "c", 1);
+      for (i=0; i<5; i++) {
+        ret = write(mon_pipe2[1], "c", 1);
+	if (ret == 1)
+	  break;
+	if ((ret == -1) && (errno == EINTR))
+	  continue;
+      }
       close(mon_pipe2[0]);
       close(mon_pipe2[1]);
     }
 
-    log_println(1, " <------------------------->");
+    log_println(1, " <------------ %d ------------->", testOptions->child0);
     setCurrentTest(TEST_NONE);
   }
   /* I2AddrFree(s2csrv_addr); */
