@@ -947,7 +947,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     /* Data received from speed-chk, tell applet to start next test */
     sprintf(buff, "%d", testOptions->s2csockport);
-    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    j = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    if (j == -1) 
+	log_println(6, "S2C %d Error!, Test start message not sent!", testOptions->child0);
+    if (j == -2) 
+	log_println(6, "S2C %d Error!, server port [%s] not sent!", testOptions->child0, buff);
     
     /* ok, await for connect on 3rd port
      * This is the second throughput test, with data streaming from
