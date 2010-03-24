@@ -1131,6 +1131,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       t = secs();
       s = t + 10.0;
 
+      log_println(6, "S2C child %d begining test", testOptions->child0);
       while(secs() < s) { 
         c3++;
         if (options->avoidSndBlockUp) {
@@ -1163,6 +1164,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       sigaction(SIGALRM, &old, NULL);
       sndqueue = sndq_len(xmitsfd);
 
+      log_println(6, "S2C child %d finished test", testOptions->child0);
       shutdown(xmitsfd, SHUT_WR);  /* end of write's */
 
       s = secs() - t;
