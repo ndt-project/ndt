@@ -921,7 +921,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     }
     testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
     testOptions->s2csockport = I2AddrPort(s2csrv_addr);
-    log_println(1, "  -- port: %d", testOptions->s2csockport);
+    log_println(1, "  -- s2c %d port: %d", testOptions->child0, testOptions->s2csockport);
     pair.port1 = -1;
     pair.port2 = testOptions->s2csockport;
     
@@ -958,9 +958,11 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     j = 0;
     clilen = sizeof(cli_addr);
     for (;;) {
-      if ((xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+      xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen);
+      if (xmitsfd > 0) {
+	log_println(6, "S2C %d, has sfd=%d, read to stream data", testOptions->child0, xmitsfd);
         break;
-
+      }
       if ((xmitsfd == -1) && (errno == EINTR))
 	continue;
 
@@ -974,6 +976,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     conn = web100_connection_from_socket(agent, xmitsfd); 
 
     if (xmitsfd > 0) {
+      log_println(6, "S2C child %d, ready to fork()", testOptions->child0);
       if (getuid() == 0) {
         pipe(mon_pipe2);
         if ((mon_pid2 = fork()) == 0) {
