@@ -527,25 +527,32 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
      */
     log_println(1, "listening for Inet connection on testOptions->c2ssockfd, fd=%d", testOptions->c2ssockfd);
 
-    log_println(1, "Sending 'GO' signal, to tell client to head for the next test");
+    log_println(1, "Sending 'GO' signal, to tell client %d to head for the next test", testOptions->child0);
     sprintf(buff, "%d", testOptions->c2ssockport);
     send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
 
     clilen = sizeof(cli_addr);
-    j = 0;
-    for (;;) {
-      if ((recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+    /* j = 0; */
+    log_println(6, "child %d - sent c2s prepare to client", testOptions->child0);
+    for (j=0; j<5; j++) {
+      recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
+      if (recvsfd > 0) {
+	log_println(6, "accept() for %d completed", testOptions->child0);
 	break;
-
-      if ((recvsfd == -1) && (errno == EINTR))
+      }
+      if ((recvsfd == -1) && (errno == EINTR)) {
+	log_println(6, "Child %d interrupted while waiting for accept() to complete", 
+		testOptions->child0);
 	continue;
-
-      sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
-      if (get_debuglvl() > 1)
-        perror(tmpstr);
-      if (++j == 4)
+      }
+      log_println(6, "-------     C2S connection setup for %d returned because (%d)", 
+		testOptions->child0, errno);
+      if (++j == 4) {
+	log_println(6, "c2s child %d, uable to open connection, return from test", testOptions->child0);
         return -2;
+      }
     } 
+    log_println(6, "child %d - c2s ready for test with fd=%d", testOptions->child0, recvsfd);
     src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
     conn = web100_connection_from_socket(agent, recvsfd);
 
@@ -555,7 +562,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         close(ctlsockfd);
         close(testOptions->c2ssockfd);
         close(recvsfd);
-        log_println(5, "C2S test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe1[0], mon_pipe1[1]);
+        log_println(5, "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d", 
+		testOptions->child0,mon_pipe1[0], mon_pipe1[1]);
         /* log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
         init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen, mon_pipe1,
 		device, &pair, "c2s", options->compress);
@@ -724,7 +732,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
         web100_log_close_write(snapArgs.log);
     }
 
-    sprintf(buff, "%6.0f kbps outbound", *c2sspd);
+    sprintf(buff, "%6.0f kbps outbound for child %d", *c2sspd, testOptions->child0);
     log_println(1, "%s", buff);
     /* send the c2sspd to the client */
     sprintf(buff, "%0.0f", *c2sspd);
