@@ -5,6 +5,14 @@
 # chkconfig: 2345 60 20
 # description: DONAR
 #
+# Version: $id$
+# Author:  Jason Zurawski <zurawski@internet2.edu>
+# 
+# You should have received a copy of the Internet2 Intellectual Property
+# Framework along with this software.  If not, see
+# <http://www.internet2.edu/membership/ip.html>
+#
+
 
 PREFIX=/home/iupui_ndt/donar
 BASH=/bin/bash
