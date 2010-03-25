@@ -1334,7 +1334,7 @@ main(int argc, char** argv)
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -1363,7 +1363,7 @@ main(int argc, char** argv)
   debug = 0;
 
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
