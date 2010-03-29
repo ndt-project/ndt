@@ -138,6 +138,7 @@ mlab.cmd 'sh -c "sudo /etc/init.d/ndt restart;sleep 2;ps axw | grep ndt;"'
    * _*mlab.du*_ - Run _*du*_ on all nodes
    * _*mlab.ping*_ - Ping all nodes from _*mlab4.nuq01*_
    * _*mlab.ps*_ - Run _*ps*_ on all nodes
+   * _*mlab.ps*_ - Run _*ps*_ on all nodes and return only a count of ndtd from the results
    * _*mlab.scp*_ - Copies a file from _*mlab4.nuq01*_ to the _*/home/iupui_ndt/tmp*_ directory on all remote machines.
      * The following command will copy the NDT daemon (web100srv):
 {{{
