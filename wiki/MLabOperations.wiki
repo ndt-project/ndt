@@ -1,0 +1,197 @@
+#summary operational notes on the NDT MLab deployment
+
+<wiki:toc max_depth="6" />
+
+= Operational Notes on the MLab NDT deployment =
+
+== Nodes ==
+
+The following is a list of MLab Nodes (Updated <font color="red">March 29, 2010</font>)
+
+ * MLab 1 Nodes
+   * mlab1.sea01.measurement-lab.org
+   * mlab1.nuq01.measurement-lab.org 
+   * mlab1.lax01.measurement-lab.org
+   * mlab1.dfw01.measurement-lab.org 
+   * mlab1.ord01.measurement-lab.org 
+   * mlab1.lga01.measurement-lab.org 
+   * mlab1.lga02.measurement-lab.org 
+   * mlab1.atl01.measurement-lab.org 
+   * mlab1.mia01.measurement-lab.org 
+   * mlab1.lhr01.measurement-lab.org 
+   * mlab1.ams01.measurement-lab.org 
+   * mlab1.ams02.measurement-lab.org 
+   * mlab1.par01.measurement-lab.org 
+   * mlab1.ath01.measurement-lab.org 
+   * mlab1.ham01.measurement-lab.org 
+ * MLab 2 Nodes
+   * mlab2.sea01.measurement-lab.org
+   * mlab2.nuq01.measurement-lab.org 
+   * mlab2.lax01.measurement-lab.org       
+   * mlab2.dfw01.measurement-lab.org 
+   * mlab2.ord01.measurement-lab.org 
+   * mlab2.lga01.measurement-lab.org 
+   * mlab2.lga02.measurement-lab.org 
+   * mlab2.atl01.measurement-lab.org 
+   * mlab2.mia01.measurement-lab.org 
+   * mlab2.lhr01.measurement-lab.org 
+   * mlab2.ams01.measurement-lab.org 
+   * mlab2.ams02.measurement-lab.org 
+   * mlab2.par01.measurement-lab.org 
+   * mlab2.ath01.measurement-lab.org 
+   * mlab2.ham01.measurement-lab.org 
+ * MLab 3 Nodes
+   * mlab3.sea01.measurement-lab.org
+   * mlab3.nuq01.measurement-lab.org 
+   * mlab3.lax01.measurement-lab.org 
+   * mlab3.dfw01.measurement-lab.org 
+   * mlab3.ord01.measurement-lab.org 
+   * mlab3.lga01.measurement-lab.org 
+   * mlab3.lga02.measurement-lab.org 
+   * mlab3.atl01.measurement-lab.org          
+   * mlab3.mia01.measurement-lab.org 
+   * mlab3.lhr01.measurement-lab.org 
+   * mlab3.ams01.measurement-lab.org 
+   * mlab3.ams02.measurement-lab.org 
+   * mlab3.par01.measurement-lab.org 
+   * mlab3.ath01.measurement-lab.org 
+   * mlab3.ham01.measurement-lab.org
+ * MLab 4 Nodes
+   * mlab4.nuq01.measurement-lab.org 
+
+== Logging In ==
+
+MLab nodes are build on the [http://planet-lab.org/ PlanetLab] infrastructure and require public key authentication.  The following login command will succeed if your public key has been distributed to all MLab nodes:
+
+{{{
+ssh -i SSH_KEY -p 806 iupui_ndt@HOSTNAME
+}}}
+
+== Running Programs ==
+
+The following programs should be running in the NDT slice of each MLab node:
+
+ * CRON
+   * _*crond*_ running as root
+ * RSYNC
+   * _*/usr/bin/rsync --daemon*_ running as root
+ * NDT
+   * _*/usr/local/sbin/ndtd -a --snaplog --tcpdump --cputime --multiple --max_clients=30*_ running as root 
+ * FakeWWW
+   * _*/usr/local/sbin/fakewww*_ 
+ * DONAR
+   * _*/bin/bash ./monitor.sh*_ running as root
+
+== Restarting Programs ==
+
+=== CRON ===
+
+Cron should be restarted through the init system:
+
+{{{
+sudo /etc/init.d/crond restart
+}}}
+
+=== RSYNC ===
+
+RSYNC should always be running, and listens on port _*7999*_.  RSYNC must be started by hand: 
+
+{{{
+sudo /usr/bin/rsync --daemon
+}}}
+
+=== NDT and FakeWWW ===
+
+NDT should be restarted through the init system, note that restarting NDT will restart FakeWWW as well:
+
+{{{
+sudo /etc/init.d/ndtd restart
+}}}
+
+If there are spurious NDT processes hanging around after a _*stop*_ that have not exited, try _*kill*_ing them:
+
+{{{
+sudo killall ndtd
+}}}
+
+NDT will be listening on port _*3001*_, FakeWWW will listen on port _*7123*_.  NDT may open additional connections on ports _*3002*_ and _*3003*_.
+
+=== DONAR ===
+
+DONAR should be restarted through the init system:
+
+{{{
+sudo /etc/init.d/donar restart
+}}}
+
+== Convenience Scripts ==
+
+There are several scripts available in _*/home/iupui_ndt/bin*_ on _*mlab4.nuq01.measurement-lab.org*_.  These are meant to run commands on all nodes, or distribute software.  The following is a list of commands, what they do, and how to use them:
+
+ * MLab Commands (Run on all MLab Nodes)
+   * _*mlab.cmd*_ - Run an arbitrary command on all nodes:
+     * The following command will restart NDT and get a ps listing:
+{{{
+mlab.cmd 'sh -c "sudo /etc/init.d/ndt restart;sleep 2;ps axw | grep ndt;"'
+}}}
+   * _*mlab.df*_ - Run _*df*_ on all nodes
+   * _*mlab.du*_ - Run _*du*_ on all nodes
+   * _*mlab.ping*_ - Ping all nodes from _*mlab4.nuq01*_
+   * _*mlab.ps*_ - Run _*ps*_ on all nodes
+   * _*mlab.scp*_ - Copies a file from _*mlab4.nuq01*_ to the _*/home/iupui_ndt/tmp*_ directory on all remote machines.
+     * The following command will copy the NDT daemon (web100srv):
+{{{
+mlab.scp /usr/local/sbin/web100srv
+}}}
+ * MLabX Command (substitute 1, 2, or 3 for _*X*_ to run on specific MLab sets)
+   * _*mlabX.cmd*_ - Run an arbitrary command on all _*X*_ nodes:
+     * The following command will restart NDT and get a ps listing:
+{{{
+mlabX.cmd 'sh -c "sudo /etc/init.d/ndt restart;sleep 2;ps axw | grep ndt;"'
+}}}
+   * _*mlabX.copy*_ - Copies a file from _*mlab4.nuq01*_ to the _*/home/iupui_ndt/tmp*_ directory on all _*X*_ nodes.
+     * The following command will copy the NDT daemon (web100srv):
+{{{
+mlabX.copy /usr/local/sbin/web100srv
+}}}
+
+== Miscellaneous Notes ==
+
+=== SSH ===
+
+Use port _*806*_ to connect via SSH to MLab nodes.  
+
+=== CRON ===
+
+The standard cron location, _*/etc/crontab*_, does not appear to work.  Instead use the crontab program:
+
+{{{
+crontab -u USER -e
+}}}
+
+To simply list what is in the file right now, run:
+
+{{{
+crontab -u USER -l
+}}}
+
+After editing, this will store a personal crontab file in _*/var/spool/cron*_ (e.g. either _*/var/spool/cron/iupui_ndt*_ or _*/var/spool/cron/root*_).  As an FYI crontab entries should resemble this:
+
+{{{
+*/15 * * * * /home/iupui_ndt/some_script.sh
+}}}
+
+The 6 fields broken down:
+
+ * _*Minutes*_
+ * _*Hours*_
+ * _*Day of Month*_
+ * _*Month*_
+ * _*Day of Week*_
+ * _*Command*_
+
+Note that each time entry can be a static value (_*01*_, minute 1 of a new hour/day/month), a repeating interval (_*/15*_, every 15 minutes), or open (use the star).  
+
+== Last Updated ==
+
+$Id$  
