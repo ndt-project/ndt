@@ -37,6 +37,12 @@ It can also identify 2 serious error conditions:</font>
   <PARAM NAME="H" VALUE="YOURDOMAIN">
   <PARAM NAME="U" VALUE="YOUREMAIL">
   <PARAM NAME="subject" VALUE="YOURSUBJECT">
+<!--
+  <PARAM NAME="language" VALUE="nb">
+  <PARAM NAME="country" VALUE="NO">
+-->
+  <PARAM NAME="language" VALUE="en">
+  <PARAM NAME="country" VALUE="US">
 </applet>
 </td></tr></table>
 
