@@ -32,6 +32,7 @@ typedef struct testoptions {
   pid_t child2;
 
   int sfwopt;
+  int State;
 } TestOptions;
 
 int wait_sig;

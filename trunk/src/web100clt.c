@@ -761,6 +761,10 @@ main(int argc, char *argv[])
     }
     if (xwait == 0)	/* signal from ver 3.0.x NDT servers */
       break;
+    if (xwait == 9977) {
+      fprintf(stderr, "Server Fault: Test terminated for unknown reason, plase try again later.\n");
+      exit(0);
+    }
     if (xwait == 9988) {
       fprintf(stderr, "Server Busy: Too many clients waiting in queue, plase try again later.\n");
       exit(0);

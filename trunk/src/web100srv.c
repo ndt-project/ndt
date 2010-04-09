@@ -734,7 +734,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 void *
 zombieWorker(void *head_ptr) {
 
-    struct ndtchild *tmp_ptr, *tmp, *pre_ptr;
+    struct ndtchild *tmp_ptr, *tmp, *pre_ptr=NULL;
     int i=0, rc;
     struct timeval sel_tv;
     fd_set rfd;
@@ -763,7 +763,8 @@ zombieWorker(void *head_ptr) {
 	    continue;
 	}
 	log_println(6, "New client found, checking for response, child=%d", tmp_ptr->pid);
-	send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+	rc = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+	log_println(6, "send_msg() returned %d during zombie check on client %d", rc, tmp_ptr->pid);
 	FD_ZERO(&rfd);
 	FD_SET(tmp_ptr->ctlsockfd, &rfd);
 	sel_tv.tv_sec = 1;
@@ -789,7 +790,7 @@ zombieWorker(void *head_ptr) {
 	      log_println(6, "Free'd semaphore lock - 4");
 	      break;
 	    default:
-	      log_println(6, "new client responded, bumping pointers child=%d", tmp_ptr->pid);
+	      log_println(6, "%d new client(s) responded, bumping pointers child=%d", rc, tmp_ptr->pid);
 	      recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
 	      tmp_ptr = tmp_ptr->next;
 	      pre_ptr = pre_ptr->next;
@@ -901,7 +902,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   sprintf(buff, "v%s", VERSION);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
 
-log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
+  log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   send_msg(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite));
   /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
     log_println(0, "ERROR: Tests initialization failed (%d)", n);
@@ -924,32 +925,40 @@ log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   }
   
 /*  alarm(15); */
-  log_println(6, "Setting 15 sec alarm for middlebox test");
-  if (test_mid(ctlsockfd, agent, &*testopt, conn_options, &s2c2spd)) {
-      log_println(0, "Middlebox test FAILED!");
+  log_println(6, "Starting middlebox test");
+  if ((ret = test_mid(ctlsockfd, agent, &*testopt, conn_options, &s2c2spd)) != 0) {
+      if (ret < 0)
+	log_println(6, "Middlebox test failed with rc=%d", ret);
+      log_println(0, "Middlebox test FAILED!, rc=%d", ret);
       testopt->midopt = TOPT_DISABLED;
   }
   
 /*  alarm(20); */
-  log_println(6, "re-Setting 20 sec alarm for simple firewall test");
-  if (test_sfw_srv(ctlsockfd, agent, &*testopt, conn_options)) {
-      log_println(0, "Simple firewall test FAILED!");
+  log_println(6, "Starting simple firewall test");
+  if ((ret = test_sfw_srv(ctlsockfd, agent, &*testopt, conn_options)) != 0) {
+      if (ret < 0)
+	log_println(6, "SFW test failed with rc=%d", ret);
+      log_println(0, "Simple firewall test FAILED!, rc=%d", ret);
       testopt->sfwopt = TOPT_DISABLED;
   }
 
 /*  alarm(25); */
-  log_println(6, "re-Setting 20 sec alarm for c2s throughput test");
-  if (test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd, set_buff, window, autotune,
-      device, &options, record_reverse, count_vars, spds, &spd_index)) {
-      log_println(0, "C2S throughput test FAILED!");
+  log_println(6, "Starting c2s throughput test");
+  if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd, set_buff, window, autotune,
+      device, &options, record_reverse, count_vars, spds, &spd_index)) != 0) {
+      if (ret < 0)
+	log_println(6, "C2S test failed with rc=%d", ret);
+      log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
       testopt->c2sopt = TOPT_DISABLED;
   }
 
 /*  alarm(25); */
-  log_println(6, "re-Setting 20 sec alarm for s2c throughput test");
-  if (test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, &options, spds, &spd_index, count_vars, &peaks)) {
-      log_println(0, "S2C throughput test FAILED!");
+  log_println(6, "Starting s2c throughput test");
+  if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd, set_buff, window, autotune,
+      device, &options, spds, &spd_index, count_vars, &peaks)) != 0) {
+      if (ret < 0)
+	log_println(6, "S2C test failed with rc=%d", ret);
+      log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
       testopt->s2copt = TOPT_DISABLED;
   }
 
@@ -1319,6 +1328,7 @@ main(int argc, char** argv)
   DataDirName = NULL;
 
   memset(&testopt, 0, sizeof(testopt));
+  /* sigset_t newmask, oldmask; */
 
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -1577,10 +1587,13 @@ main(int argc, char** argv)
   new.sa_handler = cleanup;
 
   /* Grab all signals and run them through my cleanup routine.  2/24/05 */
+  /* sigemptyset(&newmask);
+   * sigemptyset(&oldmask); */
   for (i=1; i<32; i++) {
     if ((i == SIGKILL) || (i == SIGSTOP))
       continue;    /* these signals can't be caught */
     sigaction(i, &new, NULL);
+    /* sigaddset(&newmask, i); */
   }
 
   /*
@@ -1695,6 +1708,7 @@ main(int argc, char** argv)
 
     if (sig13 == 1) {
 	log_println(5, "todo: Handle SIGPIPE signal, terminate child?");
+	child_sig(0);
 	sig13 = 0;
     }
 
@@ -1703,85 +1717,118 @@ main(int argc, char** argv)
 	child_sig(0);
     } 
 
-    if ((waiting < 0) || (mclients < 0)) {
-	log_println(6, "Fault: Negative number of clents waiting=%d, mclients=%d, nuke them", waiting, mclients);
-	while (head_ptr != NULL) {
-            tpid = head_ptr->pid;
-	    child_sig(-1);
-            kill(tpid, SIGTERM);
-	    child_sig(tpid);
-	}
-	waiting = 0;
-	mclients = 0;
-    }
-
-    if ((waiting == 0) && (head_ptr != NULL)) {
-	log_println(6, "Fault: Something in queue, but no waiting clients");
-	while (head_ptr != NULL) {
-            tpid = head_ptr->pid;
-	    child_sig(-1);
-            kill(tpid, SIGTERM);
-	    child_sig(tpid);
-	}
-	waiting = 0;
-	mclients = 0;
-    }
-
-    if (head_ptr != NULL) {
-        if ((time(0) - head_ptr->stime) > 60)  {
-	    log_println(6, "Fault: Something in queue, but child has exceeded wait time");
-            tpid = head_ptr->pid;
-	    child_sig(-1);
-            kill(tpid, SIGTERM);
-	    child_sig(tpid);
-        }
-    }
-
     if ((multiple == 1) && (mclients < max_clients) && (waiting >= max_clients)) {
 	/* this condition means that there are clients waiting and there are open slots
 	 * in the test queue, so dispatch another client.
 	 * RAC 12/11/09
 	 */
 	log_println(5, "Empty slot in test queue, find new client to dispatch");
-	tmp_ptr = head_ptr;
+	/* tmp_ptr = head_ptr; */
 	mchild = head_ptr;
-	while (tmp_ptr != NULL) {
+	i = 0;
+	while (mchild != NULL) {
+	   i++;   /* Keep count of how many times we go through this loop */
 	   log_println(2, "walking queue look for non-running client current=%d, running=%d, next=0x%x",
-			tmp_ptr->pid, tmp_ptr->running, tmp_ptr->next);
-	    if (tmp_ptr->running == 0) {
-	      mchild = tmp_ptr;
+			mchild->pid, mchild->running, mchild->next);
+	    if (mchild->running == 0) {
+	      /* mchild = tmp_ptr; */
+	      log_println(6, "found non-running client %d, update queue and dispatch this client",
+			mchild->pid);
 	      break;
 	   }
-	  tmp_ptr = tmp_ptr->next;
+	  mchild = mchild->next;
 	}
-	if ((tmp_ptr->next == NULL) && (tmp_ptr->running == 0))
-	  mchild = tmp_ptr;
-	if (mchild != head_ptr) {
+	if (i > max_clients) {
+	    log_println(6, "walked through running client list, no empty slots!");
+	    continue;
+	}
+
+	/* if ((mchild->next == NULL) && (mchild->running == 0))
+	 *   mchild = tmp_ptr;
+	 * if (mchild != head_ptr) {
+	 */
 	  tmp_ptr = mchild;
 	  /* update queued clients, send message to client when it moves
 	   * up in the queue enough to get closer to running a test.  This happens
 	   * when the client falls into the next lower maxquee bin
 	   * RAC 3/21/10
 	   */
+	  int rac;
 	  if (waiting > (2*max_clients)) {
 	    for (i=max_clients; i<=waiting; i++) {
 	      if (tmp_ptr == NULL)
 		break;
 	      if (i == (2*max_clients)) {
-	        log_println(6, "Updating client list position client %d moved now 45 sec away",
-			tmp_ptr->pid);
-                send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1);
+                rac = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1);
+		log_println(6, "sent 45 sec update message to client %d on fd=%d, send_msg() returned %d", 
+			tmp_ptr->pid, tmp_ptr->ctlsockfd, rac);
 	      }
 	      if (i == (3*max_clients)) {
-	      log_println(6, "Updating client list position client %d moved now 90 sec away",
-			tmp_ptr->pid);
-              send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1);
+              rac = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1);
+	      log_println(6, "sent 90 sec update message to client %d on fd=%d, send_msg() returned %d", 
+			tmp_ptr->pid, tmp_ptr->ctlsockfd, rac);
 	      }
 	      tmp_ptr = tmp_ptr->next;
 	    }
-	    goto multi_client;
 	  }
+	goto dispatch_client;
+    }
+
+    if ((waiting < 0) || (mclients < 0)) {
+	log_println(6, "Fault: Negative number of clents waiting=%d, mclients=%d, nuke them", waiting, mclients);
+	while (head_ptr != NULL) {
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9888", 4);
+	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
+	    close(head_ptr->ctlsockfd);
+            tpid = head_ptr->pid;
+	    child_sig(-1);
+            kill(tpid, SIGTERM);
+	    child_sig(tpid);
 	}
+	waiting = 0;
+	mclients = 0;
+	continue;
+    }
+
+    if ((waiting == 0) && (head_ptr != NULL)) {
+	log_println(6, "Fault: Something [%d] in queue, but no waiting clients", head_ptr->pid);
+	while (head_ptr != NULL) {
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9777", 4);
+	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
+	    close(head_ptr->ctlsockfd);
+            tpid = head_ptr->pid;
+	    child_sig(-1);
+            kill(tpid, SIGTERM);
+	    child_sig(tpid);
+	}
+	waiting = 0;
+	mclients = 0;
+	continue;
+    }
+
+    if (head_ptr != NULL) {
+        if ((time(0) - head_ptr->stime) > 60)  {
+	    log_println(6, "Fault: Something in queue, but child %d (fd=%d) has exceeded wait time",
+			head_ptr->pid, head_ptr->ctlsockfd);
+	    /* Should send new 9977 'test aborted' signal to client.  Using this
+	     * for now.
+	     *
+	     * rac 3/26/10
+	     */
+            log_println(6, "pid=%d, client='%s', stime=%ld, qtime=%ld now=%ld", head_ptr->pid, head_ptr->addr,
+			 head_ptr->stime, head_ptr->qtime, time(0));
+	    log_println(6, "pipe-fd=%d, running=%d, ctlsockfd=%d, client-type=%d, tests='%s'", 
+        		head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
+			head_ptr->oldclient, head_ptr->tests);
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9666", 4);
+	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
+	    close(head_ptr->ctlsockfd);
+            tpid = head_ptr->pid;
+	    child_sig(-1);
+            kill(tpid, SIGTERM);
+	    child_sig(tpid);
+	    continue;
+        }
     }
 
     if ((multiple == 1) && (mclients > waiting)) {
@@ -1799,16 +1846,19 @@ main(int argc, char** argv)
       sel_tv.tv_sec = 3;
       sel_tv.tv_usec = 0;
       log_println(3, "Waiting for new connection, timer running");
+sel_11:
       rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
       if ((rc == -1) && (errno == EINTR))
 	/* continue; */  /* a signal caused the select() to exit, re-enter loop & check */
-	continue;
+	goto sel_11;
       tt = time(0);
+
+/*
       if (head_ptr != NULL) {
         log_println(3, "now = %ld Process started at %ld, run time = %ld",
             tt, head_ptr->stime, (tt - head_ptr->stime));
         if ((tt - head_ptr->stime) > 60) {
-          /* process is stuck at the front of the queue. */
+          /-* process is stuck at the front of the queue. *-/
           fp = fopen(get_logfile(),"a");
           if (fp != NULL) {
             fprintf(fp, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
@@ -1817,12 +1867,17 @@ main(int argc, char** argv)
           }
           log_println(6, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
                 waiting, head_ptr->pid, ctime(&tt)+4);
-          /* kill(tmp_ptr->pid, SIGTERM); */
-          /* kill(head_ptr->pid, SIGCHLD); */
-	  /* clean up more and inform the client that the test is ending
+          -* kill(tmp_ptr->pid, SIGTERM); *-
+          -* kill(head_ptr->pid, SIGCHLD); *-
+	  -* clean up more and inform the client that the test is ending
 	   * rac 2/27/10
-	   */
-          send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9999", 4);
+	   *-
+          log_println(6, "pid=%d, client='%s', stime=%ld, qtime=%ld now=%ld", head_ptr->pid, head_ptr->addr,
+			 head_ptr->stime, head_ptr->qtime, time(0));
+	  log_println(6, "pipe-fd=%d, running=%d, ctlsockfd=%d, client-type=%d, tests='%s'", 
+        		head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
+			head_ptr->oldclient, head_ptr->tests);
+          send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9555", 4);
 	  shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	  close(head_ptr->ctlsockfd);
           tpid = head_ptr->pid;
@@ -1833,22 +1888,26 @@ main(int argc, char** argv)
 	  if (((multiple == 0) && (waiting == 1)) ||
 		((multiple == 1) && (mclients == 0)))
             testing = 0;
-	  /* should not decrement waiting here, it was decrementd in the child_sig() routine 
+	  -* should not decrement waiting here, it was decrementd in the child_sig() routine 
 	   * RAC 2/27/09
-	   */
-          /* if (waiting > 0)
+	   *-
+          -* if (waiting > 0)
            *  waiting--;
-           */
+           *-
 	  if (waiting == 0)
 	    mclients = 0;
         }
       }
+ */
     }
     else {
 	/* Nothing is in the queue, so wait forever until a new connection request arrives */
       log_println(3, "Timer not running, waiting for new connection");
       mclients = 0;
+sel_12:
       rc = select(listenfd+1, &rfd, NULL, NULL, NULL);
+      if ((rc == -1) && (errno == EINTR))
+	goto sel_12;  /* a signal caused the select() to exit, re-enter loop & check */
     }
 
     if (rc < 0) {
@@ -1875,18 +1934,26 @@ main(int argc, char** argv)
           goto ChldRdy;
       /* } */
       clilen = sizeof(cli_addr);
-      for (;;) {
+      memset(&cli_addr, 0, clilen);
+      log_println(6, "Select() found %d clients ready, highest fd=%d", rc, listenfd);
+      if (rc > 1) {
+        for (i=3; i<=listenfd; i++) {
+	  if (FD_ISSET(i, &rfd)) {
+	    listenfd = i;
+	    break;
+	  }
+	}
+      }
+      for (i=0;i<5;i++) {
+	ctlsockfd = 0;
         ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
-        if (ctlsockfd < 0) {
-          if (errno == EINTR)
+        if ((ctlsockfd == -1) && (errno == EINTR))
             continue; /*sig child */
-          perror("Web100srv server: accept error");
-          break;
-        }
         size_t tmpstrlen = sizeof(tmpstr);
+	memset(tmpstr, 0, tmpstrlen);
         I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
-        I2AddrFree(tmp_addr);
+        /* I2AddrFree(tmp_addr); */
         log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", tmp_addr, tmpstr, ctlsockfd);
 	break;
       }
@@ -1925,7 +1992,8 @@ main(int argc, char** argv)
        */
     }
 
-    pipe(chld_pipe);
+    if (pipe(chld_pipe) == -1) 
+	log_println(6, "pipe() failed errno=%d", errno);
     chld_pid = fork();
 
     switch (chld_pid) {
@@ -1939,7 +2007,7 @@ main(int argc, char** argv)
         log_println(5, "Parent process spawned child = %d", chld_pid);
         log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", chld_pipe[0], chld_pipe[1]);
 
-        close(chld_pipe[0]);
+        /* close(chld_pipe[0]); */
 
         /* Check to see if we have more than max_clients waiting in the queue
          * If so, tell them to go away.
@@ -1947,9 +2015,11 @@ main(int argc, char** argv)
          */
         if (((multiple == 0) && (waiting >= (max_clients-1))) || 
 		((multiple == 1) && (waiting >= ((4*max_clients)-1)))) {
-          log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.", chld_pid);
+          log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.",
+			chld_pid);
           sprintf(tmpstr, "9988");
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+          close(chld_pipe[0]);
           close(chld_pipe[1]);
 	  shutdown(ctlsockfd, SHUT_WR);
           close(ctlsockfd);
@@ -1964,6 +2034,7 @@ main(int argc, char** argv)
 	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
 	if (t_opts < 1) {
 	    log_println(3, "Invalid test suite string '%s' received, terminate child", test_suite);
+            close(chld_pipe[0]);
             close(chld_pipe[1]);
 	    shutdown(ctlsockfd, SHUT_WR);
             close(ctlsockfd);
@@ -1979,6 +2050,7 @@ main(int argc, char** argv)
           continue;
         }
 	log_println(6, "creating new child - semaphore locked");
+	/*sigprocmask(SIG_BLOCK, &newmask, &oldmask); */
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
         strncpy(new_child->host, name, strlen(name));
@@ -1997,6 +2069,7 @@ main(int argc, char** argv)
 	memset(new_child->tests, 0, sizeof(test_suite));
 	memcpy(new_child->tests, test_suite, strlen(test_suite));
         new_child->next = NULL;
+	/* sigprocmask(SIG_SETMASK, &oldmask, NULL); */
 	sem_post(&ndtq);
 	log_println(6, "Free'd ndtq semaphore lock - 1");
 	if (multiple == 1)
@@ -2006,12 +2079,14 @@ main(int argc, char** argv)
 	log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
 			new_child->oldclient, new_child->tests);
 
+        /* close(chld_pipe[0]); */
+
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
-          send_msg(ctlsockfd, SRV_QUEUE, "9999", 4);
+          send_msg(new_child->ctlsockfd, SRV_QUEUE, "9444", 4);
           close(chld_pipe[1]);
-	  shutdown(ctlsockfd, SHUT_WR);
-          close(ctlsockfd);
+	  shutdown(new_child->ctlsockfd, SHUT_WR);
+          close(new_child->ctlsockfd);
 	  log_println(6, "no queuing, free new_child=0x%x", new_child);
           free(new_child);
           continue;
@@ -2057,7 +2132,7 @@ main(int argc, char** argv)
           log_println(3, "%d clients waiting, telling client (%d) testing will begin within %d minutes",
               (waiting-1), tmp_ptr->pid, (waiting-1));
           sprintf(tmpstr, "%d", (waiting-1));
-          send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+          send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 	  continue;
         }
 
@@ -2141,22 +2216,29 @@ multi_client:
          * request.
          */
 
+dispatch_client:
 	memset(tmpstr, 0, sizeof(tmpstr));
         if (multiple == 1) {
-	  log_println(3, "New mclient '%d'(%d) asking for service", mclients, mchild->pid);
 	  if (mchild == NULL)
 	    mchild = head_ptr;
+	  if (mchild->running == 1)
+	    continue;
+	  log_println(3, "New mclient '%d'(%d) asking for service", mclients, mchild->pid);
 	  mchild->stime = time(0);
 	  mchild->running = 1;
 	  mclients++;
           sprintf(tmpstr, "go %d %s", t_opts, mchild->tests);
+	  log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
 	  for (i=0; i<5; i++) {
             rc = write(mchild->pipe, tmpstr, strlen(tmpstr));
+	    log_println(6, "write(%d) returned %d, errno=%d", mchild->pid, rc, errno);
 	    if ((rc == -1) && (errno == EINTR))
 	      continue;
 	    if (rc == strlen(tmpstr))
 	      break;
+	    log_println(6, "Failed to write 'GO' message to client %d, reason=%d, errno=%d",
+			mchild->pid, rc, errno);
 	    /* TODO: handle other error conditions */
 	  }
           close(mchild->pipe);
@@ -2166,6 +2248,7 @@ multi_client:
           head_ptr->stime = time(0);
 	  head_ptr->running = 1;
           sprintf(tmpstr, "go %d %s", t_opts, head_ptr->tests);
+	  log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
           send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
 	  for (i=0; i<5; i++) {
             rc = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
@@ -2205,10 +2288,11 @@ multi_client:
  * RAC 3/18/10
  */
           rc = read(chld_pipe[0], buff, 32);
+	  log_println(6, "Child %d received '%s' from parent", getpid(), buff);
 	  if ((rc == -1) && (errno == EINTR))
 	    continue;
           if (strncmp(buff, "go", 2) == 0) {
-            log_println(6, "Got 'go' signal from parent, ready to start testing");
+            log_println(6, "Got 'go' signal from parent, ready to start testing %d", getpid());
             break;
           }
         }
