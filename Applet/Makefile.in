@@ -221,7 +221,7 @@ ndt_DATA = Tcpbw100.jar
 Tcpbw100dir = $(ndtdir)
 Tcpbw100_JAVA = Tcpbw100.java
 Tcpbw100_jar_SOURCES = Tcpbw100.java
-EXTRA_DIST = MANIFEST.MF
+EXTRA_DIST = MANIFEST.MF Tcpbw100_msgs_en_US.properties Tcpbw100_msgs_nb_NO.properties
 all: all-am
 
 .SUFFIXES:
@@ -549,7 +549,7 @@ Tcpbw100.class: $(Tcpbw100_JAVA)
 	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_JAVA)
 
 Tcpbw100.jar:	Tcpbw100.class
-	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class
+	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class Tcpbw100*.properties
 	echo timestamp > classTcpbw100.stamp
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.

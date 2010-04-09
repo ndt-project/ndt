@@ -1390,7 +1390,7 @@ class MyTextPane extends JTextPane
       	int ctlport = 3001;
       	double wait2;
       	int sbuf, rbuf;
-      	int i, wait;
+      	int i, wait, swait=0;
 
       	failed = false;
           
@@ -1461,9 +1461,15 @@ class MyTextPane extends JTextPane
           }
 
           if (wait == 9988) {
+	    if (swait == 0) {
               errmsg = messages.getString("serverBusy") + "\n";
               failed = true;
               return;
+	    } else {
+              errmsg = messages.getString("serverFault") + "\n";
+              failed = true;
+              return;
+	    }
           }
 
           if (wait == 9999) {
@@ -1481,6 +1487,7 @@ class MyTextPane extends JTextPane
           // tests in the queue.
           wait = (wait * 45);
           results.append(messages.getString("otherClient") + wait + messages.getString("seconds") +".\n");
+	  swait = 1;
       }
 
       f.toBack();
