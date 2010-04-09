@@ -1777,7 +1777,8 @@ main(int argc, char** argv)
     if ((waiting < 0) || (mclients < 0)) {
 	log_println(6, "Fault: Negative number of clents waiting=%d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
-            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9888", 4);
+            /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9933", 4); */
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
             tpid = head_ptr->pid;
@@ -1793,7 +1794,8 @@ main(int argc, char** argv)
     if ((waiting == 0) && (head_ptr != NULL)) {
 	log_println(6, "Fault: Something [%d] in queue, but no waiting clients", head_ptr->pid);
 	while (head_ptr != NULL) {
-            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9777", 4);
+            /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9977", 4); */
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
             tpid = head_ptr->pid;
@@ -1820,7 +1822,8 @@ main(int argc, char** argv)
 	    log_println(6, "pipe-fd=%d, running=%d, ctlsockfd=%d, client-type=%d, tests='%s'", 
         		head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
 			head_ptr->oldclient, head_ptr->tests);
-            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9666", 4);
+            /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9966", 4); */
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
             tpid = head_ptr->pid;
@@ -2083,7 +2086,8 @@ sel_12:
 
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
-          send_msg(new_child->ctlsockfd, SRV_QUEUE, "9444", 4);
+          /* send_msg(new_child->ctlsockfd, SRV_QUEUE, "9944", 4); */
+          send_msg(new_child->ctlsockfd, SRV_QUEUE, "9988", 4);
           close(chld_pipe[1]);
 	  shutdown(new_child->ctlsockfd, SHUT_WR);
           close(new_child->ctlsockfd);

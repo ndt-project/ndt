@@ -596,7 +596,7 @@ save_dbl_values(char *sysvar, float *sysval)
 int
 main(int argc, char *argv[])
 {
-  int c;
+  int c, swait;
   char tmpstr2[512], tmpstr[16384], varstr[16384];
   unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS;
   int ctlSocket;
@@ -741,6 +741,7 @@ main(int argc, char *argv[])
     exit(0);
   }
 
+  swait = 0;
   for (;;) {
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
@@ -766,7 +767,10 @@ main(int argc, char *argv[])
       exit(0);
     }
     if (xwait == 9988) {
-      fprintf(stderr, "Server Busy: Too many clients waiting in queue, plase try again later.\n");
+      if (swait == 0)
+      	fprintf(stderr, "Server Busy: Too many clients waiting in queue, plase try again later.\n");
+      else
+        fprintf(stderr, "Server Fault: Test terminated for unknown reason, plase try again later.\n");
       exit(0);
     }
     if (xwait == 9999) {
@@ -784,6 +788,7 @@ main(int argc, char *argv[])
     xwait = (xwait * 45);
     log_print(0, "Another client is currently begin served, your test will ");
     log_println(0,  "begin within %d seconds", xwait);
+    swait = 1;
   }
 
   /* add alarm() signal to kill off client if the server never finishes the tests
