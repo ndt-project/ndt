@@ -333,21 +333,39 @@ int
 send_msg(int ctlSocket, int type, void* msg, int len)
 {
   unsigned char buff[3];
+  int rc, i;
   
   assert(msg);
   assert(len >= 0);
 
+ /*  memset(0, buff, 3); */
   buff[0] = type;
   buff[1] = len >> 8;
   buff[2] = len;
 
-  if (writen(ctlSocket, buff, 3) != 3) {
-    return -1;
+  for (i=0; i<5; i++) {
+    rc = writen(ctlSocket, buff, 3);
+    if (rc == 3)
+      break;
+    if (rc == 0) 
+      continue;
+    if (rc == -1)
+      return -1;
   }
-  if (writen(ctlSocket, msg, len) != len) {
-    return -2;
+  if (i == 5)
+    return -3;
+  for (i=0; i<5; i++) {
+    rc = writen(ctlSocket, msg, len);
+    if (rc == len)
+      break;
+    if (rc == 0)
+      continue;
+    if (rc == -1)
+      return -2;
   }
-  log_println(8, ">>> send_msg: type=%d, len=%d", type, len);
+  if (i == 5)
+    return -3;
+  log_println(8, ">>> send_msg: type=%d, len=%d, msg=%s, pid=%d", type, len, msg, getpid());
   return 0;
 }
 
@@ -412,8 +430,11 @@ writen(int fd, void* buf, int amount)
     if (n == -1) {
       if (errno == EINTR)
 	continue;
-      if (errno != EAGAIN)
-        return 0;
+      if (errno != EAGAIN) {
+	log_println(6, "writen() Error! write(%d) failed with err='%s(%d) pic=%d'", fd,
+		strerror(errno), errno, getpid());
+        return -1;
+      }
     }
     assert(n != 0);
     if (n != -1) {
@@ -465,10 +486,8 @@ readn(int fd, void* buf, int amount)
     if (n == -1) {
       if (errno == EINTR)
 	continue;
-      if (errno == ECONNRESET)
-	return(ECONNRESET);
       if (errno != EAGAIN)
-        return 0;
+        return -errno;
     }
     if (n != -1) {
       received += n;

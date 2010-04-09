@@ -263,7 +263,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int maxseg=1456;
   /* int maxseg=1456, largewin=16*1024*1024; */
   /* int seg_size, win_size; */
-  int midfd, j;
+  int midfd, j, ret;
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
   socklen_t clilen;
@@ -333,7 +333,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     log_println(1, "  -- port: %d", options->midsockport);
     
     sprintf(buff, "%d", options->midsockport);
-    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    if ((ret = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
+	return ret;
     
     /* set mss to 1456 (strange value), and large snd/rcv buffers
      * should check to see if server supports window scale ?
@@ -414,6 +415,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
     log_println(1, " <--------- %d ----------->", options->child0);
     setCurrentTest(TEST_NONE);
+  /* I2AddrFree(midsrv_addr); */
   }
   /* I2AddrFree(midsrv_addr); */
   return 0;
@@ -529,7 +531,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     log_println(1, "Sending 'GO' signal, to tell client %d to head for the next test", testOptions->child0);
     sprintf(buff, "%d", testOptions->c2ssockport);
-    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    if ((ret = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
+	return ret;
 
     clilen = sizeof(cli_addr);
     /* j = 0; */
@@ -559,7 +562,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     if (getuid() == 0) {
       pipe(mon_pipe1);
       if ((mon_pid1 = fork()) == 0) {
-        close(ctlsockfd);
+        /* close(ctlsockfd); */
         close(testOptions->c2ssockfd);
         close(recvsfd);
         log_println(5, "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d", 
@@ -809,9 +812,12 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     log_println(1, " <----------- %d -------------->", testOptions->child0);
     setCurrentTest(TEST_NONE);
-  }
   /* I2AddrFree(c2ssrv_addr); */
   I2AddrFree(src_addr);
+  /* testOptions->child1 = mon_pid1; */
+  }
+  /* I2AddrFree(c2ssrv_addr); */
+  /* I2AddrFree(src_addr); */
   /* testOptions->child1 = mon_pid1; */
   return 0; 
 }
@@ -948,10 +954,14 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     /* Data received from speed-chk, tell applet to start next test */
     sprintf(buff, "%d", testOptions->s2csockport);
     j = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
-    if (j == -1) 
+    if (j == -1) {
 	log_println(6, "S2C %d Error!, Test start message not sent!", testOptions->child0);
-    if (j == -2) 
+	return j;
+    }
+    if (j == -2) {
 	log_println(6, "S2C %d Error!, server port [%s] not sent!", testOptions->child0, buff);
+	return j;
+    }
     
     /* ok, await for connect on 3rd port
      * This is the second throughput test, with data streaming from
@@ -984,7 +994,7 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if (getuid() == 0) {
         pipe(mon_pipe2);
         if ((mon_pid2 = fork()) == 0) {
-          close(ctlsockfd);
+          /* close(ctlsockfd); */
           close(testOptions->s2csockfd);
           close(xmitsfd);
           log_println(5, "S2C test Child thinks pipe() returned fd0=%d, fd1=%d", mon_pipe2[0], mon_pipe2[1]);
@@ -1304,9 +1314,12 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     log_println(1, " <------------ %d ------------->", testOptions->child0);
     setCurrentTest(TEST_NONE);
+    /* I2AddrFree(s2csrv_addr); */
+    I2AddrFree(src_addr);
+    /* testOptions->child2 = mon_pid2; */
   }
   /* I2AddrFree(s2csrv_addr); */
-  I2AddrFree(src_addr);
+  /* I2AddrFree(src_addr); */
   /* testOptions->child2 = mon_pid2; */
   return 0;
 }

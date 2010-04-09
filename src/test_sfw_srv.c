@@ -121,6 +121,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
   web100_group* group;
   int maxRTT, maxRTO;
   char hostname[256];
+  int rc;
   
   assert(ctlsockfd != -1);
   assert(options);
@@ -154,8 +155,11 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
       if (maxRTT > maxRTO)
         maxRTO = maxRTT;
-      if ((((double) maxRTO) / 1000.0) < 3.0)
-        testTime = (((double) maxRTO) / 1000.0) * 4 ;
+      if ((((double) maxRTO) / 1000.0) > 3.0)
+        /* `testTime = (((double) maxRTO) / 1000.0) * 4 ; */
+	testTime = 3;
+      else
+	testTime = 1;
     }
     else {
       log_println(0, "Simple firewall test: Cannot find connection");
@@ -167,7 +171,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     log_println(1, "  -- SFW time: %d", testTime);
     
     sprintf(buff, "%d %d", sfwsockport, testTime);
-    send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    if ((rc = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
+	return (rc);
    
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
@@ -178,6 +183,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
+      log_println(0, "Fault, unexpected message received!");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       I2AddrFree(sfwsrv_addr);
