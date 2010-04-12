@@ -37,12 +37,30 @@ It can also identify 2 serious error conditions:</font>
   <PARAM NAME="H" VALUE="YOURDOMAIN">
   <PARAM NAME="U" VALUE="YOUREMAIL">
   <PARAM NAME="subject" VALUE="YOURSUBJECT">
+
 <!--
+  JZ 4/12/2010: Localization Support
+
+  Norwegian/Norway 
   <PARAM NAME="language" VALUE="nb">
   <PARAM NAME="country" VALUE="NO">
--->
+
+  Dutch/Netherlands
+  <PARAM NAME="language" VALUE="nl">
+  <PARAM NAME="country" VALUE="NL">
+
+  Catalan/Spain
+  <PARAM NAME="language" VALUE="ca">
+  <PARAM NAME="country" VALUE="ES">
+  
+  English/US
   <PARAM NAME="language" VALUE="en">
   <PARAM NAME="country" VALUE="US">
+-->
+
+  <PARAM NAME="language" VALUE="en">
+  <PARAM NAME="country" VALUE="US">
+
 </applet>
 </td></tr></table>
 

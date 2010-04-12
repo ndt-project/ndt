@@ -221,7 +221,8 @@ ndt_DATA = Tcpbw100.jar
 Tcpbw100dir = $(ndtdir)
 Tcpbw100_JAVA = Tcpbw100.java
 Tcpbw100_jar_SOURCES = Tcpbw100.java
-EXTRA_DIST = MANIFEST.MF Tcpbw100_msgs_en_US.properties Tcpbw100_msgs_nb_NO.properties
+EXTRA_DIST = MANIFEST.MF Tcpbw100_msgs_ca_ES.properties Tcpbw100_msgs_nb_NO.properties Tcpbw100_msgs_en_US.properties Tcpbw100_msgs_nl_NL.properties
+
 all: all-am
 
 .SUFFIXES:
