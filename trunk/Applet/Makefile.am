@@ -49,4 +49,4 @@ Tcpbw100.jar:	Tcpbw100.class
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class Tcpbw100*.properties
 	echo timestamp > classTcpbw100.stamp
 
-EXTRA_DIST = MANIFEST.MF Tcpbw100_msgs_en_US.properties Tcpbw100_msgs_nb_NO.properties
+EXTRA_DIST = MANIFEST.MF Tcpbw100_msgs_ca_ES.properties Tcpbw100_msgs_nb_NO.properties Tcpbw100_msgs_en_US.properties Tcpbw100_msgs_nl_NL.properties
