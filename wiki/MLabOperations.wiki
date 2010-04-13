@@ -76,7 +76,7 @@ The following programs should be running in the NDT slice of each MLab node:
  * RSYNC
    * _*/usr/bin/rsync --daemon*_ running as root
  * NDT
-   * _*/usr/local/sbin/ndtd -a --snaplog --tcpdump --cputime --multiple --max_clients=30*_ running as root 
+   * _*/usr/local/sbin/ndtd -a --snaplog --tcpdump --cputime --multiple --max_clients=40*_ running as root 
  * FakeWWW
    * _*/usr/local/sbin/fakewww*_ 
  * DONAR
