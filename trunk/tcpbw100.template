@@ -52,6 +52,14 @@ It can also identify 2 serious error conditions:</font>
   Catalan/Spain
   <PARAM NAME="language" VALUE="ca">
   <PARAM NAME="country" VALUE="ES">
+
+  Russian/Russia
+  <PARAM NAME="language" VALUE="ru">
+  <PARAM NAME="country" VALUE="RU">
+  
+  French/France
+  <PARAM NAME="language" VALUE="fr">
+  <PARAM NAME="country" VALUE="FR">
   
   English/US
   <PARAM NAME="language" VALUE="en">
