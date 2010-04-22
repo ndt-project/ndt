@@ -263,7 +263,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int maxseg=1456;
   /* int maxseg=1456, largewin=16*1024*1024; */
   /* int seg_size, win_size; */
-  int midfd, j, ret;
+  int midsfd, j, ret;
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
   socklen_t clilen;
@@ -274,6 +274,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   int msgLen;
   web100_connection* conn;
   char tmpstr[256];
+  struct timeval sel_tv;
+  fd_set rfd;
   
   assert(ctlsockfd != -1);
   assert(agent);
@@ -359,33 +361,47 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
      * and does NAT detection.  More analysis functions (window scale)
      * will be done in the future.
      */
-    j = 0;
     clilen = sizeof(cli_addr);
-    for (;;) {
-      if ((midfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+    FD_ZERO(&rfd);
+    FD_SET(options->midsockfd, &rfd);
+    sel_tv.tv_sec = 5;
+    sel_tv.tv_usec = 0;
+    for (j=0; j<5; j++) {
+      ret = select((options->midsockfd)+1, &rfd, NULL, NULL, &sel_tv);
+      if ((ret == -1) && (errno == EINTR))
+	continue;
+      if (ret == 0) 
+	return -100;  /* timeout */ 
+      if (ret < 0)
+	return -errno; 
+      if (j == 4)
+	return -101;
+midfd:
+      if ((midsfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
 	break;
 
-      if ((midfd == -1) && (errno == EINTR))
-	continue;
+      if ((midsfd == -1) && (errno == EINTR))
+	goto midfd;
 
       sprintf(tmpstr, "-------     middlebox connection setup returned because (%d)", errno);
       if (get_debuglvl() > 1)
         perror(tmpstr);
-      if (++j == 4)
-        /* break; */
-	return -2;
+      if (midsfd < 0)
+	return -errno;
+      if (j == 4)
+	return -102;
     } 
     memcpy(&meta.c_addr, &cli_addr, clilen);
     /* meta.c_addr = cli_addr; */
     meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
 
     buff[0] = '\0';
-    if ((conn = web100_connection_from_socket(agent, midfd)) == NULL) {
+    if ((conn = web100_connection_from_socket(agent, midsfd)) == NULL) {
         log_println(0, "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d", errno);
         /* exit(-1); */
 	return -3;
     }
-    web100_middlebox(midfd, agent, conn, buff);
+    web100_middlebox(midsfd, agent, conn, buff);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
@@ -409,8 +425,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     *s2c2spd = atof(buff);
     log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c2spd, buff);
 
-    shutdown(midfd, SHUT_WR);
-    close(midfd);
+    shutdown(midsfd, SHUT_WR);
+    close(midsfd);
     close(options->midsockfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
     log_println(1, " <--------- %d ----------->", options->child0);
@@ -535,9 +551,22 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 	return ret;
 
     clilen = sizeof(cli_addr);
-    /* j = 0; */
     log_println(6, "child %d - sent c2s prepare to client", testOptions->child0);
+    FD_ZERO(&rfd);
+    FD_SET(testOptions->c2ssockfd, &rfd);
+    sel_tv.tv_sec = 5;
+    sel_tv.tv_usec = 0;
     for (j=0; j<5; j++) {
+      ret = select((testOptions->c2ssockfd)+1, &rfd, NULL, NULL, &sel_tv);
+      if ((ret == -1) && (errno == EINTR))
+	continue;
+      if (ret == 0) 
+	return -100;  /* timeout */ 
+      if (ret < 0)
+	return -errno; 
+      if (j == 4)
+	return -101;
+recfd:
       recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
       if (recvsfd > 0) {
 	log_println(6, "accept() for %d completed", testOptions->child0);
@@ -546,13 +575,15 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
       if ((recvsfd == -1) && (errno == EINTR)) {
 	log_println(6, "Child %d interrupted while waiting for accept() to complete", 
 		testOptions->child0);
-	continue;
+	goto recfd;
       }
       log_println(6, "-------     C2S connection setup for %d returned because (%d)", 
 		testOptions->child0, errno);
-      if (++j == 4) {
+      if (recvsfd < 0)
+	return -errno; 
+      if (j == 4) {
 	log_println(6, "c2s child %d, uable to open connection, return from test", testOptions->child0);
-        return -2;
+        return -102;
       }
     } 
     log_println(6, "child %d - c2s ready for test with fd=%d", testOptions->child0, recvsfd);
@@ -967,24 +998,42 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
      * This is the second throughput test, with data streaming from
      * the server back to the client.  Again stream data for 10 seconds.
      */
-    log_println(1, "waiting for data on testOptions->s2csockfd");
+    log_println(1, "%d waiting for data on testOptions->s2csockfd", testOptions->child0);
 
-    j = 0;
     clilen = sizeof(cli_addr);
-    for (;;) {
+    FD_ZERO(&rfd);
+    FD_SET(testOptions->c2ssockfd, &rfd);
+    sel_tv.tv_sec = 5;
+    sel_tv.tv_usec = 0;
+    for (j=0; j<5; j++) {
+      ret = select((testOptions->s2csockfd)+1, &rfd, NULL, NULL, &sel_tv);
+      if ((ret == -1) && (errno == EINTR))
+	continue;
+      if (ret == 0) 
+	return -100;  /* timeout */ 
+      if (ret < 0)
+	return -errno; 
+      if (j == 4)
+	return -101;
+ximfd:
       xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen);
       if (xmitsfd > 0) {
-	log_println(6, "S2C %d, has sfd=%d, read to stream data", testOptions->child0, xmitsfd);
-        break;
+	log_println(6, "accept() for %d completed", testOptions->child0);
+	break;
       }
-      if ((xmitsfd == -1) && (errno == EINTR))
-	continue;
-
-      sprintf(tmpstr, "-------     S2C connection setup returned because (%d)", errno);
-      if (get_debuglvl() > 1)
-        perror(tmpstr);
-      if (++j == 4)
-        return -2;
+      if ((xmitsfd == -1) && (errno == EINTR)) {
+	log_println(6, "Child %d interrupted while waiting for accept() to complete", 
+		testOptions->child0);
+	goto ximfd;
+      }
+      log_println(6, "-------     S2C connection setup for %d returned because (%d)", 
+		testOptions->child0, errno);
+      if (xmitsfd < 0)
+	return -errno; 
+      if (++j == 4) {
+	log_println(6, "s2c child %d, uable to open connection, return from test", testOptions->child0);
+        return -102;
+      }
     } 
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
     conn = web100_connection_from_socket(agent, xmitsfd); 
