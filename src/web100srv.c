@@ -842,7 +842,7 @@ cputimeWorker(void* arg)
     return NULL;
 }
 
-void
+int
 run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_suite)
 {
 
@@ -931,6 +931,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 	log_println(6, "Middlebox test failed with rc=%d", ret);
       log_println(0, "Middlebox test FAILED!, rc=%d", ret);
       testopt->midopt = TOPT_DISABLED;
+      return ret;
   }
   
 /*  alarm(20); */
@@ -938,8 +939,6 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   if ((ret = test_sfw_srv(ctlsockfd, agent, &*testopt, conn_options)) != 0) {
       if (ret < 0)
 	log_println(6, "SFW test failed with rc=%d", ret);
-      log_println(0, "Simple firewall test FAILED!, rc=%d", ret);
-      testopt->sfwopt = TOPT_DISABLED;
   }
 
 /*  alarm(25); */
@@ -950,6 +949,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 	log_println(6, "C2S test failed with rc=%d", ret);
       log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
       testopt->c2sopt = TOPT_DISABLED;
+      return ret;
   }
 
 /*  alarm(25); */
@@ -960,6 +960,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 	log_println(6, "S2C test failed with rc=%d", ret);
       log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
       testopt->s2copt = TOPT_DISABLED;
+      return ret;
   }
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
@@ -1280,6 +1281,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   }
   shutdown(ctlsockfd, SHUT_WR);
   /* shutdown(ctlsockfd, SHUT_RDWR); */
+  return (0);
 }
 
 int
@@ -1695,6 +1697,7 @@ main(int argc, char** argv)
 
   for(;;){
 
+mainloop:
     if (head_ptr == NULL)
       log_println(3, "nothing in queue");
     else
@@ -1856,52 +1859,6 @@ sel_11:
 	goto sel_11;
       tt = time(0);
 
-/*
-      if (head_ptr != NULL) {
-        log_println(3, "now = %ld Process started at %ld, run time = %ld",
-            tt, head_ptr->stime, (tt - head_ptr->stime));
-        if ((tt - head_ptr->stime) > 60) {
-          /-* process is stuck at the front of the queue. *-/
-          fp = fopen(get_logfile(),"a");
-          if (fp != NULL) {
-            fprintf(fp, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
-                waiting, head_ptr->pid, ctime(&tt)+4);
-            fclose(fp);
-          }
-          log_println(6, "%d children waiting in queue: Killing off stuck process %d at %15.15s\n", 
-                waiting, head_ptr->pid, ctime(&tt)+4);
-          -* kill(tmp_ptr->pid, SIGTERM); *-
-          -* kill(head_ptr->pid, SIGCHLD); *-
-	  -* clean up more and inform the client that the test is ending
-	   * rac 2/27/10
-	   *-
-          log_println(6, "pid=%d, client='%s', stime=%ld, qtime=%ld now=%ld", head_ptr->pid, head_ptr->addr,
-			 head_ptr->stime, head_ptr->qtime, time(0));
-	  log_println(6, "pipe-fd=%d, running=%d, ctlsockfd=%d, client-type=%d, tests='%s'", 
-        		head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
-			head_ptr->oldclient, head_ptr->tests);
-          send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9555", 4);
-	  shutdown(head_ptr->ctlsockfd, SHUT_WR);
-	  close(head_ptr->ctlsockfd);
-          tpid = head_ptr->pid;
-	  child_sig(-1);
-          kill(tpid, SIGTERM);
-	  child_sig(tpid);
-
-	  if (((multiple == 0) && (waiting == 1)) ||
-		((multiple == 1) && (mclients == 0)))
-            testing = 0;
-	  -* should not decrement waiting here, it was decrementd in the child_sig() routine 
-	   * RAC 2/27/09
-	   *-
-          -* if (waiting > 0)
-           *  waiting--;
-           *-
-	  if (waiting == 0)
-	    mclients = 0;
-        }
-      }
- */
     }
     else {
 	/* Nothing is in the queue, so wait forever until a new connection request arrives */
@@ -1976,7 +1933,26 @@ sel_12:
 	  continue;
 	if (rc == 13)
 	  break;
+	if (rc == -1) {
+	  log_println(1, "Initial contact with client failed errno=%d", errno);
+          close(chld_pipe[0]);
+          close(chld_pipe[1]);
+	  shutdown(ctlsockfd, SHUT_WR);
+          close(ctlsockfd);
+          goto mainloop;
+        }
+
+	log_println(6, "xxx, calling initialize_tests()");
+	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
+	if (t_opts < 1) {
+	    log_println(3, "Invalid test suite string '%s' received, terminate child", test_suite);
+            close(chld_pipe[0]);
+            close(chld_pipe[1]);
+	    shutdown(ctlsockfd, SHUT_WR);
+            close(ctlsockfd);
+	  
 	/* todo: handle other error contitions */
+        }
       }
       new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
       memset(new_child, 0, sizeof(struct ndtchild));
@@ -2196,7 +2172,7 @@ ChldRdy:
 	  }
         } 
 
-multi_client:
+/* multi_client: */
 	if ((multiple == 1) && (mclients < max_clients)) {
 	  if (mwaiting == 0)
 	    continue;
@@ -2244,6 +2220,13 @@ dispatch_client:
 	    log_println(6, "Failed to write 'GO' message to client %d, reason=%d, errno=%d",
 			mchild->pid, rc, errno);
 	    /* TODO: handle other error conditions */
+	    if (rc == -1) {
+	      log_println(1, "Dispatch multi-client failed because '%s'", strerror(errno));
+	      shutdown(mchild->ctlsockfd, SHUT_WR);
+              close(mchild->ctlsockfd);
+	      kill(chld_pid, SIGTERM);
+	      goto mainloop;
+	    }
 	  }
           close(mchild->pipe);
           close(mchild->ctlsockfd);
@@ -2261,6 +2244,13 @@ dispatch_client:
 	    if (rc == strlen(tmpstr))
 	      break;
 	    /* TODO: handle other error conditions */
+	    if (rc == -1) {
+	      log_println(1, "Dispatch multi-client failed because '%s'", strerror(errno));
+	      shutdown(head_ptr->ctlsockfd, SHUT_WR);
+              close(head_ptr->ctlsockfd);
+	      kill(chld_pid, SIGTERM);
+	      goto mainloop;
+	    }
 	  }
           close(head_ptr->pipe);
           close(head_ptr->ctlsockfd);
@@ -2384,10 +2374,15 @@ dispatch_client:
 
 	if (strncmp(test_suite, "Invalid", 7) != 0) {
 	  log_println(3, "Valid test sequence requested, run test for client=%d", getpid());
-          run_test(agent, ctlsockfd, &testopt, test_suite);
+          rc = run_test(agent, ctlsockfd, &testopt, test_suite);
 	}
 
-        log_println(3, "Successfully returned from run_test() routine");
+	if (rc == 0)
+          log_println(3, "Successfully returned from run_test() routine");
+	else {
+          log_println(3, "Child %d returned non-zero (%d) from run_test() results some test failed!", getpid(), rc);
+	  child_sig(0);
+	}
         close(ctlsockfd);
         web100_detach(agent);
 	log_free();
