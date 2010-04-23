@@ -408,6 +408,9 @@ cleanup(int signo)
       break;
     case SIGSEGV:
       log_println(6, "DEBUG, caught SIGSEGV signal and terminated process (%d)", getpid());
+      if (getpid() != ndtpid)
+	exit(-2);
+      break;
     case SIGINT:
       exit(0);
     case SIGTERM:
@@ -2289,6 +2292,10 @@ dispatch_client:
             log_println(6, "Got 'go' signal from parent, ready to start testing %d", getpid());
             break;
           }
+	  if (buff[0] == 0) {
+	    log_println(6, "Child %d received 'go' signal, exiting", getpid());
+	    exit(-1);
+	  }
         }
 
         set_timestamp();
