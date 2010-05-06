@@ -2264,6 +2264,10 @@ class MyTextPane extends JTextPane
       catch (UnknownHostException e) {
         preserved = scip.equals(ccip);
       }
+      catch (SecurityException e ) {
+        preserved = scip.equals(ccip);
+      }
+
 			if (preserved)
 				statistics.append(messages.getString("clientIpPreserved") + "\n");
 			else {
