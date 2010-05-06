@@ -1989,7 +1989,7 @@ sel_12:
         log_println(5, "Parent process spawned child = %d", chld_pid);
         log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", chld_pipe[0], chld_pipe[1]);
 
-        /* close(chld_pipe[0]); */
+         close(chld_pipe[0]); 
 
         /* Check to see if we have more than max_clients waiting in the queue
          * If so, tell them to go away.
@@ -2061,7 +2061,7 @@ sel_12:
 	log_println(3, "initialize_tests returned old/new client = %d, test_suite = %s",
 			new_child->oldclient, new_child->tests);
 
-        /* close(chld_pipe[0]); */
+         close(chld_pipe[0]); 
 
         if ((testing == 1) && (queue == 0)) {
           log_println(3, "queuing disabled and testing in progress, tell client no");
