@@ -60,6 +60,10 @@ It can also identify 2 serious error conditions:</font>
   French/France
   <PARAM NAME="language" VALUE="fr">
   <PARAM NAME="country" VALUE="FR">
+
+  Portugese/Brazil
+  <PARAM NAME="language" VALUE="pt">
+  <PARAM NAME="country" VALUE="BR">
   
   English/US
   <PARAM NAME="language" VALUE="en">
