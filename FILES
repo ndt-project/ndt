@@ -11,6 +11,7 @@ AUTHORS		 - A list of people who have worked on this code
 COPYING		 - A symlink to the COPYRIGHT notice
 NEWS		 - Any new features or functions
 INSTALL          - Instruction on what to install
+CHANGES         - SVN Log of Changes
 
 README           - A brief description of the NDT program
 Readme-fakewww	 - A breif overveiw of the fakewww program
