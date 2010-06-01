@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.6.0_14" class="java.beans.XMLDecoder"> 
+ <object class="skin.Interface"> 
+  <void property="arrow1"> 
+   <object class="skin.Arrow"> 
+    <void property="arrowAnchorX"> 
+     <int>5</int> 
+    </void> 
+    <void property="arrowAnchorY"> 
+     <int>5</int> 
+    </void> 
+    <void property="arrowImageName"> 
+     <string>META-INF/arrow.png</string> 
+    </void> 
+    <void property="arrowX"> 
+     <int>160</int> 
+    </void> 
+    <void property="arrowY"> 
+     <int>140</int> 
+    </void> 
+    <void property="firstAngle"> 
+     <int>150</int> 
+    </void> 
+    <void property="lastAngle"> 
+     <int>390</int> 
+    </void> 
+    <void property="scales"> 
+     <array class="int" length="13"> 
+      <void index="1"> 
+       <int>50</int> 
+      </void> 
+      <void index="2"> 
+       <int>100</int> 
+      </void> 
+      <void index="3"> 
+       <int>300</int> 
+      </void> 
+      <void index="4"> 
+       <int>500</int> 
+      </void> 
+      <void index="5"> 
+       <int>1000</int> 
+      </void> 
+      <void index="6"> 
+       <int>2000</int> 
+      </void> 
+      <void index="7"> 
+       <int>4000</int> 
+      </void> 
+      <void index="8"> 
+       <int>8000</int> 
+      </void> 
+      <void index="9"> 
+       <int>16000</int> 
+      </void> 
+      <void index="10"> 
+       <int>30000</int> 
+      </void> 
+      <void index="11"> 
+       <int>50000</int> 
+      </void> 
+      <void index="12"> 
+       <int>100000</int> 
+      </void> 
+     </array> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="background1Image"> 
+   <object class="skin.Image"> 
+    <void property="imageName"> 
+     <string>META-INF/speedbackground.png</string> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>30</int> 
+      <int>10</int> 
+      <int>260</int> 
+      <int>260</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="startButton"> 
+   <object class="skin.Button"> 
+    <void property="imageName"> 
+     <string>META-INF/button1.png</string> 
+    </void> 
+    <void property="pressedImageName"> 
+     <string>META-INF/button2.png</string> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>100</int> 
+      <int>300</int> 
+      <int>120</int> 
+      <int>50</int> 
+     </object> 
+    </void> 
+    <void property="text"> 
+     <string>Start</string> 
+    </void> 
+    <void property="textColor"> 
+     <object id="Color0" class="java.awt.Color"> 
+      <int>255</int> 
+      <int>0</int> 
+      <int>0</int> 
+      <int>255</int> 
+     </object> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>2</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="stopButton"> 
+   <object class="skin.Button"> 
+    <void property="imageName"> 
+     <string>META-INF/button1.png</string> 
+    </void> 
+    <void property="pressedImageName"> 
+     <string>META-INF/button2.png</string> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>240</int> 
+      <int>300</int> 
+      <int>120</int> 
+      <int>50</int> 
+     </object> 
+    </void> 
+    <void property="text"> 
+     <string>Stop</string> 
+    </void> 
+    <void property="textColor"> 
+     <object id="Color1" class="java.awt.Color"> 
+      <int>0</int> 
+      <int>255</int> 
+      <int>0</int> 
+      <int>255</int> 
+     </object> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>2</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="advancedButton"> 
+   <object class="skin.Button"> 
+    <void property="imageName"> 
+     <string>META-INF/button1.png</string> 
+    </void> 
+    <void property="pressedImageName"> 
+     <string>META-INF/button2.png</string> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>380</int> 
+      <int>300</int> 
+      <int>120</int> 
+      <int>50</int> 
+     </object> 
+    </void> 
+    <void property="text"> 
+     <string>Advanced</string> 
+    </void> 
+    <void property="textColor"> 
+     <object class="java.awt.Color"> 
+      <int>0</int> 
+      <int>0</int> 
+      <int>255</int> 
+      <int>255</int> 
+     </object> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>2</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="lossLabel"> 
+   <object class="skin.Label"> 
+    <void property="horizontalAlignment"> 
+     <int>11</int> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>400</int> 
+      <int>100</int> 
+      <int>100</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+    <void property="textColor"> 
+     <object id="Color2" class="java.awt.Color"> 
+      <int>0</int> 
+      <int>255</int> 
+      <int>255</int> 
+      <int>255</int> 
+     </object> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>3</int> 
+      <int>12</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="mainBackgroundImage"> 
+   <object class="skin.Image"> 
+    <void property="imageName"> 
+     <string>META-INF/background.jpg</string> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>0</int> 
+      <int>0</int> 
+      <int>600</int> 
+      <int>400</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="rttLabel"> 
+   <object class="skin.Label"> 
+    <void property="horizontalAlignment"> 
+     <int>10</int> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>400</int> 
+      <int>50</int> 
+      <int>100</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+    <void property="textColor"> 
+     <object idref="Color2"/> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>3</int> 
+      <int>12</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="statusLabel"> 
+   <object class="skin.Label"> 
+    <void property="horizontalAlignment"> 
+     <int>4</int> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>200</int> 
+      <int>275</int> 
+      <int>200</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+    <void property="textColor"> 
+     <object idref="Color2"/> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>3</int> 
+      <int>12</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="textPane"> 
+   <object class="skin.TextPane"> 
+    <void property="h"> 
+     <int>150</int> 
+    </void> 
+    <void property="w"> 
+     <int>560</int> 
+    </void> 
+    <void property="x"> 
+     <int>120</int> 
+    </void> 
+    <void property="y"> 
+     <int>350</int> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="value1Label"> 
+   <object class="skin.Label"> 
+    <void property="horizontalAlignment"> 
+     <int>2</int> 
+    </void> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>115</int> 
+      <int>232</int> 
+      <int>87</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+    <void property="textColor"> 
+     <object idref="Color1"/> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>1</int> 
+      <int>12</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="value2Label"> 
+   <object class="skin.Label"> 
+    <void property="rect"> 
+     <object class="java.awt.Rectangle"> 
+      <int>395</int> 
+      <int>232</int> 
+      <int>87</int> 
+      <int>20</int> 
+     </object> 
+    </void> 
+    <void property="textColor"> 
+     <object idref="Color0"/> 
+    </void> 
+    <void property="textFont"> 
+     <object class="java.awt.Font"> 
+      <string>Arial</string> 
+      <int>1</int> 
+      <int>12</int> 
+     </object> 
+    </void> 
+    <void property="visible"> 
+     <boolean>true</boolean> 
+    </void> 
+   </object> 
+  </void> 
+  <void property="preparingTestString"> 
+   <string>Preparing speed test</string> 
+  </void> 
+  <void property="firewallTestString"> 
+   <string>Simple firewall test</string> 
+  </void> 
+  <void property="downloadTestString"> 
+   <string>Download test</string> 
+  </void> 
+  <void property="uploadTestString"> 
+   <string>Upload test</string> 
+  </void> 
+  <void property="completeTestString"> 
+   <string>Complete</string> 
+  </void> 
+  <void property="waitString"> 
+   <string>Please, wait</string> 
+  </void> 
+  <void property="stopString"> 
+   <string>Test was stopped</string> 
+  </void> 
+ </object> 
+</java> 
