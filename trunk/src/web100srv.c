@@ -1,5 +1,5 @@
 /*
-Copyright © 2003 University of Chicago.  All rights reserved.
+Copyright (c) 2003 University of Chicago.  All rights reserved.
 The Web100 Network Diagnostic Tool (NDT) is distributed subject to
 the following license conditions:
 SOFTWARE LICENSE AGREEMENT
@@ -976,7 +976,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
     index = 0;
     total = 0;
     /* for (j=0; j<10; j++) { */
-    if ((ifspeed == -1) || (ifspeed == 0))
+    if ((ifspeed == -1) || (ifspeed == 0) || (ifspeed > 10))
 	ifspeed = 10;
     for (j=0; j<=ifspeed; j++) {
       total += links[j];
