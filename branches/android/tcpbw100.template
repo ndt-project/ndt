@@ -1,0 +1,200 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>YOURSITE NDT server</title>
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+<body>
+<h3> YOURSITE Web100 based Network Diagnostic Tool (NDT) </h3>
+<b>Located at YOURLOCATION; 
+YOURSPEED network connection</b>
+<br><font size=-1>
+This java applet was developed to test the reliablity and operational
+status of your desktop computer and network connection.  It does this by sending data between your
+computer and this remote NDT server.  These tests will determine:</font>
+<ul>
+ <li><font size=-1>The slowest link in the end-to-end path (Dial-up modem to 10 Gbps Ethernet/OC-192)</font>
+ <li><font size=-1>The Ethernet duplex setting (full or half);</font>
+ <li><font size=-1>If congestion is limiting end-to-end throughput.</font>
+</ul>
+<br><font size=-1>
+It can also identify 2 serious error conditions:</font>
+<ul>
+ <li><font size=-1>Duplex Mismatch</font>
+ <li><font size=-1>Excessive packet loss due to faulty cables.</font>
+</ul>
+<br>A test takes about 20 seconds.  Click on "start" to begin.
+
+<!-- this applet will email results to the person specified by the 
+     param parameters.  The 'H' value is the hostname, the 'U' value
+     is the username.  The 'subject' line overwrites the default message
+     built into the java program.  -->
+
+<table align=center><tr><td>
+<applet code=Tcpbw100.class ARCHIVE="Tcpbw100.jar"
+   width=700 height=320>
+  <PARAM NAME="H" VALUE="YOURDOMAIN">
+  <PARAM NAME="U" VALUE="YOUREMAIL">
+  <PARAM NAME="subject" VALUE="YOURSUBJECT">
+
+<!--
+  JZ 4/12/2010: Localization Support
+
+  Norwegian/Norway 
+  <PARAM NAME="language" VALUE="nb">
+  <PARAM NAME="country" VALUE="NO">
+
+  Dutch/Netherlands
+  <PARAM NAME="language" VALUE="nl">
+  <PARAM NAME="country" VALUE="NL">
+
+  Catalan/Spain
+  <PARAM NAME="language" VALUE="ca">
+  <PARAM NAME="country" VALUE="ES">
+
+  Russian/Russia
+  <PARAM NAME="language" VALUE="ru">
+  <PARAM NAME="country" VALUE="RU">
+  
+  French/France
+  <PARAM NAME="language" VALUE="fr">
+  <PARAM NAME="country" VALUE="FR">
+
+  Portugese/Brazil
+  <PARAM NAME="language" VALUE="pt">
+  <PARAM NAME="country" VALUE="BR">
+  
+  English/US
+  <PARAM NAME="language" VALUE="en">
+  <PARAM NAME="country" VALUE="US">
+-->
+
+  <PARAM NAME="language" VALUE="en">
+  <PARAM NAME="country" VALUE="US">
+
+</applet>
+</td></tr></table>
+
+<br>
+<a href="mailto:YOUREMAIL@YOURDOMAIN?subject=YOURSUBJECT
+?&amp;body=Your name:  %0aEmail:  %0aHostname:  %0a%0aPaste results from%20
+'Statistics' window here:%0a%0a%0aPaste results from 'More Details' window%20
+here:%0a%0a%0aComments:%0a">Report Problems</a> <font size=-1> &nbsp; &nbsp; &nbsp; &nbsp; Use "ctrl-C"
+to copy data onto the clipboard and then paste it into the email message. </font>
+
+<hr size=3  width="99%" noshade>
+<br>
+<p>The NDT performs 2 TCP throughput tests between your desktop
+computer and this NDT server.  First, data is streamed for 10 seconds from your 
+desktop to the server and then a second 10 second test is performed in the
+opposite direction.  A <a href="http://www.web100.org">Web100</a> modified linux kernel
+captures detailed statistics on these TCP data flows.  This data is then analyzed to
+determine why the connection achieved the throughput results it reported.
+<p>
+<h3> Understanding the test results </h3>
+<p>
+End-to-End performance depends upon a number factors.  One of the biggest factors
+is setting the tunable network parametes to the proper value.  There are several
+web sites that provide detailed tuning instructions for various Operating Systems.
+Two of the best are:
+<ul>
+<li><a href=http://www.psc.edu/networking/projects/tcptune>PSC's Enabling High
+Performance Data Transfers</a></li>
+<li><a href=http://fasterdata.es.net/TCP-tuning>ESnet's TCP Tuning Guide</a></li>
+</ul>
+The throughput an application achieves is dependant on the amount of buffer space
+available in the sending and receiving hosts, packet loss due to errors or congestion,
+packet size (usually limited to 1500 bytes by Ethernet), and the round trip time
+between the 2 hosts.  If this test reports that the sender or receiver buffer size
+is the limiting factor, increase the buffer size by 
+<a href="http://www.psc.edu/networking/perf_tune.html">changing the default buffer size</a>
+on your computer.  Win 95/98/NT users can easily set and change their default buffer size
+by using the <a href="http://moat.nlanr.net/Software/TCPtune/">TCPtune application</a>
+developed by the NLANR MOAT group.  Windows users may find that they perfer the
+<a href="http://www.dslreports.com/front/drtcp.html">DrTCP</a> tool from the dslreports.com
+web site.  
+<p>
+If a large number of retransmissions occur,
+check the duplex and speed setting on your host and the network switch it attaches
+to (duplex mismatches are a serious problem due to broken autonegoation protocols).
+Extremely long round trip times (over 1 sec) ususally indicate that a network router
+or switch is congested leading to long queuing times.  Contact your local network
+administrator for help in solving this problem
+<p>
+The Bandwidth * Delay product is reported at the bottom of the "more details" page.
+Throughput limits for the NDT server's transmit buffer, your clients receive buffer,
+and the network infrastructure.  You may use these numbers as a guide to determining
+what your client's receive buffer is currently set to.  Divide the buffer size by
+the reported round trip time (RTT) to calculate the throughput value.
+<p>
+For more info on TCP tuning, visit dslreports.com <a href="http://www.dslreports.com/tweaks/">tweaks</a>
+or <a href="http://www.psc.edu/networking/perf_tune.html">UNIX and
+Windows TCP/IP tuning tips</a>.
+<p>
+You can find the Web100 variables descriptions gathered on the following <a href="web100variables.html">web page</a>.
+<hr width="95%" noshade>
+
+<!--
+<h3>REN accessable NDT servers:</h3>
+<p>A list of servers known to the Researh and Education Network (REN) community is
+   located on the <a href="http://e2epi.internet2.edu/ndt/ndt-server-list.html">Internet2
+   e2epi web page</a>.  Note: that not all of these REN servers will be publicly
+   accesible.
+<h3>Other publicly accessible NDT servers:</h3>
+<ul>
+<li><a href="http://ndt.anl.gov:7123">Argonne National Laboratory - IL (USA)</a></li>
+<li><a href="http://ndt.switch.ch">Swiss Education and Research Network (Switzerland)</a></li>
+<li><a href="http://web100.rit.edu:7123">Rochester Institute of Technology - Rochester NY (USA)</a></li>
+<li><a href="http://speedtest.umflint.edu">University of Michigan - Flint MI (USA)</a></li>
+<li><a href="http://nitro.ucsc.edu/">University of California - Santa Cruz CA (USA)</a></li>
+<li><a href="http://netspeed.stanford.edu/">Stanford University - Palo Alto CA (USA)</a></li>
+<li><a href="http://jlab4.jlab.org:7123">Thomas Jefferson National Accelerator Facility - VA (USA)</a></li>
+<li><a href="http://ciseweb100.cise-nsf.gov:7123">National Science Foundation - VA (USA)</a></li>
+</ul>
+<br><br>
+-->
+
+
+<h3>Other bandwidth testing sites:</h3>
+<ul>
+<li> <a href="http://www.dslreports.com/tools"> upload/download tester</a></li>
+<li> <a href="http://www.dslreports.com/stest/0">www.dslreports.com speed test</a> browser/throughput tester</li>
+<li> the older ORNL java <a href="http://www.epm.ornl.gov/~dunigan/java/misc/tcpbw.html"> bandwidth tester</a></li>
+</ul>
+<p>
+You can see the hops (routers) that your packets pass through from
+your machine to a target Internet site with the <i>traceroute</i> command
+(for Windows, use <i>tracert</i> in DOS/command prompt window).
+The route can actually vary from packet to packet, test to test,
+and the reverse route (return path) may not be the same.
+There are several
+<a href="http://www.slac.stanford.edu/comp/net/wan-mon/traceroute-srv.html">
+traceroute servers</a> around the world that can show you the
+route back to your browser.
+Tom Dunigan at ORNL also has traceroute servers at
+<a href="http://www.epm.ornl.gov/~dunigan/cgi-bin/traceroute.cgi">ORNL</a>.
+
+<p>
+The NDT server window size for this Java tester is 64KB.
+Max window used to be 64KB, but newer OS's now support window scaling,
+so you may be able to request more than 64 KB.
+(This NDT server a window of 64,000 bytes,
+and the network interface is 100 Mbs.)
+<p>
+
+The NDT software (source and compiled programs) is available via the Internet2 Performance web site at <a href="http://www.internet2.edu/performance/ndt/download.html">www.internet2.edu/performance/ndt/download.html</a>.  You can also learn more about the NDT system by subscribing to the 
+<a href="https://mail.internet2.edu/wws/info/ndt-users">NDT user discussion</a>
+or <a href="https://mail.internet2.edu/wws/info/ndt-announce">NDT announcement</a>
+lists hosted by Internet2.  
+<p>
+This java applet was originally developed by ORNL and has been extensively modified
+at ANL.
+<br>
+Complete University of Chicago <a href="copyright.html">Copyright Notice</a>
+<hr noshade width="90%" size=-4>
+Comments to <a href="mailto:rcarlson501@gmail.com"> Rich Carlson </a> email:rcarlson501@gmail.com
+<br><i>Created: April 4, 2002 by Rich Carlson
+<br>Last Updated: March 16, 2010 by Jason Zurawski</i>
+</body>
+</html>
