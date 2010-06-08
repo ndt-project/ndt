@@ -1114,8 +1114,7 @@ class MyTextPane extends JTextPane
         return true;
       }
 
-	// Get client and server IP addresses from the outSocket.
-	pub_clientIP = outSocket.getLocalAddress().getHostAddress().toString();
+	// Get server IP address from the outSocket.
 	pub_host	 = outSocket.getInetAddress().getHostAddress().toString();
 
 
@@ -2206,6 +2205,13 @@ class MyTextPane extends JTextPane
 		tokens = new StringTokenizer(tmpstr2, ";");
 		String ssip = tokens.nextToken();
 		String scip = tokens.nextToken();
+
+		// Fix for JS API not reporting NAT'd IPs correctly
+		// Assign client and server IP addresses for JA API
+		// based on public, not local IP.  
+		pub_clientIP = ssip;
+
+
 		// results.append("ssip=" + ssip + " scip=" + scip + "\n");
 
 		// String mss = tokens.nextToken();
