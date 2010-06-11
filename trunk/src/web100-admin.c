@@ -438,7 +438,7 @@ view_init(int refresh)
   int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut = 0;
   FILE *fp;
   int c2sspd = 0, s2cspd = 0;
-  char ip_addr2[64], buff[256], *str, tmpstr[32];
+  char ip_addr2[64], buff[512], *str, tmpstr[32];
   int link=0, mismatch=0, bad_cable=0, half_duplex=0, congestion=0;
   int c2sdata = 0, c2sack, s2cdata, s2cack = 0;
   int totalcnt=0, view_flag=0;
