@@ -1815,7 +1815,7 @@ mainloop:
     }
 
     if (head_ptr != NULL) {
-        if ((time(0) - head_ptr->stime) > 60)  {
+        if ((time(0) - head_ptr->stime) > 70)  {
 	    log_println(6, "Fault: Something in queue, but child %d (fd=%d) has exceeded wait time",
 			head_ptr->pid, head_ptr->ctlsockfd);
 	    /* Should send new 9977 'test aborted' signal to client.  Using this
