@@ -6,7 +6,7 @@
 
 == Nodes ==
 
-The following is a list of MLab Nodes (Updated <font color="red">March 29, 2010</font>)
+The following is a list of MLab Nodes (Updated <font color="red">June 27, 2010</font>)
 
  * MLab 1 Nodes
    * mlab1.sea01.measurement-lab.org
@@ -23,7 +23,8 @@ The following is a list of MLab Nodes (Updated <font color="red">March 29, 2010<
    * mlab1.ams02.measurement-lab.org 
    * mlab1.par01.measurement-lab.org 
    * mlab1.ath01.measurement-lab.org 
-   * mlab1.ham01.measurement-lab.org 
+   * mlab1.ham01.measurement-lab.org
+   * mlab1.syd01.measurement-lab.org 
  * MLab 2 Nodes
    * mlab2.sea01.measurement-lab.org
    * mlab2.nuq01.measurement-lab.org 
@@ -39,7 +40,8 @@ The following is a list of MLab Nodes (Updated <font color="red">March 29, 2010<
    * mlab2.ams02.measurement-lab.org 
    * mlab2.par01.measurement-lab.org 
    * mlab2.ath01.measurement-lab.org 
-   * mlab2.ham01.measurement-lab.org 
+   * mlab2.ham01.measurement-lab.org
+   * mlab2.syd01.measurement-lab.org 
  * MLab 3 Nodes
    * mlab3.sea01.measurement-lab.org
    * mlab3.nuq01.measurement-lab.org 
@@ -56,6 +58,7 @@ The following is a list of MLab Nodes (Updated <font color="red">March 29, 2010<
    * mlab3.par01.measurement-lab.org 
    * mlab3.ath01.measurement-lab.org 
    * mlab3.ham01.measurement-lab.org
+   * mlab3.syd01.measurement-lab.org 
  * MLab 4 Nodes
    * mlab4.nuq01.measurement-lab.org 
 
