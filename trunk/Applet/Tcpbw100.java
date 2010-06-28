@@ -2209,7 +2209,7 @@ class MyTextPane extends JTextPane
 		// Fix for JS API not reporting NAT'd IPs correctly
 		// Assign client and server IP addresses for JA API
 		// based on public, not local IP.  
-		pub_clientIP = ssip;
+		pub_clientIP = scip;
 
 
 		// results.append("ssip=" + ssip + " scip=" + scip + "\n");
