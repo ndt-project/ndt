@@ -529,7 +529,8 @@ public class NdtTests implements Runnable {
         return true;
       }
 
-	// Get server IP address from the outSocket.
+	// Get client and server IP addresses from the outSocket.
+	uiServices.setVariable("pub_clientIP", outSocket.getLocalAddress().getHostAddress().toString());
 	uiServices.setVariable("pub_host", outSocket.getInetAddress().getHostAddress().toString());
 
 
@@ -1568,7 +1569,7 @@ public class NdtTests implements Runnable {
 		// Fix for JS API not reporting NAT'd IPs correctly
 		// Assign client and server IP addresses for JA API
 		// based on public, not local IP.  
-		uiServices.setVariable("pub_clientIP", ssip);
+		uiServices.setVariable("pub_clientIP", scip);
 
 
 		// results.append("ssip=" + ssip + " scip=" + scip + "\n");
