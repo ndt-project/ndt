@@ -1,0 +1,30 @@
+This directory contains the Android port of NDT.
+
+Build requirements:
+  - The Android SDK (available from http://developer.android.com/sdk/)
+    * Note: SDK .tar.gz merely needs to be unfurled
+  - Apache Ant (available from http://ant.apache.org/)
+  - JDK 5 or 6 (available from http://java.sun.com/javase/downloads/)
+
+Build instructions:
+
+1. Create a 'local.properties' file to specify the SDK path:
+
+  sdk-location=/usr/local/foo/android/android-sdk-linux_86
+
+2. Use ant to build in this directory:
+
+  $ ant debug
+
+3. Install bin/AndroidNdt-debug.apk on an emulator or device.
+
+  For emulators or USB-connected devices:
+  $ ant install
+
+  Note: for this to work, 'USB Debugging' will need to be enabled on the device
+  (Settings -> Applications -> Development). You can also download the apk on
+  the device and install it directly, provided "Unknown sources" (in Settings ->
+  Applications) is enabled.
+
+For release builds, use 'ant release', and sign bin/AndroidNdt-unsigned.apk with
+a release key before publishing it to the Market.
