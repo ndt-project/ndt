@@ -39,18 +39,19 @@ public class Constants {
   // In future server list should be downloaded from some list servers dynamically.
   public static final int DEFAULT_SERVER = 0;
   public static final String SERVER_NAME[] =
-      {"Mountain View, California", "Los Angeles, California", "Seattle, Washington",
+      {"Closest Server (DONAR)", "Mountain View, California", "Los Angeles, California", "Seattle, Washington",
           "Dallas, Texas", "Chicago, Illinois", "Atlanta, Georgia", "Miami, Florida",
           "New York City, New York #1", "New York City, New York #2", "London, United Kingdom",
-          "Paris, France", "Amsterdam, The Netherlands #1", "Athens, Greece"};
+          "Paris, France", "Amsterdam, The Netherlands #1", "Athens, Greece", "Sydney, Australia"};
   public static final String SERVER_HOST[] =
-      {"ndt.iupui.nuq01.measurement-lab.org", "ndt.iupui.lax01.measurement-lab.org",
+      {"ndt.iupui.donar.measurement-lab.org", 
+          "ndt.iupui.nuq01.measurement-lab.org", "ndt.iupui.lax01.measurement-lab.org",
           "ndt.iupui.sea01.measurement-lab.org", "ndt.iupui.dfw01.measurement-lab.org",
           "ndt.iupui.ord01.measurement-lab.org", "ndt.iupui.atl01.measurement-lab.org",
           "ndt.iupui.mia01.measurement-lab.org", "ndt.iupui.lga01.measurement-lab.org",
           "ndt.iupui.lga02.measurement-lab.org", "ndt.iupui.lhr01.measurement-lab.org",
           "ndt.iupui.par01.measurement-lab.org", "ndt.iupui.ams01.measurement-lab.org",
-          "ndt.iupui.ath01.measurement-lab.org"};
+          "ndt.iupui.ath01.measurement-lab.org", "ndt.iupui.syd01.measurement-lab.org"};
 
   /**
    * Number of servers. All the arrays should have the same length.
