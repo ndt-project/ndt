@@ -261,3 +261,44 @@ AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
 		conf/Makefile doc/Makefile janalyze/Makefile])
 AC_OUTPUT
+
+echo ""
+echo ""
+echo "***********************************"
+echo "***   Network Diagnostic Tool   ***"
+echo "***********************************"
+echo "* configured modules:"
+echo "**********************"
+echo "*"
+
+echo "* web100clt:    YES"
+if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
+if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
+echo "* web100srv:    YES"
+else
+echo "* web100srv:    NO    (missing pcap headers)"
+fi
+echo "* fakewww:      YES"
+echo "* analyze:      YES"
+echo "* viewtrace:    YES"
+echo "* tr-mkmap:     YES"
+echo "* genplot:      YES"
+else
+echo "* analyze:      NO    (missing web100 library)"
+echo "* viewtrace:    NO    (missing web100 library)"
+echo "* tr-mkmap:     NO    (missing web100 library)"
+echo "* genplot:      NO    (missing web100 library)"
+fi
+
+if test -z "$HAVE_GCJ_TRUE" && test -n "$HAVE_GCJ_FALSE"; then
+echo "* Admin.class:  YES"
+echo "* Tcpbw100.jar: YES"
+echo "* JAnalyze.jar: YES"
+else
+echo "* Admin.class:  NO    (missing java compiler)"
+echo "* Tcpbw100.jar: NO    (missing java compiler)"
+echo "* JAnalyze.jar: NO    (missing java compiler)"
+fi
+echo "**********************"
+echo ""
+echo ""
