@@ -1101,7 +1101,7 @@ class MyTextPane extends JTextPane
       }
       int c2sport = Integer.parseInt(new String(msg.body));
 
-      Socket outSocket = null;
+      final Socket outSocket;
       try {
         outSocket = new Socket(host, c2sport);
       } catch (UnknownHostException e) {
@@ -1118,7 +1118,7 @@ class MyTextPane extends JTextPane
 	pub_host	 = outSocket.getInetAddress().getHostAddress().toString();
 
 
-      OutputStream out = outSocket.getOutputStream();
+      final OutputStream out = outSocket.getOutputStream();
 
       // wait here for signal from server application 
       // This signal tells the client to start pumping out data
@@ -1134,7 +1134,6 @@ class MyTextPane extends JTextPane
         return true;
       }
 
-      Random rng = new Random();
       byte c = '0';
       int i;
       for (i=0; i<lth; i++) {
@@ -1143,12 +1142,25 @@ class MyTextPane extends JTextPane
         buff2[i] = c++;
       }
       System.err.println("Send buffer size =" + i);
-      outSocket.setSoTimeout(15000); 
       pkts = 0;
       t = System.currentTimeMillis();
-      double stop_time = t + 10000; // ten seconds
-      do {
-        // if (Randomize) rng.nextBytes(buff2);
+        new Thread() {
+            
+            public void run() {
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    System.out.println(e);
+                }
+                try {
+                    out.close();
+                    outSocket.close();
+                } catch (IOException e) {
+                    System.out.println(e);
+                }
+            }
+        }.start();
+      while (true) {
         try {
           out.write(buff2, 0, buff2.length);
         }
@@ -1157,14 +1169,12 @@ class MyTextPane extends JTextPane
           break;
         }
         pkts++;
-      } while (System.currentTimeMillis() < stop_time);
+      }
 
       t =  System.currentTimeMillis() - t;
       if (t == 0) {
         t = 1;
       }
-      out.close();
-      outSocket.close();
       System.out.println((8.0 * pkts * lth) / t + " kb/s outbound");
       c2sspd = ((8.0 * pkts * lth) / 1000) / t;
       /* receive the c2sspd from the server */
