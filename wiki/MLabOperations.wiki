@@ -159,6 +159,23 @@ mlabX.cmd 'sh -c "sudo /etc/init.d/ndt restart;sleep 2;ps axw | grep ndt;"'
 mlabX.copy /usr/local/sbin/web100srv
 }}}
 
+== SSH Passphrase Errors ==
+
+In most cases the _Convenience Scripts_ should work without needing to re-enter the passphrase since an SSH agent is always running.  If a message like this is seen:
+
+{{{
+[iupui_ndt@mlab4 ~]$ mlab.df
+Initialising new SSH agent...
+succeeded
+Enter passphrase for /home/iupui_ndt/.ssh/id_rsa:
+}}}
+
+The environment must be reset.  E.g:
+
+{{{
+rm -f ~/.ssh/environment
+}}}
+
 == Deleting files that have been successfully sync'd (Clearing disk space) ==
 
  * check GB free via CoMon MLab Status (sort key: GB Free) - http://comon.cs.princeton.edu/status/tabulator.cgi?sort=28&limit=50&account=mlab 
