@@ -119,6 +119,31 @@ sudo killall ndtd
 
 NDT will be listening on port _*3001*_, FakeWWW will listen on port _*7123*_.  NDT may open additional connections on ports _*3002*_ and _*3003*_.
 
+If the init.d script cannot start NDT, try the following steps:
+
+ * See if there are hung instances of _*fakewww*_ or _*ndtd*_.  Kill as necessary
+ * Stop DONAR:
+{{{
+/etc/init.d/donar stop
+}}}
+ * Stop cron:
+{{{
+/etc/init.d/crond stop
+}}}
+ * Relocate the current _*web100srv.log*_
+{{{
+mv /usr/local/ndt/web100srv.log /usr/local/ndt/web100srv.log.20100826
+}}}
+ * Restart ndt
+{{{
+sudo /etc/init.d/ndtd restart
+}}}
+ * Check to be sure things have re-started.  Restart crond and DONAR:
+{{{
+/etc/init.d/donar restart
+/etc/init.d/crond restart
+}}}
+
 === DONAR ===
 
 DONAR should be restarted through the init system:
@@ -126,6 +151,47 @@ DONAR should be restarted through the init system:
 {{{
 sudo /etc/init.d/donar restart
 }}}
+
+DONAR is installed in _*/home/iupui_ndt/donar*_ and has several moving parts:
+
+ * Init script:
+{{{
+/etc/init.d/donar
+}}}
+ * Shell scripts:
+   * Contains health checks for NDT
+{{{
+/home/iupui_ndt/donar/node_state.sh
+}}}
+   * Contains settings for DONAR
+{{{
+/home/iupui_ndt/donar/settings.sh
+}}}
+   * Calls DONAR jar file to register the host, reads other two shell scripts
+{{{
+/home/iupui_ndt/donar/monitor.sh
+}}}
+ * JAR File (Compiled for _*Java 1.5.x*_)
+{{{
+/home/iupui_ndt/donar/update/donar.jar
+}}}
+ * Key Files (_*MUST*_ be preserved between upgrades!)
+{{{
+/home/iupui_ndt/donar/update/nupkey.pub
+/home/iupui_ndt/donar/update/nupkey.pvt
+/home/iupui_ndt/donar/update/nupkey.seq
+}}}
+
+To check the status of DONAR on all MLAB hosts either run the following one line shell script:
+
+{{{
+for i in sea01 nuq01 lax01 dfw01 ord01 lga01 lga02 atl01 mia01 lhr01 ams01 ams02 par01 ath01 ham01 syd01; do echo "Testing \"$i\"";host ndt.iupui.$i.donar.measurement-lab.org;echo;done
+}}}
+
+Or consult one of the DONAR status pages:
+
+ * http://donardns.org/services.php?service=ndt.iupui.donar.measurement-lab.org 
+ * http://donardns.org/monitor.php 
 
 == Convenience Scripts ==
 
