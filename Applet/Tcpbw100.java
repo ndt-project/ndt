@@ -98,7 +98,7 @@ import java.security.PrivilegedAction;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "3.6.3";
+  private static final String VERSION = "3.6.4";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -1161,6 +1161,7 @@ class MyTextPane extends JTextPane
             }
         }.start();
       while (true) {
+	// System.err.println("Send pkt = " + pkts + "; at " + System.currentTimeMillis());
         try {
           out.write(buff2, 0, buff2.length);
         }
@@ -1168,10 +1169,16 @@ class MyTextPane extends JTextPane
           System.out.println(e);
           break;
         }
+	// catch (InterruptedIOException iioe) {
+	catch (IOException ioe) {
+	  System.out.println("Client socket timed out");
+	  break;
+	}
         pkts++;
       }
 
       t =  System.currentTimeMillis() - t;
+	System.err.println(t + "sec test completed");
       if (t == 0) {
         t = 1;
       }
