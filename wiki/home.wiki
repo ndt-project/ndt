@@ -14,9 +14,9 @@ Please visit [http://software.internet2.edu/sources/ndt/ http://software.interne
 
 There are several NDT mailing lists:
 
- * [https://mail.internet2.edu/wws/info/ndt-dev Developers List]
- * [https://mail.internet2.edu/wws/info/ndt-announce Announcement List]
- * [https://mail.internet2.edu/wws/info/ndt-users Users List]
+ * [https://lists.internet2.edu/sympa/info/ndt-dev Developers List]
+ * [https://lists.internet2.edu/sympa/info/ndt-announce Announcement List]
+ * [https://lists.internet2.edu/sympa/info/ndt-users Users List]
 
 == Last Updated ==
 
