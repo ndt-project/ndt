@@ -1,0 +1,110 @@
+.TH tr-mkmap 1 "$Date$"
+." The first line of this file must contain the '"[e][r][t][v] line
+." to tell man to run the appropriate filter "t" for table.
+."
+."	$Id$
+."
+."######################################################################
+."#									#
+."#			   Copyright (C)  2006				#
+."#	     			Internet2				#
+."#			   All Rights Reserved				#
+."#									#
+."######################################################################
+."
+."	File:		tr-mkmap.1
+."
+."	Author:		Rich Carlson
+."			Internet2
+."
+."	Date:		Sun Jul 2 18:44:25 CST 2006
+."
+."	Description:	
+."
+.SH NAME
+tr-mkmap \- Traceroute tree builder for the NDT system.
+.SH SYNOPSIS
+.B tr-mkmap
+[\fIoptions\fR] 
+.SH DESCRIPTION
+The \fBNetwork Diagnostic Tester\fR (NDT) tool is a client/server
+program that provides network configuration and performance testing
+to a users desktop or laptop computers.  The system is composed of
+a client program (\fIcommand line\fR or \fIjava applet\fR) and a pair
+of server programs (a webserver and a testing/analysis engine).  
+.PP
+The \fBtr-mkmap\fR program reads a set of 'traceroute -n' output lines
+and builds a default traceroute tree.  This tree is then used to determine
+which route best describes a new traceroute.  The basic operation is to run
+this once in the 'build' mode (\fB-b\fR) option.  This generates the default
+tree.  Then new traceroutes are compared to this tree using the 'compare'
+(\fB-c\fR) option.
+.PP
+The default tree should be built from traceroutes run between
+peer eNDT servers.  The new trees are then run from 1 eNDT
+to an arbitrary client.  A match is made when a new leaf
+would be added.  The leaf node of this branch gives the
+IP address of the 'closest' eNDT server.
+.SH OPTIONS
+.TP
+\fB\-b, --build\fR 
+Build a new default tree. The default files where the 'traceroute -n' output
+lines are expected to be are \fB/tmp/traceroute.data\fR for the IPv4 and
+\fB/tmp/traceroute6.data\fR for the IPv6. The newly generated trees are stored
+by default in the \fB/usr/local/ndt/Default.tree\fR (IPv4) and
+\fB/usr/local/ndt/Default.tree6\fR (IPv6).
+.TP
+\fB\-c, --compare\fR \fIfn\fR
+Compare the new traceroute stored in the \fIfn\fR to the default tree generated
+previously by the \fB-b\fR option.
+.TP
+\fB\-f, --file\fR \fIfn\fR
+Specify the name of the input file for the \fB-b\fR option. If the \fB-b\fR is
+not set, than this option is ignored.
+.TP
+\fB\-h, --help\fR 
+Print a simple usage page and exit.
+.TP
+\fB\-p, --print\fR 
+Print out the current traceroute map. The trees have to be generated previously
+by the use of \fB-b\fR option.
+.TP
+\fB\-d, --debug\fR 
+Print debugging information.  This option increments the internal
+debugging flag allowing the display of run time diagnostic messages. 
+Repeated use of this option increases the amount of debugging
+information that will be displayed.  Note: the debugging information
+prints to the stderr.
+.TP
+\fB\-v, --version\fR 
+Print version number and exit.
+.TP
+\fB\--dflttree\fR \fIfn\fR
+Specify alternate 'Default.tree' file.
+.TP
+\fB\--dflttree6\fR \fIfn\fR
+Specify alternate 'Default.tree6' file.
+.TP
+\fB\-4, --ipv4\fR 
+Use only IPv4 operational mode.
+.TP
+\fB\-6, --ipv6\fR 
+Use only IPv6 operational mode.
+.SH LIMITATIONS
+The NDT service is continuing to undergo testing and upgrading. 
+Better diagnostic algorithms are being developed to improve the
+accuracy and reliability of this service.
+.SH EXAMPLES
+.LP
+\fBtr-mkmap -dddb\fR
+.IP
+Build a new default trees (IPv4 and IPv6) from the default files
+\fB/tmp/traceroute.data\fR and \fB/tmp/traceroute6.data\fR. The debug
+flag will be set to \fB3\fR.
+.SH SEE ALSO
+The \%http://e2epi.internet2.edu/ndt/ web site, web100srv(8), web100clt(1), and setsockopt(2).
+.SH ACKNOWLEDGMENTS
+This material is based in part on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings and
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the NSF.

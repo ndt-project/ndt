@@ -1,0 +1,108 @@
+#!/bin/sh 
+#
+# chkconfig: 2345 55 25
+# description: Starts the NDT Web server
+# written by Peter Bertoncini <pjb@anl.gov>
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+path=/usr/local/sbin
+
+# [ -f $path/web100srv ] || exit 0
+[ -f $path/ndtd ] || exit 0
+[ -f $path/fakewww ] || exit 0
+
+# Specify some default options.
+# WEB100SRV_OPTIONS="-a --snaplog --tcpdump"
+NDTD_OPTIONS="-a --snaplog --tcpdump"
+FAKEWWW_OPTIONS=""
+RETVAL=0
+
+start ()
+{
+   # cnt=`ps auxw | grep web100srv | grep -v grep | wc -l`
+   cnt=`ps auxw | grep ndtd | grep -v grep | wc -l`
+   if [ $cnt = 0 ]
+   then
+      cd /usr/local/ndt/serverdata
+      echo -n "Starting ndtd:"
+#     $path/web100srv -r -a -i eth0 > /dev/null 2>&1 & 
+#     $path/web100srv $WEB100SRV_OPTIONS > /dev/null 2>&1 &
+      $path/ndtd $NDTD_OPTIONS > /dev/null 2>&1 &
+      RETVAL=$?
+      if [ $RETVAL = 0 ]
+      then 
+	success
+        # touch /var/lock/subsys/web100srv
+        touch /var/lock/subsys/ndtd
+      else
+	failure
+      fi
+      echo
+   fi
+   
+   cnt=`ps auxw | grep fakewww | grep -v grep | wc -l`
+   if [ $cnt = 0 ]
+   then
+      echo -n "Starting fakewww:"
+      $path/fakewww $FAKEWWW_OPTIONS > /dev/null 2>&1 &
+      RETVAL=$?
+      if [ $RETVAL = 0 ]
+      then 
+	success
+        touch /var/lock/subsys/fakewww
+      else
+	failure
+      fi
+      echo
+   fi
+}
+
+stop()
+{
+   # echo -n "Stopping web100srv:"
+   # killproc web100srv -TERM
+   echo -n "Stopping ndtd:"
+   killproc ndtd -TERM
+   RETVAL=$?
+   echo
+   # [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/web100srv
+   [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/ndtd
+
+   echo -n "Stopping fakewww:"
+   killproc fakewww -TERM
+   RETVAL=$?
+   echo
+   [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/fakewww
+}
+
+rhstatus() {
+	# status web100srv
+	status ndtd
+	status fakewww
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+start)
+   start
+   ;;
+stop)
+   stop
+   ;;
+status)
+   rhstatus
+   ;;
+restart|reload)
+   restart
+   ;;
+*)
+   echo $"Usage: $0 {start|stop|status|restart}"
+   exit 1
+esac
+
+exit $?
