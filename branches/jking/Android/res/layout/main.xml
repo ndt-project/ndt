@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:orientation="vertical" android:layout_width="fill_parent"
+  android:layout_height="wrap_content">
+
+  <ProgressBar android:id="@+id/ProgressBar" android:layout_width="fill_parent"
+    android:layout_height="wrap_content" style="?android:attr/progressBarStyleHorizontal"
+    android:layout_alignParentTop="true">
+  </ProgressBar>
+
+  <LinearLayout android:id="@+id/LowerFrame" android:layout_width="fill_parent"
+    android:layout_height="wrap_content" android:layout_alignParentBottom="true"
+    android:orientation="horizontal">
+    <Button android:text="@string/start" android:id="@+id/ButtonStart"
+      android:layout_width="wrap_content" android:layout_weight="1"
+      android:layout_height="wrap_content">
+    </Button>
+    <Button android:text="@string/statistics" android:id="@+id/ButtonStatistics"
+      android:layout_width="wrap_content" android:layout_weight="1"
+      android:layout_height="wrap_content">
+    </Button>
+    <Button android:text="@string/about" android:id="@+id/ButtonAbout"
+      android:layout_width="wrap_content" android:layout_weight="1"
+      android:layout_height="wrap_content">
+    </Button>
+    <Button android:text="@string/options" android:id="@+id/ButtonOption"
+      android:layout_width="wrap_content" android:layout_weight="1"
+      android:layout_height="wrap_content">
+    </Button>
+  </LinearLayout>
+
+  <LinearLayout android:id="@+id/UpperFrame" android:layout_width="fill_parent"
+    android:layout_height="wrap_content" android:layout_weight="1"
+    android:layout_above="@+id/LowerFrame" android:layout_below="@+id/ProgressBar">
+    <TextView android:layout_width="fill_parent" android:layout_height="fill_parent"
+      android:id="@+id/TextViewMain" android:text="@string/hello"
+      android:gravity="bottom" android:scrollbars="vertical" />
+  </LinearLayout>
+</RelativeLayout>

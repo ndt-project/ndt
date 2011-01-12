@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hello">NDT Mobile Client for Android Ready.</string>
+    <string name="app_name">NDT Mobile Client</string>
+    <string name="choice_server_title">Choose Testing Server</string>
+    <string name="exit">Exit</string>
+    <string name="about">About</string>
+    <string name="start">Start</string>
+    <string name="options">Options</string>
+    <string name="statistics">Statistics</string>
+    <string name="label_about_description">Copyright 2009 Google Inc.\n\nThis software is based in part on NDT: Copyright (c) 2003 University of Chicago.</string>
+    <string name="label_about_title">About NDT Mobile Client for Android</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="email">E-Mail</string>
+    <string name="cancel">Cancel</string>
+    <string name="warning">Warning</string>
+    <string name="contents_warning">Server list error. Shutting down NDT Mobile Client.</string>
+    <string name="fail_tip">Test failed.</string>
+    <string name="serverlist_corrupted_tip">Server list corrupted, please contact the publisher.</string>
+    <string name="test_begins_at">Testing started at %1$s</string>
+    <string name="from_header">From:</string>
+    <string name="to_header">To:</string>
+    <string name="server_indicator">Server: %1$s</string>
+    <string name="host_indicator">Host: %1$s</string>
+    <string name="latitude_result">Latitude: %1$f</string>
+    <string name="longitude_result">Longitude: %1$f</string>
+    <string name="version_indicator">Version: %1$s</string>
+    <string name="default_server_indicator">Default server: %1$s</string>
+    <string name="network_type_indicator">NetworkType: %1$s</string>
+    <string name="changed_server">Changed testing server to: %1$s</string>
+    <string name="os_line">OS: Name = %1$s, Architecture = %2$s, Version = %3$s</string>
+    <string name="java_line">Java: Version = %1$s, Vendor = %2$s</string>
+    <string name="email_title">NDT Mobile Client for Android Result on %1$s</string>
+    <string name="intent_error">Intent Error.</string>
+    <string name="test_again">Press Start to test again.</string>
+</resources>
