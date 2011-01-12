@@ -67,7 +67,7 @@ import java.net.*;
 import java.util.*;
 
 public class NdtTests implements Runnable {
-  public static final String VERSION = "3.6.3";
+  public static final String VERSION = "3.6.4";
 
   // Network (physical layer) types
   public static final String NETWORK_WIFI = "WIFI";
@@ -123,6 +123,7 @@ public class NdtTests implements Runnable {
   int c2sData, c2sAck, s2cData, s2cAck;
 
   String emailText;
+  String diagnosisText;
   double s2cspd, c2sspd, sc2sspd, ss2cspd;
   int ssndqueue;
   double sbytes;
@@ -270,6 +271,7 @@ public class NdtTests implements Runnable {
       results.append(messages.getString("checkingMiddleboxes") + "  ");
       statistics.append(messages.getString("checkingMiddleboxes") + "  ");
       emailText = messages.getString("checkingMiddleboxes") + "  ";
+      uiServices.setVariable("pub_status", "checkingMiddleboxes");
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -374,6 +376,7 @@ public class NdtTests implements Runnable {
       results.append(messages.getString("done") + "\n");
       statistics.append(messages.getString("done") + "\n");
       emailText += messages.getString("done") + "\n%0A";
+      uiServices.setVariable("pub_status", "done");
     }
     return false;
   }
@@ -386,6 +389,7 @@ public class NdtTests implements Runnable {
       results.append(messages.getString("checkingFirewalls") + "  ");
       statistics.append(messages.getString("checkingFirewalls") + "  ");
       emailText = messages.getString("checkingFirewalls") + "  ";
+      uiServices.setVariable("pub_status", "checkingFirewalls");
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -488,6 +492,7 @@ public class NdtTests implements Runnable {
       results.append(messages.getString("done") + "\n");
       statistics.append(messages.getString("done") + "\n");
       emailText += messages.getString("done") + "\n%0A";
+      uiServices.setVariable("pub_status", "done");
     }
     return false;
   }
@@ -502,6 +507,7 @@ public class NdtTests implements Runnable {
       results.append(messages.getString("runningOutboundTest") + " ");
       statistics.append(messages.getString("runningOutboundTest") + " ");
       emailText += messages.getString("runningOutboundTest") + " ";
+      uiServices.setVariable("pub_status", "runningOutboundTest");
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -516,7 +522,7 @@ public class NdtTests implements Runnable {
       }
       int c2sport = Integer.parseInt(new String(msg.body));
 
-      Socket outSocket = null;
+      final Socket outSocket;
       try {
         outSocket = new Socket(host, c2sport);
       } catch (UnknownHostException e) {
@@ -533,7 +539,7 @@ public class NdtTests implements Runnable {
 	uiServices.setVariable("pub_host", outSocket.getInetAddress().getHostAddress().toString());
 
 
-      OutputStream out = outSocket.getOutputStream();
+      final OutputStream out = outSocket.getOutputStream();
 
       // wait here for signal from server application 
       // This signal tells the client to start pumping out data
@@ -549,7 +555,6 @@ public class NdtTests implements Runnable {
         return true;
       }
 
-      Random rng = new Random();
       byte c = '0';
       int i;
       for (i=0; i<lth; i++) {
@@ -558,12 +563,26 @@ public class NdtTests implements Runnable {
         buff2[i] = c++;
       }
       uiServices.logError("Send buffer size =" + i);
-      outSocket.setSoTimeout(15000); 
       pkts = 0;
       t = System.currentTimeMillis();
-      double stop_time = t + 10000; // ten seconds
-      do {
-        // if (Randomize) rng.nextBytes(buff2);
+      new Thread() {
+          
+          public void run() {
+              try {
+                  Thread.sleep(10000);
+              } catch (InterruptedException e) {
+                  System.out.println(e);
+              }
+              try {
+                  out.close();
+                  outSocket.close();
+              } catch (IOException e) {
+                  System.out.println(e);
+              }
+          }
+     }.start();
+     while (true) {
+     // System.err.println("Send pkt = " + pkts + "; at " + System.currentTimeMillis());
         try {
           out.write(buff2, 0, buff2.length);
         }
@@ -571,15 +590,19 @@ public class NdtTests implements Runnable {
           System.out.println(e);
           break;
         }
+	  // catch (InterruptedIOException iioe) {
+      catch (IOException ioe) {
+	    System.out.println("Client socket timed out");
+	    break;
+	  }
         pkts++;
-      } while (System.currentTimeMillis() < stop_time);
+      }
 
       t =  System.currentTimeMillis() - t;
+	  System.err.println(t + "sec test completed");
       if (t == 0) {
         t = 1;
       }
-      out.close();
-      outSocket.close();
       System.out.println((8.0 * pkts * lth) / t + " kb/s outbound");
       c2sspd = ((8.0 * pkts * lth) / 1000) / t;
       /* receive the c2sspd from the server */
@@ -601,11 +624,13 @@ public class NdtTests implements Runnable {
         results.append(prtdbl(sc2sspd*1000) + "kb/s\n");
         statistics.append(prtdbl(sc2sspd*1000) + "kb/s\n");
         emailText += prtdbl(sc2sspd*1000) + "kb/s\n%0A";
+        uiServices.setVariable("pub_status", "done");
       } 
       else {
         results.append(prtdbl(sc2sspd) + "Mb/s\n");
         statistics.append(prtdbl(sc2sspd) + "Mb/s\n");
         emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
+        uiServices.setVariable("pub_status", "done");
       }
 
 		// Expose upload speed to JavaScript clients
@@ -635,6 +660,7 @@ public class NdtTests implements Runnable {
         results.append(messages.getString("runningInboundTest") + " ");
         statistics.append(messages.getString("runningInboundTest") + " ");
         emailText += messages.getString("runningInboundTest") + " ";
+        uiServices.setVariable("pub_status", "runningInboundTest");
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -727,10 +753,12 @@ public class NdtTests implements Runnable {
         results.append(prtdbl(s2cspd*1000) + "kb/s\n");
         statistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
         emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
+        uiServices.setVariable("pub_status", "done");
       } else {
         results.append(prtdbl(s2cspd) + "Mb/s\n");
         statistics.append(prtdbl(s2cspd) + "Mb/s\n");
         emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
+        uiServices.setVariable("pub_status", "done");
       }
 
 
@@ -1527,19 +1555,24 @@ public class NdtTests implements Runnable {
 
             diagnosis.append(messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " " + "Mbps\n");
 			emailText += messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " Mbps\n%0A";
+			diagnosisText += messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " Mbps\n%0A";
+            
  
             diagnosis.append(messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n");
 			emailText += messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n%0A";
+			diagnosisText += messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n%0A";
 
             diagnosis.append(messages.getString("yourPcHas") + " " + prtdbl(MaxRwinRcvd/1024) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n");
 			emailText += messages.getString("yourPcHas") + " " + prtdbl(MaxRwinRcvd/1024) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n%0A";
+			diagnosisText += messages.getString("yourPcHas") + " " + prtdbl(MaxRwinRcvd/1024) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n%0A";
 
 			diagnosis.append(messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n");
 			emailText += messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
+			diagnosisText += messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
 
 			diagnosis.append("\n" + messages.getString("clientDataReports") + " '" + prttxt(c2sData) + "', " + messages.getString("clientAcksReport") + " '" + prttxt(c2sAck) + "'\n" + messages.getString("serverDataReports") + " '" + prttxt(s2cData) + "', " + messages.getString("serverAcksReport") + " '" + prttxt(s2cAck) + "'\n");
 
-
+            uiServices.setVariable("pub_diagnosis", diagnosisText);
 		}
 	}  // testResults()
 	
