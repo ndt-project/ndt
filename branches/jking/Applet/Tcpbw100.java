@@ -149,6 +149,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private int pub_MinRTO = 0; // source variable does not exist
   private int pub_MaxRTO = 0; // source variable does not exist
   private int pub_CurRTO = 0;
+  private int pub_SmoothedRTT = 0;
   // private String pub_CWNDpeaks = ""; // source variable does not exist
   private int pub_SACKsRcvd = 0;
   private String pub_osVer = "unknown"; 
@@ -211,6 +212,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
     return Integer.toString(pub_MaxRTT);
   }  
   
+  public String get_SmoothedRTT()
+  {
+    return Integer.toString(pub_SmoothedRTT);
+  }  
+
   public String get_loss()
   {
     return Double.toString(pub_loss);
