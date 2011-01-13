@@ -1838,8 +1838,10 @@ public class NdtTests implements Runnable {
 			FastRetran = sysval;
 		else if(sysvar.equals("AckPktsOut:")) 
 			AckPktsOut = sysval;
-		else if(sysvar.equals("SmoothedRTT:")) 
+		else if(sysvar.equals("SmoothedRTT:")) {
 			SmoothedRTT = sysval;
+			uiServices.setVariable("pub_SmoothedRTT", SmoothedRTT);
+        }
 		else if(sysvar.equals("CurCwnd:")) 
 			CurrentCwnd = sysval;
 		else if(sysvar.equals("MaxCwnd:")) 
