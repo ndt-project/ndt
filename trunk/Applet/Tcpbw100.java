@@ -206,6 +206,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private int pub_jitter = 0;
   private int pub_Timeouts = 0;
   private String pub_errmsg = "Test not run.";
+  private String pub_diagnosis = "Test not run.";
+  private String pub_statistics = "Test not run.";
+  private String pub_status = "notStarted";
+  private double pub_time = 0.0;
+  private int pub_bytes = 0;
   private String isAutoRun;
   
   
@@ -415,6 +420,26 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	//result = pub_errmsg;
 	//return result;
 	return pub_errmsg;
+  }
+
+  public String get_diagnosis()
+  {
+   return pub_diagnosis;
+  } 
+  
+  public String get_statistics()
+  {
+   return pub_statistics;
+  } 
+
+  public String get_status()
+  {
+   return pub_status;
+  } 
+
+  public String get_instSpeed()
+  {
+    return Double.toString((8.0 * pub_bytes) /  (System.currentTimeMillis() - pub_time));
   }
 
   // "Remote Control" function - invoke NDT' runtest() method from the API
@@ -766,6 +791,7 @@ class MyTextPane extends JTextPane
   }
 
 	synchronized public void runtest() {
+	pub_status = "notStarted";
     new Thread(new TestWorker()).start();
 	}
 
@@ -855,6 +881,7 @@ class MyTextPane extends JTextPane
       results.append(messages.getString("checkingMiddleboxes") + "  ");
       statistics.append(messages.getString("checkingMiddleboxes") + "  ");
       emailText = messages.getString("checkingMiddleboxes") + "  ";
+      pub_status = "checkingMiddleboxes";
 
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -896,6 +923,7 @@ class MyTextPane extends JTextPane
       try {  
         while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
           bytes += inlth;
+	  pub_bytes = bytes;
           if ((System.currentTimeMillis() - t) > 5500)
             break;
         }
@@ -971,6 +999,7 @@ class MyTextPane extends JTextPane
       results.append(messages.getString("checkingFirewalls") + "  ");
       statistics.append(messages.getString("checkingFirewalls") + "  ");
       emailText = messages.getString("checkingFirewalls") + "  ";
+      pub_status = "checkingFirewalls";
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -1087,6 +1116,7 @@ class MyTextPane extends JTextPane
       results.append(messages.getString("runningOutboundTest") + " ");
       statistics.append(messages.getString("runningOutboundTest") + " ");
       emailText += messages.getString("runningOutboundTest") + " ";
+      pub_status = "runningOutboundTest";
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -1144,6 +1174,7 @@ class MyTextPane extends JTextPane
       System.err.println("Send buffer size =" + i);
       pkts = 0;
       t = System.currentTimeMillis();
+      pub_time = t;
         new Thread() {
             
             public void run() {
@@ -1175,6 +1206,7 @@ class MyTextPane extends JTextPane
 	  break;
 	}
         pkts++;
+	pub_bytes = (pkts * lth);
       }
 
       t =  System.currentTimeMillis() - t;
@@ -1237,6 +1269,7 @@ class MyTextPane extends JTextPane
         results.append(messages.getString("runningInboundTest") + " ");
         statistics.append(messages.getString("runningInboundTest") + " ");
         emailText += messages.getString("runningInboundTest") + " ";
+        pub_status = "runningInboundTest";
       
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
@@ -1285,10 +1318,12 @@ class MyTextPane extends JTextPane
 
       inSocket.setSoTimeout(15000);
       t = System.currentTimeMillis();
+      pub_time = t;
 
       try {  
         while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
           bytes += inlth;
+	  pub_bytes = bytes;
           if ((System.currentTimeMillis() - t) > 14500)
             break;
         }
@@ -1338,6 +1373,7 @@ class MyTextPane extends JTextPane
 
 		// Expose download speed to JavaScript clients
            pub_s2cspd = s2cspd;
+           pub_status = "done";
 
       srvin.close();
       inSocket.close();
@@ -1375,6 +1411,7 @@ class MyTextPane extends JTextPane
       } catch (IOException e) {}
       ctlSocket.setSoTimeout(0);
     }
+    pub_status = "done";
     return false;
   }
 
@@ -1655,6 +1692,7 @@ class MyTextPane extends JTextPane
 	  
 	  pub_isReady="yes";
 	  pub_errmsg ="All tests completed OK.";
+          pub_status = "done";
   }
 
 
@@ -2196,6 +2234,7 @@ class MyTextPane extends JTextPane
 			emailText += messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
 
 			diagnosis.append("\n" + messages.getString("clientDataReports") + " '" + prttxt(c2sData) + "', " + messages.getString("clientAcksReport") + " '" + prttxt(c2sAck) + "'\n" + messages.getString("serverDataReports") + " '" + prttxt(s2cData) + "', " + messages.getString("serverAcksReport") + " '" + prttxt(s2cAck) + "'\n");
+      pub_diagnosis = diagnosis.getText();
 
 
 		}
@@ -2298,6 +2337,7 @@ class MyTextPane extends JTextPane
                 statistics.append("\t" + messages.getString("serverSays") + " [" + scip + "], " + messages.getString("clientSays") +" [" + ccip + "]\n");
 			}
 		}
+	pub_statistics = statistics.getText();
 	} // middleboxResults()
 
 
