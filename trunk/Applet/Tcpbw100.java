@@ -1214,8 +1214,8 @@ class MyTextPane extends JTextPane
       if (t == 0) {
         t = 1;
       }
-      System.out.println((8.0 * pkts * lth) / t + " kb/s outbound");
-      c2sspd = ((8.0 * pkts * lth) / 1000) / t;
+      System.out.println((8.0 * pkts * buff2.length) / t + " kb/s outbound");
+      c2sspd = ((8.0 * pkts * buff2.length) / 1000) / t;
       /* receive the c2sspd from the server */
       if (ctl.recv_msg(msg) != 0) {
         errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
