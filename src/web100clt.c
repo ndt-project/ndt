@@ -708,6 +708,14 @@ main(int argc, char *argv[])
     printf("Using IPv6 address\n");
   }
 
+  /* set the TEST_STATUS flag so the server knows this client will respond to status requests.
+   * this will let the server kill off zombie clients from the queue
+   * RAC 7/7/09
+   */
+  if (tests & TEST_STATUS) {
+    log_println(1, "* New Client, implements queuing feedback");
+  }
+
   log_println(1, "Requesting test suite:");
   if (tests & TEST_MID) {
     log_println(1, " > Middlebox test");
@@ -720,14 +728,6 @@ main(int argc, char *argv[])
   }
   if (tests & TEST_S2C) {
     log_println(1, " > S2C throughput test");
-  }
-
-  /* set the TEST_STATUS flag so the server knows this client will respond to status requests.
-   * this will let the server kill off zombie clients from the queue
-   * RAC 7/7/09
-   */
-  if (tests & TEST_STATUS) {
-    log_println(1, " > New Client, impliments queuing feedback");
   }
   
   /* The beginning of the protocol */
