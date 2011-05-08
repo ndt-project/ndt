@@ -1,7 +1,7 @@
 /*
  * This file contains the functions of the logging system.
  *
- * Jakub S³awiñski 2006-06-14
+ * Jakub Sï¿½awiï¿½ski 2006-06-14
  * jeremian@poczta.fm
  */
 
@@ -436,7 +436,6 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
     char isoTime[64], filename[256];
     size_t tmpstrlen=sizeof(tmpstr);
     socklen_t len;
-    int rc;
     DIR *dp;
 
 /* Get the clients domain name and same in metadata file 
@@ -551,6 +550,14 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
         fprintf(fp, "client OS name: %s\n", meta.client_os);
         fprintf(fp, "client_browser name: %s\n", meta.client_browser);
         fprintf(fp, "Summary data: %s\n", meta.summary);
+        if (meta.additional) {
+          fprintf(fp, " * Additional data:\n");
+          struct metaentry* entry = meta.additional;
+          while (entry) {
+            fprintf(fp, "%s: %s\n", entry->key, entry->value);
+            entry = entry->next;
+          }
+        }
         fclose(fp);
     }
 }

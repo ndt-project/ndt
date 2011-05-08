@@ -1,7 +1,7 @@
 /*
  * This file contains the functions needed to handle various tests.
  *
- * Jakub S³awiñski 2006-06-24
+ * Jakub Sï¿½awiï¿½ski 2006-06-24
  * jeremian@poczta.fm
  */
 
@@ -156,25 +156,44 @@ snapWorker(void* arg)
 }
 
 /*
+ * Function name: add_test_to_suite
+ * Description: Adds test id to the test suite
+ * Arguments: first - first test indicator
+ *            buff - test suite description
+ *            test_id - id of the test
+ */
+void
+add_test_to_suite(int* first, char * buff, int test_id)
+{
+  char tmpbuff[16];
+  if (*first) {
+    *first = 0;
+    sprintf(buff, "%d", test_id);
+  }
+  else {
+    memset(tmpbuff, 0, 16);
+    sprintf(tmpbuff, " %d", test_id);
+    strcat(buff, tmpbuff);
+  }
+}
+
+/*
  * Function name: initialize_tests
  * Description: Initializes the tests for the client.
  * Arguments: ctlsockfd - the client control socket descriptor
  *            options - the test options
- *            conn_options - the connection options
+ *            buff - the connection options
  * Returns: 0 - success,
  *          >0 - error code.
  */
 
 int
-/* initialize_tests(int ctlsockfd, TestOptions* options, int conn_options, char * buff) */
 initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
 {
   unsigned char useropt=0;
   int msgType;
   int msgLen = 1;
-  /* char buff[1024]; */
   int first = 1;
-  char tmpbuff[16];
 
   assert(ctlsockfd != -1);
   assert(options);
@@ -194,53 +213,25 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-2);
   }
-  if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS))) {
+  if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META))) {
       sprintf(buff, "Invalid test suite request");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-3);
   }
   if (useropt & TEST_MID) {
-    /* options->midopt = TOPT_ENABLED; */
-    if (first) {
-      first = 0;
-      sprintf(buff, "%ld", TEST_MID);
-    }
+    add_test_to_suite(&first, buff, TEST_MID);
   }
   if (useropt & TEST_SFW) {
-    /* options->sfwopt = TOPT_ENABLED; */
-    if (first) {
-      first = 0;
-      sprintf(buff, "%ld", TEST_SFW);
-    }
-    else {
-      memset(tmpbuff, 0, 16);
-      sprintf(tmpbuff, " %ld", TEST_SFW);
-      strcat(buff, tmpbuff);
-    }
+    add_test_to_suite(&first, buff, TEST_SFW);
   }
   if (useropt & TEST_C2S) {
-    /* options->c2sopt = TOPT_ENABLED; */
-    if (first) {
-      first = 0;
-      sprintf(buff, "%ld", TEST_C2S);
-    }
-    else {
-      memset(tmpbuff, 0, 16);
-      sprintf(tmpbuff, " %ld", TEST_C2S);
-      strcat(buff, tmpbuff);
-    }
+    add_test_to_suite(&first, buff, TEST_C2S);
   }
   if (useropt & TEST_S2C) {
-    /* options->s2copt = TOPT_ENABLED; */
-    if (first) {
-      first = 0;
-      sprintf(buff, "%ld", TEST_S2C);
-    }
-    else {
-      memset(tmpbuff, 0, 16);
-      sprintf(tmpbuff, " %ld", TEST_S2C);
-      strcat(buff, tmpbuff);
-    }
+    add_test_to_suite(&first, buff, TEST_S2C);
+  }
+  if (useropt & TEST_META) {
+    add_test_to_suite(&first, buff, TEST_META);
   }
   return useropt;
 }
