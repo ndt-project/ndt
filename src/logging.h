@@ -2,7 +2,7 @@
  * This file contains the function declarations of the logging
  * system.
  *
- * Jakub S³awiñski 2006-06-14
+ * Jakub Sï¿½awiï¿½ski 2006-06-14
  * jeremian@poczta.fm
  */
 
@@ -36,6 +36,12 @@ char * DataDirName;
 
 int zlib_def(char *src_fn);
 
+struct metaentry {
+  char key[64];
+  char value[256];
+  struct metaentry* next;
+};
+
 struct metadata {
     char c2s_snaplog[64];
     char c2s_ndttrace[64];
@@ -55,6 +61,7 @@ struct metadata {
     char server_name[64];
     char server_os[32];
     int  family;
+    struct metaentry* additional;    
 };
 
 struct metadata meta;

@@ -445,6 +445,9 @@ cleanup(int signo)
         case TEST_SFW:
           log_println(6, "Received SIGALRM signal [Simple firewall test]");
           break;
+        case TEST_META:
+          log_println(6, "Received SIGALRM signal [META test]");
+          break;
       }
       fp = fopen(get_logfile(),"a");
       if (fp  != NULL) {
@@ -469,6 +472,9 @@ cleanup(int signo)
 	    break;
           case TEST_SFW:
             fprintf(fp, " [Simple firewall test]\n");
+            break;
+          case TEST_META:
+            fprintf(fp, " [META test]\n");
             break;
           default:
             fprintf(fp, "\n");
@@ -926,6 +932,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   if (testopt->s2copt) {
     log_println(1, " > S2C throughput test");
   }
+  if (testopt->metaopt) {
+    log_println(1, " > META test");
+  }
   
 /*  alarm(15); */
   log_println(6, "Starting middlebox test");
@@ -964,6 +973,13 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
       log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
       testopt->s2copt = TOPT_DISABLED;
       return ret;
+  }
+
+  log_println(6, "Starting META test");
+  if ((ret = test_meta_srv(ctlsockfd, agent, &*testopt, conn_options)) != 0) {
+    if (ret < 0) {
+      log_println(6, "META test failed with rc=%d", ret);
+    }
   }
 
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
@@ -2371,6 +2387,8 @@ dispatch_client:
 	    testopt.midopt = TOPT_ENABLED;
 	if (t_opts & TEST_SFW)
 	    testopt.sfwopt = TOPT_ENABLED;
+	if (t_opts & TEST_META)
+	    testopt.metaopt = TOPT_ENABLED;
 	if (t_opts & TEST_C2S)
 	    testopt.c2sopt = TOPT_ENABLED;
 	if (t_opts & TEST_S2C)
