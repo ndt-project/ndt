@@ -104,6 +104,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private static final byte TEST_S2C = (1 << 2);
   private static final byte TEST_SFW = (1 << 3);
   private static final byte TEST_STATUS = (1 << 4);
+  private static final byte TEST_META = (1 << 5);
+
+  private static final String META_CLIENT_OS = "client.os.name";
+  private static final String META_BROWSER_OS = "client.browser.name";
+  private static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
+  private static final String META_CLIENT_VERSION = "client.version";
 
   /* we really should do some clean-up in this java code... maybe later ;) */
   private static final byte COMM_FAILURE  = 0;
@@ -486,7 +492,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   boolean testInProgress = false;
   String host = null;
   String tmpstr, tmpstr2;
-  byte tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS;
+  byte tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META;
   int c2sResult = SFW_NOTTESTED;
   int s2cResult = SFW_NOTTESTED;
 
@@ -1415,6 +1421,67 @@ class MyTextPane extends JTextPane
     return false;
   }
 
+  public boolean test_meta(Protocol ctl) throws IOException
+  {
+    Message msg = new Message();
+    if ((tests & TEST_META) == TEST_META) {
+      showStatus(messages.getString("metaTest"));
+      results.append(messages.getString("sendingMetaInformation") + " ");
+      statistics.append(messages.getString("sendingMetaInformation") + " ");
+      emailText += messages.getString("sendingMetaInformation") + " ";
+      pub_status = "sendingMetaInformation";
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+        return true;
+      }
+      if (msg.type != TEST_PREPARE) {
+        errmsg = messages.getString("metaWrongMessage") + "\n";
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+        }
+        return true;
+      }
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+        return true;
+      }
+      if (msg.type != TEST_START) {
+        errmsg = messages.getString("metaWrongMessage") + "\n";
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+        }
+        return true;
+      }
+
+      ctl.send_msg(TEST_MSG, (META_CLIENT_OS + ":" + System.getProperty("os.name")).getBytes());
+      // TODO ctl.send_msg(TEST_MSG, (META_BROWSER_OS + ":" + "unknown").getBytes());
+      ctl.send_msg(TEST_MSG, (META_CLIENT_KERNEL_VERSION + ":" + System.getProperty("os.version")).getBytes());
+      ctl.send_msg(TEST_MSG, (META_CLIENT_VERSION + ":" + VERSION).getBytes());
+      
+      ctl.send_msg(TEST_MSG, new byte[0]);
+
+      if (ctl.recv_msg(msg) != 0) {
+        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+        return true;
+      }
+      if (msg.type != TEST_FINALIZE) {
+        errmsg = messages.getString("metaWrongMessage");
+        if (msg.type == MSG_ERROR) {
+            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+        }
+        return true;
+      }
+      results.append(messages.getString("done") + "\n");
+      statistics.append(messages.getString("done") + "\n");
+      emailText += messages.getString("done") + "\n%0A";
+    }
+    
+    pub_status = "done";
+    return false;
+  }
+
   public void dottcp(StatusPanel sPanel) throws IOException {
       Socket ctlSocket = null;
       if (!isApplication) {
@@ -1618,6 +1685,14 @@ class MyTextPane extends JTextPane
                       results.append(errmsg);
                       results.append(messages.getString("s2cThroughputFailed") + "\n");
                       tests &= (~TEST_S2C);
+                  }
+                  break;
+              case TEST_META:
+                  sPanel.setText(messages.getString("meta"));
+                  if (test_meta(ctl)) {
+                      results.append(errmsg);
+                      results.append(messages.getString("metaFailed") + "\n");
+                      tests &= (~TEST_META);
                   }
                   break;
               default:
