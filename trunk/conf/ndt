@@ -21,8 +21,8 @@ RETVAL=0
 
 start ()
 {
-   # cnt=`ps auxw | grep web100srv | grep -v grep | wc -l`
-   cnt=`ps auxw | grep ndtd | grep -v grep | wc -l`
+   # cnt=`ps auxw | grep $path/web100srv | grep -v grep | wc -l`
+   cnt=`ps auxw | grep $path/ndtd | grep -v grep | wc -l`
    if [ $cnt = 0 ]
    then
       cd /usr/local/ndt/serverdata
@@ -42,7 +42,7 @@ start ()
       echo
    fi
    
-   cnt=`ps auxw | grep fakewww | grep -v grep | wc -l`
+   cnt=`ps auxw | grep $path/fakewww | grep -v grep | wc -l`
    if [ $cnt = 0 ]
    then
       echo -n "Starting fakewww:"
