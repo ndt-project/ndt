@@ -34,7 +34,7 @@ bin_PROGRAMS = web100clt
 endif
 
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c \
-                    test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c
+                    test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
@@ -53,7 +53,7 @@ fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c \
-                    protocol.c test_sfw_srv.c ndt_odbc.c
+                    protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
@@ -83,5 +83,5 @@ install: install-am install-ln
 $(I2UTILLIBDEPS):
 	$(I2UTILLIBMAKE)
 
-EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h \
+EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h test_meta.h \
              troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h ndt_odbc.h

@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.6.3],[rcarlson501@gmail.com])
+AC_INIT([NDT],[3.6.4],[rcarlson501@gmail.com])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -261,3 +261,76 @@ AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
 		conf/Makefile doc/Makefile janalyze/Makefile])
 AC_OUTPUT
+
+echo ""
+echo ""
+echo "***********************************"
+echo "***   Network Diagnostic Tool   ***"
+echo "***********************************"
+echo "*       configured modules        *"
+echo "***********************************"
+echo ""
+echo ""
+
+SUMMARY_WEB100CLT="YES"
+if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
+if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
+SUMMARY_WEB100SRV="YES"
+else
+SUMMARY_WEB100SRV="NO    (missing pcap headers)"
+fi
+SUMMARY_FAKEWWW="YES"
+SUMMARY_ANALYZE="YES"
+SUMMARY_VIEWTRACE="YES"
+SUMMARY_TRMKMAP="YES"
+SUMMARY_GENPLOT="YES"
+else
+SUMMARY_WEB100SRV="NO    (missing web100 library)"
+SUMMARY_FAKEWWW="NO    (missing web100 library)"
+SUMMARY_ANALYZE="NO    (missing web100 library)"
+SUMMARY_VIEWTRACE="NO    (missing web100 library)"
+SUMMARY_TRMKMAP="NO    (missing web100 library)"
+SUMMARY_GENPLOT="NO    (missing web100 library)"
+fi
+
+if test -z "$HAVE_GCJ_TRUE" && test -n "$HAVE_GCJ_FALSE"; then
+SUMMARY_ADMINCLASS="YES"
+SUMMARY_TCPBW100JAR="YES"
+SUMMARY_JANALYZEJAR="YES"
+else
+SUMMARY_ADMINCLASS="NO    (missing java compiler)"
+SUMMARY_TCPBW100JAR="NO    (missing java compiler)"
+SUMMARY_JANALYZEJAR="NO    (missing java compiler)"
+fi
+
+if test "$SUMMARY_WEB100CLT" = "YES"; then
+echo "*** Client Tools - complete"
+else
+echo "*** Client Tools - incomplete"
+fi
+echo "* web100clt:    ${SUMMARY_WEB100CLT}"
+echo ""
+
+if test "$SUMMARY_FAKEWWW" = "YES" && test "$SUMMARY_WEB100SRV" = "YES" && test "$SUMMARY_TCPBW100JAR" = "YES"; then
+echo "*** Server Tools - complete"
+else
+echo "*** Server Tools - incomplete"
+fi
+echo "* fakewww:      ${SUMMARY_FAKEWWW}"
+echo "* web100srv:    ${SUMMARY_WEB100SRV}"
+echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
+echo ""
+
+if test "$SUMMARY_ANALYZE" = "YES" && test "$SUMMARY_VIEWTRACE" = "YES" && test "$SUMMARY_TRMKMAP" = "YES" && test "$SUMMARY_GENPLOT" = "YES" && test "$SUMMARY_JANALYZEJAR" = "YES" && test "$SUMMARY_ADMINCLASS" = "YES"; then
+echo "*** Administrative Tools - complete"
+else
+echo "*** Administrative Tools - incomplete"
+fi
+echo "* analyze:      ${SUMMARY_ANALYZE}"
+echo "* viewtrace:    ${SUMMARY_VIEWTRACE}"
+echo "* tr-mkmap:     ${SUMMARY_TRMKMAP}"
+echo "* genplot:      ${SUMMARY_GENPLOT}"
+echo "* JAnalyze.jar: ${SUMMARY_JANALYZEJAR}"
+echo "* Admin.class:  ${SUMMARY_ADMINCLASS}"
+echo ""
+echo ""

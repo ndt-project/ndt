@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Language" content="en">
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 </head>
-<body>
+<body onload="setTimeout('setUserAgent()', 2000)">
 <h3> YOURSITE Web100 based Network Diagnostic Tool (NDT) </h3>
 <b>Located at YOURLOCATION; 
 YOURSPEED network connection</b>
@@ -32,7 +32,7 @@ It can also identify 2 serious error conditions:</font>
      built into the java program.  -->
 
 <table align=center><tr><td>
-<applet code=Tcpbw100.class ARCHIVE="Tcpbw100.jar"
+<applet code=Tcpbw100.class name="NDTApplet" ARCHIVE="Tcpbw100.jar"
    width=700 height=320>
   <PARAM NAME="H" VALUE="YOURDOMAIN">
   <PARAM NAME="U" VALUE="YOUREMAIL">
@@ -196,5 +196,14 @@ Complete University of Chicago <a href="copyright.html">Copyright Notice</a>
 Comments to <a href="mailto:rcarlson501@gmail.com"> Rich Carlson </a> email:rcarlson501@gmail.com
 <br><i>Created: April 4, 2002 by Rich Carlson
 <br>Last Updated: March 16, 2010 by Jason Zurawski</i>
+
+<script language="javascript" type="text/javascript">
+
+  function setUserAgent() {
+    document.NDTApplet.setUserAgent(navigator.userAgent);
+  }
+
+</script>
+
 </body>
 </html>

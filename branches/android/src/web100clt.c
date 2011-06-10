@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "protocol.h"
 #include "test_sfw.h"
+#include "test_meta.h"
 #include "clt_tests.h"
 
 #ifndef VIEW_DIFF
@@ -598,7 +599,7 @@ main(int argc, char *argv[])
 {
   int c, swait;
   char tmpstr2[512], tmpstr[16384], varstr[16384];
-  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS;
+  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META;
   int ctlSocket;
   int ctlport = 3001;
   int ret, xwait;
@@ -708,6 +709,14 @@ main(int argc, char *argv[])
     printf("Using IPv6 address\n");
   }
 
+  /* set the TEST_STATUS flag so the server knows this client will respond to status requests.
+   * this will let the server kill off zombie clients from the queue
+   * RAC 7/7/09
+   */
+  if (tests & TEST_STATUS) {
+    log_println(1, "* New Client, implements queuing feedback");
+  }
+
   log_println(1, "Requesting test suite:");
   if (tests & TEST_MID) {
     log_println(1, " > Middlebox test");
@@ -721,13 +730,8 @@ main(int argc, char *argv[])
   if (tests & TEST_S2C) {
     log_println(1, " > S2C throughput test");
   }
-
-  /* set the TEST_STATUS flag so the server knows this client will respond to status requests.
-   * this will let the server kill off zombie clients from the queue
-   * RAC 7/7/09
-   */
-  if (tests & TEST_STATUS) {
-    log_println(1, " > New Client, impliments queuing feedback");
+  if (tests & TEST_META) {
+    log_println(1, " > META test");
   }
   
   /* The beginning of the protocol */
@@ -866,6 +870,12 @@ main(int argc, char *argv[])
         if (test_sfw_clt(ctlSocket, tests, host, conn_options)) {
           log_println(0, "Simple firewall test FAILED!");
           tests &= (~TEST_SFW);
+        }
+        break;
+      case TEST_META:
+        if (test_meta_clt(ctlSocket, tests, host, conn_options)) {
+          log_println(0, "META test FAILED!");
+          tests &= (~TEST_META);
         }
         break;
       default:
