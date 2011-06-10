@@ -146,18 +146,23 @@ public class AndroidNdt extends Activity {
     serverName = Constants.SERVER_NAME[serverNumber];
     serverHost = Constants.SERVER_HOST[serverNumber];
     uiHandler = new UiHandler(Looper.myLooper());
-    uiServices = new AndroidUiServices(this, uiHandler);
-    textViewMain = (TextView) findViewById(R.id.TextViewMain);
-    textViewMain.setMovementMethod(ScrollingMovementMethod.getInstance());
-    textViewMain.setClickable(false);
-    textViewMain.setLongClickable(false);
-    textViewMain.append("\n" + getString(R.string.version_indicator, NdtTests.VERSION));
-    textViewMain.append("\n" + getString(R.string.default_server_indicator, serverName));
-    textViewMain.append("\n");
-    mobileInfo = getMobileProperty();
-    textViewMain.append(mobileInfo);
-    textViewMain.append("\n");
-    initComponents();
+    try {
+	    uiServices = new AndroidUiServices(this, uiHandler);
+	    
+	    textViewMain = (TextView) findViewById(R.id.TextViewMain);
+	    textViewMain.setMovementMethod(ScrollingMovementMethod.getInstance());
+	    textViewMain.setClickable(false);
+	    textViewMain.setLongClickable(false);
+	    textViewMain.append("\n" + getString(R.string.version_indicator, NdtTests.VERSION));
+	    textViewMain.append("\n" + getString(R.string.default_server_indicator, serverName));
+	    textViewMain.append("\n");
+	    mobileInfo = getMobileProperty();
+	    textViewMain.append(mobileInfo);
+	    textViewMain.append("\n");
+	    initComponents();
+    } catch (Exception e) {
+    	Log.i("ndt", "Error in create.", e);
+    }
   }
 
   /**
