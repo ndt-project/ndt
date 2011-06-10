@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical" android:layout_width="fill_parent"
+	android:layout_height="wrap_content">
+	<LinearLayout android:id="@+id/UpperFrame"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:layout_weight="1" android:layout_above="@+id/LowerFrame"
+		android:layout_alignParentTop="true" android:orientation="vertical">
+		<TextView android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:id="@+id/MLab"
+			android:text="@string/mlab" android:gravity="top"
+			android:singleLine="true" />
+		<TextView android:layout_width="fill_parent"
+			android:layout_height="wrap_content" android:id="@+id/MLabDesc"
+			android:text="@string/mlabdesc" android:gravity="bottom"
+			android:scrollbars="vertical" />
+	</LinearLayout>
+	<LinearLayout android:id="@+id/LowerFrame"
+		android:layout_width="fill_parent" android:layout_height="wrap_content"
+		android:layout_alignParentBottom="true" android:orientation="horizontal">
+		<Button android:text="@string/start" android:id="@+id/ButtonStart"
+			android:layout_width="wrap_content" android:layout_weight="1"
+			android:layout_height="wrap_content" />
+		<Button android:text="@string/about" android:id="@+id/ButtonAbout"
+			android:layout_width="wrap_content" android:layout_weight="1"
+			android:layout_height="wrap_content" />
+	</LinearLayout>
+</RelativeLayout>
