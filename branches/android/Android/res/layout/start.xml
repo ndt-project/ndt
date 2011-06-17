@@ -3,26 +3,33 @@
 	android:orientation="vertical" android:layout_width="fill_parent"
 	android:layout_height="wrap_content">
 	<LinearLayout android:id="@+id/UpperFrame"
-		android:layout_width="fill_parent" android:layout_height="wrap_content"
-		android:layout_weight="1" android:layout_above="@+id/LowerFrame"
-		android:layout_alignParentTop="true" android:orientation="vertical">
-		<ImageView android:id="@+id/MLabLogo" android:layout_width="wrap_content"
-		           android:layout_height="wrap_content" android:src="@drawable/mlab_logo"
-		           android:gravity="center" />
-		<TextView android:layout_width="fill_parent"
-			android:layout_height="wrap_content" android:id="@+id/MLabDesc"
-			android:text="@string/mlabdesc" android:gravity="bottom"
-			android:scrollbars="vertical" android:padding="40sp"
-			android:textColor="#ffffff" android:textSize="18sp" />
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_weight="1"
+		android:layout_above="@+id/LowerFrame"
+		android:layout_alignParentTop="true"
+		android:orientation="vertical">
+		<ImageView android:id="@+id/MLabLogo"
+			android:layout_width="fill_parent"
+		    android:layout_height="wrap_content"
+		    android:src="@drawable/mlab_logo_small"
+		    android:gravity="center"
+		    android:padding="25sp" />
+		<TextView android:id="@+id/MLabDesc"
+			android:text="@string/mlabdesc"
+			style="@style/NdtDesc"
+			android:scrollbars="vertical" />
 	</LinearLayout>
 	<LinearLayout android:id="@+id/LowerFrame"
-		android:layout_width="fill_parent" android:layout_height="wrap_content"
-		android:layout_alignParentBottom="true" android:orientation="horizontal">
-		<Button android:text="@string/start" android:id="@+id/ButtonStart"
-			android:layout_width="wrap_content" android:layout_weight="1"
-			android:layout_height="wrap_content" />
-		<Button android:text="@string/about" android:id="@+id/ButtonAbout"
-			android:layout_width="wrap_content" android:layout_weight="1"
-			android:layout_height="wrap_content" />
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:layout_alignParentBottom="true"
+		android:orientation="horizontal">
+		<Button android:text="@string/start"
+			android:id="@+id/ButtonStart"
+			style="@style/NdtButton" />
+		<Button android:text="@string/about"
+			android:id="@+id/ButtonAbout"
+			style="@style/NdtButton" />
 	</LinearLayout>
 </RelativeLayout>
