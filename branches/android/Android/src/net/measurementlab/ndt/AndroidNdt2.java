@@ -3,8 +3,10 @@
 package net.measurementlab.ndt;
 
 import android.app.Activity;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
 /**
  * UI Thread and Entry Point of NDT mobile client.
@@ -19,5 +21,9 @@ public class AndroidNdt2 extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.start);
 		Log.i("ndt", "Loaded!");
+        Typeface typeFace = Typeface.createFromAsset(getAssets(),
+        "fonts/League_Gothic.otf");
+        TextView textView = (TextView) findViewById(R.id.MLabDesc);
+        textView.setTypeface(typeFace);
 	}
 }

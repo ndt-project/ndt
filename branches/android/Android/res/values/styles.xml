@@ -3,4 +3,7 @@
     <style name="NdtTheme" parent="android:Theme">
     	<item name="android:background">#3cb878</item>
     </style>
+    <style name="Desc" parent="@android:style/TextAppearance">
+        <item name="android:textColor">#00FF00</item>
+    </style>
 </resources>

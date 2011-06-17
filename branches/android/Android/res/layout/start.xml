@@ -6,14 +6,14 @@
 		android:layout_width="fill_parent" android:layout_height="wrap_content"
 		android:layout_weight="1" android:layout_above="@+id/LowerFrame"
 		android:layout_alignParentTop="true" android:orientation="vertical">
-		<TextView android:layout_width="fill_parent"
-			android:layout_height="wrap_content" android:id="@+id/MLab"
-			android:text="@string/mlab" android:gravity="top"
-			android:singleLine="true" />
+		<ImageView android:id="@+id/MLabLogo" android:layout_width="wrap_content"
+		           android:layout_height="wrap_content" android:src="@drawable/mlab_logo"
+		           android:gravity="center" />
 		<TextView android:layout_width="fill_parent"
 			android:layout_height="wrap_content" android:id="@+id/MLabDesc"
 			android:text="@string/mlabdesc" android:gravity="bottom"
-			android:scrollbars="vertical" />
+			android:scrollbars="vertical" android:padding="40sp"
+			android:textColor="#ffffff" android:textSize="18sp" />
 	</LinearLayout>
 	<LinearLayout android:id="@+id/LowerFrame"
 		android:layout_width="fill_parent" android:layout_height="wrap_content"
