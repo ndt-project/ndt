@@ -6,7 +6,7 @@ public class Android2UiServices implements UiServices {
 
 	@Override
 	public void appendString(String str, int viewId) {
-		Log.i("ndt", String.format("Appended: (%1$d) %2$s.", viewId, str));
+		Log.i("ndt", String.format("Appended: (%1$d) %2$s.", viewId, str.trim()));
 	}
 
 	@Override
@@ -16,7 +16,7 @@ public class Android2UiServices implements UiServices {
 
 	@Override
 	public void logError(String str) {
-		Log.e("ndt", String.format("Error: %1$s.", str));
+		Log.e("ndt", String.format("Error: %1$s.", str.trim()));
 	}
 
 	@Override
