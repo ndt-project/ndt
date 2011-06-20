@@ -3,16 +3,20 @@
 package net.measurementlab.ndt;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.TextView;
 
 /**
  * UI Thread and Entry Point of NDT mobile client.
  */
 public class AndroidNdt2 extends Activity {
-
+	
 	/**
 	 * Initializes the activity.
 	 */
@@ -25,5 +29,19 @@ public class AndroidNdt2 extends Activity {
         "fonts/League_Gothic.otf");
         TextView textView = (TextView) findViewById(R.id.MLabDesc);
         textView.setTypeface(typeFace);
+        
+        Button startButton = (Button) findViewById(R.id.ButtonStart);
+        startButton.setOnClickListener(new OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				try {
+					Intent intent = new Intent(Constants.SERVER_LOCATION);
+					startActivity(intent);
+				} catch (Throwable t) {
+					Log.e("ndt", "Problem invoking server location.", t);
+				}
+			}
+		});
 	}
 }

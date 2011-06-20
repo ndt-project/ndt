@@ -9,6 +9,12 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+	<activity android:name=".ServerLocation" android:label="@string/app_name" android:theme="@style/NdtTheme">
+	  <intent-filter>
+	    <category android:name="android.intent.category.DEFAULT" />
+	    <action android:name="net.measurementlab.ndt.ServerLocation" />
+	  </intent-filter>
+	</activity>
     <!-- SelectServer.java: Options Activity for selecting the test server -->
     <activity android:name=".SelectServer" android:label="@string/choice_server_title" />
     <!-- Statistics.java: Report detailed information to user -->
