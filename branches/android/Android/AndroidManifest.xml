@@ -19,6 +19,7 @@
     <activity android:name=".SelectServer" android:label="@string/choice_server_title" />
     <!-- Statistics.java: Report detailed information to user -->
     <activity android:name=".Statistics" android:label="@string/statistics" />
+    <service android:name=".NdtService" />
   </application>
   <uses-sdk android:minSdkVersion="8" />
   <uses-permission android:name="android.permission.INTERNET" />

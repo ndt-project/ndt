@@ -38,12 +38,12 @@ public class AndroidNdt2 extends Activity {
 			@Override
 			public void onClick(View v) {
 				try {
-					Thread netWorker = new Thread(new NdtTests(
-							Constants.SERVER_HOST[Constants.DEFAULT_SERVER],
-							new Android2UiServices(), getNetworkType()));
-					netWorker.start();
+					Intent intent = null;
+					intent = new Intent(getApplicationContext(), NdtService.class);
+					intent.putExtra("networkType", getNetworkType());
+					startService(intent);
 					
-					Intent intent = new Intent(Constants.SERVER_LOCATION);
+					intent = new Intent(Constants.SERVER_LOCATION);
 					startActivity(intent);
 				} catch (Throwable t) {
 					Log.e("ndt", "Problem invoking server location.", t);

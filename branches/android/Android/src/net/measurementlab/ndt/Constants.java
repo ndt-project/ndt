@@ -29,6 +29,7 @@ public class Constants {
   
   // Intents ID
 	public static final String SERVER_LOCATION = "net.measurementlab.ndt.ServerLocation";
+	public static final String RUN_TESTS = "net.measurementlab.ndt.RunTests";
   public static final String INTENT_SERVER_NO = "serverno";
   public static final String INTENT_STATISTICS = "statistics";
   public static final String INTENT_LOCATION = "location";
