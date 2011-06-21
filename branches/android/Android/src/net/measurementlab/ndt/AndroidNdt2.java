@@ -5,8 +5,6 @@ package net.measurementlab.ndt;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Typeface;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -37,34 +35,12 @@ public class AndroidNdt2 extends Activity {
 
 			@Override
 			public void onClick(View v) {
-				try {
-					Intent intent = null;
-					intent = new Intent(getApplicationContext(), NdtService.class);
-					intent.putExtra("networkType", getNetworkType());
-					startService(intent);
-					
-					intent = new Intent(Constants.SERVER_LOCATION);
-					startActivity(intent);
-				} catch (Throwable t) {
-					Log.e("ndt", "Problem invoking server location.", t);
-				}
+				Intent intent = null;
+
+				intent = new Intent(getApplicationContext(),
+						ServerLocation.class);
+				startActivity(intent);
 			}
 		});
-	}
-
-	private String getNetworkType() {
-		ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-		NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-		if (null == networkInfo) {
-			return NdtTests.NETWORK_UNKNOWN;
-		}
-		switch (networkInfo.getType()) {
-		case ConnectivityManager.TYPE_MOBILE:
-			return NdtTests.NETWORK_MOBILE;
-		case ConnectivityManager.TYPE_WIFI:
-			return NdtTests.NETWORK_WIFI;
-		default:
-			return NdtTests.NETWORK_UNKNOWN;
-		}
 	}
 }
