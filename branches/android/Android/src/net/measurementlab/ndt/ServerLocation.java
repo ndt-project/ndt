@@ -75,9 +75,6 @@ public class ServerLocation extends Activity {
 										.getState()));
 						// TODO need stop when activity is paused
 					}
-					Intent intent = new Intent(getApplicationContext(),
-							UploadTesting.class);
-					startActivity(intent);
 				} catch (RemoteException e) {
 					Log.e("ndt", "Error in busy-wait loop.", e);
 				} catch (InterruptedException e) {
