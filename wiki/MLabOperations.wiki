@@ -246,7 +246,7 @@ rm -f ~/.ssh/environment
 
  * check GB free via CoMon MLab Status (sort key: GB Free) - http://comon.cs.princeton.edu/status/tabulator.cgi?sort=28&limit=50&account=mlab 
  * ssh to the machine 
- * $ ./get_safe_delete_date.py rsync://ndt.iupui.mlabX.XXX0#.measurement-lab.org:7999/ (will return a date such as 2010-04-03)
+ * $ ./get_safe_delete_date.py rsync://ndt.iupui.mlabX.XXX0#.measurement-lab.org:7999/ndt-data (will return a date such as 2010-04-03)
  * $ cd /usr/local/ndt/serverdata/2010/04 (will change to the April 2010 directory)
  * $ ls (displays the log directories, one for each day of the month, example 02 03 04 05)
  * $ sudo rm -frd 02 03 (deletes specific directories and all of its contents)
