@@ -5,9 +5,11 @@ package net.measurementlab.ndt;
 import java.util.concurrent.TimeUnit;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
@@ -24,7 +26,8 @@ import android.widget.TextView;
 public class ServerLocation extends Activity {
 	private ITestReporter testReporter;
 	private boolean bound;
-	private boolean running;
+	private BroadcastReceiver receiver;
+	
 	private ServiceConnection connection = new ServiceConnection() {
 
 		@Override
@@ -58,50 +61,55 @@ public class ServerLocation extends Activity {
 		Intent intent = new Intent(getApplicationContext(), NdtService.class);
 		intent.putExtra("networkType", getNetworkType());
 		startService(intent);
-		
+
 		bindService(new Intent(getApplicationContext(), NdtService.class),
 				this.connection, Context.BIND_AUTO_CREATE);
 		bound = true;
 
-		running = true;
-		new Thread() {
-			
+		receiver = new BroadcastReceiver() {
+
 			@Override
-			public void run() {
+			public void onReceive(Context context, Intent intent) {
 				try {
-					while (true == running && (null == testReporter || NdtService.COMPLETE != testReporter.getState())) {
-						TimeUnit.SECONDS.sleep(1l);
-						Log.d("ndt", String.format(
-								"Checking test state, %1$d.",
-								(null == testReporter) ? -1 : testReporter
-										.getState()));
-						switch ((null == testReporter) ? 0 : testReporter.getState()) {
-						case NdtService.PREPARING:
-							updateHeader("Preparing...");
-							break;
-						case NdtService.UPLOADING:
-							updateHeader("Testing upload...");
-							break;
-						case NdtService.DOWNLOADING:
-							updateHeader("Testing download...");
-							break;
-						}
+					switch ((null == testReporter) ? 0 : testReporter
+							.getState()) {
+					case NdtService.PREPARING:
+						updateHeader("Preparing...");
+						break;
+					case NdtService.UPLOADING:
+						updateHeader("Testing upload...");
+						break;
+					case NdtService.DOWNLOADING:
+						updateHeader("Testing download...");
+						break;
+					case NdtService.COMPLETE:
+						updateHeader("Test complete.");
+						break;
 					}
-					updateHeader("Test complete.");
 				} catch (RemoteException e) {
 					Log.e("ndt", "Error in busy-wait loop.", e);
-				} catch (InterruptedException e) {
-					Log.e("ndt", "Sleep interrupted.", e);
 				}
 			}
-		}.start();
+		};
+	}
+
+	@Override
+	protected void onStart() {
+		super.onStart();
+		Log.i("ndt", "Server location started.");
+		if (!bound) {
+			registerReceiver(receiver, new IntentFilter(NdtService.INTENT_UPDATE));
+			bindService(new Intent(ITestReporter.class.getName()),
+					this.connection, Context.BIND_AUTO_CREATE);
+		}
 	}
 
 	@Override
 	protected void onResume() {
-		super.onStart();
+		super.onResume();
 		Log.i("ndt", "Server location resumed.");
 		if (!bound) {
+			registerReceiver(receiver, new IntentFilter(NdtService.INTENT_UPDATE));
 			bindService(new Intent(ITestReporter.class.getName()),
 					this.connection, Context.BIND_AUTO_CREATE);
 		}
@@ -114,16 +122,10 @@ public class ServerLocation extends Activity {
 		if (bound) {
 			bound = false;
 			unbindService(this.connection);
+			unregisterReceiver(receiver);
 		}
-		running = false;
 	}
-	
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		running = false;
-	}
-	
+
 	private void updateHeader(String labelText) {
 		TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
 		textView.setText(labelText);

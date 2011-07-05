@@ -12,6 +12,10 @@ public class NdtService extends Service {
 	public static final int DOWNLOADING = 2;
 	public static final int COMPLETE = 3;
 	
+	public static final String INTENT_UPDATE = "net.measurementlab.ndt.Update";
+	
+	private Intent intent;
+	
 	private TestReporter testReporter = new TestReporter();
 	
 	private String networkType;
@@ -28,6 +32,7 @@ public class NdtService extends Service {
 	public void onCreate() {
 		super.onCreate();
 		Log.i("ndt", "Service created.");
+		intent = new Intent(INTENT_UPDATE);
 	}
 
 	@Override
@@ -79,16 +84,19 @@ public class NdtService extends Service {
 			if (str.contains("client-to-server") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
 				testReporter.setState(UPLOADING);
+				sendBroadcast(intent);
 			}
 
 			if (str.contains("server-to-client") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
 				testReporter.setState(DOWNLOADING);
+				sendBroadcast(intent);
 			}
 
 			if (str.contains("Test ended") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
 				testReporter.setState(COMPLETE);
+				sendBroadcast(intent);
 			}
 		}
 
