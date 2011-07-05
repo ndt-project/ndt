@@ -7,7 +7,10 @@ import android.os.RemoteException;
 import android.util.Log;
 
 public class NdtService extends Service {
+	public static final int PREPARING = 0;
 	public static final int UPLOADING = 1;
+	public static final int DOWNLOADING = 2;
+	public static final int COMPLETE = 3;
 	
 	private TestReporter testReporter = new TestReporter();
 
@@ -27,11 +30,15 @@ public class NdtService extends Service {
 	public void onStart(Intent intent, int startId) {
 		Log.i("ndt", "Starting NDT service.");
 		super.onStart(intent, startId);
+		if (null == intent) {
+			throw new IllegalArgumentException("Intent was null!");
+		}
 		try {
 			new Thread(new NdtTests(
 					Constants.SERVER_HOST[Constants.DEFAULT_SERVER],
 					new CaptiveUiServices(), intent
 							.getStringExtra("networkType"))).start();
+			testReporter.setState(COMPLETE);
 		} catch (Throwable tr) {
 			Log.e("ndt", "Problem running tests.", tr);
 		}
@@ -44,7 +51,7 @@ public class NdtService extends Service {
 	}
 	
 	private class TestReporter extends ITestReporter.Stub {
-		private int state = 0;
+		private int state = PREPARING;
 
 		@Override
 		public int getState() throws RemoteException {
@@ -63,9 +70,14 @@ public class NdtService extends Service {
 			Log.d("ndt", String.format("Appended: (%1$d) %2$s.", viewId, str
 					.trim()));
 
-			if (str.contains("client-to-server") && 1 == viewId) {
+			if (str.contains("client-to-server") && UPLOADING == viewId) {
 				Log.i("ndt", "Starting upload test.");
 				testReporter.setState(UPLOADING);
+			}
+
+			if (str.contains("server-to-client") && DOWNLOADING == viewId) {
+				Log.i("ndt", "Starting upload test.");
+				testReporter.setState(DOWNLOADING);
 			}
 		}
 

@@ -61,13 +61,14 @@ public class ServerLocation extends Activity {
 		
 		bindService(new Intent(getApplicationContext(), NdtService.class),
 				this.connection, Context.BIND_AUTO_CREATE);
+		bound = true;
 
 		running = true;
 		new Thread() {
 			@Override
 			public void run() {
 				try {
-					while (true == running && (null == testReporter || 0 == testReporter.getState())) {
+					while (true == running && (null == testReporter || NdtService.COMPLETE != testReporter.getState())) {
 						TimeUnit.MILLISECONDS.sleep(500l);
 						Log.i("ndt", String.format(
 								"Checking test state, %1$d.",
@@ -75,6 +76,8 @@ public class ServerLocation extends Activity {
 										.getState()));
 						// TODO need stop when activity is paused
 					}
+					TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
+					textView.setText("Complete!");
 				} catch (RemoteException e) {
 					Log.e("ndt", "Error in busy-wait loop.", e);
 				} catch (InterruptedException e) {
