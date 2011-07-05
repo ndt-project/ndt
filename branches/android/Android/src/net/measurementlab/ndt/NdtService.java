@@ -13,6 +13,10 @@ public class NdtService extends Service {
 	public static final int COMPLETE = 3;
 	
 	private TestReporter testReporter = new TestReporter();
+	
+	private String networkType;
+	
+	private boolean testRunning;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -30,15 +34,17 @@ public class NdtService extends Service {
 	public void onStart(Intent intent, int startId) {
 		Log.i("ndt", "Starting NDT service.");
 		super.onStart(intent, startId);
-		if (null == intent) {
-			throw new IllegalArgumentException("Intent was null!");
+		if (testRunning) {
+			return;
+		}
+		if (null != intent) {
+			networkType = intent.getStringExtra("networkType");
 		}
 		try {
+			testRunning = true;
 			new Thread(new NdtTests(
 					Constants.SERVER_HOST[Constants.DEFAULT_SERVER],
-					new CaptiveUiServices(), intent
-							.getStringExtra("networkType"))).start();
-			testReporter.setState(COMPLETE);
+					new CaptiveUiServices(), networkType)).start();
 		} catch (Throwable tr) {
 			Log.e("ndt", "Problem running tests.", tr);
 		}
@@ -70,14 +76,19 @@ public class NdtService extends Service {
 			Log.d("ndt", String.format("Appended: (%1$d) %2$s.", viewId, str
 					.trim()));
 
-			if (str.contains("client-to-server") && UPLOADING == viewId) {
+			if (str.contains("client-to-server") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
 				testReporter.setState(UPLOADING);
 			}
 
-			if (str.contains("server-to-client") && DOWNLOADING == viewId) {
+			if (str.contains("server-to-client") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
 				testReporter.setState(DOWNLOADING);
+			}
+
+			if (str.contains("Test ended") && 0 == viewId) {
+				Log.i("ndt", "Starting upload test.");
+				testReporter.setState(COMPLETE);
 			}
 		}
 

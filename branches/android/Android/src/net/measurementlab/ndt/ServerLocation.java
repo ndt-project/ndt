@@ -65,19 +65,29 @@ public class ServerLocation extends Activity {
 
 		running = true;
 		new Thread() {
+			
 			@Override
 			public void run() {
 				try {
 					while (true == running && (null == testReporter || NdtService.COMPLETE != testReporter.getState())) {
-						TimeUnit.MILLISECONDS.sleep(500l);
-						Log.i("ndt", String.format(
+						TimeUnit.SECONDS.sleep(1l);
+						Log.d("ndt", String.format(
 								"Checking test state, %1$d.",
 								(null == testReporter) ? -1 : testReporter
 										.getState()));
-						// TODO need stop when activity is paused
+						switch ((null == testReporter) ? 0 : testReporter.getState()) {
+						case NdtService.PREPARING:
+							updateHeader("Preparing...");
+							break;
+						case NdtService.UPLOADING:
+							updateHeader("Testing upload...");
+							break;
+						case NdtService.DOWNLOADING:
+							updateHeader("Testing download...");
+							break;
+						}
 					}
-					TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
-					textView.setText("Complete!");
+					updateHeader("Test complete.");
 				} catch (RemoteException e) {
 					Log.e("ndt", "Error in busy-wait loop.", e);
 				} catch (InterruptedException e) {
@@ -112,6 +122,11 @@ public class ServerLocation extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 		running = false;
+	}
+	
+	private void updateHeader(String labelText) {
+		TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
+		textView.setText(labelText);
 	}
 
 	private String getNetworkType() {
