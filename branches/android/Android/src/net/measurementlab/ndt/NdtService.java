@@ -3,7 +3,6 @@ package net.measurementlab.ndt;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.Log;
 
 public class NdtService extends Service {
@@ -12,11 +11,10 @@ public class NdtService extends Service {
 	public static final int DOWNLOADING = 2;
 	public static final int COMPLETE = 3;
 	
-	public static final String INTENT_UPDATE = "net.measurementlab.ndt.Update";
+	public static final String INTENT_UPDATE_STATUS = "net.measurementlab.ndt.UpdateStatus";
+	public static final String EXTRA_STATE = "status";
 	
 	private Intent intent;
-	
-	private TestReporter testReporter = new TestReporter();
 	
 	private String networkType;
 	
@@ -24,15 +22,14 @@ public class NdtService extends Service {
 
 	@Override
 	public IBinder onBind(Intent intent) {
-		Log.i("ndt", "Service bound.");
-		return testReporter;
+		return null;
 	}
 
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		Log.i("ndt", "Service created.");
-		intent = new Intent(INTENT_UPDATE);
+		intent = new Intent(INTENT_UPDATE_STATUS);
 	}
 
 	@Override
@@ -60,19 +57,6 @@ public class NdtService extends Service {
 		super.onDestroy();
 		Log.i("ndt", "Finishing NDT service.");
 	}
-	
-	private class TestReporter extends ITestReporter.Stub {
-		private int state = PREPARING;
-
-		@Override
-		public int getState() throws RemoteException {
-			return this.state;
-		}
-		
-		public void setState(int state) { 
-			this.state = state;
-		}
-	}
 
 	private class CaptiveUiServices implements UiServices {
 
@@ -83,20 +67,16 @@ public class NdtService extends Service {
 
 			if (str.contains("client-to-server") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
-				testReporter.setState(UPLOADING);
+				intent.putExtra("status", UPLOADING);
 				sendBroadcast(intent);
+				Log.i("ndt", "Broadcast status change.");
 			}
 
 			if (str.contains("server-to-client") && 0 == viewId) {
-				Log.i("ndt", "Starting upload test.");
-				testReporter.setState(DOWNLOADING);
+				Log.i("ndt", "Starting download test.");
+				intent.putExtra("status", DOWNLOADING);
 				sendBroadcast(intent);
-			}
-
-			if (str.contains("Test ended") && 0 == viewId) {
-				Log.i("ndt", "Starting upload test.");
-				testReporter.setState(COMPLETE);
-				sendBroadcast(intent);
+				Log.i("ndt", "Broadcast status change.");
 			}
 		}
 
@@ -118,6 +98,9 @@ public class NdtService extends Service {
 		@Override
 		public void onEndTest() {
 			Log.d("ndt", "Test ended.");
+			intent.putExtra("status", COMPLETE);
+			sendBroadcast(intent);
+			Log.i("ndt", "Broadcast status change.");
 		}
 
 		@Override

@@ -2,21 +2,15 @@
 
 package net.measurementlab.ndt;
 
-import java.util.concurrent.TimeUnit;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.ServiceConnection;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -24,26 +18,7 @@ import android.widget.TextView;
  * Animated progress while selecting server location.
  */
 public class ServerLocation extends Activity {
-	private ITestReporter testReporter;
-	private boolean bound;
-	private BroadcastReceiver receiver;
-	
-	private ServiceConnection connection = new ServiceConnection() {
-
-		@Override
-		public void onServiceDisconnected(ComponentName name) {
-			Log.i("ndt", "Service disconnected.");
-			testReporter = null;
-			bound = false;
-		}
-
-		@Override
-		public void onServiceConnected(ComponentName name, IBinder service) {
-			Log.i("ndt", "Service connected.");
-			testReporter = ITestReporter.Stub.asInterface(service);
-			bound = true;
-		}
-	};
+	private BroadcastReceiver statusReceiver;
 
 	/**
 	 * Initializes the activity.
@@ -62,68 +37,70 @@ public class ServerLocation extends Activity {
 		intent.putExtra("networkType", getNetworkType());
 		startService(intent);
 
-		bindService(new Intent(getApplicationContext(), NdtService.class),
-				this.connection, Context.BIND_AUTO_CREATE);
-		bound = true;
-
-		receiver = new BroadcastReceiver() {
-
-			@Override
-			public void onReceive(Context context, Intent intent) {
-				try {
-					switch ((null == testReporter) ? 0 : testReporter
-							.getState()) {
-					case NdtService.PREPARING:
-						updateHeader("Preparing...");
-						break;
-					case NdtService.UPLOADING:
-						updateHeader("Testing upload...");
-						break;
-					case NdtService.DOWNLOADING:
-						updateHeader("Testing download...");
-						break;
-					case NdtService.COMPLETE:
-						updateHeader("Test complete.");
-						break;
-					}
-				} catch (RemoteException e) {
-					Log.e("ndt", "Error in busy-wait loop.", e);
-				}
-			}
-		};
+		bindAndRegister();
 	}
 
 	@Override
 	protected void onStart() {
 		super.onStart();
 		Log.i("ndt", "Server location started.");
-		if (!bound) {
-			registerReceiver(receiver, new IntentFilter(NdtService.INTENT_UPDATE));
-			bindService(new Intent(ITestReporter.class.getName()),
-					this.connection, Context.BIND_AUTO_CREATE);
-		}
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
 		Log.i("ndt", "Server location resumed.");
-		if (!bound) {
-			registerReceiver(receiver, new IntentFilter(NdtService.INTENT_UPDATE));
-			bindService(new Intent(ITestReporter.class.getName()),
-					this.connection, Context.BIND_AUTO_CREATE);
-		}
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
 		Log.i("ndt", "Server location paused.");
-		if (bound) {
-			bound = false;
-			unbindService(this.connection);
-			unregisterReceiver(receiver);
-		}
+		unregisterReceiver(statusReceiver);
+		// TODO tell NdtService to stop test
+		// TODO reset activity state to preparing
+	}
+
+	private void bindAndRegister() {
+		statusReceiver = createReceiver();
+		registerReceiver(statusReceiver, new IntentFilter(
+				NdtService.INTENT_UPDATE_STATUS));
+		Log.i("ndt", "Status receiver registered.");
+	}
+
+	private BroadcastReceiver createReceiver() {
+		BroadcastReceiver receiver = new BroadcastReceiver() {
+
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				Log.i("ndt", "Status change received.");
+				int status = intent.getIntExtra("status", NdtService.PREPARING);
+				switch (status) {
+				case NdtService.PREPARING:
+					Log.i("ndt", "Preparing Your Tests...");
+					updateHeader("Preparing...");
+					break;
+				case NdtService.UPLOADING:
+					Log.i("ndt", "Testing Upload...");
+					updateHeader("Testing upload...");
+					break;
+				case NdtService.DOWNLOADING:
+					Log.i("ndt", "Testing Download...");
+					updateHeader("Testing download...");
+					break;
+				case NdtService.COMPLETE:
+					Log.i("ndt", "Testing Complete.");
+					updateHeader("Test complete.");
+					break;
+				default:
+					Log.i("ndt", "Test reporter not initialized.");
+					break;
+				}
+			}
+		};
+		Log.i("ndt", "Status receiver created.");
+		return receiver;
+
 	}
 
 	private void updateHeader(String labelText) {
