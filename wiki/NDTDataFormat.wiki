@@ -1,5 +1,4 @@
-#summary One-sentence summary of this page.
-Description of the data collected by NDT.
+#summary Description of the data collected by NDT.
 
 =NDT data format= 
 
