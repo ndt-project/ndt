@@ -1,0 +1,56 @@
+#summary One-sentence summary of this page.
+Description of the data collected by NDT.
+
+=NDT data format= 
+
+NDT client/server program streams data for 10 seconds from the client to the server and a 2nd 10 sec test streams data in the opposite direction. The measured throughput (bytes transfered / time) for each test is reported to the user.
+
+NDT records the following for each test run:
+ 
+  * A *tcpdump trace* for every upload/download tests. This is a standard trace file for all packets (except the initial syn & syn/ack exchange). The tcpdump and tcptrace programs can read these files.
+ 
+  * A *web100 snaplog trace* for every upload/download test. This file contains all the the web100 kernel MIB variables in 5 msec increments. The NDT package comes with a utility (called genplot) that can convert these trace files into text or xplot graph files. Alternatively the user can write their own analysis program using the web100 library functions.
+The server logs the final value of 50 web100 variables. It also reports some analysis details. This data is written out in a comma (,) separated line, so parsing the data is a matter of 'knowing' what variable is in what position in the line. The details for this are in the code.
+ 
+To make it easier to use this data, the NDT server writes out a meta data file (.meta). This metadata file contains the names of the above files, the clients & servers IP addr and FQDN, and the encoded line of web100/analysis data. A sample of that data is
+ 
+{{{
+[iupui_ndt@mlab1 ~]$ cat /usr/local/ndt/serverdata/
+2009/10/09/20091009T20:46:28.
+141927000Z_149.20.53.166:63251.meta
+Date/Time: 20091009T20:46:28.141927000Z
+c2s_snaplog file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_snaplog.gz
+c2s_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_ndttrace.gz
+s2c_snaplog file:
+s2c_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:61730.s2c_ndttrace.gz
+cputime file:
+server IP address: 4.71.254.147
+server hostname: mlab1.atl01.measurement-lab.org
+server kernel version: 2.6.22.19-vs2.3.0.34.32.mlab.pla
+client IP address: 149.20.53.166
+client hostname: nb.tech.org
+client OS name:
+client_browser name:
+Summary data:313,2246,1658,0,69963,1020,19,8,1961,0,1448,392,1428,525600,112560,
+43440,0,10001122,25307,2899352,0,15,15,21720,270,525600,100,0,0,0,1,6,2,8,10,8,1961,
+66,10,22,964,0,166,0,-1208754176,3,0,31,0,360,1448,43440,8
+}}}
+
+The NDT server also contains a Java application that can look through the NDT log files and link log entries to trace files, and it also simplifies the viewing of this data. The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
+ 
+The detailed tcpdump and snaplog files can be used to re-examine the test to see what happened, i.e.:
+  * was there packet loss during the s2c test, and if so when/how often did it occur? 
+  * what was the maximum throughput during TCP's slow-start growth phase? 
+  * how many times did TCP oscillate in the Congestion Avoidance phase? 
+  * did the test compete with other traffic? 
+  * was there non-congestive loss on the path? 
+  * was the test limited by the user's PC (default tunable settings)? 
+  * how often did TCP retransmit packets, and were any of these unnecessary? 
+  * were packets being reordered (e.g., sent 1, 2, 3, 4, 5 but received 1, 2, 4, 3, 5) 
+  * what was the capacity of the bottleneck link in this path? 
+  * did the test produce the expected results? 
+  * was the client connected to a wired or wireless (WiFi) network? 
+  * is there a firewall and/or NAT box in the path?
+ 
+More information about NDT:
+http://www.internet2.edu/performance/ndt/
