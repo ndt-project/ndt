@@ -1,0 +1,16 @@
+#summary Description of the NDT Protocol
+
+= Network Diagnostic Tool Protocol (NDTP) =
+
+== Abstract == 
+
+Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. It uses a well-defined protocol to provide a reliable communication link between its subcomponents. This protocol documentation is sufficient to allow outside parties to write compatible NDT clients without consulting the NDT source code. This documentation contains a state transition diagrams detailing the various states that the components (both server and client) can be in, and the valid messages that can or will be transmitted or received in those states.
+
+== Table of Contents ==
+
+ # Introduction
+  # Relationship of Tests and Control Protocols
+  # Logical Model
+ # Protocol Overview
+ # NDTP-Control
+ # NDTP-Tests
