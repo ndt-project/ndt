@@ -8,9 +8,20 @@ Network Diagnostic Tool (NDT) is a client/server program that provides network c
 
 == Table of Contents ==
 
- # Introduction
-  # Relationship of Tests and Control Protocols
-  # Logical Model
- # Protocol Overview
- # NDTP-Control
- # NDTP-Tests
+<wiki:toc max_depth="3" />
+
+== Introduction ==
+
+Several studies have shown that the majority of network performance problems occur in or near the users’ desktop/laptop computer.  These problems include, but are not limited to, duplex mismatch conditions on Ethernet/FastEthernet links, incorrectly set TCP buffers in the user’s computer, or problems with the local network infrastructure. NDT seeks to determine why a network connection exhibits certain performance characteristics. In addition to measuring the familiar upload and download speeds of a user's connection, NDT also performs tests that can assess factors such as latency, packet loss, congestion, bad cables, and bottlenecks on the end-to-end path from client to server. 
+
+NDT popularity has grown in recent years, which led to an increased interest from the developers community around the world. People started to integrate NDT with their systems using different approaches, like adding Web Developer's API to Web based (java applet) client and writing new mobile (Android based) client.
+
+NDTP is allowing outside parties to easily extend both NDT server and client parts and write compatible clients in new languages that will be able to communicate with the publicly available Measurement Lab servers.
+
+In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and "MAY" are to be interpreted as described in [RFC2119].
+
+=== Relationship of Tests and Control Protocols ===
+=== Logical Model ===
+== Protocol Overview ==
+== NDTP-Control ==
+== NDTP-Tests ==
