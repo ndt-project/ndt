@@ -21,6 +21,15 @@ NDTP is allowing outside parties to easily extend both NDT server and client par
 In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and "MAY" are to be interpreted as described in [http://www.ietf.org/rfc/rfc2119.txt RFC2119].
 
 === Relationship of Tests and Control Protocols ===
+
+NDTP actually consists of two inter-related set of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols used to exchange test packets between two measurement nodes.
+
+NDTP-Tests consists of five smaller sub-protocols: Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
+
+NDTP-Control is designed to support the negotiation of test sessions and results retrieval in a straightforward manner. At session initiation, there is a negotiation of the test suite and session start time. Moreover, server version is being verified to discover the possibility of incompatibilities. Additionally, NDTP-Control defines an exact message format, which greatly increase the general protocol reliability and allows other NDTP-Tests protocols to communicate in a convenient and secure fashion.
+
+We believe that NDTP-Control protocol can effectively be used to implement not only new types of clients, but also can be treated as a generic framework to create and combine with each other completely new NDTP-Tests protocols.
+
 === Logical Model ===
 == Protocol Overview ==
 == NDTP-Control ==
