@@ -31,6 +31,38 @@ NDTP-Control is designed to support the negotiation of test sessions and results
 We believe that NDTP-Control protocol can effectively be used to implement not only new types of clients, but also can be treated as a generic framework to create and combine with each other completely new NDTP-Tests protocols.
 
 === Logical Model ===
+
+We can distinguish several different roles on both NDTP-Control and NDTP-Tests levels. Specifically, we define the following:
+
+|| Session-Sender || The sending endpoint of a NDTP-Tests session. ||
+|| Session-Receiver || The receiving endpoint of a NDTP-Tests session. ||
+|| Server || An end system that manages NDTP-Control and NDTP-Tests sessions, performs the specific tests needed to determine what problems, if any, exist. The server process then analyzes the test results and returns these results to the client. ||
+|| Client || An end system that initiates requests for NDTP-Tests sessions, triggers the start of a set of sessions and receives tests results. ||
+
+Different logical roles can be played by the same host. For example server machine is a session-sender in the S2C throughput test, while it is a session-receiver in the C2S throughput test.
+
+For example, please look at the figures describing two main NDTP-Tests protocols:
+
+ * C2S throughput test
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |<---NDTP-Control--->|     Server       |
+       |                |                    |                  |
+       | Session-Sender |----NDTP-Test------>| Session-Receiver |
+       +----------------+                    +------------------+
+}}}
+
+ * S2C throughput test
+
+{{{
+       +------------------+                    +------------------+
+       |     Client       |<---NDTP-Control--->|     Server       |
+       |                  |                    |                  |
+       | Session-Receiver |<---NDTP-Test-------|  Session-Sender  |
+       +------------------+                    +------------------+
+}}}
+
 == Protocol Overview ==
 == NDTP-Control ==
 == NDTP-Tests ==
