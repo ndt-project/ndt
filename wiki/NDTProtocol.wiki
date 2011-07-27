@@ -18,7 +18,7 @@ NDT popularity has grown in recent years, which led to an increased interest fro
 
 NDTP is allowing outside parties to easily extend both NDT server and client parts and write compatible clients in new languages that will be able to communicate with the publicly available Measurement Lab servers.
 
-In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and "MAY" are to be interpreted as described in [RFC2119].
+In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and "MAY" are to be interpreted as described in [http://www.ietf.org/rfc/rfc2119.txt RFC2119].
 
 === Relationship of Tests and Control Protocols ===
 === Logical Model ===
