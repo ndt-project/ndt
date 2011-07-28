@@ -22,7 +22,7 @@ In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and
 
 === Relationship of Tests and Control Protocols ===
 
-NDTP actually consists of two inter-related set of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols used to exchange test packets between two measurement nodes.
+NDTP actually consists of two inter-related sets of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols used to exchange test packets between two measurement nodes.
 
 NDTP-Tests consists of five smaller sub-protocols: Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
 
@@ -64,6 +64,15 @@ For example, please look at the figures describing two main NDTP-Tests protocols
 }}}
 
 == Protocol Overview ==
+
+As described above, NDTP consists of two inter-related sets of protocols: NDTP-Control and NDTP-Tests. Both of them are layered over TCP. The former is used to initiate and control test sessions and to fetch their results. The latter set of protocols is used to perform specific tests.
+
+The initiator of the test session establishes a TCP connection to a well-known port, 3001, on the target point and this connection remains open for the duration of the NDTP-Tests sessions.  A NDT server SHOULD listen to this well-known port.
+
+NDTP-Control messages are transmitted before NDTP-Tests sessions are actually started, after they are completed and between particular tests from the performed test-suite. Moreover, specific tests also use NDTP-Control messages to synchronise test sessions, exchange configuration data and additional information.
+
+All multi-octet quantities defined in this document are represented as unsigned integers in network byte order unless specified otherwise.
+
 == NDTP-Control ==
 == NDTP-Tests ==
 === Middlebox test ===
