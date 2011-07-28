@@ -74,6 +74,55 @@ NDTP-Control messages are transmitted before NDTP-Tests sessions are actually st
 All multi-octet quantities defined in this document are represented as unsigned integers in network byte order unless specified otherwise.
 
 == NDTP-Control ==
+
+The type of each NDTP-Control message can be found after reading the first octet. The length of each NDTP-Control message can be computed upon reading its fixed-size part. No message is shorter than 3 octets.
+
+An implementation SHOULD expunge unused state to prevent denial-of-service attacks, or unbounded memory usage, on the server.  For example, if the full control message is not received within some number of minutes after it is expected, the TCP connection associated with the NDTP-Control session SHOULD be dropped.  In absence of other considerations, 10 minutes seems like a reasonable upper bound.
+
+=== Message structure ===
+
+Each of the NDTP-Control messages always has the following format:
+
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      TYPE     |            LENTGH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     |                                                               |
+     .                                                               .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     |                                                               |
+     |                                                               |
+     |                 Message (up to 65545 octets)                  |
+     |                                                               |
+     |                                                               |
+     |                                                               |
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+=== Message types ===
+
+=== Connection Setup ===
+
+Before Client can start test sessions, it has to establish a connection to the server.
+
+First, a client opens a TCP connection to the server on a well-known port 3001 and sends a LOGIN message:
+
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      2        |              1                |     TESTS     |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite.
+
 == NDTP-Tests ==
 === Middlebox test ===
 === Simple firewall test ===
