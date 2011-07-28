@@ -34,6 +34,7 @@ We believe that NDTP-Control protocol can effectively be used to implement not o
 
 We can distinguish several different roles on both NDTP-Control and NDTP-Tests levels. Specifically, we define the following:
 
+|| *Role* || *Description* ||
 || Session-Sender || The sending endpoint of a NDTP-Tests session. ||
 || Session-Receiver || The receiving endpoint of a NDTP-Tests session. ||
 || Server || An end system that manages NDTP-Control and NDTP-Tests sessions, performs the specific tests needed to determine what problems, if any, exist. The server process then analyzes the test results and returns these results to the client. ||
@@ -69,7 +70,7 @@ As described above, NDTP consists of two inter-related sets of protocols: NDTP-C
 
 The initiator of the test session establishes a TCP connection to a well-known port, 3001, on the target point and this connection remains open for the duration of the NDTP-Tests sessions.  A NDT server SHOULD listen to this well-known port.
 
-NDTP-Control messages are transmitted before NDTP-Tests sessions are actually started, after they are completed and between particular tests from the performed test-suite. Moreover, specific tests also use NDTP-Control messages to synchronise test sessions, exchange configuration data and additional information.
+NDTP-Control messages are transmitted before NDTP-Tests sessions are actually started, after they are completed and between particular tests from the performed test suite. Moreover, specific tests also use NDTP-Control messages to synchronise test sessions, exchange configuration data and additional information.
 
 All multi-octet quantities defined in this document are represented as unsigned integers in network byte order unless specified otherwise.
 
@@ -106,6 +107,21 @@ Each of the NDTP-Control messages always has the following format:
 }}}
 
 === Message types ===
+
+NDTP-Control currently defines the following types of messages:
+
+|| *C constant name* || *Bit value* || *Description* ||
+|| COMM_FAILURE || 0 || Notification about communication link failure. *Not used explicitly* ||
+|| SRV_QUEUE || 1 || Message used to clients' queue management ||
+|| MSG_LOGIN || 2 || Used during initialisation to negotiate NDT version and test suite ||
+|| TEST_PREPARE || 3 || Used to send all information needed for a particular test (i.e. port numbers, test time, etc.) ||
+|| TEST_START || 4 || Message used to start a specific test ||
+|| TEST_MSG || 5 || Used during tests to communicate between Client and Server ||
+|| TEST_FINALIZE || 6 || Message used to end a specific test ||
+|| MSG_ERROR || 7 || Used to send error messages and notifications about invalid states of the test session ||
+|| MSG_RESULTS || 8 || Contains final test sessions' results ||
+|| MSG_LOGOUT || 9 || This is the last message send by server after MSG_RESULTS messages. Server SHOULD close the NDTP-Control connection after sending this message. ||
+|| MSG_WAITING || 10 || Message from the client to notify server that the client is still alive ||
 
 === Connection Setup ===
 
