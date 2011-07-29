@@ -164,6 +164,26 @@ In the next step NDT server is calculating if it can handle client request and c
 || 9990 || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. ||
 || N || Where N is any other value. It means the estimated number of minutes that client will wait for its test to begin. ||
 
+When server decides that client can start its test session, it sends SRV_QUEUE message with value *0*. After this server and clients SHOULD verify their version compatibility.
+
+Server MUST send a MSG_LOGIN message containing its version identifier in the following form:
+
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      2        |          LENGTH               |     'v'       |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |                                                               |
+     |                       VERSION number                          |
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+where VERSION is the current NDT version, for example *3.6.4*.
+
+It is RECOMMENDED, that client will display a warning message in case of the difference. Moreover, client MAY also drop a connection when incompatibility is too big.
+
 == NDTP-Tests ==
 === Middlebox test ===
 === Simple firewall test ===
