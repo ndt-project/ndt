@@ -207,12 +207,22 @@ It is RECOMMENDED, that client will display a warning message in case of the dif
 
 In the next step server MUST send a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
 {{{
-1 2 4 8 32
+1 8 2 4 32
 }}}
 
 The tests MUST be performed in the order received from server. It is RECOMMENDED that client will drop the connection when it receives unknown test id.
 
 == NDTP-Tests ==
+
+NDTP-Tests currently defines the following types of tests:
+
+|| *C constant name* || *Integer value* || *Description* ||
+|| TEST_MID || 1 (1L << 0) || Middlebox test - a short throughput S2C test with a limited CWND to check for a duplex mismatch condition ||
+|| TEST_C2S || 2 (1L << 1) || C2S throughput test ||
+|| TEST_S2C || 4 (1L << 2) || S2C throughput test ||
+|| TEST_SFW || 8 (1L << 3) || Simple firewall test ||
+|| TEST_META || 32 (1L << 5) || META test ||
+
 === Middlebox test ===
 === Simple firewall test ===
 === C2S throughput test ===
