@@ -160,17 +160,26 @@ All non-compatible clients SHOULD drop the connection after receiving the above 
 
 ==== Queuing clients ====
 
-In the next step NDT server is calculating if it can handle client request and client SHOULD expect at least one 'SRV_QUEUE' message. This message MAY contain one of the following values:
+In the next step NDT server is calculating if it can handle client request and client SHOULD expect at least one 'SRV_QUEUE' message. This message MAY contain one of the following string values:
 
 || *SRV_QUEUE value* || *Description* ||
-|| 0 || Test session will start now ||
-|| 9977 || Server Fault: test session will be terminated for unknown reason. Client SHOULD drop the connection after receiving this message. *Not used currently by the server* ||
-|| 9988 || If this is a first message from server, then it means that server is busy. In other cases it means Server Fault. Client SHOULD drop the connection after receiving this message. ||
-|| 9999 || Server Busy: Please wait 60 seconds for the current test to finish. Client SHOULD drop the connection after receiving this message. *Deprecated/Not used by the server* ||
-|| 9990 || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. ||
-|| N || Where N is any other value. It means the estimated number of minutes that client will wait for its test to begin. ||
+|| "0" || Test session will start now ||
+|| "9977" || Server Fault: test session will be terminated for unknown reason. Client SHOULD drop the connection after receiving this message. *Not used currently by the server* ||
+|| "9988" || If this is a first message from server, then it means that server is busy. In other cases it means Server Fault. Client SHOULD drop the connection after receiving this message. ||
+|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client SHOULD drop the connection after receiving this message. *Deprecated/Not used by the server* ||
+|| "9990" || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. ||
+|| "N" || Where N is any other value. It means the estimated number of minutes that client will wait for its test to begin. ||
 
-When server decides that client can start its test session, it sends SRV_QUEUE message with value *0*.
+When server decides that client can start its test session, it sends SRV_QUEUE message with value *"0"*:
+
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      1        |              1                |     '0'       |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
 
 ==== Verifying version compatibility ====
 
