@@ -184,6 +184,13 @@ where VERSION is the current NDT version, for example *3.6.4*.
 
 It is RECOMMENDED, that client will display a warning message in case of the difference. Moreover, client MAY also drop a connection when incompatibility is too big.
 
+In the next step server MUST send a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
+{{{
+1 2 4 8 32
+}}}
+
+The tests MUST be performed in the order received from server. It is RECOMMENDED that client will drop the connection when it receives unknown test id.
+
 == NDTP-Tests ==
 === Middlebox test ===
 === Simple firewall test ===
