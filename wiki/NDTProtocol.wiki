@@ -8,7 +8,7 @@ Network Diagnostic Tool (NDT) is a client/server program that provides network c
 
 == Table of Contents ==
 
-<wiki:toc max_depth="3" />
+<wiki:toc max_depth="4" />
 
 == Introduction ==
 
@@ -125,6 +125,8 @@ NDTP-Control currently defines the following types of messages:
 
 === Connection Setup ===
 
+==== Logging in to server with a test suite request ====
+
 Before Client can start test sessions, it has to establish a connection to the server.
 
 First, a client opens a TCP connection to the server on a well-known port 3001 and sends a LOGIN message:
@@ -138,6 +140,8 @@ First, a client opens a TCP connection to the server on a well-known port 3001 a
 }}}
 
 Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite.
+
+==== Kick off message to disconnect old clients ====
 
 In the same time Server sends the specially crafted 13 octets long data that kicks off the old clients ("123456 654321"):
 
@@ -154,6 +158,8 @@ In the same time Server sends the specially crafted 13 octets long data that kic
 
 All non-compatible clients SHOULD drop the connection after receiving the above message.
 
+==== Queuing clients ====
+
 In the next step NDT server is calculating if it can handle client request and client SHOULD expect at least one 'SRV_QUEUE' message. This message MAY contain one of the following values:
 
 || *SRV_QUEUE value* || *Description* ||
@@ -164,7 +170,11 @@ In the next step NDT server is calculating if it can handle client request and c
 || 9990 || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. ||
 || N || Where N is any other value. It means the estimated number of minutes that client will wait for its test to begin. ||
 
-When server decides that client can start its test session, it sends SRV_QUEUE message with value *0*. After this server and clients SHOULD verify their version compatibility.
+When server decides that client can start its test session, it sends SRV_QUEUE message with value *0*.
+
+==== Verifying version compatibility ====
+
+At the beginning of the test session server and client MUST verify their version compatibility.
 
 Server MUST send a MSG_LOGIN message containing its version identifier in the following form:
 
@@ -183,6 +193,8 @@ Server MUST send a MSG_LOGIN message containing its version identifier in the fo
 where VERSION is the current NDT version, for example *3.6.4*.
 
 It is RECOMMENDED, that client will display a warning message in case of the difference. Moreover, client MAY also drop a connection when incompatibility is too big.
+
+==== Negotiating test suite ====
 
 In the next step server MUST send a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
 {{{
