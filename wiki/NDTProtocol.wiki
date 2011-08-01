@@ -315,6 +315,35 @@ When Client stops streaming test data (or the test routine at Server times out),
 At the end Server MUST close C2S test session by sending an empty TEST_FINALIZE message.
 
 === S2C throughput test ===
+
+S2C throughput test is the main NDT test based on streaming test data from Server to Client for 10 seconds.
+
+==== S2C protocol ====
+
+As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
+
+Next, Client MUST connect to this newly bound port.
+
+In order to start the test, Server MUST send an empty TEST_START message.
+
+Server MUST start 10 seconds throughput test and Client MUST read transmitted data.
+
+When Server stops streaming test data, it MUST send to Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message. All these values MUST be separated by spaces, i.e:
+{{{
+THROUGHPUT_VALUE SND_QUEUE SENT_BYTES
+}}}
+
+Next, Client MUST send to server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+
+In the same time Server SHOULD send its web100 data variables gathered during S2C throughput test to Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
+{{{
+web100_var_NAME: web100_var_VALUE\n
+}}}
+
+where '\n' is a single new line character.
+
+At the end Server MUST close S2C test session by sending an empty TEST_FINALIZE message.
+
 === META test ===
 
 META test allows a Client to send additional information to Server to be stored along with the test results. Information received from Client is stored as key/value pairs.
