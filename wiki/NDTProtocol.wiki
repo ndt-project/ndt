@@ -141,6 +141,8 @@ First, a client opens a TCP connection to the server on a well-known port 3001 a
 
 Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite.
 
+All new clients SHOULD always request TEST_STATUS (16 (1L << 4)) test in order to notify server that they support MSG_WAITING messages introduced in NDT v3.5.5.
+
 ==== Kick off message to disconnect old clients ====
 
 In the same time Server sends the specially crafted 13 octets long data that kicks off the old clients ("123456 654321"):
@@ -167,7 +169,7 @@ In the next step NDT server is calculating if it can handle client request and c
 || "9977" || Server Fault: test session will be terminated for unknown reason. Client SHOULD drop the connection after receiving this message. *Not used currently by the server* ||
 || "9988" || If this is a first message from server, then it means that server is busy. In other cases it means Server Fault. Client SHOULD drop the connection after receiving this message. ||
 || "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client SHOULD drop the connection after receiving this message. *Deprecated/Not used by the server* ||
-|| "9990" || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. ||
+|| "9990" || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. Server will only send these messages when client requested TEST_STATUS test. ||
 || "N" || Where N is any other value. It means the estimated number of minutes that client will wait for its test to begin. ||
 
 When server decides that client can start its test session, it sends SRV_QUEUE message with value *"0"*:
@@ -222,6 +224,13 @@ NDTP-Tests currently defines the following types of tests:
 || TEST_S2C || 4 (1L << 2) || S2C throughput test ||
 || TEST_SFW || 8 (1L << 3) || Simple firewall test ||
 || TEST_META || 32 (1L << 5) || META test ||
+
+Moreover, NDT v3.5.5 introduced a new mechanism to avoid zombie clients (i.e. queued clients that will never start their test session). In order to enable this mechanism client MUST add the following test to its test suite request:
+
+|| *C constant name* || *Integer value* || *Description* ||
+|| TEST_STATUS || 16 (1L << 4) || Special flag to notify server that this client will respond to status requests ||
+
+It is highly RECOMMENDED that all new clients support TEST_STATUS mechanism.
 
 === Middlebox test ===
 === Simple firewall test ===
