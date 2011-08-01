@@ -297,6 +297,23 @@ After performing Simple firewall test in both directions, Server MUST send to Cl
 At the end Server MUST close SFW test session by sending an empty TEST_FINALIZE message.
 
 === C2S throughput test ===
+
+C2S throughput test is the main NDT test based on streaming test data from Client to Server for 10 seconds.
+
+==== C2S protocol ====
+
+As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
+
+Next, Client MUST connect to this newly bound port.
+
+In order to start the test, Server MUST send an empty TEST_START message.
+
+Client MUST start 10 seconds throughput test and Server MUST read transmitted data.
+
+When Client stops streaming test data (or the test routine at Server times out), Server MUST send to Client its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+
+At the end Server MUST close C2S test session by sending an empty TEST_FINALIZE message.
+
 === S2C throughput test ===
 === META test ===
 
