@@ -219,7 +219,7 @@ The tests MUST be performed in the order received from server. It is RECOMMENDED
 NDTP-Tests currently defines the following types of tests:
 
 || *C constant name* || *Integer value* || *Description* ||
-|| TEST_MID || 1 (1L << 0) || Middlebox test - a short throughput S2C test with a limited CWND to check for a duplex mismatch condition ||
+|| TEST_MID || 1 (1L << 0) || Middlebox test - a short throughput S2C test with a limited CWND to check for a duplex mismatch condition. Moreover, it also checks the MSS value and does NAT detection ||
 || TEST_C2S || 2 (1L << 1) || C2S throughput test ||
 || TEST_S2C || 4 (1L << 2) || S2C throughput test ||
 || TEST_SFW || 8 (1L << 3) || Simple firewall test ||
@@ -233,6 +233,24 @@ Moreover, NDT v3.5.5 introduced a new mechanism to avoid zombie clients (i.e. qu
 It is highly RECOMMENDED that all new clients support TEST_STATUS mechanism.
 
 === Middlebox test ===
+
+Middlebox test is a short throughput S2C test with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses pre-defined MSS value to check if any intermediate node will modify its connection settings.
+
+==== MID protocol ====
+
+As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
+
+Next, Client MUST connect to this newly bound port and start reading data from Server.
+
+Server SHOULD check MSS value and MUST start 5 seconds throughput test. When the test is over, Server MUST send its results encoded as strings in the TEST_MSG message to Client. These results have the following format:
+{{{
+ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv
+}}}
+
+Next, Client MUST send to server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+
+At the end Server MUST close MID test session by sending an empty TEST_FINALIZE message.
+
 === Simple firewall test ===
 
 Simple firewall test tries to find out any firewalls between Client and Server that will prevent connections to ephemeral port numbers. Test is performed in both directions (i.e. Client is trying to connect to Server (c2s) and Server is trying to connect to Client (s2c)).
