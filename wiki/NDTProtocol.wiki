@@ -281,3 +281,40 @@ At the end Server MUST close SFW test session by sending an empty TEST_FINALIZE 
 === C2S throughput test ===
 === S2C throughput test ===
 === META test ===
+
+META test allows a Client to send additional information to Server to be stored along with the test results. Information received from Client is stored as key/value pairs.
+
+==== key/value limits ====
+
+Both parts (keys and values) of the meta data MUST be strings with the following constraints:
+ * Keys MUST be shorter than 64 characters
+ * Values MUST be shorter than 256 characters
+
+==== META data keys ====
+
+Although this protocol is generic enough to store any type of information (encoded as strings), it is RECOMMENDED to store at least the following data:
+
+|| *C constant name* || *key value* || *Description* ||
+|| META_CLIENT_OS || "client.os.name" || Operating system name ||
+|| META_BROWSER_OS || "client.browser.name" || Web browser name ||
+|| META_CLIENT_KERNEL_VERSION || "client.kernel.version" || Operating system kernel version ||
+|| META_CLIENT_VERSION || "client.version" || NDT client version ||
+
+==== META protocol ====
+
+Server MUST start this test by sending TEST_PREPARE empty message followed by TEST_START empty message.
+
+Next, Client SHOULD send meta data encoded as strings in the TEST_MSG messages:
+{{{
+meta_data_KEY:meta_data_VALUE
+}}}
+
+For example:
+
+{{{
+client.os.name:Linux
+}}}
+
+Client MUST finish uploading its meta data by sending an empty TEST_MSG message.
+
+At the end Server MUST close META test session by sending an empty TEST_FINALIZE message.
