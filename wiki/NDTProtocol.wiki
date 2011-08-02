@@ -152,6 +152,15 @@ A test session overview can be seen on the following sequence diagram:
                |<-------------NDTP-Tests-------------->|
                |                                       |
                |                                       |
+               |<------------MSG_RESULTS---------------|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<------------MSG_RESULTS---------------|
+               |                                       |
+               |<------------MSG_LOGOUT----------------|
+               |                                       |
+               |<---------CLOSE CONNECTION------------x|
 }}}
 
 === Connection Setup ===
@@ -244,6 +253,12 @@ In the next step Server MUST send a MSG_LOGIN message containing a list of tests
 }}}
 
 The tests MUST be performed in the order received from Server. It is RECOMMENDED that Client will drop the connection when it receives unknown test id.
+
+=== Results retrieval ===
+
+After the last accomplished NDTP-Tests test Server MUST send all gathered results to the client. These results MUST be sent in a set of MSG_RESULTS messages. All standard results are currently encoded as strings and MAY be displayed by Client directly on the screen without any modifications.
+
+At the end Server MUST close the whole test session by sending an empty MSG_LOGOUT message and closing connection with the Client.
 
 == NDTP-Tests ==
 
