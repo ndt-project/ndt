@@ -123,6 +123,37 @@ NDTP-Control currently defines the following types of messages:
 || MSG_LOGOUT || 9 || This is the last message send by Server after MSG_RESULTS messages. Server SHOULD close the NDTP-Control connection after sending this message. ||
 || MSG_WAITING || 10 || Message from the Client to notify Server that the Client is still alive ||
 
+=== Sequence diagram ===
+
+A test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |---------------CONNECT---------------->|
+               |                                       |
+               |----------MSG_LOGIN (TESTS)----------->|
+               |                                       |
+               |<---------KICK OFF MESSAGE-------------|
+               |                                       |
+               |<---------SRV_QUEUE ("0")--------------|
+               |                                       |
+               |<-------MSG_LOGIN ("vVERSION")---------|
+               |                                       |
+               |<------MSG_LOGIN ("tests' ids")--------|
+               |                                       |
+               |                                       |
+               |<-------------NDTP-Tests-------------->|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<-------------NDTP-Tests-------------->|
+               |                                       |
+               |                                       |
+}}}
+
 === Connection Setup ===
 
 ==== Logging in to server with a test suite request ====
@@ -207,7 +238,7 @@ It is RECOMMENDED, that Client will display a warning message in case of the dif
 
 ==== Negotiating test suite ====
 
-In the next step Server MUST send a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
+In the next step Server MUST send a MSG_LOGIN message containing a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
 {{{
 1 8 2 4 32
 }}}
