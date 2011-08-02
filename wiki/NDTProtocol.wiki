@@ -158,6 +158,7 @@ A test session overview can be seen on the following sequence diagram:
                .                                       .
                |<------------MSG_RESULTS---------------|
                |                                       |
+               |                                       |
                |<------------MSG_LOGOUT----------------|
                |                                       |
                |<---------CLOSE CONNECTION------------x|
@@ -281,6 +282,38 @@ It is highly RECOMMENDED that all new Clients support TEST_STATUS mechanism.
 === Middlebox test ===
 
 Middlebox test is a short throughput S2C test with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses pre-defined MSS value to check if any intermediate node will modify its connection settings.
+
+==== Sequence diagram ====
+
+A Middlebox test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |                   |----BIND NEW PORT--|
+               |                                       |
+               |<---------TEST_PREPARE (PORT)----------|
+               |                                       |
+               |------------CONNECT (PORT)------------>|
+               |                                       |
+               |                                       |
+               |<---------S2C Throughput test----------|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<---------S2C Throughput test----------|
+               |                                       |
+               |                                       |
+               |<---------TEST_MSG (RESULTS)-----------|
+               |                                       |
+               |----------TEST_MSG (CLIENT RESULTS)--->|
+               |                                       |
+               |<----------TEST_FINALIZE---------------|
+               |                                       |
+               |<------CLOSE CONNECTION (PORT)--------x|
+}}}
 
 ==== MID protocol ====
 
