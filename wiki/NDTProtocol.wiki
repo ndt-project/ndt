@@ -40,7 +40,7 @@ We can distinguish several different roles on both NDTP-Control and NDTP-Tests l
 || Server || An end system that manages NDTP-Control and NDTP-Tests sessions, performs the specific tests needed to determine what problems, if any, exist. The server process then analyzes the test results and returns these results to the client. ||
 || Client || An end system that initiates requests for NDTP-Tests sessions, triggers the start of a set of sessions and receives tests results. ||
 
-Different logical roles can be played by the same host. For example server machine is a session-sender in the S2C throughput test, while it is a session-receiver in the C2S throughput test.
+Different logical roles can be played by the same host. For example Server machine is a Session-Sender in the S2C throughput test, while it is a Session-Receiver in the C2S throughput test.
 
 For example, please look at the figures describing two main NDTP-Tests protocols:
 
@@ -112,7 +112,7 @@ NDTP-Control currently defines the following types of messages:
 
 || *C constant name* || *Bit value* || *Description* ||
 || COMM_FAILURE || 0 || Notification about communication link failure. *Not used explicitly* ||
-|| SRV_QUEUE || 1 || Message used to clients' queue management ||
+|| SRV_QUEUE || 1 || Message used to Clients' queue management ||
 || MSG_LOGIN || 2 || Used during initialisation to negotiate NDT version and test suite ||
 || TEST_PREPARE || 3 || Used to send all information needed for a particular test (i.e. port numbers, test time, etc.) ||
 || TEST_START || 4 || Message used to start a specific test ||
@@ -120,16 +120,16 @@ NDTP-Control currently defines the following types of messages:
 || TEST_FINALIZE || 6 || Message used to end a specific test ||
 || MSG_ERROR || 7 || Used to send error messages and notifications about invalid states of the test session ||
 || MSG_RESULTS || 8 || Contains final test sessions' results ||
-|| MSG_LOGOUT || 9 || This is the last message send by server after MSG_RESULTS messages. Server SHOULD close the NDTP-Control connection after sending this message. ||
-|| MSG_WAITING || 10 || Message from the client to notify server that the client is still alive ||
+|| MSG_LOGOUT || 9 || This is the last message send by Server after MSG_RESULTS messages. Server SHOULD close the NDTP-Control connection after sending this message. ||
+|| MSG_WAITING || 10 || Message from the Client to notify Server that the Client is still alive ||
 
 === Connection Setup ===
 
 ==== Logging in to server with a test suite request ====
 
-Before Client can start test sessions, it has to establish a connection to the server.
+Before Client can start test sessions, it has to establish a connection to the Server.
 
-First, a client opens a TCP connection to the server on a well-known port 3001 and sends a LOGIN message:
+First, a Client opens a TCP connection to the Server on a well-known port 3001 and sends a LOGIN message:
 
 {{{
       0                   1                   2                   3
@@ -141,11 +141,11 @@ First, a client opens a TCP connection to the server on a well-known port 3001 a
 
 Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite.
 
-All new clients SHOULD always request TEST_STATUS (16 (1L << 4)) test in order to notify server that they support MSG_WAITING messages introduced in NDT v3.5.5.
+All new Clients SHOULD always request TEST_STATUS (16 (1L << 4)) test in order to notify Server that they support MSG_WAITING messages introduced in NDT v3.5.5.
 
 ==== Kick off message to disconnect old clients ====
 
-In the same time Server sends the specially crafted 13 octets long data that kicks off the old clients ("123456 654321"):
+In the same time Server sends the specially crafted 13 octets long data that kicks off the old Clients ("123456 654321"):
 
 {{{
       0                   1                   2                   3
@@ -158,21 +158,21 @@ In the same time Server sends the specially crafted 13 octets long data that kic
      +-+-+-+-+-+-+-+-+
 }}}
 
-All non-compatible clients SHOULD drop the connection after receiving the above message.
+All non-compatible Clients SHOULD drop the connection after receiving the above message.
 
 ==== Queuing clients ====
 
-In the next step NDT server is calculating if it can handle client request and client SHOULD expect at least one 'SRV_QUEUE' message. This message MAY contain one of the following string values:
+In the next step NDT Server is calculating if it can handle Client request and Client SHOULD expect at least one 'SRV_QUEUE' message. This message MAY contain one of the following string values:
 
 || *SRV_QUEUE value* || *Description* ||
 || "0" || Test session will start now ||
-|| "9977" || Server Fault: test session will be terminated for unknown reason. Client SHOULD drop the connection after receiving this message. *Not used currently by the server* ||
-|| "9988" || If this is a first message from server, then it means that server is busy. In other cases it means Server Fault. Client SHOULD drop the connection after receiving this message. ||
-|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client SHOULD drop the connection after receiving this message. *Deprecated/Not used by the server* ||
-|| "9990" || This is a check from server to verify if the client is alive. Available from v3.5.5. The client SHOULD respond to this message by sending 'MSG_WAITING' empty message. Server will only send these messages when client requested TEST_STATUS test. ||
-|| "N" || Where N is any other value. It means the estimated number of minutes that client will wait for its test to begin. ||
+|| "9977" || Server Fault: test session will be terminated for unknown reason. Client SHOULD drop the connection after receiving this message. *Not used currently by the Server* ||
+|| "9988" || If this is a first message from Server, then it means that Server is busy. In other cases it means Server Fault. Client SHOULD drop the connection after receiving this message. ||
+|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client SHOULD drop the connection after receiving this message. *Deprecated/Not used by the Server* ||
+|| "9990" || This is a check from Server to verify if the Client is alive. Available from v3.5.5. The Client SHOULD respond to this message by sending 'MSG_WAITING' empty message. Server will only send these messages when Client requested TEST_STATUS test. ||
+|| "N" || Where N is any other value. It means the estimated number of minutes that Client will wait for its test to begin. ||
 
-When server decides that client can start its test session, it sends SRV_QUEUE message with value *"0"*:
+When Server decides that Client can start its test session, it sends SRV_QUEUE message with value *"0"*:
 
 {{{
       0                   1                   2                   3
@@ -185,7 +185,7 @@ When server decides that client can start its test session, it sends SRV_QUEUE m
 
 ==== Verifying version compatibility ====
 
-At the beginning of the test session server and client MUST verify their version compatibility.
+At the beginning of the test session Server and Client MUST verify their version compatibility.
 
 Server MUST send a MSG_LOGIN message containing its version identifier in the following form:
 
@@ -203,16 +203,16 @@ Server MUST send a MSG_LOGIN message containing its version identifier in the fo
 
 where VERSION is the current NDT version, for example *3.6.4*.
 
-It is RECOMMENDED, that client will display a warning message in case of the difference. Moreover, client MAY also drop a connection when incompatibility is too big.
+It is RECOMMENDED, that Client will display a warning message in case of the difference. Moreover, Client MAY also drop a connection when incompatibility is too big.
 
 ==== Negotiating test suite ====
 
-In the next step server MUST send a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
+In the next step Server MUST send a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
 {{{
 1 8 2 4 32
 }}}
 
-The tests MUST be performed in the order received from server. It is RECOMMENDED that client will drop the connection when it receives unknown test id.
+The tests MUST be performed in the order received from Server. It is RECOMMENDED that Client will drop the connection when it receives unknown test id.
 
 == NDTP-Tests ==
 
@@ -225,12 +225,12 @@ NDTP-Tests currently defines the following types of tests:
 || TEST_SFW || 8 (1L << 3) || Simple firewall test ||
 || TEST_META || 32 (1L << 5) || META test ||
 
-Moreover, NDT v3.5.5 introduced a new mechanism to avoid zombie clients (i.e. queued clients that will never start their test session). In order to enable this mechanism client MUST add the following test to its test suite request:
+Moreover, NDT v3.5.5 introduced a new mechanism to avoid zombie Clients (i.e. queued Clients that will never start their test session). In order to enable this mechanism Client MUST add the following test to its test suite request:
 
 || *C constant name* || *Integer value* || *Description* ||
-|| TEST_STATUS || 16 (1L << 4) || Special flag to notify server that this client will respond to status requests ||
+|| TEST_STATUS || 16 (1L << 4) || Special flag to notify Server that this Client will respond to status requests ||
 
-It is highly RECOMMENDED that all new clients support TEST_STATUS mechanism.
+It is highly RECOMMENDED that all new Clients support TEST_STATUS mechanism.
 
 === Middlebox test ===
 
@@ -247,7 +247,7 @@ Server SHOULD check MSS value and MUST start 5 seconds throughput test. When the
 ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv
 }}}
 
-Next, Client MUST send to server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+Next, Client MUST send to Server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
 
 At the end Server MUST close MID test session by sending an empty TEST_FINALIZE message.
 
@@ -333,7 +333,7 @@ When Server stops streaming test data, it MUST send to Client its calculated thr
 THROUGHPUT_VALUE SND_QUEUE SENT_BYTES
 }}}
 
-Next, Client MUST send to server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+Next, Client MUST send to Server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
 
 In the same time Server SHOULD send its web100 data variables gathered during S2C throughput test to Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
 {{{
