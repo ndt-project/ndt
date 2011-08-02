@@ -283,7 +283,7 @@ It is highly RECOMMENDED that all new Clients support TEST_STATUS mechanism.
 
 Middlebox test is a short throughput S2C test with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses pre-defined MSS value to check if any intermediate node will modify its connection settings.
 
-==== Sequence diagram ====
+==== MID Sequence diagram ====
 
 A Middlebox test session overview can be seen on the following sequence diagram:
 
@@ -344,6 +344,39 @@ Simple firewall test defines the following result codes for both c2s and s2c tes
 || SFW_UNKNOWN || 2 || There was a connection to ephemeral port, but it was not recognized properly ||
 || SFW_POSSIBLE || 3 || There was no connection to ephemeral port within the specified time ||
 
+==== SFW Sequence diagram ====
+
+A Simple firewall test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |                   |----BIND NEW PORT--|
+               |                                       |
+               |<----TEST_PREPARE (S_PORT TEST_TIME)---|
+               |                                       |
+               |--BIND NEW PORT----|                   |
+               |                                       |
+               |----------TEST_MSG (C_PORT)----------->|
+               |                                       |
+               |<-------------TEST_START---------------|
+               |                                       |
+               |-----------CONNECT (S_PORT)----------->|
+               |<----------CONNECT (C_PORT)------------|
+               |---TEST_MSG ("Simple firewall test")-->|
+               |<--TEST_MSG ("Simple firewall test")---|
+               |                                       |
+               |<---------TEST_MSG (RESULTS)-----------|
+               |                                       |
+               |<----------TEST_FINALIZE---------------|
+               |                                       |
+               |<-----CLOSE CONNECTION (S_PORT)-------x|
+               |x-----CLOSE CONNECTION (C_PORT)------->|
+}}}
+
+
 ==== SFW protocol ====
 
 As a first step Server MUST bind ephemeral port and send TEST_PREPARE message containing this port number and test time (in seconds) to Client. Port number and test time MUST be encoded as strings and separated by a single space, for example:
@@ -371,7 +404,7 @@ Test SHOULD be performed in both direction in parallel. Client SHOULD try to con
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
-After performing Simple firewall test in both directions, Server MUST send to Client its c2s results encoded as string in the TEST_MSG message.
+After performing Simple firewall test in both directions, Server MUST send to Client its SFW (c2s) results encoded as string in the TEST_MSG message.
 
 At the end Server MUST close SFW test session by sending an empty TEST_FINALIZE message.
 
