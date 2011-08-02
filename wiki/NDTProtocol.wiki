@@ -550,6 +550,33 @@ Although this protocol is generic enough to store any type of information (encod
 || META_CLIENT_KERNEL_VERSION || "client.kernel.version" || Operating system kernel version ||
 || META_CLIENT_VERSION || "client.version" || NDT client version ||
 
+==== META Sequence diagram ====
+
+A META test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |<------------TEST_PREPARE--------------|
+               |                                       |
+               |<-------------TEST_START---------------|
+               |                                       |
+               |                                       |
+               |----------TEST_MSG (META DATA)-------->|
+               .                                       .
+               .                                       .
+               .                                       .
+               |----------TEST_MSG (META DATA)-------->|
+               |                                       |
+               |                                       |
+               |--------------TEST_MSG---------------->|
+               |                                       |
+               |<----------TEST_FINALIZE---------------|
+
+}}}
+
 ==== META protocol ====
 
 Server MUST start this test by sending TEST_PREPARE empty message followed by TEST_START empty message.
