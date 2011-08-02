@@ -462,6 +462,48 @@ At the end Server MUST close C2S test session by sending an empty TEST_FINALIZE 
 
 S2C throughput test is the main NDT test based on streaming test data from Server to Client for 10 seconds.
 
+==== S2C Sequence diagram ====
+
+A S2C throughput test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |                   |----BIND NEW PORT--|
+               |                                       |
+               |<---------TEST_PREPARE (PORT)----------|
+               |                                       |
+               |------------CONNECT (PORT)------------>|
+               |                                       |
+               |<-------------TEST_START---------------|
+               |                                       |
+               |                                       |
+               |<---------S2C Throughput test----------|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<---------S2C Throughput test----------|
+               |                                       |
+               |                                       |
+               |<---------TEST_MSG (RESULTS)-----------|
+               |                                       |
+               |-------TEST_MSG (CLIENT RESULTS)------>|
+               |                                       |
+               |                                       |
+               |<-------TEST_MSG (WEB100 VARS)---------|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<-------TEST_MSG (WEB100 VARS)---------|
+               |                                       |
+               |                                       |
+               |<----------TEST_FINALIZE---------------|
+               |                                       |
+               |<------CLOSE CONNECTION (PORT)--------x|
+}}}
+
 ==== S2C protocol ====
 
 As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
