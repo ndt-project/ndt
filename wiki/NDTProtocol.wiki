@@ -316,7 +316,7 @@ Middlebox test is a short throughput S2C test with a limited CWND to check for a
 
 ==== MID protocol ====
 
-All messages exchanged between the Client and the Server during the MID protocol are sent using the same connection and message format as NDTP-Control protocol.
+All messages exchanged between the Client and the Server during the MID protocol are sent using the same connection and message format as the NDTP-Control protocol. Only the throughput packets are sent on the new connection and do not follow the NDTP-Control protocol message format.
 
 As a first step the Server MUST bind a new port and send a TEST_PREPARE message containing this port number to the Client:
 {{{
@@ -496,6 +496,8 @@ The C2S throughput test tests the achievable network bandwidth from the client t
 
 ==== C2S protocol ====
 
+All messages exchanged between the Client and the Server during the C2S protocol are sent using the same connection and message format as the NDTP-Control protocol. Only the throughput packets are sent on the new connection and do not follow the NDTP-Control protocol message format.
+
 As a first step the Server MUST bind new port and send a TEST_PREPARE message containing this port number to the Client:
 {{{
       0                   1                   2                   3
@@ -575,6 +577,8 @@ The S2C throughput test tests the achievable network bandwidth from the Server t
 The NDT Server uses a [http://www.web100.org/ web100] project to perform a detailed connection measurements. This means that the Server is also collecting the web100 data variables, that MUST be send to the Client at the end of the whole test session. All available web100 data variables are described in [NDTProtocol#Appendix_A._web100_variables Appendix A].
 
 ==== S2C protocol ====
+
+All messages exchanged between the Client and the Server during the S2C protocol are sent using the same connection and message format as the NDTP-Control protocol. Only the throughput packets are sent on the new connection and do not follow the NDTP-Control protocol message format.
 
 As a first step the Server MUST bind new port and send a TEST_PREPARE message containing this port number to the Client:
 {{{
