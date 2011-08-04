@@ -545,21 +545,51 @@ The NDT Client in the C2S Throughput test MUST send a 8192 Byte packets through 
 
 ==== C2S protocol ====
 
-As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
+As a first step the Server MUST bind new port and send a TEST_PREPARE message containing this port number to the Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      3        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .              Port number encoded as ascii string              .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
 
-Next, Client MUST connect to this newly bound port.
+The port number must be encoded as string.
 
-In order to start the test, Server MUST send an empty TEST_START message.
+Next, the Client MUST connect to this newly bound port.
 
-Client MUST start 10 seconds throughput test and Server MUST read transmitted data.
+In order to start the test, the Server MUST send an empty TEST_START message.
 
-When Client stops streaming test data (or the test routine at Server times out), Server MUST send to Client its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+The Client MUST start 10 seconds throughput test and the Server MUST read transmitted data.
 
-At the end Server MUST close C2S test session by sending an empty TEST_FINALIZE message.
+When the Client stops streaming test data (or the test routine at Server times out), the Server MUST send to the Client its calculated throughput value encoded as string (float format) in the TEST_MSG message:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .   Client's throughput value encoded as string (float fomat)   .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+At the end the Server MUST close the C2S test session by sending an empty TEST_FINALIZE message.
 
 === S2C throughput test ===
 
 The S2C throughput test tests the achievable network bandwidth from the Server to the Client by performing a 10 second memory-to-memory data transfer.
+
+The NDT Server uses a [http://www.web100.org/ web100] project to perform a detailed connection measurements. This means that the Server is also collecting the web100 data variables, that MUST be send to the Client at the end of the whole test session.
 
 ==== S2C Sequence diagram ====
 
@@ -609,29 +639,69 @@ The NDT Server in the S2C Throughput test MUST send a 8192 Byte packets through 
 
 ==== S2C protocol ====
 
-As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
-
-Next, Client MUST connect to this newly bound port.
-
-In order to start the test, Server MUST send an empty TEST_START message.
-
-Server MUST start 10 seconds throughput test and Client MUST read transmitted data.
-
-When Server stops streaming test data, it MUST send to Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message. All these values MUST be separated by spaces, i.e:
+As a first step the Server MUST bind new port and send a TEST_PREPARE message containing this port number to the Client:
 {{{
-THROUGHPUT_VALUE SND_QUEUE SENT_BYTES
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      3        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .              Port number encoded as ascii string              .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
-Next, Client MUST send to Server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+The port number must be encoded as string.
 
-In the same time Server SHOULD send its web100 data variables gathered during S2C throughput test to Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
+Next, the Client MUST connect to this newly bound port.
+
+In order to start the test, the Server MUST send an empty TEST_START message.
+
+The Server MUST start 10 seconds throughput test and the Client MUST read transmitted data.
+
+When the Server stops streaming test data, it MUST send to the Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .             THROUGHPUT_VALUE SND_QUEUE SENT_BYTES             .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+All these values MUST be separated by spaces.
+
+Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in the TEST_MSG message:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .                        THROUGHPUT_VALUE                       .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+In the same time the Server SHOULD send its web100 data variables gathered during S2C throughput test to the Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
 {{{
 web100_var_NAME: web100_var_VALUE\n
 }}}
 
 where '\n' is a single new line character.
 
-At the end Server MUST close S2C test session by sending an empty TEST_FINALIZE message.
+At the end the Server MUST close the S2C test session by sending an empty TEST_FINALIZE message.
 
 === META test ===
 
