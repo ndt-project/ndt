@@ -78,7 +78,7 @@ All multi-octet quantities defined in this document are represented as unsigned 
 
 The type of each NDTP-Control message can be found after reading the first octet. The length of each NDTP-Control message can be computed upon reading its fixed-size part. No message is shorter than 3 octets.
 
-An implementation SHOULD expunge unused state to prevent denial-of-service attacks, or unbounded memory usage, on the server.  For example, if the full control message is not received within some number of minutes after it is expected, the TCP connection associated with the NDTP-Control session SHOULD be dropped.  In absence of other considerations, 10 minutes seems like a reasonable upper bound.
+An implementation SHOULD expunge unused state to prevent denial-of-service attacks, or unbounded memory usage, on the server.  For example, if the full control message is not received within some number of seconds after it is expected, the TCP connection associated with the NDTP-Control session SHOULD be dropped. NDTP does not define any timeout limit.
 
 === Message structure ===
 
