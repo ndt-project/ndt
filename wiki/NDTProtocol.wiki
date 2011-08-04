@@ -348,6 +348,15 @@ A Middlebox test session overview can be seen on the following sequence diagram:
                |<------CLOSE CONNECTION (PORT)--------x|
 }}}
 
+==== MID Throughput test ====
+
+The NDT Server in the MID Throughput test MUST send packets through the newly opened connection as fast as possible (i.e. without any delays) for 5 seconds. These packets must have the following size:
+{{{
+2 * (The current maximum segment size (MSS))
+}}}
+
+If for some reasons it is not possible to send such packets, the Server MUST send a 8192 Byte packets. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
+
 ==== MID protocol ====
 
 All messages exchanged between the Client and the Server during the MID protocol are sent using the same connection and message format as NDTP-Control protocol.
@@ -516,11 +525,11 @@ A C2S throughput test session overview can be seen on the following sequence dia
                |<-------------TEST_START---------------|
                |                                       |
                |                                       |
-               |----------C2S Throughput test--------->|
+               |----10 seconds c2s Throughput test---->|
                .                                       .
                .                                       .
                .                                       .
-               |----------C2S Throughput test--------->|
+               |----10 seconds c2s Throughput test---->|
                |                                       |
                |                                       |
                |<---------TEST_MSG (RESULTS)-----------|
@@ -529,6 +538,10 @@ A C2S throughput test session overview can be seen on the following sequence dia
                |                                       |
                |<------CLOSE CONNECTION (PORT)--------x|
 }}}
+
+==== C2S Throughput test packets ====
+
+The NDT Client in the C2S Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
 
 ==== C2S protocol ====
 
@@ -566,11 +579,11 @@ A S2C throughput test session overview can be seen on the following sequence dia
                |<-------------TEST_START---------------|
                |                                       |
                |                                       |
-               |<---------S2C Throughput test----------|
+               |<---10 seconds s2c Throughput test-----|
                .                                       .
                .                                       .
                .                                       .
-               |<---------S2C Throughput test----------|
+               |<---10 seconds s2c Throughput test-----|
                |                                       |
                |                                       |
                |<---------TEST_MSG (RESULTS)-----------|
@@ -589,6 +602,10 @@ A S2C throughput test session overview can be seen on the following sequence dia
                |                                       |
                |<------CLOSE CONNECTION (PORT)--------x|
 }}}
+
+==== S2C Throughput test packets ====
+
+The NDT Server in the S2C Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
 
 ==== S2C protocol ====
 
