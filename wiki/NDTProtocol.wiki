@@ -110,7 +110,7 @@ Each of the NDTP-Control messages always has the following format:
 
 NDTP-Control currently defines the following types of messages:
 
-|| *C constant name* || *Bit value* || *Description* ||
+|| *Symbolic name* || *Bit value* || *Description* ||
 || COMM_FAILURE || 0 || Notification about communication link failure. *Not used explicitly* ||
 || SRV_QUEUE || 1 || Message used to Clients' queue management ||
 || MSG_LOGIN || 2 || Used during initialisation to negotiate NDT version and test suite ||
@@ -298,7 +298,7 @@ At the end Server MUST close the whole test session by sending an empty MSG_LOGO
 
 NDTP-Tests currently defines the following types of tests:
 
-|| *C constant name* || *Integer value* || *Description* ||
+|| *Symbolic name* || *Integer value* || *Description* ||
 || TEST_MID || 1 (1L << 0) || Middlebox test - a short throughput S2C test with a limited CWND to check for a duplex mismatch condition. Moreover, it also checks the MSS value and does NAT detection ||
 || TEST_C2S || 2 (1L << 1) || C2S throughput test ||
 || TEST_S2C || 4 (1L << 2) || S2C throughput test ||
@@ -307,7 +307,7 @@ NDTP-Tests currently defines the following types of tests:
 
 Moreover, NDT v3.5.5 introduced a new mechanism to avoid zombie Clients (i.e. queued Clients that will never start their test session). In order to enable this mechanism Client MUST add the following test to its test suite request:
 
-|| *C constant name* || *Integer value* || *Description* ||
+|| *Symbolic name* || *Integer value* || *Description* ||
 || TEST_STATUS || 16 (1L << 4) || Special flag to notify Server that this Client will respond to status requests ||
 
 All new Clients MUST support TEST_STATUS mechanism.
