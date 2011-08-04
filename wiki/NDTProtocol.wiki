@@ -316,7 +316,56 @@ All new Clients MUST support TEST_STATUS mechanism.
 
 Middlebox test is a short throughput S2C test with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses pre-defined MSS value to check if any intermediate node will modify its connection settings.
 
-==== MID Sequence diagram ====
+==== MID protocol ====
+
+All messages exchanged between the Client and the Server during the MID protocol are sent using the same connection and message format as NDTP-Control protocol.
+
+As a first step the Server MUST bind a new port and send a TEST_PREPARE message containing this port number to the Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      3        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .            Port number encoded as ascii string                .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+The port number must be encoded as string.
+
+Next, the Client MUST connect to this newly bound port and start reading data from the Server.
+
+When the Client successfully connects, the NDT Server MUST start 5 seconds throughput test on the newly created connection.
+
+The NDT Server in the MID Throughput test MUST send packets through the newly opened connection as fast as possible (i.e. without any delays) for 5 seconds. These packets must have the following size:
+{{{
+2 * (The current maximum segment size (MSS))
+}}}
+
+If for some reasons it is not possible to send such packets, the Server MUST send a 8192 Byte packets. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
+
+When the test is over, Server MUST send its results encoded as strings in a TEST_MSG message to Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .       ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv      .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message.
+
+At the end the Server MUST close the MID test session by sending an empty TEST_FINALIZE message.
 
 A Middlebox test session overview can be seen on the following sequence diagram:
 
@@ -348,100 +397,10 @@ A Middlebox test session overview can be seen on the following sequence diagram:
                |<------CLOSE CONNECTION (PORT)--------x|
 }}}
 
-==== MID Throughput test ====
-
-The NDT Server in the MID Throughput test MUST send packets through the newly opened connection as fast as possible (i.e. without any delays) for 5 seconds. These packets must have the following size:
-{{{
-2 * (The current maximum segment size (MSS))
-}}}
-
-If for some reasons it is not possible to send such packets, the Server MUST send a 8192 Byte packets. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
-
-==== MID protocol ====
-
-All messages exchanged between the Client and the Server during the MID protocol are sent using the same connection and message format as NDTP-Control protocol.
-
-As a first step the Server MUST bind a new port and send a TEST_PREPARE message containing this port number to the Client:
-{{{
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |      3        |            LENGTH             |               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
-     |                                                               |
-     .            Port number encoded as ascii string                .
-     .                                                               .
-     .                                                               .
-     |                                                               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-}}}
-
-The port number must be encoded as string.
-
-Next, the Client MUST connect to this newly bound port and start reading data from the Server.
-
-When the Client successfully connects, the NDT Server MUST start 5 seconds throughput test on the newly created connection.
-
-When the test is over, Server MUST send its results encoded as strings in a TEST_MSG message to Client:
-{{{
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |      5        |            LENGTH             |               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
-     |                                                               |
-     .       ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv      .
-     .                                                               .
-     .                                                               .
-     |                                                               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-}}}
-
-These results are encoded as ascii strings with following format:
-{{{
-ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv
-}}}
-
-Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message.
-
-At the end the Server MUST close the MID test session by sending an empty TEST_FINALIZE message.
 
 === Simple firewall test ===
 
 Simple firewall test tries to find out any firewalls between Client and Server that will prevent connections to ephemeral port numbers. Test is performed in both directions (i.e. Client is trying to connect to Server (c2s) and Server is trying to connect to Client (s2c)).
-
-==== SFW Sequence diagram ====
-
-A Simple firewall test session overview can be seen on the following sequence diagram:
-
-{{{
-       +----------------+                    +------------------+
-       |     Client     |                    |     Server       |
-       +----------------+                    +------------------+
-               |                                       |
-               |                   |----BIND NEW PORT--|
-               |                                       |
-               |<----TEST_PREPARE (S_PORT TEST_TIME)---|
-               |                                       |
-               |--BIND NEW PORT----|                   |
-               |                                       |
-               |----------TEST_MSG (C_PORT)----------->|
-               |                                       |
-               |<-------------TEST_START---------------|
-               |                                       |
-               |-----------CONNECT (S_PORT)----------->|
-               |<----------CONNECT (C_PORT)------------|
-               |---TEST_MSG ("Simple firewall test")-->|
-               |<--TEST_MSG ("Simple firewall test")---|
-               |                                       |
-               |<---------TEST_MSG (RESULTS)-----------|
-               |                                       |
-               |<----------TEST_FINALIZE---------------|
-               |                                       |
-               |<-----CLOSE CONNECTION (S_PORT)-------x|
-               |x-----CLOSE CONNECTION (C_PORT)------->|
-}}}
-
 
 ==== SFW protocol ====
 
@@ -503,11 +462,83 @@ The Simple firewall test defines the following result codes for both c2s and s2c
 
 At the end the Server MUST close the SFW test session by sending an empty TEST_FINALIZE message.
 
+A Simple firewall test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |                   |----BIND NEW PORT--|
+               |                                       |
+               |<----TEST_PREPARE (S_PORT TEST_TIME)---|
+               |                                       |
+               |--BIND NEW PORT----|                   |
+               |                                       |
+               |----------TEST_MSG (C_PORT)----------->|
+               |                                       |
+               |<-------------TEST_START---------------|
+               |                                       |
+               |-----------CONNECT (S_PORT)----------->|
+               |<----------CONNECT (C_PORT)------------|
+               |---TEST_MSG ("Simple firewall test")-->|
+               |<--TEST_MSG ("Simple firewall test")---|
+               |                                       |
+               |<---------TEST_MSG (RESULTS)-----------|
+               |                                       |
+               |<----------TEST_FINALIZE---------------|
+               |                                       |
+               |<-----CLOSE CONNECTION (S_PORT)-------x|
+               |x-----CLOSE CONNECTION (C_PORT)------->|
+}}}
+
 === C2S throughput test ===
 
 The C2S throughput test tests the achievable network bandwidth from the client to the server by performing a 10 second memory-to-memory data transfer.
 
-==== C2S Sequence diagram ====
+==== C2S protocol ====
+
+As a first step the Server MUST bind new port and send a TEST_PREPARE message containing this port number to the Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      3        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .              Port number encoded as ascii string              .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+The port number must be encoded as string.
+
+Next, the Client MUST connect to this newly bound port.
+
+In order to start the test, the Server MUST send an empty TEST_START message.
+
+The Client MUST start 10 seconds throughput test and the Server MUST read transmitted data.
+
+The NDT Client in the C2S Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
+
+When the Client stops streaming test data (or the test routine at Server times out), the Server MUST send to the Client its calculated throughput value encoded as string (float format) in the TEST_MSG message:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .   Client's throughput value encoded as string (float fomat)   .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+At the end the Server MUST close the C2S test session by sending an empty TEST_FINALIZE message.
 
 A C2S throughput test session overview can be seen on the following sequence diagram:
 
@@ -539,103 +570,11 @@ A C2S throughput test session overview can be seen on the following sequence dia
                |<------CLOSE CONNECTION (PORT)--------x|
 }}}
 
-==== C2S Throughput test packets ====
-
-The NDT Client in the C2S Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
-
-==== C2S protocol ====
-
-As a first step the Server MUST bind new port and send a TEST_PREPARE message containing this port number to the Client:
-{{{
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |      3        |            LENGTH             |               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
-     |                                                               |
-     .              Port number encoded as ascii string              .
-     .                                                               .
-     .                                                               .
-     |                                                               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-}}}
-
-The port number must be encoded as string.
-
-Next, the Client MUST connect to this newly bound port.
-
-In order to start the test, the Server MUST send an empty TEST_START message.
-
-The Client MUST start 10 seconds throughput test and the Server MUST read transmitted data.
-
-When the Client stops streaming test data (or the test routine at Server times out), the Server MUST send to the Client its calculated throughput value encoded as string (float format) in the TEST_MSG message:
-{{{
-      0                   1                   2                   3
-      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |      5        |            LENGTH             |               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
-     |                                                               |
-     .   Client's throughput value encoded as string (float fomat)   .
-     .                                                               .
-     .                                                               .
-     |                                                               |
-     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-}}}
-
-At the end the Server MUST close the C2S test session by sending an empty TEST_FINALIZE message.
-
 === S2C throughput test ===
 
 The S2C throughput test tests the achievable network bandwidth from the Server to the Client by performing a 10 second memory-to-memory data transfer.
 
 The NDT Server uses a [http://www.web100.org/ web100] project to perform a detailed connection measurements. This means that the Server is also collecting the web100 data variables, that MUST be send to the Client at the end of the whole test session.
-
-==== S2C Sequence diagram ====
-
-A S2C throughput test session overview can be seen on the following sequence diagram:
-
-{{{
-       +----------------+                    +------------------+
-       |     Client     |                    |     Server       |
-       +----------------+                    +------------------+
-               |                                       |
-               |                   |----BIND NEW PORT--|
-               |                                       |
-               |<---------TEST_PREPARE (PORT)----------|
-               |                                       |
-               |------------CONNECT (PORT)------------>|
-               |                                       |
-               |<-------------TEST_START---------------|
-               |                                       |
-               |                                       |
-               |<---10 seconds s2c Throughput test-----|
-               .                                       .
-               .                                       .
-               .                                       .
-               |<---10 seconds s2c Throughput test-----|
-               |                                       |
-               |                                       |
-               |<---------TEST_MSG (RESULTS)-----------|
-               |                                       |
-               |-------TEST_MSG (CLIENT RESULTS)------>|
-               |                                       |
-               |                                       |
-               |<-------TEST_MSG (WEB100 VARS)---------|
-               .                                       .
-               .                                       .
-               .                                       .
-               |<-------TEST_MSG (WEB100 VARS)---------|
-               |                                       |
-               |                                       |
-               |<----------TEST_FINALIZE---------------|
-               |                                       |
-               |<------CLOSE CONNECTION (PORT)--------x|
-}}}
-
-==== S2C Throughput test packets ====
-
-The NDT Server in the S2C Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
 
 ==== S2C protocol ====
 
@@ -661,6 +600,8 @@ Next, the Client MUST connect to this newly bound port.
 In order to start the test, the Server MUST send an empty TEST_START message.
 
 The Server MUST start 10 seconds throughput test and the Client MUST read transmitted data.
+
+The NDT Server in the S2C Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
 
 When the Server stops streaming test data, it MUST send to the Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message:
 {{{
@@ -703,36 +644,50 @@ where '\n' is a single new line character.
 
 At the end the Server MUST close the S2C test session by sending an empty TEST_FINALIZE message.
 
-=== META test ===
-
-The META test allows the Client to send an additional information to the Server to be included along with the overall set of test results. Information received from the Client is encoded as key/value pairs.
-
-==== META Sequence diagram ====
-
-A META test session overview can be seen on the following sequence diagram:
+A S2C throughput test session overview can be seen on the following sequence diagram:
 
 {{{
        +----------------+                    +------------------+
        |     Client     |                    |     Server       |
        +----------------+                    +------------------+
                |                                       |
-               |<------------TEST_PREPARE--------------|
+               |                   |----BIND NEW PORT--|
+               |                                       |
+               |<---------TEST_PREPARE (PORT)----------|
+               |                                       |
+               |------------CONNECT (PORT)------------>|
                |                                       |
                |<-------------TEST_START---------------|
                |                                       |
                |                                       |
-               |----------TEST_MSG (META DATA)-------->|
+               |<---10 seconds s2c Throughput test-----|
                .                                       .
                .                                       .
                .                                       .
-               |----------TEST_MSG (META DATA)-------->|
+               |<---10 seconds s2c Throughput test-----|
                |                                       |
                |                                       |
-               |--------------TEST_MSG---------------->|
+               |<---------TEST_MSG (RESULTS)-----------|
+               |                                       |
+               |-------TEST_MSG (CLIENT RESULTS)------>|
+               |                                       |
+               |                                       |
+               |<-------TEST_MSG (WEB100 VARS)---------|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<-------TEST_MSG (WEB100 VARS)---------|
+               |                                       |
                |                                       |
                |<----------TEST_FINALIZE---------------|
-
+               |                                       |
+               |<------CLOSE CONNECTION (PORT)--------x|
 }}}
+
+
+=== META test ===
+
+The META test allows the Client to send an additional information to the Server to be included along with the overall set of test results. Information received from the Client is encoded as key/value pairs.
 
 ==== META protocol ====
 
@@ -783,3 +738,28 @@ Although this protocol is generic enough to store any type of information (encod
 The Client MUST finish uploading its meta data by sending an empty TEST_MSG message.
 
 At the end the Server MUST close the META test session by sending an empty TEST_FINALIZE message.
+
+A META test session overview can be seen on the following sequence diagram:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |<------------TEST_PREPARE--------------|
+               |                                       |
+               |<-------------TEST_START---------------|
+               |                                       |
+               |                                       |
+               |----------TEST_MSG (META DATA)-------->|
+               .                                       .
+               .                                       .
+               .                                       .
+               |----------TEST_MSG (META DATA)-------->|
+               |                                       |
+               |                                       |
+               |--------------TEST_MSG---------------->|
+               |                                       |
+               |<----------TEST_FINALIZE---------------|
+
+}}}
