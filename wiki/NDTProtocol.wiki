@@ -123,48 +123,7 @@ NDTP-Control currently defines the following types of messages:
 || MSG_LOGOUT || 9 || This is the last message send by Server after MSG_RESULTS messages. Server SHOULD close the NDTP-Control connection after sending this message. ||
 || MSG_WAITING || 10 || Message from the Client to notify Server that the Client is still alive ||
 
-=== Sequence diagram ===
-
-A test session overview can be seen on the following sequence diagram:
-
-{{{
-       +----------------+                    +------------------+
-       |     Client     |                    |     Server       |
-       +----------------+                    +------------------+
-               |                                       |
-               |---------------CONNECT---------------->|
-               |                                       |
-               |----------MSG_LOGIN (TESTS)----------->|
-               |                                       |
-               |<---------KICK OFF MESSAGE-------------|
-               |                                       |
-               |<---------SRV_QUEUE ("0")--------------|
-               |                                       |
-               |<-------MSG_LOGIN ("vVERSION")---------|
-               |                                       |
-               |<------MSG_LOGIN ("tests' ids")--------|
-               |                                       |
-               |                                       |
-               |<-------------NDTP-Tests-------------->|
-               .                                       .
-               .                                       .
-               .                                       .
-               |<-------------NDTP-Tests-------------->|
-               |                                       |
-               |                                       |
-               |<------------MSG_RESULTS---------------|
-               .                                       .
-               .                                       .
-               .                                       .
-               |<------------MSG_RESULTS---------------|
-               |                                       |
-               |                                       |
-               |<------------MSG_LOGOUT----------------|
-               |                                       |
-               |<---------CLOSE CONNECTION------------x|
-}}}
-
-=== Connection Setup ===
+=== Protocol description ===
 
 ==== Logging in to server with a test suite request ====
 
@@ -273,7 +232,7 @@ The Client MUST drop the connection when it receives unknown test id, because su
 
 The next step is to run the negotiated test suite. The tests MUST be performed in the order received from the Server. Any specific test related configuration (like port numbers, test duration, etc.) MUST be negotiated by the particular NDTP-Tests sub-protocol.
 
-=== Results retrieval ===
+==== Results retrieval ====
 
 After the last accomplished NDTP-Tests test (particular NDTP-Tests sub-protocols are described in the [NDTProtocol#NDTP-Tests NDTP-Tests] section) the Server MUST send all gathered results to the client. These results MUST be sent in a set of MSG_RESULTS messages:
 {{{
@@ -292,7 +251,46 @@ After the last accomplished NDTP-Tests test (particular NDTP-Tests sub-protocols
 
 All standard results are currently encoded as strings and MAY be displayed by Client directly on the screen without any modifications.
 
-At the end Server MUST close the whole test session by sending an empty MSG_LOGOUT message and closing connection with the Client.
+At the end the Server MUST close the whole test session by sending an empty MSG_LOGOUT message and closing connection with the Client.
+
+The whole test session overview can be seen on the following sequence diagram. Both Server and Client MUST follow the described sequence:
+
+{{{
+       +----------------+                    +------------------+
+       |     Client     |                    |     Server       |
+       +----------------+                    +------------------+
+               |                                       |
+               |---------------CONNECT---------------->|
+               |                                       |
+               |----------MSG_LOGIN (TESTS)----------->|
+               |                                       |
+               |<---------KICK OFF MESSAGE-------------|
+               |                                       |
+               |<---------SRV_QUEUE ("0")--------------|
+               |                                       |
+               |<-------MSG_LOGIN ("vVERSION")---------|
+               |                                       |
+               |<------MSG_LOGIN ("tests' ids")--------|
+               |                                       |
+               |                                       |
+               |<-------------NDTP-Tests-------------->|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<-------------NDTP-Tests-------------->|
+               |                                       |
+               |                                       |
+               |<------------MSG_RESULTS---------------|
+               .                                       .
+               .                                       .
+               .                                       .
+               |<------------MSG_RESULTS---------------|
+               |                                       |
+               |                                       |
+               |<------------MSG_LOGOUT----------------|
+               |                                       |
+               |<---------CLOSE CONNECTION------------x|
+}}}
 
 == NDTP-Tests ==
 
