@@ -88,7 +88,7 @@ Each of the NDTP-Control messages always has the following format:
       0                   1                   2                   3
       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     |      TYPE     |            LENTGH             |               |
+     |      TYPE     |            LENGTH             |               |
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
      |                                                               |
      |                                                               |
@@ -180,7 +180,7 @@ First, a Client opens a TCP connection to the Server on a well-known port 3001 a
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
-Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite.
+Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite. Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
 
 All new Clients SHOULD always request TEST_STATUS (16 (1L << 4)) test in order to notify Server that they support MSG_WAITING messages introduced in NDT v3.5.5.
 
@@ -199,21 +199,21 @@ In the same time Server sends the specially crafted 13 octets long data that kic
      +-+-+-+-+-+-+-+-+
 }}}
 
-All non-compatible Clients SHOULD drop the connection after receiving the above message.
+All non-compatible Clients MUST drop the connection after receiving the above message.
 
 ==== Queuing clients ====
 
-In the next step NDT Server is calculating if it can handle Client request and Client SHOULD expect at least one 'SRV_QUEUE' message. This message MAY contain one of the following string values:
+The NDT Server MUST respond with one or more SRV_QUEUE messages to inform the Client whether or not it needs to wait, or can start performing tests. These messages MUST contain one of the following string values:
 
 || *SRV_QUEUE value* || *Description* ||
 || "0" || Test session will start now ||
-|| "9977" || Server Fault: test session will be terminated for unknown reason. Client SHOULD drop the connection after receiving this message. *Not used currently by the Server* ||
-|| "9988" || If this is a first message from Server, then it means that Server is busy. In other cases it means Server Fault. Client SHOULD drop the connection after receiving this message. ||
-|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client SHOULD drop the connection after receiving this message. *Deprecated/Not used by the Server* ||
-|| "9990" || This is a check from Server to verify if the Client is alive. Available from v3.5.5. The Client SHOULD respond to this message by sending 'MSG_WAITING' empty message. Server will only send these messages when Client requested TEST_STATUS test. ||
+|| "9977" || Server Fault: test session will be terminated for unknown reason. Client MUST drop the connection after receiving this message. *Not used currently by the Server* ||
+|| "9988" || If this is a first message from Server, then it means that Server is busy. In other cases it means Server Fault. Client MUST drop the connection after receiving this message. ||
+|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client MUST drop the connection after receiving this message. *Deprecated/Not used by the Server* ||
+|| "9990" || This is a check from Server to verify if the Client is alive. Available from v3.5.5. The Client MUST respond to this message by sending an empty 'MSG_WAITING' message. Server will only send these messages when Client requested TEST_STATUS test. ||
 || "N" || Where N is any other value. It means the estimated number of minutes that Client will wait for its test to begin. ||
 
-When Server decides that Client can start its test session, it sends SRV_QUEUE message with value *"0"*:
+When the NDT Server decides that the Client can start its test session, it sends SRV_QUEUE message with value *'0'*:
 
 {{{
       0                   1                   2                   3
@@ -226,9 +226,9 @@ When Server decides that Client can start its test session, it sends SRV_QUEUE m
 
 ==== Verifying version compatibility ====
 
-At the beginning of the test session Server and Client MUST verify their version compatibility.
+At the beginning of the test session the Server and the Client MUST verify their version compatibility.
 
-Server MUST send a MSG_LOGIN message containing its version identifier in the following form:
+The Server MUST send a MSG_LOGIN message containing its version identifier in the following form:
 
 {{{
       0                   1                   2                   3
@@ -242,22 +242,55 @@ Server MUST send a MSG_LOGIN message containing its version identifier in the fo
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
-where VERSION is the current NDT version, for example *3.6.4*.
+where VERSION is the current NDT version encoded as ascii string, for example *"3.6.4"*.
 
-It is RECOMMENDED, that Client will display a warning message in case of the difference. Moreover, Client MAY also drop a connection when incompatibility is too big.
+It is RECOMMENDED, that the Client will display a warning message in case of the difference. Moreover, the Client MAY also drop a connection when incompatibility is too big.
 
 ==== Negotiating test suite ====
 
-In the next step Server MUST send a MSG_LOGIN message containing a list of tests' ids that will be performed. This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
+In the next step the NDT Server MUST send a MSG_LOGIN message containing a list of tests' ids, encoded as ascii string, that will be performed:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      2        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .          List of tests' ids encoded as ascii string           .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+
+This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
 {{{
 1 8 2 4 32
 }}}
 
-The tests MUST be performed in the order received from Server. It is RECOMMENDED that Client will drop the connection when it receives unknown test id.
+It is RECOMMENDED that the Client will drop the connection when it receives unknown test id.
+
+The next step is to run the negotiated test suite. The tests MUST be performed in the order received from the Server. Any specific test related configuration (like port numbers, test duration, etc.) MUST be negotiated by the particular NDTP-Tests sub-protocol.
 
 === Results retrieval ===
 
-After the last accomplished NDTP-Tests test Server MUST send all gathered results to the client. These results MUST be sent in a set of MSG_RESULTS messages. All standard results are currently encoded as strings and MAY be displayed by Client directly on the screen without any modifications.
+After the last accomplished NDTP-Tests test (particular NDTP-Tests sub-protocols are described in the [NDTProtocol#NDTP-Tests NDTP-Tests] section) the Server MUST send all gathered results to the client. These results MUST be sent in a set of MSG_RESULTS messages:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      8        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .               Results encoded as ascii string                 .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+All standard results are currently encoded as strings and MAY be displayed by Client directly on the screen without any modifications.
 
 At the end Server MUST close the whole test session by sending an empty MSG_LOGOUT message and closing connection with the Client.
 
