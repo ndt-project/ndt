@@ -269,7 +269,7 @@ This list is a string containing space separated numbers that describes particul
 1 8 2 4 32
 }}}
 
-It is RECOMMENDED that the Client will drop the connection when it receives unknown test id.
+The Client MUST drop the connection when it receives unknown test id, because such situation means an error on the Server's part.
 
 The next step is to run the negotiated test suite. The tests MUST be performed in the order received from the Server. Any specific test related configuration (like port numbers, test duration, etc.) MUST be negotiated by the particular NDTP-Tests sub-protocol.
 
@@ -310,7 +310,7 @@ Moreover, NDT v3.5.5 introduced a new mechanism to avoid zombie Clients (i.e. qu
 || *C constant name* || *Integer value* || *Description* ||
 || TEST_STATUS || 16 (1L << 4) || Special flag to notify Server that this Client will respond to status requests ||
 
-It is highly RECOMMENDED that all new Clients support TEST_STATUS mechanism.
+All new Clients MUST support TEST_STATUS mechanism.
 
 === Middlebox test ===
 
@@ -332,11 +332,11 @@ A Middlebox test session overview can be seen on the following sequence diagram:
                |------------CONNECT (PORT)------------>|
                |                                       |
                |                                       |
-               |<---------S2C Throughput test----------|
+               |<----5 seconds s2c Throughput test-----|
                .                                       .
                .                                       .
                .                                       .
-               |<---------S2C Throughput test----------|
+               |<----5 seconds s2c Throughput test-----|
                |                                       |
                |                                       |
                |<---------TEST_MSG (RESULTS)-----------|
@@ -350,32 +350,56 @@ A Middlebox test session overview can be seen on the following sequence diagram:
 
 ==== MID protocol ====
 
-As a first step Server MUST bind new port and send TEST_PREPARE message containing this port number to Client. Port number must be encoded as string.
+All messages exchanged between the Client and the Server during the MID protocol are sent using the same connection and message format as NDTP-Control protocol.
 
-Next, Client MUST connect to this newly bound port and start reading data from Server.
+As a first step the Server MUST bind a new port and send a TEST_PREPARE message containing this port number to the Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      3        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .            Port number encoded as ascii string                .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
 
-Server SHOULD check MSS value and MUST start 5 seconds throughput test. When the test is over, Server MUST send its results encoded as strings in the TEST_MSG message to Client. These results have the following format:
+The port number must be encoded as string.
+
+Next, the Client MUST connect to this newly bound port and start reading data from the Server.
+
+When the Client successfully connects, the NDT Server MUST start 5 seconds throughput test on the newly created connection.
+
+When the test is over, Server MUST send its results encoded as strings in a TEST_MSG message to Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .       ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv      .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+These results are encoded as ascii strings with following format:
 {{{
 ServerIP;ClientIP;CurMSS;WinScaleSent;WinScaleRecv
 }}}
 
-Next, Client MUST send to Server its calculated throughput value encoded as string (float format) in the TEST_MSG message.
+Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message.
 
-At the end Server MUST close MID test session by sending an empty TEST_FINALIZE message.
+At the end the Server MUST close the MID test session by sending an empty TEST_FINALIZE message.
 
 === Simple firewall test ===
 
 Simple firewall test tries to find out any firewalls between Client and Server that will prevent connections to ephemeral port numbers. Test is performed in both directions (i.e. Client is trying to connect to Server (c2s) and Server is trying to connect to Client (s2c)).
-
-==== Possible test results ====
-
-Simple firewall test defines the following result codes for both c2s and s2c tests:
-
-|| *C constant name* || *Integer value* || *Description* ||
-|| SFW_NOTTESTED || 0 || Test was not started ||
-|| SFW_NOFIREWALL || 1 || Test was successful (i.e. connection to ephemeral port was possible) ||
-|| SFW_UNKNOWN || 2 || There was a connection to ephemeral port, but it was not recognized properly ||
-|| SFW_POSSIBLE || 3 || There was no connection to ephemeral port within the specified time ||
 
 ==== SFW Sequence diagram ====
 
@@ -412,17 +436,31 @@ A Simple firewall test session overview can be seen on the following sequence di
 
 ==== SFW protocol ====
 
-As a first step Server MUST bind ephemeral port and send TEST_PREPARE message containing this port number and test time (in seconds) to Client. Port number and test time MUST be encoded as strings and separated by a single space, for example:
+As a first step the Server MUST bind ephemeral port and send a TEST_PREPARE message containing this port number and test time (in seconds) to the Client:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      3        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .       Port number and test time encoded as ascii string       .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
+
+Port number and test time MUST be encoded as strings and separated by a single space, for example:
 {{{
 50123 3
 }}}
 
-Next, Client MUST bind ephemeral port and send TEST_MSG message containing only this port number to Server. Port number MUST be encoded as string.
+Next, the Client MUST bind ephemeral port and send a TEST_MSG message containing only this port number to the Server. the port number MUST be encoded as string.
 
-Server SHOULD start test by sending empty TEST_START message immediately after it receives Client's ephemeral port number.
+The NDT Server MUST start the test by sending an empty TEST_START message immediately after it receives the Client's ephemeral port number.
 
-Test SHOULD be performed in both direction in parallel. Client SHOULD try to connect to Server's ephemeral port and MUST send TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20. The whole message looks as following:
-
+The test MUST be performed in both direction in parallel. The Client MUST try to connect to the Server's ephemeral port and MUST send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20. The whole message looks as following:
 {{{
       0                   1                   2                   3
       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -437,9 +475,24 @@ Test SHOULD be performed in both direction in parallel. Client SHOULD try to con
      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
-After performing Simple firewall test in both directions, Server MUST send to Client its SFW (c2s) results encoded as string in the TEST_MSG message.
+After performing the Simple firewall test in both directions, the Server MUST send to the Client its SFW (c2s) results encoded as string in the TEST_MSG message:
+{{{
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             | SFW_RESULT    |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+}}}
 
-At the end Server MUST close SFW test session by sending an empty TEST_FINALIZE message.
+The Simple firewall test defines the following result codes for both c2s and s2c tests:
+
+|| *Value* || *Description* ||
+|| "0" || Test was not started ||
+|| "1" || Test was successful (i.e. connection to ephemeral port was possible) ||
+|| "2" || There was a connection to ephemeral port, but it was not recognized properly ||
+|| "3" || There was no connection to ephemeral port within the specified time ||
+
+At the end the Server MUST close the SFW test session by sending an empty TEST_FINALIZE message.
 
 === C2S throughput test ===
 
