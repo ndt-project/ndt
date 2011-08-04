@@ -182,7 +182,7 @@ First, a Client opens a TCP connection to the Server on a well-known port 3001 a
 
 Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite. Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
 
-All new Clients SHOULD always request TEST_STATUS (16 (1L << 4)) test in order to notify Server that they support MSG_WAITING messages introduced in NDT v3.5.5.
+All new Clients MUST always request TEST_STATUS (16 (1L << 4)) test in order to notify Server that they support MSG_WAITING messages introduced in NDT v3.5.5.
 
 ==== Kick off message to disconnect old clients ====
 
@@ -496,7 +496,7 @@ At the end the Server MUST close the SFW test session by sending an empty TEST_F
 
 === C2S throughput test ===
 
-C2S throughput test is the main NDT test based on streaming test data from Client to Server for 10 seconds.
+The C2S throughput test tests the achievable network bandwidth from the client to the server by performing a 10 second memory-to-memory data transfer.
 
 ==== C2S Sequence diagram ====
 
@@ -546,7 +546,7 @@ At the end Server MUST close C2S test session by sending an empty TEST_FINALIZE 
 
 === S2C throughput test ===
 
-S2C throughput test is the main NDT test based on streaming test data from Server to Client for 10 seconds.
+The S2C throughput test tests the achievable network bandwidth from the Server to the Client by performing a 10 second memory-to-memory data transfer.
 
 ==== S2C Sequence diagram ====
 
@@ -618,23 +618,7 @@ At the end Server MUST close S2C test session by sending an empty TEST_FINALIZE 
 
 === META test ===
 
-META test allows a Client to send additional information to Server to be stored along with the test results. Information received from Client is stored as key/value pairs.
-
-==== key/value limits ====
-
-Both parts (keys and values) of the meta data MUST be strings with the following constraints:
- * Keys MUST be shorter than 64 characters
- * Values MUST be shorter than 256 characters
-
-==== META data keys ====
-
-Although this protocol is generic enough to store any type of information (encoded as strings), it is RECOMMENDED to store at least the following data:
-
-|| *C constant name* || *key value* || *Description* ||
-|| META_CLIENT_OS || "client.os.name" || Operating system name ||
-|| META_BROWSER_OS || "client.browser.name" || Web browser name ||
-|| META_CLIENT_KERNEL_VERSION || "client.kernel.version" || Operating system kernel version ||
-|| META_CLIENT_VERSION || "client.version" || NDT client version ||
+The META test allows the Client to send an additional information to the Server to be included along with the overall set of test results. Information received from the Client is encoded as key/value pairs.
 
 ==== META Sequence diagram ====
 
@@ -665,19 +649,50 @@ A META test session overview can be seen on the following sequence diagram:
 
 ==== META protocol ====
 
-Server MUST start this test by sending TEST_PREPARE empty message followed by TEST_START empty message.
+The Server MUST start this test by sending an empty TEST_PREPARE message followed by an empty TEST_START message.
 
-Next, Client SHOULD send meta data encoded as strings in the TEST_MSG messages:
+Next, the Client SHOULD send meta data encoded as strings in the TEST_MSG messages:
 {{{
-meta_data_KEY:meta_data_VALUE
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            LENGTH             |               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |                                                               |
+     .                meta_data_KEY:meta_data_VALUE                  .
+     .                                                               .
+     .                                                               .
+     |                                                               |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
 For example:
-
 {{{
-client.os.name:Linux
+      0                   1                   2                   3
+      0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     |      5        |            20                 |     'c'       |
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+     |     'l'       |     'i'       |     'e'       |     'n'       |
+     |     't'       |     '.'       |     'o'       |     's'       |
+     |     '.'       |     'n'       |     'a'       |     'm'       |
+     |     'e'       |     ':'       |     'L'       |     'i'       |
+     |     'n'       |     'u'       |     'x'       +-+-+-+-+-+-+-+-+
+     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 }}}
 
-Client MUST finish uploading its meta data by sending an empty TEST_MSG message.
+Both parts (keys and values) of the meta data MUST be strings with the following constraints:
+ * Keys MUST be shorter than 64 characters
+ * Values MUST be shorter than 256 characters
 
-At the end Server MUST close META test session by sending an empty TEST_FINALIZE message.
+Although this protocol is generic enough to store any type of information (encoded as strings), it is RECOMMENDED to store at least the following data (the Server MUST properly recognize these keys):
+
+|| *Key name* || *Description* ||
+|| "client.os.name" || Operating system name in a short format (for example "Linux", "Windows NT", "Mac OS", etc.) ||
+|| "client.browser.name" || Web browser name with a version number (for example "MSIE 7.0", "Firefox/3.6.18", etc.) ||
+|| "client.kernel.version" || Operating system kernel version (for example "2.6.35-30-server") ||
+|| "client.version" || NDT client version (for example "3.6.4") ||
+
+The Client MUST finish uploading its meta data by sending an empty TEST_MSG message.
+
+At the end the Server MUST close the META test session by sending an empty TEST_FINALIZE message.
