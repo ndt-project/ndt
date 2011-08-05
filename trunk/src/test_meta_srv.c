@@ -46,17 +46,17 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 
     j = send_msg(ctlsockfd, TEST_PREPARE, "", 0);
     if (j == -1 || j == -2) {
-	log_println(6, "META Error!, Test start message not sent!");
-	return j;
+      log_println(6, "META Error!, Test start message not sent!");
+      return j;
     }
 
     if (send_msg(ctlsockfd, TEST_START, "", 0) < 0) {
-	  log_println(6, "META test - Test-start message failed");
-	}
+      log_println(6, "META test - Test-start message failed");
+    }
 
-	while (1) {
-	  msgLen = sizeof(buff);
-	  if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
+    while (1) {
+      msgLen = sizeof(buff);
+      if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
         log_println(0, "Protocol error!");
         sprintf(buff, "Server (META test): Invalid meta data received");
         send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -100,21 +100,26 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
         /*continue;*/
       }
 
-	  if (new_entry) {
-	    new_entry->next = (struct metaentry *) malloc(sizeof(struct metaentry));
-	    new_entry = new_entry->next;
-	  }
-	  else {
-	    new_entry = (struct metaentry *) malloc(sizeof(struct metaentry));
-	    meta.additional = new_entry;
-	  }
-	  snprintf(new_entry->key, sizeof(new_entry->key), "%s", buff);
-	  snprintf(new_entry->value, sizeof(new_entry->value), "%s", value);
-	}
+      if (strcmp(META_CLIENT_APPLICATION, buff) == 0) {
+        snprintf(meta.client_application, sizeof(meta.client_application), "%s", value);
+        /*continue;*/
+      }
 
-	if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0) {
-	  log_println(6, "META test - failed to send finalize message");
-	}
+      if (new_entry) {
+        new_entry->next = (struct metaentry *) malloc(sizeof(struct metaentry));
+        new_entry = new_entry->next;
+      }
+      else {
+        new_entry = (struct metaentry *) malloc(sizeof(struct metaentry));
+        meta.additional = new_entry;
+      }
+      snprintf(new_entry->key, sizeof(new_entry->key), "%s", buff);
+      snprintf(new_entry->value, sizeof(new_entry->value), "%s", value);
+    }
+
+    if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0) {
+      log_println(6, "META test - failed to send finalize message");
+    }
 
     log_println(1, " <-------------------------->");
     setCurrentTest(TEST_NONE);
