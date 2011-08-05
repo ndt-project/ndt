@@ -106,7 +106,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
   private static final String META_BROWSER_OS = "client.browser.name";
   private static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
   private static final String META_CLIENT_VERSION = "client.version";
-  private static final String META_CLIENT_APPLICATION = "client.application";
 
   /* we really should do some clean-up in this java code... maybe later ;) */
   private static final byte COMM_FAILURE  = 0;
@@ -1424,7 +1423,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
     return false;
   }
 
-  public boolean test_meta(Protocol ctl, String application) throws IOException
+  public boolean test_meta(Protocol ctl) throws IOException
   {
     Message msg = new Message();
     if ((tests & TEST_META) == TEST_META) {
@@ -1462,7 +1461,6 @@ public class Tcpbw100 extends JApplet implements ActionListener
       ctl.send_msg(TEST_MSG, (META_BROWSER_OS + ":" + UserAgentTools.getBrowser(getUserAgent())[2]).getBytes());
       ctl.send_msg(TEST_MSG, (META_CLIENT_KERNEL_VERSION + ":" + System.getProperty("os.version")).getBytes());
       ctl.send_msg(TEST_MSG, (META_CLIENT_VERSION + ":" + VERSION).getBytes());
-      ctl.send_msg(TEST_MSG, (META_CLIENT_APPLICATION + ":" + application).getBytes());
       
       ctl.send_msg(TEST_MSG, new byte[0]);
 
@@ -1693,7 +1691,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
                   break;
               case TEST_META:
                   sPanel.setText(messages.getString("meta"));
-                  if (test_meta(ctl, isApplication ? "java" : "applet")) {
+                  if (test_meta(ctl)) {
                       results.append(errmsg);
                       results.append(messages.getString("metaFailed") + "\n");
                       tests &= (~TEST_META);
