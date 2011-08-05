@@ -89,7 +89,7 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
       }
       *value = 0;
       value++;
-
+      
       if (strcmp(META_CLIENT_OS, buff) == 0) {
         snprintf(meta.client_os, sizeof(meta.client_os), "%s", value);
         /*continue;*/
@@ -101,7 +101,6 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
       }
 
       if (strcmp(META_CLIENT_APPLICATION, buff) == 0) {
-        log_println(0, "Client application field received.");
         snprintf(meta.client_application, sizeof(meta.client_application), "%s", value);
         /*continue;*/
       }
