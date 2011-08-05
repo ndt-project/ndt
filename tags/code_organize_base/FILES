@@ -1,0 +1,80 @@
+This is a list of files contained in the NDT distribution (web100-tools.tar).
+Questions and comments should be directed to the NDT email discussion list
+<ndt@anl.gov>.
+
+in the top-level directory
+COPYRIGHT        - The NDT copyright notice
+ChangeLog	 - A list of changes, enhancements, and bug fixes
+DISCUSSION-LIST  - Instruction to subscribe to email discussion list
+FILES            - This file
+AUTHORS		 - A list of people who have worked on this code
+COPYING		 - A symlink to the COPYRIGHT notice
+NEWS		 - Any new features or functions
+INSTALL          - Instruction on what to install
+CHANGES         - SVN Log of Changes
+
+README           - A brief description of the NDT program
+Readme-fakewww	 - A breif overveiw of the fakewww program
+Readme-web100srv - A brief overview of the server program
+
+admin.html	 - A HTML file, automatically created, holding the administrator view
+admin_description.html - The descriptive text for the above file
+copyright.html   - A HTML version of the copyright notice
+start.ndt        - a simple csh script to start the NDT programs
+create-html.sh	 - A simple csh script to create a custom tcpbw100.html file
+tcpbw100.template - The web page that is sent to the client computer
+web100-variables - The list of Web100 KIS variables needed by the NDT
+
+aclocal.m4	 - Used by automake
+config.h.in	 - Used by automake
+configure.ac	 - Used by automake
+configure	 - Used by automake
+Makefile.am	 - Used by automake
+Makefile.in	 - Used by automake
+
+in the 'Admin' sub-directory
+Makefile.am      - Used by configure to build the runnable Makefile
+Makefile.in      - Used by configure to build the runnable Makefile
+Admin.java	 - The java source file to draw the Bottleneck link graph on the admin page
+Admin.class	 - The java class file for the bottleneck link graph
+
+in the 'Applet' sub-directory
+Makefile.am      - Used by configure to build the runnable Makefile
+Makefile.in      - Used by configure to build the runnable Makefile
+Tcpbw100.java    - The source code for the client side java applet
+Tcpbw100.class   - The java class version of the client applet
+Tcpbw100$1.class - A java subclass of the client applet
+Tcpbw100$clsFrame.class - A java subclass of the client applet
+Tcpbw100.jar	 - A java JAR file, with the Tcpbw100.class files
+
+in the 'src' sub-directory
+	Source code for a simple web server program (fakewww)
+	see Readme-fakewww for operation information
+Makefile.am      - Used by configure to build the runnable Makefile
+Makefile.in      - Used by configure to build the runnable Makefile
+fakewww.c        - The main routines for a simple web server program
+tr-tree.c	 - The routines needed to compare a route to a 'map'
+troute.c 	 - The routines needed to traceroute back to the client
+	Source code for the server process (web100srv)
+	see Readme-web100srv for operation information
+web100-admin.c	 - The routines dealing with administrator view processing
+web100-pcap.c	 - The routines dealing with libpcap processing (packet-pair timing)
+web100srv.c	 - The main routines for the server process
+web100-util.c	 - The routines dealing with web100 KIS processing
+web100srv.h      - Local header file
+
+Added analysis and post processing routines
+web100clt.c	 - The source code for a  command line version of the client code
+tr-mkmap.c	 - A program to create a 'traceroute map' file needed for fakewww
+analyze.c	 - a verbose view of what the log file captured
+viewtrace.c	 - a libpcap program to view trace files
+
+Files needed for the Automake process in the 'config' sub-directory
+compile
+depcomp
+install-sh
+missing
+mkinstalldirs
+
+Files from the I2util directory, provides the routines needed for reading and 
+processign the web100srv process options from the /etc/ndt.conf file
