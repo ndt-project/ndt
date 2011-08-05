@@ -100,6 +100,12 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
         /*continue;*/
       }
 
+      if (strcmp(META_CLIENT_APPLICATION, buff) == 0) {
+        log_println(0, "Client application field received.");
+        snprintf(meta.client_application, sizeof(meta.client_application), "%s", value);
+        /*continue;*/
+      }
+
 	  if (new_entry) {
 	    new_entry->next = (struct metaentry *) malloc(sizeof(struct metaentry));
 	    new_entry = new_entry->next;
