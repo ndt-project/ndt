@@ -803,6 +803,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
     new Thread(new TestWorker()).start();
 	}
 
+/*
   class Message {
     byte type;
     byte[] body;
@@ -876,7 +877,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
     }
   }
-
+*/
   public boolean test_mid(Protocol ctl) throws IOException
   {
 		byte buff[] = new byte[8192];
@@ -2881,7 +2882,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 	}  // actionPerformed()
 
-
+	//re-arch remove inner classes
+/*
 	public class clsFrame extends JFrame {
 		public clsFrame() {
 			addWindowListener(new WindowAdapter() {
@@ -2893,7 +2895,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			// System.err.println("Extended Frame class - RAC9/15/03");
 		}
 	} // class: clsFrame
-
+*/
   public static void main(String[] args)
   {
     JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
@@ -3325,3 +3327,91 @@ public class Tcpbw100 extends JApplet implements ActionListener
   }
 
 } // class: Tcpbw100
+
+
+class clsFrame extends JFrame {
+	public clsFrame() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent event) {
+				// System.err.println("Handling window closing event");
+				dispose();
+			}
+		});
+		// System.err.println("Extended Frame class - RAC9/15/03");
+	}
+} // class: clsFrame
+
+
+class Message {
+	byte type;
+	byte[] body;
+}
+
+class Protocol {
+	private InputStream _ctlin;
+	private OutputStream _ctlout;
+
+	public Protocol(Socket ctlSocket) throws IOException
+	{
+		_ctlin = ctlSocket.getInputStream();
+		_ctlout = ctlSocket.getOutputStream();
+	}
+
+	public void send_msg(byte type, byte toSend) throws IOException
+	{
+		byte[] tab = new byte[] { toSend };
+		send_msg(type, tab);
+	}
+
+	public void send_msg(byte type, byte[] tab) throws IOException
+	{
+		byte[] header = new byte[3];
+		header[0] = type;
+		header[1] = (byte) (tab.length >> 8);
+		header[2] = (byte) tab.length;
+
+		_ctlout.write(header);
+		_ctlout.write(tab);
+	}
+
+	public int readn(Message msg, int amount) throws IOException
+	{
+		int read = 0; 
+		int tmp;
+		msg.body = new byte[amount];
+		while (read != amount) {
+			tmp = _ctlin.read(msg.body, read, amount - read);
+			if (tmp <= 0) {
+				return read;
+			}
+			read += tmp;
+		}
+		return read;
+	}
+
+	public int recv_msg(Message msg) throws IOException
+	{
+		int length;
+		if (readn(msg, 3) != 3) {
+			return 1;
+		}
+		msg.type = msg.body[0];
+		length = ((int) msg.body[1] & 0xFF) << 8;
+		length += (int) msg.body[2] & 0xFF; 
+		if (readn(msg, length) != length) {
+			return 3;
+		}
+		return 0;
+	}
+
+	public void close()
+	{
+		try {
+			_ctlin.close();
+			_ctlout.close();
+		}
+		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
