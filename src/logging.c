@@ -549,6 +549,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
         fprintf(fp, "client hostname: %s\n", meta.client_name);
         fprintf(fp, "client OS name: %s\n", meta.client_os);
         fprintf(fp, "client_browser name: %s\n", meta.client_browser);
+        fprintf(fp, "client_application name: %s\n", meta.client_application);
         fprintf(fp, "Summary data: %s\n", meta.summary);
         if (meta.additional) {
           fprintf(fp, " * Additional data:\n");
