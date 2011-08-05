@@ -66,9 +66,6 @@ test_meta_clt(int ctlSocket, char tests, char* host, int conn_options)
     sprintf(buff, "%s:%s", META_BROWSER_OS, "- (web100clt)");
     send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 
-    sprintf(buff, "%s:%s", META_CLIENT_APPLICATION, "cli");
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
-
     if ((fp = fopen("/proc/sys/kernel/osrelease", "r")) == NULL) {
       log_println(0, "Unable to determine client kernel version.");
     } else {
