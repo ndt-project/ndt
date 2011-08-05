@@ -56,6 +56,7 @@ struct metadata {
     char client_name[64];
     char client_os[32];
     char client_browser[32];
+    char client_application[32];
     int  ctl_port;
     char server_ip[64];
     char server_name[64];
