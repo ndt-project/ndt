@@ -14,35 +14,35 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 Several studies have shown that the majority of network performance problems occur in or near the users’ desktop/laptop computer.  These problems include, but are not limited to, duplex mismatch conditions on Ethernet/FastEthernet links, incorrectly set TCP buffers in the local network infrastructure (e.g. first hop switch/router, hubs, etc.) and bad or dirty cables. NDT seeks to determine why a network connection exhibits certain performance characteristics. In addition to measuring the familiar upload and download speeds of a user's connection, NDT also performs tests that can assess factors such as latency, packet loss, congestion, bad cables, out of order delivery and bottlenecks on the end-to-end path from client to server (on either side of the connection). 
 
-NDT popularity has grown in recent years, which led to an increased interest from the developers community around the world. People started to integrate NDT with their systems using different approaches, like adding Web Developer's API to a Web based (java applet) client and writing a new mobile (Android based) client.
+The NDT popularity has grown in recent years, which led to an increased interest from the developers community around the world. People started to integrate the NDT with their systems using a different approaches, like adding a Web Developer's API to a Web based (java applet) client and writing a new mobile (Android based) client.
 
-NDTP is allowing outside parties to easily extend both NDT server and client parts and write compatible clients in new languages that will be able to communicate with the publicly available Measurement Lab servers.
+The NDTP is allowing outside parties to easily extend both the NDT server and client parts and write compatible clients in new languages that will be able to communicate with the publicly available Measurement Lab servers.
 
 In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and "MAY" are to be interpreted as described in [http://www.ietf.org/rfc/rfc2119.txt RFC2119].
 
 === Relationship of Tests and Control Protocols ===
 
-NDTP actually consists of two inter-related sets of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols concentrated on testing specific network performance problems.
+The NDTP actually consists of a two inter-related sets of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols concentrated on testing a specific network performance problems.
 
-NDTP-Tests consists of five smaller sub-protocols: Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
+The NDTP-Tests consists of a five smaller sub-protocols: Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, a new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
 
-NDTP-Control is designed to support the negotiation of test sessions and results retrieval in a straightforward manner. At session initiation, there is a negotiation of the test suite and session start time. Moreover, server version is being verified to discover the possibility of incompatibilities. Additionally, NDTP-Control defines an exact message format, which greatly increase the general protocol reliability and allows other NDTP-Tests protocols to communicate in a convenient and more structured fashion.
+The NDTP-Control is designed to support the negotiation of test sessions and results retrieval in a straightforward manner. At the session initiation, there is a negotiation of the test suite and the session start time. Moreover, the server version is being verified to discover the possibility of incompatibilities. Additionally, the NDTP-Control defines an exact message format, which greatly increase the general protocol reliability and allows other NDTP-Tests protocols to communicate in a convenient and a more structured fashion.
 
-NDTP-Control protocol can effectively be used to implement not only new types of clients, but also can be treated as a generic framework to create and combine with each other completely new NDTP-Tests protocols.
+The NDTP-Control protocol can effectively be used to implement not only a new types of clients, but also can be treated as a generic framework to create and combine with each other a completely new NDTP-Tests protocols.
 
 === Logical Model ===
 
 Several different roles on both NDTP-Control and NDTP-Tests levels can be distinguished. Specifically, the following ones should be highlighted:
 
 || *Role* || *Description* ||
-|| Session-Sender || The sending endpoint of a NDTP-Tests session. ||
-|| Session-Receiver || The receiving endpoint of a NDTP-Tests session. ||
-|| Server || An end system that manages NDTP-Control and NDTP-Tests sessions, performs the specific tests needed to determine what problems, if any, exist. The server process then analyzes the test results and returns these results to the client. ||
-|| Client || An end system that initiates requests for NDTP-Tests sessions, triggers the start of a set of sessions and receives tests results. ||
+|| Session-Sender || The sending endpoint of the NDTP-Tests session. ||
+|| Session-Receiver || The receiving endpoint of the NDTP-Tests session. ||
+|| Server || An end system that manages the NDTP-Control and NDTP-Tests sessions, performs the specific tests needed to determine what problems, if any, exist. The server process then analyzes the test results and returns these results to the client. ||
+|| Client || An end system that initiates requests for the NDTP-Tests sessions, triggers the start of a set of sessions and receives the tests results. ||
 
 Different logical roles can be played by the same host. For example the Server machine is a Session-Sender in the S2C throughput test, while it is a Session-Receiver in the C2S throughput test.
 
-Please look at the figures describing two main NDTP-Tests protocols:
+Please look at the figures describing the two main NDTP-Tests protocols:
 
  * C2S throughput test
 
@@ -54,13 +54,13 @@ http://www.soldevelo.com/images/ndt/2.%20S2C%20throughput%20test.png
 
 == Protocol Overview ==
 
-As described above, NDTP consists of two inter-related sets of protocols: NDTP-Control and NDTP-Tests. Both of them are layered over TCP. The former is used to initiate and control test sessions and to fetch their results. The latter set of protocols is used to perform specific tests.
+As described above, the NDTP consists of a two inter-related sets of protocols: NDTP-Control and NDTP-Tests. Both of them are layered over TCP. The former is used to initiate and control the test sessions and to fetch their results. The latter set of protocols is used to perform the specific tests.
 
-The initiator of the test session establishes a TCP connection to a well-known port, 3001, on the target point and this connection remains open for the duration of the NDTP-Tests sessions.  A NDT server SHOULD listen to this well-known port, but it MAY also choose to listen on a different port, because both client and server are configurable to allow this.
+The initiator of the test session establishes a TCP connection to a well-known port, 3001, on the target point and this connection remains open for the duration of the NDTP-Tests sessions. The NDT server SHOULD listen to this well-known port, but it MAY also choose to listen on a different port, because both the Client and the Server SHOULD be configurable to allow this.
 
-NDTP-Control messages are transmitted before NDTP-Tests sessions are actually started, after they are completed and between particular tests from the performed test suite. Moreover, specific tests also use NDTP-Control messages to synchronise test sessions, exchange configuration data and additional information.
+The NDTP-Control messages are transmitted before the NDTP-Tests sessions are actually started, after they are completed and between particular tests from the performed test suite. Moreover, a specific tests also use the NDTP-Control messages to synchronise the test sessions, exchange a configuration data and additional information.
 
-All multi-octet quantities defined in this document are represented as unsigned integers in network byte order unless specified otherwise.
+All multi-octet quantities defined in this document are represented as unsigned integers in a network byte order unless specified otherwise.
 
 == NDTP-Control ==
 
