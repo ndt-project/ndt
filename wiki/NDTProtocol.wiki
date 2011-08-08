@@ -66,7 +66,7 @@ All multi-octet quantities defined in this document are represented as unsigned 
 
 The type of each NDTP-Control message can be found after reading the first octet. The length of each NDTP-Control message can be computed upon reading its fixed-size part. No message is shorter than 3 octets.
 
-An implementation SHOULD expunge unused state to prevent denial-of-service attacks, or unbounded memory usage, on the server.  For example, if the full control message is not received within some number of seconds after it is expected, the TCP connection associated with the NDTP-Control session SHOULD be dropped. NDTP does not define any timeout limit.
+An implementation SHOULD expunge unused state to prevent denial-of-service attacks, or unbounded memory usage, on the server.  For example, if the full control message is not received within some number of seconds after it is expected, the TCP connection associated with the NDTP-Control session SHOULD be dropped. The NDTP does not define any timeout limit.
 
 === Message structure ===
 
@@ -76,38 +76,38 @@ http://www.soldevelo.com/images/ndt/3.%20Each%20of%20the%20NDTP-Control%20messag
 
 === Message types ===
 
-NDTP-Control currently defines the following types of messages:
+The NDTP-Control currently defines the following types of messages:
 
 || *Symbolic name* || *Bit value* || *Description* ||
 || COMM_FAILURE || 0 || Notification about communication link failure. *Not used explicitly* ||
-|| SRV_QUEUE || 1 || Message used to Clients' queue management ||
-|| MSG_LOGIN || 2 || Used during initialisation to negotiate NDT version and test suite ||
+|| SRV_QUEUE || 1 || Message used to the Clients' queue management ||
+|| MSG_LOGIN || 2 || Used during initialization to negotiate the NDT version and the test suite ||
 || TEST_PREPARE || 3 || Used to send all information needed for a particular test (i.e. port numbers, test time, etc.) ||
 || TEST_START || 4 || Message used to start a specific test ||
-|| TEST_MSG || 5 || Used during tests to communicate between Client and Server ||
+|| TEST_MSG || 5 || Used during tests to communicate between the Client and the Server ||
 || TEST_FINALIZE || 6 || Message used to end a specific test ||
-|| MSG_ERROR || 7 || Used to send error messages and notifications about invalid states of the test session ||
-|| MSG_RESULTS || 8 || Contains final test sessions' results ||
-|| MSG_LOGOUT || 9 || This is the last message send by Server after MSG_RESULTS messages. Server SHOULD close the NDTP-Control connection after sending this message. ||
-|| MSG_WAITING || 10 || Message from the Client to notify Server that the Client is still alive ||
+|| MSG_ERROR || 7 || Used to send an error messages and notifications about invalid states of the test session ||
+|| MSG_RESULTS || 8 || Contains a final test sessions' results ||
+|| MSG_LOGOUT || 9 || This is the last message send by the Server after MSG_RESULTS messages. The Server SHOULD close the NDTP-Control connection after sending this message. ||
+|| MSG_WAITING || 10 || Message from the Client to notify the Server that the Client is still alive ||
 
 === Protocol description ===
 
-==== Logging in to server with a test suite request ====
+==== Logging in to the server with a test suite request ====
 
-Before Client can start test sessions, it has to establish a connection to the Server.
+Before the Client can start the test session, it has to establish a connection to the Server.
 
-First, a Client opens a TCP connection to the Server on a well-known port 3001 and sends a LOGIN message:
+First, the Client opens a TCP connection to the Server on a well-known port 3001 and sends a LOGIN message:
 
 http://www.soldevelo.com/images/ndt/4.%20Server%20on%20a%20well-known%20port%203001%20and%20sends%20a%20LOGIN%20message.png
 
-Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite. Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
+Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite. The Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
 
-All new Clients MUST always request TEST_STATUS (16 (1L << 4)) test in order to notify Server that they support MSG_WAITING messages introduced in NDT v3.5.5.
+All new Clients MUST always request the TEST_STATUS (16 (1L << 4)) test in order to notify the Server that they support the MSG_WAITING messages introduced in the NDT v3.5.5.
 
 ==== Kick off message to disconnect old clients ====
 
-In the same time Server sends the specially crafted 13 octets long data that kicks off the old Clients ("123456 654321"):
+In the same time the Server sends the specially crafted 13 octets long data that kicks off the old Clients ("123456 654321"):
 
 http://www.soldevelo.com/images/ndt/5.%2013%20octets%20long%20data%20that%20kicks%20off%20the%20old%20Clients%20%28%22123456%20654321%22%29.png
 
@@ -115,17 +115,17 @@ All non-compatible Clients MUST drop the connection after receiving the above me
 
 ==== Queuing clients ====
 
-The NDT Server MUST respond with one or more SRV_QUEUE messages to inform the Client whether or not it needs to wait, or can start performing tests. These messages MUST contain one of the following string values:
+The NDT Server MUST respond with a one or more SRV_QUEUE messages to inform the Client whether or not it needs to wait, or can start performing tests. These messages MUST contain one of the following string values:
 
 || *SRV_QUEUE value* || *Description* ||
-|| "0" || Test session will start now ||
+|| "0" || The test session will start now ||
 || "9977" || Server Fault: test session will be terminated for unknown reason. Client MUST drop the connection after receiving this message. *Not used currently by the Server* ||
-|| "9988" || If this is a first message from Server, then it means that Server is busy. In other cases it means Server Fault. Client MUST drop the connection after receiving this message. ||
-|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. Client MUST drop the connection after receiving this message. *Deprecated/Not used by the Server* ||
-|| "9990" || This is a check from Server to verify if the Client is alive. Available from v3.5.5. The Client MUST respond to this message by sending an empty 'MSG_WAITING' message. Server will only send these messages when Client requested TEST_STATUS test. ||
-|| "N" || Where N is any other value. It means the estimated number of minutes that Client will wait for its test to begin. ||
+|| "9988" || If this is a first message from the Server, then it means that the Server is busy. In other cases it means the Server Fault. the Client MUST drop the connection after receiving this message. ||
+|| "9999" || Server Busy: Please wait 60 seconds for the current test to finish. The Client MUST drop the connection after receiving this message. *Deprecated/Not used by the Server* ||
+|| "9990" || This is a check from the Server to verify if the Client is alive. Available from v3.5.5. The Client MUST respond to this message by sending an empty 'MSG_WAITING' message. The Server will only send these messages when the Client requested TEST_STATUS test. ||
+|| "N" || Where N is any other value. It means the estimated number of minutes that the Client will wait for its test to begin. ||
 
-When the NDT Server decides that the Client can start its test session, it sends SRV_QUEUE message with value *'0'*:
+When the NDT Server decides that the Client can start its test session, it sends the SRV_QUEUE message with value *'0'*:
 
 http://www.soldevelo.com/images/ndt/6.%20sends%20SRV_QUEUE%20message%20with%20value%20%270%27.png
 
@@ -147,7 +147,7 @@ In the next step the NDT Server MUST send a MSG_LOGIN message containing a list 
 
 http://www.soldevelo.com/images/ndt/8.%20encoded%20as%20ascii%20string,%20that%20will%20be%20performed.png
 
-This list is a string containing space separated numbers that describes particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
+This list is a string containing space separated numbers that describes the particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
 {{{
 1 8 2 4 32
 }}}
@@ -158,15 +158,15 @@ The next step is to run the negotiated test suite. The tests MUST be performed i
 
 ==== Results retrieval ====
 
-After the last accomplished NDTP-Tests test (particular NDTP-Tests sub-protocols are described in the [NDTProtocol#NDTP-Tests NDTP-Tests] section) the Server MUST send all gathered results to the client. These results MUST be sent in a set of MSG_RESULTS messages:
+After the last accomplished NDTP-Tests test (the particular NDTP-Tests sub-protocols are described in the [NDTProtocol#NDTP-Tests NDTP-Tests] section) the Server MUST send all gathered results to the Client. These results MUST be sent in a set of MSG_RESULTS messages:
 
 http://www.soldevelo.com/images/ndt/9.%20These%20results%20MUST%20be%20sent%20in%20a%20set%20of%20MSG_RESULTS%20messages.png
 
-All standard results are currently encoded as strings and MAY be displayed by Client directly on the screen without any modifications.
+All standard results are currently encoded as strings and MAY be displayed by the Client directly on the screen without any modifications.
 
 At the end the Server MUST close the whole test session by sending an empty MSG_LOGOUT message and closing connection with the Client.
 
-The whole test session overview can be seen on the following sequence diagram. Both Server and Client MUST follow the described sequence:
+The whole test session overview can be seen on the following sequence diagram. Both the Server and the Client MUST follow the described sequence:
 
 http://www.soldevelo.com/images/ndt/10.%20Both%20Server%20and%20Client%20MUST%20follow%20the%20described%20sequence.png
 
