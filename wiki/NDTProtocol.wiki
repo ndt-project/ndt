@@ -176,7 +176,7 @@ http://www.soldevelo.com/images/ndt/10.%20Both%20Server%20and%20Client%20MUST%20
 The NDTP-Tests currently defines the following types of tests:
 
 || *Symbolic name* || *Integer value* || *Description* ||
-|| TEST_MID || 1 (1L << 0) || Middlebox test - a short (5 seconds) throughput s2c test with a limited CWND to check for a duplex mismatch condition. Moreover, it also checks the MSS value and does NAT detection ||
+|| TEST_MID || 1 (1L << 0) || Middlebox test - a short (5 seconds) throughput test from the Server to the Client with a limited CWND to check for a duplex mismatch condition. Moreover, it also checks the MSS value and does NAT detection ||
 || TEST_C2S || 2 (1L << 1) || 10 seconds C2S throughput test ||
 || TEST_S2C || 4 (1L << 2) || 10 seconds S2C throughput test ||
 || TEST_SFW || 8 (1L << 3) || Simple firewall test ||
@@ -187,11 +187,11 @@ Moreover, the NDT v3.5.5 introduced a new mechanism to avoid zombie Clients (i.e
 || *Symbolic name* || *Integer value* || *Description* ||
 || TEST_STATUS || 16 (1L << 4) || A special flag to notify the Server that this Client will respond to status requests ||
 
-All new Clients MUST support TEST_STATUS mechanism.
+All Clients MUST support TEST_STATUS mechanism.
 
 === Middlebox test ===
 
-The Middlebox test is a short throughput s2c test with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses a pre-defined MSS value to check if any intermediate node will modify its connection settings.
+The Middlebox test is a short throughput test from the Server to the Client with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses a pre-defined MSS value to check if any intermediate node will modify its connection settings.
 
 ==== MID protocol ====
 
@@ -207,18 +207,32 @@ Next, the Client MUST connect to this newly bound port and start reading data fr
 
 When the Client successfully connects, the NDT Server MUST start 5 seconds throughput test on the newly created connection.
 
-The NDT Server in the MID Throughput test MUST send packets through the newly opened connection as fast as possible (i.e. without any delays) for 5 seconds. These packets must have the following size:
+The NDT Server in the MID Throughput test MUST send packets through the newly opened connection as fast as possible (i.e. without any delays) for 5 seconds. These packets must be written using the buffer of the following size:
+{{{
+(The current maximum segment size (MSS))
+}}}
+
+If for some reasons it is not possible to use such a big buffer, the Server MUST use a 8192 Byte one. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only printable characters. The maximum value of the congestion window during the MID Throughput test MUST be set to the following value:
 {{{
 2 * (The current maximum segment size (MSS))
 }}}
 
-If for some reasons it is not possible to send such packets, the Server MUST send a 8192 Byte packets. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
+When the test is over, the Server MUST send its results encoded as strings in a TEST_MSG message to the Client. These results MUST contain the following variables:
 
-When the test is over, the Server MUST send its results encoded as strings in a TEST_MSG message to the Client:
+|| CurMSS || The current maximum segment size (MSS), in octets.||
+|| !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
+|| !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
+
+The above variables can be obtained by using a [http://www.web100.org/ web100] project. All available web100 data variables are described in [NDTProtocol#Appendix_A._web100_variables Appendix A].
+
+The whole TEST_MSG message sent to the Client looks as following:
 
 http://www.soldevelo.com/images/ndt/12.%20TEST_MSG%20message%20to%20Client.png
 
-Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message.
+Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message. The throughput value MUST be calculated using the following formula:
+{{{
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_TIME
+}}}
 
 At the end the Server MUST close the MID test session by sending an empty TEST_FINALIZE message.
 
@@ -287,9 +301,14 @@ In order to start the test, the Server MUST send an empty TEST_START message.
 
 The Client MUST start 10 seconds throughput test and the Server MUST read transmitted data.
 
-The NDT Client in the C2S Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
+The NDT Client in the C2S Throughput test MUST use a 8192 Byte buffer to send the packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only printable characters.
 
-When the Client stops streaming the test data (or the test routine at the Server times out), the Server MUST send to the Client its calculated throughput value encoded as string (float format) in the TEST_MSG message:
+When the Client stops streaming the test data (or the test routine at the Server times out after 11 seconds from the last TEST_START message), the Server MUST send to the Client its calculated throughput value encoded as string (float format) in the TEST_MSG message. The throughput value MUST be calculated using the following formula:
+{{{
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_TIME
+}}}
+
+The Server's TEST_MSG message looks as following: 
 
 http://www.soldevelo.com/images/ndt/20.%20Client%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
 
@@ -309,7 +328,7 @@ The NDT Server uses a [http://www.web100.org/ web100] project to perform a detai
 
 All messages exchanged between the Client and the Server during the S2C protocol are sent using the same connection and message format as the NDTP-Control protocol. Only the throughput packets are sent on the new connection and do not follow the NDTP-Control protocol message format.
 
-As a first step the Server MUST bind the new port and send a TEST_PREPARE message containing this port number to the Client:
+As a first step the Server MUST bind the new port. Next, it MUST send a TEST_PREPARE message containing this port number to the Client using the NDTP-Control connection:
 
 http://www.soldevelo.com/images/ndt/22.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
 
@@ -321,26 +340,56 @@ In order to start the test, the Server MUST send an empty TEST_START message.
 
 The Server MUST start 10 seconds throughput test and the Client MUST read the transmitted data.
 
-The NDT Server in the S2C Throughput test MUST send a 8192 Byte packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of these packets SHOULD be as random as possible and MUST include only printable characters.
+The NDT Server in the S2C Throughput test MUST use a 8192 Byte buffer to send the packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only printable characters.
 
-When the Server stops streaming the test data, it MUST send to the Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message:
+When the Server stops streaming the test data, it MUST send to the Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message. The throughput value MUST be calculated using the following formula:
+{{{
+THROUGHPUT_VALUE = 8 * SENT_BYTES / 1000 / TEST_TIME
+}}}
+
+The Server's TEST_MSG message looks as following: 
 
 http://www.soldevelo.com/images/ndt/23.%20overall%20number%20of%20sent%20bytes%20%28encoded%20as%20string%20in%20float%20format%29%20in%20the%20TEST_MSG%20message.png
 
 All these values MUST be separated by spaces.
 
-Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in the TEST_MSG message:
+Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in the TEST_MSG message. The throughput value MUST be calculated using the following formula:
+{{{
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_TIME
+}}}
+
+The Client's TEST_MSG message looks as following: 
 
 http://www.soldevelo.com/images/ndt/24.%20MUST%20send%20to%20the%20Server%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
 
-In the same time the Server SHOULD send its web100 data variables gathered during S2C throughput test to the Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
+In the same time the Server SHOULD send its [NDTProtocol#Appendix_A._web100_variables web100 data variables] gathered during S2C throughput test to the Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
 {{{
 web100_var_NAME: web100_var_VALUE\n
 }}}
 
 where '\n' is a single new line character.
 
-All available web100 data variables are described in [NDTProtocol#Appendix_A._web100_variables Appendix A].
+All available web100 data variables are described in [NDTProtocol#Appendix_A._web100_variables Appendix A]. The Server MUST send at least the following variables:
+ # AckPktsIn
+ # CountRTT
+ # CongestionSignals
+ # CurRTO
+ # CurMSS
+ # DataBytesOut
+ # DupAcksIn
+ # MaxCwnd
+ # MaxRwinRcvd
+ # PktsOut
+ # PktsRetrans
+ # RcvWinScale
+ # Sndbuf
+ # SndLimTimeCwnd
+ # SndLimTimeRwin
+ # SndLimTimeSender
+ # SndWinScale
+ # SumRTT
+ # Timeouts
+
 
 At the end the Server MUST close the S2C test session by sending an empty TEST_FINALIZE message.
 
