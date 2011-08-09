@@ -148,10 +148,9 @@ In the next step the NDT Server MUST send a MSG_LOGIN message containing a list 
 
 http://www.soldevelo.com/images/ndt/8.%20encoded%20as%20ascii%20string,%20that%20will%20be%20performed.png
 
-This list is a string containing space separated numbers that describes the particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will have the following description:
-{{{
-1 8 2 4 32
-}}}
+This list is a string containing space separated numbers that describes the particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will be encoded in the following message:
+
+http://www.soldevelo.com/images/ndt/ndt_8b.png
 
 The Client MUST drop the connection when it receives unknown test id, because such situation means an error on the Server's part.
 
@@ -250,10 +249,9 @@ As a first step the Server MUST bind the ephemeral port and send a TEST_PREPARE 
 
 http://www.soldevelo.com/images/ndt/15.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20and%20test%20time%20%28in%20seconds%29%20to%20the%20Client.png
 
-The port number and the test time MUST be encoded as strings and separated by a single space, for example:
-{{{
-50123 3
-}}}
+The port number and the test time MUST be encoded as strings and separated by a single space. For example the whole message will look as following:
+
+http://www.soldevelo.com/images/ndt/ndt_15b.png
 
 Next, the Client MUST bind the ephemeral port and send a TEST_MSG message containing only this port number to the Server. the port number MUST be encoded as string.
 
@@ -363,9 +361,8 @@ The Client's TEST_MSG message looks as following:
 http://www.soldevelo.com/images/ndt/24.%20MUST%20send%20to%20the%20Server%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
 
 In the same time the Server SHOULD send its [NDTProtocol#Appendix_A._web100_variables web100 data variables] gathered during S2C throughput test to the Client. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
-{{{
-web100_var_NAME: web100_var_VALUE\n
-}}}
+
+http://www.soldevelo.com/images/ndt/ndt_24b.png
 
 where '\n' is a single new line character.
 
