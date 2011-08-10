@@ -1,3 +1,8 @@
+import java.util.Locale;
+import java.util.ResourceBundle;
+
+import javax.swing.JOptionPane;
+
 /**
  * 
  */
@@ -42,5 +47,36 @@ public class NDTConstants {
 	  public static final int SFW_POSSIBLE   = 3;
 
 	  public static final double VIEW_DIFF = 0.1;
+	  
+	  
+	  /*Method to initialise a few constants */
+	  private static ResourceBundle messages;
+	  public static String TCPBW100_MSGS = "Tcpbw100_msgs";
+	  
+	  public static void initConstants(Locale paramLocale) {	  
+		  try {	         
+	          messages = ResourceBundle.getBundle( TCPBW100_MSGS, paramLocale);
+	          System.out.println("Obtained messages ");
+	      } catch (Exception e) {
+	          JOptionPane.showMessageDialog(null, "Error while loading language files:\n" + e.getMessage());
+	          e.printStackTrace();
+	      }
+		  
+	  } //end method
+	  
+	  public static void initConstants(String lang, String country) {	  
+		  try {	       
+			  Locale locale = new Locale(lang, country);
+			  messages = ResourceBundle.getBundle("Tcpbw100_msgs", locale);
+		  } catch (Exception e) {
+	          JOptionPane.showMessageDialog(null, "Error while loading language files:\n" + e.getMessage());
+	          e.printStackTrace();
+	      }
+	  }//end method initconstants
+	  
+	  
+	  public static String getMessageString(String paramStrName) {
+		  return messages.getString(paramStrName);
+	  }
 
 }

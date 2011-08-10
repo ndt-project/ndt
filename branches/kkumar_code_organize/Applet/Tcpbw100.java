@@ -100,502 +100,514 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	/**
 	 * 
 	 */
-  
-  JTextArea _txtDiagnosis, _txtStatistics;
-  MyTextPane results;
-  String inresult, outresult, errmsg;
-  JButton startTest;
-  JButton disMiss, disMiss2;
-  JButton copy, copy2;
-  JButton deTails;
-  JButton sTatistics;
-  JButton mailTo;
-  JButton options;
-  JCheckBox defaultTest, preferIPv6;
-  JSpinner numOfTests = new JSpinner();
-  String[] delays = { "immediate", "1min","5mins","10mins","30mins","2hours","12hours","1day" };
-  JComboBox delay;
 
-  boolean Randomize, failed, cancopy;
-  URL location;
-  clsFrame frameWeb100Vars, frameDetailedStats, frameOptions;
-  String s;
-  double t;
-  int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
-  int SACKEnabled, TimestampsEnabled, WinScaleRcvd, WinScaleSent;
-  int FastRetran, AckPktsOut, SmoothedRTT, CurrentCwnd, MaxCwnd;
-  int SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender;
-  int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
-  int SumRTT, CountRTT, CurrentMSS, Timeouts, PktsRetrans;
-  int SACKsRcvd, DupAcksIn, MaxRwinRcvd, MaxRwinSent;
-  int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
-  int PktsOut, CongestionSignals, RcvWinScale;
-  int pkts, lth=8192, CurrentRTO;
-  int c2sData, c2sAck, s2cData, s2cAck;
-  // added for mailto url
-  protected URL targetURL;
-  private String TARGET1 = "U";
-  private String TARGET2 = "H";
-  String emailText;
-  double s2cspd, c2sspd, sc2sspd, ss2cspd;
-  int ssndqueue;
-  double sbytes;
+	JTextArea _txtDiagnosis, _txtStatistics;
+	ResultsTextPane results;
+	String inresult, outresult, errmsg;
+	JButton startTest;
+	JButton disMiss, disMiss2;
+	JButton copy, copy2;
+	JButton deTails;
+	JButton sTatistics;
+	JButton mailTo;
+	JButton options;
+	JCheckBox defaultTest, preferIPv6;
+	JSpinner numOfTests = new JSpinner();
+	String[] delays = { "immediate", "1min","5mins","10mins","30mins","2hours","12hours","1day" };
+	JComboBox delay;
 
-  /*************************************************************************
-   * JavaScript access API extension
-   * Added by Seth Peery and Gregory Wilson, Virginia Tech
-   * October 28, 2009
-   * This section adds classwide variables, written to at runtime, 
-   * which are then exposed by public accessor methods that can be called
-   * from web applications using NDT as a back-end.  
-   */
+	boolean Randomize, failed, cancopy;
+	URL location;
+	NewFrame frameWeb100Vars, frameDetailedStats, frameOptions;
+	String s;
+	double t;
+	int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
+	int SACKEnabled, TimestampsEnabled, WinScaleRcvd, WinScaleSent;
+	int FastRetran, AckPktsOut, SmoothedRTT, CurrentCwnd, MaxCwnd;
+	int SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender;
+	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
+	int SumRTT, CountRTT, CurrentMSS, Timeouts, PktsRetrans;
+	int SACKsRcvd, DupAcksIn, MaxRwinRcvd, MaxRwinSent;
+	int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
+	int PktsOut, CongestionSignals, RcvWinScale;
+	int pkts, lth=8192, CurrentRTO;
+	int c2sData, c2sAck, s2cData, s2cAck;
+	// added for mailto url
+	protected URL targetURL;
+	private String TARGET1 = "U";
+	private String TARGET2 = "H";
+	String emailText;
+	double s2cspd, c2sspd, sc2sspd, ss2cspd;
+	int ssndqueue;
+	double sbytes;
 
- 
-  private double pub_c2sspd = 0.0;
-  private double pub_s2cspd = 0.0;
-  private int pub_CurRwinRcvd = 0; // source variable does not exist
-  private int pub_MaxRwinRcvd = 0;
-  private int  pub_MinRTT = 0; // source variable does not exist
-  private int  pub_MaxRTT = 0; // source variable does not exist
-  private double pub_loss = 0.0;
-  private double pub_avgrtt = 0.0;
-  //TODO:Getter/setter commented out for both below. Why?
-  private int pub_MinRTO = 0; // source variable does not exist 
-  private int pub_MaxRTO = 0; // source variable does not exist
-  private int pub_CurRTO = 0;
-  // private String pub_CWNDpeaks = ""; // source variable does not exist
-  private int pub_SACKsRcvd = 0;
-  private String pub_osVer = "unknown"; 
-  private String pub_javaVer = "unknown";
-  private String pub_host = "unknown";
-  private String pub_osName = "unknown"; 
-  private String pub_osArch = "unknown";
-  private int pub_mismatch = 0;
-  private int pub_Bad_cable = 0;
-  private int pub_congestion = 0;
-  private double pub_cwndtime = 0.0;
-  private double pub_pctRcvrLimited = 0.0;
-  private String pub_AccessTech = "unknown";
-  private String pub_natBox = "unknown";
-  private int pub_DupAcksOut = 0;
-  private Date pub_TimeStamp;
-  private String pub_isReady = new String("no");
-  private String pub_clientIP = "unknown";
-  private int pub_jitter = 0; //unused. TODO: find out use
-  private int pub_Timeouts = 0;
-  private String pub_errmsg = "Test not run.";
-  private String pub_diagnosis = "Test not run.";
-  private String pub_statistics = "Test not run.";
-  private String pub_status = "notStarted";
-  private double pub_time = 0.0;
-  private int pub_bytes = 0;
-  private String isAutoRun;
-  private String userAgent = null;
+	/*************************************************************************
+	 * JavaScript access API extension
+	 * Added by Seth Peery and Gregory Wilson, Virginia Tech
+	 * October 28, 2009
+	 * This section adds classwide variables, written to at runtime, 
+	 * which are then exposed by public accessor methods that can be called
+	 * from web applications using NDT as a back-end.  
+	 */
 
-  /**
-  * Accessor methods for public variables
-  **/
-  
-  public String get_c2sspd()
-  {
-  	// Expressed as MiB using base 10
-    return Double.toString((pub_c2sspd));  
-  }
-  
-  public String get_s2cspd()
-  {
-  	// Expressed as MiB using base 10
-    return Double.toString(pub_s2cspd);
-  }
-  
-  public String get_CurRwinRcvd()
-  {
-    return Integer.toString(pub_CurRwinRcvd);
-  }
-  
-  public String get_MaxRwinRcvd()
-  {
-    return Integer.toString(pub_MaxRwinRcvd);
-  }
-  
-  public String get_Ping()
-  {
-    return Integer.toString(pub_MinRTT);
-  } 	
-  
-  public String get_MaxRTT()
-  {
-    return Integer.toString(pub_MaxRTT);
-  }  
-  
-  public String get_loss()
-  {
-    return Double.toString(pub_loss);
-  }
 
-  public String get_avgrtt()
-  {
-    return Double.toString(pub_avgrtt); 
-  }
-  
- /* public String get_MinRTO()
+	private double pub_c2sspd = 0.0;
+	private double pub_s2cspd = 0.0;
+	private int pub_CurRwinRcvd = 0; // source variable does not exist
+	private int pub_MaxRwinRcvd = 0;
+	private int  pub_MinRTT = 0; // source variable does not exist
+	private int  pub_MaxRTT = 0; // source variable does not exist
+	private double pub_loss = 0.0;
+	private double pub_avgrtt = 0.0;
+	//TODO:Getter/setter commented out for both below. Why?
+	private int pub_MinRTO = 0; // source variable does not exist 
+	private int pub_MaxRTO = 0; // source variable does not exist
+	private int pub_CurRTO = 0;
+	// private String pub_CWNDpeaks = ""; // source variable does not exist
+	private int pub_SACKsRcvd = 0;
+	private String pub_osVer = "unknown"; 
+	private String pub_javaVer = "unknown";
+	private String pub_host = "unknown";
+	private String pub_osName = "unknown"; 
+	private String pub_osArch = "unknown";
+	private int pub_mismatch = 0;
+	private int pub_Bad_cable = 0;
+	private int pub_congestion = 0;
+	private double pub_cwndtime = 0.0;
+	private double pub_pctRcvrLimited = 0.0;
+	private String pub_AccessTech = "unknown";
+	private String pub_natBox = "unknown";
+	private int pub_DupAcksOut = 0;
+	private Date pub_TimeStamp;
+	private String pub_isReady = new String("no");
+	private String pub_clientIP = "unknown";
+	private int pub_jitter = 0; //unused. TODO: find out use
+	private int pub_Timeouts = 0;
+	private String pub_errmsg = "Test not run.";
+	private String pub_diagnosis = "Test not run.";
+	private String pub_statistics = "Test not run.";
+	private String pub_status = "notStarted";
+	private double pub_time = 0.0;
+	private int pub_bytes = 0;
+	private String isAutoRun;
+	private String userAgent = null;
+
+	/**
+	 * Accessor methods for public variables
+	 **/
+
+	public String get_c2sspd()
+	{
+		// Expressed as MiB using base 10
+		return Double.toString((pub_c2sspd));  
+	}
+
+	public String get_s2cspd()
+	{
+		// Expressed as MiB using base 10
+		return Double.toString(pub_s2cspd);
+	}
+
+	public String get_CurRwinRcvd()
+	{
+		return Integer.toString(pub_CurRwinRcvd);
+	}
+
+	public String get_MaxRwinRcvd()
+	{
+		return Integer.toString(pub_MaxRwinRcvd);
+	}
+
+	public String get_Ping()
+	{
+		return Integer.toString(pub_MinRTT);
+	} 	
+
+	public String get_MaxRTT()
+	{
+		return Integer.toString(pub_MaxRTT);
+	}  
+
+	public String get_loss()
+	{
+		return Double.toString(pub_loss);
+	}
+
+	public String get_avgrtt()
+	{
+		return Double.toString(pub_avgrtt); 
+	}
+
+	/* public String get_MinRTO()
   {
     return pub_MinRTO;
   }*/
-  
- /* public String get_MaxRTO()
+
+	/* public String get_MaxRTO()
   {
     return pub_MaxRTO;
   }*/
 
-  public String get_CurRTO()
-  {
-    return Integer.toString(pub_CurRTO);
-  }
+	public String get_CurRTO()
+	{
+		return Integer.toString(pub_CurRTO);
+	}
 
-/*
+	/*
   public String get_CWNDpeaks()
   {
     return pub_CWNDpeaks;
   } */
 
-  public String get_SACKsRcvd()
-  {
-    return Integer.toString(pub_SACKsRcvd);
-  }  
-  
-  public String get_osVer()
-  {
-    return pub_osVer;
-  }
+	public String get_SACKsRcvd()
+	{
+		return Integer.toString(pub_SACKsRcvd);
+	}  
 
-  public String get_javaVer()
-  {
-    return pub_javaVer;
-  }
-
-  public String get_host()
-  {
-    return pub_host;
-  }
-
-  public String get_osName()
-  {
-    return pub_osName;
-  }
-
-  public String get_osArch()
-  {
-    return pub_osArch;
-  }
-  
-  public String get_mismatch()
-  {
-  	String result;
-	if (pub_mismatch==0) {
-		result = "no";
-	} else {
-		result = "yes";
+	public String get_osVer()
+	{
+		return pub_osVer;
 	}
-    return result;
-  }
- 
-  public String get_Bad_cable()
-  {
-  	String result;
-	if (pub_Bad_cable ==1) {
-		result = "yes";
-	} else {
-		result = "no";
+
+	public String get_javaVer()
+	{
+		return pub_javaVer;
 	}
-    return result;
-  }
 
-  public String get_congestion()
-  {
-   	String result;
-	if (pub_congestion == 1) {
-		result = "yes";
-	} else {
-		result = "no";
+	public String get_host()
+	{
+		return pub_host;
 	}
-    return result;
-  }
 
-  public String get_cwndtime()
-  {
-    return Double.toString(pub_cwndtime);
-  }
-  
-  public String get_AccessTech()
-  {
-    return pub_AccessTech;
-  }
-  
-  public String get_rcvrLimiting()
-  {
-	return Double.toString(pub_pctRcvrLimited);	
-  }
-  
-  public String get_optimalRcvrBuffer()
-  {
-    return Integer.toString(pub_MaxRwinRcvd*1024);
-  }
-  
-  public String get_clientIP()
-  {
-	  	return pub_clientIP;
-  }
-  
-  public String get_natStatus()
-  {
-  	return pub_natBox;
-  }
-  
-  public String get_DupAcksOut()
-  {
-  	return Integer.toString(pub_DupAcksOut);
-  }
-  
-  public String get_TimeStamp()
-  {
-  	String result = "unknown";
-	if (pub_TimeStamp != null) {
-		result =  pub_TimeStamp.toString();	
-    }
-	return result;
-  }
-  
-  public String isReady()
-  {
+	public String get_osName()
+	{
+		return pub_osName;
+	}
 
-	// if ((pub_isReady == null) || (pub_isReady.equals(""))) {
-	//	 pub_isReady = "no";
-	// }
-	// String result = "foo";
+	public String get_osArch()
+	{
+		return pub_osArch;
+	}
 
-     //if (failed) {
-	 //    pub_isReady = "failed1";
-     //}
-	 //result = pub_isReady;
- 	 //   return result; 
-	 return pub_isReady;
-  }
+	public String get_mismatch()
+	{
+		String result;
+		if (pub_mismatch==0) {
+			result = "no";
+		} else {
+			result = "yes";
+		}
+		return result;
+	}
 
-  public String get_jitter()
-  {
-  	return Integer.toString((pub_MaxRTT - pub_MinRTT));
-  }
-  
-  public String get_WaitSec()
-  {
-  	return Integer.toString((pub_CurRTO * pub_Timeouts)/1000);	
-  }
-  
-  public String get_errmsg() 
-  {
-    //String result = "Test not run";
-	//result = pub_errmsg;
-	//return result;
-	return pub_errmsg;
-  }
+	public String get_Bad_cable()
+	{
+		String result;
+		if (pub_Bad_cable ==1) {
+			result = "yes";
+		} else {
+			result = "no";
+		}
+		return result;
+	}
 
-  public String get_diagnosis()
-  {
-   return pub_diagnosis;
-  } 
-  
-  public String get_statistics()
-  {
-   return pub_statistics;
-  } 
+	public String get_congestion()
+	{
+		String result;
+		if (pub_congestion == 1) {
+			result = "yes";
+		} else {
+			result = "no";
+		}
+		return result;
+	}
 
-  public String get_status()
-  {
-   return pub_status;
-  } 
+	public String get_cwndtime()
+	{
+		return Double.toString(pub_cwndtime);
+	}
 
-  public String get_instSpeed()
-  {
-    return Double.toString((8.0 * pub_bytes) /  (System.currentTimeMillis() - pub_time));
-  }
+	public String get_AccessTech()
+	{
+		return pub_AccessTech;
+	}
 
-  // "Remote Control" function - invoke NDT' runtest() method from the API
-  public void run_test()
-  {
-    // The Java security model considers calling a method that opens a socket
-	// from JavaScript to be a privileged action.  By using 
-	// java.security.privilegedAction here, we can grant JavaScript the 
-	// same expanded privileges as the signed applet to open a socket.
-	AccessController.doPrivileged(new PrivilegedAction() {
-       public Object run() {
-		pub_errmsg = "Test in progress.";
-		runtest();
-		return null;
-	   }
-	});
-  }
+	public String get_rcvrLimiting()
+	{
+		return Double.toString(pub_pctRcvrLimited);	
+	}
 
-  public String getUserAgent() {
-    return userAgent;
-  }
+	public String get_optimalRcvrBuffer()
+	{
+		return Integer.toString(pub_MaxRwinRcvd*1024);
+	}
 
-  public void setUserAgent(String userAgent) {
-    this.userAgent = userAgent;
-  }
+	public String get_clientIP()
+	{
+		return pub_clientIP;
+	}
 
-/**
+	public String get_natStatus()
+	{
+		return pub_natBox;
+	}
+
+	public String get_DupAcksOut()
+	{
+		return Integer.toString(pub_DupAcksOut);
+	}
+
+	public String get_TimeStamp()
+	{
+		String result = "unknown";
+		if (pub_TimeStamp != null) {
+			result =  pub_TimeStamp.toString();	
+		}
+		return result;
+	}
+
+	public String isReady()
+	{
+
+		// if ((pub_isReady == null) || (pub_isReady.equals(""))) {
+		//	 pub_isReady = "no";
+		// }
+		// String result = "foo";
+
+		//if (failed) {
+		//    pub_isReady = "failed1";
+		//}
+		//result = pub_isReady;
+		//   return result; 
+		return pub_isReady;
+	}
+
+	public String get_jitter()
+	{
+		return Integer.toString((pub_MaxRTT - pub_MinRTT));
+	}
+
+	public String get_WaitSec()
+	{
+		return Integer.toString((pub_CurRTO * pub_Timeouts)/1000);	
+	}
+
+	public String get_errmsg() 
+	{
+		//String result = "Test not run";
+		//result = pub_errmsg;
+		//return result;
+		return pub_errmsg;
+	}
+
+	public String get_diagnosis()
+	{
+		return pub_diagnosis;
+	} 
+
+	public String get_statistics()
+	{
+		return pub_statistics;
+	} 
+
+	public String get_status()
+	{
+		return pub_status;
+	} 
+
+	public String get_instSpeed()
+	{
+		return Double.toString((8.0 * pub_bytes) /  (System.currentTimeMillis() - pub_time));
+	}
+
+	// "Remote Control" function - invoke NDT' runtest() method from the API
+	public void run_test()
+	{
+		// The Java security model considers calling a method that opens a socket
+		// from JavaScript to be a privileged action.  By using 
+		// java.security.privilegedAction here, we can grant JavaScript the 
+		// same expanded privileges as the signed applet to open a socket.
+		AccessController.doPrivileged(new PrivilegedAction() {
+			public Object run() {
+				pub_errmsg = "Test in progress.";
+				runtest();
+				return null;
+			}
+		});
+	}
+
+	public String getUserAgent() {
+		return userAgent;
+	}
+
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
+	}
+
+	/**
     End of accessor methods
-**/	
-  /************************************************************************/
+	 **/	
+	/************************************************************************/
 
-  /**
-   * Added by Martin Sandsmark, UNINETT AS
-   * Internationalization
-   */
-  private Locale locale;
-  private ResourceBundle messages;
-  private String lang="en";
-  private String country="US";
-  //private static String lang="nb";
-  //private static String country="NO";
-  /***/
+	/**
+	 * Added by Martin Sandsmark, UNINETT AS
+	 * Internationalization
+	 */
+	private Locale locale;
+	private ResourceBundle messages;
+	private String lang="en";
+	private String country="US";
+	//private static String lang="nb";
+	//private static String country="NO";
+	/***/
 
-  int half_duplex, congestion, bad_cable, mismatch;
-  double mylink;
-  double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
-  double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
-  double aspd;
+	int half_duplex, congestion, bad_cable, mismatch;
+	double mylink;
+	double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
+	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
+	double aspd;
 
-  boolean isApplication = false;
-  boolean testInProgress = false;
-  String host = null;
-  String tmpstr, tmpstr2;
-  byte tests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S | NDTConstants.TEST_S2C | 
-		  NDTConstants.TEST_SFW | NDTConstants.TEST_STATUS | NDTConstants.TEST_META;
-  int c2sResult = NDTConstants.SFW_NOTTESTED;
-  int s2cResult = NDTConstants.SFW_NOTTESTED;
+	boolean isApplication = false;
+	boolean testInProgress = false;
+	String host = null;
+	String tmpstr, tmpstr2;
+	byte tests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S | NDTConstants.TEST_S2C | 
+			NDTConstants.TEST_SFW | NDTConstants.TEST_STATUS | NDTConstants.TEST_META;
+	int c2sResult = NDTConstants.SFW_NOTTESTED;
+	int s2cResult = NDTConstants.SFW_NOTTESTED;
 
-  public void showStatus(String msg)
+
+	/* Method to initialize the base NDT window */
+	public void init() {
+		if (getParameter("country") != null) country = getParameter("country");
+		if (getParameter("language") != null) lang = getParameter("language");
+
+		try {
+			locale = new Locale(lang, country);
+			messages = ResourceBundle.getBundle("Tcpbw100_msgs", locale);
+
+			//Replaced method call to initialize messages for access by class
+			//NDTConstants.initConstants(locale);
+			NDTConstants.initConstants(lang, country);
+
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, "Error while loading language files:\n" + e.getMessage());
+			e.printStackTrace();
+		}
+
+		getContentPane().setLayout(new BorderLayout());
+		showStatus(messages.getString("ready"));
+		failed = false ;
+		Randomize = false;
+		cancopy = false;
+		results = new ResultsTextPane();
+		results.append("TCP/Web100 Network Diagnostic Tool v" + NDTConstants.VERSION + "\n");
+		results.setEditable(false);
+		getContentPane().add(new JScrollPane(results));
+		results.append(messages.getString("clickStart") + "\n");
+		Panel mPanel = new Panel();
+		startTest = new JButton(messages.getString("start"));
+		startTest.addActionListener(this);
+		mPanel.add(startTest);
+		sTatistics = new JButton(messages.getString("statistics"));
+		sTatistics.addActionListener(this);
+		if (getParameter("disableStatistics") == null) {
+			mPanel.add(sTatistics);
+		}
+		sTatistics.setEnabled(false);
+		deTails = new JButton(messages.getString("moreDetails"));
+		deTails.addActionListener(this);
+		if (getParameter("disableDetails") == null) {
+			mPanel.add(deTails);
+		}
+		deTails.setEnabled(false);
+		mailTo = new JButton(messages.getString("reportProblem"));
+		mailTo.addActionListener(this);
+		if (getParameter("disableMailto") == null) {
+			mPanel.add(mailTo);
+		}
+		mailTo.setEnabled(false);
+		options = new JButton(messages.getString("options") + "...");
+		options.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				options.setEnabled(false);
+				showOptions();
+				options.setEnabled(true);
+			}
+
+		});
+		if (getParameter("disableOptions") == null) {
+			mPanel.add(options);
+		}
+		getContentPane().add(BorderLayout.SOUTH, mPanel);
+		preferIPv6 = new JCheckBox(messages.getString("preferIPv6"));
+		preferIPv6.setSelected(true);
+		defaultTest = new JCheckBox(messages.getString("defaultTests"));
+		defaultTest.setSelected(true);
+		defaultTest.setEnabled(false);
+		SpinnerNumberModel model = new SpinnerNumberModel();
+		model.setMinimum(new Integer(0));
+		model.setValue(new Integer(1));
+		numOfTests.setModel(model);
+		numOfTests.setPreferredSize(new Dimension(60, 20));
+		delay = new JComboBox();
+		for (int i = 0; i < delays.length; i++) {
+			delay.addItem(messages.getString(delays[i]));
+		}
+		delay.setSelectedIndex(0);
+
+		//Autorun functionality
+		isAutoRun = getParameter("autoRun");
+		if ((isAutoRun != null) && isAutoRun.equals("true")) {
+			pub_errmsg = "Test in progress.";
+			runtest();  
+		}
+
+	}
+
+	/* Method to display status
+	 * @param String value of status
+	 * @return void */
+	public void showStatus(String msg) {
+		if (!isApplication) {
+			super.showStatus(msg);
+		}
+	}
+
+	/* Utility method to get parameter value
+	 * @param Key String whose value has to be found 
+	 * @return Value of key requested for */
+	public String getParameter(String name) {
+		if (!isApplication) {
+			return super.getParameter(name);
+		}
+		return null;
+	}
+
+	/*
+  class ResultsTextPane extends JTextPane
   {
-    if (!isApplication) {
-      super.showStatus(msg);
-    }
-  }
+	  public void append(String text)
+	  {
+		  try {
+			  getStyledDocument().insertString(getStyledDocument().getLength(), text, null);
+		  }
+		  catch (BadLocationException e) {
+			  System.out.println("WARNING: failed to append text to the text pane! [" + text + "]");
+		  }
+	  }
 
-  public String getParameter(String name)
-  {
-    if (!isApplication) {
-      return super.getParameter(name);
-    }
-    return null;
-  }
-  
-
-  public void init() {
-      if (getParameter("country") != null) country = getParameter("country");
-      if (getParameter("language") != null) lang = getParameter("language");
-
-      try {
-          locale = new Locale(lang, country);
-          messages = ResourceBundle.getBundle("Tcpbw100_msgs", locale);
-      } catch (Exception e) {
-          JOptionPane.showMessageDialog(null, "Error while loading language files:\n" + e.getMessage());
-          e.printStackTrace();
-      }
-
-      getContentPane().setLayout(new BorderLayout());
-      showStatus(messages.getString("ready"));
-      failed = false ;
-      Randomize = false;
-      cancopy = false;
-      results = new MyTextPane();
-      results.append("TCP/Web100 Network Diagnostic Tool v" + NDTConstants.VERSION + "\n");
-      results.setEditable(false);
-      getContentPane().add(new JScrollPane(results));
-      results.append(messages.getString("clickStart") + "\n");
-      Panel mPanel = new Panel();
-      startTest = new JButton(messages.getString("start"));
-      startTest.addActionListener(this);
-      mPanel.add(startTest);
-      sTatistics = new JButton(messages.getString("statistics"));
-      sTatistics.addActionListener(this);
-      if (getParameter("disableStatistics") == null) {
-          mPanel.add(sTatistics);
-      }
-      sTatistics.setEnabled(false);
-      deTails = new JButton(messages.getString("moreDetails"));
-      deTails.addActionListener(this);
-      if (getParameter("disableDetails") == null) {
-          mPanel.add(deTails);
-      }
-      deTails.setEnabled(false);
-      mailTo = new JButton(messages.getString("reportProblem"));
-      mailTo.addActionListener(this);
-      if (getParameter("disableMailto") == null) {
-          mPanel.add(mailTo);
-      }
-      mailTo.setEnabled(false);
-      options = new JButton(messages.getString("options") + "...");
-      options.addActionListener(new ActionListener() {
-
-          public void actionPerformed(ActionEvent e) {
-              options.setEnabled(false);
-              showOptions();
-              options.setEnabled(true);
-          }
-
-      });
-      if (getParameter("disableOptions") == null) {
-          mPanel.add(options);
-      }
-      getContentPane().add(BorderLayout.SOUTH, mPanel);
-      preferIPv6 = new JCheckBox(messages.getString("preferIPv6"));
-      preferIPv6.setSelected(true);
-      defaultTest = new JCheckBox(messages.getString("defaultTests"));
-      defaultTest.setSelected(true);
-      defaultTest.setEnabled(false);
-      SpinnerNumberModel model = new SpinnerNumberModel();
-      model.setMinimum(new Integer(0));
-      model.setValue(new Integer(1));
-      numOfTests.setModel(model);
-      numOfTests.setPreferredSize(new Dimension(60, 20));
-      delay = new JComboBox();
-      for (int i = 0; i < delays.length; i++) {
-              delay.addItem(messages.getString(delays[i]));
-      }
-      delay.setSelectedIndex(0);
-
-	//Autorun functionality
-    isAutoRun = getParameter("autoRun");
-	if ((isAutoRun != null) && isAutoRun.equals("true")) {
-		  pub_errmsg = "Test in progress.";
-		  runtest();  
-  	}
-
-  }
-
-
-  class MyTextPane extends JTextPane
-  {
-    public void append(String text)
-    {
-      try {
-        getStyledDocument().insertString(getStyledDocument().getLength(), text, null);
-      }
-      catch (BadLocationException e) {
-        System.out.println("WARNING: failed to append text to the text pane! [" + text + "]");
-      }
-    }
-
-    public void insertComponent(Component c)
-    {
+	  public void insertComponent(Component c)
+	  {
       setSelectionStart(results.getStyledDocument().getLength());
       setSelectionEnd(results.getStyledDocument().getLength());
-      super.insertComponent(c);
-    }
+		  super.insertComponent(c);
+	  }
   }
+	 */
 
+	/*
   class StatusPanel extends JPanel
   {
       private int _testNo;
@@ -611,9 +623,15 @@ public class Tcpbw100 extends JApplet implements ActionListener
           this._testsNum = testsNum;
 
           setTestNoLabelText();
+
+          //If multiple tests are enabled, then add label indicating test number being run.
+          //** Also provide a way to "stop" current test being run
           if (getParameter("enableMultipleTests") != null) {
               add(testNoLabel);
           }
+
+ //DEBUG
+ System.out.println("Debug valuer = "+  getParameter("enableMultipleTests") );
           progressBar.setMinimum(0);
           progressBar.setMaximum(_testsNum);
           progressBar.setValue(0);
@@ -642,7 +660,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
 
       private void setTestNoLabelText() {
-          testNoLabel.setText(messages.getString("test") + " " + _testNo + " " + messages.getString("of") + " " +_testsNum);
+          testNoLabel.setText(messages.getString("test") + " " + _testNo + " " + messages.getString("of") + " " +_testsNum + "HEREEEEE");
       }
 
       public boolean wantToStop() {
@@ -662,130 +680,141 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
   }
 
-  class TestWorker implements Runnable
-  {
-    public void run()
-    {
-      if (!testInProgress) {
-        int testNo = 1;
-        int testsNum = ((Integer)numOfTests.getValue()).intValue();
-        testInProgress = true;
-        diagnose();
-        statistics();
-        startTest.setEnabled(false);
-        deTails.setEnabled(false);
-        sTatistics.setEnabled(false);
-        mailTo.setEnabled(false);
-        options.setEnabled(false);
-        numOfTests.setEnabled(false);
-        StatusPanel sPanel = new StatusPanel(testsNum);
-		getContentPane().add(BorderLayout.NORTH, sPanel);
-        getContentPane().validate();
-        getContentPane().repaint();
+	 */
 
-        try {
-            while (true) {
-                if (sPanel.wantToStop()) {
-                    break;
-                }
-                if (testsNum == 0) {
-                    results.append("\n** " + messages.getString("startingTest") + " " + testNo + " **\n");
-                }
-                else {
-                    results.append("\n** " + messages.getString("startingTest") + " " + testNo + " " + messages.getString("of") + " " + testsNum + " **\n");
-                }
-                dottcp(sPanel);
-                if (testNo == testsNum) {
-                    break;
-                }
-                if (sPanel.wantToStop()) {
-                    break;
-                }
-                sPanel.setText("");
-                sPanel.endTest();
-                testNo += 1;
-                deTails.setEnabled(true);
-                sTatistics.setEnabled(true);
-                mailTo.setEnabled(true);
-                options.setEnabled(true);
-                _txtStatistics.append("\n** " + messages.getString("test") + " " + testNo + " **\n");
-                _txtDiagnosis.append("\n** " + messages.getString("test") + " " + testNo + " **\n");
-                try {
-                    switch (delay.getSelectedIndex()) {
-                        case 1:
-                                results.append("\n** " + messages.getString("sleep1m") + " **\n");
-                                Thread.sleep(1000 * 60);
-                                break;
-                        case 2:
-                                results.append("\n** " + messages.getString("sleep5m") + " **\n");
-                                Thread.sleep(1000 * 60 * 5);
-                                break;
-                        case 3:
-                                results.append("\n** " + messages.getString("sleep10m") + " **\n");
-                                Thread.sleep(1000 * 60 * 10);
-                                break;
-                        case 4:
-                                results.append("\n** " + messages.getString("sleep30m") + " **\n");
-                                Thread.sleep(1000 * 60 * 30);
-                                break;
-                        case 5:
-                                results.append("\n** " + messages.getString("sleep2h") + " **\n");
-                                Thread.sleep(1000 * 60 * 120);
-                                break;
-                        case 6:
-                                results.append("\n** " + messages.getString("sleep12h") + " **\n");
-                                Thread.sleep(1000 * 60 * 720);
-                                break;
-                        case 7:
-                                results.append("\n** " + messages.getString("sleep1d") + " **\n");
-                                Thread.sleep(1000 * 60 * 1440);
-                                break;
-                    }
-                }
-                catch (InterruptedException e) {
-                    // do nothing.
-                }
-            }
-        } catch(IOException e) {
-          e.printStackTrace();
-          failed=true;
-          errmsg = messages.getString("serverBusy30s") + "\n";
-        }
 
-        if (failed) {
-          results.append(errmsg);
+	class TestWorker implements Runnable
+	{
+		public void run()
+		{
+			if (!testInProgress) {
+				int testNo = 1;
+				int testsNum = ((Integer)numOfTests.getValue()).intValue();
+				testInProgress = true;
+				diagnose();
+				statistics();
+				startTest.setEnabled(false);
+				deTails.setEnabled(false);
+				sTatistics.setEnabled(false);
+				mailTo.setEnabled(false);
+				options.setEnabled(false);
+				numOfTests.setEnabled(false);
 
-		  pub_isReady = "failed";
-		  pub_errmsg = errmsg;
-        }
+				//StatusPanel sPanel = new StatusPanel(testsNum);
+				//re-arch. Replaced above by the line below
+				String sTempEnableMany = getParameter("enableMultipleTests");
+				StatusPanel sPanel = new StatusPanel(testsNum, sTempEnableMany);
+				getContentPane().add(BorderLayout.NORTH, sPanel);
+				getContentPane().validate();
+				getContentPane().repaint();
 
-        deTails.setEnabled(true);
-        sTatistics.setEnabled(true);
-        mailTo.setEnabled(true);
-        options.setEnabled(true);
-        numOfTests.setEnabled(true);
-        showStatus(messages.getString("done2"));
-        results.append("\n" + messages.getString("clickStart2") + "\n");
-        startTest.setEnabled(true);
-        testInProgress = false;
-		getContentPane().remove(sPanel);
-        getContentPane().validate();
-        getContentPane().repaint();
-      }
-    }
-  }
+				try {
+					while (true) {
+						if (sPanel.wantToStop()) {
+							break;
+						}
+						if (testsNum == 0) {
+							results.append("\n** " + messages.getString("startingTest") + " " + testNo + " **\n");
+						}
+						else {
+							results.append("\n** " + messages.getString("startingTest") + " " + testNo + " " + messages.getString("of") + " " + testsNum + " **\n");
+						}
+						dottcp(sPanel);
+						if (testNo == testsNum) {
+							break;
+						}
+						if (sPanel.wantToStop()) {
+							break;
+						}
+						sPanel.setText("");
+						sPanel.endTest();
+						testNo += 1;
+						deTails.setEnabled(true);
+						sTatistics.setEnabled(true);
+						mailTo.setEnabled(true);
+						options.setEnabled(true);
+						_txtStatistics.append("\n** " + messages.getString("test") + " " + testNo + " **\n");
+						_txtDiagnosis.append("\n** " + messages.getString("test") + " " + testNo + " **\n");
+						try {
+							switch (delay.getSelectedIndex()) {
+							case 1:
+								results.append("\n** " + messages.getString("sleep1m") + " **\n");
+								Thread.sleep(1000 * 60);
+								break;
+							case 2:
+								results.append("\n** " + messages.getString("sleep5m") + " **\n");
+								Thread.sleep(1000 * 60 * 5);
+								break;
+							case 3:
+								results.append("\n** " + messages.getString("sleep10m") + " **\n");
+								Thread.sleep(1000 * 60 * 10);
+								break;
+							case 4:
+								results.append("\n** " + messages.getString("sleep30m") + " **\n");
+								Thread.sleep(1000 * 60 * 30);
+								break;
+							case 5:
+								results.append("\n** " + messages.getString("sleep2h") + " **\n");
+								Thread.sleep(1000 * 60 * 120);
+								break;
+							case 6:
+								results.append("\n** " + messages.getString("sleep12h") + " **\n");
+								Thread.sleep(1000 * 60 * 720);
+								break;
+							case 7:
+								results.append("\n** " + messages.getString("sleep1d") + " **\n");
+								Thread.sleep(1000 * 60 * 1440);
+								break;
+							}
+						}
+						catch (InterruptedException e) {
+							// do nothing.
+						}
+					}
+				} catch(IOException e) {
+					e.printStackTrace();
+					failed=true;
+					errmsg = messages.getString("serverBusy30s") + "\n";
+				}
 
-	synchronized public void runtest() {
-	pub_status = "notStarted";
-    new Thread(new TestWorker()).start();
+				if (failed) {
+					results.append(errmsg);
+
+					pub_isReady = "failed";
+					pub_errmsg = errmsg;
+				}
+
+				deTails.setEnabled(true);
+				sTatistics.setEnabled(true);
+				mailTo.setEnabled(true);
+				options.setEnabled(true);
+				numOfTests.setEnabled(true);
+				showStatus(messages.getString("done2"));
+				results.append("\n" + messages.getString("clickStart2") + "\n");
+				startTest.setEnabled(true);
+				testInProgress = false;
+				getContentPane().remove(sPanel);
+				getContentPane().validate();
+				getContentPane().repaint();
+			}
+		}
 	}
 
-/*
+	/*Method to run the Thread that calls the "dottcp" method to run tests
+	 * This method is called by the Applet's init method if user selected an
+	 * "autorun" option,  is run individually if user presses the "start button",
+	 * and is internally run by API call */
+	synchronized public void runtest() {
+		pub_status = "notStarted";
+		new Thread(new TestWorker()).start();
+	}
+
+	/*
   class Message {
     byte type;
     byte[] body;
   }
-  
+
   class Protocol {
     private InputStream _ctlin;
     private OutputStream _ctlout;
@@ -795,7 +824,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       _ctlin = ctlSocket.getInputStream();
       _ctlout = ctlSocket.getOutputStream();
     }
-    
+
     public void send_msg(byte type, byte toSend) throws IOException
     {
       byte[] tab = new byte[] { toSend };
@@ -808,7 +837,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       header[0] = type;
       header[1] = (byte) (tab.length >> 8);
       header[2] = (byte) tab.length;
-      
+
       _ctlout.write(header);
       _ctlout.write(tab);
     }
@@ -827,7 +856,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
       return read;
     }
-    
+
     public int recv_msg(Message msg) throws IOException
     {
       int length;
@@ -854,991 +883,991 @@ public class Tcpbw100 extends JApplet implements ActionListener
       }
     }
   }
-*/
-  public boolean test_mid(Protocol ctl) throws IOException
-  {
+	 */
+	public boolean test_mid(Protocol ctl) throws IOException {
+
 		byte buff[] = new byte[8192];
-    Message msg = new Message();
-    if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
-      /* now look for middleboxes (firewalls, NATs, and other boxes that
-       * muck with TCP's end-to-end priciples
-       */
-      showStatus(messages.getString("middleboxTest"));
-      results.append(messages.getString("checkingMiddleboxes") + "  ");
-      _txtStatistics.append(messages.getString("checkingMiddleboxes") + "  ");
-      emailText = messages.getString("checkingMiddleboxes") + "  ";
-      pub_status = "checkingMiddleboxes";
+		Message msg = new Message();
+		if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
+			/* now look for middleboxes (firewalls, NATs, and other boxes that
+			 * muck with TCP's end-to-end priciples
+			 */
+			showStatus(messages.getString("middleboxTest"));
+			results.append(messages.getString("checkingMiddleboxes") + "  ");
+			_txtStatistics.append(messages.getString("checkingMiddleboxes") + "  ");
+			emailText = messages.getString("checkingMiddleboxes") + "  ";
+			pub_status = "checkingMiddleboxes";
 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      //Do not use static import of message types for cleaner code
-      if (msg.type != MessageType.TEST_PREPARE) {
-        errmsg = messages.getString("mboxWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      int midport = Integer.parseInt(new String(msg.body));
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			//Do not use static import of message types for cleaner code
+			if (msg.type != MessageType.TEST_PREPARE) {
+				errmsg = messages.getString("mboxWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			int midport = Integer.parseInt(new String(msg.body));
 
-      Socket in2Socket = null;
-      try {
-        in2Socket = new Socket(host, midport);
-      } catch (UnknownHostException e) {
-        System.err.println("Don't know about host: " + host);
-        errmsg = messages.getString("unknownServer") + "\n" ;
-        return true;
-      } catch (IOException e) {
-        System.err.println("Couldn't perform middlebox testing to: " + host);
-        errmsg = messages.getString("middleboxFail") + "\n" ;
-        return true;
-      }
+			Socket in2Socket = null;
+			try {
+				in2Socket = new Socket(host, midport);
+			} catch (UnknownHostException e) {
+				System.err.println("Don't know about host: " + host);
+				errmsg = messages.getString("unknownServer") + "\n" ;
+				return true;
+			} catch (IOException e) {
+				System.err.println("Couldn't perform middlebox testing to: " + host);
+				errmsg = messages.getString("middleboxFail") + "\n" ;
+				return true;
+			}
 
-      InputStream srvin2 = in2Socket.getInputStream();
-      OutputStream srvout2 = in2Socket.getOutputStream();
+			InputStream srvin2 = in2Socket.getInputStream();
+			OutputStream srvout2 = in2Socket.getOutputStream();
 
-      int largewin = 128*1024;
+			int largewin = 128*1024;
 
-      in2Socket.setSoTimeout(6500);
-      int bytes = 0;
-      int inlth;
-      t = System.currentTimeMillis();
-	  pub_TimeStamp = new Date();
+			in2Socket.setSoTimeout(6500);
+			int bytes = 0;
+			int inlth;
+			t = System.currentTimeMillis();
+			pub_TimeStamp = new Date();
 
-      try {  
-        while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
-          bytes += inlth;
-	  pub_bytes = bytes;
-          if ((System.currentTimeMillis() - t) > 5500)
-            break;
-        }
-      } 
-      catch (IOException e) {}
+			try {  
+				while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
+					bytes += inlth;
+					pub_bytes = bytes;
+					if ((System.currentTimeMillis() - t) > 5500)
+						break;
+				}
+			} 
+			catch (IOException e) {}
 
-      t =  System.currentTimeMillis() - t;
-      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
-      s2cspd = ((8.0 * bytes) / 1000) / t;
+			t =  System.currentTimeMillis() - t;
+			System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
+			s2cspd = ((8.0 * bytes) / 1000) / t;
 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_MSG) {
-        errmsg = messages.getString("mboxWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      tmpstr2 = new String(msg.body);
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_MSG) {
+				errmsg = messages.getString("mboxWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			tmpstr2 = new String(msg.body);
 
-      String tmpstr4 = Double.toString(s2cspd*1000);
-      System.out.println("Sending '" + tmpstr4 + "' back to server");
-      ctl.send_msg(MessageType.TEST_MSG, tmpstr4.getBytes());
+			String tmpstr4 = Double.toString(s2cspd*1000);
+			System.out.println("Sending '" + tmpstr4 + "' back to server");
+			ctl.send_msg(MessageType.TEST_MSG, tmpstr4.getBytes());
 
-      try {
-        tmpstr2 += in2Socket.getInetAddress() + ";";
-      } catch (SecurityException e) {
-        System.err.println("Unable to obtain Servers IP addresses: using " + host);
-        errmsg = "getInetAddress() called failed\n" ;
-        tmpstr2 += host + ";";
-        results.append(messages.getString("lookupError") + "\n");
-      }
+			try {
+				tmpstr2 += in2Socket.getInetAddress() + ";";
+			} catch (SecurityException e) {
+				System.err.println("Unable to obtain Servers IP addresses: using " + host);
+				errmsg = "getInetAddress() called failed\n" ;
+				tmpstr2 += host + ";";
+				results.append(messages.getString("lookupError") + "\n");
+			}
 
-      System.err.println("calling in2Socket.getLocalAddress()");
-      try {
-        tmpstr2 += in2Socket.getLocalAddress() + ";";
-      } catch (SecurityException e) {
-        System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-        errmsg = "getLocalAddress() call failed\n" ;
-        tmpstr2 += "127.0.0.1;";
-      }
+			System.err.println("calling in2Socket.getLocalAddress()");
+			try {
+				tmpstr2 += in2Socket.getLocalAddress() + ";";
+			} catch (SecurityException e) {
+				System.err.println("Unable to obtain local IP address: using 127.0.0.1");
+				errmsg = "getLocalAddress() call failed\n" ;
+				tmpstr2 += "127.0.0.1;";
+			}
 
-      srvin2.close();
-      srvout2.close();
-      in2Socket.close();
+			srvin2.close();
+			srvout2.close();
+			in2Socket.close();
 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_FINALIZE) {
-        errmsg = messages.getString("mboxWrongMessage");
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      results.append(messages.getString("done") + "\n");
-      _txtStatistics.append(messages.getString("done") + "\n");
-      emailText += messages.getString("done") + "\n%0A";
-    }
-    return false;
-  }
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_FINALIZE) {
+				errmsg = messages.getString("mboxWrongMessage");
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			results.append(messages.getString("done") + "\n");
+			_txtStatistics.append(messages.getString("done") + "\n");
+			emailText += messages.getString("done") + "\n%0A";
+		}
+		return false;
+	}
 
-  public boolean test_sfw(Protocol ctl) throws IOException
-  {
-    Message msg = new Message();
-    if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
-      showStatus(messages.getString("sfwTest"));
-      results.append(messages.getString("checkingFirewalls") + "  ");
-      _txtStatistics.append(messages.getString("checkingFirewalls") + "  ");
-      emailText = messages.getString("checkingFirewalls") + "  ";
-      pub_status = "checkingFirewalls";
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_PREPARE) {
-        errmsg = messages.getString("sfwWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
+	public boolean test_sfw(Protocol ctl) throws IOException
+	{
+		Message msg = new Message();
+		if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
+			showStatus(messages.getString("sfwTest"));
+			results.append(messages.getString("checkingFirewalls") + "  ");
+			_txtStatistics.append(messages.getString("checkingFirewalls") + "  ");
+			emailText = messages.getString("checkingFirewalls") + "  ";
+			pub_status = "checkingFirewalls";
 
-      String message = new String(msg.body);
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_PREPARE) {
+				errmsg = messages.getString("sfwWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
 
-      int srvPort, testTime;
-      try {
-        int k = message.indexOf(" ");
-        srvPort = Integer.parseInt(message.substring(0,k));
-        testTime = Integer.parseInt(message.substring(k+1));
-      }
-      catch (Exception e) {
-        errmsg = messages.getString("sfwWrongMessage") + "\n";
-        return true;
-      }
+			String message = new String(msg.body);
 
-      System.out.println("SFW: port=" + srvPort);
-      System.out.println("SFW: testTime=" + testTime);
+			int srvPort, testTime;
+			try {
+				int k = message.indexOf(" ");
+				srvPort = Integer.parseInt(message.substring(0,k));
+				testTime = Integer.parseInt(message.substring(k+1));
+			}
+			catch (Exception e) {
+				errmsg = messages.getString("sfwWrongMessage") + "\n";
+				return true;
+			}
 
-      ServerSocket srvSocket;
-      try {
-          SecurityManager security = System.getSecurityManager();
-          if (security != null) {
-              System.out.println("Asking security manager for listen permissions...");
-              security.checkListen(0);
-          }
-          srvSocket = new ServerSocket(0);
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-        errmsg = messages.getString("sfwSocketFail") + "\n";
-        return true;
-      }
+			System.out.println("SFW: port=" + srvPort);
+			System.out.println("SFW: testTime=" + testTime);
 
-      System.out.println("SFW: oport=" + srvSocket.getLocalPort());
-      ctl.send_msg(MessageType.TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
+			ServerSocket srvSocket;
+			try {
+				SecurityManager security = System.getSecurityManager();
+				if (security != null) {
+					System.out.println("Asking security manager for listen permissions...");
+					security.checkListen(0);
+				}
+				srvSocket = new ServerSocket(0);
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				errmsg = messages.getString("sfwSocketFail") + "\n";
+				return true;
+			}
 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_START) {
-        errmsg = messages.getString("sfwWrongMessage");
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }     
+			System.out.println("SFW: oport=" + srvSocket.getLocalPort());
+			ctl.send_msg(MessageType.TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
 
-      OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
-      new Thread(osfwTest).start();
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_START) {
+				errmsg = messages.getString("sfwWrongMessage");
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}     
 
-      Socket sfwSocket = new Socket();
-      try {
-        sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
+			OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
+			new Thread(osfwTest).start();
 
-        Protocol sfwCtl = new Protocol(sfwSocket);
-        sfwCtl.send_msg(MessageType.TEST_MSG, new String("Simple firewall test").getBytes());
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-      }
+			Socket sfwSocket = new Socket();
+			try {
+				sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_MSG) {
-        errmsg = messages.getString("sfwWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      c2sResult = Integer.parseInt(new String(msg.body));
+				Protocol sfwCtl = new Protocol(sfwSocket);
+				sfwCtl.send_msg(MessageType.TEST_MSG, new String("Simple firewall test").getBytes());
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
 
-      osfwTest.finalize();
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_MSG) {
+				errmsg = messages.getString("sfwWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			c2sResult = Integer.parseInt(new String(msg.body));
 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_FINALIZE) {
-        errmsg = messages.getString("sfwWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      results.append(messages.getString("done") + "\n");
-      _txtStatistics.append(messages.getString("done") + "\n");
-      emailText += messages.getString("done") + "\n%0A";
-    }
-    return false;
-  }
+			osfwTest.finalize();
 
-  public boolean test_c2s(Protocol ctl) throws IOException
-  {
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_FINALIZE) {
+				errmsg = messages.getString("sfwWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			results.append(messages.getString("done") + "\n");
+			_txtStatistics.append(messages.getString("done") + "\n");
+			emailText += messages.getString("done") + "\n%0A";
+		}
+		return false;
+	}
+
+	public boolean test_c2s(Protocol ctl) throws IOException
+	{
 		// byte buff2[] = new byte[8192];
 		byte buff2[] = new byte[64*1024];
-    Message msg = new Message();
-    if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-      showStatus(messages.getString("outboundTest"));
-      results.append(messages.getString("runningOutboundTest") + " ");
-      _txtStatistics.append(messages.getString("runningOutboundTest") + " ");
-      emailText += messages.getString("runningOutboundTest") + " ";
-      pub_status = "runningOutboundTest";
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_PREPARE) {
-        errmsg = messages.getString("outboundWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      int c2sport = Integer.parseInt(new String(msg.body));
+		Message msg = new Message();
+		if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+			showStatus(messages.getString("outboundTest"));
+			results.append(messages.getString("runningOutboundTest") + " ");
+			_txtStatistics.append(messages.getString("runningOutboundTest") + " ");
+			emailText += messages.getString("runningOutboundTest") + " ";
+			pub_status = "runningOutboundTest";
 
-      final Socket outSocket;
-      try {
-        outSocket = new Socket(host, c2sport);
-      } catch (UnknownHostException e) {
-        System.err.println("Don't know about host: " + host);
-        errmsg = messages.getString("unknownServer") + "\n" ;
-        return true;
-      } catch (IOException e) {
-        System.err.println("Couldn't get 2nd connection to: " + host);
-        errmsg = messages.getString("serverBusy15s") + "\n";
-        return true;
-      }
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_PREPARE) {
+				errmsg = messages.getString("outboundWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			int c2sport = Integer.parseInt(new String(msg.body));
 
-	// Get server IP address from the outSocket.
-	pub_host	 = outSocket.getInetAddress().getHostAddress().toString();
+			final Socket outSocket;
+			try {
+				outSocket = new Socket(host, c2sport);
+			} catch (UnknownHostException e) {
+				System.err.println("Don't know about host: " + host);
+				errmsg = messages.getString("unknownServer") + "\n" ;
+				return true;
+			} catch (IOException e) {
+				System.err.println("Couldn't get 2nd connection to: " + host);
+				errmsg = messages.getString("serverBusy15s") + "\n";
+				return true;
+			}
+
+			// Get server IP address from the outSocket.
+			pub_host	 = outSocket.getInetAddress().getHostAddress().toString();
 
 
-      final OutputStream out = outSocket.getOutputStream();
+			final OutputStream out = outSocket.getOutputStream();
 
-      // wait here for signal from server application 
-      // This signal tells the client to start pumping out data
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_START) {
-        errmsg = messages.getString("outboundWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
+			// wait here for signal from server application 
+			// This signal tells the client to start pumping out data
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_START) {
+				errmsg = messages.getString("outboundWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
 
-      byte c = '0';
-      int i;
-      for (i=0; i<lth; i++) {
-        if (c == 'z')
-          c = '0';
-        buff2[i] = c++;
-      }
-      System.err.println("Send buffer size =" + i);
-      pkts = 0;
-      t = System.currentTimeMillis();
-      pub_time = t;
-        new Thread() {
-            
-            public void run() {
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    System.out.println(e);
-                }
-                try {
-                    out.close();
-                    outSocket.close();
-                } catch (IOException e) {
-                    System.out.println(e);
-                }
-            }
-        }.start();
-      while (true) {
-	// System.err.println("Send pkt = " + pkts + "; at " + System.currentTimeMillis());
-        try {
-          out.write(buff2, 0, buff2.length);
-        }
-        catch (SocketException e) {
-          System.out.println(e);
-          break;
-        }
-	// catch (InterruptedIOException iioe) {
-	catch (IOException ioe) {
-	  System.out.println("Client socket timed out");
-	  break;
+			byte c = '0';
+			int i;
+			for (i=0; i<lth; i++) {
+				if (c == 'z')
+					c = '0';
+				buff2[i] = c++;
+			}
+			System.err.println("Send buffer size =" + i);
+			pkts = 0;
+			t = System.currentTimeMillis();
+			pub_time = t;
+			new Thread() {
+
+				public void run() {
+					try {
+						Thread.sleep(10000);
+					} catch (InterruptedException e) {
+						System.out.println(e);
+					}
+					try {
+						out.close();
+						outSocket.close();
+					} catch (IOException e) {
+						System.out.println(e);
+					}
+				}
+			}.start();
+			while (true) {
+				// System.err.println("Send pkt = " + pkts + "; at " + System.currentTimeMillis());
+				try {
+					out.write(buff2, 0, buff2.length);
+				}
+				catch (SocketException e) {
+					System.out.println(e);
+					break;
+				}
+				// catch (InterruptedIOException iioe) {
+				catch (IOException ioe) {
+					System.out.println("Client socket timed out");
+					break;
+				}
+				pkts++;
+				pub_bytes = (pkts * lth);
+			}
+
+			t =  System.currentTimeMillis() - t;
+			System.err.println(t + "sec test completed");
+			if (t == 0) {
+				t = 1;
+			}
+			System.out.println((8.0 * pkts * buff2.length) / t + " kb/s outbound");
+			c2sspd = ((8.0 * pkts * buff2.length) / 1000) / t;
+			/* receive the c2sspd from the server */
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_MSG) {
+				errmsg = messages.getString("outboundWrongMessage");
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			String tmpstr3 = new String(msg.body);
+			sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
+
+			if (sc2sspd < 1.0) {
+				results.append(prtdbl(sc2sspd*1000) + "kb/s\n");
+				_txtStatistics.append(prtdbl(sc2sspd*1000) + "kb/s\n");
+				emailText += prtdbl(sc2sspd*1000) + "kb/s\n%0A";
+			} 
+			else {
+				results.append(prtdbl(sc2sspd) + "Mb/s\n");
+				_txtStatistics.append(prtdbl(sc2sspd) + "Mb/s\n");
+				emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
+			}
+
+			// Expose upload speed to JavaScript clients
+			pub_c2sspd = sc2sspd;
+
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_FINALIZE) {
+				errmsg = messages.getString("outboundWrongMessage");
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+		}
+		return false;
 	}
-        pkts++;
-	pub_bytes = (pkts * lth);
-      }
 
-      t =  System.currentTimeMillis() - t;
-	System.err.println(t + "sec test completed");
-      if (t == 0) {
-        t = 1;
-      }
-      System.out.println((8.0 * pkts * buff2.length) / t + " kb/s outbound");
-      c2sspd = ((8.0 * pkts * buff2.length) / 1000) / t;
-      /* receive the c2sspd from the server */
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_MSG) {
-        errmsg = messages.getString("outboundWrongMessage");
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      String tmpstr3 = new String(msg.body);
-      sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
-
-      if (sc2sspd < 1.0) {
-        results.append(prtdbl(sc2sspd*1000) + "kb/s\n");
-        _txtStatistics.append(prtdbl(sc2sspd*1000) + "kb/s\n");
-        emailText += prtdbl(sc2sspd*1000) + "kb/s\n%0A";
-      } 
-      else {
-        results.append(prtdbl(sc2sspd) + "Mb/s\n");
-        _txtStatistics.append(prtdbl(sc2sspd) + "Mb/s\n");
-        emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
-      }
-
-		// Expose upload speed to JavaScript clients
-           pub_c2sspd = sc2sspd;
-    
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_FINALIZE) {
-        errmsg = messages.getString("outboundWrongMessage");
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public boolean test_s2c(Protocol ctl, Socket ctlSocket) throws IOException
-  {
+	public boolean test_s2c(Protocol ctl, Socket ctlSocket) throws IOException
+	{
 		byte buff[] = new byte[8192];
-    Message msg = new Message();
-    if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-        showStatus(messages.getString("inboundTest"));
-        results.append(messages.getString("runningInboundTest") + " ");
-        _txtStatistics.append(messages.getString("runningInboundTest") + " ");
-        emailText += messages.getString("runningInboundTest") + " ";
-        pub_status = "runningInboundTest";
-      
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_PREPARE) {
-        errmsg = messages.getString("inboundWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      int s2cport = Integer.parseInt(new String(msg.body));
+		Message msg = new Message();
+		if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+			showStatus(messages.getString("inboundTest"));
+			results.append(messages.getString("runningInboundTest") + " ");
+			_txtStatistics.append(messages.getString("runningInboundTest") + " ");
+			emailText += messages.getString("runningInboundTest") + " ";
+			pub_status = "runningInboundTest";
 
-      Socket inSocket;
-      try {
-        inSocket = new Socket(host, s2cport);
-      } 
-      catch (UnknownHostException e) {
-        System.err.println("Don't know about host: " + host);
-        errmsg = "unknown server\n" ;
-        return true;
-      } 
-      catch (IOException e) {
-        System.err.println("Couldn't get 3rd connection to: " + host);
-        errmsg = "Server Failed while receiving data\n" ;
-        return true;
-      }
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_PREPARE) {
+				errmsg = messages.getString("inboundWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			int s2cport = Integer.parseInt(new String(msg.body));
 
-      InputStream srvin = inSocket.getInputStream();
-      int bytes = 0;
-      int inlth;
+			Socket inSocket;
+			try {
+				inSocket = new Socket(host, s2cport);
+			} 
+			catch (UnknownHostException e) {
+				System.err.println("Don't know about host: " + host);
+				errmsg = "unknown server\n" ;
+				return true;
+			} 
+			catch (IOException e) {
+				System.err.println("Couldn't get 3rd connection to: " + host);
+				errmsg = "Server Failed while receiving data\n" ;
+				return true;
+			}
 
-      // wait here for signal from server application 
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("unknownServer") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_START) {
-        errmsg = messages.getString("serverFail") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
+			InputStream srvin = inSocket.getInputStream();
+			int bytes = 0;
+			int inlth;
 
-      inSocket.setSoTimeout(15000);
-      t = System.currentTimeMillis();
-      pub_time = t;
+			// wait here for signal from server application 
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("unknownServer") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_START) {
+				errmsg = messages.getString("serverFail") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
 
-      try {  
-        while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
-          bytes += inlth;
-	  pub_bytes = bytes;
-          if ((System.currentTimeMillis() - t) > 14500)
-            break;
-        }
-      } 
-      catch (IOException e) {}
+			inSocket.setSoTimeout(15000);
+			t = System.currentTimeMillis();
+			pub_time = t;
 
-      t =  System.currentTimeMillis() - t;
-      System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
-      s2cspd = ((8.0 * bytes) / 1000) / t;
+			try {  
+				while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
+					bytes += inlth;
+					pub_bytes = bytes;
+					if ((System.currentTimeMillis() - t) > 14500)
+						break;
+				}
+			} 
+			catch (IOException e) {}
 
-      /* receive the s2cspd from the server */
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_MSG) {
-        errmsg = messages.getString("inboundWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      try {
-        String tmpstr3 = new String(msg.body);
-        int k1 = tmpstr3.indexOf(" ");
-        int k2 = tmpstr3.substring(k1+1).indexOf(" ");
-        ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
-        ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
-        sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
-      }
-      catch (Exception e) {
-        e.printStackTrace();
-        errmsg = messages.getString("inboundWrongMessage") + "\n";
-        return true;
-      }
+			t =  System.currentTimeMillis() - t;
+			System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
+			s2cspd = ((8.0 * bytes) / 1000) / t;
 
-      if (s2cspd < 1.0) {
-        results.append(prtdbl(s2cspd*1000) + "kb/s\n");
-        _txtStatistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
-        emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
-      } else {
-        results.append(prtdbl(s2cspd) + "Mb/s\n");
-        _txtStatistics.append(prtdbl(s2cspd) + "Mb/s\n");
-        emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
-      }
+			/* receive the s2cspd from the server */
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_MSG) {
+				errmsg = messages.getString("inboundWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			try {
+				String tmpstr3 = new String(msg.body);
+				int k1 = tmpstr3.indexOf(" ");
+				int k2 = tmpstr3.substring(k1+1).indexOf(" ");
+				ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
+				ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
+				sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				errmsg = messages.getString("inboundWrongMessage") + "\n";
+				return true;
+			}
 
-
-		// Expose download speed to JavaScript clients
-           pub_s2cspd = s2cspd;
-           pub_status = "done";
-
-      srvin.close();
-      inSocket.close();
-
-      buff = Double.toString(s2cspd*1000).getBytes();
-      String tmpstr4 = new String(buff, 0, buff.length);
-      System.out.println("Sending '" + tmpstr4 + "' back to server");
-      ctl.send_msg(MessageType.TEST_MSG, buff);
-
-      /* get web100 variables from server */
-      tmpstr = "";
-      int i = 0;
-
-      // Try setting a 5 second timer here to break out if the read fails.
-      ctlSocket.setSoTimeout(5000);
-      try {  
-        for (;;) {
-          if (ctl.recv_msg(msg) != 0) {
-            errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-            return true;
-          }
-          if (msg.type == MessageType.TEST_FINALIZE) {
-            break;
-          }
-          if (msg.type != MessageType.TEST_MSG) {
-            errmsg = messages.getString("inboundWrongMessage") + "\n";
-            if (msg.type == MessageType.MSG_ERROR) {
-                errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-            }
-            return true;
-          }
-          tmpstr += new String(msg.body);
-          i++;
-        }
-      } catch (IOException e) {}
-      ctlSocket.setSoTimeout(0);
-    }
-    pub_status = "done";
-    return false;
-  }
-
-  public boolean test_meta(Protocol ctl) throws IOException
-  {
-    Message msg = new Message();
-    if ((tests & NDTConstants.TEST_META) == NDTConstants.TEST_META) {
-      showStatus(messages.getString("metaTest"));
-      results.append(messages.getString("sendingMetaInformation") + " ");
-      _txtStatistics.append(messages.getString("sendingMetaInformation") + " ");
-      emailText += messages.getString("sendingMetaInformation") + " ";
-      pub_status = "sendingMetaInformation";
-
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_PREPARE) {
-        errmsg = messages.getString("metaWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_START) {
-        errmsg = messages.getString("metaWrongMessage") + "\n";
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-
-      ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_OS + ":" + System.getProperty("os.name")).getBytes());
-      ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_BROWSER_OS + ":" + UserAgentTools.getBrowser(getUserAgent())[2]).getBytes());
-      ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_KERNEL_VERSION + ":" + System.getProperty("os.version")).getBytes());
-      ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
-      
-      ctl.send_msg(MessageType.TEST_MSG, new byte[0]);
-
-      if (ctl.recv_msg(msg) != 0) {
-        errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-        return true;
-      }
-      if (msg.type != MessageType.TEST_FINALIZE) {
-        errmsg = messages.getString("metaWrongMessage");
-        if (msg.type == MessageType.MSG_ERROR) {
-            errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
-        }
-        return true;
-      }
-      results.append(messages.getString("done") + "\n");
-      _txtStatistics.append(messages.getString("done") + "\n");
-      emailText += messages.getString("done") + "\n%0A";
-    }
-    
-    pub_status = "done";
-    return false;
-  }
-
-  public void dottcp(StatusPanel sPanel) throws IOException {
-      Socket ctlSocket = null;
-      if (!isApplication) {
-
-          /*************************************************************************
-           * Enable NDT to test against a web100srv instance on a remote server.
-           * Instead of using the getCodeBase().getHost() value for the testing server,
-           * which assumes this applet is being served from the web100srv server,
-           * use a parameter provided in the APPLET tag.
-           * Note that for this to work the applet must be signed because you are
-           * potentially accessing a server outside the source domain.
-           */
-          host = getParameter("testingServer");
-          /************************************************************************/
-          /* fall back to the old behaviour if the APPLET tag is not set */
-          if (host == null) {
-              host = getCodeBase().getHost();
-          }
-		  
-		  pub_host = host;
-      }
+			if (s2cspd < 1.0) {
+				results.append(prtdbl(s2cspd*1000) + "kb/s\n");
+				_txtStatistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
+				emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
+			} else {
+				results.append(prtdbl(s2cspd) + "Mb/s\n");
+				_txtStatistics.append(prtdbl(s2cspd) + "Mb/s\n");
+				emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
+			}
 
 
+			// Expose download speed to JavaScript clients
+			pub_s2cspd = s2cspd;
+			pub_status = "done";
+
+			srvin.close();
+			inSocket.close();
+
+			buff = Double.toString(s2cspd*1000).getBytes();
+			String tmpstr4 = new String(buff, 0, buff.length);
+			System.out.println("Sending '" + tmpstr4 + "' back to server");
+			ctl.send_msg(MessageType.TEST_MSG, buff);
+
+			/* get web100 variables from server */
+			tmpstr = "";
+			int i = 0;
+
+			// Try setting a 5 second timer here to break out if the read fails.
+			ctlSocket.setSoTimeout(5000);
+			try {  
+				for (;;) {
+					if (ctl.recv_msg(msg) != 0) {
+						errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+						return true;
+					}
+					if (msg.type == MessageType.TEST_FINALIZE) {
+						break;
+					}
+					if (msg.type != MessageType.TEST_MSG) {
+						errmsg = messages.getString("inboundWrongMessage") + "\n";
+						if (msg.type == MessageType.MSG_ERROR) {
+							errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+						}
+						return true;
+					}
+					tmpstr += new String(msg.body);
+					i++;
+				}
+			} catch (IOException e) {}
+			ctlSocket.setSoTimeout(0);
+		}
+		pub_status = "done";
+		return false;
+	}
+
+	public boolean test_meta(Protocol ctl) throws IOException
+	{
+		Message msg = new Message();
+		if ((tests & NDTConstants.TEST_META) == NDTConstants.TEST_META) {
+			showStatus(messages.getString("metaTest"));
+			results.append(messages.getString("sendingMetaInformation") + " ");
+			_txtStatistics.append(messages.getString("sendingMetaInformation") + " ");
+			emailText += messages.getString("sendingMetaInformation") + " ";
+			pub_status = "sendingMetaInformation";
+
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_PREPARE) {
+				errmsg = messages.getString("metaWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_START) {
+				errmsg = messages.getString("metaWrongMessage") + "\n";
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+
+			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_OS + ":" + System.getProperty("os.name")).getBytes());
+			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_BROWSER_OS + ":" + UserAgentTools.getBrowser(getUserAgent())[2]).getBytes());
+			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_KERNEL_VERSION + ":" + System.getProperty("os.version")).getBytes());
+			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
+
+			ctl.send_msg(MessageType.TEST_MSG, new byte[0]);
+
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				return true;
+			}
+			if (msg.type != MessageType.TEST_FINALIZE) {
+				errmsg = messages.getString("metaWrongMessage");
+				if (msg.type == MessageType.MSG_ERROR) {
+					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+				}
+				return true;
+			}
+			results.append(messages.getString("done") + "\n");
+			_txtStatistics.append(messages.getString("done") + "\n");
+			emailText += messages.getString("done") + "\n%0A";
+		}
+
+		pub_status = "done";
+		return false;
+	}
+
+	public void dottcp(StatusPanel sPanel) throws IOException {
+		Socket ctlSocket = null;
+		if (!isApplication) {
+
+			/*************************************************************************
+			 * Enable NDT to test against a web100srv instance on a remote server.
+			 * Instead of using the getCodeBase().getHost() value for the testing server,
+			 * which assumes this applet is being served from the web100srv server,
+			 * use a parameter provided in the APPLET tag.
+			 * Note that for this to work the applet must be signed because you are
+			 * potentially accessing a server outside the source domain.
+			 */
+			host = getParameter("testingServer");
+			/************************************************************************/
+			/* fall back to the old behaviour if the APPLET tag is not set */
+			if (host == null) {
+				host = getCodeBase().getHost();
+			}
+
+			pub_host = host;
+		}
 
 
-      	int ctlport = 3001;
-      	double wait2;
-      	int sbuf, rbuf;
-      	int i, wait, swait=0;
-
-      	failed = false;
-          
-      try {
-		  
-		// RAC Debug message
-        results.append(messages.getString("connectingTo") + " '" + host + "' [" + InetAddress.getByName(host) + "] " + messages.getString("toRunTest") + "\n");
-
-		  if (preferIPv6.isSelected()) {
-              try {
-                  System.setProperty("java.net.preferIPv6Addresses", "true");
-              }
-              catch (SecurityException e) {
-                  System.err.println("Couldn't set system property. Check your security settings.");
-              }
-          }
-          preferIPv6.setEnabled(false);
-          ctlSocket = new Socket(host, ctlport);
-      } catch (UnknownHostException e) {
-          System.err.println("Don't know about host: " + host);
-          errmsg = messages.getString("unknownServer") + "\n" ;
-          failed = true;
-          return;
-      } catch (IOException e) {
-          System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
-          errmsg = messages.getString("serverNotRunning") + " (" + host + ":" + ctlport + ")\n" ;
-          failed = true;
-          return;
-      }
-      Protocol ctl = new Protocol(ctlSocket);
-      Message msg = new Message();
-
-      /* The beginning of the protocol */
-
-      if (ctlSocket.getInetAddress() instanceof Inet6Address) {
-          results.append(messages.getString("connected") + " " + host + messages.getString("usingIpv6") + "\n");
-      }
-      else {
-          results.append(messages.getString("connected") + " " + host + messages.getString("usingIpv4") + "\n");
-      }
-
-      /* write our test suite request */
-      ctl.send_msg(MessageType.MSG_LOGIN, tests);
-      /* read the specially crafted data that kicks off the old clients */
-      if (ctl.readn(msg, 13) != 13) {
-          errmsg = messages.getString("unsupportedClient") + "\n";
-          failed = true;
-          return;
-      }
-
-      for (;;) {
-          if (ctl.recv_msg(msg) != 0) {
-              errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-              failed = true;
-              return;
-          }
-          if (msg.type != MessageType.SRV_QUEUE) {
-              errmsg = messages.getString("loggingWrongMessage") + "\n";
-              failed = true;
-              return;
-          }
-          String tmpstr3 = new String(msg.body);
-          wait = Integer.parseInt(tmpstr3);
-          System.out.println("wait flag received = " + wait);
-
-          if (wait == 0) {
-              break;
-          }
-
-          if (wait == 9988) {
-	    if (swait == 0) {
-              errmsg = messages.getString("serverBusy") + "\n";
-              failed = true;
-              return;
-	    } else {
-              errmsg = messages.getString("serverFault") + "\n";
-              failed = true;
-              return;
-	    }
-          }
-
-          if (wait == 9999) {
-              errmsg = messages.getString("serverBusy60s") + "\n";
-              failed = true;
-              return;
-          }
-
-	  if (wait == 9990) {  // signal from the server to see if the client is still alive
-      	      ctl.send_msg(MessageType.MSG_WAITING, tests);
-	      continue;
-	  }
-
-          // Each test should take less than 30 seconds, so tell them 45 sec * number of 
-          // tests in the queue.
-          wait = (wait * 45);
-          results.append(messages.getString("otherClient") + wait + messages.getString("seconds") +".\n");
-	  swait = 1;
-      }
-
-      frameWeb100Vars.toBack();
-      frameDetailedStats.toBack();
-
-      if (ctl.recv_msg(msg) != 0) {
-          errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-          failed = true;
-          return;
-      }
-      if (msg.type != MessageType.MSG_LOGIN) {
-          errmsg = messages.getString("versionWrongMessage") + "\n";
-          failed = true;
-          return;
-      }
-
-      String vVersion = new String(msg.body);
-      if (!vVersion.startsWith("v")) {
-          errmsg = messages.getString("incompatibleVersion");
-          failed = true;
-          return;
-      }
-      System.out.println("Server version: " + vVersion.substring(1));
-
-      if (ctl.recv_msg(msg) != 0) {
-          errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-          failed = true;
-          return;
-      }
-      if (msg.type != MessageType.MSG_LOGIN) {
-          errmsg = messages.getString("testsuiteWrongMessage") + "\n";
-          failed = true;
-          return;
-      }
-      StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
-
-      while (tokenizer.hasMoreTokens()) {
-          if (sPanel.wantToStop()) {
-              ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
-              ctl.close();
-              ctlSocket.close();
-              errmsg = "\n" + messages.getString("stopped") + "\n";
-              failed = true;
-              return;
-          }
-          int testId = Integer.parseInt(tokenizer.nextToken());
-          switch (testId) {
-              case NDTConstants.TEST_MID:
-                  sPanel.setText(messages.getString("middlebox"));
-                  if (test_mid(ctl)) {
-                      results.append(errmsg);
-                      results.append(messages.getString("middleboxFail2") + "\n");
-                      tests &= (~NDTConstants.TEST_MID);
-                  }
-                  break;
-              case NDTConstants.TEST_SFW:
-                  sPanel.setText(messages.getString("simpleFirewall"));
-                  if (test_sfw(ctl)) {
-                      results.append(errmsg);
-                      results.append(messages.getString("sfwFail") + "\n");
-                      tests &= (~NDTConstants.TEST_SFW);
-                  }
-                  break;
-              case NDTConstants.TEST_C2S:
-                  sPanel.setText(messages.getString("c2sThroughput"));
-                  if (test_c2s(ctl)) {
-                      results.append(errmsg);
-                      results.append(messages.getString("c2sThroughputFailed") + "\n");
-                      tests &= (~NDTConstants.TEST_C2S);
-                  }
-                  break;
-              case NDTConstants.TEST_S2C:
-                  sPanel.setText(messages.getString("s2cThroughput"));
-                  if (test_s2c(ctl, ctlSocket)) {
-                      results.append(errmsg);
-                      results.append(messages.getString("s2cThroughputFailed") + "\n");
-                      tests &= (~NDTConstants.TEST_S2C);
-                  }
-                  break;
-              case NDTConstants.TEST_META:
-                  sPanel.setText(messages.getString("meta"));
-                  if (test_meta(ctl)) {
-                      results.append(errmsg);
-                      results.append(messages.getString("metaFailed") + "\n");
-                      tests &= (~NDTConstants.TEST_META);
-                  }
-                  break;
-              default:
-                  errmsg = messages.getString("unknownID") + "\n";
-                  failed = true;
-                  return;
-          }
-      }
-      if (sPanel.wantToStop()) {
-          ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
-          ctl.close();
-          ctlSocket.close();
-          errmsg = messages.getString("stopped") + "\n";
-          failed = true;
-          return;
-      }
-
-      sPanel.setText(messages.getString("receiving"));
-      i = 0;
-
-      try {  
-          for (;;) {
-              if (ctl.recv_msg(msg) != 0) {
-                  errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-                  failed = true;
-                  return;
-              }
-              if (msg.type == MessageType.MSG_LOGOUT) {
-                  break;
-              }
-              if (msg.type != MessageType.MSG_RESULTS) {
-                  errmsg = messages.getString("resultsWrongMessage") + "\n";
-                  failed = true;
-                  return;
-              }
-              tmpstr += new String(msg.body);
-              i++;
-          }
-      } catch (IOException e) {}
-
-      if (i == 0) {
-          results.append(messages.getString("resultsTimeout") + "\n");
-      }
-      System.err.println("Calling InetAddress.getLocalHost() twice");
-      try {
-          _txtDiagnosis.append(messages.getString("client") + ": " + InetAddress.getLocalHost() + "\n");
-      } catch (SecurityException e) {
-    	  _txtDiagnosis.append(messages.getString("client") + ": 127.0.0.1\n");
-          results.append(messages.getString("unableToObtainIP") + "\n");
-          System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-      }
-
-      try {
-          emailText += messages.getString("client") + ": " + InetAddress.getLocalHost() + "\n%0A";
-      } catch (SecurityException e) {
-          emailText += messages.getString("client") + ": " + "127.0.0.1" + "\n%0A";
-      }
-
-      ctl.close();
-      ctlSocket.close();
-
-      try {
-          testResults(tmpstr);
-      }
-      catch (Exception ex) {
-          results.append(messages.getString("resultsParseError")  + "\n");
-          results.append(ex + "\n");
-      }
-      if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
-          middleboxResults(tmpstr2);
-      }
-	  
-	  pub_isReady="yes";
-	  pub_errmsg ="All tests completed OK.";
-          pub_status = "done";
-  }
 
 
-	class OsfwWorker implements Runnable
-  {
-    private ServerSocket srvSocket;
-    private int testTime;
-    private boolean finalized = false;
-    
-    OsfwWorker(ServerSocket srvSocket, int testTime)
-    {
-      this.srvSocket = srvSocket;
-      this.testTime = testTime;
-    }
+		int ctlport = 3001;
+		double wait2;
+		int sbuf, rbuf;
+		int i, wait, swait=0;
 
-    public void finalize()
-    {
-      while (!finalized) {
-        try {
-          Thread.currentThread().sleep(1000);
-        }
-        catch (InterruptedException e) {
-          // do nothing.
-        }
-      }
-    }
-    
-    public void run()
-    {
-      Message msg = new Message();
-      Socket sock = null;
+		failed = false;
 
-      try {
-        srvSocket.setSoTimeout(testTime * 1000);
-        try {
-          sock = srvSocket.accept();
-        }
-        catch (Exception e) {
-          e.printStackTrace();
-          s2cResult = NDTConstants.SFW_POSSIBLE;
-          srvSocket.close();
-          finalized = true;
-          return;
-        }
-        Protocol sfwCtl = new Protocol(sock);
+		try {
 
-        if (sfwCtl.recv_msg(msg) != 0) {
-          System.out.println("Simple firewall test: unrecognized message");
-          s2cResult = NDTConstants.SFW_UNKNOWN;
-          sock.close();
-          srvSocket.close();
-          finalized = true;
-          return;
-        }
-        if (msg.type != MessageType.TEST_MSG) {
-          s2cResult = NDTConstants.SFW_UNKNOWN;
-          sock.close();
-          srvSocket.close();
-          finalized = true;
-          return;
-        }
-        if (! new String(msg.body).equals("Simple firewall test")) {
-          System.out.println("Simple firewall test: Improper message");
-          s2cResult = NDTConstants.SFW_UNKNOWN;
-          sock.close();
-          srvSocket.close();
-          finalized = true;
-          return;
-        }
-        s2cResult = NDTConstants.SFW_NOFIREWALL;
-      }
-      catch (IOException ex) {
-        s2cResult = NDTConstants.SFW_UNKNOWN;
-      }
-      try {
-        sock.close();
-        srvSocket.close();
-      }
-      catch (IOException e) {
-        // do nothing
-      }
-      finalized = true;
-    }
-  }
+			// RAC Debug message
+			results.append(messages.getString("connectingTo") + " '" + host + "' [" + InetAddress.getByName(host) + "] " + messages.getString("toRunTest") + "\n");
 
-  public void showBufferedBytesInfo()
-  {
-      JOptionPane.showMessageDialog(null, messages.getString("packetQueuingInfo"), messages.getString("packetQueuing"),
-      JOptionPane.INFORMATION_MESSAGE);
-  }
+			if (preferIPv6.isSelected()) {
+				try {
+					System.setProperty("java.net.preferIPv6Addresses", "true");
+				}
+				catch (SecurityException e) {
+					System.err.println("Couldn't set system property. Check your security settings.");
+				}
+			}
+			preferIPv6.setEnabled(false);
+			ctlSocket = new Socket(host, ctlport);
+		} catch (UnknownHostException e) {
+			System.err.println("Don't know about host: " + host);
+			errmsg = messages.getString("unknownServer") + "\n" ;
+			failed = true;
+			return;
+		} catch (IOException e) {
+			System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
+			errmsg = messages.getString("serverNotRunning") + " (" + host + ":" + ctlport + ")\n" ;
+			failed = true;
+			return;
+		}
+		Protocol ctl = new Protocol(ctlSocket);
+		Message msg = new Message();
+
+		/* The beginning of the protocol */
+
+		if (ctlSocket.getInetAddress() instanceof Inet6Address) {
+			results.append(messages.getString("connected") + " " + host + messages.getString("usingIpv6") + "\n");
+		}
+		else {
+			results.append(messages.getString("connected") + " " + host + messages.getString("usingIpv4") + "\n");
+		}
+
+		/* write our test suite request */
+		ctl.send_msg(MessageType.MSG_LOGIN, tests);
+		/* read the specially crafted data that kicks off the old clients */
+		if (ctl.readn(msg, 13) != 13) {
+			errmsg = messages.getString("unsupportedClient") + "\n";
+			failed = true;
+			return;
+		}
+
+		for (;;) {
+			if (ctl.recv_msg(msg) != 0) {
+				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				failed = true;
+				return;
+			}
+			if (msg.type != MessageType.SRV_QUEUE) {
+				errmsg = messages.getString("loggingWrongMessage") + "\n";
+				failed = true;
+				return;
+			}
+			String tmpstr3 = new String(msg.body);
+			wait = Integer.parseInt(tmpstr3);
+			System.out.println("wait flag received = " + wait);
+
+			if (wait == 0) {
+				break;
+			}
+
+			if (wait == 9988) {
+				if (swait == 0) {
+					errmsg = messages.getString("serverBusy") + "\n";
+					failed = true;
+					return;
+				} else {
+					errmsg = messages.getString("serverFault") + "\n";
+					failed = true;
+					return;
+				}
+			}
+
+			if (wait == 9999) {
+				errmsg = messages.getString("serverBusy60s") + "\n";
+				failed = true;
+				return;
+			}
+
+			if (wait == 9990) {  // signal from the server to see if the client is still alive
+				ctl.send_msg(MessageType.MSG_WAITING, tests);
+				continue;
+			}
+
+			// Each test should take less than 30 seconds, so tell them 45 sec * number of 
+			// tests in the queue.
+			wait = (wait * 45);
+			results.append(messages.getString("otherClient") + wait + messages.getString("seconds") +".\n");
+			swait = 1;
+		}
+
+		frameWeb100Vars.toBack();
+		frameDetailedStats.toBack();
+
+		if (ctl.recv_msg(msg) != 0) {
+			errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+			failed = true;
+			return;
+		}
+		if (msg.type != MessageType.MSG_LOGIN) {
+			errmsg = messages.getString("versionWrongMessage") + "\n";
+			failed = true;
+			return;
+		}
+
+		String vVersion = new String(msg.body);
+		if (!vVersion.startsWith("v")) {
+			errmsg = messages.getString("incompatibleVersion");
+			failed = true;
+			return;
+		}
+		System.out.println("Server version: " + vVersion.substring(1));
+
+		if (ctl.recv_msg(msg) != 0) {
+			errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+			failed = true;
+			return;
+		}
+		if (msg.type != MessageType.MSG_LOGIN) {
+			errmsg = messages.getString("testsuiteWrongMessage") + "\n";
+			failed = true;
+			return;
+		}
+		StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
+
+		while (tokenizer.hasMoreTokens()) {
+			if (sPanel.wantToStop()) {
+				ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
+				ctl.close();
+				ctlSocket.close();
+				errmsg = "\n" + messages.getString("stopped") + "\n";
+				failed = true;
+				return;
+			}
+			int testId = Integer.parseInt(tokenizer.nextToken());
+			switch (testId) {
+			case NDTConstants.TEST_MID:
+				sPanel.setText(messages.getString("middlebox"));
+				if (test_mid(ctl)) {
+					results.append(errmsg);
+					results.append(messages.getString("middleboxFail2") + "\n");
+					tests &= (~NDTConstants.TEST_MID);
+				}
+				break;
+			case NDTConstants.TEST_SFW:
+				sPanel.setText(messages.getString("simpleFirewall"));
+				if (test_sfw(ctl)) {
+					results.append(errmsg);
+					results.append(messages.getString("sfwFail") + "\n");
+					tests &= (~NDTConstants.TEST_SFW);
+				}
+				break;
+			case NDTConstants.TEST_C2S:
+				sPanel.setText(messages.getString("c2sThroughput"));
+				if (test_c2s(ctl)) {
+					results.append(errmsg);
+					results.append(messages.getString("c2sThroughputFailed") + "\n");
+					tests &= (~NDTConstants.TEST_C2S);
+				}
+				break;
+			case NDTConstants.TEST_S2C:
+				sPanel.setText(messages.getString("s2cThroughput"));
+				if (test_s2c(ctl, ctlSocket)) {
+					results.append(errmsg);
+					results.append(messages.getString("s2cThroughputFailed") + "\n");
+					tests &= (~NDTConstants.TEST_S2C);
+				}
+				break;
+			case NDTConstants.TEST_META:
+				sPanel.setText(messages.getString("meta"));
+				if (test_meta(ctl)) {
+					results.append(errmsg);
+					results.append(messages.getString("metaFailed") + "\n");
+					tests &= (~NDTConstants.TEST_META);
+				}
+				break;
+			default:
+				errmsg = messages.getString("unknownID") + "\n";
+				failed = true;
+				return;
+			}
+		}
+		if (sPanel.wantToStop()) {
+			ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
+			ctl.close();
+			ctlSocket.close();
+			errmsg = messages.getString("stopped") + "\n";
+			failed = true;
+			return;
+		}
+
+		sPanel.setText(messages.getString("receiving"));
+		i = 0;
+
+		try {  
+			for (;;) {
+				if (ctl.recv_msg(msg) != 0) {
+					errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+					failed = true;
+					return;
+				}
+				if (msg.type == MessageType.MSG_LOGOUT) {
+					break;
+				}
+				if (msg.type != MessageType.MSG_RESULTS) {
+					errmsg = messages.getString("resultsWrongMessage") + "\n";
+					failed = true;
+					return;
+				}
+				tmpstr += new String(msg.body);
+				i++;
+			}
+		} catch (IOException e) {}
+
+		if (i == 0) {
+			results.append(messages.getString("resultsTimeout") + "\n");
+		}
+		System.err.println("Calling InetAddress.getLocalHost() twice");
+		try {
+			_txtDiagnosis.append(messages.getString("client") + ": " + InetAddress.getLocalHost() + "\n");
+		} catch (SecurityException e) {
+			_txtDiagnosis.append(messages.getString("client") + ": 127.0.0.1\n");
+			results.append(messages.getString("unableToObtainIP") + "\n");
+			System.err.println("Unable to obtain local IP address: using 127.0.0.1");
+		}
+
+		try {
+			emailText += messages.getString("client") + ": " + InetAddress.getLocalHost() + "\n%0A";
+		} catch (SecurityException e) {
+			emailText += messages.getString("client") + ": " + "127.0.0.1" + "\n%0A";
+		}
+
+		ctl.close();
+		ctlSocket.close();
+
+		try {
+			testResults(tmpstr);
+		}
+		catch (Exception ex) {
+			results.append(messages.getString("resultsParseError")  + "\n");
+			results.append(ex + "\n");
+		}
+		if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
+			middleboxResults(tmpstr2);
+		}
+
+		pub_isReady="yes";
+		pub_errmsg ="All tests completed OK.";
+		pub_status = "done";
+	}
+
+
+	class OsfwWorker implements Runnable {
+	
+		private ServerSocket srvSocket;
+		private int testTime;
+		private boolean finalized = false;
+
+		OsfwWorker(ServerSocket srvSocket, int testTime)
+		{
+			this.srvSocket = srvSocket;
+			this.testTime = testTime;
+		}
+
+		public void finalize()
+		{
+			while (!finalized) {
+				try {
+					Thread.currentThread().sleep(1000);
+				}
+				catch (InterruptedException e) {
+					// do nothing.
+				}
+			}
+		}
+
+		public void run()
+		{
+			Message msg = new Message();
+			Socket sock = null;
+
+			try {
+				srvSocket.setSoTimeout(testTime * 1000);
+				try {
+					sock = srvSocket.accept();
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+					s2cResult = NDTConstants.SFW_POSSIBLE;
+					srvSocket.close();
+					finalized = true;
+					return;
+				}
+				Protocol sfwCtl = new Protocol(sock);
+
+				if (sfwCtl.recv_msg(msg) != 0) {
+					System.out.println("Simple firewall test: unrecognized message");
+					s2cResult = NDTConstants.SFW_UNKNOWN;
+					sock.close();
+					srvSocket.close();
+					finalized = true;
+					return;
+				}
+				if (msg.type != MessageType.TEST_MSG) {
+					s2cResult = NDTConstants.SFW_UNKNOWN;
+					sock.close();
+					srvSocket.close();
+					finalized = true;
+					return;
+				}
+				if (! new String(msg.body).equals("Simple firewall test")) {
+					System.out.println("Simple firewall test: Improper message");
+					s2cResult = NDTConstants.SFW_UNKNOWN;
+					sock.close();
+					srvSocket.close();
+					finalized = true;
+					return;
+				}
+				s2cResult = NDTConstants.SFW_NOFIREWALL;
+			}
+			catch (IOException ex) {
+				s2cResult = NDTConstants.SFW_UNKNOWN;
+			}
+			try {
+				sock.close();
+				srvSocket.close();
+			}
+			catch (IOException e) {
+				// do nothing
+			}
+			finalized = true;
+		}
+	}
+
+	public void showBufferedBytesInfo()
+	{
+		JOptionPane.showMessageDialog(null, messages.getString("packetQueuingInfo"), messages.getString("packetQueuing"),
+				JOptionPane.INFORMATION_MESSAGE);
+	}
 
 	public void testResults(String tmpstr) {
 		StringTokenizer tokens;
@@ -1873,16 +1902,16 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		// Grab some client details from the applet environment
 		osName = System.getProperty("os.name");
 		pub_osName = osName;
-	    
+
 		osArch = System.getProperty("os.arch");
 		pub_osArch = osArch;
-		
+
 		osVer = System.getProperty("os.version");
-        pub_osVer = osVer;
-		
+		pub_osVer = osVer;
+
 		javaVer = System.getProperty("java.version");
 		pub_javaVer = javaVer;
-		
+
 		javaVendor = System.getProperty("java.vendor");
 
 		if (osArch.startsWith("x86") == true) {
@@ -1903,7 +1932,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					results.append(messages.getString("unableToDetectBottleneck") + "\n");
 					emailText += "Server unable to determine bottleneck link type.\n%0A";
 					pub_AccessTech = "Connection type unknown";
-					
+
 				} 
 				else {
 					results.append(messages.getString("your") + " " + client + " " + messages.getString("connectedTo") + " ");
@@ -1942,14 +1971,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					emailText += "100 Mbps ";
 					mylink = 100;
 					pub_AccessTech = "100 Mbps Ethernet";
-					
+
 					if (half_duplex == 0) {
-                        results.append(messages.getString("fullDuplex") + "\n");
-                        emailText += messages.getString("fullDuplex") + "\n%0A";
+						results.append(messages.getString("fullDuplex") + "\n");
+						emailText += messages.getString("fullDuplex") + "\n%0A";
 					} 
 					else {
-                        results.append(messages.getString("halfDuplex") + "\n");
-                        emailText += messages.getString("halfDuplex") + "\n%0A";
+						results.append(messages.getString("halfDuplex") + "\n");
+						emailText += messages.getString("halfDuplex") + "\n%0A";
 					}
 				} 
 				else if (c2sData == 6) {
@@ -1975,154 +2004,154 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					emailText += messages.getString("10gbps") + "\n%0A";
 					mylink = 10000;
 					pub_AccessTech = "10 Gigabit Ethernet/OC-192";
-					
+
 				}
 			}
 
- 			if (mismatch == 1) {
+			if (mismatch == 1) {
 				results.append(messages.getString("oldDuplexMismatch") + "\n");
-                emailText += messages.getString("oldDuplexMismatch") + "\n%0A";
- 			}
-  			else if (mismatch == 2) {
-				results.append(messages.getString("duplexFullHalf") + "\n");
-                emailText += messages.getString("duplexFullHalf") + "\n%0A";
- 			}
-  			else if (mismatch == 4) {
-				results.append(messages.getString("possibleDuplexFullHalf") + "\n");
-                emailText += messages.getString("possibleDuplexFullHalf") + "\n%0A";
- 			}
-  			else if (mismatch == 3) {
-				results.append(messages.getString("duplexHalfFull") + "\n");
-                emailText += messages.getString("duplexHalfFull") + "\n%0A";
- 			}
-  			else if (mismatch == 5) {
-				results.append(messages.getString("possibleDuplexHalfFull") + "\n");
-                emailText += messages.getString("possibleDuplexHalfFull") + "\n%0A";
- 			}
-  			else if (mismatch == 7) {
-				results.append(messages.getString("possibleDuplexHalfFullWarning") + "\n");
-                emailText += messages.getString("possibleDuplexHalfFullWarning") + "\n%0A";
- 			}
- 			
-			if (mismatch == 0) {
-			    if (bad_cable == 1) {
-                    results.append(messages.getString("excessiveErrors ") + "\n");
-                    emailText += messages.getString("excessiveErrors") + "\n%0A";
-			    }
-			    if (congestion == 1) {
-                    results.append(messages.getString("otherTraffic") + "\n");
-                    emailText += messages.getString("otherTraffic") + "\n%0A";
-			    }
-			    if (((2*rwin)/rttsec) < mylink) {
-			        j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
-			        if (j > (float)MaxRwinRcvd) {
-                        results.append(messages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + messages.getString("toMaximizeThroughput") + " \n");
-                        emailText += messages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + messages.getString("toMaximizeThroughput") + "\n%0A";
-			        }
-			    }
+				emailText += messages.getString("oldDuplexMismatch") + "\n%0A";
 			}
-     
-      if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-        if (sc2sspd < (c2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
-          // TODO:  distinguish the host buffering from the middleboxes buffering
-          JLabel info = new JLabel(messages.getString("information"));
-          info.addMouseListener(new MouseAdapter()
-              {
+			else if (mismatch == 2) {
+				results.append(messages.getString("duplexFullHalf") + "\n");
+				emailText += messages.getString("duplexFullHalf") + "\n%0A";
+			}
+			else if (mismatch == 4) {
+				results.append(messages.getString("possibleDuplexFullHalf") + "\n");
+				emailText += messages.getString("possibleDuplexFullHalf") + "\n%0A";
+			}
+			else if (mismatch == 3) {
+				results.append(messages.getString("duplexHalfFull") + "\n");
+				emailText += messages.getString("duplexHalfFull") + "\n%0A";
+			}
+			else if (mismatch == 5) {
+				results.append(messages.getString("possibleDuplexHalfFull") + "\n");
+				emailText += messages.getString("possibleDuplexHalfFull") + "\n%0A";
+			}
+			else if (mismatch == 7) {
+				results.append(messages.getString("possibleDuplexHalfFullWarning") + "\n");
+				emailText += messages.getString("possibleDuplexHalfFullWarning") + "\n%0A";
+			}
 
-                public void mouseClicked(MouseEvent e) {
-                  showBufferedBytesInfo();
-                }
+			if (mismatch == 0) {
+				if (bad_cable == 1) {
+					results.append(messages.getString("excessiveErrors ") + "\n");
+					emailText += messages.getString("excessiveErrors") + "\n%0A";
+				}
+				if (congestion == 1) {
+					results.append(messages.getString("otherTraffic") + "\n");
+					emailText += messages.getString("otherTraffic") + "\n%0A";
+				}
+				if (((2*rwin)/rttsec) < mylink) {
+					j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
+					if (j > (float)MaxRwinRcvd) {
+						results.append(messages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + messages.getString("toMaximizeThroughput") + " \n");
+						emailText += messages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + messages.getString("toMaximizeThroughput") + "\n%0A";
+					}
+				}
+			}
 
-              });
-          info.setForeground(Color.BLUE);
-          info.setCursor(new Cursor(Cursor.HAND_CURSOR));
-          info.setAlignmentY((float) 0.8);
-          results.insertComponent(info);
-          results.append(messages.getString("c2sPacketQueuingDetected") + "\n");
-        }
-      }
-      
-      if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-        if (s2cspd < (ss2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
-          // TODO:  distinguish the host buffering from the middleboxes buffering
-          JLabel info = new JLabel(messages.getString("information"));
-          info.addMouseListener(new MouseAdapter()
-              {
+			if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+				if (sc2sspd < (c2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+					// TODO:  distinguish the host buffering from the middleboxes buffering
+					JLabel info = new JLabel(messages.getString("information"));
+					info.addMouseListener(new MouseAdapter()
+					{
 
-                public void mouseClicked(MouseEvent e) {
-                  showBufferedBytesInfo();
-                }
+						public void mouseClicked(MouseEvent e) {
+							showBufferedBytesInfo();
+						}
 
-              });
-          info.setForeground(Color.BLUE);
-          info.setCursor(new Cursor(Cursor.HAND_CURSOR));
-          info.setAlignmentY((float) 0.8);
-          results.insertComponent(info);
-          results.append(messages.getString("s2cPacketQueuingDetected") + "\n");
-        }
-      }
+					});
+					info.setForeground(Color.BLUE);
+					info.setCursor(new Cursor(Cursor.HAND_CURSOR));
+					info.setAlignmentY((float) 0.8);
+					results.insertComponent(info);
+					results.append(messages.getString("c2sPacketQueuingDetected") + "\n");
+				}
+			}
 
-            _txtStatistics.append("\n\t------  " + messages.getString("clientInfo") + "------\n");
+			if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+				if (s2cspd < (ss2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+					// TODO:  distinguish the host buffering from the middleboxes buffering
+					JLabel info = new JLabel(messages.getString("information"));
+					info.addMouseListener(new MouseAdapter()
+					{
+
+						public void mouseClicked(MouseEvent e) {
+							showBufferedBytesInfo();
+						}
+
+					});
+					info.setForeground(Color.BLUE);
+					info.setCursor(new Cursor(Cursor.HAND_CURSOR));
+					info.setAlignmentY((float) 0.8);
+					results.insertComponent(info);
+					results.append(messages.getString("s2cPacketQueuingDetected") + "\n");
+				}
+			}
+
+			_txtStatistics.append("\n\t------  " + messages.getString("clientInfo") + "------\n");
 			_txtStatistics.append(messages.getString("osData") + " " + messages.getString("name") + " = " + osName + ", " + messages.getString("architecture") + " = " + osArch);
 			_txtStatistics.append(", " + messages.getString("version") + " = " + osVer + "\n");
 			_txtStatistics.append(messages.getString("javaData") + ": " +  messages.getString("vendor") + " = " + javaVendor + ", " + messages.getString("version") + " = " + javaVer + "\n");
 			// statistics.append(" java.class.version=" + System.getProperty("java.class.version") + "\n");
 
 			_txtStatistics.append("\n\t------  " + messages.getString("web100Details") + "  ------\n");
- 			if (c2sData == -2)
+			if (c2sData == -2)
 				_txtStatistics.append(messages.getString("insufficient") + "\n");
- 			else if (c2sData == -1)
+			else if (c2sData == -1)
 				_txtStatistics.append(messages.getString("ipcFail") + "\n");
- 			else if (c2sData == 0)
+			else if (c2sData == 0)
 				_txtStatistics.append(messages.getString("rttFail") + "\n");
- 			else if (c2sData == 1)
+			else if (c2sData == 1)
 				_txtStatistics.append(messages.getString("foundDialup") + "\n");
- 			else if (c2sData == 2)
+			else if (c2sData == 2)
 				_txtStatistics.append(messages.getString("foundDsl") + "\n");
- 			else if (c2sData == 3)
+			else if (c2sData == 3)
 				_txtStatistics.append(messages.getString("found10mbps") + "\n");
- 			else if (c2sData == 4)
+			else if (c2sData == 4)
 				_txtStatistics.append(messages.getString("found45mbps") + "\n");
- 			else if (c2sData == 5)
+			else if (c2sData == 5)
 				_txtStatistics.append(messages.getString("found100mbps") + "\n");
- 			else if (c2sData == 6)
+			else if (c2sData == 6)
 				_txtStatistics.append(messages.getString("found622mbps") + "\n");
- 			else if (c2sData == 7)
+			else if (c2sData == 7)
 				_txtStatistics.append(messages.getString("found1gbps") + "\n");
- 			else if (c2sData == 8)
+			else if (c2sData == 8)
 				_txtStatistics.append(messages.getString("found2.4gbps") + "\n");
- 			else if (c2sData == 9)
+			else if (c2sData == 9)
 				_txtStatistics.append(messages.getString("found10gbps") + "\n");
- 
- 			if (half_duplex == 0)
+
+			if (half_duplex == 0)
 				_txtStatistics.append(messages.getString("linkFullDpx") + "\n");
- 			else
+			else
 				_txtStatistics.append(messages.getString("linkHalfDpx") + "\n");
- 
- 			if (congestion == 0)
+
+			if (congestion == 0)
 				_txtStatistics.append(messages.getString("congestNo") + "\n");
- 			else
+			else
 				_txtStatistics.append(messages.getString("congestYes") + "\n");
- 
- 			if (bad_cable == 0)
+
+			if (bad_cable == 0)
 				_txtStatistics.append(messages.getString("cablesOk") + "\n");
- 			else
+			else
 				_txtStatistics.append(messages.getString("cablesNok") + "\n");
- 
- 			if (mismatch == 0)
+
+			if (mismatch == 0)
 				_txtStatistics.append(messages.getString("duplexOk") + "\n");
- 			else if (mismatch == 1) {
+			else if (mismatch == 1) {
 				_txtStatistics.append(messages.getString("duplexNok") + " ");
 				emailText += messages.getString("duplexNok") + " ";
- 			}
-  			else if (mismatch == 2) {
+			}
+			else if (mismatch == 2) {
 				_txtStatistics.append(messages.getString("duplexFullHalf") + "\n");
 				emailText += messages.getString("duplexFullHalf") + "\n%0A ";
- 			}
-  			else if (mismatch == 3) {
+			}
+			else if (mismatch == 3) {
 				_txtStatistics.append(messages.getString("duplexHalfFull") + "\n");
 				emailText += messages.getString("duplexHalfFull") + "\n%0A ";
- 			}
+			}
 
 			_txtStatistics.append("\n" + messages.getString("web100rtt") + " =  " + prtdbl(avgrtt) + " " + "ms" + "; ");
 			emailText += "\n%0A" +  messages.getString("web100rtt") + " = " + prtdbl(avgrtt) + " " + "ms" + "; ";
@@ -2131,16 +2160,16 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			emailText += messages.getString("packetsize") + " = " + CurrentMSS + " " + messages.getString("bytes") + "; " + messages.getString("and") + " \n%0A";
 
 			if (PktsRetrans > 0) {
-                _txtStatistics.append(PktsRetrans + " " + messages.getString("pktsRetrans"));
-                _txtStatistics.append(", " + DupAcksIn + " " + messages.getString("dupAcksIn"));
-                _txtStatistics.append(", " + messages.getString("and") + " " + SACKsRcvd + " " + messages.getString("sackReceived") + "\n");
+				_txtStatistics.append(PktsRetrans + " " + messages.getString("pktsRetrans"));
+				_txtStatistics.append(", " + DupAcksIn + " " + messages.getString("dupAcksIn"));
+				_txtStatistics.append(", " + messages.getString("and") + " " + SACKsRcvd + " " + messages.getString("sackReceived") + "\n");
 				emailText += PktsRetrans + " " + messages.getString("pktsRetrans");
 				emailText += ", " + DupAcksIn + " " + messages.getString("dupAcksIn");
 				emailText += ", " + messages.getString("and") + " " + SACKsRcvd + " " + messages.getString("sackReceived") + "\n%0A";
 				if (Timeouts > 0) {
 					_txtStatistics.append(messages.getString("connStalled") + " " + Timeouts + " " + messages.getString("timesPktLoss") + "\n");
 				}
-	
+
 				_txtStatistics.append(messages.getString("connIdle") + " " + prtdbl(waitsec) + " " + messages.getString("seconds") + " (" + prtdbl((waitsec/timesec)*100) + messages.getString("pctOfTime") + ")\n");
 				emailText += messages.getString("connStalled") + " " + Timeouts + " " + messages.getString("timesPktLoss") + "\n%0A";
 				emailText += messages.getString("connIdle") + " " + prtdbl(waitsec) + " " + messages.getString("seconds") + " (" + prtdbl((waitsec/timesec)*100) + messages.getString("pctOfTime") + ")\n%0A";
@@ -2156,35 +2185,35 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				emailText += messages.getString("noPktLoss2") + ".\n%0A";
 			}
 
-      if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-        if (c2sspd > sc2sspd) {
-          if (sc2sspd < (c2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
-        	  _txtStatistics.append(messages.getString("c2s") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
-          }
-          else {
-        	  _txtStatistics.append(messages.getString("c2s") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
-          }
-        }
-      }
-      
-      if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-        if (ss2cspd > s2cspd) {
-          if (s2cspd < (ss2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
-        	  _txtStatistics.append(messages.getString("s2c") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
-          }
-          else {
-        	  _txtStatistics.append(messages.getString("s2c") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
-          }
-        }
-      }
-      
+			if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+				if (c2sspd > sc2sspd) {
+					if (sc2sspd < (c2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+						_txtStatistics.append(messages.getString("c2s") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+					}
+					else {
+						_txtStatistics.append(messages.getString("c2s") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+					}
+				}
+			}
+
+			if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+				if (ss2cspd > s2cspd) {
+					if (s2cspd < (ss2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+						_txtStatistics.append(messages.getString("s2c") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+					}
+					else {
+						_txtStatistics.append(messages.getString("s2c") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+					}
+				}
+			}
+
 			if (rwintime > .015) {
 				_txtStatistics.append(messages.getString("thisConnIs") + " " + messages.getString("limitRx") + " " + prtdbl(rwintime*100) + messages.getString("pctOfTime") + ".\n");
 				emailText += messages.getString("thisConnIs") + " " + messages.getString("limitRx") + " " + prtdbl(rwintime*100) + messages.getString("pctOfTime") + ".\n%0A";
 				pub_pctRcvrLimited = rwintime*100;
 
-			// I think there is a bug here, it sometimes tells you to increase the buffer
-			// size, but the new size is smaller than the current.
+				// I think there is a bug here, it sometimes tells you to increase the buffer
+				// size, but the new size is smaller than the current.
 
 				if (((2*rwin)/rttsec) < mylink) {
 					_txtStatistics.append("  " + messages.getString("incrRxBuf") + " (" + prtdbl(MaxRwinRcvd/1024) + " KB) " + messages.getString("willImprove") + "\n");
@@ -2192,7 +2221,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 			if (sendtime > .015) {
 				_txtStatistics.append(messages.getString("thisConnIs") + " " + messages.getString("limitTx") + " " + prtdbl(sendtime*100) + messages.getString("pctOfTime") + ".\n");
-                emailText += messages.getString("thisConnIs") + " " + messages.getString("limitTx") + " " + prtdbl(sendtime*100) + messages.getString("pctOfTime") + ".\n%0A";
+				emailText += messages.getString("thisConnIs") + " " + messages.getString("limitTx") + " " + prtdbl(sendtime*100) + messages.getString("pctOfTime") + ".\n%0A";
 				if ((2*(swin/rttsec)) < mylink) {
 					_txtStatistics.append("  " + messages.getString("incrTxBuf") + " (" + prtdbl(Sndbuf/2048) + " KB) " + messages.getString("willImprove") + "\n");
 				}
@@ -2208,78 +2237,78 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			if ((spd < 4) && (loss > .01)) {
 				_txtStatistics.append(messages.getString("excLoss") + "\n");
 			}
-			
+
 			_txtStatistics.append("\n" + messages.getString("web100tcpOpts") + " \n");
 			_txtStatistics.append("RFC 2018 Selective Acknowledgment: ");
- 			if(SACKEnabled == Zero)
- 				_txtStatistics.append(messages.getString("off") + "\n");
- 			else
- 				_txtStatistics.append(messages.getString("on") + "\n");
- 
- 			_txtStatistics.append("RFC 896 Nagle Algorithm: ");
- 			if(NagleEnabled == Zero)
- 				_txtStatistics.append(messages.getString("off") + "\n");
- 			else
- 				_txtStatistics.append(messages.getString("on") + "\n");
- 
- 			_txtStatistics.append("RFC 3168 Explicit Congestion Notification: ");
- 			if(ECNEnabled == Zero)
- 				_txtStatistics.append(messages.getString("off") + "\n");
- 			else
- 				_txtStatistics.append(messages.getString("on") + "\n");
- 
- 			_txtStatistics.append("RFC 1323 Time Stamping: ");
- 			if(TimestampsEnabled == 0)
- 				_txtStatistics.append(messages.getString("off") + "\n");
- 			else
- 				_txtStatistics.append(messages.getString("on") + "\n");
- 
- 			_txtStatistics.append("RFC 1323 Window Scaling: ");
- 			if (MaxRwinRcvd < 65535)
- 			    WinScaleRcvd = 0;
- 			if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
- 				_txtStatistics.append(messages.getString("off") + "\n");
- 			else
- 				_txtStatistics.append (messages.getString("on") + "; " + messages.getString("scalingFactors") + " -  " + messages.getString("server") + "=" + WinScaleRcvd + ", " + messages.getString("client") + "=" + WinScaleSent + "\n");
- 			
- 	  _txtStatistics.append("\n");
+			if(SACKEnabled == Zero)
+				_txtStatistics.append(messages.getString("off") + "\n");
+			else
+				_txtStatistics.append(messages.getString("on") + "\n");
 
-      if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
-        switch (c2sResult) {
-          case NDTConstants.SFW_NOFIREWALL:
-        	_txtStatistics.append(messages.getString("server") + " '" + host + "' " + messages.getString("firewallNo") + "\n");
-            emailText += messages.getString("server") + " '" + host + "' " + messages.getString("firewallNo") + "\n%0A";
-            break;
-          case NDTConstants.SFW_POSSIBLE:
-        	_txtStatistics.append(messages.getString("server") + " '" + host + "' " + messages.getString("firewallYes") + "\n");
-            emailText += messages.getString("server") + " '" + host + "' " + messages.getString("firewallYes") + "\n%0A";
-            break;
-          case NDTConstants.SFW_UNKNOWN:
-          case NDTConstants.SFW_NOTTESTED:
-            break;
-        }
-        switch (s2cResult) {
-          case NDTConstants.SFW_NOFIREWALL:
-        	_txtStatistics.append(messages.getString("client2") + " " + messages.getString("firewallNo") + "\n");
-            emailText += messages.getString("client2") + " " + messages.getString("firewallNo") + "\n%0A";
-            break;
-          case NDTConstants.SFW_POSSIBLE:
-        	_txtStatistics.append(messages.getString("client2") + " " + messages.getString("firewallYes") + "\n");
-            emailText += messages.getString("client2") + " " + messages.getString("firewallYes") + "\n%0A";
-            break;
-          case NDTConstants.SFW_UNKNOWN:
-          case NDTConstants.SFW_NOTTESTED:
-            break;
-        }
-      }
+			_txtStatistics.append("RFC 896 Nagle Algorithm: ");
+			if(NagleEnabled == Zero)
+				_txtStatistics.append(messages.getString("off") + "\n");
+			else
+				_txtStatistics.append(messages.getString("on") + "\n");
 
-//			diagnosis.append("\nEstimate = " + prtdbl(estimate) + " based on packet size = "
-//				+ (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
-      _txtDiagnosis.append("\n");
+			_txtStatistics.append("RFC 3168 Explicit Congestion Notification: ");
+			if(ECNEnabled == Zero)
+				_txtStatistics.append(messages.getString("off") + "\n");
+			else
+				_txtStatistics.append(messages.getString("on") + "\n");
 
-      		_txtDiagnosis.append(messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " " + "Mbps\n");
+			_txtStatistics.append("RFC 1323 Time Stamping: ");
+			if(TimestampsEnabled == 0)
+				_txtStatistics.append(messages.getString("off") + "\n");
+			else
+				_txtStatistics.append(messages.getString("on") + "\n");
+
+			_txtStatistics.append("RFC 1323 Window Scaling: ");
+			if (MaxRwinRcvd < 65535)
+				WinScaleRcvd = 0;
+			if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
+				_txtStatistics.append(messages.getString("off") + "\n");
+			else
+				_txtStatistics.append (messages.getString("on") + "; " + messages.getString("scalingFactors") + " -  " + messages.getString("server") + "=" + WinScaleRcvd + ", " + messages.getString("client") + "=" + WinScaleSent + "\n");
+
+			_txtStatistics.append("\n");
+
+			if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
+				switch (c2sResult) {
+				case NDTConstants.SFW_NOFIREWALL:
+					_txtStatistics.append(messages.getString("server") + " '" + host + "' " + messages.getString("firewallNo") + "\n");
+					emailText += messages.getString("server") + " '" + host + "' " + messages.getString("firewallNo") + "\n%0A";
+					break;
+				case NDTConstants.SFW_POSSIBLE:
+					_txtStatistics.append(messages.getString("server") + " '" + host + "' " + messages.getString("firewallYes") + "\n");
+					emailText += messages.getString("server") + " '" + host + "' " + messages.getString("firewallYes") + "\n%0A";
+					break;
+				case NDTConstants.SFW_UNKNOWN:
+				case NDTConstants.SFW_NOTTESTED:
+					break;
+				}
+				switch (s2cResult) {
+				case NDTConstants.SFW_NOFIREWALL:
+					_txtStatistics.append(messages.getString("client2") + " " + messages.getString("firewallNo") + "\n");
+					emailText += messages.getString("client2") + " " + messages.getString("firewallNo") + "\n%0A";
+					break;
+				case NDTConstants.SFW_POSSIBLE:
+					_txtStatistics.append(messages.getString("client2") + " " + messages.getString("firewallYes") + "\n");
+					emailText += messages.getString("client2") + " " + messages.getString("firewallYes") + "\n%0A";
+					break;
+				case NDTConstants.SFW_UNKNOWN:
+				case NDTConstants.SFW_NOTTESTED:
+					break;
+				}
+			}
+
+			//			diagnosis.append("\nEstimate = " + prtdbl(estimate) + " based on packet size = "
+			//				+ (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
+			_txtDiagnosis.append("\n");
+
+			_txtDiagnosis.append(messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " " + "Mbps\n");
 			emailText += messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " Mbps\n%0A";
- 
+
 			_txtDiagnosis.append(messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n");
 			emailText += messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n%0A";
 
@@ -2290,24 +2319,24 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			emailText += messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
 
 			_txtDiagnosis.append("\n" + messages.getString("clientDataReports") + " '" + prttxt(c2sData) + "', " + messages.getString("clientAcksReport") + " '" + prttxt(c2sAck) + "'\n" + messages.getString("serverDataReports") + " '" + prttxt(s2cData) + "', " + messages.getString("serverAcksReport") + " '" + prttxt(s2cAck) + "'\n");
-      pub_diagnosis = _txtDiagnosis.getText();
+			pub_diagnosis = _txtDiagnosis.getText();
 
 
 		}
 	}  // testResults()
-	
-	
+
+
 
 	/* this routine decodes the middlebox test results.  The data is returned
-	* from the server is a specific order.  This routine pulls the string apart
-	* and puts the values into the proper variable.  It then compares the values
-	* to known values and writes out the specific results.
-	*
-	* server data is first
-	* order is Server IP; Client IP; CurrentMSS; WinScaleRcvd; WinScaleSent;
-	* Client then adds
-	* Server IP; Client IP.
-	*/
+	 * from the server is a specific order.  This routine pulls the string apart
+	 * and puts the values into the proper variable.  It then compares the values
+	 * to known values and writes out the specific results.
+	 *
+	 * server data is first
+	 * order is Server IP; Client IP; CurrentMSS; WinScaleRcvd; WinScaleSent;
+	 * Client then adds
+	 * Server IP; Client IP.
+	 */
 
 	public void middleboxResults(String tmpstr2) {
 		StringTokenizer tokens;
@@ -2355,20 +2384,20 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		// else
 		//     statistics.append("Information: Network Middlebox is modifying Window scaling option\n");
 
-    boolean preserved = false;
-    try {
-      preserved = InetAddress.getByName(ssip).equals(InetAddress.getByName(csip));
-    }
-    catch (UnknownHostException e) {
-      preserved = ssip.equals(csip);
-    }
+		boolean preserved = false;
+		try {
+			preserved = InetAddress.getByName(ssip).equals(InetAddress.getByName(csip));
+		}
+		catch (UnknownHostException e) {
+			preserved = ssip.equals(csip);
+		}
 		if (preserved) {
 			_txtStatistics.append(messages.getString("serverIpPreserved") + "\n");
 			pub_natBox = "no";
 		}
 		else {
 			pub_natBox = "yes";
-            _txtStatistics.append(messages.getString("serverIpModified") + "\n");
+			_txtStatistics.append(messages.getString("serverIpModified") + "\n");
 			_txtStatistics.append("\t" + messages.getString("serverSays") + " [" + ssip + "], " + messages.getString("clientSays") +" [" + csip + "]\n");
 		}
 
@@ -2376,24 +2405,24 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			_txtStatistics.append(messages.getString("clientIpNotFound") + "\n");
 		}
 		else {
-      try {
-        preserved = InetAddress.getByName(scip).equals(InetAddress.getByName(ccip));
-      }
-      catch (UnknownHostException e) {
-        preserved = scip.equals(ccip);
-      }
-      catch (SecurityException e ) {
-        preserved = scip.equals(ccip);
-      }
+			try {
+				preserved = InetAddress.getByName(scip).equals(InetAddress.getByName(ccip));
+			}
+			catch (UnknownHostException e) {
+				preserved = scip.equals(ccip);
+			}
+			catch (SecurityException e ) {
+				preserved = scip.equals(ccip);
+			}
 
 			if (preserved)
 				_txtStatistics.append(messages.getString("clientIpPreserved") + "\n");
 			else {
-                _txtStatistics.append(messages.getString("clientIpModified") + "\n");
-                _txtStatistics.append("\t" + messages.getString("serverSays") + " [" + scip + "], " + messages.getString("clientSays") +" [" + ccip + "]\n");
+				_txtStatistics.append(messages.getString("clientIpModified") + "\n");
+				_txtStatistics.append("\t" + messages.getString("serverSays") + " [" + scip + "], " + messages.getString("clientSays") +" [" + ccip + "]\n");
 			}
 		}
-	pub_statistics = _txtStatistics.getText();
+		pub_statistics = _txtStatistics.getText();
 	} // middleboxResults()
 
 
@@ -2446,12 +2475,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			str = "10 Gig";
 		return(str);
 	} // prttxt()
-	
-	
+
+
 
 	/* This routine saves the specific value into the variable of the
-	* same name.  There should probably be an easier way to do this.
-	*/
+	 * same name.  There should probably be an easier way to do this.
+	 */
 	public void save_dbl_values(String sysvar, double sysval) {
 		if(sysvar.equals("bw:")) 
 			estimate = sysval;
@@ -2495,22 +2524,22 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 	public void save_int_values(String sysvar, int sysval) {
 		/*  Values saved for interpretation:
-		*	SumRTT 
-		*	CountRTT
-		*	CurrentMSS
-		*	Timeouts
-		*	PktsRetrans
-		*	SACKsRcvd
-		*	DupAcksIn
-		*	MaxRwinRcvd
-		*	MaxRwinSent
-		*	Sndbuf
-		*	Rcvbuf
-		*	DataPktsOut
-		*	SndLimTimeRwin
-		*	SndLimTimeCwnd
-		*	SndLimTimeSender
-		*/   
+		 *	SumRTT 
+		 *	CountRTT
+		 *	CurrentMSS
+		 *	Timeouts
+		 *	PktsRetrans
+		 *	SACKsRcvd
+		 *	DupAcksIn
+		 *	MaxRwinRcvd
+		 *	MaxRwinSent
+		 *	Sndbuf
+		 *	Rcvbuf
+		 *	DataPktsOut
+		 *	SndLimTimeRwin
+		 *	SndLimTimeCwnd
+		 *	SndLimTimeSender
+		 */   
 		if(sysvar.equals("MSSSent:")) 
 			MSSSent = sysval;
 		else if(sysvar.equals("MSSRcvd:")) 
@@ -2642,54 +2671,54 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 	public void diagnose() {
 		showStatus(messages.getString("getWeb100Var"));
-		
+
 		if (frameWeb100Vars == null) {
-			frameWeb100Vars = new clsFrame();
+			frameWeb100Vars = new NewFrame();
 		}
 		frameWeb100Vars.setTitle(messages.getString("web100Var"));
 		Panel buttons = new Panel();
 		frameWeb100Vars.getContentPane().add("South", buttons);
-		
+
 		disMiss = new JButton(messages.getString("close"));
 		disMiss.addActionListener(this);
-		
+
 		copy = new JButton(messages.getString("copy"));
 		copy.addActionListener(this);
-		
+
 		_txtDiagnosis = new JTextArea(messages.getString("web100KernelVar") + ":\n", 15,30);
 		_txtDiagnosis.setEditable(true);
 		disMiss.setEnabled(true);
 		copy.setEnabled(cancopy);
-		
+
 		buttons.add("West", disMiss);
 		buttons.add("East", copy);
 		frameWeb100Vars.getContentPane().add(new JScrollPane(_txtDiagnosis));
 		frameWeb100Vars.pack();
 	}  // diagnose()
-	
-	
+
+
 
 	public void statistics() {
 		showStatus(messages.getString("printDetailedStats"));
 
 		if (frameDetailedStats == null) {
-			frameDetailedStats = new clsFrame();
+			frameDetailedStats = new NewFrame();
 		}
 		frameDetailedStats.setTitle(messages.getString("detailedStats"));
 		Panel buttons = new Panel();
 		frameDetailedStats.getContentPane().add("South", buttons);
-		
+
 		disMiss2 = new JButton(messages.getString("close"));
 		disMiss2.addActionListener(this);
-		
+
 		copy2 = new JButton(messages.getString("copy"));
 		copy2.addActionListener(this);
-		
+
 		_txtStatistics = new JTextArea(messages.getString("web100Stats") + ":\n", 25,70);
 		_txtStatistics.setEditable(true);
 		disMiss2.setEnabled(true);
 		copy2.setEnabled(cancopy);
-		
+
 		buttons.add("West", disMiss2);
 		buttons.add("East", copy2);
 		frameDetailedStats.getContentPane().add(new JScrollPane(_txtStatistics));
@@ -2697,63 +2726,63 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	}  // statistics()
 
 
-  public void showOptions() {
-    showStatus(messages.getString("showOptions"));
+	public void showOptions() {
+		showStatus(messages.getString("showOptions"));
 
-    if (frameOptions == null) {
-    	frameOptions = new clsFrame();
-    	frameOptions.setTitle(messages.getString("options"));
+		if (frameOptions == null) {
+			frameOptions = new NewFrame();
+			frameOptions.setTitle(messages.getString("options"));
 
-      JPanel optionsPanel = new JPanel();
-      optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
+			JPanel optionsPanel = new JPanel();
+			optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
 
-      JPanel testsPanel = new JPanel();
-      testsPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("performedTests")));
-      testsPanel.add(defaultTest);
-      optionsPanel.add(testsPanel);
+			JPanel testsPanel = new JPanel();
+			testsPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("performedTests")));
+			testsPanel.add(defaultTest);
+			optionsPanel.add(testsPanel);
 
-      JPanel protocolPanel = new JPanel();
-      protocolPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("ipProtocol")));
-      protocolPanel.add(preferIPv6);
-      optionsPanel.add(protocolPanel);
+			JPanel protocolPanel = new JPanel();
+			protocolPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("ipProtocol")));
+			protocolPanel.add(preferIPv6);
+			optionsPanel.add(protocolPanel);
 
-      if (getParameter("enableMultipleTests") != null) {
-          JPanel generalPanel = new JPanel();
-          generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
-          generalPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("general")));
-          JPanel tmpPanel = new JPanel();
-          tmpPanel.add(new JLabel(messages.getString("numberOfTests") + ":"));
-          tmpPanel.add(numOfTests);
-          generalPanel.add(tmpPanel);
-          tmpPanel = new JPanel();
-          tmpPanel.add(new JLabel(messages.getString("delayBetweenTests") + ":"));
-          tmpPanel.add(delay);
-          generalPanel.add(tmpPanel);
+			if (getParameter("enableMultipleTests") != null) {
+				JPanel generalPanel = new JPanel();
+				generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
+				generalPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("general")));
+				JPanel tmpPanel = new JPanel();
+				tmpPanel.add(new JLabel(messages.getString("numberOfTests") + ":"));
+				tmpPanel.add(numOfTests);
+				generalPanel.add(tmpPanel);
+				tmpPanel = new JPanel();
+				tmpPanel.add(new JLabel(messages.getString("delayBetweenTests") + ":"));
+				tmpPanel.add(delay);
+				generalPanel.add(tmpPanel);
 
-          optionsPanel.add(generalPanel);
-      }
+				optionsPanel.add(generalPanel);
+			}
 
-      frameOptions.getContentPane().add(optionsPanel);     
-      Panel buttons = new Panel();
-      frameOptions.getContentPane().add("South", buttons);
+			frameOptions.getContentPane().add(optionsPanel);     
+			Panel buttons = new Panel();
+			frameOptions.getContentPane().add("South", buttons);
 
-      JButton okButton= new JButton(messages.getString("ok"));
-      okButton.addActionListener(new ActionListener() {
+			JButton okButton= new JButton(messages.getString("ok"));
+			okButton.addActionListener(new ActionListener() {
 
-        public void actionPerformed(ActionEvent e) {
-        	frameOptions.toBack();
-        	frameOptions.dispose();
-        }
-        
-      });
+				public void actionPerformed(ActionEvent e) {
+					frameOptions.toBack();
+					frameOptions.dispose();
+				}
 
-      buttons.add("West", okButton);
+			});
 
-      frameOptions.pack();
-    }
-    frameOptions.setResizable(false);
-    frameOptions.setVisible(true);
-  }
+			buttons.add("West", okButton);
+
+			frameOptions.pack();
+		}
+		frameOptions.setResizable(false);
+		frameOptions.setVisible(true);
+	}
 
 	public void actionPerformed(ActionEvent event) {
 		Object source = event.getSource();
@@ -2766,7 +2795,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				frameWeb100Vars.dispose();
 				frameWeb100Vars = null;
 			}
-			
+
 			if(frameDetailedStats != null) {
 				frameDetailedStats.toBack();
 				frameDetailedStats.dispose();
@@ -2843,7 +2872,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 				String theURL = "mailto:" + Name + "@" + Host;
 				String subject = getParameter("subject");
-				
+
 				if (subject == null) {
 					subject = messages.getString("troubleReportFrom") + " " + getCodeBase().getHost();
 				}
@@ -2861,9 +2890,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	}  // actionPerformed()
 
 	//re-arch remove inner classes
-/*
-	public class clsFrame extends JFrame {
-		public clsFrame() {
+	/*
+	public class NewFrame extends JFrame {
+		public NewFrame() {
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent event) {
 					// System.err.println("Handling window closing event");
@@ -2872,447 +2901,42 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			});
 			// System.err.println("Extended Frame class - RAC9/15/03");
 		}
-	} // class: clsFrame
-*/
-  public static void main(String[] args)
-  {
-    JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
-    if (args.length != 1) {
-      System.out.println("Usage: java -jar Tcpbw100.jar " + "HOST");
-      System.exit(0);
-    }
-    final Tcpbw100 applet = new Tcpbw100();
-    frame.addWindowListener(new WindowAdapter() {
-      public void windowClosing(WindowEvent e) {
-        applet.destroy();
-        System.exit(0);
-      }
-    });
-    applet.isApplication = true;
-    applet.host = args[0];
-    frame.getContentPane().add(applet);
-    frame.setSize(700, 320);
-    applet.init();
-    applet.start();
-    frame.setVisible(true);
-  }
+	} // class: NewFrame
+	 */
+	public static void main(String[] args)
+	{
+		JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
+		if (args.length != 1) {
+			System.out.println("Usage: java -jar Tcpbw100.jar " + "HOST");
+			System.exit(0);
+		}
+		final Tcpbw100 applet = new Tcpbw100();
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				applet.destroy();
+				System.exit(0);
+			}
+		});
+		applet.isApplication = true;
+		applet.host = args[0];
+		frame.getContentPane().add(applet);
+		frame.setSize(700, 320);
+		applet.init();
+		applet.start();
+		frame.setVisible(true);
+	}
 
-  // code taken from http://nerds.palmdrive.net/useragent/code.html
-  private static class UserAgentTools {
-
-    public static String getFirstVersionNumber(String a_userAgent, int a_position, int numDigits) {
-      String ver = getVersionNumber(a_userAgent, a_position);
-      if (ver==null) return "";
-      int i = 0;
-      String res="";
-      while (i<ver.length() && i<numDigits) {
-        res+=String.valueOf(ver.charAt(i));
-        i++;
-      }
-      return res;
-    }
-    public static String getVersionNumber(String a_userAgent, int a_position) {
-      if (a_position<0) return "";
-      StringBuffer res = new StringBuffer();
-      int status = 0;
-
-      while (a_position < a_userAgent.length()) {
-        char c = a_userAgent.charAt(a_position);
-        switch (status) {
-          case 0: //<SPAN class="codecomment"> No valid digits encountered yet</span>
-            if (c == ' ' || c=='/') break;
-            if (c == ';' || c==')') return "";
-            status = 1;
-          case 1: //<SPAN class="codecomment"> Version number in progress</span>
-            if (c == ';' || c=='/' || c==')' || c=='(' || c=='[') return res.toString().trim();
-            if (c == ' ') status = 2;
-            res.append(c);
-            break;
-          case 2: //<SPAN class="codecomment"> Space encountered - Might need to end the parsing</span>
-            if ((Character.isLetter(c) &&
-                    Character.isLowerCase(c)) ||
-                    Character.isDigit(c)) {
-              res.append(c);
-              status=1;
-            } else
-              return res.toString().trim();
-            break;
-        }
-        a_position++;
-      }
-      return res.toString().trim();
-    }
-
-    public static String[]getArray(String a, String b, String c) {
-      String[]res = new String[3];
-      res[0]=a;
-      res[1]=b;
-      res[2]=c;
-      return res;
-    }
-
-    public static String[] getBotName(String userAgent) {
-      userAgent = userAgent.toLowerCase();
-      int pos=0;
-      String res=null;
-      if ((pos=userAgent.indexOf("help.yahoo.com/"))>-1) {
-        res= "Yahoo";
-        pos+=7;
-      } else
-      if ((pos=userAgent.indexOf("google/"))>-1) {
-        res= "Google";
-        pos+=7;
-      } else
-      if ((pos=userAgent.indexOf("msnbot/"))>-1) {
-        res= "MSNBot";
-        pos+=7;
-      } else
-      if ((pos=userAgent.indexOf("googlebot/"))>-1) {
-        res= "Google";
-        pos+=10;
-      } else
-      if ((pos=userAgent.indexOf("webcrawler/"))>-1) {
-        res= "WebCrawler";
-        pos+=11;
-      } else
-        //<SPAN class="codecomment"> The following two bots don't have any version number in their User-Agent strings.</span>
-        if ((pos=userAgent.indexOf("inktomi"))>-1) {
-          res= "Inktomi";
-          pos=-1;
-        } else
-        if ((pos=userAgent.indexOf("teoma"))>-1) {
-          res= "Teoma";
-          pos=-1;
-        }
-      if (res==null) return null;
-      return getArray(res,res,res + getVersionNumber(userAgent,pos));
-    }
-
-
-    public static String[] getOS(String userAgent) {
-      if (getBotName(userAgent)!=null) return getArray("Bot","Bot","Bot");
-      String[]res = null;
-      int pos;
-      if ((pos=userAgent.indexOf("Windows-NT"))>-1) {
-        res = getArray("Win","WinNT","Win"+getVersionNumber(userAgent,pos+8));
-      } else
-      if (userAgent.indexOf("Windows NT")>-1) {
-        //<SPAN class="codecomment"> The different versions of Windows NT are decoded in the verbosity level 2</span>
-        //<SPAN class="codecomment"> ie: Windows NT 5.1 = Windows XP</span>
-        if ((pos=userAgent.indexOf("Windows NT 5.1"))>-1) {
-          res = getArray("Win","WinXP","Win"+getVersionNumber(userAgent,pos+7));
-        } else
-        if ((pos=userAgent.indexOf("Windows NT 6.0"))>-1) {
-          res = getArray("Win","Vista","Vista"+getVersionNumber(userAgent,pos+7));
-        } else
-        if ((pos=userAgent.indexOf("Windows NT 6.1"))>-1) {
-          res = getArray("Win","Seven","Seven "+getVersionNumber(userAgent,pos+7));
-        } else
-        if ((pos=userAgent.indexOf("Windows NT 5.0"))>-1) {
-          res = getArray("Win","Win2000","Win"+getVersionNumber(userAgent,pos+7));
-        } else
-        if ((pos=userAgent.indexOf("Windows NT 5.2"))>-1) {
-          res = getArray("Win","Win2003","Win"+getVersionNumber(userAgent,pos+7));
-        } else
-        if ((pos=userAgent.indexOf("Windows NT 4.0"))>-1) {
-          res = getArray("Win","WinNT4","Win"+getVersionNumber(userAgent,pos+7));
-        } else
-        if ((pos=userAgent.indexOf("Windows NT)"))>-1) {
-          res = getArray("Win","WinNT","WinNT");
-        } else
-        if ((pos=userAgent.indexOf("Windows NT;"))>-1) {
-          res = getArray("Win","WinNT","WinNT");
-        } else
-          res = getArray("Win","WinNT?","WinNT?");
-      } else
-      if (userAgent.indexOf("Win")>-1) {
-        if (userAgent.indexOf("Windows")>-1) {
-          if ((pos=userAgent.indexOf("Windows 98"))>-1) {
-            res = getArray("Win","Win98","Win"+getVersionNumber(userAgent,pos+7));
-          } else
-          if ((pos=userAgent.indexOf("Windows_98"))>-1) {
-            res = getArray("Win","Win98","Win"+getVersionNumber(userAgent,pos+8));
-          } else
-          if ((pos=userAgent.indexOf("Windows 2000"))>-1) {
-            res = getArray("Win","Win2000","Win"+getVersionNumber(userAgent,pos+7));
-          } else
-          if ((pos=userAgent.indexOf("Windows 95"))>-1) {
-            res = getArray("Win","Win95","Win"+getVersionNumber(userAgent,pos+7));
-          } else
-          if ((pos=userAgent.indexOf("Windows 9x"))>-1) {
-            res = getArray("Win","Win9x","Win"+getVersionNumber(userAgent,pos+7));
-          } else
-          if ((pos=userAgent.indexOf("Windows ME"))>-1) {
-            res = getArray("Win","WinME","Win"+getVersionNumber(userAgent,pos+7));
-          } else
-          if ((pos=userAgent.indexOf("Windows CE;"))>-1) {
-            res = getArray("Win","WinCE","WinCE");
-          } else
-          if ((pos=userAgent.indexOf("Windows 3.1"))>-1) {
-            res = getArray("Win","Win31","Win"+getVersionNumber(userAgent,pos+7));
-          }
-          //<SPAN class="codecomment"> If no version was found, rely on the following code to detect "WinXX"</span>
-          //<SPAN class="codecomment"> As some User-Agents include two references to Windows</span>
-          //<SPAN class="codecomment"> Ex: Mozilla/5.0 (Windows; U; Win98; en-US; rv:1.5)</span>
-        }
-        if (res == null) {
-          if ((pos=userAgent.indexOf("Win98"))>-1) {
-            res = getArray("Win","Win98","Win"+getVersionNumber(userAgent,pos+3));
-          } else
-          if ((pos=userAgent.indexOf("Win31"))>-1) {
-            res = getArray("Win","Win31","Win"+getVersionNumber(userAgent,pos+3));
-          } else
-          if ((pos=userAgent.indexOf("Win95"))>-1) {
-            res = getArray("Win","Win95","Win"+getVersionNumber(userAgent,pos+3));
-          } else
-          if ((pos=userAgent.indexOf("Win 9x"))>-1) {
-            res = getArray("Win","Win9x","Win"+getVersionNumber(userAgent,pos+3));
-          } else
-          if ((pos=userAgent.indexOf("WinNT4.0"))>-1) {
-            res = getArray("Win","WinNT4","Win"+getVersionNumber(userAgent,pos+3));
-          } else
-          if ((pos=userAgent.indexOf("WinNT"))>-1) {
-            res = getArray("Win","WinNT","Win"+getVersionNumber(userAgent,pos+3));
-          }
-        }
-        if (res == null) {
-          if ((pos=userAgent.indexOf("Windows"))>-1) {
-            res = getArray("Win","Win?","Win?"+getVersionNumber(userAgent,pos+7));
-          } else
-          if ((pos=userAgent.indexOf("Win"))>-1) {
-            res = getArray("Win","Win?","Win?"+getVersionNumber(userAgent,pos+3));
-          } else
-            //<SPAN class="codecomment"> Should not happen at this point</span>
-            res = getArray("Win","Win?","Win?");
-        }
-      } else
-      if ((pos=userAgent.indexOf("Mac OS X"))>-1) {
-        if ((userAgent.indexOf("iPhone"))>-1) {
-          pos = userAgent.indexOf("iPhone OS");
-          if ((userAgent.indexOf("iPod"))>-1) {
-            res = getArray("iOS","iOS-iPod","iOS-iPod "+((pos<0)?"":getVersionNumber(userAgent,pos+9)));
-          } else {
-            res = getArray("iOS","iOS-iPhone","iOS-iPhone "+((pos<0)?"":getVersionNumber(userAgent,pos+9)));
-          }
-        } else
-        if ((userAgent.indexOf("iPad"))>-1) {
-          pos = userAgent.indexOf("CPU OS");
-          res = getArray("iOS","iOS-iPad","iOS-iPad "+((pos<0)?"":getVersionNumber(userAgent,pos+6)));
-        } else
-          res = getArray("Mac","MacOSX","MacOS "+getVersionNumber(userAgent,pos+8));
-      } else
-      if ((pos=userAgent.indexOf("Android"))>-1) {
-        res = getArray("Linux","Android","Android "+getVersionNumber(userAgent,pos+8));
-      } else
-      if ((pos=userAgent.indexOf("Mac_PowerPC"))>-1) {
-        res = getArray("Mac","MacPPC","MacOS "+getVersionNumber(userAgent,pos+3));
-      } else
-      if ((pos=userAgent.indexOf("Macintosh"))>-1) {
-        if (userAgent.indexOf("PPC")>-1)
-          res = getArray("Mac","MacPPC","Mac PPC");
-        else
-          res = getArray("Mac?","Mac?","MacOS?");
-      } else
-      if ((pos=userAgent.indexOf("FreeBSD"))>-1) {
-        res = getArray("*BSD","*BSD FreeBSD","FreeBSD "+getVersionNumber(userAgent,pos+7));
-      } else
-      if ((pos=userAgent.indexOf("OpenBSD"))>-1) {
-        res = getArray("*BSD","*BSD OpenBSD","OpenBSD "+getVersionNumber(userAgent,pos+7));
-      } else
-      if ((pos=userAgent.indexOf("Linux"))>-1) {
-        String detail = "Linux "+getVersionNumber(userAgent,pos+5);
-        String med = "Linux";
-        if ((pos=userAgent.indexOf("Ubuntu/"))>-1) {
-          detail = "Ubuntu "+getVersionNumber(userAgent,pos+7);
-          med+=" Ubuntu";
-        }
-        res = getArray("Linux",med,detail);
-      } else
-      if ((pos=userAgent.indexOf("CentOS"))>-1) {
-        res = getArray("Linux","Linux CentOS","CentOS");
-      } else
-      if ((pos=userAgent.indexOf("NetBSD"))>-1) {
-        res = getArray("*BSD","*BSD NetBSD","NetBSD "+getVersionNumber(userAgent,pos+6));
-      } else
-      if ((pos=userAgent.indexOf("Unix"))>-1) {
-        res = getArray("Linux","Linux","Linux "+getVersionNumber(userAgent,pos+4));
-      } else
-      if ((pos=userAgent.indexOf("SunOS"))>-1) {
-        res = getArray("Unix","SunOS","SunOS"+getVersionNumber(userAgent,pos+5));
-      } else
-      if ((pos=userAgent.indexOf("IRIX"))>-1) {
-        res = getArray("Unix","IRIX","IRIX"+getVersionNumber(userAgent,pos+4));
-      } else
-      if ((pos=userAgent.indexOf("SonyEricsson"))>-1) {
-        res = getArray("SonyEricsson","SonyEricsson","SonyEricsson"+getVersionNumber(userAgent,pos+12));
-      } else
-      if ((pos=userAgent.indexOf("Nokia"))>-1) {
-        res = getArray("Nokia","Nokia","Nokia"+getVersionNumber(userAgent,pos+5));
-      } else
-      if ((pos=userAgent.indexOf("BlackBerry"))>-1) {
-        res = getArray("BlackBerry","BlackBerry","BlackBerry"+getVersionNumber(userAgent,pos+10));
-      } else
-      if ((pos=userAgent.indexOf("SymbianOS"))>-1) {
-        res = getArray("SymbianOS","SymbianOS","SymbianOS"+getVersionNumber(userAgent,pos+10));
-      } else
-      if ((pos=userAgent.indexOf("BeOS"))>-1) {
-        res = getArray("BeOS","BeOS","BeOS");
-      } else
-      if ((pos=userAgent.indexOf("Nintendo Wii"))>-1) {
-        res = getArray("Nintendo Wii","Nintendo Wii","Nintendo Wii"+getVersionNumber(userAgent,pos+10));
-      } else
-      if ((pos=userAgent.indexOf("J2ME/MIDP"))>-1) {
-        res = getArray("Java","J2ME","J2ME/MIDP");
-      } else
-        res = getArray("?","?","?");
-      return res;
-    }
-
-
-    public static String []getBrowser(String userAgent) {
-      if (userAgent == null) {
-        return getArray("?","?","?");
-      }
-      String []botName;
-      if ((botName=getBotName(userAgent))!=null) return botName;
-      String[]res = null;
-      int pos;
-      if ((pos=userAgent.indexOf("Lotus-Notes/"))>-1) {
-        res = getArray("LotusNotes","LotusNotes","LotusNotes"+getVersionNumber(userAgent,pos+12));
-      } else
-      if ((pos=userAgent.indexOf("Opera"))>-1) {
-        String ver = getVersionNumber(userAgent,pos+5);
-        res = getArray("Opera","Opera"+getFirstVersionNumber(userAgent,pos+5,1),"Opera"+ver);
-        if ((pos=userAgent.indexOf("Opera Mini/"))>-1) {
-          String ver2 = getVersionNumber(userAgent,pos+11);
-          res = getArray("Opera","Opera Mini","Opera Mini "+ver2);
-        } else
-        if ((pos=userAgent.indexOf("Opera Mobi/"))>-1) {
-          String ver2 = getVersionNumber(userAgent,pos+11);
-          res = getArray("Opera","Opera Mobi","Opera Mobi "+ver2);
-        }
-      } else
-      if (userAgent.indexOf("MSIE")>-1) {
-        if ((pos=userAgent.indexOf("MSIE 6.0"))>-1) {
-          res = getArray("MSIE","MSIE6","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 5.0"))>-1) {
-          res = getArray("MSIE","MSIE5","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 5.5"))>-1) {
-          res = getArray("MSIE","MSIE5.5","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 5."))>-1) {
-          res = getArray("MSIE","MSIE5.x","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 4"))>-1) {
-          res = getArray("MSIE","MSIE4","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 7"))>-1 && userAgent.indexOf("Trident/4.0")<0) {
-          res = getArray("MSIE","MSIE7","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 8"))>-1 || userAgent.indexOf("Trident/4.0")>-1) {
-          res = getArray("MSIE","MSIE8","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-        if ((pos=userAgent.indexOf("MSIE 9"))>-1 || userAgent.indexOf("Trident/4.0")>-1) {
-          res = getArray("MSIE","MSIE9","MSIE"+getVersionNumber(userAgent,pos+4));
-        } else
-          res = getArray("MSIE","MSIE?","MSIE?"+getVersionNumber(userAgent,userAgent.indexOf("MSIE")+4));
-      } else
-      if ((pos=userAgent.indexOf("Gecko/"))>-1) {
-        res = getArray("Gecko","Gecko","Gecko"+getFirstVersionNumber(userAgent,pos+5,4));
-        if ((pos=userAgent.indexOf("Camino/"))>-1) {
-          res[1]+="(Camino)";
-          res[2]+="(Camino"+getVersionNumber(userAgent,pos+7)+")";
-        } else
-        if ((pos=userAgent.indexOf("Chimera/"))>-1) {
-          res[1]+="(Chimera)";
-          res[2]+="(Chimera"+getVersionNumber(userAgent,pos+8)+")";
-        } else
-        if ((pos=userAgent.indexOf("Firebird/"))>-1) {
-          res[1]+="(Firebird)";
-          res[2]+="(Firebird"+getVersionNumber(userAgent,pos+9)+")";
-        } else
-        if ((pos=userAgent.indexOf("Phoenix/"))>-1) {
-          res[1]+="(Phoenix)";
-          res[2]+="(Phoenix"+getVersionNumber(userAgent,pos+8)+")";
-        } else
-        if ((pos=userAgent.indexOf("Galeon/"))>-1) {
-          res[1]+="(Galeon)";
-          res[2]+="(Galeon"+getVersionNumber(userAgent,pos+7)+")";
-        } else
-        if ((pos=userAgent.indexOf("Firefox/"))>-1) {
-          res[1]+="(Firefox)";
-          res[2]+="(Firefox"+getVersionNumber(userAgent,pos+8)+")";
-        } else
-        if ((pos=userAgent.indexOf("Netscape/"))>-1) {
-          if ((pos=userAgent.indexOf("Netscape/6"))>-1) {
-            res[1]+="(NS6)";
-            res[2]+="(NS"+getVersionNumber(userAgent,pos+9)+")";
-          } else
-          if ((pos=userAgent.indexOf("Netscape/7"))>-1) {
-            res[1]+="(NS7)";
-            res[2]+="(NS"+getVersionNumber(userAgent,pos+9)+")";
-          } else
-          if ((pos=userAgent.indexOf("Netscape/8"))>-1) {
-            res[1]+="(NS8)";
-            res[2]+="(NS"+getVersionNumber(userAgent,pos+9)+")";
-          } else
-          if ((pos=userAgent.indexOf("Netscape/9"))>-1) {
-            res[1]+="(NS9)";
-            res[2]+="(NS"+getVersionNumber(userAgent,pos+9)+")";
-          } else {
-            res[1]+="(NS?)";
-            res[2]+="(NS?"+getVersionNumber(userAgent,userAgent.indexOf("Netscape/")+9)+")";
-          }
-        }
-      } else
-      if ((pos=userAgent.indexOf("Netscape/"))>-1) {
-        if ((pos=userAgent.indexOf("Netscape/4"))>-1) {
-          res = getArray("NS","NS4","NS"+getVersionNumber(userAgent,pos+9));
-        } else
-          res = getArray("NS","NS?","NS?"+getVersionNumber(userAgent,pos+9));
-      } else
-      if ((pos=userAgent.indexOf("Chrome/"))>-1) {
-        res = getArray("KHTML","KHTML(Chrome)","KHTML(Chrome"+getVersionNumber(userAgent,pos+6)+")");
-      } else
-      if ((pos=userAgent.indexOf("Safari/"))>-1) {
-        res = getArray("KHTML","KHTML(Safari)","KHTML(Safari"+getVersionNumber(userAgent,pos+6)+")");
-      } else
-      if ((pos=userAgent.indexOf("Konqueror/"))>-1) {
-        res = getArray("KHTML","KHTML(Konqueror)","KHTML(Konqueror"+getVersionNumber(userAgent,pos+9)+")");
-      } else
-      if ((pos=userAgent.indexOf("KHTML"))>-1) {
-        res = getArray("KHTML","KHTML?","KHTML?("+getVersionNumber(userAgent,pos+5)+")");
-      } else
-      if ((pos=userAgent.indexOf("NetFront"))>-1) {
-        res = getArray("NetFront","NetFront","NetFront "+getVersionNumber(userAgent,pos+8));
-      } else
-      if ((pos=userAgent.indexOf("BlackBerry"))>-1) {
-        pos=userAgent.indexOf("/",pos+2);
-        res = getArray("BlackBerry","BlackBerry","BlackBerry"+getVersionNumber(userAgent,pos+1));
-      } else
-        //<SPAN class="codecomment"> We will interpret Mozilla/4.x as Netscape Communicator is and only if x</span>
-        //<SPAN class="codecomment"> is not 0 or 5</span>
-        if (userAgent.indexOf("Mozilla/4.")==0 &&
-                userAgent.indexOf("Mozilla/4.0")<0 &&
-                userAgent.indexOf("Mozilla/4.5 ")<0) {
-          res = getArray("Communicator","Communicator","Communicator"+getVersionNumber(userAgent,pos+8));
-        } else
-          return getArray("?","?","?");
-      return res;
-    }
-  }
 
 } // class: Tcpbw100
 
 
 /*
  * Class that defines a Frame with a window closing functionality
- * TODO: Rename better. move to seperate file probably.
+ * TODO: Rename better. move to seperate file probably - though
+ * not much value with this class
  */
-class clsFrame extends JFrame {
-	public clsFrame() {
+class NewFrame extends JFrame {
+	public NewFrame() {
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent event) {
 				// System.err.println("Handling window closing event");
@@ -3321,95 +2945,5 @@ class clsFrame extends JFrame {
 		});
 		// System.err.println("Extended Frame class - RAC9/15/03");
 	}
-} // class: clsFrame
+} // class: NewFrame
 
-/* Class to define Message.
- * Messages are composed of a "type" and a body
- * Some examples of message types are : COMM_FAILURE, SRV_QUEUE, MSG_LOGIN, TEST_PREPARE etc
- * @see MessageType.java for more examples
- * TODO: NDTP messages are defined to have a "length" field in wiki. Not defined here. Why?
- * Looks like all of the tests (MID, SFW, C2S, s2c, META are using this message type..so, 
- * no specific "mesage type" which does not contain length exists
- * TODO: Is it a good idea to merge MessageTypes into this class?
- * TODO: move to seperate file probably
- */
-class Message {
-		
-	byte type;
-	byte[] body;
-}
-
-
-/* Class to define Protocol
- * TODO :summarize methods below to give a brief explanation of the Protocol class 
- * TODO: move to seperate file probably*/
-
-
-class Protocol {
-	private InputStream _ctlin;
-	private OutputStream _ctlout;
-
-	public Protocol(Socket ctlSocket) throws IOException
-	{
-		_ctlin = ctlSocket.getInputStream();
-		_ctlout = ctlSocket.getOutputStream();
-	}
-
-	public void send_msg(byte type, byte toSend) throws IOException
-	{
-		byte[] tab = new byte[] { toSend };
-		send_msg(type, tab);
-	}
-
-	public void send_msg(byte type, byte[] tab) throws IOException
-	{
-		byte[] header = new byte[3];
-		header[0] = type;
-		header[1] = (byte) (tab.length >> 8);
-		header[2] = (byte) tab.length;
-
-		_ctlout.write(header);
-		_ctlout.write(tab);
-	}
-
-	public int readn(Message msg, int amount) throws IOException
-	{
-		int read = 0; 
-		int tmp;
-		msg.body = new byte[amount];
-		while (read != amount) {
-			tmp = _ctlin.read(msg.body, read, amount - read);
-			if (tmp <= 0) {
-				return read;
-			}
-			read += tmp;
-		}
-		return read;
-	}
-
-	public int recv_msg(Message msg) throws IOException
-	{
-		int length;
-		if (readn(msg, 3) != 3) {
-			return 1;
-		}
-		msg.type = msg.body[0];
-		length = ((int) msg.body[1] & 0xFF) << 8;
-		length += (int) msg.body[2] & 0xFF; 
-		if (readn(msg, length) != length) {
-			return 3;
-		}
-		return 0;
-	}
-
-	public void close()
-	{
-		try {
-			_ctlin.close();
-			_ctlout.close();
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-}
