@@ -369,23 +369,23 @@ http://www.soldevelo.com/images/ndt/ndt_24b.png
 where '\n' is a single new line character.
 
 All available web100 data variables are described in [NDTProtocol#Appendix_A._web100_variables Appendix A]. The Server MUST send at least the following variables:
- # AckPktsIn
+ # !AckPktsIn
  # CountRTT
- # CongestionSignals
+ # !CongestionSignals
  # CurRTO
  # CurMSS
- # DataBytesOut
- # DupAcksIn
- # MaxCwnd
- # MaxRwinRcvd
- # PktsOut
- # PktsRetrans
- # RcvWinScale
+ # !DataBytesOut
+ # !DupAcksIn
+ # !MaxCwnd
+ # !MaxRwinRcvd
+ # !PktsOut
+ # !PktsRetrans
+ # !RcvWinScale
  # Sndbuf
- # SndLimTimeCwnd
- # SndLimTimeRwin
- # SndLimTimeSender
- # SndWinScale
+ # !SndLimTimeCwnd
+ # !SndLimTimeRwin
+ # !SndLimTimeSender
+ # !SndWinScale
  # SumRTT
  # Timeouts
 
