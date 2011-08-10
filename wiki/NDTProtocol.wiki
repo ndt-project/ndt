@@ -245,7 +245,9 @@ The Simple firewall test tries to find out any firewalls between the Client and 
 
 ==== SFW protocol ====
 
-As a first step the Server MUST bind the ephemeral port and send a TEST_PREPARE message containing this port number and a test time (in seconds) to the Client:
+All messages exchanged between the Client and the Server during the SFW protocol are sent using the same connection and message format as the NDTP-Control protocol. Only a single TEST_MSG message containing a pre-defined string "Simple firewall test" are sent using the new connection to check for firewall existence.
+
+As a first step the Server MUST bind the ephemeral port and send a TEST_PREPARE message containing this port number and a test time (in seconds) to the Client using the NDTP-Control connection:
 
 http://www.soldevelo.com/images/ndt/15.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20and%20test%20time%20%28in%20seconds%29%20to%20the%20Client.png
 
@@ -253,15 +255,15 @@ The port number and the test time MUST be encoded as strings and separated by a 
 
 http://www.soldevelo.com/images/ndt/ndt_15b.png
 
-Next, the Client MUST bind the ephemeral port and send a TEST_MSG message containing only this port number to the Server. the port number MUST be encoded as string.
+Next, the Client MUST bind the ephemeral port and send a TEST_MSG message containing only this port number to the Server using the NDTP-Control connection. The port number MUST be encoded as string.
 
-The NDT Server MUST start the test by sending an empty TEST_START message immediately after it receives the Client's ephemeral port number.
+The NDT Server MUST start the test by sending an empty TEST_START message (using the NDTP-Control connection) immediately after it receives the Client's ephemeral port number.
 
-The test MUST be performed in both direction in parallel. The Client MUST try to connect to the Server's ephemeral port and MUST send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20. The whole message looks as following:
+The test MUST be performed in both directions in parallel. The Client MUST try to connect to the Server's ephemeral port and MUST send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20 using the newly created connection. The whole message looks as following:
 
 http://www.soldevelo.com/images/ndt/14.%20of%20length%2020.%20The%20whole%20message%20looks%20as%20following.png
 
-After performing the Simple firewall test in both directions, the Server MUST send to the Client its SFW (c2s) results encoded as string in the TEST_MSG message:
+After performing the Simple firewall test in both directions, the Server MUST send to the Client its SFW (c2s) results encoded as string in the TEST_MSG message using the NDTP-Control connection:
 
 http://www.soldevelo.com/images/ndt/16.%20Client%20its%20SFW%20%28c2s%29%20results%20encoded%20as%20string%20in%20the%20TEST_MSG%20message.png
 
@@ -273,7 +275,7 @@ The Simple firewall test defines the following result codes for both c2s and s2c
 || "2" || There was a connection to the ephemeral port, but it was not recognized properly ||
 || "3" || There was no connection to the ephemeral port within the specified time ||
 
-At the end the Server MUST close the SFW test session by sending an empty TEST_FINALIZE message.
+At the end the Server MUST close the SFW test session by sending an empty TEST_FINALIZE message using the NDTP-Control connection.
 
 A Simple firewall test session overview can be seen on the following sequence diagram:
 
@@ -399,6 +401,8 @@ http://www.soldevelo.com/images/ndt/25.%20A%20S2C%20throughput%20test%20session%
 The META test allows the Client to send an additional information to the Server to be included along with the overall set of test results. Information received from the Client is encoded as key/value pairs.
 
 ==== META protocol ====
+
+All messages exchanged between the Client and the Server during the META protocol are sent using the same connection and message format as the NDTP-Control protocol.
 
 The Server MUST start this test by sending an empty TEST_PREPARE message followed by an empty TEST_START message.
 
