@@ -107,11 +107,11 @@ All Clients MUST always request the TEST_STATUS (16 (1L << 4)) test in order to 
 
 ==== Kick off message to disconnect old clients ====
 
-In the same time the Server sends the specially crafted 13 octets long data that kicks off the old Clients ("123456 654321" - the old Clients tried to treat these string encoded numbers as the port numbers and failed to do this):
+In the same time the Server MUST send the specially crafted 13 octets long data that kicks off the old Clients. This message does not follow the NDTP-Control protocol message format and MUST be sent verbatim as a string of bytes:
 
 http://www.soldevelo.com/images/ndt/5.%2013%20octets%20long%20data%20that%20kicks%20off%20the%20old%20Clients%20%28%22123456%20654321%22%29.png
 
-All non-compatible Clients MUST drop the connection after receiving the above message.
+All non-compatible Clients MUST drop the connection after receiving the above message. This message is different from all other message types, because it was designed to exploit the old Clients behavior, that tried to treat these string encoded numbers as the port numbers.
 
 ==== Queuing clients ====
 
