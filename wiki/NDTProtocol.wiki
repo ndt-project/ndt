@@ -175,7 +175,7 @@ http://www.soldevelo.com/images/ndt/10.%20Both%20Server%20and%20Client%20MUST%20
 The NDTP-Tests currently defines the following types of tests:
 
 || *Symbolic name* || *Integer value* || *Description* ||
-|| TEST_MID || 1 (1L << 0) || Middlebox test - a short (5 seconds) throughput test from the Server to the Client with a limited CWND to check for a duplex mismatch condition. Moreover, it also checks the MSS value and does NAT detection ||
+|| TEST_MID || 1 (1L << 0) || Middlebox test - a short (5 seconds) throughput test from the Server to the Client with a limited CWND and pre-defined MSS value ||
 || TEST_C2S || 2 (1L << 1) || 10 seconds C2S throughput test ||
 || TEST_S2C || 4 (1L << 2) || 10 seconds S2C throughput test ||
 || TEST_SFW || 8 (1L << 3) || Simple firewall test ||
