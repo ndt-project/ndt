@@ -241,7 +241,7 @@ http://www.soldevelo.com/images/ndt/13.%20A%20Middlebox%20test%20session%20overv
 
 === Simple firewall test ===
 
-The Simple firewall test tries to find out any firewalls between the Client and the Server that will prevent connections to an ephemeral port numbers. The test is performed in both directions (i.e. the Client is trying to connect to the Server (c2s) and the Server is trying to connect to the Client (s2c)).
+The Simple firewall test tries to find out any firewalls between the Client and the Server that will prevent connections to an ephemeral port numbers. The test is performed in both directions (i.e. the Client is trying to connect to the Server and the Server is trying to connect to the Client).
 
 ==== SFW protocol ====
 
@@ -267,11 +267,11 @@ The both messages looks as following:
 
 http://www.soldevelo.com/images/ndt/14.%20of%20length%2020.%20The%20whole%20message%20looks%20as%20following.png
 
-After performing the Simple firewall test in both directions, the Server MUST send to the Client its SFW (c2s) results encoded as string in the TEST_MSG message using the NDTP-Control connection:
+After performing the Simple firewall test in both directions, the Server MUST send to the Client its SFW results encoded as string in the TEST_MSG message using the NDTP-Control connection:
 
 http://www.soldevelo.com/images/ndt/16.%20Client%20its%20SFW%20%28c2s%29%20results%20encoded%20as%20string%20in%20the%20TEST_MSG%20message.png
 
-The Simple firewall test defines the following result codes for both c2s and s2c tests:
+The Simple firewall test defines the following result codes:
 
 || *Value* || *Description* ||
 || "0" || Test was not started ||
