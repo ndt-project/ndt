@@ -162,7 +162,7 @@ After the last accomplished NDTP-Tests test (the particular NDTP-Tests sub-proto
 
 http://www.soldevelo.com/images/ndt/9.%20These%20results%20MUST%20be%20sent%20in%20a%20set%20of%20MSG_RESULTS%20messages.png
 
-All standard results are currently encoded as strings and MAY be displayed by the Client directly on the screen without any modifications.
+All standard results MUST be encoded as a human-readable strings to allow the Client to display them directly on the screen without any modifications.
 
 At the end the Server MUST close the whole test session by sending an empty MSG_LOGOUT message and closing connection with the Client.
 
