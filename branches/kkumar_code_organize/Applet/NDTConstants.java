@@ -48,14 +48,21 @@ public class NDTConstants {
 
 	  public static final double VIEW_DIFF = 0.1;
 	  
+	  //
+	  public static String TARGET1 = "U";
+	  public static String TARGET2 = "H";
 	  
 	  /*Method to initialise a few constants */
-	  private static ResourceBundle messages;
+	  private static ResourceBundle _rscBundleMessages;
 	  public static String TCPBW100_MSGS = "Tcpbw100_msgs";
+	  
+	  
+	  //system variables could be declared as strings too
+	  //half_duplex:, country , etc
 	  
 	  public static void initConstants(Locale paramLocale) {	  
 		  try {	         
-	          messages = ResourceBundle.getBundle( TCPBW100_MSGS, paramLocale);
+			  _rscBundleMessages = ResourceBundle.getBundle( TCPBW100_MSGS, paramLocale);
 	          System.out.println("Obtained messages ");
 	      } catch (Exception e) {
 	          JOptionPane.showMessageDialog(null, "Error while loading language files:\n" + e.getMessage());
@@ -67,7 +74,7 @@ public class NDTConstants {
 	  public static void initConstants(String lang, String country) {	  
 		  try {	       
 			  Locale locale = new Locale(lang, country);
-			  messages = ResourceBundle.getBundle("Tcpbw100_msgs", locale);
+			  _rscBundleMessages = ResourceBundle.getBundle("Tcpbw100_msgs", locale);
 		  } catch (Exception e) {
 	          JOptionPane.showMessageDialog(null, "Error while loading language files:\n" + e.getMessage());
 	          e.printStackTrace();
@@ -76,7 +83,7 @@ public class NDTConstants {
 	  
 	  
 	  public static String getMessageString(String paramStrName) {
-		  return messages.getString(paramStrName);
+		  return _rscBundleMessages.getString(paramStrName);
 	  }
 
 }

@@ -59,36 +59,71 @@ SUCH LOSS OR DAMAGES.
 The Software was developed at least in part by the University of Chicago,
 as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
  */
-import java.io.*;
-import java.net.*;
-import java.net.Socket;
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.event.ActionListener;
+/***
+ * 
+ * Naming convention used: Hungarian, with the following details
+ * _VarName: Class variable (instead of c_VarName for class variables to reduce length)
+ * iVarName: Integer variable 
+ * sVarName: String variable
+ * bVarName: boolean variable
+ * dVarName: double varibale
+ * _iaVarName: Integer "Array"  variable
+ * ...and some other self descriptive examples are..
+ * _rscBundleMessages : class scoped ResourceBundle Variable called "Messages"
+ * _cmboboxIpV6 : Class scoped combo-box variable to indicate IpV6 choice..
+ * 
+ * Some variables which were called "pub_xxx" are declared to have "accessor" methods for use by
+ * other clients. I have left this untouched. These are class scope variables. Though the type is
+ * not evident from the declaration immediately, the "getter/setter" methods for them will immediately
+ * indicate their types
+ * 
+ */
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Panel;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
-import java.awt.datatransfer.*;
-import java.util.*;
-import javax.swing.JLabel;
-import javax.swing.JApplet;
-import javax.swing.JFrame;
-import javax.swing.JTextArea;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.BorderFactory;
-import javax.swing.JTextPane;
-import javax.swing.text.BadLocationException;
-import javax.swing.JOptionPane;
-import javax.swing.BoxLayout;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerNumberModel;
-import javax.swing.JComboBox;
-import javax.swing.JProgressBar;
-
-// Workaround for remote JavaScript start method
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Date;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.StringTokenizer;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JApplet;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JTextArea;
+import javax.swing.SpinnerNumberModel;
 
 
 public class Tcpbw100 extends JApplet implements ActionListener
@@ -102,44 +137,46 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	 */
 
 	JTextArea _txtDiagnosis, _txtStatistics;
-	ResultsTextPane results;
-	String inresult, outresult, errmsg;
-	JButton startTest;
-	JButton disMiss, disMiss2;
-	JButton copy, copy2;
-	JButton deTails;
-	JButton sTatistics;
-	JButton mailTo;
-	JButton options;
-	JCheckBox defaultTest, preferIPv6;
-	JSpinner numOfTests = new JSpinner();
-	String[] delays = { "immediate", "1min","5mins","10mins","30mins","2hours","12hours","1day" };
-	JComboBox delay;
+	ResultsTextPane _resultsTxtPane;
+	//String inresult, outresult; 
+	String _sErrMsg;
+	JButton _buttonStartTest;
+	//TODO: Use just one button for dismiss and copy
+	JButton _buttonDismiss, _buttonStatsDismiss; 
+	JButton _buttonCopy, _buttonStatsCopy;
+	JButton _buttonDetails;
+	JButton _buttonStatistics;
+	JButton _buttonMailTo;
+	JButton _buttonOptions;
+	JCheckBox _chkboxDefaultTest, _chkboxPreferIPv6;
+	JSpinner _spinnerTestCount = new JSpinner();
+	String[] _saDelays = { "immediate", "1min","5mins","10mins","30mins","2hours","12hours","1day" };
+	JComboBox _cmboboxDelay;
 
-	boolean Randomize, failed, cancopy;
-	URL location;
-	NewFrame frameWeb100Vars, frameDetailedStats, frameOptions;
-	String s;
-	double t;
-	int ECNEnabled, NagleEnabled, MSSSent, MSSRcvd;
-	int SACKEnabled, TimestampsEnabled, WinScaleRcvd, WinScaleSent;
-	int FastRetran, AckPktsOut, SmoothedRTT, CurrentCwnd, MaxCwnd;
-	int SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender;
-	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
-	int SumRTT, CountRTT, CurrentMSS, Timeouts, PktsRetrans;
-	int SACKsRcvd, DupAcksIn, MaxRwinRcvd, MaxRwinSent;
-	int DataPktsOut, Rcvbuf, Sndbuf, AckPktsIn, DataBytesOut;
-	int PktsOut, CongestionSignals, RcvWinScale;
-	int pkts, lth=8192, CurrentRTO;
-	int c2sData, c2sAck, s2cData, s2cAck;
+	boolean _bRandomize, _bFailed, _bCanCopy;
+	//URL location; //unused, hence commenting out
+	NewFrame _frameWeb100Vars, _frameDetailedStats, _frameOptions;
+	//String s; Unused, commenting out
+	double _dTime;
+	int _iECNEnabled, _iNagleEnabled, MSSSent, MSSRcvd;
+	int _iSACKEnabled, _iTimestampsEnabled, _iWinScaleRcvd, _iWinScaleSent;
+	int _iFastRetran, _iAckPktsOut, _iSmoothedRTT, _iCurrentCwnd, _iMaxCwnd;
+	int _iSndLimTimeRwin, _iSndLimTimeCwnd, _iSndLimTimeSender;
+	int _iSndLimTransRwin, _iSndLimTransCwnd, _iSndLimTransSender, _iMaxSsthresh;
+	int _iSumRTT, _iCountRTT, _iCurrentMSS, _iTimeouts, _iPktsRetrans;
+	int _iSACKsRcvd, _iDupAcksIn, _iMaxRwinRcvd, _iMaxRwinSent;
+	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn, _iDataBytesOut;
+	int _iPktsOut, _iCongestionSignals, _iRcvWinScale;
+	//what length is 8192? TODO
+	int _iPkts, _iLength=8192, _iCurrentRTO; 
+	int _iC2sData, _iC2sAck, _iS2cData, _iS2cAck;
 	// added for mailto url
-	protected URL targetURL;
-	private String TARGET1 = "U";
-	private String TARGET2 = "H";
-	String emailText;
-	double s2cspd, c2sspd, sc2sspd, ss2cspd;
-	int ssndqueue;
-	double sbytes;
+	protected URL _targetURL;
+
+	String _sEmailText;
+	double _dS2cspd, _dC2sspd, _dSc2sspd, _dSs2cspd;
+	int _iSsndqueue;
+	double _dSbytes;
 
 	/*************************************************************************
 	 * JavaScript access API extension
@@ -150,7 +187,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	 * from web applications using NDT as a back-end.  
 	 */
 
-
+    //These variables are accessed by the setter/getter methods. While they do not follow naming convention,
+	//  are left this way
+	// TODO :What is the difference between pub_c2sspd and _dC2sspd above?
 	private double pub_c2sspd = 0.0;
 	private double pub_s2cspd = 0.0;
 	private int pub_CurRwinRcvd = 0; // source variable does not exist
@@ -189,8 +228,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	private String pub_status = "notStarted";
 	private double pub_time = 0.0;
 	private int pub_bytes = 0;
-	private String isAutoRun;
-	private String userAgent = null;
+	private String _sIsAutoRun;
+	private String _sUserAgent = null;
 
 	/**
 	 * Accessor methods for public variables
@@ -437,11 +476,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	}
 
 	public String getUserAgent() {
-		return userAgent;
+		return _sUserAgent;
 	}
 
 	public void setUserAgent(String userAgent) {
-		this.userAgent = userAgent;
+		this._sUserAgent = userAgent;
 	}
 
 	/**
@@ -453,8 +492,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	 * Added by Martin Sandsmark, UNINETT AS
 	 * Internationalization
 	 */
-	private Locale locale;
-	private ResourceBundle messages;
+	private Locale _localeObj;
+	private ResourceBundle _resBundleMessages;
 	private String lang="en";
 	private String country="US";
 	//private static String lang="nb";
@@ -483,10 +522,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		if (getParameter("language") != null) lang = getParameter("language");
 
 		try {
-			locale = new Locale(lang, country);
-			messages = ResourceBundle.getBundle("Tcpbw100_msgs", locale);
+			_localeObj = new Locale(lang, country);
+			_resBundleMessages = ResourceBundle.getBundle("Tcpbw100_msgs", _localeObj);
 
-			//Replaced method call to initialize messages for access by class
+			//Replaced method call to initialize _resBundleMessages for access by class
 			//NDTConstants.initConstants(locale);
 			NDTConstants.initConstants(lang, country);
 
@@ -495,39 +534,46 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			e.printStackTrace();
 		}
 
+		//call method to create a window
+		createMainWindow();
+	
+		//TODO :Can we move this to SwiigUtilies? Plan for after documentation - it does'nt help
+		//with understanding the functionality itself
+		
+		/*
 		getContentPane().setLayout(new BorderLayout());
-		showStatus(messages.getString("ready"));
-		failed = false ;
-		Randomize = false;
-		cancopy = false;
-		results = new ResultsTextPane();
-		results.append("TCP/Web100 Network Diagnostic Tool v" + NDTConstants.VERSION + "\n");
-		results.setEditable(false);
-		getContentPane().add(new JScrollPane(results));
-		results.append(messages.getString("clickStart") + "\n");
+		showStatus(_resBundleMessages.getString("ready"));
+		_bFailed = false ;
+		_bRandomize = false;
+		_bCanCopy = false;
+		_resultsTxtPane = new ResultsTextPane();
+		_resultsTxtPane.append("TCP/Web100 Network Diagnostic Tool v" + NDTConstants.VERSION + "\n");
+		_resultsTxtPane.setEditable(false);
+		getContentPane().add(new JScrollPane(_resultsTxtPane));
+		_resultsTxtPane.append(_resBundleMessages.getString("clickStart") + "\n");
 		Panel mPanel = new Panel();
-		startTest = new JButton(messages.getString("start"));
-		startTest.addActionListener(this);
-		mPanel.add(startTest);
-		sTatistics = new JButton(messages.getString("statistics"));
-		sTatistics.addActionListener(this);
+		_buttonStartTest = new JButton(_resBundleMessages.getString("start"));
+		_buttonStartTest.addActionListener(this);
+		mPanel.add(_buttonStartTest);
+		_buttonStatistics = new JButton(_resBundleMessages.getString("statistics"));
+		_buttonStatistics.addActionListener(this);
 		if (getParameter("disableStatistics") == null) {
-			mPanel.add(sTatistics);
+			mPanel.add(_buttonStatistics);
 		}
-		sTatistics.setEnabled(false);
-		deTails = new JButton(messages.getString("moreDetails"));
-		deTails.addActionListener(this);
+		_buttonStatistics.setEnabled(false);
+		_buttonDetails = new JButton(_resBundleMessages.getString("moreDetails"));
+		_buttonDetails.addActionListener(this);
 		if (getParameter("disableDetails") == null) {
-			mPanel.add(deTails);
+			mPanel.add(_buttonDetails);
 		}
-		deTails.setEnabled(false);
-		mailTo = new JButton(messages.getString("reportProblem"));
-		mailTo.addActionListener(this);
+		_buttonDetails.setEnabled(false);
+		_buttonMailTo = new JButton(_resBundleMessages.getString("reportProblem"));
+		_buttonMailTo.addActionListener(this);
 		if (getParameter("disableMailto") == null) {
-			mPanel.add(mailTo);
+			mPanel.add(_buttonMailTo);
 		}
-		mailTo.setEnabled(false);
-		options = new JButton(messages.getString("options") + "...");
+		_buttonMailTo.setEnabled(false);
+		options = new JButton(_resBundleMessages.getString("options") + "...");
 		options.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
@@ -541,169 +587,250 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			mPanel.add(options);
 		}
 		getContentPane().add(BorderLayout.SOUTH, mPanel);
-		preferIPv6 = new JCheckBox(messages.getString("preferIPv6"));
-		preferIPv6.setSelected(true);
-		defaultTest = new JCheckBox(messages.getString("defaultTests"));
-		defaultTest.setSelected(true);
-		defaultTest.setEnabled(false);
+		_chkboxPreferIPv6 = new JCheckBox(_resBundleMessages.getString("_chkboxPreferIPv6"));
+		_chkboxPreferIPv6.setSelected(true);
+		_chkboxDefaultTest = new JCheckBox(_resBundleMessages.getString("_chkboxDefaultTests"));
+		_chkboxDefaultTest.setSelected(true);
+		_chkboxDefaultTest.setEnabled(false);
 		SpinnerNumberModel model = new SpinnerNumberModel();
 		model.setMinimum(new Integer(0));
 		model.setValue(new Integer(1));
-		numOfTests.setModel(model);
-		numOfTests.setPreferredSize(new Dimension(60, 20));
+		_spinnerTestCount.setModel(model);
+		_spinnerTestCount.setPreferredSize(new Dimension(60, 20));
 		delay = new JComboBox();
-		for (int i = 0; i < delays.length; i++) {
-			delay.addItem(messages.getString(delays[i]));
+		for (int i = 0; i < _saDelays.length; i++) {
+			delay.addItem(_resBundleMessages.getString(_saDelays[i]));
 		}
 		delay.setSelectedIndex(0);
-
+	    */
+		
+		
 		//Autorun functionality
-		isAutoRun = getParameter("autoRun");
-		if ((isAutoRun != null) && isAutoRun.equals("true")) {
+		_sIsAutoRun = getParameter("autoRun");
+		if ((_sIsAutoRun != null) && _sIsAutoRun.equals("true")) {
 			pub_errmsg = "Test in progress.";
 			runtest();  
 		}
 
 	}
-
-	/* Method to display status
-	 * @param String value of status
-	 * @return void */
-	public void showStatus(String msg) {
-		if (!isApplication) {
-			super.showStatus(msg);
+	
+	/* Method that initializes the "main" window
+	 * @param none
+	 * @returns void*/
+	
+	private void createMainWindow () {
+		getContentPane().setLayout(new BorderLayout());
+		showStatus(_resBundleMessages.getString("ready"));
+		_bFailed = false ;
+		_bRandomize = false; //what is this used for?
+		_bCanCopy = false;
+		_resultsTxtPane = new ResultsTextPane();
+		_resultsTxtPane.append("TCP/Web100 Network Diagnostic Tool v" + NDTConstants.VERSION + "\n");
+		_resultsTxtPane.setEditable(false);
+		getContentPane().add(new JScrollPane(_resultsTxtPane));
+		_resultsTxtPane.append(_resBundleMessages.getString("clickStart") + "\n");
+		Panel mPanel = new Panel();
+		_buttonStartTest = new JButton(_resBundleMessages.getString("start"));
+		_buttonStartTest.addActionListener(this);
+		mPanel.add(_buttonStartTest);
+		_buttonStatistics = new JButton(_resBundleMessages.getString("statistics"));
+		_buttonStatistics.addActionListener(this);
+		if (getParameter("disableStatistics") == null) {
+			mPanel.add(_buttonStatistics);
 		}
+		_buttonStatistics.setEnabled(false);
+		_buttonDetails = new JButton(_resBundleMessages.getString("moreDetails"));
+		_buttonDetails.addActionListener(this);
+		if (getParameter("disableDetails") == null) {
+			mPanel.add(_buttonDetails);
+		}
+		_buttonDetails.setEnabled(false);
+		_buttonMailTo = new JButton(_resBundleMessages.getString("reportProblem"));
+		_buttonMailTo.addActionListener(this);
+		if (getParameter("disableMailto") == null) {
+			mPanel.add(_buttonMailTo);
+		}
+		_buttonMailTo.setEnabled(false);
+		_buttonOptions = new JButton(_resBundleMessages.getString("options") + "...");
+		_buttonOptions.addActionListener(new ActionListener() {
+
+			public void actionPerformed(ActionEvent e) {
+				_buttonOptions.setEnabled(false);
+				createOptionsWindow();
+				_buttonOptions.setEnabled(true);
+			}
+
+		});
+		if (getParameter("disableOptions") == null) {
+			mPanel.add(_buttonOptions);
+		}
+		getContentPane().add(BorderLayout.SOUTH, mPanel);
+		_chkboxPreferIPv6 = new JCheckBox(_resBundleMessages.getString("preferIPv6"));
+		_chkboxPreferIPv6.setSelected(true);
+		_chkboxDefaultTest = new JCheckBox(_resBundleMessages.getString("defaultTests"));
+		_chkboxDefaultTest.setSelected(true);
+		_chkboxDefaultTest.setEnabled(false);
+		SpinnerNumberModel model = new SpinnerNumberModel();
+		model.setMinimum(new Integer(0));
+		model.setValue(new Integer(1));
+		_spinnerTestCount.setModel(model);
+		_spinnerTestCount.setPreferredSize(new Dimension(60, 20));
+		_cmboboxDelay = new JComboBox();
+		for (int i = 0; i < _saDelays.length; i++) {
+			_cmboboxDelay.addItem(_resBundleMessages.getString(_saDelays[i]));
+		}
+		_cmboboxDelay.setSelectedIndex(0);
+		
+	}
+	
+
+	public void createDiagnoseWindow() {
+		showStatus(_resBundleMessages.getString("getWeb100Var"));
+
+		if (_frameWeb100Vars == null) {
+			_frameWeb100Vars = new NewFrame();
+		}
+		_frameWeb100Vars.setTitle(_resBundleMessages.getString("web100Var"));
+		Panel buttons = new Panel();
+		_frameWeb100Vars.getContentPane().add("South", buttons);
+
+		_buttonDismiss = new JButton(_resBundleMessages.getString("close"));
+		_buttonDismiss.addActionListener(this);
+
+		_buttonCopy = new JButton(_resBundleMessages.getString("copy"));
+		_buttonCopy.addActionListener(this);
+
+		_txtDiagnosis = new JTextArea(_resBundleMessages.getString("web100KernelVar") + ":\n", 15,30);
+		_txtDiagnosis.setEditable(true);
+		_buttonDismiss.setEnabled(true);
+		_buttonCopy.setEnabled(_bCanCopy);
+
+		buttons.add("West", _buttonDismiss);
+		buttons.add("East", _buttonCopy);
+		_frameWeb100Vars.getContentPane().add(new JScrollPane(_txtDiagnosis));
+		_frameWeb100Vars.pack();
+	}  // diagnose()
+
+
+
+	public void createStatsWindow() {
+		showStatus(_resBundleMessages.getString("printDetailedStats"));
+
+		if (_frameDetailedStats  == null) {
+			_frameDetailedStats = new NewFrame();
+		}
+		_frameDetailedStats.setTitle(_resBundleMessages.getString("detailedStats"));
+		Panel buttons = new Panel();
+		_frameDetailedStats.getContentPane().add("South", buttons);
+
+		_buttonStatsDismiss = new JButton(_resBundleMessages.getString("close"));
+		_buttonStatsDismiss.addActionListener(this);
+
+		_buttonStatsCopy = new JButton(_resBundleMessages.getString("copy"));
+		_buttonStatsCopy.addActionListener(this);
+
+		_txtStatistics = new JTextArea(_resBundleMessages.getString("web100Stats") + ":\n", 25,70);
+		_txtStatistics.setEditable(true);
+		_buttonStatsDismiss.setEnabled(true);
+		_buttonStatsCopy.setEnabled(_bCanCopy);
+
+		buttons.add("West", _buttonStatsDismiss);
+		buttons.add("East", _buttonStatsCopy);
+		_frameDetailedStats.getContentPane().add(new JScrollPane(_txtStatistics));
+		_frameDetailedStats.pack();
+	}  // statistics()
+
+
+	public void createOptionsWindow() {
+		showStatus(_resBundleMessages.getString("showOptions"));
+
+		if (_frameOptions == null) {
+			_frameOptions = new NewFrame();
+			_frameOptions.setTitle(_resBundleMessages.getString("options"));
+
+			JPanel optionsPanel = new JPanel();
+			optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
+
+			JPanel testsPanel = new JPanel();
+			testsPanel.setBorder(BorderFactory.createTitledBorder(_resBundleMessages.getString("performedTests")));
+			testsPanel.add(_chkboxDefaultTest);
+			optionsPanel.add(testsPanel);
+
+			JPanel protocolPanel = new JPanel();
+			protocolPanel.setBorder(BorderFactory.createTitledBorder(_resBundleMessages.getString("ipProtocol")));
+			protocolPanel.add(_chkboxPreferIPv6);
+			optionsPanel.add(protocolPanel);
+
+			if (getParameter("enableMultipleTests") != null) {
+				JPanel generalPanel = new JPanel();
+				generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
+				generalPanel.setBorder(BorderFactory.createTitledBorder(_resBundleMessages.getString("general")));
+				JPanel tmpPanel = new JPanel();
+				tmpPanel.add(new JLabel(_resBundleMessages.getString("numberOfTests") + ":"));
+				tmpPanel.add(_spinnerTestCount);
+				generalPanel.add(tmpPanel);
+				tmpPanel = new JPanel();
+				tmpPanel.add(new JLabel(_resBundleMessages.getString("delayBetweenTests") + ":"));
+				tmpPanel.add(_cmboboxDelay);
+				generalPanel.add(tmpPanel);
+
+				optionsPanel.add(generalPanel);
+			}
+
+			_frameOptions.getContentPane().add(optionsPanel);     
+			Panel buttons = new Panel();
+			_frameOptions.getContentPane().add("South", buttons);
+
+			JButton okButton= new JButton(_resBundleMessages.getString("ok"));
+			okButton.addActionListener(new ActionListener() {
+
+				public void actionPerformed(ActionEvent e) {
+					_frameOptions.toBack();
+					_frameOptions.dispose();
+				}
+
+			});
+
+			buttons.add("West", okButton);
+
+			_frameOptions.pack();
+		}
+		_frameOptions.setResizable(false);
+		_frameOptions.setVisible(true);
 	}
 
-	/* Utility method to get parameter value
-	 * @param Key String whose value has to be found 
-	 * @return Value of key requested for */
-	public String getParameter(String name) {
-		if (!isApplication) {
-			return super.getParameter(name);
-		}
-		return null;
+	
+
+
+	/*Method to run the Thread that calls the "dottcp" method to run tests
+	 * This method is called by the Applet's init method if user selected an
+	 * "autorun" option,  is run individually if user presses the "start button",
+	 * and is internally run by API call */
+	synchronized public void runtest() {
+		pub_status = "notStarted";
+		new Thread(new TestWorker()).start();
 	}
 
-	/*
-  class ResultsTextPane extends JTextPane
-  {
-	  public void append(String text)
-	  {
-		  try {
-			  getStyledDocument().insertString(getStyledDocument().getLength(), text, null);
-		  }
-		  catch (BadLocationException e) {
-			  System.out.println("WARNING: failed to append text to the text pane! [" + text + "]");
-		  }
-	  }
-
-	  public void insertComponent(Component c)
-	  {
-      setSelectionStart(results.getStyledDocument().getLength());
-      setSelectionEnd(results.getStyledDocument().getLength());
-		  super.insertComponent(c);
-	  }
-  }
-	 */
-
-	/*
-  class StatusPanel extends JPanel
-  {
-      private int _testNo;
-      private int _testsNum;
-      private boolean _stop = false;
-
-      private JLabel testNoLabel = new JLabel();
-      private JButton stopButton;
-      private JProgressBar progressBar = new JProgressBar();
-
-      StatusPanel(int testsNum) {
-          this._testNo = 1;
-          this._testsNum = testsNum;
-
-          setTestNoLabelText();
-
-          //If multiple tests are enabled, then add label indicating test number being run.
-          //** Also provide a way to "stop" current test being run
-          if (getParameter("enableMultipleTests") != null) {
-              add(testNoLabel);
-          }
-
- //DEBUG
- System.out.println("Debug valuer = "+  getParameter("enableMultipleTests") );
-          progressBar.setMinimum(0);
-          progressBar.setMaximum(_testsNum);
-          progressBar.setValue(0);
-          progressBar.setStringPainted(true);
-          if (_testsNum == 0) {
-              progressBar.setString("");
-              progressBar.setIndeterminate(true);
-          }
-          else {
-              progressBar.setString(messages.getString("initialization"));
-          }
-          add(progressBar);
-          stopButton= new JButton(messages.getString("stop"));
-          stopButton.addActionListener(new ActionListener() {
-
-              public void actionPerformed(ActionEvent e) {
-                  _stop = true;
-                  stopButton.setEnabled(false);
-                  StatusPanel.this.setText(messages.getString("stopping"));
-              }
-
-          });
-          if (getParameter("enableMultipleTests") != null) {
-              add(stopButton);
-          }
-      }
-
-      private void setTestNoLabelText() {
-          testNoLabel.setText(messages.getString("test") + " " + _testNo + " " + messages.getString("of") + " " +_testsNum + "HEREEEEE");
-      }
-
-      public boolean wantToStop() {
-          return _stop;
-      }
-
-      public void endTest() {
-          progressBar.setValue(_testNo);
-          _testNo++;
-          setTestNoLabelText();
-      }
-
-      public void setText(String text) {
-          if (!progressBar.isIndeterminate()) {
-              progressBar.setString(text);
-          }
-      }
-  }
-
-	 */
-
-
-	class TestWorker implements Runnable
-	{
-		public void run()
-		{
+	
+	class TestWorker implements Runnable {
+		public void run() {
 			if (!testInProgress) {
 				int testNo = 1;
-				int testsNum = ((Integer)numOfTests.getValue()).intValue();
+				int testsNum = ((Integer)_spinnerTestCount.getValue()).intValue();
 				testInProgress = true;
-				diagnose();
-				statistics();
-				startTest.setEnabled(false);
-				deTails.setEnabled(false);
-				sTatistics.setEnabled(false);
-				mailTo.setEnabled(false);
-				options.setEnabled(false);
-				numOfTests.setEnabled(false);
+				createDiagnoseWindow();
+				createStatsWindow();
+				_buttonStartTest.setEnabled(false);
+				_buttonDetails.setEnabled(false);
+				_buttonStatistics.setEnabled(false);
+				_buttonMailTo.setEnabled(false);
+				_buttonOptions.setEnabled(false);
+				_spinnerTestCount.setEnabled(false);
 
 				//StatusPanel sPanel = new StatusPanel(testsNum);
 				//re-arch. Replaced above by the line below
-				String sTempEnableMany = getParameter("enableMultipleTests");
-				StatusPanel sPanel = new StatusPanel(testsNum, sTempEnableMany);
+				String sTempEnable = getParameter("enableMultipleTests");
+				StatusPanel sPanel = new StatusPanel(testsNum, sTempEnable);
 				getContentPane().add(BorderLayout.NORTH, sPanel);
 				getContentPane().validate();
 				getContentPane().repaint();
@@ -714,10 +841,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
 							break;
 						}
 						if (testsNum == 0) {
-							results.append("\n** " + messages.getString("startingTest") + " " + testNo + " **\n");
+							_resultsTxtPane.append("\n** " + _resBundleMessages.getString("startingTest") + " " + testNo + " **\n");
 						}
 						else {
-							results.append("\n** " + messages.getString("startingTest") + " " + testNo + " " + messages.getString("of") + " " + testsNum + " **\n");
+							_resultsTxtPane.append("\n** " + _resBundleMessages.getString("startingTest") + " " + testNo + " " + _resBundleMessages.getString("of") + " " + testsNum + " **\n");
 						}
 						dottcp(sPanel);
 						if (testNo == testsNum) {
@@ -729,40 +856,40 @@ public class Tcpbw100 extends JApplet implements ActionListener
 						sPanel.setText("");
 						sPanel.endTest();
 						testNo += 1;
-						deTails.setEnabled(true);
-						sTatistics.setEnabled(true);
-						mailTo.setEnabled(true);
-						options.setEnabled(true);
-						_txtStatistics.append("\n** " + messages.getString("test") + " " + testNo + " **\n");
-						_txtDiagnosis.append("\n** " + messages.getString("test") + " " + testNo + " **\n");
+						_buttonDetails.setEnabled(true);
+						_buttonStatistics.setEnabled(true);
+						_buttonMailTo.setEnabled(true);
+						_buttonOptions.setEnabled(true);
+						_txtStatistics.append("\n** " + _resBundleMessages.getString("test") + " " + testNo + " **\n");
+						_txtDiagnosis.append("\n** " + _resBundleMessages.getString("test") + " " + testNo + " **\n");
 						try {
-							switch (delay.getSelectedIndex()) {
+							switch (_cmboboxDelay.getSelectedIndex()) {
 							case 1:
-								results.append("\n** " + messages.getString("sleep1m") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep1m") + " **\n");
 								Thread.sleep(1000 * 60);
 								break;
 							case 2:
-								results.append("\n** " + messages.getString("sleep5m") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep5m") + " **\n");
 								Thread.sleep(1000 * 60 * 5);
 								break;
 							case 3:
-								results.append("\n** " + messages.getString("sleep10m") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep10m") + " **\n");
 								Thread.sleep(1000 * 60 * 10);
 								break;
 							case 4:
-								results.append("\n** " + messages.getString("sleep30m") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep30m") + " **\n");
 								Thread.sleep(1000 * 60 * 30);
 								break;
 							case 5:
-								results.append("\n** " + messages.getString("sleep2h") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep2h") + " **\n");
 								Thread.sleep(1000 * 60 * 120);
 								break;
 							case 6:
-								results.append("\n** " + messages.getString("sleep12h") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep12h") + " **\n");
 								Thread.sleep(1000 * 60 * 720);
 								break;
 							case 7:
-								results.append("\n** " + messages.getString("sleep1d") + " **\n");
+								_resultsTxtPane.append("\n** " + _resBundleMessages.getString("sleep1d") + " **\n");
 								Thread.sleep(1000 * 60 * 1440);
 								break;
 							}
@@ -773,25 +900,25 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					}
 				} catch(IOException e) {
 					e.printStackTrace();
-					failed=true;
-					errmsg = messages.getString("serverBusy30s") + "\n";
+					_bFailed=true;
+					_sErrMsg = _resBundleMessages.getString("serverBusy30s") + "\n";
 				}
 
-				if (failed) {
-					results.append(errmsg);
+				if (_bFailed) {
+					_resultsTxtPane.append(_sErrMsg);
 
 					pub_isReady = "failed";
-					pub_errmsg = errmsg;
+					pub_errmsg = _sErrMsg;
 				}
 
-				deTails.setEnabled(true);
-				sTatistics.setEnabled(true);
-				mailTo.setEnabled(true);
-				options.setEnabled(true);
-				numOfTests.setEnabled(true);
-				showStatus(messages.getString("done2"));
-				results.append("\n" + messages.getString("clickStart2") + "\n");
-				startTest.setEnabled(true);
+				_buttonDetails.setEnabled(true);
+				_buttonStatistics.setEnabled(true);
+				_buttonMailTo.setEnabled(true);
+				_buttonOptions.setEnabled(true);
+				_spinnerTestCount.setEnabled(true);
+				showStatus(_resBundleMessages.getString("done2"));
+				_resultsTxtPane.append("\n" + _resBundleMessages.getString("clickStart2") + "\n");
+				_buttonStartTest.setEnabled(true);
 				testInProgress = false;
 				getContentPane().remove(sPanel);
 				getContentPane().validate();
@@ -800,90 +927,127 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 	}
 
-	/*Method to run the Thread that calls the "dottcp" method to run tests
-	 * This method is called by the Applet's init method if user selected an
-	 * "autorun" option,  is run individually if user presses the "start button",
-	 * and is internally run by API call */
-	synchronized public void runtest() {
-		pub_status = "notStarted";
-		new Thread(new TestWorker()).start();
+	public void actionPerformed(ActionEvent event) {
+		Object source = event.getSource();
+		// System.err.println("Processing WINDOW event #" +event.getID());
+		// System.err.println("Processing event " + source);
+
+		if (source == _buttonStartTest) {
+			if(_frameWeb100Vars != null) {
+				_frameWeb100Vars.toBack();
+				_frameWeb100Vars.dispose();
+				_frameWeb100Vars = null;
+			}
+
+			if(_frameDetailedStats != null) {
+				_frameDetailedStats.toBack();
+				_frameDetailedStats.dispose();
+				_frameDetailedStats = null;
+			}
+
+			pub_errmsg = "Test in progress.";
+			runtest();
+		}
+
+		else if (source == _buttonDetails) {
+			_buttonDetails.setEnabled(false);
+			_frameWeb100Vars.setResizable(true);
+			_frameWeb100Vars.setVisible(true);
+			_buttonDetails.setEnabled(true);
+		}
+
+		else if (source == _buttonDismiss) {
+			_frameWeb100Vars.toBack();
+			_frameWeb100Vars.dispose();
+		}
+
+		else if (source == _buttonStatsDismiss) {
+			_frameDetailedStats.toBack();
+			_frameDetailedStats.dispose();
+		}
+
+		else if (source == _buttonCopy) {
+			try {
+				Clipboard clipbd = getToolkit().getSystemClipboard();
+				_bCanCopy = true;
+				String s = _txtDiagnosis.getText();
+				StringSelection ss = new StringSelection(s);
+				clipbd.setContents(ss, ss);
+				_txtDiagnosis.selectAll();
+			} catch (SecurityException e) {
+				_bCanCopy = false;
+			}
+		}
+
+		else if (source == _buttonStatsCopy) {
+			Clipboard clipbd = getToolkit().getSystemClipboard();
+			String sTemp = _txtStatistics.getText();
+			StringSelection ssTemp = new StringSelection(sTemp);
+			clipbd.setContents(ssTemp, ssTemp);
+			_txtStatistics.selectAll();
+		}
+
+		else if (source == _buttonStatistics) {
+			_buttonStatistics.setEnabled(false);
+			_frameDetailedStats.setResizable(true);
+			_frameDetailedStats.setVisible(true);
+			_buttonStatistics.setEnabled(true);
+		}
+
+		else if (source == _buttonMailTo) {
+			//int i; //did'nt need it
+			//char key; comment out. seems unused
+			String to[], from[], comments[];
+			String sName, sHost;
+
+			_buttonMailTo.setEnabled(false);
+			// envoke mailto: function
+			showStatus(_resBundleMessages.getString("invokingMailtoFunction") + "...");
+
+			_resultsTxtPane.append(_resBundleMessages.getString("generatingReport") + "\n");
+			try {
+				//TODO exception here occasionaly. Check out if my changes introduced these
+				if ((sName = getParameter(NDTConstants.TARGET1)) == null) {
+					throw new IllegalArgumentException("U parameter Required:");
+				}
+				if ((sHost = getParameter(NDTConstants.TARGET2)) == null) {
+					throw new IllegalArgumentException("H parameter Required:");
+				}
+
+				String theURL = "mailto:" + sName + "@" + sHost;
+				String subject = getParameter("subject");
+
+				if (subject == null) {
+					subject = _resBundleMessages.getString("troubleReportFrom") + " " + getCodeBase().getHost();
+				}
+				theURL += "?subject=" + subject;
+				theURL += "&body=" + _resBundleMessages.getString("comments") + ":%0A%0A" + _sEmailText + " " + _resBundleMessages.getString("endOfEmail") + "\n%0A";
+				// System.out.println("Message body is '" + emailText + "'\n");
+				_targetURL = new URL(theURL);
+
+			} catch (MalformedURLException rsi) {
+				throw new IllegalArgumentException("Can't create mailto: URL" + rsi.getMessage());
+			}
+
+			getAppletContext().showDocument(_targetURL);
+		}
+	}  // actionPerformed()
+
+	/* Method to display current status in Applet window
+	 * @param String value of status
+	 * @return void */
+	public void showStatus(String msg) {
+		if (!isApplication) {
+			super.showStatus(msg);
+		}
 	}
-
-	/*
-  class Message {
-    byte type;
-    byte[] body;
-  }
-
-  class Protocol {
-    private InputStream _ctlin;
-    private OutputStream _ctlout;
-
-    public Protocol(Socket ctlSocket) throws IOException
-    {
-      _ctlin = ctlSocket.getInputStream();
-      _ctlout = ctlSocket.getOutputStream();
-    }
-
-    public void send_msg(byte type, byte toSend) throws IOException
-    {
-      byte[] tab = new byte[] { toSend };
-      send_msg(type, tab);
-    }
-
-    public void send_msg(byte type, byte[] tab) throws IOException
-    {
-      byte[] header = new byte[3];
-      header[0] = type;
-      header[1] = (byte) (tab.length >> 8);
-      header[2] = (byte) tab.length;
-
-      _ctlout.write(header);
-      _ctlout.write(tab);
-    }
-
-    public int readn(Message msg, int amount) throws IOException
-    {
-      int read = 0; 
-      int tmp;
-      msg.body = new byte[amount];
-      while (read != amount) {
-        tmp = _ctlin.read(msg.body, read, amount - read);
-        if (tmp <= 0) {
-          return read;
-        }
-        read += tmp;
-      }
-      return read;
-    }
-
-    public int recv_msg(Message msg) throws IOException
-    {
-      int length;
-      if (readn(msg, 3) != 3) {
-        return 1;
-      }
-      msg.type = msg.body[0];
-      length = ((int) msg.body[1] & 0xFF) << 8;
-      length += (int) msg.body[2] & 0xFF; 
-      if (readn(msg, length) != length) {
-        return 3;
-      }
-      return 0;
-    }
-
-    public void close()
-    {
-      try {
-        _ctlin.close();
-        _ctlout.close();
-      }
-      catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-  }
-	 */
+	
+	
+	/* MiddleBox testing method
+	 * @param Protocol
+	 * @return boolean
+	 * @TODO documentaion */
+	
 	public boolean test_mid(Protocol ctl) throws IOException {
 
 		byte buff[] = new byte[8192];
@@ -892,36 +1056,36 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			/* now look for middleboxes (firewalls, NATs, and other boxes that
 			 * muck with TCP's end-to-end priciples
 			 */
-			showStatus(messages.getString("middleboxTest"));
-			results.append(messages.getString("checkingMiddleboxes") + "  ");
-			_txtStatistics.append(messages.getString("checkingMiddleboxes") + "  ");
-			emailText = messages.getString("checkingMiddleboxes") + "  ";
+			showStatus(_resBundleMessages.getString("middleboxTest"));
+			_resultsTxtPane.append(_resBundleMessages.getString("checkingMiddleboxes") + "  ");
+			_txtStatistics.append(_resBundleMessages.getString("checkingMiddleboxes") + "  ");
+			_sEmailText = _resBundleMessages.getString("checkingMiddleboxes") + "  ";
 			pub_status = "checkingMiddleboxes";
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
 			//Do not use static import of message types for cleaner code
-			if (msg.type != MessageType.TEST_PREPARE) {
-				errmsg = messages.getString("mboxWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_PREPARE) {
+				_sErrMsg = _resBundleMessages.getString("mboxWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			int midport = Integer.parseInt(new String(msg.body));
+			int midport = Integer.parseInt(new String(msg.getBody()));
 
 			Socket in2Socket = null;
 			try {
 				in2Socket = new Socket(host, midport);
 			} catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + host);
-				errmsg = messages.getString("unknownServer") + "\n" ;
+				_sErrMsg = _resBundleMessages.getString("unknownServer") + "\n" ;
 				return true;
 			} catch (IOException e) {
 				System.err.println("Couldn't perform middlebox testing to: " + host);
-				errmsg = messages.getString("middleboxFail") + "\n" ;
+				_sErrMsg = _resBundleMessages.getString("middleboxFail") + "\n" ;
 				return true;
 			}
 
@@ -933,37 +1097,37 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			in2Socket.setSoTimeout(6500);
 			int bytes = 0;
 			int inlth;
-			t = System.currentTimeMillis();
+			_dTime = System.currentTimeMillis();
 			pub_TimeStamp = new Date();
 
 			try {  
 				while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
 					bytes += inlth;
 					pub_bytes = bytes;
-					if ((System.currentTimeMillis() - t) > 5500)
+					if ((System.currentTimeMillis() - _dTime) > 5500)
 						break;
 				}
 			} 
 			catch (IOException e) {}
 
-			t =  System.currentTimeMillis() - t;
-			System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
-			s2cspd = ((8.0 * bytes) / 1000) / t;
+			_dTime =  System.currentTimeMillis() - _dTime;
+			System.out.println(bytes + " bytes " + (8.0 * bytes)/_dTime + " kb/s " + _dTime/1000 + " secs");
+			_dS2cspd = ((8.0 * bytes) / 1000) / _dTime;
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_MSG) {
-				errmsg = messages.getString("mboxWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_MSG) {
+				_sErrMsg = _resBundleMessages.getString("mboxWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			tmpstr2 = new String(msg.body);
+			tmpstr2 = new String(msg.getBody());
 
-			String tmpstr4 = Double.toString(s2cspd*1000);
+			String tmpstr4 = Double.toString(_dS2cspd*1000);
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
 			ctl.send_msg(MessageType.TEST_MSG, tmpstr4.getBytes());
 
@@ -971,9 +1135,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				tmpstr2 += in2Socket.getInetAddress() + ";";
 			} catch (SecurityException e) {
 				System.err.println("Unable to obtain Servers IP addresses: using " + host);
-				errmsg = "getInetAddress() called failed\n" ;
+				_sErrMsg = "getInetAddress() called failed\n" ;
 				tmpstr2 += host + ";";
-				results.append(messages.getString("lookupError") + "\n");
+				_resultsTxtPane.append(_resBundleMessages.getString("lookupError") + "\n");
 			}
 
 			System.err.println("calling in2Socket.getLocalAddress()");
@@ -981,7 +1145,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				tmpstr2 += in2Socket.getLocalAddress() + ";";
 			} catch (SecurityException e) {
 				System.err.println("Unable to obtain local IP address: using 127.0.0.1");
-				errmsg = "getLocalAddress() call failed\n" ;
+				_sErrMsg = "getLocalAddress() call failed\n" ;
 				tmpstr2 += "127.0.0.1;";
 			}
 
@@ -990,19 +1154,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			in2Socket.close();
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_FINALIZE) {
-				errmsg = messages.getString("mboxWrongMessage");
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_FINALIZE) {
+				_sErrMsg = _resBundleMessages.getString("mboxWrongMessage");
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			results.append(messages.getString("done") + "\n");
-			_txtStatistics.append(messages.getString("done") + "\n");
-			emailText += messages.getString("done") + "\n%0A";
+			_resultsTxtPane.append(_resBundleMessages.getString("done") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("done") + "\n");
+			_sEmailText += _resBundleMessages.getString("done") + "\n%0A";
 		}
 		return false;
 	}
@@ -1011,25 +1175,25 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	{
 		Message msg = new Message();
 		if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
-			showStatus(messages.getString("sfwTest"));
-			results.append(messages.getString("checkingFirewalls") + "  ");
-			_txtStatistics.append(messages.getString("checkingFirewalls") + "  ");
-			emailText = messages.getString("checkingFirewalls") + "  ";
+			showStatus(_resBundleMessages.getString("sfwTest"));
+			_resultsTxtPane.append(_resBundleMessages.getString("checkingFirewalls") + "  ");
+			_txtStatistics.append(_resBundleMessages.getString("checkingFirewalls") + "  ");
+			_sEmailText = _resBundleMessages.getString("checkingFirewalls") + "  ";
 			pub_status = "checkingFirewalls";
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_PREPARE) {
-				errmsg = messages.getString("sfwWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_PREPARE) {
+				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
 
-			String message = new String(msg.body);
+			String message = new String(msg.getBody());
 
 			int srvPort, testTime;
 			try {
@@ -1038,7 +1202,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				testTime = Integer.parseInt(message.substring(k+1));
 			}
 			catch (Exception e) {
-				errmsg = messages.getString("sfwWrongMessage") + "\n";
+				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
 				return true;
 			}
 
@@ -1056,7 +1220,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 			catch (Exception e) {
 				e.printStackTrace();
-				errmsg = messages.getString("sfwSocketFail") + "\n";
+				_sErrMsg = _resBundleMessages.getString("sfwSocketFail") + "\n";
 				return true;
 			}
 
@@ -1064,18 +1228,20 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			ctl.send_msg(MessageType.TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_START) {
-				errmsg = messages.getString("sfwWrongMessage");
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_START) {
+				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage");
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}     
 
-			OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
+			//re-arch new code
+			//OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
+			OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime, this);
 			new Thread(osfwTest).start();
 
 			Socket sfwSocket = new Socket();
@@ -1090,34 +1256,34 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_MSG) {
-				errmsg = messages.getString("sfwWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_MSG) {
+				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			c2sResult = Integer.parseInt(new String(msg.body));
+			c2sResult = Integer.parseInt(new String(msg.getBody()));
 
 			osfwTest.finalize();
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_FINALIZE) {
-				errmsg = messages.getString("sfwWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_FINALIZE) {
+				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			results.append(messages.getString("done") + "\n");
-			_txtStatistics.append(messages.getString("done") + "\n");
-			emailText += messages.getString("done") + "\n%0A";
+			_resultsTxtPane.append(_resBundleMessages.getString("done") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("done") + "\n");
+			_sEmailText += _resBundleMessages.getString("done") + "\n%0A";
 		}
 		return false;
 	}
@@ -1128,35 +1294,35 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		byte buff2[] = new byte[64*1024];
 		Message msg = new Message();
 		if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-			showStatus(messages.getString("outboundTest"));
-			results.append(messages.getString("runningOutboundTest") + " ");
-			_txtStatistics.append(messages.getString("runningOutboundTest") + " ");
-			emailText += messages.getString("runningOutboundTest") + " ";
+			showStatus(_resBundleMessages.getString("outboundTest"));
+			_resultsTxtPane.append(_resBundleMessages.getString("runningOutboundTest") + " ");
+			_txtStatistics.append(_resBundleMessages.getString("runningOutboundTest") + " ");
+			_sEmailText += _resBundleMessages.getString("runningOutboundTest") + " ";
 			pub_status = "runningOutboundTest";
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_PREPARE) {
-				errmsg = messages.getString("outboundWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_PREPARE) {
+				_sErrMsg = _resBundleMessages.getString("outboundWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			int c2sport = Integer.parseInt(new String(msg.body));
+			int c2sport = Integer.parseInt(new String(msg.getBody()));
 
 			final Socket outSocket;
 			try {
 				outSocket = new Socket(host, c2sport);
 			} catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + host);
-				errmsg = messages.getString("unknownServer") + "\n" ;
+				_sErrMsg = _resBundleMessages.getString("unknownServer") + "\n" ;
 				return true;
 			} catch (IOException e) {
 				System.err.println("Couldn't get 2nd connection to: " + host);
-				errmsg = messages.getString("serverBusy15s") + "\n";
+				_sErrMsg = _resBundleMessages.getString("serverBusy15s") + "\n";
 				return true;
 			}
 
@@ -1169,28 +1335,28 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			// wait here for signal from server application 
 			// This signal tells the client to start pumping out data
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_START) {
-				errmsg = messages.getString("outboundWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_START) {
+				_sErrMsg = _resBundleMessages.getString("outboundWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
 
 			byte c = '0';
 			int i;
-			for (i=0; i<lth; i++) {
+			for (i=0; i<_iLength; i++) {
 				if (c == 'z')
 					c = '0';
 				buff2[i] = c++;
 			}
 			System.err.println("Send buffer size =" + i);
-			pkts = 0;
-			t = System.currentTimeMillis();
-			pub_time = t;
+			_iPkts = 0;
+			_dTime = System.currentTimeMillis();
+			pub_time = _dTime;
 			new Thread() {
 
 				public void run() {
@@ -1221,54 +1387,54 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					System.out.println("Client socket timed out");
 					break;
 				}
-				pkts++;
-				pub_bytes = (pkts * lth);
+				_iPkts++;
+				pub_bytes = (_iPkts * _iLength);
 			}
 
-			t =  System.currentTimeMillis() - t;
-			System.err.println(t + "sec test completed");
-			if (t == 0) {
-				t = 1;
+			_dTime =  System.currentTimeMillis() - _dTime;
+			System.err.println(_dTime + "sec test completed");
+			if (_dTime == 0) {
+				_dTime = 1;
 			}
-			System.out.println((8.0 * pkts * buff2.length) / t + " kb/s outbound");
-			c2sspd = ((8.0 * pkts * buff2.length) / 1000) / t;
+			System.out.println((8.0 * _iPkts * buff2.length) / _dTime + " kb/s outbound");
+			_dC2sspd = ((8.0 * _iPkts * buff2.length) / 1000) / _dTime;
 			/* receive the c2sspd from the server */
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_MSG) {
-				errmsg = messages.getString("outboundWrongMessage");
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_MSG) {
+				_sErrMsg = _resBundleMessages.getString("outboundWrongMessage");
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			String tmpstr3 = new String(msg.body);
-			sc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
+			String tmpstr3 = new String(msg.getBody());
+			_dSc2sspd = Double.parseDouble(tmpstr3) / 1000.0;
 
-			if (sc2sspd < 1.0) {
-				results.append(prtdbl(sc2sspd*1000) + "kb/s\n");
-				_txtStatistics.append(prtdbl(sc2sspd*1000) + "kb/s\n");
-				emailText += prtdbl(sc2sspd*1000) + "kb/s\n%0A";
+			if (_dSc2sspd < 1.0) {
+				_resultsTxtPane.append(prtdbl(_dSc2sspd*1000) + "kb/s\n");
+				_txtStatistics.append(prtdbl(_dSc2sspd*1000) + "kb/s\n");
+				_sEmailText += prtdbl(_dSc2sspd*1000) + "kb/s\n%0A";
 			} 
 			else {
-				results.append(prtdbl(sc2sspd) + "Mb/s\n");
-				_txtStatistics.append(prtdbl(sc2sspd) + "Mb/s\n");
-				emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
+				_resultsTxtPane.append(prtdbl(_dSc2sspd) + "Mb/s\n");
+				_txtStatistics.append(prtdbl(_dSc2sspd) + "Mb/s\n");
+				_sEmailText += prtdbl(_dSc2sspd) + "Mb/s\n%0A";
 			}
 
 			// Expose upload speed to JavaScript clients
-			pub_c2sspd = sc2sspd;
+			pub_c2sspd = _dSc2sspd;
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_FINALIZE) {
-				errmsg = messages.getString("outboundWrongMessage");
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_FINALIZE) {
+				_sErrMsg = _resBundleMessages.getString("outboundWrongMessage");
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
@@ -1281,24 +1447,24 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		byte buff[] = new byte[8192];
 		Message msg = new Message();
 		if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-			showStatus(messages.getString("inboundTest"));
-			results.append(messages.getString("runningInboundTest") + " ");
-			_txtStatistics.append(messages.getString("runningInboundTest") + " ");
-			emailText += messages.getString("runningInboundTest") + " ";
+			showStatus(_resBundleMessages.getString("inboundTest"));
+			_resultsTxtPane.append(_resBundleMessages.getString("runningInboundTest") + " ");
+			_txtStatistics.append(_resBundleMessages.getString("runningInboundTest") + " ");
+			_sEmailText += _resBundleMessages.getString("runningInboundTest") + " ";
 			pub_status = "runningInboundTest";
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_PREPARE) {
-				errmsg = messages.getString("inboundWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_PREPARE) {
+				_sErrMsg = _resBundleMessages.getString("inboundWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			int s2cport = Integer.parseInt(new String(msg.body));
+			int s2cport = Integer.parseInt(new String(msg.getBody()));
 
 			Socket inSocket;
 			try {
@@ -1306,12 +1472,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			} 
 			catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + host);
-				errmsg = "unknown server\n" ;
+				_sErrMsg = "unknown server\n" ;
 				return true;
 			} 
 			catch (IOException e) {
 				System.err.println("Couldn't get 3rd connection to: " + host);
-				errmsg = "Server Failed while receiving data\n" ;
+				_sErrMsg = "Server Failed while receiving data\n" ;
 				return true;
 			}
 
@@ -1321,80 +1487,80 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 			// wait here for signal from server application 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("unknownServer") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("unknownServer") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_START) {
-				errmsg = messages.getString("serverFail") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_START) {
+				_sErrMsg = _resBundleMessages.getString("serverFail") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
 
 			inSocket.setSoTimeout(15000);
-			t = System.currentTimeMillis();
-			pub_time = t;
+			_dTime = System.currentTimeMillis();
+			pub_time = _dTime;
 
 			try {  
 				while ((inlth=srvin.read(buff,0,buff.length)) > 0) {
 					bytes += inlth;
 					pub_bytes = bytes;
-					if ((System.currentTimeMillis() - t) > 14500)
+					if ((System.currentTimeMillis() - _dTime) > 14500)
 						break;
 				}
 			} 
 			catch (IOException e) {}
 
-			t =  System.currentTimeMillis() - t;
-			System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
-			s2cspd = ((8.0 * bytes) / 1000) / t;
+			_dTime =  System.currentTimeMillis() - _dTime;
+			System.out.println(bytes + " bytes " + (8.0 * bytes)/_dTime + " kb/s " + _dTime/1000 + " secs");
+			_dS2cspd = ((8.0 * bytes) / 1000) / _dTime;
 
 			/* receive the s2cspd from the server */
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_MSG) {
-				errmsg = messages.getString("inboundWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_MSG) {
+				_sErrMsg = _resBundleMessages.getString("inboundWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
 			try {
-				String tmpstr3 = new String(msg.body);
+				String tmpstr3 = new String(msg.getBody());
 				int k1 = tmpstr3.indexOf(" ");
 				int k2 = tmpstr3.substring(k1+1).indexOf(" ");
-				ss2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
-				ssndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
-				sbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
+				_dSs2cspd = Double.parseDouble(tmpstr3.substring(0, k1)) / 1000.0;
+				_iSsndqueue = Integer.parseInt(tmpstr3.substring(k1+1).substring(0, k2));
+				_dSbytes = Double.parseDouble(tmpstr3.substring(k1+1).substring(k2+1));
 			}
 			catch (Exception e) {
 				e.printStackTrace();
-				errmsg = messages.getString("inboundWrongMessage") + "\n";
+				_sErrMsg = _resBundleMessages.getString("inboundWrongMessage") + "\n";
 				return true;
 			}
 
-			if (s2cspd < 1.0) {
-				results.append(prtdbl(s2cspd*1000) + "kb/s\n");
-				_txtStatistics.append(prtdbl(s2cspd*1000) + "kb/s\n");
-				emailText += prtdbl(s2cspd*1000) + "kb/s\n%0A";
+			if (_dS2cspd < 1.0) {
+				_resultsTxtPane.append(prtdbl(_dS2cspd*1000) + "kb/s\n");
+				_txtStatistics.append(prtdbl(_dS2cspd*1000) + "kb/s\n");
+				_sEmailText += prtdbl(_dS2cspd*1000) + "kb/s\n%0A";
 			} else {
-				results.append(prtdbl(s2cspd) + "Mb/s\n");
-				_txtStatistics.append(prtdbl(s2cspd) + "Mb/s\n");
-				emailText += prtdbl(s2cspd) + "Mb/s\n%0A";
+				_resultsTxtPane.append(prtdbl(_dS2cspd) + "Mb/s\n");
+				_txtStatistics.append(prtdbl(_dS2cspd) + "Mb/s\n");
+				_sEmailText += prtdbl(_dS2cspd) + "Mb/s\n%0A";
 			}
 
 
 			// Expose download speed to JavaScript clients
-			pub_s2cspd = s2cspd;
+			pub_s2cspd = _dS2cspd;
 			pub_status = "done";
 
 			srvin.close();
 			inSocket.close();
 
-			buff = Double.toString(s2cspd*1000).getBytes();
+			buff = Double.toString(_dS2cspd*1000).getBytes();
 			String tmpstr4 = new String(buff, 0, buff.length);
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
 			ctl.send_msg(MessageType.TEST_MSG, buff);
@@ -1408,20 +1574,20 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			try {  
 				for (;;) {
 					if (ctl.recv_msg(msg) != 0) {
-						errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+						_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 						return true;
 					}
-					if (msg.type == MessageType.TEST_FINALIZE) {
+					if (msg.getType() == MessageType.TEST_FINALIZE) {
 						break;
 					}
-					if (msg.type != MessageType.TEST_MSG) {
-						errmsg = messages.getString("inboundWrongMessage") + "\n";
-						if (msg.type == MessageType.MSG_ERROR) {
-							errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+					if (msg.getType() != MessageType.TEST_MSG) {
+						_sErrMsg = _resBundleMessages.getString("inboundWrongMessage") + "\n";
+						if (msg.getType() == MessageType.MSG_ERROR) {
+							_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 						}
 						return true;
 					}
-					tmpstr += new String(msg.body);
+					tmpstr += new String(msg.getBody());
 					i++;
 				}
 			} catch (IOException e) {}
@@ -1435,32 +1601,32 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	{
 		Message msg = new Message();
 		if ((tests & NDTConstants.TEST_META) == NDTConstants.TEST_META) {
-			showStatus(messages.getString("metaTest"));
-			results.append(messages.getString("sendingMetaInformation") + " ");
-			_txtStatistics.append(messages.getString("sendingMetaInformation") + " ");
-			emailText += messages.getString("sendingMetaInformation") + " ";
+			showStatus(_resBundleMessages.getString("metaTest"));
+			_resultsTxtPane.append(_resBundleMessages.getString("sendingMetaInformation") + " ");
+			_txtStatistics.append(_resBundleMessages.getString("sendingMetaInformation") + " ");
+			_sEmailText += _resBundleMessages.getString("sendingMetaInformation") + " ";
 			pub_status = "sendingMetaInformation";
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_PREPARE) {
-				errmsg = messages.getString("metaWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_PREPARE) {
+				_sErrMsg = _resBundleMessages.getString("metaWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_START) {
-				errmsg = messages.getString("metaWrongMessage") + "\n";
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_START) {
+				_sErrMsg = _resBundleMessages.getString("metaWrongMessage") + "\n";
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
@@ -1473,19 +1639,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			ctl.send_msg(MessageType.TEST_MSG, new byte[0]);
 
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.type != MessageType.TEST_FINALIZE) {
-				errmsg = messages.getString("metaWrongMessage");
-				if (msg.type == MessageType.MSG_ERROR) {
-					errmsg += "ERROR MSG: " + Integer.parseInt(new String(msg.body), 16) + "\n";
+			if (msg.getType() != MessageType.TEST_FINALIZE) {
+				_sErrMsg = _resBundleMessages.getString("metaWrongMessage");
+				if (msg.getType() == MessageType.MSG_ERROR) {
+					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			results.append(messages.getString("done") + "\n");
-			_txtStatistics.append(messages.getString("done") + "\n");
-			emailText += messages.getString("done") + "\n%0A";
+			_resultsTxtPane.append(_resBundleMessages.getString("done") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("done") + "\n");
+			_sEmailText += _resBundleMessages.getString("done") + "\n%0A";
 		}
 
 		pub_status = "done";
@@ -1515,74 +1681,74 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 
 
-
-
 		int ctlport = 3001;
 		double wait2;
 		int sbuf, rbuf;
 		int i, wait, swait=0;
 
-		failed = false;
+		_bFailed = false;
 
 		try {
 
 			// RAC Debug message
-			results.append(messages.getString("connectingTo") + " '" + host + "' [" + InetAddress.getByName(host) + "] " + messages.getString("toRunTest") + "\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("connectingTo") + " '" + host + "' [" + InetAddress.getByName(host) + "] " + _resBundleMessages.getString("toRunTest") + "\n");
 
-			if (preferIPv6.isSelected()) {
+			if (_chkboxPreferIPv6.isSelected()) {
 				try {
-					System.setProperty("java.net.preferIPv6Addresses", "true");
+					System.setProperty("java.net._chkboxPreferIPv6Addresses", "true");
 				}
 				catch (SecurityException e) {
 					System.err.println("Couldn't set system property. Check your security settings.");
 				}
 			}
-			preferIPv6.setEnabled(false);
+			_chkboxPreferIPv6.setEnabled(false);
 			ctlSocket = new Socket(host, ctlport);
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host: " + host);
-			errmsg = messages.getString("unknownServer") + "\n" ;
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("unknownServer") + "\n" ;
+			_bFailed = true;
 			return;
 		} catch (IOException e) {
 			System.err.println("Couldn't get the connection to: " + host + " " +ctlport);
-			errmsg = messages.getString("serverNotRunning") + " (" + host + ":" + ctlport + ")\n" ;
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("serverNotRunning") + " (" + host + ":" + ctlport + ")\n" ;
+			_bFailed = true;
 			return;
 		}
+		
+		
 		Protocol ctl = new Protocol(ctlSocket);
 		Message msg = new Message();
 
 		/* The beginning of the protocol */
 
 		if (ctlSocket.getInetAddress() instanceof Inet6Address) {
-			results.append(messages.getString("connected") + " " + host + messages.getString("usingIpv6") + "\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("connected") + " " + host + _resBundleMessages.getString("usingIpv6") + "\n");
 		}
 		else {
-			results.append(messages.getString("connected") + " " + host + messages.getString("usingIpv4") + "\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("connected") + " " + host + _resBundleMessages.getString("usingIpv4") + "\n");
 		}
 
 		/* write our test suite request */
 		ctl.send_msg(MessageType.MSG_LOGIN, tests);
 		/* read the specially crafted data that kicks off the old clients */
 		if (ctl.readn(msg, 13) != 13) {
-			errmsg = messages.getString("unsupportedClient") + "\n";
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("unsupportedClient") + "\n";
+			_bFailed = true;
 			return;
 		}
 
 		for (;;) {
 			if (ctl.recv_msg(msg) != 0) {
-				errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-				failed = true;
+				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
+				_bFailed = true;
 				return;
 			}
-			if (msg.type != MessageType.SRV_QUEUE) {
-				errmsg = messages.getString("loggingWrongMessage") + "\n";
-				failed = true;
+			if (msg.getType() != MessageType.SRV_QUEUE) {
+				_sErrMsg = _resBundleMessages.getString("loggingWrongMessage") + "\n";
+				_bFailed = true;
 				return;
 			}
-			String tmpstr3 = new String(msg.body);
+			String tmpstr3 = new String(msg.getBody());
 			wait = Integer.parseInt(tmpstr3);
 			System.out.println("wait flag received = " + wait);
 
@@ -1592,19 +1758,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 			if (wait == 9988) {
 				if (swait == 0) {
-					errmsg = messages.getString("serverBusy") + "\n";
-					failed = true;
+					_sErrMsg = _resBundleMessages.getString("serverBusy") + "\n";
+					_bFailed = true;
 					return;
 				} else {
-					errmsg = messages.getString("serverFault") + "\n";
-					failed = true;
+					_sErrMsg = _resBundleMessages.getString("serverFault") + "\n";
+					_bFailed = true;
 					return;
 				}
 			}
 
 			if (wait == 9999) {
-				errmsg = messages.getString("serverBusy60s") + "\n";
-				failed = true;
+				_sErrMsg = _resBundleMessages.getString("serverBusy60s") + "\n";
+				_bFailed = true;
 				return;
 			}
 
@@ -1616,98 +1782,98 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			// Each test should take less than 30 seconds, so tell them 45 sec * number of 
 			// tests in the queue.
 			wait = (wait * 45);
-			results.append(messages.getString("otherClient") + wait + messages.getString("seconds") +".\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("otherClient") + wait + _resBundleMessages.getString("seconds") +".\n");
 			swait = 1;
 		}
 
-		frameWeb100Vars.toBack();
-		frameDetailedStats.toBack();
+		_frameWeb100Vars.toBack();
+		_frameDetailedStats.toBack();
 
 		if (ctl.recv_msg(msg) != 0) {
-			errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
+			_bFailed = true;
 			return;
 		}
-		if (msg.type != MessageType.MSG_LOGIN) {
-			errmsg = messages.getString("versionWrongMessage") + "\n";
-			failed = true;
+		if (msg.getType() != MessageType.MSG_LOGIN) {
+			_sErrMsg = _resBundleMessages.getString("versionWrongMessage") + "\n";
+			_bFailed = true;
 			return;
 		}
 
-		String vVersion = new String(msg.body);
+		String vVersion = new String(msg.getBody());
 		if (!vVersion.startsWith("v")) {
-			errmsg = messages.getString("incompatibleVersion");
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("incompatibleVersion");
+			_bFailed = true;
 			return;
 		}
 		System.out.println("Server version: " + vVersion.substring(1));
 
 		if (ctl.recv_msg(msg) != 0) {
-			errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
+			_bFailed = true;
 			return;
 		}
-		if (msg.type != MessageType.MSG_LOGIN) {
-			errmsg = messages.getString("testsuiteWrongMessage") + "\n";
-			failed = true;
+		if (msg.getType() != MessageType.MSG_LOGIN) {
+			_sErrMsg = _resBundleMessages.getString("testsuiteWrongMessage") + "\n";
+			_bFailed = true;
 			return;
 		}
-		StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
-
+		
+		StringTokenizer tokenizer = new StringTokenizer(new String(msg.getBody()), " ");
 		while (tokenizer.hasMoreTokens()) {
 			if (sPanel.wantToStop()) {
 				ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
 				ctl.close();
 				ctlSocket.close();
-				errmsg = "\n" + messages.getString("stopped") + "\n";
-				failed = true;
+				_sErrMsg = "\n" + _resBundleMessages.getString("stopped") + "\n";
+				_bFailed = true;
 				return;
 			}
 			int testId = Integer.parseInt(tokenizer.nextToken());
 			switch (testId) {
 			case NDTConstants.TEST_MID:
-				sPanel.setText(messages.getString("middlebox"));
+				sPanel.setText(_resBundleMessages.getString("middlebox"));
 				if (test_mid(ctl)) {
-					results.append(errmsg);
-					results.append(messages.getString("middleboxFail2") + "\n");
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundleMessages.getString("middleboxFail2") + "\n");
 					tests &= (~NDTConstants.TEST_MID);
 				}
 				break;
 			case NDTConstants.TEST_SFW:
-				sPanel.setText(messages.getString("simpleFirewall"));
+				sPanel.setText(_resBundleMessages.getString("simpleFirewall"));
 				if (test_sfw(ctl)) {
-					results.append(errmsg);
-					results.append(messages.getString("sfwFail") + "\n");
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundleMessages.getString("sfwFail") + "\n");
 					tests &= (~NDTConstants.TEST_SFW);
 				}
 				break;
 			case NDTConstants.TEST_C2S:
-				sPanel.setText(messages.getString("c2sThroughput"));
+				sPanel.setText(_resBundleMessages.getString("c2sThroughput"));
 				if (test_c2s(ctl)) {
-					results.append(errmsg);
-					results.append(messages.getString("c2sThroughputFailed") + "\n");
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundleMessages.getString("c2sThroughputFailed") + "\n");
 					tests &= (~NDTConstants.TEST_C2S);
 				}
 				break;
 			case NDTConstants.TEST_S2C:
-				sPanel.setText(messages.getString("s2cThroughput"));
+				sPanel.setText(_resBundleMessages.getString("s2cThroughput"));
 				if (test_s2c(ctl, ctlSocket)) {
-					results.append(errmsg);
-					results.append(messages.getString("s2cThroughputFailed") + "\n");
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundleMessages.getString("s2cThroughputFailed") + "\n");
 					tests &= (~NDTConstants.TEST_S2C);
 				}
 				break;
 			case NDTConstants.TEST_META:
-				sPanel.setText(messages.getString("meta"));
+				sPanel.setText(_resBundleMessages.getString("meta"));
 				if (test_meta(ctl)) {
-					results.append(errmsg);
-					results.append(messages.getString("metaFailed") + "\n");
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundleMessages.getString("metaFailed") + "\n");
 					tests &= (~NDTConstants.TEST_META);
 				}
 				break;
 			default:
-				errmsg = messages.getString("unknownID") + "\n";
-				failed = true;
+				_sErrMsg = _resBundleMessages.getString("unknownID") + "\n";
+				_bFailed = true;
 				return;
 			}
 		}
@@ -1715,50 +1881,50 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
 			ctl.close();
 			ctlSocket.close();
-			errmsg = messages.getString("stopped") + "\n";
-			failed = true;
+			_sErrMsg = _resBundleMessages.getString("stopped") + "\n";
+			_bFailed = true;
 			return;
 		}
 
-		sPanel.setText(messages.getString("receiving"));
+		sPanel.setText(_resBundleMessages.getString("receiving"));
 		i = 0;
 
 		try {  
 			for (;;) {
 				if (ctl.recv_msg(msg) != 0) {
-					errmsg = messages.getString("protocolError") + Integer.parseInt(new String(msg.body), 16) + " instead\n";
-					failed = true;
+					_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
+					_bFailed = true;
 					return;
 				}
-				if (msg.type == MessageType.MSG_LOGOUT) {
+				if (msg.getType() == MessageType.MSG_LOGOUT) {
 					break;
 				}
-				if (msg.type != MessageType.MSG_RESULTS) {
-					errmsg = messages.getString("resultsWrongMessage") + "\n";
-					failed = true;
+				if (msg.getType() != MessageType.MSG_RESULTS) {
+					_sErrMsg = _resBundleMessages.getString("resultsWrongMessage") + "\n";
+					_bFailed = true;
 					return;
 				}
-				tmpstr += new String(msg.body);
+				tmpstr += new String(msg.getBody());
 				i++;
 			}
 		} catch (IOException e) {}
 
 		if (i == 0) {
-			results.append(messages.getString("resultsTimeout") + "\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("resultsTimeout") + "\n");
 		}
 		System.err.println("Calling InetAddress.getLocalHost() twice");
 		try {
-			_txtDiagnosis.append(messages.getString("client") + ": " + InetAddress.getLocalHost() + "\n");
+			_txtDiagnosis.append(_resBundleMessages.getString("client") + ": " + InetAddress.getLocalHost() + "\n");
 		} catch (SecurityException e) {
-			_txtDiagnosis.append(messages.getString("client") + ": 127.0.0.1\n");
-			results.append(messages.getString("unableToObtainIP") + "\n");
+			_txtDiagnosis.append(_resBundleMessages.getString("client") + ": 127.0.0.1\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("unableToObtainIP") + "\n");
 			System.err.println("Unable to obtain local IP address: using 127.0.0.1");
 		}
 
 		try {
-			emailText += messages.getString("client") + ": " + InetAddress.getLocalHost() + "\n%0A";
+			_sEmailText += _resBundleMessages.getString("client") + ": " + InetAddress.getLocalHost() + "\n%0A";
 		} catch (SecurityException e) {
-			emailText += messages.getString("client") + ": " + "127.0.0.1" + "\n%0A";
+			_sEmailText += _resBundleMessages.getString("client") + ": " + "127.0.0.1" + "\n%0A";
 		}
 
 		ctl.close();
@@ -1768,8 +1934,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			testResults(tmpstr);
 		}
 		catch (Exception ex) {
-			results.append(messages.getString("resultsParseError")  + "\n");
-			results.append(ex + "\n");
+			_resultsTxtPane.append(_resBundleMessages.getString("resultsParseError")  + "\n");
+			_resultsTxtPane.append(ex + "\n");
 		}
 		if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
 			middleboxResults(tmpstr2);
@@ -1780,94 +1946,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		pub_status = "done";
 	}
 
-
-	class OsfwWorker implements Runnable {
 	
-		private ServerSocket srvSocket;
-		private int testTime;
-		private boolean finalized = false;
-
-		OsfwWorker(ServerSocket srvSocket, int testTime)
-		{
-			this.srvSocket = srvSocket;
-			this.testTime = testTime;
-		}
-
-		public void finalize()
-		{
-			while (!finalized) {
-				try {
-					Thread.currentThread().sleep(1000);
-				}
-				catch (InterruptedException e) {
-					// do nothing.
-				}
-			}
-		}
-
-		public void run()
-		{
-			Message msg = new Message();
-			Socket sock = null;
-
-			try {
-				srvSocket.setSoTimeout(testTime * 1000);
-				try {
-					sock = srvSocket.accept();
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-					s2cResult = NDTConstants.SFW_POSSIBLE;
-					srvSocket.close();
-					finalized = true;
-					return;
-				}
-				Protocol sfwCtl = new Protocol(sock);
-
-				if (sfwCtl.recv_msg(msg) != 0) {
-					System.out.println("Simple firewall test: unrecognized message");
-					s2cResult = NDTConstants.SFW_UNKNOWN;
-					sock.close();
-					srvSocket.close();
-					finalized = true;
-					return;
-				}
-				if (msg.type != MessageType.TEST_MSG) {
-					s2cResult = NDTConstants.SFW_UNKNOWN;
-					sock.close();
-					srvSocket.close();
-					finalized = true;
-					return;
-				}
-				if (! new String(msg.body).equals("Simple firewall test")) {
-					System.out.println("Simple firewall test: Improper message");
-					s2cResult = NDTConstants.SFW_UNKNOWN;
-					sock.close();
-					srvSocket.close();
-					finalized = true;
-					return;
-				}
-				s2cResult = NDTConstants.SFW_NOFIREWALL;
-			}
-			catch (IOException ex) {
-				s2cResult = NDTConstants.SFW_UNKNOWN;
-			}
-			try {
-				sock.close();
-				srvSocket.close();
-			}
-			catch (IOException e) {
-				// do nothing
-			}
-			finalized = true;
-		}
-	}
-
-	public void showBufferedBytesInfo()
-	{
-		JOptionPane.showMessageDialog(null, messages.getString("packetQueuingInfo"), messages.getString("packetQueuing"),
-				JOptionPane.INFORMATION_MESSAGE);
-	}
+	
 
 	public void testResults(String tmpstr) {
 		StringTokenizer tokens;
@@ -1887,7 +1967,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			else {
 				strval = tokens.nextToken();
 				_txtDiagnosis.append(sysvar + " " + strval + "\n");
-				emailText += sysvar + " " + strval + "\n%0A";
+				_sEmailText += sysvar + " " + strval + "\n%0A";
 				if (strval.indexOf(".") == -1) {
 					sysval = Integer.parseInt(strval);
 					save_int_values(sysvar, sysval);
@@ -1915,93 +1995,93 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		javaVendor = System.getProperty("java.vendor");
 
 		if (osArch.startsWith("x86") == true) {
-			client = messages.getString("pc");
+			client = _resBundleMessages.getString("pc");
 		}
 		else {
-			client = messages.getString("workstation");
+			client = _resBundleMessages.getString("workstation");
 		}
 
 		// Calculate some variables and determine path conditions
 		// Note: calculations now done in server and the results are shipped
 		//    back to the client for printing.
 
-		if (CountRTT>0) {
-			// Now write some messages to the screen
-			if (c2sData < 3) {
-				if (c2sData < 0) {
-					results.append(messages.getString("unableToDetectBottleneck") + "\n");
-					emailText += "Server unable to determine bottleneck link type.\n%0A";
+		if (_iCountRTT>0) {
+			// Now write some _resBundleMessages to the screen
+			if (_iC2sData < 3) {
+				if (_iC2sData < 0) {
+					_resultsTxtPane.append(_resBundleMessages.getString("unableToDetectBottleneck") + "\n");
+					_sEmailText += "Server unable to determine bottleneck link type.\n%0A";
 					pub_AccessTech = "Connection type unknown";
 
 				} 
 				else {
-					results.append(messages.getString("your") + " " + client + " " + messages.getString("connectedTo") + " ");
-					emailText += messages.getString("your") + " " + client + " " + messages.getString("connectedTo") + " ";
-					if (c2sData == 1) {
-						results.append(messages.getString("dialup") + "\n");
-						emailText += messages.getString("dialup") +  "\n%0A";
+					_resultsTxtPane.append(_resBundleMessages.getString("your") + " " + client + " " + _resBundleMessages.getString("connectedTo") + " ");
+					_sEmailText += _resBundleMessages.getString("your") + " " + client + " " + _resBundleMessages.getString("connectedTo") + " ";
+					if (_iC2sData == 1) {
+						_resultsTxtPane.append(_resBundleMessages.getString("dialup") + "\n");
+						_sEmailText += _resBundleMessages.getString("dialup") +  "\n%0A";
 						mylink = .064;
 						pub_AccessTech = "Dial-up Modem";
 					} 
 					else {
-						results.append(messages.getString("cabledsl") + "\n");
-						emailText += messages.getString("cabledsl") +  "\n%0A";
+						_resultsTxtPane.append(_resBundleMessages.getString("cabledsl") + "\n");
+						_sEmailText += _resBundleMessages.getString("cabledsl") +  "\n%0A";
 						mylink = 3;
 						pub_AccessTech = "Cable/DSL modem";
 					}
 				}
 			} 
 			else {
-				results.append(messages.getString("theSlowestLink") + " ");
-				emailText += messages.getString("theSlowestLink") + " ";
-				if (c2sData == 3) {
-					results.append(messages.getString("10mbps") + "\n");
-					emailText += messages.getString("10mbps") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("theSlowestLink") + " ");
+				_sEmailText += _resBundleMessages.getString("theSlowestLink") + " ";
+				if (_iC2sData == 3) {
+					_resultsTxtPane.append(_resBundleMessages.getString("10mbps") + "\n");
+					_sEmailText += _resBundleMessages.getString("10mbps") + "\n%0A";
 					mylink = 10;
 					pub_AccessTech = "10 Mbps Ethernet";
 				} 
-				else if (c2sData == 4) {
-					results.append(messages.getString("45mbps") + "\n");
-					emailText += messages.getString("45mbps") + "\n%0A";
+				else if (_iC2sData == 4) {
+					_resultsTxtPane.append(_resBundleMessages.getString("45mbps") + "\n");
+					_sEmailText += _resBundleMessages.getString("45mbps") + "\n%0A";
 					mylink = 45;
 					pub_AccessTech = "45 Mbps T3/DS3 subnet";
 				} 
-				else if (c2sData == 5) {
-					results.append("100 Mbps ");
-					emailText += "100 Mbps ";
+				else if (_iC2sData == 5) {
+					_resultsTxtPane.append("100 Mbps ");
+					_sEmailText += "100 Mbps ";
 					mylink = 100;
 					pub_AccessTech = "100 Mbps Ethernet";
 
 					if (half_duplex == 0) {
-						results.append(messages.getString("fullDuplex") + "\n");
-						emailText += messages.getString("fullDuplex") + "\n%0A";
+						_resultsTxtPane.append(_resBundleMessages.getString("fullDuplex") + "\n");
+						_sEmailText += _resBundleMessages.getString("fullDuplex") + "\n%0A";
 					} 
 					else {
-						results.append(messages.getString("halfDuplex") + "\n");
-						emailText += messages.getString("halfDuplex") + "\n%0A";
+						_resultsTxtPane.append(_resBundleMessages.getString("halfDuplex") + "\n");
+						_sEmailText += _resBundleMessages.getString("halfDuplex") + "\n%0A";
 					}
 				} 
-				else if (c2sData == 6) {
-					results.append(messages.getString("622mbps") + "\n");
-					emailText += messages.getString("622mbps") + "\n%0A";
+				else if (_iC2sData == 6) {
+					_resultsTxtPane.append(_resBundleMessages.getString("622mbps") + "\n");
+					_sEmailText += _resBundleMessages.getString("622mbps") + "\n%0A";
 					mylink = 622;
 					pub_AccessTech = "622 Mbps OC-12";
 				} 
-				else if (c2sData == 7) {
-					results.append(messages.getString("1gbps") + "\n");
-					emailText += messages.getString("1gbps") + "\n%0A";
+				else if (_iC2sData == 7) {
+					_resultsTxtPane.append(_resBundleMessages.getString("1gbps") + "\n");
+					_sEmailText += _resBundleMessages.getString("1gbps") + "\n%0A";
 					mylink = 1000;
 					pub_AccessTech = "1.0 Gbps Gigabit Ethernet";
 				} 
-				else if (c2sData == 8) {
-					results.append(messages.getString("2.4gbps") + "\n");
-					emailText += messages.getString("2.4gbps") + "\n%0A";
+				else if (_iC2sData == 8) {
+					_resultsTxtPane.append(_resBundleMessages.getString("2.4gbps") + "\n");
+					_sEmailText += _resBundleMessages.getString("2.4gbps") + "\n%0A";
 					mylink = 2400;
 					pub_AccessTech = "2.4 Gbps OC-48";
 				} 
-				else if (c2sData == 9) {
-					results.append(messages.getString("10gbps") + "\n");
-					emailText += messages.getString("10gbps") + "\n%0A";
+				else if (_iC2sData == 9) {
+					_resultsTxtPane.append(_resBundleMessages.getString("10gbps") + "\n");
+					_sEmailText += _resBundleMessages.getString("10gbps") + "\n%0A";
 					mylink = 10000;
 					pub_AccessTech = "10 Gigabit Ethernet/OC-192";
 
@@ -2009,52 +2089,52 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 
 			if (mismatch == 1) {
-				results.append(messages.getString("oldDuplexMismatch") + "\n");
-				emailText += messages.getString("oldDuplexMismatch") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("oldDuplexMismatch") + "\n");
+				_sEmailText += _resBundleMessages.getString("oldDuplexMismatch") + "\n%0A";
 			}
 			else if (mismatch == 2) {
-				results.append(messages.getString("duplexFullHalf") + "\n");
-				emailText += messages.getString("duplexFullHalf") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("duplexFullHalf") + "\n");
+				_sEmailText += _resBundleMessages.getString("duplexFullHalf") + "\n%0A";
 			}
 			else if (mismatch == 4) {
-				results.append(messages.getString("possibleDuplexFullHalf") + "\n");
-				emailText += messages.getString("possibleDuplexFullHalf") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("possibleDuplexFullHalf") + "\n");
+				_sEmailText += _resBundleMessages.getString("possibleDuplexFullHalf") + "\n%0A";
 			}
 			else if (mismatch == 3) {
-				results.append(messages.getString("duplexHalfFull") + "\n");
-				emailText += messages.getString("duplexHalfFull") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("duplexHalfFull") + "\n");
+				_sEmailText += _resBundleMessages.getString("duplexHalfFull") + "\n%0A";
 			}
 			else if (mismatch == 5) {
-				results.append(messages.getString("possibleDuplexHalfFull") + "\n");
-				emailText += messages.getString("possibleDuplexHalfFull") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("possibleDuplexHalfFull") + "\n");
+				_sEmailText += _resBundleMessages.getString("possibleDuplexHalfFull") + "\n%0A";
 			}
 			else if (mismatch == 7) {
-				results.append(messages.getString("possibleDuplexHalfFullWarning") + "\n");
-				emailText += messages.getString("possibleDuplexHalfFullWarning") + "\n%0A";
+				_resultsTxtPane.append(_resBundleMessages.getString("possibleDuplexHalfFullWarning") + "\n");
+				_sEmailText += _resBundleMessages.getString("possibleDuplexHalfFullWarning") + "\n%0A";
 			}
 
 			if (mismatch == 0) {
 				if (bad_cable == 1) {
-					results.append(messages.getString("excessiveErrors ") + "\n");
-					emailText += messages.getString("excessiveErrors") + "\n%0A";
+					_resultsTxtPane.append(_resBundleMessages.getString("excessiveErrors ") + "\n");
+					_sEmailText += _resBundleMessages.getString("excessiveErrors") + "\n%0A";
 				}
 				if (congestion == 1) {
-					results.append(messages.getString("otherTraffic") + "\n");
-					emailText += messages.getString("otherTraffic") + "\n%0A";
+					_resultsTxtPane.append(_resBundleMessages.getString("otherTraffic") + "\n");
+					_sEmailText += _resBundleMessages.getString("otherTraffic") + "\n%0A";
 				}
 				if (((2*rwin)/rttsec) < mylink) {
 					j = (float)((mylink * avgrtt) * 1000) / 8 / 1024;
-					if (j > (float)MaxRwinRcvd) {
-						results.append(messages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + messages.getString("toMaximizeThroughput") + " \n");
-						emailText += messages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + messages.getString("toMaximizeThroughput") + "\n%0A";
+					if (j > (float)_iMaxRwinRcvd) {
+						_resultsTxtPane.append(_resBundleMessages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + _resBundleMessages.getString("toMaximizeThroughput") + " \n");
+						_sEmailText += _resBundleMessages.getString("receiveBufferShouldBe") + " " + prtdbl(j) + _resBundleMessages.getString("toMaximizeThroughput") + "\n%0A";
 					}
 				}
 			}
 
 			if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-				if (sc2sspd < (c2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+				if (_dSc2sspd < (_dC2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO:  distinguish the host buffering from the middleboxes buffering
-					JLabel info = new JLabel(messages.getString("information"));
+					JLabel info = new JLabel(_resBundleMessages.getString("information"));
 					info.addMouseListener(new MouseAdapter()
 					{
 
@@ -2066,15 +2146,15 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					info.setForeground(Color.BLUE);
 					info.setCursor(new Cursor(Cursor.HAND_CURSOR));
 					info.setAlignmentY((float) 0.8);
-					results.insertComponent(info);
-					results.append(messages.getString("c2sPacketQueuingDetected") + "\n");
+					_resultsTxtPane.insertComponent(info);
+					_resultsTxtPane.append(_resBundleMessages.getString("c2sPacketQueuingDetected") + "\n");
 				}
 			}
 
 			if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-				if (s2cspd < (ss2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+				if (_dS2cspd < (_dSs2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO:  distinguish the host buffering from the middleboxes buffering
-					JLabel info = new JLabel(messages.getString("information"));
+					JLabel info = new JLabel(_resBundleMessages.getString("information"));
 					info.addMouseListener(new MouseAdapter()
 					{
 
@@ -2086,202 +2166,244 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					info.setForeground(Color.BLUE);
 					info.setCursor(new Cursor(Cursor.HAND_CURSOR));
 					info.setAlignmentY((float) 0.8);
-					results.insertComponent(info);
-					results.append(messages.getString("s2cPacketQueuingDetected") + "\n");
+					_resultsTxtPane.insertComponent(info);
+					_resultsTxtPane.append(_resBundleMessages.getString("s2cPacketQueuingDetected") + "\n");
 				}
 			}
 
-			_txtStatistics.append("\n\t------  " + messages.getString("clientInfo") + "------\n");
-			_txtStatistics.append(messages.getString("osData") + " " + messages.getString("name") + " = " + osName + ", " + messages.getString("architecture") + " = " + osArch);
-			_txtStatistics.append(", " + messages.getString("version") + " = " + osVer + "\n");
-			_txtStatistics.append(messages.getString("javaData") + ": " +  messages.getString("vendor") + " = " + javaVendor + ", " + messages.getString("version") + " = " + javaVer + "\n");
+			_txtStatistics.append("\n\t------  " + _resBundleMessages.getString("clientInfo") + "------\n");
+			_txtStatistics.append(_resBundleMessages.getString("osData") + " " + _resBundleMessages.getString("name") + " = " + osName + ", " + _resBundleMessages.getString("architecture") + " = " + osArch);
+			_txtStatistics.append(", " + _resBundleMessages.getString("version") + " = " + osVer + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("javaData") + ": " +  _resBundleMessages.getString("vendor") + " = " + javaVendor + ", " + _resBundleMessages.getString("version") + " = " + javaVer + "\n");
 			// statistics.append(" java.class.version=" + System.getProperty("java.class.version") + "\n");
 
-			_txtStatistics.append("\n\t------  " + messages.getString("web100Details") + "  ------\n");
+			_txtStatistics.append("\n\t------  " + _resBundleMessages.getString("web100Details") + "  ------\n");
+			/*
 			if (c2sData == -2)
-				_txtStatistics.append(messages.getString("insufficient") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("insufficient") + "\n");
 			else if (c2sData == -1)
-				_txtStatistics.append(messages.getString("ipcFail") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("ipcFail") + "\n");
 			else if (c2sData == 0)
-				_txtStatistics.append(messages.getString("rttFail") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("rttFail") + "\n");
 			else if (c2sData == 1)
-				_txtStatistics.append(messages.getString("foundDialup") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("foundDialup") + "\n");
 			else if (c2sData == 2)
-				_txtStatistics.append(messages.getString("foundDsl") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("foundDsl") + "\n");
 			else if (c2sData == 3)
-				_txtStatistics.append(messages.getString("found10mbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found10mbps") + "\n");
 			else if (c2sData == 4)
-				_txtStatistics.append(messages.getString("found45mbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found45mbps") + "\n");
 			else if (c2sData == 5)
-				_txtStatistics.append(messages.getString("found100mbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found100mbps") + "\n");
 			else if (c2sData == 6)
-				_txtStatistics.append(messages.getString("found622mbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found622mbps") + "\n");
 			else if (c2sData == 7)
-				_txtStatistics.append(messages.getString("found1gbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found1gbps") + "\n");
 			else if (c2sData == 8)
-				_txtStatistics.append(messages.getString("found2.4gbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found2.4gbps") + "\n");
 			else if (c2sData == 9)
-				_txtStatistics.append(messages.getString("found10gbps") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("found10gbps") + "\n");
+			*/
+			//replace by switch
+			//TODO define names  for these constants. What is 6/8/9 and so on
+			switch (_iC2sData) {
+			case -2:
+				_txtStatistics.append(_resBundleMessages.getString("insufficient") + "\n");
+				break;
+			case -1:
+				_txtStatistics.append(_resBundleMessages.getString("ipcFail") + "\n");	
+				break;
+			case 0:
+				_txtStatistics.append(_resBundleMessages.getString("rttFail") + "\n");
+				break;
+			case 1:
+				_txtStatistics.append(_resBundleMessages.getString("foundDialup") + "\n");
+				break;
+			case 2:
+				_txtStatistics.append(_resBundleMessages.getString("foundDsl") + "\n");
+				break;
+			case 3:
+				_txtStatistics.append(_resBundleMessages.getString("found10mbps") + "\n");
+				break;
+			case 4:
+				_txtStatistics.append(_resBundleMessages.getString("found45mbps") + "\n");
+				break;
+			case 5:
+				_txtStatistics.append(_resBundleMessages.getString("found100mbps") + "\n");
+				break;
+			case 6:
+				_txtStatistics.append(_resBundleMessages.getString("found622mbps") + "\n");
+				break;
+			case 7:			
+				_txtStatistics.append(_resBundleMessages.getString("found1gbps") + "\n");		
+				break;
+			case 8:
+				_txtStatistics.append(_resBundleMessages.getString("found2.4gbps") + "\n");		
+				break;
+			case 9:
+				_txtStatistics.append(_resBundleMessages.getString("found10gbps") + "\n");
+				break;
+			}
 
 			if (half_duplex == 0)
-				_txtStatistics.append(messages.getString("linkFullDpx") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("linkFullDpx") + "\n");
 			else
-				_txtStatistics.append(messages.getString("linkHalfDpx") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("linkHalfDpx") + "\n");
 
 			if (congestion == 0)
-				_txtStatistics.append(messages.getString("congestNo") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("congestNo") + "\n");
 			else
-				_txtStatistics.append(messages.getString("congestYes") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("congestYes") + "\n");
 
 			if (bad_cable == 0)
-				_txtStatistics.append(messages.getString("cablesOk") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("cablesOk") + "\n");
 			else
-				_txtStatistics.append(messages.getString("cablesNok") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("cablesNok") + "\n");
 
 			if (mismatch == 0)
-				_txtStatistics.append(messages.getString("duplexOk") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("duplexOk") + "\n");
 			else if (mismatch == 1) {
-				_txtStatistics.append(messages.getString("duplexNok") + " ");
-				emailText += messages.getString("duplexNok") + " ";
+				_txtStatistics.append(_resBundleMessages.getString("duplexNok") + " ");
+				_sEmailText += _resBundleMessages.getString("duplexNok") + " ";
 			}
 			else if (mismatch == 2) {
-				_txtStatistics.append(messages.getString("duplexFullHalf") + "\n");
-				emailText += messages.getString("duplexFullHalf") + "\n%0A ";
+				_txtStatistics.append(_resBundleMessages.getString("duplexFullHalf") + "\n");
+				_sEmailText += _resBundleMessages.getString("duplexFullHalf") + "\n%0A ";
 			}
 			else if (mismatch == 3) {
-				_txtStatistics.append(messages.getString("duplexHalfFull") + "\n");
-				emailText += messages.getString("duplexHalfFull") + "\n%0A ";
+				_txtStatistics.append(_resBundleMessages.getString("duplexHalfFull") + "\n");
+				_sEmailText += _resBundleMessages.getString("duplexHalfFull") + "\n%0A ";
 			}
 
-			_txtStatistics.append("\n" + messages.getString("web100rtt") + " =  " + prtdbl(avgrtt) + " " + "ms" + "; ");
-			emailText += "\n%0A" +  messages.getString("web100rtt") + " = " + prtdbl(avgrtt) + " " + "ms" + "; ";
+			_txtStatistics.append("\n" + _resBundleMessages.getString("web100rtt") + " =  " + prtdbl(avgrtt) + " " + "ms" + "; ");
+			_sEmailText += "\n%0A" +  _resBundleMessages.getString("web100rtt") + " = " + prtdbl(avgrtt) + " " + "ms" + "; ";
 
-			_txtStatistics.append(messages.getString("packetsize") + " = " + CurrentMSS + " " + messages.getString("bytes") + "; " + messages.getString("and") + " \n");
-			emailText += messages.getString("packetsize") + " = " + CurrentMSS + " " + messages.getString("bytes") + "; " + messages.getString("and") + " \n%0A";
+			_txtStatistics.append(_resBundleMessages.getString("packetsize") + " = " + _iCurrentMSS + " " + _resBundleMessages.getString("bytes") + "; " + _resBundleMessages.getString("and") + " \n");
+			_sEmailText += _resBundleMessages.getString("packetsize") + " = " + _iCurrentMSS + " " + _resBundleMessages.getString("bytes") + "; " + _resBundleMessages.getString("and") + " \n%0A";
 
-			if (PktsRetrans > 0) {
-				_txtStatistics.append(PktsRetrans + " " + messages.getString("pktsRetrans"));
-				_txtStatistics.append(", " + DupAcksIn + " " + messages.getString("dupAcksIn"));
-				_txtStatistics.append(", " + messages.getString("and") + " " + SACKsRcvd + " " + messages.getString("sackReceived") + "\n");
-				emailText += PktsRetrans + " " + messages.getString("pktsRetrans");
-				emailText += ", " + DupAcksIn + " " + messages.getString("dupAcksIn");
-				emailText += ", " + messages.getString("and") + " " + SACKsRcvd + " " + messages.getString("sackReceived") + "\n%0A";
-				if (Timeouts > 0) {
-					_txtStatistics.append(messages.getString("connStalled") + " " + Timeouts + " " + messages.getString("timesPktLoss") + "\n");
+			if (_iPktsRetrans > 0) {
+				_txtStatistics.append(_iPktsRetrans + " " + _resBundleMessages.getString("pktsRetrans"));
+				_txtStatistics.append(", " + _iDupAcksIn + " " + _resBundleMessages.getString("dupAcksIn"));
+				_txtStatistics.append(", " + _resBundleMessages.getString("and") + " " + _iSACKsRcvd + " " + _resBundleMessages.getString("sackReceived") + "\n");
+				_sEmailText += _iPktsRetrans + " " + _resBundleMessages.getString("pktsRetrans");
+				_sEmailText += ", " + _iDupAcksIn + " " + _resBundleMessages.getString("dupAcksIn");
+				_sEmailText += ", " + _resBundleMessages.getString("and") + " " + _iSACKsRcvd + " " + _resBundleMessages.getString("sackReceived") + "\n%0A";
+				if (_iTimeouts > 0) {
+					_txtStatistics.append(_resBundleMessages.getString("connStalled") + " " + _iTimeouts + " " + _resBundleMessages.getString("timesPktLoss") + "\n");
 				}
 
-				_txtStatistics.append(messages.getString("connIdle") + " " + prtdbl(waitsec) + " " + messages.getString("seconds") + " (" + prtdbl((waitsec/timesec)*100) + messages.getString("pctOfTime") + ")\n");
-				emailText += messages.getString("connStalled") + " " + Timeouts + " " + messages.getString("timesPktLoss") + "\n%0A";
-				emailText += messages.getString("connIdle") + " " + prtdbl(waitsec) + " " + messages.getString("seconds") + " (" + prtdbl((waitsec/timesec)*100) + messages.getString("pctOfTime") + ")\n%0A";
+				_txtStatistics.append(_resBundleMessages.getString("connIdle") + " " + prtdbl(waitsec) + " " + _resBundleMessages.getString("seconds") + " (" + prtdbl((waitsec/timesec)*100) + _resBundleMessages.getString("pctOfTime") + ")\n");
+				_sEmailText += _resBundleMessages.getString("connStalled") + " " + _iTimeouts + " " + _resBundleMessages.getString("timesPktLoss") + "\n%0A";
+				_sEmailText += _resBundleMessages.getString("connIdle") + " " + prtdbl(waitsec) + " " + _resBundleMessages.getString("seconds") + " (" + prtdbl((waitsec/timesec)*100) + _resBundleMessages.getString("pctOfTime") + ")\n%0A";
 			} 
-			else if (DupAcksIn > 0) {
-				_txtStatistics.append(messages.getString("noPktLoss1") + " - ");
-				_txtStatistics.append(messages.getString("ooOrder") + " " + prtdbl(order*100) + messages.getString("pctOfTime") + "\n");
-				emailText += messages.getString("noPktLoss1") + " - ";
-				emailText += messages.getString("ooOrder") + " " + prtdbl(order*100) + messages.getString("pctOfTime") + "\n%0A";
+			else if (_iDupAcksIn > 0) {
+				_txtStatistics.append(_resBundleMessages.getString("noPktLoss1") + " - ");
+				_txtStatistics.append(_resBundleMessages.getString("ooOrder") + " " + prtdbl(order*100) + _resBundleMessages.getString("pctOfTime") + "\n");
+				_sEmailText += _resBundleMessages.getString("noPktLoss1") + " - ";
+				_sEmailText += _resBundleMessages.getString("ooOrder") + " " + prtdbl(order*100) + _resBundleMessages.getString("pctOfTime") + "\n%0A";
 			} 
 			else {
-				_txtStatistics.append(messages.getString("noPktLoss2") + ".\n");
-				emailText += messages.getString("noPktLoss2") + ".\n%0A";
+				_txtStatistics.append(_resBundleMessages.getString("noPktLoss2") + ".\n");
+				_sEmailText += _resBundleMessages.getString("noPktLoss2") + ".\n%0A";
 			}
 
 			if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-				if (c2sspd > sc2sspd) {
-					if (sc2sspd < (c2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
-						_txtStatistics.append(messages.getString("c2s") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+				if (_dC2sspd > _dSc2sspd) {
+					if (_dSc2sspd < (_dC2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+						_txtStatistics.append(_resBundleMessages.getString("c2s") + " " + _resBundleMessages.getString("qSeen") + ": " + prtdbl(100 * (_dC2sspd - _dSc2sspd) / _dC2sspd) + "%\n");
 					}
 					else {
-						_txtStatistics.append(messages.getString("c2s") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (c2sspd - sc2sspd) / c2sspd) + "%\n");
+						_txtStatistics.append(_resBundleMessages.getString("c2s") + " " + _resBundleMessages.getString("qSeen") + ": " + prtdbl(100 * (_dC2sspd - _dSc2sspd) / _dC2sspd) + "%\n");
 					}
 				}
 			}
 
 			if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-				if (ss2cspd > s2cspd) {
-					if (s2cspd < (ss2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
-						_txtStatistics.append(messages.getString("s2c") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+				if (_dSs2cspd > _dS2cspd) {
+					if (_dSs2cspd < (_dSs2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
+						_txtStatistics.append(_resBundleMessages.getString("s2c") + " " + _resBundleMessages.getString("qSeen") + ": " + prtdbl(100 * (_dSs2cspd - _dS2cspd) / _dSs2cspd) + "%\n");
 					}
 					else {
-						_txtStatistics.append(messages.getString("s2c") + " " + messages.getString("qSeen") + ": " + prtdbl(100 * (ss2cspd - s2cspd) / ss2cspd) + "%\n");
+						_txtStatistics.append(_resBundleMessages.getString("s2c") + " " + _resBundleMessages.getString("qSeen") + ": " + prtdbl(100 * (_dSs2cspd - _dS2cspd) / _dSs2cspd) + "%\n");
 					}
 				}
 			}
 
 			if (rwintime > .015) {
-				_txtStatistics.append(messages.getString("thisConnIs") + " " + messages.getString("limitRx") + " " + prtdbl(rwintime*100) + messages.getString("pctOfTime") + ".\n");
-				emailText += messages.getString("thisConnIs") + " " + messages.getString("limitRx") + " " + prtdbl(rwintime*100) + messages.getString("pctOfTime") + ".\n%0A";
+				_txtStatistics.append(_resBundleMessages.getString("thisConnIs") + " " + _resBundleMessages.getString("limitRx") + " " + prtdbl(rwintime*100) + _resBundleMessages.getString("pctOfTime") + ".\n");
+				_sEmailText += _resBundleMessages.getString("thisConnIs") + " " + _resBundleMessages.getString("limitRx") + " " + prtdbl(rwintime*100) + _resBundleMessages.getString("pctOfTime") + ".\n%0A";
 				pub_pctRcvrLimited = rwintime*100;
 
 				// I think there is a bug here, it sometimes tells you to increase the buffer
 				// size, but the new size is smaller than the current.
 
 				if (((2*rwin)/rttsec) < mylink) {
-					_txtStatistics.append("  " + messages.getString("incrRxBuf") + " (" + prtdbl(MaxRwinRcvd/1024) + " KB) " + messages.getString("willImprove") + "\n");
+					_txtStatistics.append("  " + _resBundleMessages.getString("incrRxBuf") + " (" + prtdbl(_iMaxRwinRcvd/1024) + " KB) " + _resBundleMessages.getString("willImprove") + "\n");
 				}
 			}
 			if (sendtime > .015) {
-				_txtStatistics.append(messages.getString("thisConnIs") + " " + messages.getString("limitTx") + " " + prtdbl(sendtime*100) + messages.getString("pctOfTime") + ".\n");
-				emailText += messages.getString("thisConnIs") + " " + messages.getString("limitTx") + " " + prtdbl(sendtime*100) + messages.getString("pctOfTime") + ".\n%0A";
+				_txtStatistics.append(_resBundleMessages.getString("thisConnIs") + " " + _resBundleMessages.getString("limitTx") + " " + prtdbl(sendtime*100) + _resBundleMessages.getString("pctOfTime") + ".\n");
+				_sEmailText += _resBundleMessages.getString("thisConnIs") + " " + _resBundleMessages.getString("limitTx") + " " + prtdbl(sendtime*100) + _resBundleMessages.getString("pctOfTime") + ".\n%0A";
 				if ((2*(swin/rttsec)) < mylink) {
-					_txtStatistics.append("  " + messages.getString("incrTxBuf") + " (" + prtdbl(Sndbuf/2048) + " KB) " + messages.getString("willImprove") + "\n");
+					_txtStatistics.append("  " + _resBundleMessages.getString("incrTxBuf") + " (" + prtdbl(_iSndbuf/2048) + " KB) " + _resBundleMessages.getString("willImprove") + "\n");
 				}
 			}
 			if (cwndtime > .005) {
-				_txtStatistics.append(messages.getString("thisConnIs") + " " + messages.getString("limitNet") + " " + prtdbl(cwndtime*100) + messages.getString("pctOfTime") + ".\n");
-				emailText += messages.getString("thisConnIs") + " " + messages.getString("limitNet") + " " + prtdbl(cwndtime*100) + messages.getString("pctOfTime") + ".\n%0A";
+				_txtStatistics.append(_resBundleMessages.getString("thisConnIs") + " " + _resBundleMessages.getString("limitNet") + " " + prtdbl(cwndtime*100) + _resBundleMessages.getString("pctOfTime") + ".\n");
+				_sEmailText += _resBundleMessages.getString("thisConnIs") + " " + _resBundleMessages.getString("limitNet") + " " + prtdbl(cwndtime*100) + _resBundleMessages.getString("pctOfTime") + ".\n%0A";
 				// if (cwndtime > .15)
 				//	statistics.append("  Contact your local network administrator to report a network problem\n");
 				// if (order > .15)
 				//	statistics.append("  Contact your local network admin and report excessive packet reordering\n");
 			}
 			if ((spd < 4) && (loss > .01)) {
-				_txtStatistics.append(messages.getString("excLoss") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("excLoss") + "\n");
 			}
 
-			_txtStatistics.append("\n" + messages.getString("web100tcpOpts") + " \n");
+			_txtStatistics.append("\n" + _resBundleMessages.getString("web100tcpOpts") + " \n");
 			_txtStatistics.append("RFC 2018 Selective Acknowledgment: ");
-			if(SACKEnabled == Zero)
-				_txtStatistics.append(messages.getString("off") + "\n");
+			if(_iSACKEnabled == Zero)
+				_txtStatistics.append(_resBundleMessages.getString("off") + "\n");
 			else
-				_txtStatistics.append(messages.getString("on") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("on") + "\n");
 
 			_txtStatistics.append("RFC 896 Nagle Algorithm: ");
-			if(NagleEnabled == Zero)
-				_txtStatistics.append(messages.getString("off") + "\n");
+			if(_iNagleEnabled == Zero)
+				_txtStatistics.append(_resBundleMessages.getString("off") + "\n");
 			else
-				_txtStatistics.append(messages.getString("on") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("on") + "\n");
 
 			_txtStatistics.append("RFC 3168 Explicit Congestion Notification: ");
-			if(ECNEnabled == Zero)
-				_txtStatistics.append(messages.getString("off") + "\n");
+			if(_iECNEnabled == Zero)
+				_txtStatistics.append(_resBundleMessages.getString("off") + "\n");
 			else
-				_txtStatistics.append(messages.getString("on") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("on") + "\n");
 
 			_txtStatistics.append("RFC 1323 Time Stamping: ");
-			if(TimestampsEnabled == 0)
-				_txtStatistics.append(messages.getString("off") + "\n");
+			if(_iTimestampsEnabled == 0)
+				_txtStatistics.append(_resBundleMessages.getString("off") + "\n");
 			else
-				_txtStatistics.append(messages.getString("on") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("on") + "\n");
 
 			_txtStatistics.append("RFC 1323 Window Scaling: ");
-			if (MaxRwinRcvd < 65535)
-				WinScaleRcvd = 0;
-			if((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
-				_txtStatistics.append(messages.getString("off") + "\n");
+			if (_iMaxRwinRcvd < 65535)
+				_iWinScaleRcvd = 0;
+			if((_iWinScaleRcvd == 0) || (_iWinScaleRcvd > 20))
+				_txtStatistics.append(_resBundleMessages.getString("off") + "\n");
 			else
-				_txtStatistics.append (messages.getString("on") + "; " + messages.getString("scalingFactors") + " -  " + messages.getString("server") + "=" + WinScaleRcvd + ", " + messages.getString("client") + "=" + WinScaleSent + "\n");
+				_txtStatistics.append (_resBundleMessages.getString("on") + "; " + _resBundleMessages.getString("scalingFactors") + " -  " + _resBundleMessages.getString("server") + "=" + _iWinScaleRcvd + ", " + _resBundleMessages.getString("client") + "=" + _iWinScaleSent + "\n");
 
 			_txtStatistics.append("\n");
 
 			if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
 				switch (c2sResult) {
 				case NDTConstants.SFW_NOFIREWALL:
-					_txtStatistics.append(messages.getString("server") + " '" + host + "' " + messages.getString("firewallNo") + "\n");
-					emailText += messages.getString("server") + " '" + host + "' " + messages.getString("firewallNo") + "\n%0A";
+					_txtStatistics.append(_resBundleMessages.getString("server") + " '" + host + "' " + _resBundleMessages.getString("firewallNo") + "\n");
+					_sEmailText += _resBundleMessages.getString("server") + " '" + host + "' " + _resBundleMessages.getString("firewallNo") + "\n%0A";
 					break;
 				case NDTConstants.SFW_POSSIBLE:
-					_txtStatistics.append(messages.getString("server") + " '" + host + "' " + messages.getString("firewallYes") + "\n");
-					emailText += messages.getString("server") + " '" + host + "' " + messages.getString("firewallYes") + "\n%0A";
+					_txtStatistics.append(_resBundleMessages.getString("server") + " '" + host + "' " + _resBundleMessages.getString("firewallYes") + "\n");
+					_sEmailText += _resBundleMessages.getString("server") + " '" + host + "' " + _resBundleMessages.getString("firewallYes") + "\n%0A";
 					break;
 				case NDTConstants.SFW_UNKNOWN:
 				case NDTConstants.SFW_NOTTESTED:
@@ -2289,12 +2411,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 				switch (s2cResult) {
 				case NDTConstants.SFW_NOFIREWALL:
-					_txtStatistics.append(messages.getString("client2") + " " + messages.getString("firewallNo") + "\n");
-					emailText += messages.getString("client2") + " " + messages.getString("firewallNo") + "\n%0A";
+					_txtStatistics.append(_resBundleMessages.getString("client2") + " " + _resBundleMessages.getString("firewallNo") + "\n");
+					_sEmailText += _resBundleMessages.getString("client2") + " " + _resBundleMessages.getString("firewallNo") + "\n%0A";
 					break;
 				case NDTConstants.SFW_POSSIBLE:
-					_txtStatistics.append(messages.getString("client2") + " " + messages.getString("firewallYes") + "\n");
-					emailText += messages.getString("client2") + " " + messages.getString("firewallYes") + "\n%0A";
+					_txtStatistics.append(_resBundleMessages.getString("client2") + " " + _resBundleMessages.getString("firewallYes") + "\n");
+					_sEmailText += _resBundleMessages.getString("client2") + " " + _resBundleMessages.getString("firewallYes") + "\n%0A";
 					break;
 				case NDTConstants.SFW_UNKNOWN:
 				case NDTConstants.SFW_NOTTESTED:
@@ -2306,19 +2428,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			//				+ (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
 			_txtDiagnosis.append("\n");
 
-			_txtDiagnosis.append(messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " " + "Mbps\n");
-			emailText += messages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " Mbps\n%0A";
+			_txtDiagnosis.append(_resBundleMessages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " " + "Mbps\n");
+			_sEmailText += _resBundleMessages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " Mbps\n%0A";
 
-			_txtDiagnosis.append(messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n");
-			emailText += messages.getString("ndtServerHas") + " " + prtdbl(Sndbuf/2048) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n%0A";
+			_txtDiagnosis.append(_resBundleMessages.getString("ndtServerHas") + " " + prtdbl(_iSndbuf/2048) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n");
+			_sEmailText += _resBundleMessages.getString("ndtServerHas") + " " + prtdbl(_iSndbuf/2048) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n%0A";
 
-			_txtDiagnosis.append(messages.getString("yourPcHas") + " " + prtdbl(MaxRwinRcvd/1024) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n");
-			emailText += messages.getString("yourPcHas") + " " + prtdbl(MaxRwinRcvd/1024) + " " + messages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n%0A";
+			_txtDiagnosis.append(_resBundleMessages.getString("yourPcHas") + " " + prtdbl(_iMaxRwinRcvd/1024) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n");
+			_sEmailText += _resBundleMessages.getString("yourPcHas") + " " + prtdbl(_iMaxRwinRcvd/1024) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n%0A";
 
-			_txtDiagnosis.append(messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n");
-			emailText += messages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
+			_txtDiagnosis.append(_resBundleMessages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n");
+			_sEmailText += _resBundleMessages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
 
-			_txtDiagnosis.append("\n" + messages.getString("clientDataReports") + " '" + prttxt(c2sData) + "', " + messages.getString("clientAcksReport") + " '" + prttxt(c2sAck) + "'\n" + messages.getString("serverDataReports") + " '" + prttxt(s2cData) + "', " + messages.getString("serverAcksReport") + " '" + prttxt(s2cAck) + "'\n");
+			_txtDiagnosis.append("\n" + _resBundleMessages.getString("clientDataReports") + " '" + prttxt(_iC2sData) + "', " + _resBundleMessages.getString("clientAcksReport") + " '" + prttxt(_iC2sAck) + "'\n" + _resBundleMessages.getString("serverDataReports") + " '" + prttxt(_iS2cData) + "', " + _resBundleMessages.getString("serverAcksReport") + " '" + prttxt(_iS2cAck) + "'\n");
 			pub_diagnosis = _txtDiagnosis.getText();
 
 
@@ -2375,9 +2497,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		// 	winssent + "\n");
 
 		if (mss == 1456)
-			_txtStatistics.append(messages.getString("packetSizePreserved") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("packetSizePreserved") + "\n");
 		else
-			_txtStatistics.append(messages.getString("middleboxModifyingMss") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("middleboxModifyingMss") + "\n");
 
 		// if ((winsrecv == -1) && (winssent == -1))
 		//     statistics.append("Window scaling option is preserved End-to-End\n");
@@ -2392,17 +2514,17 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			preserved = ssip.equals(csip);
 		}
 		if (preserved) {
-			_txtStatistics.append(messages.getString("serverIpPreserved") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("serverIpPreserved") + "\n");
 			pub_natBox = "no";
 		}
 		else {
 			pub_natBox = "yes";
-			_txtStatistics.append(messages.getString("serverIpModified") + "\n");
-			_txtStatistics.append("\t" + messages.getString("serverSays") + " [" + ssip + "], " + messages.getString("clientSays") +" [" + csip + "]\n");
+			_txtStatistics.append(_resBundleMessages.getString("serverIpModified") + "\n");
+			_txtStatistics.append("\t" + _resBundleMessages.getString("serverSays") + " [" + ssip + "], " + _resBundleMessages.getString("clientSays") +" [" + csip + "]\n");
 		}
 
 		if (ccip.equals("127.0.0.1")) {
-			_txtStatistics.append(messages.getString("clientIpNotFound") + "\n");
+			_txtStatistics.append(_resBundleMessages.getString("clientIpNotFound") + "\n");
 		}
 		else {
 			try {
@@ -2416,17 +2538,22 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 
 			if (preserved)
-				_txtStatistics.append(messages.getString("clientIpPreserved") + "\n");
+				_txtStatistics.append(_resBundleMessages.getString("clientIpPreserved") + "\n");
 			else {
-				_txtStatistics.append(messages.getString("clientIpModified") + "\n");
-				_txtStatistics.append("\t" + messages.getString("serverSays") + " [" + scip + "], " + messages.getString("clientSays") +" [" + ccip + "]\n");
+				_txtStatistics.append(_resBundleMessages.getString("clientIpModified") + "\n");
+				_txtStatistics.append("\t" + _resBundleMessages.getString("serverSays") + " [" + scip + "], " + _resBundleMessages.getString("clientSays") +" [" + ccip + "]\n");
 			}
 		}
 		pub_statistics = _txtStatistics.getText();
 	} // middleboxResults()
 
 
-
+	public void showBufferedBytesInfo() {
+		JOptionPane.showMessageDialog(null, _resBundleMessages.getString("packetQueuingInfo"), _resBundleMessages.getString("packetQueuing"),
+				JOptionPane.INFORMATION_MESSAGE);
+	}
+	
+	
 	public String prtdbl(double d) {
 		String str = null;
 		int i;
@@ -2452,11 +2579,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		String str = null;
 
 		if (val == -1)
-			str = messages.getString("systemFault");
+			str = _resBundleMessages.getString("systemFault");
 		else if (val == 0)
-			str = messages.getString("rtt");
+			str = _resBundleMessages.getString("rtt");
 		else if (val == 1)
-			str = messages.getString("dialup2");
+			str = _resBundleMessages.getString("dialup2");
 		else if (val == 2)
 			str = "T1";
 		else if (val == 3)
@@ -2545,76 +2672,76 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		else if(sysvar.equals("MSSRcvd:")) 
 			MSSRcvd = sysval;
 		else if(sysvar.equals("ECNEnabled:")) 
-			ECNEnabled = sysval;
+			_iECNEnabled = sysval;
 		else if(sysvar.equals("NagleEnabled:")) 
-			NagleEnabled = sysval;
+			_iNagleEnabled = sysval;
 		else if(sysvar.equals("SACKEnabled:")) 
-			SACKEnabled = sysval;
+			_iSACKEnabled = sysval;
 		else if(sysvar.equals("TimestampsEnabled:")) 
-			TimestampsEnabled = sysval;
+			_iTimestampsEnabled = sysval;
 		else if(sysvar.equals("WinScaleRcvd:")) 
-			WinScaleRcvd = sysval;
+			_iWinScaleRcvd = sysval;
 		else if(sysvar.equals("WinScaleSent:")) 
-			WinScaleSent = sysval;
+			_iWinScaleSent = sysval;
 		else if(sysvar.equals("SumRTT:")) 
-			SumRTT = sysval;
+			_iSumRTT = sysval;
 		else if(sysvar.equals("CountRTT:")) 
-			CountRTT = sysval;
+			_iCountRTT = sysval;
 		else if(sysvar.equals("CurMSS:"))
-			CurrentMSS = sysval;
+			_iCurrentMSS = sysval;
 		else if(sysvar.equals("Timeouts:")) 
-			Timeouts = sysval;
+			_iTimeouts = sysval;
 		else if(sysvar.equals("PktsRetrans:")) 
-			PktsRetrans = sysval;
+			_iPktsRetrans = sysval;
 		else if(sysvar.equals("SACKsRcvd:")) {
-			SACKsRcvd = sysval;
-			pub_SACKsRcvd = SACKsRcvd;
+			_iSACKsRcvd = sysval;
+			pub_SACKsRcvd = _iSACKsRcvd;
 		}
 		else if(sysvar.equals("DupAcksIn:")) 
-			DupAcksIn = sysval;
+			_iDupAcksIn = sysval;
 		else if(sysvar.equals("MaxRwinRcvd:")) {
-			MaxRwinRcvd = sysval;
-			pub_MaxRwinRcvd=MaxRwinRcvd;
+			_iMaxRwinRcvd = sysval;
+			pub_MaxRwinRcvd=_iMaxRwinRcvd;
 		}
 		else if(sysvar.equals("MaxRwinSent:")) 
-			MaxRwinSent = sysval;
+			_iMaxRwinSent = sysval;
 		else if(sysvar.equals("Sndbuf:")) 
-			Sndbuf = sysval;
+			_iSndbuf = sysval;
 		else if(sysvar.equals("X_Rcvbuf:")) 
-			Rcvbuf = sysval;
+			_iRcvbuf = sysval;
 		else if(sysvar.equals("DataPktsOut:")) 
-			DataPktsOut = sysval;
+			_iDataPktsOut = sysval;
 		else if(sysvar.equals("FastRetran:")) 
-			FastRetran = sysval;
+			_iFastRetran = sysval;
 		else if(sysvar.equals("AckPktsOut:")) 
-			AckPktsOut = sysval;
+			_iAckPktsOut = sysval;
 		else if(sysvar.equals("SmoothedRTT:")) 
-			SmoothedRTT = sysval;
+			_iSmoothedRTT = sysval;
 		else if(sysvar.equals("CurCwnd:")) 
-			CurrentCwnd = sysval;
+			_iCurrentCwnd = sysval;
 		else if(sysvar.equals("MaxCwnd:")) 
-			MaxCwnd = sysval;
+			_iMaxCwnd = sysval;
 		else if(sysvar.equals("SndLimTimeRwin:")) 
-			SndLimTimeRwin = sysval;
+			_iSndLimTimeRwin = sysval;
 		else if(sysvar.equals("SndLimTimeCwnd:")) 
-			SndLimTimeCwnd = sysval;
+			_iSndLimTimeCwnd = sysval;
 		else if(sysvar.equals("SndLimTimeSender:")) 
-			SndLimTimeSender = sysval;
+			_iSndLimTimeSender = sysval;
 		else if(sysvar.equals("DataBytesOut:")) 
-			DataBytesOut = sysval;
+			_iDataBytesOut = sysval;
 		else if(sysvar.equals("AckPktsIn:")) 
-			AckPktsIn = sysval;
+			_iAckPktsIn = sysval;
 		else if(sysvar.equals("SndLimTransRwin:"))
-			SndLimTransRwin = sysval;
+			_iSndLimTransRwin = sysval;
 		else if(sysvar.equals("SndLimTransCwnd:"))
-			SndLimTransCwnd = sysval;
+			_iSndLimTransCwnd = sysval;
 		else if(sysvar.equals("SndLimTransSender:"))
-			SndLimTransSender = sysval;
+			_iSndLimTransSender = sysval;
 		else if(sysvar.equals("MaxSsthresh:"))
-			MaxSsthresh = sysval;
+			_iMaxSsthresh = sysval;
 		else if(sysvar.equals("CurRTO:")) {
-			CurrentRTO = sysval;
-			pub_CurRTO = CurrentRTO;
+			_iCurrentRTO = sysval;
+			pub_CurRTO = _iCurrentRTO;
 		}
 		else if(sysvar.equals("MaxRTO:")) {
 			pub_MaxRTO = sysval;
@@ -2635,15 +2762,15 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			pub_Timeouts = sysval;
 		}	
 		else if(sysvar.equals("c2sData:"))
-			c2sData = sysval;
+			_iC2sData = sysval;
 		else if(sysvar.equals("c2sAck:"))
-			c2sAck = sysval;
+			_iC2sAck = sysval;
 		else if(sysvar.equals("s2cData:"))
-			s2cData = sysval;
+			_iS2cData = sysval;
 		else if(sysvar.equals("s2cAck:"))
-			s2cAck = sysval;
+			_iS2cAck = sysval;
 		else if(sysvar.equals("PktsOut:"))
-			PktsOut = sysval;
+			_iPktsOut = sysval;
 		else if(sysvar.equals("mismatch:")) {
 			mismatch = sysval;
 			pub_mismatch=mismatch;
@@ -2659,250 +2786,18 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		else if(sysvar.equals("half_duplex:"))
 			half_duplex = sysval;
 		else if(sysvar.equals("CongestionSignals:"))
-			CongestionSignals = sysval;
+			_iCongestionSignals = sysval;
 		else if(sysvar.equals("RcvWinScale:")) {
-			if (RcvWinScale > 15)
-				RcvWinScale = 0;
+			if (_iRcvWinScale > 15)
+				_iRcvWinScale = 0;
 			else
-				RcvWinScale = sysval;
+				_iRcvWinScale = sysval;
 		}
 	}  // save_int_values()
 
-
-	public void diagnose() {
-		showStatus(messages.getString("getWeb100Var"));
-
-		if (frameWeb100Vars == null) {
-			frameWeb100Vars = new NewFrame();
-		}
-		frameWeb100Vars.setTitle(messages.getString("web100Var"));
-		Panel buttons = new Panel();
-		frameWeb100Vars.getContentPane().add("South", buttons);
-
-		disMiss = new JButton(messages.getString("close"));
-		disMiss.addActionListener(this);
-
-		copy = new JButton(messages.getString("copy"));
-		copy.addActionListener(this);
-
-		_txtDiagnosis = new JTextArea(messages.getString("web100KernelVar") + ":\n", 15,30);
-		_txtDiagnosis.setEditable(true);
-		disMiss.setEnabled(true);
-		copy.setEnabled(cancopy);
-
-		buttons.add("West", disMiss);
-		buttons.add("East", copy);
-		frameWeb100Vars.getContentPane().add(new JScrollPane(_txtDiagnosis));
-		frameWeb100Vars.pack();
-	}  // diagnose()
-
-
-
-	public void statistics() {
-		showStatus(messages.getString("printDetailedStats"));
-
-		if (frameDetailedStats == null) {
-			frameDetailedStats = new NewFrame();
-		}
-		frameDetailedStats.setTitle(messages.getString("detailedStats"));
-		Panel buttons = new Panel();
-		frameDetailedStats.getContentPane().add("South", buttons);
-
-		disMiss2 = new JButton(messages.getString("close"));
-		disMiss2.addActionListener(this);
-
-		copy2 = new JButton(messages.getString("copy"));
-		copy2.addActionListener(this);
-
-		_txtStatistics = new JTextArea(messages.getString("web100Stats") + ":\n", 25,70);
-		_txtStatistics.setEditable(true);
-		disMiss2.setEnabled(true);
-		copy2.setEnabled(cancopy);
-
-		buttons.add("West", disMiss2);
-		buttons.add("East", copy2);
-		frameDetailedStats.getContentPane().add(new JScrollPane(_txtStatistics));
-		frameDetailedStats.pack();
-	}  // statistics()
-
-
-	public void showOptions() {
-		showStatus(messages.getString("showOptions"));
-
-		if (frameOptions == null) {
-			frameOptions = new NewFrame();
-			frameOptions.setTitle(messages.getString("options"));
-
-			JPanel optionsPanel = new JPanel();
-			optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
-
-			JPanel testsPanel = new JPanel();
-			testsPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("performedTests")));
-			testsPanel.add(defaultTest);
-			optionsPanel.add(testsPanel);
-
-			JPanel protocolPanel = new JPanel();
-			protocolPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("ipProtocol")));
-			protocolPanel.add(preferIPv6);
-			optionsPanel.add(protocolPanel);
-
-			if (getParameter("enableMultipleTests") != null) {
-				JPanel generalPanel = new JPanel();
-				generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
-				generalPanel.setBorder(BorderFactory.createTitledBorder(messages.getString("general")));
-				JPanel tmpPanel = new JPanel();
-				tmpPanel.add(new JLabel(messages.getString("numberOfTests") + ":"));
-				tmpPanel.add(numOfTests);
-				generalPanel.add(tmpPanel);
-				tmpPanel = new JPanel();
-				tmpPanel.add(new JLabel(messages.getString("delayBetweenTests") + ":"));
-				tmpPanel.add(delay);
-				generalPanel.add(tmpPanel);
-
-				optionsPanel.add(generalPanel);
-			}
-
-			frameOptions.getContentPane().add(optionsPanel);     
-			Panel buttons = new Panel();
-			frameOptions.getContentPane().add("South", buttons);
-
-			JButton okButton= new JButton(messages.getString("ok"));
-			okButton.addActionListener(new ActionListener() {
-
-				public void actionPerformed(ActionEvent e) {
-					frameOptions.toBack();
-					frameOptions.dispose();
-				}
-
-			});
-
-			buttons.add("West", okButton);
-
-			frameOptions.pack();
-		}
-		frameOptions.setResizable(false);
-		frameOptions.setVisible(true);
-	}
-
-	public void actionPerformed(ActionEvent event) {
-		Object source = event.getSource();
-		// System.err.println("Processing WINDOW event #" +event.getID());
-		// System.err.println("Processing event " + source);
-
-		if (source == startTest) {
-			if(frameWeb100Vars != null) {
-				frameWeb100Vars.toBack();
-				frameWeb100Vars.dispose();
-				frameWeb100Vars = null;
-			}
-
-			if(frameDetailedStats != null) {
-				frameDetailedStats.toBack();
-				frameDetailedStats.dispose();
-				frameDetailedStats = null;
-			}
-
-			pub_errmsg = "Test in progress.";
-			runtest();
-		}
-
-		else if (source == deTails) {
-			deTails.setEnabled(false);
-			frameWeb100Vars.setResizable(true);
-			frameWeb100Vars.setVisible(true);
-			deTails.setEnabled(true);
-		}
-
-		else if (source == disMiss) {
-			frameWeb100Vars.toBack();
-			frameWeb100Vars.dispose();
-		}
-
-		else if (source == disMiss2) {
-			frameDetailedStats.toBack();
-			frameDetailedStats.dispose();
-		}
-
-		else if (source == copy) {
-			try {
-				Clipboard clipbd = getToolkit().getSystemClipboard();
-				cancopy = true;
-				String s = _txtDiagnosis.getText();
-				StringSelection ss = new StringSelection(s);
-				clipbd.setContents(ss, ss);
-				_txtDiagnosis.selectAll();
-			} catch (SecurityException e) {
-				cancopy = false;
-			}
-		}
-
-		else if (source == copy2) {
-			Clipboard clipbd = getToolkit().getSystemClipboard();
-			String s = _txtStatistics.getText();
-			StringSelection ss = new StringSelection(s);
-			clipbd.setContents(ss, ss);
-			_txtStatistics.selectAll();
-		}
-
-		else if (source == sTatistics) {
-			sTatistics.setEnabled(false);
-			frameDetailedStats.setResizable(true);
-			frameDetailedStats.setVisible(true);
-			sTatistics.setEnabled(true);
-		}
-
-		else if (source == mailTo) {
-			//int i; //did'nt need it
-			//char key; comment out. seems unused
-			String to[], from[], comments[];
-			String Name, Host;
-
-			mailTo.setEnabled(false);
-			// envoke mailto: function
-			showStatus(messages.getString("invokingMailtoFunction") + "...");
-
-			results.append(messages.getString("generatingReport") + "\n");
-			try {
-				if ((Name = getParameter(TARGET1)) == null) {
-					throw new IllegalArgumentException("U parameter Required:");
-				}
-				if ((Host = getParameter(TARGET2)) == null) {
-					throw new IllegalArgumentException("H parameter Required:");
-				}
-
-				String theURL = "mailto:" + Name + "@" + Host;
-				String subject = getParameter("subject");
-
-				if (subject == null) {
-					subject = messages.getString("troubleReportFrom") + " " + getCodeBase().getHost();
-				}
-				theURL += "?subject=" + subject;
-				theURL += "&body=" + messages.getString("comments") + ":%0A%0A" + emailText + " " + messages.getString("endOfEmail") + "\n%0A";
-				// System.out.println("Message body is '" + emailText + "'\n");
-				targetURL = new URL(theURL);
-
-			} catch (MalformedURLException rsi) {
-				throw new IllegalArgumentException("Can't create mailto: URL" + rsi.getMessage());
-			}
-
-			getAppletContext().showDocument(targetURL);
-		}
-	}  // actionPerformed()
-
-	//re-arch remove inner classes
-	/*
-	public class NewFrame extends JFrame {
-		public NewFrame() {
-			addWindowListener(new WindowAdapter() {
-				public void windowClosing(WindowEvent event) {
-					// System.err.println("Handling window closing event");
-					dispose();
-				}
-			});
-			// System.err.println("Extended Frame class - RAC9/15/03");
-		}
-	} // class: NewFrame
-	 */
+	
+	
+    /*psvm for running as an Applicaion*/
 	public static void main(String[] args)
 	{
 		JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
@@ -2925,25 +2820,40 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		applet.start();
 		frame.setVisible(true);
 	}
+		
+
+	/* Utility method to get parameter value
+	 * @param Key String whose value has to be found 
+	 * @return Value of key requested for */
+	public String getParameter(String name) {
+		if (!isApplication) {
+			return super.getParameter(name);
+		}
+		return null;
+	}
+
+	/* Class variable getter/setter methods */
+	public int getC2STestResults() {
+		return this.c2sResult;
+	}
+	
+	public void setC2STestResults(int iParamC2SRes) {
+		this.c2sResult = iParamC2SRes;
+	}
+	
+	public int getS2CTestResults() {
+		return this.s2cResult;
+	}
+	
+	public void setS2CTestResults(int iParamS2CRes) {
+		this.s2cResult = iParamS2CRes;
+	}
 
 
 } // class: Tcpbw100
 
 
-/*
- * Class that defines a Frame with a window closing functionality
- * TODO: Rename better. move to seperate file probably - though
- * not much value with this class
- */
-class NewFrame extends JFrame {
-	public NewFrame() {
-		addWindowListener(new WindowAdapter() {
-			public void windowClosing(WindowEvent event) {
-				// System.err.println("Handling window closing event");
-				dispose();
-			}
-		});
-		// System.err.println("Extended Frame class - RAC9/15/03");
-	}
-} // class: NewFrame
+
+
+
 

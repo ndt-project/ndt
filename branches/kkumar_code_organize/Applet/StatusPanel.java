@@ -11,50 +11,50 @@ import javax.swing.JProgressBar;
 
 public class StatusPanel extends JPanel
 {
-	private int _testNo;
-	private int _testsNum;
-	private boolean _stop = false;
+	private int _iTestsCompleted; //variable used to record the count of "finished" tests
+	private int _iTestsNum;
+	private boolean _bStop = false;
 
-	private JLabel testNoLabel = new JLabel();
-	private JButton stopButton;
-	private JProgressBar progressBar = new JProgressBar();
+	private JLabel _labelTestNum = new JLabel();
+	private JButton _buttonStop;
+	private JProgressBar _progressBarObj = new JProgressBar();
 
 	/* Constructor 
 	 * @param testsNum Total number of tests scheduled to be run
 	 * @param sParamaEnableMultiple Are multiple tests scheduled?*/
-	StatusPanel(int testsNum, String sParamEnableMultiple) {
-		this._testNo = 1;
-		this._testsNum = testsNum;
+	StatusPanel(int iParamTestsNum, String sParamEnableMultiple) {
+		this._iTestsCompleted = 1;
+		this._iTestsNum = iParamTestsNum;
 
 		setTestNoLabelText();
 		//re-arch
 		//If multiple tests are enabled to be run, then add information about the
 		//test number being run
 		if ( sParamEnableMultiple != null) {
-			add(testNoLabel);
+			add(_labelTestNum);
 		}
 		/*
         if ( getParameter("enableMultipleTests") != null ) {
             add(testNoLabel);
         }*/
-		progressBar.setMinimum(0);
-		progressBar.setMaximum(_testsNum);
-		progressBar.setValue(0);
-		progressBar.setStringPainted(true);
-		if (_testsNum == 0) {
-			progressBar.setString("");
-			progressBar.setIndeterminate(true);
+		_progressBarObj.setMinimum(0);
+		_progressBarObj.setMaximum(_iTestsNum);
+		_progressBarObj.setValue(0);
+		_progressBarObj.setStringPainted(true);
+		if (_iTestsNum == 0) {
+			_progressBarObj.setString("");
+			_progressBarObj.setIndeterminate(true);
 		}
 		else {
-			progressBar.setString(NDTConstants.getMessageString("initialization"));
+			_progressBarObj.setString(NDTConstants.getMessageString("initialization"));
 		}
-		add(progressBar);
-		stopButton= new JButton(NDTConstants.getMessageString("stop"));
-		stopButton.addActionListener(new ActionListener() {
+		add(_progressBarObj);
+		_buttonStop= new JButton(NDTConstants.getMessageString("stop"));
+		_buttonStop.addActionListener(new ActionListener() {
 
 			public void actionPerformed(ActionEvent e) {
-				_stop = true;
-				stopButton.setEnabled(false);
+				_bStop = true;
+				_buttonStop.setEnabled(false);
 				StatusPanel.this.setText(NDTConstants.getMessageString("stopping"));
 			}
 
@@ -66,31 +66,31 @@ public class StatusPanel extends JPanel
 		//If multiple tests are enabled to be run, provide user option to 
 		//	stop the one currently running
 		if (sParamEnableMultiple != null) {
-			add(stopButton);
+			add(_buttonStop);
 		}
 	}
 
 	/*Set Test number being run*/
 	private void setTestNoLabelText() {
-		testNoLabel.setText(NDTConstants.getMessageString("test") + " " + _testNo + " " + NDTConstants.getMessageString("of") + " " +_testsNum);
+		_labelTestNum.setText(NDTConstants.getMessageString("test") + " " + _iTestsCompleted + " " + NDTConstants.getMessageString("of") + " " +_iTestsNum);
 	}
 
 	/*record intention to stop tests */
 	public boolean wantToStop() {
-		return _stop;
+		return _bStop;
 	}
 
 	/*end the currently runnig test */
 	public void endTest() {
-		progressBar.setValue(_testNo);
-		_testNo++;
+		_progressBarObj.setValue(_iTestsCompleted);
+		_iTestsCompleted++;
 		setTestNoLabelText();
 	}
 
 	/* Set progress text */
-	public void setText(String text) {
-		if (!progressBar.isIndeterminate()) {
-			progressBar.setString(text);
+	public void setText(String sParamText) {
+		if (!_progressBarObj.isIndeterminate()) {
+			_progressBarObj.setString(sParamText);
 		}
 	}
 } //end class StatusPanel

@@ -10,6 +10,31 @@
  */
 public class Message {
 
-	byte type;
-	byte[] body;
+	//TODO: Make this private and test changes in Protocol class
+	byte _yType;
+	byte[] _yaBody;
+	
+	public byte getType() {
+		return _yType;
+	}
+	
+	public void setType(byte bParamType) {
+		this._yType = bParamType;
+	}
+	
+	public byte[] getBody() {
+		return _yaBody;
+	}
+	
+	public void setBody(byte[] baParamBody, int iParamSize) {
+		_yaBody = new byte[iParamSize];
+		System.arraycopy(baParamBody, 0, _yaBody, 0, iParamSize);
+	}
+	
+	public void initBodySize(int iParamSize) {
+		this._yaBody = new byte[iParamSize];
+		
+	}
+	
+	
 }
