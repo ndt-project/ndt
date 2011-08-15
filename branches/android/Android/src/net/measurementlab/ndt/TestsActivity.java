@@ -17,7 +17,7 @@ import android.widget.TextView;
 /**
  * Animated progress while selecting server location.
  */
-public class ServerLocation extends Activity {
+public class TestsActivity extends Activity {
 	private BroadcastReceiver statusReceiver;
 
 	/**
@@ -26,46 +26,55 @@ public class ServerLocation extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.server_location);
+		setContentView(R.layout.tests);
 		Log.i("ndt", "Loaded!");
 		Typeface typeFace = Typeface.createFromAsset(getAssets(),
 				"fonts/League_Gothic.otf");
 		TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
 		textView.setTypeface(typeFace);
-
-		Intent intent = new Intent(getApplicationContext(), NdtService.class);
-		intent.putExtra("networkType", getNetworkType());
-		startService(intent);
-
-		bindAndRegister();
 	}
 
 	@Override
 	protected void onStart() {
 		super.onStart();
-		Log.i("ndt", "Server location started.");
+		Log.i("ndt", "Tests activity started.");
 	}
 
 	@Override
 	protected void onResume() {
 		super.onResume();
-		Log.i("ndt", "Server location resumed.");
+
+		preparing();
+		
+		statusReceiver = createReceiver();
+		registerReceiver(statusReceiver, new IntentFilter(
+				NdtService.INTENT_UPDATE_STATUS));
+		
+		Intent intent = new Intent(getApplicationContext(), NdtService.class);
+		intent.putExtra("networkType", getNetworkType());
+		startService(intent);
+		
+		Log.i("ndt", "Tests activity resumed.");
 	}
 
 	@Override
 	protected void onPause() {
 		super.onPause();
-		Log.i("ndt", "Server location paused.");
+		Intent intent = new Intent(NdtService.INTENT_STOP_TESTS);
+		sendBroadcast(intent);
+		
+		intent = new Intent(getApplicationContext(), NdtService.class);
+		stopService(intent);
+
 		unregisterReceiver(statusReceiver);
-		// TODO tell NdtService to stop test
-		// TODO reset activity state to preparing
+		statusReceiver = null;
+
+		Log.i("ndt", "Tests activity paused.");
 	}
 
-	private void bindAndRegister() {
-		statusReceiver = createReceiver();
-		registerReceiver(statusReceiver, new IntentFilter(
-				NdtService.INTENT_UPDATE_STATUS));
-		Log.i("ndt", "Status receiver registered.");
+	private void preparing() {
+		Log.i("ndt", "Preparing Your Tests...");
+		updateHeader(getResources().getText(R.string.tests_preparing_header));
 	}
 
 	private BroadcastReceiver createReceiver() {
@@ -77,8 +86,7 @@ public class ServerLocation extends Activity {
 				int status = intent.getIntExtra("status", NdtService.PREPARING);
 				switch (status) {
 				case NdtService.PREPARING:
-					Log.i("ndt", "Preparing Your Tests...");
-					updateHeader("Preparing...");
+					preparing();
 					break;
 				case NdtService.UPLOADING:
 					Log.i("ndt", "Testing Upload...");
@@ -103,7 +111,7 @@ public class ServerLocation extends Activity {
 
 	}
 
-	private void updateHeader(String labelText) {
+	private void updateHeader(CharSequence labelText) {
 		TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
 		textView.setText(labelText);
 	}

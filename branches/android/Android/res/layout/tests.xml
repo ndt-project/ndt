@@ -8,7 +8,7 @@
     	android:layout_width="match_parent"
     	android:layout_height="match_parent">
         <TextView android:layout_width="match_parent"
-			android:text="@string/server_location_header"
+			android:text="@string/tests_preparing_header"
 			android:layout_height="wrap_content"
 			android:id="@+id/NdtServerLocationLabel"
 			android:layout_gravity="top"

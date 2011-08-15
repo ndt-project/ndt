@@ -15,7 +15,7 @@ import android.widget.TextView;
 /**
  * UI Thread and Entry Point of NDT mobile client.
  */
-public class AndroidNdt2 extends Activity {
+public class InitialActivity extends Activity {
 
 	/**
 	 * Initializes the activity.
@@ -23,7 +23,7 @@ public class AndroidNdt2 extends Activity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.start);
+		setContentView(R.layout.initial);
 		Log.i("ndt", "Loaded!");
 		Typeface typeFace = Typeface.createFromAsset(getAssets(),
 				"fonts/League_Gothic.otf");
@@ -38,7 +38,7 @@ public class AndroidNdt2 extends Activity {
 				Intent intent = null;
 
 				intent = new Intent(getApplicationContext(),
-						ServerLocation.class);
+						TestsActivity.class);
 				startActivity(intent);
 			}
 		});
