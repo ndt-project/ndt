@@ -16,7 +16,7 @@
         <ImageView android:layout_width="wrap_content"
         	android:layout_height="wrap_content"
         	android:src="@drawable/progress_bar"
-        	android:id="@+id/NdtServerLocationProgress"></ImageView>
+        	android:id="@+id/NdtTestsProgress"></ImageView>
         <TextView android:text="@string/tests_test_server"
 			android:id="@+id/TestServerLabel"
 			style="@style/NdtTestsDetail" />

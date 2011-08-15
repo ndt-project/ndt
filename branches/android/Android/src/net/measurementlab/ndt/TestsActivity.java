@@ -5,6 +5,7 @@ package net.measurementlab.ndt;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 import android.app.Activity;
@@ -17,6 +18,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import static net.measurementlab.ndt.NdtService.LOG_TAG;
@@ -93,10 +95,15 @@ public class TestsActivity extends Activity {
 		Log.i(LOG_TAG, "Preparing Your Tests...");
 		updateHeader(R.string.tests_preparing_header);
 		
-		String localAddress = getLocalIpAddress();
+		String localAddress = getLocalAddress();
 		if (null != localAddress) {
 			TextView textView = (TextView) findViewById(R.id.TestClientValue);
 			textView.setText(localAddress);
+		}
+		String serverAddress = getServerAddress();
+		if (null != serverAddress) {
+			TextView textView = (TextView) findViewById(R.id.TestServerValue);
+			textView.setText(serverAddress);
 		}
 		// TODO show preparation animation
 	}
@@ -104,12 +111,16 @@ public class TestsActivity extends Activity {
 	private void uploading() {
 		Log.i(LOG_TAG, "Testing Upload...");
 		updateHeader(R.string.tests_both_header, R.string.tests_upload_info);
+		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
+		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar_left));
 		// TODO show upload animation
 	}
 	
 	private void downloading() {
 		Log.i(LOG_TAG, "Testing Download...");
 		updateHeader(R.string.tests_both_header, R.string.tests_download_info);
+		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
+		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar_right));
 		// TODO show download animation
 	}
 	
@@ -179,7 +190,7 @@ public class TestsActivity extends Activity {
 		}
 	}
 
-	public String getLocalIpAddress() {
+	private String getLocalAddress() {
 	    try {
 	        for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
 	            NetworkInterface intf = en.nextElement();
@@ -194,5 +205,16 @@ public class TestsActivity extends Activity {
 	        Log.e(LOG_TAG, ex.toString());
 	    }
 	    return null;
+	}
+	
+	private String getServerAddress() {
+		try {
+			InetAddress server = InetAddress.getByName(Constants.SERVER_HOST[Constants.DEFAULT_SERVER]);
+			return server.getHostAddress();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 }
