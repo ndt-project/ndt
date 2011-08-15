@@ -30,7 +30,17 @@ public class TestsActivity extends Activity {
 		Log.i("ndt", "Loaded!");
 		Typeface typeFace = Typeface.createFromAsset(getAssets(),
 				"fonts/League_Gothic.otf");
-		TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
+		TextView textView = (TextView) findViewById(R.id.NdtTestsHeader);
+		textView.setTypeface(typeFace);
+		textView = (TextView) findViewById(R.id.NdtTestsInfo);
+		textView.setTypeface(typeFace);
+		textView = (TextView) findViewById(R.id.TestServerLabel);
+		textView.setTypeface(typeFace);
+		textView = (TextView) findViewById(R.id.TestServerValue);
+		textView.setTypeface(typeFace);
+		textView = (TextView) findViewById(R.id.TestClientLabel);
+		textView.setTypeface(typeFace);
+		textView = (TextView) findViewById(R.id.TestClientValue);
 		textView.setTypeface(typeFace);
 	}
 
@@ -74,7 +84,26 @@ public class TestsActivity extends Activity {
 
 	private void preparing() {
 		Log.i("ndt", "Preparing Your Tests...");
-		updateHeader(getResources().getText(R.string.tests_preparing_header));
+		updateHeader(R.string.tests_preparing_header);
+		// TODO show preparation animation
+	}
+	
+	private void uploading() {
+		Log.i("ndt", "Testing Upload...");
+		updateHeader(R.string.tests_both_header, R.string.tests_upload_info);
+		// TODO show upload animation
+	}
+	
+	private void downloading() {
+		Log.i("ndt", "Testing Download...");
+		updateHeader(R.string.tests_both_header, R.string.tests_download_info);
+		// TODO show download animation
+	}
+	
+	private void complete() {
+		Log.i("ndt", "Testing Complete.");
+		updateHeader(R.string.tests_complete_header);
+		// TODO send intent for summary activity
 	}
 
 	private BroadcastReceiver createReceiver() {
@@ -89,16 +118,13 @@ public class TestsActivity extends Activity {
 					preparing();
 					break;
 				case NdtService.UPLOADING:
-					Log.i("ndt", "Testing Upload...");
-					updateHeader("Testing upload...");
+					uploading();
 					break;
 				case NdtService.DOWNLOADING:
-					Log.i("ndt", "Testing Download...");
-					updateHeader("Testing download...");
+					downloading();
 					break;
 				case NdtService.COMPLETE:
-					Log.i("ndt", "Testing Complete.");
-					updateHeader("Test complete.");
+					complete();
 					break;
 				default:
 					Log.i("ndt", "Test reporter not initialized.");
@@ -111,9 +137,17 @@ public class TestsActivity extends Activity {
 
 	}
 
-	private void updateHeader(CharSequence labelText) {
-		TextView textView = (TextView) findViewById(R.id.NdtServerLocationLabel);
-		textView.setText(labelText);
+	private void updateHeader(int headerResource) {
+		TextView textView = (TextView) findViewById(R.id.NdtTestsHeader);
+		textView.setText(getResources().getText(headerResource));
+		textView = (TextView) findViewById(R.id.NdtTestsInfo);
+		textView.setText("");
+	}
+
+	private void updateHeader(int headerResource, int infoResource) {
+		updateHeader(headerResource);
+		TextView textView = (TextView) findViewById(R.id.NdtTestsInfo);
+		textView.setText(getResources().getText(infoResource));
 	}
 
 	private String getNetworkType() {

@@ -6,16 +6,26 @@
     <LinearLayout android:id="@+id/linearLayout1"
     	android:orientation="vertical"
     	android:layout_width="match_parent"
-    	android:layout_height="match_parent">
-        <TextView android:layout_width="match_parent"
-			android:text="@string/tests_preparing_header"
-			android:layout_height="wrap_content"
-			android:id="@+id/NdtServerLocationLabel"
-			android:layout_gravity="top"
-			style="@style/NdtHeader" />
+    	android:layout_height="wrap_content">
+        <TextView android:text="@string/tests_preparing_header"
+			android:id="@+id/NdtTestsHeader"
+			android:paddingTop="15sp"
+			style="@style/NdtTestsHeader" />
+        <TextView android:id="@+id/NdtTestsInfo"
+			style="@style/NdtTestsHeader.Info" />
         <ImageView android:layout_width="wrap_content"
         	android:layout_height="wrap_content"
         	android:src="@drawable/progress_bar"
         	android:id="@+id/NdtServerLocationProgress"></ImageView>
+        <TextView android:text="@string/tests_test_server"
+			android:id="@+id/TestServerLabel"
+			style="@style/NdtTestsDetail" />
+        <TextView android:id="@+id/TestServerValue"
+			style="@style/NdtTestsDetail.Info" />
+        <TextView android:text="@string/tests_your_computer"
+			android:id="@+id/TestClientLabel"
+			style="@style/NdtTestsDetail" />
+        <TextView android:id="@+id/TestClientValue"
+			style="@style/NdtTestsDetail.Info" />
     </LinearLayout>
 </LinearLayout>
