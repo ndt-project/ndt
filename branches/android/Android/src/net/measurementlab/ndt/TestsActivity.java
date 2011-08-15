@@ -2,6 +2,11 @@
 
 package net.measurementlab.ndt;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -13,6 +18,8 @@ import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+
+import static net.measurementlab.ndt.NdtService.LOG_TAG;
 
 /**
  * Animated progress while selecting server location.
@@ -27,7 +34,7 @@ public class TestsActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.tests);
-		Log.i("ndt", "Loaded!");
+		Log.i(LOG_TAG, "Loaded!");
 		Typeface typeFace = Typeface.createFromAsset(getAssets(),
 				"fonts/League_Gothic.otf");
 		TextView textView = (TextView) findViewById(R.id.NdtTestsHeader);
@@ -47,7 +54,7 @@ public class TestsActivity extends Activity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		Log.i("ndt", "Tests activity started.");
+		Log.i(LOG_TAG, "Tests activity started.");
 	}
 
 	@Override
@@ -64,7 +71,7 @@ public class TestsActivity extends Activity {
 		intent.putExtra("networkType", getNetworkType());
 		startService(intent);
 		
-		Log.i("ndt", "Tests activity resumed.");
+		Log.i(LOG_TAG, "Tests activity resumed.");
 	}
 
 	@Override
@@ -83,25 +90,31 @@ public class TestsActivity extends Activity {
 	}
 
 	private void preparing() {
-		Log.i("ndt", "Preparing Your Tests...");
+		Log.i(LOG_TAG, "Preparing Your Tests...");
 		updateHeader(R.string.tests_preparing_header);
+		
+		String localAddress = getLocalIpAddress();
+		if (null != localAddress) {
+			TextView textView = (TextView) findViewById(R.id.TestClientValue);
+			textView.setText(localAddress);
+		}
 		// TODO show preparation animation
 	}
 	
 	private void uploading() {
-		Log.i("ndt", "Testing Upload...");
+		Log.i(LOG_TAG, "Testing Upload...");
 		updateHeader(R.string.tests_both_header, R.string.tests_upload_info);
 		// TODO show upload animation
 	}
 	
 	private void downloading() {
-		Log.i("ndt", "Testing Download...");
+		Log.i(LOG_TAG, "Testing Download...");
 		updateHeader(R.string.tests_both_header, R.string.tests_download_info);
 		// TODO show download animation
 	}
 	
 	private void complete() {
-		Log.i("ndt", "Testing Complete.");
+		Log.i(LOG_TAG, "Testing Complete.");
 		updateHeader(R.string.tests_complete_header);
 		// TODO send intent for summary activity
 	}
@@ -111,7 +124,7 @@ public class TestsActivity extends Activity {
 
 			@Override
 			public void onReceive(Context context, Intent intent) {
-				Log.i("ndt", "Status change received.");
+				Log.i(LOG_TAG, "Status change received.");
 				int status = intent.getIntExtra("status", NdtService.PREPARING);
 				switch (status) {
 				case NdtService.PREPARING:
@@ -127,12 +140,12 @@ public class TestsActivity extends Activity {
 					complete();
 					break;
 				default:
-					Log.i("ndt", "Test reporter not initialized.");
+					Log.i(LOG_TAG, "Test reporter not initialized.");
 					break;
 				}
 			}
 		};
-		Log.i("ndt", "Status receiver created.");
+		Log.i(LOG_TAG, "Status receiver created.");
 		return receiver;
 
 	}
@@ -164,5 +177,22 @@ public class TestsActivity extends Activity {
 		default:
 			return NdtTests.NETWORK_UNKNOWN;
 		}
+	}
+
+	public String getLocalIpAddress() {
+	    try {
+	        for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+	            NetworkInterface intf = en.nextElement();
+	            for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+	                InetAddress inetAddress = enumIpAddr.nextElement();
+	                if (!inetAddress.isLoopbackAddress()) {
+	                    return inetAddress.getHostAddress().toString();
+	                }
+	            }
+	        }
+	    } catch (SocketException ex) {
+	        Log.e(LOG_TAG, ex.toString());
+	    }
+	    return null;
 	}
 }

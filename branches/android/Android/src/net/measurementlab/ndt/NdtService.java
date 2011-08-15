@@ -9,6 +9,8 @@ import android.os.IBinder;
 import android.util.Log;
 
 public class NdtService extends Service {
+	static final String LOG_TAG = "ndt";
+	
 	public static final int PREPARING = 0;
 	public static final int UPLOADING = 1;
 	public static final int DOWNLOADING = 2;
