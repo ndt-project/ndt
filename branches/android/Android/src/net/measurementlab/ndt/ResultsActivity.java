@@ -1,6 +1,7 @@
 package net.measurementlab.ndt;
 
 import java.text.DecimalFormat;
+import java.text.MessageFormat;
 import java.util.Map;
 
 import android.app.Activity;
@@ -18,12 +19,14 @@ public class ResultsActivity extends Activity {
 		Typeface typeFace = Typeface.createFromAsset(getAssets(), "fonts/League_Gothic.otf");
 		TextView textView = (TextView) findViewById(R.id.ResultsHeader);
 		textView.setTypeface(typeFace);
+		
 		textView = (TextView) findViewById(R.id.UploadSpeedHeader);
 		textView.setTypeface(typeFace);
 		textView = (TextView) findViewById(R.id.UploadSpeed);
 		textView.setTypeface(typeFace);
 		textView = (TextView) findViewById(R.id.UploadSpeedMbps);
 		textView.setTypeface(typeFace);
+		
 		textView = (TextView) findViewById(R.id.DownloadSpeedHeader);
 		textView.setTypeface(typeFace);
 		textView = (TextView) findViewById(R.id.DownloadSpeed);
@@ -48,5 +51,21 @@ public class ResultsActivity extends Activity {
 		Double downloadSpeed = (Double) variables.get("pub_s2cspd");
 		textView = (TextView) findViewById(R.id.DownloadSpeed);
 		textView.setText(format.format(downloadSpeed));
+		
+		Integer maxRtt = (Integer) variables.get("pub_MaxRTT");
+		Integer minRtt = (Integer) variables.get("pub_MinRTT");
+		Double avgRtt = (Double) variables.get("pub_avgrtt");
+		
+		String latency = getResources().getString(R.string.results_latency);
+		latency = MessageFormat.format(latency, (int)(double)avgRtt);
+		
+		textView = (TextView) findViewById(R.id.Latency);
+		textView.setText(latency);
+		
+		String jitter = getResources().getString(R.string.results_jitter);
+		jitter = MessageFormat.format(jitter, maxRtt - minRtt);
+		
+		textView = (TextView) findViewById(R.id.Jitter);
+		textView.setText(jitter);
 	}
 }

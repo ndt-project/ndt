@@ -48,4 +48,8 @@
     <string name="results_upload_speed_header">UPLOAD SPEED</string>
     <string name="results_download_speed_header">DOWNLOAD SPEED</string>
     <string name="results_mpbs">mb/s</string>
+    <string name="results_latency_label">Network latency:</string>
+    <string name="results_latency">{0} msec round trip time</string>
+    <string name="results_jitter_label">Jitter:</string>
+    <string name="results_jitter">{0} msec</string>
 </resources>

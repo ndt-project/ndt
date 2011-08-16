@@ -105,6 +105,8 @@ public class TestsActivity extends Activity {
 			TextView textView = (TextView) findViewById(R.id.TestServerValue);
 			textView.setText(serverAddress);
 		}
+		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
+		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar));
 		// TODO show preparation animation
 	}
 	
@@ -127,6 +129,8 @@ public class TestsActivity extends Activity {
 	private void complete(Intent status) {
 		Log.i(LOG_TAG, "Testing Complete.");
 		updateHeader(R.string.tests_complete_header);
+		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
+		imageView.setImageDrawable(null);
 		Intent intent = new Intent(getApplicationContext(), ResultsActivity.class);
 		intent.putExtra(NdtService.EXTRA_VARS, status.getSerializableExtra(NdtService.EXTRA_VARS));
 		startActivity(intent);
@@ -214,8 +218,7 @@ public class TestsActivity extends Activity {
 			InetAddress server = InetAddress.getByName(Constants.SERVER_HOST[Constants.DEFAULT_SERVER]);
 			return server.getHostAddress();
 		} catch (UnknownHostException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Log.e(LOG_TAG, "Error resolving server hosts.", e);
 		}
 		return null;
 	}

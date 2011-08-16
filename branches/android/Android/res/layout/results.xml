@@ -16,12 +16,13 @@
 	<LinearLayout android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:orientation="vertical"
-		android:padding="15sp"
+		android:paddingTop="5sp"
+		android:paddingBottom="5sp"
+		android:paddingLeft="25sp"
 		android:layout_marginTop="5sp"
 		android:layout_marginLeft="35sp"
 		android:layout_marginRight="35sp"
-		android:background="@drawable/speed_box"
-		android:layout_gravity="center_horizontal">
+		android:background="@drawable/speed_box">
 		<TextView android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:paddingTop="10sp"
@@ -47,12 +48,13 @@
 	<LinearLayout android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
 		android:orientation="vertical"
-		android:padding="5sp"
+		android:paddingTop="5sp"
+		android:paddingBottom="5sp"
+		android:paddingLeft="25sp"
 		android:layout_marginTop="10sp"
 		android:layout_marginLeft="35sp"
 		android:layout_marginRight="35sp"
-		android:background="@drawable/speed_box"
-		android:layout_gravity="center_horizontal">
+		android:background="@drawable/speed_box">
 		<TextView android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:paddingTop="10sp"
@@ -74,6 +76,36 @@
 				android:text="@string/results_mpbs"
 				style="@style/NdtResultsMbps" />
 		</LinearLayout>
+	</LinearLayout>
+	<LinearLayout android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal"
+		android:paddingLeft="15sp">
+		<TextView android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingTop="15sp"
+			android:id="@+id/LatencyLabel"
+			android:text="@string/results_latency_label"
+			style="@style/NdtResultsMoreLabel"/>
+		<TextView android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:paddingTop="15sp"
+			android:id="@+id/Latency"
+			style="@style/NdtResultsMoreInfo"/>
+	</LinearLayout>
+	<LinearLayout android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal"
+		android:paddingLeft="15sp">
+		<TextView android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/JitterLabel"
+			android:text="@string/results_jitter_label"
+			style="@style/NdtResultsMoreLabel"/>
+		<TextView android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:id="@+id/Jitter"
+			style="@style/NdtResultsMoreInfo"/>
 	</LinearLayout>
 </LinearLayout>
 </ScrollView>
