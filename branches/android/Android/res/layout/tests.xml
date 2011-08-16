@@ -2,7 +2,8 @@
 <LinearLayout
   xmlns:android="http://schemas.android.com/apk/res/android"
   android:layout_width="match_parent"
-  android:layout_height="match_parent" android:orientation="vertical">
+  android:layout_height="match_parent"
+  android:orientation="vertical">
     <LinearLayout android:id="@+id/linearLayout1"
     	android:orientation="vertical"
     	android:layout_width="match_parent"
@@ -10,9 +11,9 @@
         <TextView android:text="@string/tests_preparing_header"
 			android:id="@+id/NdtTestsHeader"
 			android:paddingTop="15sp"
-			style="@style/NdtTestsHeader" />
+			style="@style/NdtHeader" />
         <TextView android:id="@+id/NdtTestsInfo"
-			style="@style/NdtTestsHeader.Info" />
+			style="@style/NdtHeader.Info" />
         <ImageView android:layout_width="wrap_content"
         	android:layout_height="wrap_content"
         	android:src="@drawable/progress_bar"

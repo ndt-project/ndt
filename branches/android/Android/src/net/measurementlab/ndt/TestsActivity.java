@@ -124,11 +124,11 @@ public class TestsActivity extends Activity {
 		// TODO show download animation
 	}
 	
-	private void complete(String statistics) {
+	private void complete(Intent status) {
 		Log.i(LOG_TAG, "Testing Complete.");
 		updateHeader(R.string.tests_complete_header);
 		Intent intent = new Intent(getApplicationContext(), ResultsActivity.class);
-		intent.putExtra("statistics", statistics);
+		intent.putExtra(NdtService.EXTRA_VARS, status.getSerializableExtra(NdtService.EXTRA_VARS));
 		startActivity(intent);
 	}
 
@@ -138,7 +138,7 @@ public class TestsActivity extends Activity {
 			@Override
 			public void onReceive(Context context, Intent intent) {
 				Log.i(LOG_TAG, "Status change received.");
-				int status = intent.getIntExtra("status", NdtService.PREPARING);
+				int status = intent.getIntExtra(NdtService.EXTRA_STATUS, NdtService.PREPARING);
 				switch (status) {
 				case NdtService.PREPARING:
 					preparing();
@@ -150,7 +150,7 @@ public class TestsActivity extends Activity {
 					downloading();
 					break;
 				case NdtService.COMPLETE:
-					complete(intent.getStringExtra("statistics"));
+					complete(intent);
 					break;
 				default:
 					Log.i(LOG_TAG, "Test reporter not initialized.");

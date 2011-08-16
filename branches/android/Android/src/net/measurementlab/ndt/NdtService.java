@@ -1,5 +1,11 @@
 package net.measurementlab.ndt;
 
+import static net.measurementlab.ndt.Constants.LOG_TAG;
+
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,15 +15,18 @@ import android.os.IBinder;
 import android.util.Log;
 
 public class NdtService extends Service {
+	private static final String VARS_TAG = "variables";
 	
-	public static final int PREPARING = 0;
-	public static final int UPLOADING = 1;
-	public static final int DOWNLOADING = 2;
-	public static final int COMPLETE = 3;
+	static final int PREPARING = 0;
+	static final int UPLOADING = 1;
+	static final int DOWNLOADING = 2;
+	static final int COMPLETE = 3;
 	
-	public static final String INTENT_UPDATE_STATUS = "net.measurementlab.ndt.UpdateStatus";
-	public static final String INTENT_STOP_TESTS = "net.measurementlab.ndt.StopTests";
-	public static final String EXTRA_STATE = "status";
+	static final String INTENT_UPDATE_STATUS = "net.measurementlab.ndt.UpdateStatus";
+	static final String INTENT_STOP_TESTS = "net.measurementlab.ndt.StopTests";
+	
+	static final String EXTRA_STATUS = "status";
+	static final String EXTRA_VARS = VARS_TAG;
 	
 	private Intent intent;
 	
@@ -35,13 +44,13 @@ public class NdtService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		Log.i("ndt", "Service created.");
+		Log.i(LOG_TAG, "Service created.");
 		intent = new Intent(INTENT_UPDATE_STATUS);
 	}
 
 	@Override
 	public void onStart(Intent intent, int startId) {
-		Log.i("ndt", "Starting NDT service.");
+		Log.i(LOG_TAG, "Starting NDT service.");
 		super.onStart(intent, startId);
 		if (uiServices != null) {
 			return;
@@ -58,7 +67,7 @@ public class NdtService extends Service {
 					Constants.SERVER_HOST[Constants.DEFAULT_SERVER],
 					uiServices, networkType)).start();
 		} catch (Throwable tr) {
-			Log.e("ndt", "Problem running tests.", tr);
+			Log.e(LOG_TAG, "Problem running tests.", tr);
 		}
 	}
 	
@@ -70,7 +79,7 @@ public class NdtService extends Service {
 		}
 		uiServices = null;
 		unregisterReceiver(stopReceiver);
-		Log.i("ndt", "Finishing NDT service.");
+		Log.i(LOG_TAG, "Finishing NDT service.");
 	}
 
 	private BroadcastReceiver createReceiver() {
@@ -78,7 +87,7 @@ public class NdtService extends Service {
 
 			@Override
 			public void onReceive(Context context, Intent intent) {
-				Log.i("ndt", "Stop request received.");
+				Log.i(LOG_TAG, "Stop request received.");
 				uiServices.requestStop();
 			}
 		};
@@ -92,106 +101,103 @@ public class NdtService extends Service {
 		
 		int status = PREPARING;
 		
-		StringBuilder statistics = new StringBuilder();
-
+		private Map<String, Object> variables = new HashMap<String, Object>();
+		
 		@Override
 		public void appendString(String str, int viewId) {
-			Log.d("ndt", String.format("Appended: (%1$d) %2$s.", viewId, str
+			Log.d(LOG_TAG, String.format("Appended: (%1$d) %2$s.", viewId, str
 					.trim()));
 			
-			switch(viewId) {
-			case Constants.THREAD_STAT_APPEND:
-				statistics.append(str);
-				break;
-			}
-
 			if (str.contains("client-to-server") && 0 == viewId) {
-				Log.i("ndt", "Starting upload test.");
-				intent.putExtra("status", UPLOADING);
+				Log.i(LOG_TAG, "Starting upload test.");
+				intent.putExtra(EXTRA_STATUS, UPLOADING);
 				sendBroadcast(intent);
 				status = UPLOADING;
-				Log.i("ndt", "Broadcast status change.");
+				Log.i(LOG_TAG, "Broadcast status change.");
 			}
 
 			if (str.contains("server-to-client") && 0 == viewId) {
-				Log.i("ndt", "Starting download test.");
-				intent.putExtra("status", DOWNLOADING);
+				Log.i(LOG_TAG, "Starting download test.");
+				intent.putExtra(EXTRA_STATUS, DOWNLOADING);
 				sendBroadcast(intent);
 				status = DOWNLOADING;
-				Log.i("ndt", "Broadcast status change.");
+				Log.i(LOG_TAG, "Broadcast status change.");
 			}
 		}
 
 		@Override
 		public void incrementProgress() {
-			Log.d("ndt", "Incremented progress.");
+			Log.d(LOG_TAG, "Incremented progress.");
 		}
 
 		@Override
 		public void logError(String str) {
-			Log.e("ndt", String.format("Error: %1$s.", str.trim()));
+			Log.e(LOG_TAG, String.format("Error: %1$s.", str.trim()));
 		}
 
 		@Override
 		public void onBeginTest() {
-			Log.d("ndt", "Test begun.");
+			Log.d(LOG_TAG, "Test begun.");
 			wantToStop = false;
 		}
 
 		@Override
 		public void onEndTest() {
-			Log.d("ndt", "Test ended.");
-			intent.putExtra("status", COMPLETE);
-			intent.putExtra("statistics", statistics.toString());
+			Log.d(LOG_TAG, "Test ended.");
+			intent.putExtra(EXTRA_STATUS, COMPLETE);
+			intent.putExtra(EXTRA_VARS, (Serializable) variables);
 			sendBroadcast(intent);
 			wantToStop = false;
 			status = COMPLETE;
-			Log.i("ndt", "Broadcast status change.");
+			Log.i(LOG_TAG, "Broadcast status change.");
 		}
 
 		@Override
 		public void onFailure(String errorMessage) {
-			Log.d("ndt", String.format("Failed: %1$s.", errorMessage));
+			Log.d(LOG_TAG, String.format("Failed: %1$s.", errorMessage));
 			wantToStop = false;
 		}
 
 		@Override
 		public void onLoginSent() {
-			Log.d("ndt", "Login sent.");
+			Log.d(LOG_TAG, "Login sent.");
 		}
 
 		@Override
 		public void onPacketQueuingDetected() {
-			Log.d("ndt", "Packet queuing detected.");
+			Log.d(LOG_TAG, "Packet queuing detected.");
 		}
 
 		@Override
 		public void setVariable(String name, int value) {
-			Log.d("ndt", String.format(
+			Log.d(VARS_TAG, String.format(
 					"Setting variable, %1$s, to value, %2$d.", name, value));
+			variables.put(name, value);
 		}
 
 		@Override
 		public void setVariable(String name, double value) {
-			Log.d("ndt", String.format(
+			Log.d(VARS_TAG, String.format(
 					"Setting variable, %1$s, to value, %2$f.", name, value));
+			variables.put(name, value);
 		}
 
 		@Override
 		public void setVariable(String name, Object value) {
-			Log.d("ndt", String.format(
+			Log.d(VARS_TAG, String.format(
 					"Setting variable, %1$s, to value, %2$s.", name,
 					(null == value) ? "null" : value.toString()));
+			variables.put(name, value);
 		}
 
 		@Override
 		public void updateStatus(String status) {
-			Log.d("ndt", String.format("Updating status: %1$s.", status));
+			Log.d(LOG_TAG, String.format("Updating status: %1$s.", status));
 		}
 
 		@Override
 		public void updateStatusPanel(String status) {
-			Log.d("ndt", String.format("Updating status panel: %1$s.", status));
+			Log.d(LOG_TAG, String.format("Updating status panel: %1$s.", status));
 		}
 
 		@Override
