@@ -9,7 +9,6 @@ import android.os.IBinder;
 import android.util.Log;
 
 public class NdtService extends Service {
-	static final String LOG_TAG = "ndt";
 	
 	public static final int PREPARING = 0;
 	public static final int UPLOADING = 1;
@@ -92,11 +91,19 @@ public class NdtService extends Service {
 		private boolean wantToStop = false;
 		
 		int status = PREPARING;
+		
+		StringBuilder statistics = new StringBuilder();
 
 		@Override
 		public void appendString(String str, int viewId) {
 			Log.d("ndt", String.format("Appended: (%1$d) %2$s.", viewId, str
 					.trim()));
+			
+			switch(viewId) {
+			case Constants.THREAD_STAT_APPEND:
+				statistics.append(str);
+				break;
+			}
 
 			if (str.contains("client-to-server") && 0 == viewId) {
 				Log.i("ndt", "Starting upload test.");
@@ -135,6 +142,7 @@ public class NdtService extends Service {
 		public void onEndTest() {
 			Log.d("ndt", "Test ended.");
 			intent.putExtra("status", COMPLETE);
+			intent.putExtra("statistics", statistics.toString());
 			sendBroadcast(intent);
 			wantToStop = false;
 			status = COMPLETE;

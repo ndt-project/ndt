@@ -35,9 +35,7 @@ public class InitialActivity extends Activity {
 
 			@Override
 			public void onClick(View v) {
-				Intent intent = null;
-
-				intent = new Intent(getApplicationContext(),
+				Intent intent = new Intent(getApplicationContext(),
 						TestsActivity.class);
 				startActivity(intent);
 			}

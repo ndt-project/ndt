@@ -21,7 +21,7 @@ import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import static net.measurementlab.ndt.NdtService.LOG_TAG;
+import static net.measurementlab.ndt.Constants.LOG_TAG;
 
 /**
  * Animated progress while selecting server location.
@@ -124,10 +124,12 @@ public class TestsActivity extends Activity {
 		// TODO show download animation
 	}
 	
-	private void complete() {
+	private void complete(String statistics) {
 		Log.i(LOG_TAG, "Testing Complete.");
 		updateHeader(R.string.tests_complete_header);
-		// TODO send intent for summary activity
+		Intent intent = new Intent(getApplicationContext(), ResultsActivity.class);
+		intent.putExtra("statistics", statistics);
+		startActivity(intent);
 	}
 
 	private BroadcastReceiver createReceiver() {
@@ -148,7 +150,7 @@ public class TestsActivity extends Activity {
 					downloading();
 					break;
 				case NdtService.COMPLETE:
-					complete();
+					complete(intent.getStringExtra("statistics"));
 					break;
 				default:
 					Log.i(LOG_TAG, "Test reporter not initialized.");
