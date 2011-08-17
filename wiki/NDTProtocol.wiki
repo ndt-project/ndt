@@ -62,7 +62,7 @@ The NDTP-Control messages are transmitted before the NDTP-Tests sessions are act
 
 === Protocol Encodings ===
 
-All multi-octet quantities defined in this document are represented as unsigned integers in a network byte order unless specified otherwise. All single byte charactor quantities are US-ASCII encoded unless specified otherwise. C style character syntax is used in this document to represent US-ASCII encodings for values. i.e. '2' represents US-ASCII value for the charactor numeral two which is hex 32 or decimal 50 and not the integer value two. All multiple byte *string* quantities are US-ASCII encoded unless otherwise specified.
+All multi-byte quantities defined in this document are represented as unsigned integers in a network byte order unless specified otherwise. All single byte charactor quantities are US-ASCII encoded unless specified otherwise. C style character syntax is used in this document to represent US-ASCII encodings for values. i.e. '2' represents US-ASCII value for the charactor numeral two which is hex 32 or decimal 50 and not the integer value two. All multiple byte *string* quantities are US-ASCII encoded unless otherwise specified. The term octet is used when describing bytes in the wire-format of the messages to be more consistent with RFC style language.
 
 == NDTP-Control ==
 
@@ -80,7 +80,7 @@ http://www.soldevelo.com/images/ndt/3.%20Each%20of%20the%20NDTP-Control%20messag
 
 The NDTP-Control currently defines the following types of messages:
 
-|| *Symbolic name* || *Short integer value* || *Description* ||
+|| *Symbolic name* || *Byte integer value* || *Description* ||
 || COMM_FAILURE || 0 || Notification about communication link failure. ||
 || SRV_QUEUE || 1 || Message used to the Clients' queue management ||
 || MSG_LOGIN || 2 || Used during initialization to negotiate the NDT version and the test suite ||
@@ -143,6 +143,8 @@ http://www.soldevelo.com/images/ndt/7.%20MSG_LOGIN%20message%20containing%20its%
 where VERSION is the current NDT version encoded as ascii string, for example *"3.6.4"*.
 
 It is RECOMMENDED, that the Client display a warning message in case of version difference. Moreover, the Client MAY also drop a connection in case of version differences.
+
+The current version of the protocol is backwards compatible to version 3.3.12. Clients detecting a version earlier than this SHOULD drop the connection.
 
 ==== Negotiating test suite ====
 
