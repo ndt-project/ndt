@@ -1,10 +1,10 @@
 #summary Description of the NDT Protocol
 
-= Network Diagnostic Tool Protocol (NDTP) =
+= Network Diagnostic Tool Protocol (NDTP Version 3.6.4) =
 
 == Abstract == 
 
-The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. It uses a well-defined protocol to provide a reliable communication link between client and server. This protocol documentation is sufficient to allow outside parties to write compatible NDT clients without consulting the NDT source code. This documentation contains a state transition diagrams detailing the various states that the components (both server and client) can be in, and the valid messages that can or will be transmitted or received in those states.
+The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. It uses a well-defined protocol (Network Diagnostic Tool Protocol - NDTP) to provide a reliable communication link between client and server. This protocol documentation is sufficient to allow outside parties to write compatible NDT clients without consulting the NDT source code. This documentation contains a state transition diagrams detailing the various states that the components (both server and client) can be in, and the valid messages that can or will be transmitted or received in those states.
 
 == Table of Contents ==
 
@@ -16,7 +16,7 @@ Several studies have shown that the majority of network performance problems occ
 
 The NDT popularity has grown in recent years, which led to an increased interest from the developers community around the world. People started to integrate the NDT with their systems using a different approaches, like adding a Web Developer's API to a Web based (java applet) client and writing a new mobile (Android based) client.
 
-The NDTP is allowing outside parties to easily extend both the NDT server and client parts and write compatible clients in new languages that will be able to communicate with the publicly available Measurement Lab servers.
+The NDTP allows outside parties to easily extend both the NDT server and client parts and write compatible clients in new languages that will be able to communicate with the publicly available Measurement Lab servers.
 
 In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and "MAY" are to be interpreted as described in [http://www.ietf.org/rfc/rfc2119.txt RFC2119].
 
@@ -24,7 +24,7 @@ In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and
 
 The NDTP actually consists of a two inter-related sets of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols concentrated on testing a specific network performance problems.
 
-The NDTP-Tests consists of a five smaller sub-protocols: Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, a new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
+The NDTP-Tests consists of a five smaller sub-protocols: Middlebox test, Simple firewall test, C2S (Client to Server) throughput test, S2C (Server to Client) throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, a new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
 
 The NDTP-Control is designed to support the negotiation of test sessions and results retrieval in a straightforward manner. At the session initiation, there is a negotiation of the test suite and the session start time. Moreover, the server version is being verified to discover the possibility of incompatibilities. Additionally, the NDTP-Control defines an exact message format, which greatly increase the general protocol reliability and allows other NDTP-Tests protocols to communicate in a convenient and a more structured fashion.
 
@@ -60,7 +60,9 @@ The initiator of the test session establishes a TCP connection to a well-known p
 
 The NDTP-Control messages are transmitted before the NDTP-Tests sessions are actually started, after they are completed and between particular tests from the performed test suite. Moreover, a specific tests also use the NDTP-Control messages to synchronise the test sessions, exchange a configuration data and additional information.
 
-All multi-octet quantities defined in this document are represented as unsigned integers in a network byte order unless specified otherwise.
+=== Protocol Encodings ===
+
+All multi-octet quantities defined in this document are represented as unsigned integers in a network byte order unless specified otherwise. All single byte charactor quantities are US-ASCII encoded unless specified otherwise. C style character syntax is used in this document to represent US-ASCII encodings for values. i.e. '2' represents US-ASCII value for the charactor numeral two which is hex 32 or decimal 50 and not the integer value two. All multiple byte *string* quantities are US-ASCII encoded unless otherwise specified.
 
 == NDTP-Control ==
 
@@ -78,7 +80,7 @@ http://www.soldevelo.com/images/ndt/3.%20Each%20of%20the%20NDTP-Control%20messag
 
 The NDTP-Control currently defines the following types of messages:
 
-|| *Symbolic name* || *Bit value* || *Description* ||
+|| *Symbolic name* || *Short integer value* || *Description* ||
 || COMM_FAILURE || 0 || Notification about communication link failure. ||
 || SRV_QUEUE || 1 || Message used to the Clients' queue management ||
 || MSG_LOGIN || 2 || Used during initialization to negotiate the NDT version and the test suite ||
@@ -107,7 +109,7 @@ All Clients MUST always request the TEST_STATUS (16 (1L << 4)) test in order to 
 
 ==== Kick off message to disconnect old clients ====
 
-In the same time the Server MUST send the specially crafted 13 octets long data that kicks off the old Clients. This message does not follow the NDTP-Control protocol message format and MUST be sent verbatim as a string of bytes:
+In the same time the Server MUST send the specially crafted 13 octets long data that kicks off the old Clients. This message does not follow the NDTP-Control protocol message format and MUST be sent verbatim as a string of US-ASCII bytes:
 
 http://www.soldevelo.com/images/ndt/5.%2013%20octets%20long%20data%20that%20kicks%20off%20the%20old%20Clients%20%28%22123456%20654321%22%29.png
 
@@ -140,7 +142,7 @@ http://www.soldevelo.com/images/ndt/7.%20MSG_LOGIN%20message%20containing%20its%
 
 where VERSION is the current NDT version encoded as ascii string, for example *"3.6.4"*.
 
-It is RECOMMENDED, that the Client will display a warning message in case of the difference. Moreover, the Client MAY also drop a connection when incompatibility is too big.
+It is RECOMMENDED, that the Client display a warning message in case of version difference. Moreover, the Client MAY also drop a connection in case of version differences.
 
 ==== Negotiating test suite ====
 
@@ -211,7 +213,7 @@ The NDT Server in the MID Throughput test MUST send packets through the newly op
 (The current maximum segment size (MSS))
 }}}
 
-If for some reasons it is not possible to use such a big buffer, the Server MUST use a 8192 Byte one. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only printable characters. The maximum value of the congestion window during the MID Throughput test MUST be set to the following value:
+If for some reasons it is not possible to use such a big buffer, the Server MUST use a 8192 Byte one. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only US-ASCII printable characters. The maximum value of the congestion window during the MID Throughput test MUST be set to the following value:
 {{{
 2 * (The current maximum segment size (MSS))
 }}}
@@ -230,7 +232,7 @@ http://www.soldevelo.com/images/ndt/12.%20TEST_MSG%20message%20to%20Client.png
 
 Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
-THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_TIME
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 }}}
 
 At the end the Server MUST close the MID test session by sending an empty TEST_FINALIZE message using the NDTP-Control connection.
@@ -305,11 +307,11 @@ In order to start the test, the Server MUST send an empty TEST_START message usi
 
 The Client MUST start 10 seconds throughput test using the newly created connection and the Server MUST read the transmitted data.
 
-The NDT Client in the C2S Throughput test MUST use a 8192 Byte buffer to send the packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only printable characters.
+The NDT Client in the C2S Throughput test MUST use a 8192 Byte buffer to send the packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of the buffer SHOULD be initialized a single time and sent repeatedly. The contents of the buffer SHOULD avoid repeating content (to avoid any automatic compression mechanisms) and MUST include only US-ASCII printable characters.
 
 When the Client stops streaming the test data (or the test routine at the Server times out after 11 seconds from the last TEST_START message), the Server MUST send to the Client its calculated throughput value encoded as string (float format) in the TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
-THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_TIME
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 }}}
 
 The Server's TEST_MSG message looks as following: 
@@ -344,11 +346,11 @@ In order to start the test, the Server MUST send an empty TEST_START message usi
 
 The Server MUST start 10 seconds throughput test using the newly created connection and the Client MUST read the transmitted data.
 
-The NDT Server in the S2C Throughput test MUST use a 8192 Byte buffer to send the packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only printable characters.
+The NDT Server in the S2C Throughput test MUST use a 8192 Byte buffer to send the packets through the newly opened connection as fast as possible (i.e. without any delays) for 10 seconds. The content of the buffer SHOULD be initialized a single time and sent repeatedly. The contents of the buffer SHOULD avoid repeating content (to avoid any automatic compression mechanisms) and MUST include only US-ASCII printable characters.
 
 When the Server stops streaming the test data, it MUST send to the Client its calculated throughput value (encoded as string in float format), amount of unsent data in the socket send queue (encoded as string in integer format) and overall number of sent bytes (encoded as string in float format) in the TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
-THROUGHPUT_VALUE = 8 * SENT_BYTES / 1000 / TEST_TIME
+THROUGHPUT_VALUE = 8 * SENT_BYTES / 1000 / TEST_DURATION_SECONDS
 }}}
 
 The Server's TEST_MSG message looks as following: 
@@ -359,14 +361,16 @@ All these values MUST be separated by spaces.
 
 Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in the TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
-THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_TIME
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 }}}
 
 The Client's TEST_MSG message looks as following: 
 
 http://www.soldevelo.com/images/ndt/24.%20MUST%20send%20to%20the%20Server%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
 
-In the same time the Server SHOULD send its [NDTProtocol#Appendix_A._web100_variables web100 data variables] gathered during S2C throughput test to the Client using the NDTP-Control connection. Each variable name/value pair should be encoded as strings in a separate TEST_MSG message using the following format:
+Following the throughput value, the Server SHOULD send its [NDTProtocol#Appendix_A._web100_variables web100 data variables] gathered during S2C throughput test to the Client using the NDTP-Control connection.
+
+Each name/value pair MUST be encoded as a US-ASCII string in individual and separate TEST_MSG messages, each using the following format:
 
 http://www.soldevelo.com/images/ndt/ndt_24b.png
 
@@ -410,7 +414,7 @@ All messages exchanged between the Client and the Server during the META protoco
 
 The Server MUST start this test by sending an empty TEST_PREPARE message followed by an empty TEST_START message.
 
-Next, the Client SHOULD send meta data encoded as strings in the TEST_MSG messages:
+Next, the Client SHOULD send as many name/value meta data pairs encoded as a US-ASCII string in individual and separate TEST_MSG messages, each using the following format:
 
 http://www.soldevelo.com/images/ndt/26.%20Next,%20the%20Client%20SHOULD%20send%20meta%20data%20encoded%20as%20strings%20in%20the%20TEST_MSG%20messages.png
 
