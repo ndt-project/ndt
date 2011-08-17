@@ -213,7 +213,7 @@ The NDT Server in the MID Throughput test MUST send packets through the newly op
 (The current maximum segment size (MSS))
 }}}
 
-If for some reasons it is not possible to use such a big buffer, the Server MUST use a 8192 Byte one. The content of the buffer SHOULD be as random as possible (to avoid any automatic compression mechanisms) and MUST include only US-ASCII printable characters. The maximum value of the congestion window during the MID Throughput test MUST be set to the following value:
+If for some reasons it is not possible to use such a big buffer, the Server MUST use a 8192 Byte one. The content of the buffer SHOULD be initialized a single time and sent repeatedly. The contents of the buffer SHOULD avoid repeating content (to avoid any automatic compression mechanisms) and MUST include only US-ASCII printable characters. The maximum value of the congestion window during the MID Throughput test MUST be set to the following value:
 {{{
 2 * (The current maximum segment size (MSS))
 }}}
