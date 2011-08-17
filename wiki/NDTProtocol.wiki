@@ -24,7 +24,7 @@ In this document, the key words "MUST", "REQUIRED", "SHOULD", "RECOMMENDED", and
 
 The NDTP actually consists of a two inter-related sets of protocols: NDTP-Control and NDTP-Tests. NDTP-Control is used to initiate, start, and stop test sessions and to fetch their results, whereas NDTP-Tests is a set of smaller sub-protocols concentrated on testing a specific network performance problems.
 
-The NDTP-Tests consists of a five smaller sub-protocols: Middlebox test, Simple firewall test, C2S (Client to Server) throughput test, S2C (Server to Client) throughput test and META test. These tests are completely independent from each other and can be run in any order. Moreover, a new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
+The NDTP-Tests consists of a five smaller sub-protocols: Middlebox test, Simple firewall test, C2S (Client to Server) throughput test, S2C (Server to Client) throughput test and META test. These tests are completely independent from each other and can be run in any order or even skipped. Moreover, a new NDTP-Tests protocols can be easily created and integrated into the existing tests ecosystem.
 
 The NDTP-Control is designed to support the negotiation of test sessions and results retrieval in a straightforward manner. At the session initiation, there is a negotiation of the test suite and the session start time. Moreover, the server version is being verified to discover the possibility of incompatibilities. Additionally, the NDTP-Control defines an exact message format, which greatly increase the general protocol reliability and allows other NDTP-Tests protocols to communicate in a convenient and a more structured fashion.
 
