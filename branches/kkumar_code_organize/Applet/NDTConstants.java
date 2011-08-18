@@ -52,6 +52,26 @@ public class NDTConstants {
 	  public static String TARGET1 = "U";
 	  public static String TARGET2 = "H";
 	  
+	  //NDT pre-fixed port ID
+	  public static final int CONTROL_PORT_DEFAULT = 3001;
+	  
+	  //SRV-QUEUE message status constants
+	  public static final int SRV_QUEUE_TEST_STARTS_NOW = 0;
+	  public static final int SRV_QUEUE_SERVER_FAULT = 9977;
+	  public static final int SRV_QUEUE_SERVER_BUSY = 9988;
+	  public static final int SRV_QUEUE_HEARTBEAT = 9990 ;
+	  public static final int SRV_QUEUE_SERVER_BUSY_60s = 9999;
+	  
+	  //Middlebox test related constants
+	  public static final int MIDDLEBOX_PREDEFINED_MSS = 8192;
+	  
+		/*
+		 * "9977" 	 Server Fault: test session will be terminated for unknown reason. Client MUST drop the connection after receiving this message.
+"9988" 	If this is a first message from the Server, then it means that the Server is busy. In other cases it means the Server Fault. the Client MUST drop the connection after receiving this message.
+"9990" 	This is a check from the Server to verify if the queued Client is alive. Available from v3.5.5. The Client MUST respond to this message by sending an empty 'MSG_WAITING' message. The Server will only send these messages to the queued Clients that requested TEST_STATUS test.
+"N" 	
+		 * */
+	  
 	  /*Method to initialise a few constants */
 	  private static ResourceBundle _rscBundleMessages;
 	  public static String TCPBW100_MSGS = "Tcpbw100_msgs";

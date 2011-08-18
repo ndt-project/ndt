@@ -24,6 +24,10 @@ public class OsfwWorker implements Runnable {
 		this._localTcpAppObj = _localParam;
 	}
 
+	/* Method to make current thread sleep for 1000 ms
+	 * @param none
+	 * @return none
+	 * */
 	public void finalize()
 	{
 		while (!_iFinalized) {

@@ -18,6 +18,7 @@ public class UserAgentTools {
 		}
 		return res;
 	}
+	
 	public static String getVersionNumber(String a_userAgent, int a_position) {
 		if (a_position<0) return "";
 		StringBuffer res = new StringBuffer();

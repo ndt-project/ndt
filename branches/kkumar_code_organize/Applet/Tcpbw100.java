@@ -189,7 +189,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
     //These variables are accessed by the setter/getter methods. While they do not follow naming convention,
 	//  are left this way
-	// TODO :What is the difference between pub_c2sspd and _dC2sspd above?
+	//  pub_c2sspd is assigned the value of _dC2sspd (declared above). the pub_xxx version seems to be used 
+	//for making public to javascript. No other details known
 	private double pub_c2sspd = 0.0;
 	private double pub_s2cspd = 0.0;
 	private int pub_CurRwinRcvd = 0; // source variable does not exist
@@ -506,17 +507,21 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 	double aspd;
 
-	boolean isApplication = false;
-	boolean testInProgress = false;
+	boolean _bIsApplication = false;
+	boolean _bTestInProgress = false;
 	String host = null;
-	String tmpstr, tmpstr2;
-	byte tests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S | NDTConstants.TEST_S2C | 
+	String _sTestResults, _sMidBoxTestResult;
+	byte _yTests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S | NDTConstants.TEST_S2C | 
 			NDTConstants.TEST_SFW | NDTConstants.TEST_STATUS | NDTConstants.TEST_META;
 	int c2sResult = NDTConstants.SFW_NOTTESTED;
 	int s2cResult = NDTConstants.SFW_NOTTESTED;
 
 
-	/* Method to initialize the base NDT window */
+	/* Method to initialize the base NDT window 
+	 * The init() method 
+	 * @param none
+	 * @return none
+	 */
 	public void init() {
 		if (getParameter("country") != null) country = getParameter("country");
 		if (getParameter("language") != null) lang = getParameter("language");
@@ -615,61 +620,89 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	}
 	
 	/* Method that initializes the "main" window
+	 * The main window is composed of
+	 * 1. The results pane, which describes the process and displays their results
+	 * 2. The buttons pane, which houses all the buttons for various options
 	 * @param none
-	 * @returns void*/
-	
+	 * @return none */	
 	private void createMainWindow () {
+		//set content manager 
 		getContentPane().setLayout(new BorderLayout());
+		
+		//start with status set to "Ready" to perform tests
 		showStatus(_resBundleMessages.getString("ready"));
+		
+		//initialize 
 		_bFailed = false ;
-		_bRandomize = false; //what is this used for?
+		_bRandomize = false; //what is this used for? Seems unused in code
 		_bCanCopy = false;
+		
+		//Results panel
 		_resultsTxtPane = new ResultsTextPane();
 		_resultsTxtPane.append("TCP/Web100 Network Diagnostic Tool v" + NDTConstants.VERSION + "\n");
 		_resultsTxtPane.setEditable(false);
 		getContentPane().add(new JScrollPane(_resultsTxtPane));
 		_resultsTxtPane.append(_resBundleMessages.getString("clickStart") + "\n");
-		Panel mPanel = new Panel();
+		
+		//Panel too add all buttons
+		Panel buttonsPanel = new Panel();
+		
+		//Add "start" button
 		_buttonStartTest = new JButton(_resBundleMessages.getString("start"));
 		_buttonStartTest.addActionListener(this);
-		mPanel.add(_buttonStartTest);
+		buttonsPanel.add(_buttonStartTest);
+		
+		//Add "statistics" button
 		_buttonStatistics = new JButton(_resBundleMessages.getString("statistics"));
 		_buttonStatistics.addActionListener(this);
 		if (getParameter("disableStatistics") == null) {
-			mPanel.add(_buttonStatistics);
+			buttonsPanel.add(_buttonStatistics);
 		}
 		_buttonStatistics.setEnabled(false);
+		
+		//Add "Details" button
 		_buttonDetails = new JButton(_resBundleMessages.getString("moreDetails"));
 		_buttonDetails.addActionListener(this);
 		if (getParameter("disableDetails") == null) {
-			mPanel.add(_buttonDetails);
+			buttonsPanel.add(_buttonDetails);
 		}
 		_buttonDetails.setEnabled(false);
+		
+		//Add "Report problem" button 
 		_buttonMailTo = new JButton(_resBundleMessages.getString("reportProblem"));
 		_buttonMailTo.addActionListener(this);
 		if (getParameter("disableMailto") == null) {
-			mPanel.add(_buttonMailTo);
+			buttonsPanel.add(_buttonMailTo);
 		}
 		_buttonMailTo.setEnabled(false);
+		
+		//Add "Options" button
 		_buttonOptions = new JButton(_resBundleMessages.getString("options") + "...");
 		_buttonOptions.addActionListener(new ActionListener() {
-
 			public void actionPerformed(ActionEvent e) {
 				_buttonOptions.setEnabled(false);
+				//call the Options-window create code
 				createOptionsWindow();
 				_buttonOptions.setEnabled(true);
 			}
-
 		});
+		//If disableOptions is not set, then add button
 		if (getParameter("disableOptions") == null) {
-			mPanel.add(_buttonOptions);
+			buttonsPanel.add(_buttonOptions);
 		}
-		getContentPane().add(BorderLayout.SOUTH, mPanel);
+		
+		//add buttons panel to the main window
+		getContentPane().add(BorderLayout.SOUTH, buttonsPanel);
+		
+		//"Options" panel components
+		//1. Is IPv6 preferred?	
 		_chkboxPreferIPv6 = new JCheckBox(_resBundleMessages.getString("preferIPv6"));
 		_chkboxPreferIPv6.setSelected(true);
+		//2. Conduct default tests?
 		_chkboxDefaultTest = new JCheckBox(_resBundleMessages.getString("defaultTests"));
 		_chkboxDefaultTest.setSelected(true);
 		_chkboxDefaultTest.setEnabled(false);
+		//3. configure number of tests
 		SpinnerNumberModel model = new SpinnerNumberModel();
 		model.setMinimum(new Integer(0));
 		model.setValue(new Integer(1));
@@ -681,9 +714,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 		_cmboboxDelay.setSelectedIndex(0);
 		
+		
 	}
 	
-
+	/* Method that creates the "More details" window
+	 * @param none
+	 * @return none */	
 	public void createDiagnoseWindow() {
 		showStatus(_resBundleMessages.getString("getWeb100Var"));
 
@@ -712,7 +748,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	}  // diagnose()
 
 
-
+	/* Method that creates the "Statistics" window
+	 * @param none
+	 * @return none */	
 	public void createStatsWindow() {
 		showStatus(_resBundleMessages.getString("printDetailedStats"));
 
@@ -740,7 +778,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		_frameDetailedStats.pack();
 	}  // statistics()
 
-
+	
+	/* Method that creates the "Options" window
+	 * The options displayed to the user are:
+	 * 1. Perform default tests?
+	 * 2. Prefer IPV6?
+	 * 3. Select the number of times the test-suite is to be run
+	 * @param none
+	 * @return none */	
 	public void createOptionsWindow() {
 		showStatus(_resBundleMessages.getString("showOptions"));
 
@@ -748,19 +793,26 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			_frameOptions = new NewFrame();
 			_frameOptions.setTitle(_resBundleMessages.getString("options"));
 
+			//main panel
 			JPanel optionsPanel = new JPanel();
 			optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
 
+			//Panel for displaying the "default tests" option
 			JPanel testsPanel = new JPanel();
 			testsPanel.setBorder(BorderFactory.createTitledBorder(_resBundleMessages.getString("performedTests")));
 			testsPanel.add(_chkboxDefaultTest);
 			optionsPanel.add(testsPanel);
 
+			//Panel for displaying the IPV6 option
 			JPanel protocolPanel = new JPanel();
 			protocolPanel.setBorder(BorderFactory.createTitledBorder(_resBundleMessages.getString("ipProtocol")));
 			protocolPanel.add(_chkboxPreferIPv6);
 			optionsPanel.add(protocolPanel);
 
+			/*
+			 * If user has enabled multiple tests, then build the panel, and add it
+			 * to the parent( options ) panel
+			*/
 			if (getParameter("enableMultipleTests") != null) {
 				JPanel generalPanel = new JPanel();
 				generalPanel.setLayout(new BoxLayout(generalPanel, BoxLayout.Y_AXIS));
@@ -777,9 +829,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				optionsPanel.add(generalPanel);
 			}
 
-			_frameOptions.getContentPane().add(optionsPanel);     
-			Panel buttons = new Panel();
-			_frameOptions.getContentPane().add("South", buttons);
+			//Add options to the parent frame
+			_frameOptions.getContentPane().add(optionsPanel);    
+			
+			//create and add panel containing buttons
+			Panel buttonsPanel = new Panel();
+			_frameOptions.getContentPane().add("South", buttonsPanel);
 
 			JButton okButton= new JButton(_resBundleMessages.getString("ok"));
 			okButton.addActionListener(new ActionListener() {
@@ -791,15 +846,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 			});
 
-			buttons.add("West", okButton);
+			buttonsPanel.add("West", okButton);
 
 			_frameOptions.pack();
 		}
 		_frameOptions.setResizable(false);
 		_frameOptions.setVisible(true);
 	}
-
-	
 
 
 	/*Method to run the Thread that calls the "dottcp" method to run tests
@@ -811,13 +864,18 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		new Thread(new TestWorker()).start();
 	}
 
-	
+	/*Class that starts the tests in a thread
+	 * Starts by disabling all buttons
+	 * Calls the dottcp() method 
+	 * This thread is stopped when the number of tests that was configured to be
+	 *  run have all completed, or if the user stops it by interrupting from the GUI
+	 *  Once the tests have been run, the buttons are enabled*/
 	class TestWorker implements Runnable {
 		public void run() {
-			if (!testInProgress) {
+			if (!_bTestInProgress) {
 				int testNo = 1;
 				int testsNum = ((Integer)_spinnerTestCount.getValue()).intValue();
-				testInProgress = true;
+				_bTestInProgress = true;
 				createDiagnoseWindow();
 				createStatsWindow();
 				_buttonStartTest.setEnabled(false);
@@ -830,6 +888,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				//StatusPanel sPanel = new StatusPanel(testsNum);
 				//re-arch. Replaced above by the line below
 				String sTempEnable = getParameter("enableMultipleTests");
+				
+				/*create status panel based on whether multiple tests are enabled
+				If not, then the progress bar displays just the specifi test (middlebox, C2S, firewall etc)
+				If yes, then the progress bar also shows the progress on the number of tests
+				*/
 				StatusPanel sPanel = new StatusPanel(testsNum, sTempEnable);
 				getContentPane().add(BorderLayout.NORTH, sPanel);
 				getContentPane().validate();
@@ -847,21 +910,29 @@ public class Tcpbw100 extends JApplet implements ActionListener
 							_resultsTxtPane.append("\n** " + _resBundleMessages.getString("startingTest") + " " + testNo + " " + _resBundleMessages.getString("of") + " " + testsNum + " **\n");
 						}
 						dottcp(sPanel);
+						//If test count scheduled is complete, quit
 						if (testNo == testsNum) {
 							break;
 						}
+						//If user stops the test, quit
 						if (sPanel.wantToStop()) {
 							break;
 						}
 						sPanel.setText("");
 						sPanel.endTest();
+						//increment test count
 						testNo += 1;
+						
+						/* This iteration of tests is now complete. Enable all buttons and output
+						so that user can view details of results */
 						_buttonDetails.setEnabled(true);
 						_buttonStatistics.setEnabled(true);
 						_buttonMailTo.setEnabled(true);
 						_buttonOptions.setEnabled(true);
 						_txtStatistics.append("\n** " + _resBundleMessages.getString("test") + " " + testNo + " **\n");
 						_txtDiagnosis.append("\n** " + _resBundleMessages.getString("test") + " " + testNo + " **\n");
+						
+						//Now, sleep for some time based on user's choice before running the next iteration of the test suite
 						try {
 							switch (_cmboboxDelay.getSelectedIndex()) {
 							case 1:
@@ -904,6 +975,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					_sErrMsg = _resBundleMessages.getString("serverBusy30s") + "\n";
 				}
 
+				/* If test failed due to any reason, mark failure reason too*/
 				if (_bFailed) {
 					_resultsTxtPane.append(_sErrMsg);
 
@@ -911,6 +983,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					pub_errmsg = _sErrMsg;
 				}
 
+				//Enable all buttons. Continue activities to mark status as complete
 				_buttonDetails.setEnabled(true);
 				_buttonStatistics.setEnabled(true);
 				_buttonMailTo.setEnabled(true);
@@ -919,7 +992,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				showStatus(_resBundleMessages.getString("done2"));
 				_resultsTxtPane.append("\n" + _resBundleMessages.getString("clickStart2") + "\n");
 				_buttonStartTest.setEnabled(true);
-				testInProgress = false;
+				_bTestInProgress = false;
 				getContentPane().remove(sPanel);
 				getContentPane().validate();
 				getContentPane().repaint();
@@ -1037,24 +1110,29 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	 * @param String value of status
 	 * @return void */
 	public void showStatus(String msg) {
-		if (!isApplication) {
+		if (!_bIsApplication) {
 			super.showStatus(msg);
 		}
 	}
 	
 	
 	/* MiddleBox testing method
-	 * @param Protocol
-	 * @return boolean
-	 * @TODO documentaion */
+	 * @param Protocol Object
+	 * @return boolean value indicating test failure status
+	 * 	   true if test failed
+	 *     false if test passed
+	 * @ */
 	
 	public boolean test_mid(Protocol ctl) throws IOException {
 
-		byte buff[] = new byte[8192];
+		//byte buff[] = new byte[8192];
+		//
+		byte buff[] = new byte[NDTConstants.MIDDLEBOX_PREDEFINED_MSS];
+		
 		Message msg = new Message();
-		if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
+		if ((_yTests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
 			/* now look for middleboxes (firewalls, NATs, and other boxes that
-			 * muck with TCP's end-to-end priciples
+			 * muck with TCP's end-to-end principles
 			 */
 			showStatus(_resBundleMessages.getString("middleboxTest"));
 			_resultsTxtPane.append(_resBundleMessages.getString("checkingMiddleboxes") + "  ");
@@ -1062,11 +1140,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			_sEmailText = _resBundleMessages.getString("checkingMiddleboxes") + "  ";
 			pub_status = "checkingMiddleboxes";
 
+			//If reading socket was not successful, then declare middlebox test as a failure
 			if (ctl.recv_msg(msg) != 0) {
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			//Do not use static import of message types for cleaner code
+			
+			//Initially, expecting a TEST_PREPARE message
 			if (msg.getType() != MessageType.TEST_PREPARE) {
 				_sErrMsg = _resBundleMessages.getString("mboxWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
@@ -1074,11 +1154,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 				return true;
 			}
+			//get port number that server wants client to bind to for this test
 			int midport = Integer.parseInt(new String(msg.getBody()));
 
-			Socket in2Socket = null;
+			//connect to server using port obtained above
+			Socket midSrvrSockObj = null;
 			try {
-				in2Socket = new Socket(host, midport);
+				midSrvrSockObj = new Socket(host, midport);
 			} catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + host);
 				_sErrMsg = _resBundleMessages.getString("unknownServer") + "\n" ;
@@ -1089,81 +1171,101 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				return true;
 			}
 
-			InputStream srvin2 = in2Socket.getInputStream();
-			OutputStream srvout2 = in2Socket.getOutputStream();
+			InputStream srvin2 = midSrvrSockObj.getInputStream();
+			OutputStream srvout2 = midSrvrSockObj.getOutputStream();
 
-			int largewin = 128*1024;
+			//int largewin = 128*1024; //Unused variable, commenting out until needed
 
-			in2Socket.setSoTimeout(6500);
+			//Time out the socket after 6.5 seconds
+			midSrvrSockObj.setSoTimeout(6500);
 			int bytes = 0;
 			int inlth;
 			_dTime = System.currentTimeMillis();
 			pub_TimeStamp = new Date();
 
+			/*Read server packets into the pre-initialized buffer.
+			 * Record number of packets read as reading completes
+			*/
 			try {  
 				while ((inlth=srvin2.read(buff,0,buff.length)) > 0) {
 					bytes += inlth;
 					pub_bytes = bytes;
+					//If more than 5.5 seconds have passed by, stop reading socket input
 					if ((System.currentTimeMillis() - _dTime) > 5500)
 						break;
 				}
 			} 
-			catch (IOException e) {}
+			catch (IOException e) {} //TODO Question for a later fix. Why no exception handling code?
 
+			//Record test duration seconds
 			_dTime =  System.currentTimeMillis() - _dTime;
 			System.out.println(bytes + " bytes " + (8.0 * bytes)/_dTime + " kb/s " + _dTime/1000 + " secs");
+			//Calculate throughput in Kbps. 
 			_dS2cspd = ((8.0 * bytes) / 1000) / _dTime;
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Test is complete. Now, get results from server 
+			if (ctl.recv_msg(msg) != 0) { //msg not received correctly
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.getType() != MessageType.TEST_MSG) {
+			
+			//Results are sent from server in the form of a TEST_MSG object
+			if (msg.getType() != MessageType.TEST_MSG) { //If not TEST_MSG, then test results not obtained
 				_sErrMsg = _resBundleMessages.getString("mboxWrongMessage") + "\n";
+				//get error code
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
-			tmpstr2 = new String(msg.getBody());
+			
+			//Get Test results 
+			_sMidBoxTestResult = new String(msg.getBody());
 
+			//client now sends throughput as calculated above, in bytes
 			String tmpstr4 = Double.toString(_dS2cspd*1000);
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
 			ctl.send_msg(MessageType.TEST_MSG, tmpstr4.getBytes());
 
+			//append local address to the Test Results obtained from server
 			try {
-				tmpstr2 += in2Socket.getInetAddress() + ";";
+				_sMidBoxTestResult += midSrvrSockObj.getInetAddress() + ";";
 			} catch (SecurityException e) {
 				System.err.println("Unable to obtain Servers IP addresses: using " + host);
 				_sErrMsg = "getInetAddress() called failed\n" ;
-				tmpstr2 += host + ";";
+				_sMidBoxTestResult += host + ";";
 				_resultsTxtPane.append(_resBundleMessages.getString("lookupError") + "\n");
 			}
 
 			System.err.println("calling in2Socket.getLocalAddress()");
 			try {
-				tmpstr2 += in2Socket.getLocalAddress() + ";";
+				_sMidBoxTestResult += midSrvrSockObj.getLocalAddress() + ";";
 			} catch (SecurityException e) {
 				System.err.println("Unable to obtain local IP address: using 127.0.0.1");
 				_sErrMsg = "getLocalAddress() call failed\n" ;
-				tmpstr2 += "127.0.0.1;";
+				_sMidBoxTestResult += "127.0.0.1;";
 			}
-
+			
+			//wrap up test set up
 			srvin2.close();
 			srvout2.close();
-			in2Socket.close();
+			midSrvrSockObj.close();
 
+			//Expect TEST_FINALIZE message from server
 			if (ctl.recv_msg(msg) != 0) {
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.getType() != MessageType.TEST_FINALIZE) {
+			
+			if (msg.getType() != MessageType.TEST_FINALIZE) { //report unexpected message reception
 				_sErrMsg = _resBundleMessages.getString("mboxWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
+			
+			//Report status as "complete"
 			_resultsTxtPane.append(_resBundleMessages.getString("done") + "\n");
 			_txtStatistics.append(_resBundleMessages.getString("done") + "\n");
 			_sEmailText += _resBundleMessages.getString("done") + "\n%0A";
@@ -1171,21 +1273,32 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		return false;
 	}
 
-	public boolean test_sfw(Protocol ctl) throws IOException
+	/* Fireiwall tests aiming to find out if one exists between Client and server 
+	 * Tests performed in both directions
+	 * @param Protocol Object
+	 * @return boolean 
+	 * 	   true if test failed
+	 *     false if test passed */
+	public boolean test_sfw(Protocol protocolObj) throws IOException
 	{
 		Message msg = new Message();
-		if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
+		//start test
+		if ((_yTests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
+			//show status of test as started
 			showStatus(_resBundleMessages.getString("sfwTest"));
 			_resultsTxtPane.append(_resBundleMessages.getString("checkingFirewalls") + "  ");
 			_txtStatistics.append(_resBundleMessages.getString("checkingFirewalls") + "  ");
 			_sEmailText = _resBundleMessages.getString("checkingFirewalls") + "  ";
 			pub_status = "checkingFirewalls";
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Message received in error?
+			if (protocolObj.recv_msg(msg) != 0) {
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.getType() != MessageType.TEST_PREPARE) {
+			
+			//TEST_PREPARE is the first message expected from the server
+			if (msg.getType() != MessageType.TEST_PREPARE) { //oops, unexpected message received
 				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
@@ -1193,13 +1306,18 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				return true;
 			}
 
-			String message = new String(msg.getBody());
+			//Get message body from server packet
+			String sMsgBody = new String(msg.getBody());
 
+			/* 
+			 * This message body contains ephemeral port # and testTime separated by a 
+			 * single space
+			 */
 			int srvPort, testTime;
 			try {
-				int k = message.indexOf(" ");
-				srvPort = Integer.parseInt(message.substring(0,k));
-				testTime = Integer.parseInt(message.substring(k+1));
+				int k = sMsgBody.indexOf(" ");
+				srvPort = Integer.parseInt(sMsgBody.substring(0,k));
+				testTime = Integer.parseInt(sMsgBody.substring(k+1));
 			}
 			catch (Exception e) {
 				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
@@ -1209,6 +1327,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			System.out.println("SFW: port=" + srvPort);
 			System.out.println("SFW: testTime=" + testTime);
 
+			//Clients creates a server socket to send TEST_MSG
 			ServerSocket srvSocket;
 			try {
 				SecurityManager security = System.getSecurityManager();
@@ -1216,6 +1335,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 					System.out.println("Asking security manager for listen permissions...");
 					security.checkListen(0);
 				}
+				//0 to use any free port
 				srvSocket = new ServerSocket(0);
 			}
 			catch (Exception e) {
@@ -1225,12 +1345,15 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			}
 
 			System.out.println("SFW: oport=" + srvSocket.getLocalPort());
-			ctl.send_msg(MessageType.TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
+			//Send TEST_MSG
+			protocolObj.send_msg(MessageType.TEST_MSG, Integer.toString(srvSocket.getLocalPort()).getBytes());
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Expect a TEST_START message from the server
+			if (protocolObj.recv_msg(msg) != 0) { //oops, error receiving message
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
+			//Only TEST_START message expected at this point
 			if (msg.getType() != MessageType.TEST_START) {
 				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
@@ -1244,21 +1367,28 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime, this);
 			new Thread(osfwTest).start();
 
+			//Now, run test trying to connect to ephemeral port 
 			Socket sfwSocket = new Socket();
 			try {
+				//create socket to ephemeral port. testTime now specified in mS
 				sfwSocket.connect(new InetSocketAddress(host, srvPort), testTime * 1000);
 
 				Protocol sfwCtl = new Protocol(sfwSocket);
+				
+				//send a simple string message over this socket
 				sfwCtl.send_msg(MessageType.TEST_MSG, new String("Simple firewall test").getBytes());
 			}
 			catch (Exception e) {
 				e.printStackTrace();
 			}
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Server expected to respond back with a TEST_MSG too
+			if (protocolObj.recv_msg(msg) != 0) { //oops, error reading Protocol
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
+			
+			//Only TEST_MSG type expected at this point
 			if (msg.getType() != MessageType.TEST_MSG) {
 				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
@@ -1266,14 +1396,21 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 				return true;
 			}
+			
+			//Todo: Could not determine where this is used yet
+			//But this is an integer with value 0/1/2/3 indicating connection status
 			c2sResult = Integer.parseInt(new String(msg.getBody()));
 
+			//Sleep for some time
 			osfwTest.finalize();
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Server closes the SFW test session by sending TEST_FINALIZE
+			if (protocolObj.recv_msg(msg) != 0) { //oops, error reading message
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
+			
+			//ONLY TEST_FINALIZE type of message expected here
 			if (msg.getType() != MessageType.TEST_FINALIZE) {
 				_sErrMsg = _resBundleMessages.getString("sfwWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
@@ -1281,10 +1418,14 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 				return true;
 			}
+			
+			//Conclude by updatng status as "complete" on GUI window
 			_resultsTxtPane.append(_resBundleMessages.getString("done") + "\n");
 			_txtStatistics.append(_resBundleMessages.getString("done") + "\n");
 			_sEmailText += _resBundleMessages.getString("done") + "\n%0A";
 		}
+		
+		//successfully finished the SFW test, hence return testfailure=false
 		return false;
 	}
 
@@ -1293,7 +1434,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		// byte buff2[] = new byte[8192];
 		byte buff2[] = new byte[64*1024];
 		Message msg = new Message();
-		if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 			showStatus(_resBundleMessages.getString("outboundTest"));
 			_resultsTxtPane.append(_resBundleMessages.getString("runningOutboundTest") + " ");
 			_txtStatistics.append(_resBundleMessages.getString("runningOutboundTest") + " ");
@@ -1446,7 +1587,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	{
 		byte buff[] = new byte[8192];
 		Message msg = new Message();
-		if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+		if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
 			showStatus(_resBundleMessages.getString("inboundTest"));
 			_resultsTxtPane.append(_resBundleMessages.getString("runningInboundTest") + " ");
 			_txtStatistics.append(_resBundleMessages.getString("runningInboundTest") + " ");
@@ -1566,7 +1707,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			ctl.send_msg(MessageType.TEST_MSG, buff);
 
 			/* get web100 variables from server */
-			tmpstr = "";
+			_sTestResults = "";
 			int i = 0;
 
 			// Try setting a 5 second timer here to break out if the read fails.
@@ -1587,7 +1728,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 						}
 						return true;
 					}
-					tmpstr += new String(msg.getBody());
+					_sTestResults += new String(msg.getBody());
 					i++;
 				}
 			} catch (IOException e) {}
@@ -1597,21 +1738,37 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		return false;
 	}
 
-	public boolean test_meta(Protocol ctl) throws IOException
+	/* Meta tests method 
+	 * The META test allows the Client to send an additional information to the Server
+	 * that basically gets included along with the overall set of test results. 
+	 *  
+	 * @param Protocol Object
+	 * @return booleanturn boolean 
+	 * 	   true if test failed
+	 *     false if test passed
+	 * @throws IOException when sending/receiving messages from server fails
+	 * @see Protocol#recv_msg(Message msgParam)
+	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
+	 *    These methods indicate more information about IOException
+	 * */
+	public boolean test_meta(Protocol protocolObj) throws IOException
 	{
 		Message msg = new Message();
-		if ((tests & NDTConstants.TEST_META) == NDTConstants.TEST_META) {
+		//Start META tests
+		if ((_yTests & NDTConstants.TEST_META) == NDTConstants.TEST_META) {
 			showStatus(_resBundleMessages.getString("metaTest"));
 			_resultsTxtPane.append(_resBundleMessages.getString("sendingMetaInformation") + " ");
 			_txtStatistics.append(_resBundleMessages.getString("sendingMetaInformation") + " ");
 			_sEmailText += _resBundleMessages.getString("sendingMetaInformation") + " ";
 			pub_status = "sendingMetaInformation";
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Server starts with a TEST_PREPARE message. 
+			if (protocolObj.recv_msg(msg) != 0) { //error, message not received correctly
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.getType() != MessageType.TEST_PREPARE) {
+			if (msg.getType() != MessageType.TEST_PREPARE) { 
+				//only TEST_PREPARE message expected at this point
 				_sErrMsg = _resBundleMessages.getString("metaWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
@@ -1619,48 +1776,65 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				return true;
 			}
 
-			if (ctl.recv_msg(msg) != 0) {
+			//Server now send a TEST_START message 
+			if (protocolObj.recv_msg(msg) != 0) { //error, message not read/received correctly
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
+			
+			//Only TEST_START message expected here. Everything else is unacceptable
 			if (msg.getType() != MessageType.TEST_START) {
 				_sErrMsg = _resBundleMessages.getString("metaWrongMessage") + "\n";
+				
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
 
-			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_OS + ":" + System.getProperty("os.name")).getBytes());
-			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_BROWSER_OS + ":" + UserAgentTools.getBrowser(getUserAgent())[2]).getBytes());
-			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_KERNEL_VERSION + ":" + System.getProperty("os.version")).getBytes());
-			ctl.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
+			/* As a response to the Server's TEST_START message, client responds with TEST_MSG. These messages may be used, as below
+			 to send configuration data name-value pairs.
+			 Note that there are length constraints to keys- values: 64/256 characters respectively*/
+			protocolObj.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_OS + ":" + System.getProperty("os.name")).getBytes());
+			protocolObj.send_msg(MessageType.TEST_MSG, (NDTConstants.META_BROWSER_OS + ":" + UserAgentTools.getBrowser(getUserAgent())[2]).getBytes());
+			protocolObj.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_KERNEL_VERSION + ":" + System.getProperty("os.version")).getBytes());
+			protocolObj.send_msg(MessageType.TEST_MSG, (NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
 
-			ctl.send_msg(MessageType.TEST_MSG, new byte[0]);
+			/* Client can send any number of such meta data in a TEST_MSG format, and signal
+			the end of the transmission using an empty TEST_MSG */
+			protocolObj.send_msg(MessageType.TEST_MSG, new byte[0]);
 
-			if (ctl.recv_msg(msg) != 0) {
+			//The server now closes the META test session by sending a TEST_FINALIZE message
+			if (protocolObj.recv_msg(msg) != 0) { //error, message cannot be read/received properly
 				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				return true;
 			}
-			if (msg.getType() != MessageType.TEST_FINALIZE) {
+			if (msg.getType() != MessageType.TEST_FINALIZE) { //Only this message type is expected
 				_sErrMsg = _resBundleMessages.getString("metaWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: " + Integer.parseInt(new String(msg.getBody()), 16) + "\n";
 				}
 				return true;
 			}
+			//Display status as "complete"
 			_resultsTxtPane.append(_resBundleMessages.getString("done") + "\n");
 			_txtStatistics.append(_resBundleMessages.getString("done") + "\n");
 			_sEmailText += _resBundleMessages.getString("done") + "\n%0A";
 		}
 
+		//completed tests
 		pub_status = "done";
+		//status is false indicating test-failure=false
 		return false;
 	}
 
+	/* Method to run tests and interpret the results sent by the server
+	 * @param StatusPanel object to describe status of tests
+	 * @return none
+	 */
 	public void dottcp(StatusPanel sPanel) throws IOException {
 		Socket ctlSocket = null;
-		if (!isApplication) {
+		if (!_bIsApplication) {
 
 			/*************************************************************************
 			 * Enable NDT to test against a web100srv instance on a remote server.
@@ -1680,19 +1854,24 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			pub_host = host;
 		}
 
+		/* The default control port used for the NDT tests session. NDT server listens 
+		 to this port */
+		int ctlport = NDTConstants.CONTROL_PORT_DEFAULT;
+		
+		//Commenting these 2 variables - seem unused
+		//double wait2;
+		//int sbuf, rbuf;
+		int i, wait;
+		int iServerWaitFlag=0; //flag indicating whether a wait message was already received once
 
-		int ctlport = 3001;
-		double wait2;
-		int sbuf, rbuf;
-		int i, wait, swait=0;
-
+		//Assign false to test result status initially
 		_bFailed = false;
 
 		try {
 
 			// RAC Debug message
 			_resultsTxtPane.append(_resBundleMessages.getString("connectingTo") + " '" + host + "' [" + InetAddress.getByName(host) + "] " + _resBundleMessages.getString("toRunTest") + "\n");
-
+			//If IPv6 is preferred by Applet user, set property for any further use
 			if (_chkboxPreferIPv6.isSelected()) {
 				try {
 					System.setProperty("java.net._chkboxPreferIPv6Addresses", "true");
@@ -1702,6 +1881,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 			}
 			_chkboxPreferIPv6.setEnabled(false);
+			//create socket to host specified by user and the default port
 			ctlSocket = new Socket(host, ctlport);
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host: " + host);
@@ -1716,11 +1896,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 		
 		
-		Protocol ctl = new Protocol(ctlSocket);
+		Protocol protocolObj = new Protocol(ctlSocket);
 		Message msg = new Message();
 
 		/* The beginning of the protocol */
-
+		
+		//Determine, and indicate to client about Inet6/4 address being used
 		if (ctlSocket.getInetAddress() instanceof Inet6Address) {
 			_resultsTxtPane.append(_resBundleMessages.getString("connected") + " " + host + _resBundleMessages.getString("usingIpv6") + "\n");
 		}
@@ -1728,54 +1909,70 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			_resultsTxtPane.append(_resBundleMessages.getString("connected") + " " + host + _resBundleMessages.getString("usingIpv4") + "\n");
 		}
 
-		/* write our test suite request */
-		ctl.send_msg(MessageType.MSG_LOGIN, tests);
+		/* write our test suite request by sending a login message
+		_yTests indicates the requested test-suite
+		*/
+		protocolObj.send_msg(MessageType.MSG_LOGIN, _yTests);
 		/* read the specially crafted data that kicks off the old clients */
-		if (ctl.readn(msg, 13) != 13) {
+		if (protocolObj.readn(msg, 13) != 13) {
 			_sErrMsg = _resBundleMessages.getString("unsupportedClient") + "\n";
 			_bFailed = true;
 			return;
 		}
 
 		for (;;) {
-			if (ctl.recv_msg(msg) != 0) {
-				_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
+			//If SRV_QUEUE message sent by NDT server does not indicate that the test session starts now, return
+			//if (protocolObj.recv_msg(msg) != 0) { //comment to replace with constant
+			if (protocolObj.recv_msg(msg) != NDTConstants.SRV_QUEUE_TEST_STARTS_NOW) {
+				_sErrMsg = _resBundleMessages.getString("protocolError") + 
+						Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 				_bFailed = true;
 				return;
 			}
+			
+			//SRV_QUEUE messages are only sent to queued clients with if the test can be started immediately. 
+			//Any other type of message at this stage is incorrect			
 			if (msg.getType() != MessageType.SRV_QUEUE) {
 				_sErrMsg = _resBundleMessages.getString("loggingWrongMessage") + "\n";
 				_bFailed = true;
 				return;
-			}
+			}	
+			
 			String tmpstr3 = new String(msg.getBody());
 			wait = Integer.parseInt(tmpstr3);
 			System.out.println("wait flag received = " + wait);
 
-			if (wait == 0) {
+			
+			if (wait == 0) { /* SRV_QUEUE message received indicating "ready to start tests" status,
+								proceed to running tests */			 
 				break;
 			}
 
-			if (wait == 9988) {
-				if (swait == 0) {
+			//if (wait == 9988) {
+			if (wait == NDTConstants.SRV_QUEUE_SERVER_BUSY) {
+				if (iServerWaitFlag == 0) { //First message from server, indicating server is busy. Quit
 					_sErrMsg = _resBundleMessages.getString("serverBusy") + "\n";
 					_bFailed = true;
 					return;
-				} else {
+				} else {    //Server fault, quit qithout further ado
 					_sErrMsg = _resBundleMessages.getString("serverFault") + "\n";
 					_bFailed = true;
 					return;
 				}
 			}
 
-			if (wait == 9999) {
+			//if (wait == 9999) {
+			//server busy, wait 60 s for previous test to finish
+			if ( wait == NDTConstants.SRV_QUEUE_SERVER_BUSY_60s ) {
 				_sErrMsg = _resBundleMessages.getString("serverBusy60s") + "\n";
 				_bFailed = true;
 				return;
 			}
 
-			if (wait == 9990) {  // signal from the server to see if the client is still alive
-				ctl.send_msg(MessageType.MSG_WAITING, tests);
+			//if (wait == 9990) {  // signal from the server to see if the client is still alive
+			if (wait == NDTConstants.SRV_QUEUE_HEARTBEAT) {  // signal from the server to see if the client is still alive
+				// Client has to respond with a "MSG_WAITING" to such heart-beat messages from server
+				protocolObj.send_msg(MessageType.MSG_WAITING, _yTests);
 				continue;
 			}
 
@@ -1783,23 +1980,29 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			// tests in the queue.
 			wait = (wait * 45);
 			_resultsTxtPane.append(_resBundleMessages.getString("otherClient") + wait + _resBundleMessages.getString("seconds") +".\n");
-			swait = 1;
-		}
+			iServerWaitFlag = 1; //first message from server already encountered
+		} //end waiting 
 
 		_frameWeb100Vars.toBack();
 		_frameDetailedStats.toBack();
-
-		if (ctl.recv_msg(msg) != 0) {
+		
+		/*Tests can be started. Read server response again.
+		 * The server must send a message to verify version, and this is
+		 * a MSG_LOGIN type of message
+		*/
+		if (protocolObj.recv_msg(msg) != 0) { //it not read correctly, it is protocol error
 			_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 			_bFailed = true;
 			return;
 		}
-		if (msg.getType() != MessageType.MSG_LOGIN) {
+		if (msg.getType() != MessageType.MSG_LOGIN) { //Only this type of message is expected at this stage
+													  //...every othr message type is "wrong"
 			_sErrMsg = _resBundleMessages.getString("versionWrongMessage") + "\n";
 			_bFailed = true;
 			return;
 		}
 
+		//Version compatibility between server-client must be verified
 		String vVersion = new String(msg.getBody());
 		if (!vVersion.startsWith("v")) {
 			_sErrMsg = _resBundleMessages.getString("incompatibleVersion");
@@ -1808,22 +2011,29 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 		System.out.println("Server version: " + vVersion.substring(1));
 
-		if (ctl.recv_msg(msg) != 0) {
+		/* Read server message again. Server must send a message to negotiate the test suite, and this is
+		 * a MSG_LOGIN type of message which indicates the same set of tests as requested by the client earlier */
+		if (protocolObj.recv_msg(msg) != 0) {
 			_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 			_bFailed = true;
 			return;
 		}
-		if (msg.getType() != MessageType.MSG_LOGIN) {
+		if (msg.getType() != MessageType.MSG_LOGIN) { // Only tests-negotiation message expected at this stage.
+			  										  //    ..Every other message type is "wrong"
 			_sErrMsg = _resBundleMessages.getString("testsuiteWrongMessage") + "\n";
 			_bFailed = true;
 			return;
 		}
 		
+		//get ids of tests to be run now
 		StringTokenizer tokenizer = new StringTokenizer(new String(msg.getBody()), " ");
+		
+		/* Run all tests requested, based on the ID. In each case, if tests cannot be successfully run,
+		indicate reason */
 		while (tokenizer.hasMoreTokens()) {
-			if (sPanel.wantToStop()) {
-				ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
-				ctl.close();
+			if (sPanel.wantToStop()) { //user has indicated decision to stop tests from GUI
+				protocolObj.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
+				protocolObj.close();
 				ctlSocket.close();
 				_sErrMsg = "\n" + _resBundleMessages.getString("stopped") + "\n";
 				_bFailed = true;
@@ -1833,42 +2043,42 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			switch (testId) {
 			case NDTConstants.TEST_MID:
 				sPanel.setText(_resBundleMessages.getString("middlebox"));
-				if (test_mid(ctl)) {
+				if (test_mid(protocolObj)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundleMessages.getString("middleboxFail2") + "\n");
-					tests &= (~NDTConstants.TEST_MID);
+					_yTests &= (~NDTConstants.TEST_MID);
 				}
 				break;
 			case NDTConstants.TEST_SFW:
 				sPanel.setText(_resBundleMessages.getString("simpleFirewall"));
-				if (test_sfw(ctl)) {
+				if (test_sfw(protocolObj)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundleMessages.getString("sfwFail") + "\n");
-					tests &= (~NDTConstants.TEST_SFW);
+					_yTests &= (~NDTConstants.TEST_SFW);
 				}
 				break;
 			case NDTConstants.TEST_C2S:
 				sPanel.setText(_resBundleMessages.getString("c2sThroughput"));
-				if (test_c2s(ctl)) {
+				if (test_c2s(protocolObj)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundleMessages.getString("c2sThroughputFailed") + "\n");
-					tests &= (~NDTConstants.TEST_C2S);
+					_yTests &= (~NDTConstants.TEST_C2S);
 				}
 				break;
 			case NDTConstants.TEST_S2C:
 				sPanel.setText(_resBundleMessages.getString("s2cThroughput"));
-				if (test_s2c(ctl, ctlSocket)) {
+				if (test_s2c(protocolObj, ctlSocket)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundleMessages.getString("s2cThroughputFailed") + "\n");
-					tests &= (~NDTConstants.TEST_S2C);
+					_yTests &= (~NDTConstants.TEST_S2C);
 				}
 				break;
 			case NDTConstants.TEST_META:
 				sPanel.setText(_resBundleMessages.getString("meta"));
-				if (test_meta(ctl)) {
+				if (test_meta(protocolObj)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundleMessages.getString("metaFailed") + "\n");
-					tests &= (~NDTConstants.TEST_META);
+					_yTests &= (~NDTConstants.TEST_META);
 				}
 				break;
 			default:
@@ -1877,9 +2087,10 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				return;
 			}
 		}
-		if (sPanel.wantToStop()) {
-			ctl.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
-			ctl.close();
+		
+		if (sPanel.wantToStop()) { //user has indicated decision to stop tests from GUI
+			protocolObj.send_msg(MessageType.MSG_ERROR, "Manually stopped by the user".getBytes());
+			protocolObj.close();
 			ctlSocket.close();
 			_sErrMsg = _resBundleMessages.getString("stopped") + "\n";
 			_bFailed = true;
@@ -1887,28 +2098,34 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		}
 
 		sPanel.setText(_resBundleMessages.getString("receiving"));
+		
+		//Get results of tests
 		i = 0;
-
 		try {  
 			for (;;) {
-				if (ctl.recv_msg(msg) != 0) {
+				if (protocolObj.recv_msg(msg) != 0) {
 					_sErrMsg = _resBundleMessages.getString("protocolError") + Integer.parseInt(new String(msg.getBody()), 16) + " instead\n";
 					_bFailed = true;
 					return;
 				}
+				
+				//results obtained. Log out message received now
 				if (msg.getType() == MessageType.MSG_LOGOUT) {
 					break;
 				}
+				
+				//get results in the form of a human-readable string
 				if (msg.getType() != MessageType.MSG_RESULTS) {
 					_sErrMsg = _resBundleMessages.getString("resultsWrongMessage") + "\n";
 					_bFailed = true;
 					return;
 				}
-				tmpstr += new String(msg.getBody());
+				_sTestResults += new String(msg.getBody());
 				i++;
 			}
 		} catch (IOException e) {}
 
+		//Timed-out while waiting for results
 		if (i == 0) {
 			_resultsTxtPane.append(_resBundleMessages.getString("resultsTimeout") + "\n");
 		}
@@ -1927,18 +2144,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			_sEmailText += _resBundleMessages.getString("client") + ": " + "127.0.0.1" + "\n%0A";
 		}
 
-		ctl.close();
+		//Final cleanup steps after completion of tests
+		protocolObj.close();
 		ctlSocket.close();
-
+		//call testResults method
 		try {
-			testResults(tmpstr);
+			testResults(_sTestResults);
 		}
 		catch (Exception ex) {
 			_resultsTxtPane.append(_resBundleMessages.getString("resultsParseError")  + "\n");
 			_resultsTxtPane.append(ex + "\n");
 		}
-		if ((tests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
-			middleboxResults(tmpstr2);
+		if ((_yTests & NDTConstants.TEST_MID) == NDTConstants.TEST_MID) {
+			middleboxResults(_sMidBoxTestResult);
 		}
 
 		pub_isReady="yes";
@@ -1948,8 +2166,13 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 	
 	
-
-	public void testResults(String tmpstr) {
+    /* 
+     * Method that interprets test results
+     * @param String containing all results
+     * @return none
+     * Done: SFW and some web100 variables
+     * */
+	public void testResults(String sTestResParam) {
 		StringTokenizer tokens;
 		int i=0;
 		String sysvar, strval;
@@ -1957,7 +2180,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 		double sysval2, j;
 		String osName, osArch, osVer, javaVer, javaVendor, client;
 
-		tokens = new StringTokenizer(tmpstr);
+		tokens = new StringTokenizer(sTestResParam);
 		sysvar = null;
 		strval = null;
 		while(tokens.hasMoreTokens()) {
@@ -1968,18 +2191,19 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				strval = tokens.nextToken();
 				_txtDiagnosis.append(sysvar + " " + strval + "\n");
 				_sEmailText += sysvar + " " + strval + "\n%0A";
-				if (strval.indexOf(".") == -1) {
+				if (strval.indexOf(".") == -1) { //no decimal point, hence integer
 					sysval = Integer.parseInt(strval);
+					//save value into a key value expected by us
 					save_int_values(sysvar, sysval);
 				}
-				else {
+				else { //if not integer, save as double
 					sysval2 = Double.valueOf(strval).doubleValue();
 					save_dbl_values(sysvar, sysval2);
 				}
 			}
 		}
 
-		// Grab some client details from the applet environment
+		// Grab some client details from the Applet environment
 		osName = System.getProperty("os.name");
 		pub_osName = osName;
 
@@ -2131,17 +2355,15 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 			}
 
-			if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 				if (_dSc2sspd < (_dC2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO:  distinguish the host buffering from the middleboxes buffering
 					JLabel info = new JLabel(_resBundleMessages.getString("information"));
 					info.addMouseListener(new MouseAdapter()
 					{
-
 						public void mouseClicked(MouseEvent e) {
 							showBufferedBytesInfo();
 						}
-
 					});
 					info.setForeground(Color.BLUE);
 					info.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -2151,7 +2373,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 			}
 
-			if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
 				if (_dS2cspd < (_dSs2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO:  distinguish the host buffering from the middleboxes buffering
 					JLabel info = new JLabel(_resBundleMessages.getString("information"));
@@ -2171,6 +2393,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 			}
 
+			//Get client information obtained from META tests
 			_txtStatistics.append("\n\t------  " + _resBundleMessages.getString("clientInfo") + "------\n");
 			_txtStatistics.append(_resBundleMessages.getString("osData") + " " + _resBundleMessages.getString("name") + " = " + osName + ", " + _resBundleMessages.getString("architecture") + " = " + osArch);
 			_txtStatistics.append(", " + _resBundleMessages.getString("version") + " = " + osVer + "\n");
@@ -2205,7 +2428,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				_txtStatistics.append(_resBundleMessages.getString("found10gbps") + "\n");
 			*/
 			//replace by switch
-			//TODO define names  for these constants. What is 6/8/9 and so on
+			//TODO define names for these constants. What is 6/8/9 and so on
 			switch (_iC2sData) {
 			case -2:
 				_txtStatistics.append(_resBundleMessages.getString("insufficient") + "\n");
@@ -2307,7 +2530,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				_sEmailText += _resBundleMessages.getString("noPktLoss2") + ".\n%0A";
 			}
 
-			if ((tests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 				if (_dC2sspd > _dSc2sspd) {
 					if (_dSc2sspd < (_dC2sspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
 						_txtStatistics.append(_resBundleMessages.getString("c2s") + " " + _resBundleMessages.getString("qSeen") + ": " + prtdbl(100 * (_dC2sspd - _dSc2sspd) / _dC2sspd) + "%\n");
@@ -2318,7 +2541,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				}
 			}
 
-			if ((tests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
 				if (_dSs2cspd > _dS2cspd) {
 					if (_dSs2cspd < (_dSs2cspd  * (1.0 - NDTConstants.VIEW_DIFF))) {
 						_txtStatistics.append(_resBundleMessages.getString("s2c") + " " + _resBundleMessages.getString("qSeen") + ": " + prtdbl(100 * (_dSs2cspd - _dS2cspd) / _dSs2cspd) + "%\n");
@@ -2395,8 +2618,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 			_txtStatistics.append("\n");
 
-			if ((tests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
+			//SFW test results
+			if ((_yTests & NDTConstants.TEST_SFW) == NDTConstants.TEST_SFW) {
+				//Results in the direction of Client to server
 				switch (c2sResult) {
+					//Update Statistics  and email-text based on results 
 				case NDTConstants.SFW_NOFIREWALL:
 					_txtStatistics.append(_resBundleMessages.getString("server") + " '" + host + "' " + _resBundleMessages.getString("firewallNo") + "\n");
 					_sEmailText += _resBundleMessages.getString("server") + " '" + host + "' " + _resBundleMessages.getString("firewallNo") + "\n%0A";
@@ -2409,7 +2635,9 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				case NDTConstants.SFW_NOTTESTED:
 					break;
 				}
+				//Results in the direction of Server to client
 				switch (s2cResult) {
+					//Update Statistics  and email-text based on results
 				case NDTConstants.SFW_NOFIREWALL:
 					_txtStatistics.append(_resBundleMessages.getString("client2") + " " + _resBundleMessages.getString("firewallNo") + "\n");
 					_sEmailText += _resBundleMessages.getString("client2") + " " + _resBundleMessages.getString("firewallNo") + "\n%0A";
@@ -2428,18 +2656,24 @@ public class Tcpbw100 extends JApplet implements ActionListener
 			//				+ (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) + "msec, " + "and loss = " + loss + "\n");
 			_txtDiagnosis.append("\n");
 
+			//Output relevant to the "More Details" tab, related to factors influencing throughput
+			//Theoretical network limit
 			_txtDiagnosis.append(_resBundleMessages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " " + "Mbps\n");
 			_sEmailText += _resBundleMessages.getString("theoreticalLimit") + " " + prtdbl(estimate) + " Mbps\n%0A";
 
+			//NDT server buffer imposed limit
 			_txtDiagnosis.append(_resBundleMessages.getString("ndtServerHas") + " " + prtdbl(_iSndbuf/2048) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n");
 			_sEmailText += _resBundleMessages.getString("ndtServerHas") + " " + prtdbl(_iSndbuf/2048) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(swin/rttsec) + " Mbps\n%0A";
 
+			//PC buffer imposed throughput limit
 			_txtDiagnosis.append(_resBundleMessages.getString("yourPcHas") + " " + prtdbl(_iMaxRwinRcvd/1024) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n");
 			_sEmailText += _resBundleMessages.getString("yourPcHas") + " " + prtdbl(_iMaxRwinRcvd/1024) + " " + _resBundleMessages.getString("kbyteBufferLimits") + " " + prtdbl(rwin/rttsec) + " Mbps\n%0A";
 
+			//Network based flow control limit imposed throughput limit
 			_txtDiagnosis.append(_resBundleMessages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n");
 			_sEmailText += _resBundleMessages.getString("flowControlLimits") + " " +	prtdbl(cwin/rttsec) + " Mbps\n%0A";
 
+			//Client, Server data reports on link capacity
 			_txtDiagnosis.append("\n" + _resBundleMessages.getString("clientDataReports") + " '" + prttxt(_iC2sData) + "', " + _resBundleMessages.getString("clientAcksReport") + " '" + prttxt(_iC2sAck) + "'\n" + _resBundleMessages.getString("serverDataReports") + " '" + prttxt(_iS2cData) + "', " + _resBundleMessages.getString("serverAcksReport") + " '" + prttxt(_iS2cAck) + "'\n");
 			pub_diagnosis = _txtDiagnosis.getText();
 
@@ -2449,7 +2683,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 
 
 
-	/* this routine decodes the middlebox test results.  The data is returned
+	/* This routine decodes the middlebox test results.  The data is returned
 	 * from the server is a specific order.  This routine pulls the string apart
 	 * and puts the values into the proper variable.  It then compares the values
 	 * to known values and writes out the specific results.
@@ -2460,12 +2694,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	 * Server IP; Client IP.
 	 */
 
-	public void middleboxResults(String tmpstr2) {
+	public void middleboxResults(String sMidBoxTestResParam) {
 		StringTokenizer tokens;
 		int k;
 
 		// results.append("Mbox stats: ");
-		tokens = new StringTokenizer(tmpstr2, ";");
+		tokens = new StringTokenizer(sMidBoxTestResParam, ";");
 		String ssip = tokens.nextToken();
 		String scip = tokens.nextToken();
 
@@ -2608,6 +2842,11 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	/* This routine saves the specific value into the variable of the
 	 * same name.  There should probably be an easier way to do this.
 	 */
+	/* Method to save double values of various "keys" from the 
+	 * the test results string into corresponding double datatypes
+	 * @param sysvar key name string
+	 * @param sysval Value for this key name
+	 * @returns none */
 	public void save_dbl_values(String sysvar, double sysval) {
 		if(sysvar.equals("bw:")) 
 			estimate = sysval;
@@ -2648,7 +2887,12 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	} // save_dbl_values()
 
 
-
+	/* Method to save integer values of various "keys" from the 
+	 * the test results string into corresponding integer datatypes
+	 * @param sysvar String key name
+	 * @param sysval Value for this key name
+	 * @returns none */
+	
 	public void save_int_values(String sysvar, int sysval) {
 		/*  Values saved for interpretation:
 		 *	SumRTT 
@@ -2812,7 +3056,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 				System.exit(0);
 			}
 		});
-		applet.isApplication = true;
+		applet._bIsApplication = true;
 		applet.host = args[0];
 		frame.getContentPane().add(applet);
 		frame.setSize(700, 320);
@@ -2826,7 +3070,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
 	 * @param Key String whose value has to be found 
 	 * @return Value of key requested for */
 	public String getParameter(String name) {
-		if (!isApplication) {
+		if (!_bIsApplication) {
 			return super.getParameter(name);
 		}
 		return null;
