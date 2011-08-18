@@ -65,13 +65,6 @@ public class NDTConstants {
 	  //Middlebox test related constants
 	  public static final int MIDDLEBOX_PREDEFINED_MSS = 8192;
 	  
-		/*
-		 * "9977" 	 Server Fault: test session will be terminated for unknown reason. Client MUST drop the connection after receiving this message.
-"9988" 	If this is a first message from the Server, then it means that the Server is busy. In other cases it means the Server Fault. the Client MUST drop the connection after receiving this message.
-"9990" 	This is a check from the Server to verify if the queued Client is alive. Available from v3.5.5. The Client MUST respond to this message by sending an empty 'MSG_WAITING' message. The Server will only send these messages to the queued Clients that requested TEST_STATUS test.
-"N" 	
-		 * */
-	  
 	  /*Method to initialise a few constants */
 	  private static ResourceBundle _rscBundleMessages;
 	  public static String TCPBW100_MSGS = "Tcpbw100_msgs";
