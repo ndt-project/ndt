@@ -1,3 +1,15 @@
+/*
+ * OsfwWorker creates a thread that listens for a message from the server
+ * 
+ * As part of the simple firewall test, The Server MUST try to connect to the Client's 
+ * ephemeral port and MUST send a TEST_MSG message containing a pre-defined string 
+ * "Simple firewall test" of 20 chars using the newly created connection. 
+ * This class implements this functionality
+ * 
+ * The result of the test is set back into the Tcpbw100._iS2cSFWResult variable 
+ * via its setter methods for the test results to be interpreted later 
+ * */
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,6 +29,11 @@ public class OsfwWorker implements Runnable {
 		this._iTestTime = iParamTestTime;
 	}
 	
+	/*Constructor 
+	 * @param ServerSocket: Socket on which to accept connections 
+	 * @param int: Test time duration to wait for message from server
+	 * @param Tcpbw100: Applet object used to set the result of the S->C firewall test
+	 */
 	OsfwWorker(ServerSocket srvSocketParam, int iParamTestTime, Tcpbw100 _localParam)
 	{
 		this._srvSocket = srvSocketParam;
@@ -30,6 +47,7 @@ public class OsfwWorker implements Runnable {
 	 * */
 	public void finalize()
 	{
+		//If test is not already complete/terminated, then sleep
 		while (!_iFinalized) {
 			try {
 				Thread.currentThread().sleep(1000);
@@ -40,62 +58,84 @@ public class OsfwWorker implements Runnable {
 		}
 	}
 
-	public void run()
-	{
+	/* Run method of this SFW Worker thread.
+	 * This thread listens on the socket from the server for a given time period, 
+	 * and checks to see
+	 * if the server has sent a message that is valid and sufficient to determine 
+	 * if the S->C direction has a fire-wall 
+	 * @return none*/
+	public void run() {	 
+	
 		Message msg = new Message();
-		Socket sock = null;
+		Socket socketObj = null;
 
 		try {
+			//set timeout to given value in ms
 			_srvSocket.setSoTimeout(_iTestTime * 1000);
 			try {
-				sock = _srvSocket.accept();
+				//Blocking call trying to create connection to socket and accept it
+				socketObj = _srvSocket.accept();
 			}
 			catch (Exception e) {
 				e.printStackTrace();
-				//s2cResult = NDTConstants.SFW_POSSIBLE;
-				this._localTcpAppObj.setS2CTestResults(NDTConstants.SFW_POSSIBLE);
+				//The "accept" call has failed, and indicates a firewall possibility
+				this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_POSSIBLE);
 				_srvSocket.close();
 				_iFinalized = true;
 				return;
 			}
-			Protocol sfwCtl = new Protocol(sock);
+			Protocol sfwCtl = new Protocol(socketObj);
 			
 			//commented out sections indicate move to outer class	
-			if (sfwCtl.recv_msg(msg) != 0) {
+			if (sfwCtl.recv_msg(msg) != 0) { 
+				/* error, msg read/received incorrectly. Hence set status as unknown */
 				System.out.println("Simple firewall test: unrecognized message");
 				//s2cResult = NDTConstants.SFW_UNKNOWN;
-				this._localTcpAppObj.setS2CTestResults(NDTConstants.SFW_UNKNOWN);
-				sock.close();
+				this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_UNKNOWN);
+				//close socket objects and wrap up
+				socketObj.close();
 				_srvSocket.close();
 				_iFinalized = true;
 				return;
 			}
+			/* The server sends a TEST_MSG type packet. Any other message-type is not expected 
+			 at this point, and hence an error */
 			if (msg.getType() != MessageType.TEST_MSG) {
 				//s2cResult = NDTConstants.SFW_UNKNOWN;
-				this._localTcpAppObj.setS2CTestResults(NDTConstants.SFW_UNKNOWN);
-				sock.close();
+				this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_UNKNOWN);
+				//close socket objects and wrap up
+				socketObj.close();
 				_srvSocket.close();
 				_iFinalized = true;
 				return;
 			}
-			if (! new String(msg.getBody()).equals("Simple firewall test")) {
+			/* The server protocol is expected to send a 20 char message that says "Simple firewall test" .
+			 * Every other message string indicates an unknown firewall status
+			 */
+			if (! new String(msg.getBody()).equals(NDTConstants.SFW_PREDEFINED_TEST_MESSAGE)) {
 				System.out.println("Simple firewall test: Improper message");
 				//s2cResult = NDTConstants.SFW_UNKNOWN;
-				this._localTcpAppObj.setS2CTestResults(NDTConstants.SFW_UNKNOWN);
-				sock.close();
+				this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_UNKNOWN);
+				//close socket objects and wrap up
+				socketObj.close();
 				_srvSocket.close();
 				_iFinalized = true;
 				return;
 			}
 			//s2cResult = NDTConstants.SFW_NOFIREWALL;
-			this._localTcpAppObj.setS2CTestResults(NDTConstants.SFW_NOFIREWALL);
+			/* If none of the above conditions were met, then, the server message
+			has been received correctly, and there seems to be no firewall */
+			this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_NOFIREWALL);
 		}
 		catch (IOException ex) {
+			//Status of firewall could not be determined before concluding 
 			//s2cResult = NDTConstants.SFW_UNKNOWN;
-			this._localTcpAppObj.setS2CTestResults(NDTConstants.SFW_UNKNOWN);
+			this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_UNKNOWN);
 		}
+		
+		//finalize an close open connections
 		try {
-			sock.close();
+			socketObj.close();
 			_srvSocket.close();
 		}
 		catch (IOException e) {
@@ -104,3 +144,4 @@ public class OsfwWorker implements Runnable {
 		_iFinalized = true;
 	}
 }
+

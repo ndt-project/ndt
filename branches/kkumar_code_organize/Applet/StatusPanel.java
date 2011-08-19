@@ -7,10 +7,16 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
 /* Class that displays status of tests being run Status 
- * TODO: Can this be named better? */
+ * Also provides "utility" methods like displaying test number 
+ * being currently run, and stopping tests 
+ * */
 
 public class StatusPanel extends JPanel
 {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 2609233901130079136L; //generated value
 	private int _iTestsCompleted; //variable used to record the count of "finished" tests
 	private int _iTestsNum;
 	private boolean _bStop = false;
@@ -75,19 +81,25 @@ public class StatusPanel extends JPanel
 		_labelTestNum.setText(NDTConstants.getMessageString("test") + " " + _iTestsCompleted + " " + NDTConstants.getMessageString("of") + " " +_iTestsNum);
 	}
 
-	/*record intention to stop tests */
+	/*record intention to stop tests 
+	 * @param none
+	 * @return boolean: intention to stop or not*/
 	public boolean wantToStop() {
 		return _bStop;
 	}
 
-	/*end the currently runnig test */
+	/*end the currently running test 
+	 * @param none
+	 * @return none*/
 	public void endTest() {
 		_progressBarObj.setValue(_iTestsCompleted);
 		_iTestsCompleted++;
 		setTestNoLabelText();
 	}
 
-	/* Set progress text */
+	/* Set progress text
+	 * @param sParamText: String status
+	 * @return none */
 	public void setText(String sParamText) {
 		if (!_progressBarObj.isIndeterminate()) {
 			_progressBarObj.setString(sParamText);

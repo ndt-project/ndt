@@ -3,26 +3,26 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-/* Class to define Protocol
- * TODO :summarize methods below to give a brief explanation of the Protocol class 
- * TODO :use setter/getter methods for 
+/* Class aggregating operations that can be performed for sending/receiving/reading
+ * Protocol messages
+ * 
  * */
 
 
 public class Protocol {
-	private InputStream _ctlin;
-	private OutputStream _ctlout;
-	
-    /* Class Constructor 
-     * @param Socket: socket used to send the protocol messages over 
-     */
+	private InputStream _ctlInStream;
+	private OutputStream _ctlOutStream;
+
+	/* Class Constructor 
+	 * @param Socket: socket used to send the protocol messages over 
+	 */
 	public Protocol(Socket ctlSocketParam) throws IOException
 	{
-		_ctlin = ctlSocketParam.getInputStream();
-		_ctlout = ctlSocketParam.getOutputStream();
+		_ctlInStream = ctlSocketParam.getInputStream();
+		_ctlOutStream = ctlSocketParam.getOutputStream();
 	}
 
-	/* Method to send msg. Overloaded
+	/* Method to send message. Overloaded
 	 * @param bParamType: Ctrl Message Type
 	 * @param bParamToSend:  Data value to send
 	 * @return none
@@ -34,7 +34,7 @@ public class Protocol {
 		send_msg(bParamType, tab);
 	}
 
-	
+
 	/* Method to send msg. Overloaded
 	 * @param bParamType:  Ctrl Message Type
 	 * @param bParamToSend[]:  Data value to send
@@ -45,14 +45,14 @@ public class Protocol {
 	{
 		byte[] header = new byte[3];
 		header[0] = bParamType;
-		
+
 		//2 bytes are used to hold data length. Thus, max(data length) = 65535
 		header[1] = (byte) (baParamTab.length >> 8);	
 		header[2] = (byte) baParamTab.length;
 
 		//Write data to outputStream
-		_ctlout.write(header);
-		_ctlout.write(baParamTab);
+		_ctlOutStream.write(header);
+		_ctlOutStream.write(baParamTab);
 	}
 
 	/* Populate Message byte array with specific number of bytes of data
@@ -69,7 +69,7 @@ public class Protocol {
 		msgParam.initBodySize(iParamAmount);
 		while (read != iParamAmount) {
 			//tmp = _ctlin.read(msg.body, read, amount - read);
-			tmp = _ctlin.read(msgParam._yaBody, read, iParamAmount - read);
+			tmp = _ctlInStream.read(msgParam._yaBody, read, iParamAmount - read);
 			if (tmp <= 0) {
 				return read;
 			}
@@ -101,10 +101,10 @@ public class Protocol {
 		 * msg.type = msg.body[0];
 		length = ((int) msg.body[1] & 0xFF) << 8;
 		length += (int) msg.body[2] & 0xFF;
-		*/
+		 */
 		byte [] yaMsgBody = msgParam.getBody();
 		msgParam.setType(yaMsgBody[0]);
-		
+
 		//Get data length
 		length = ((int) yaMsgBody[1] & 0xFF) << 8;
 		length += (int) yaMsgBody[2] & 0xFF; 
@@ -115,14 +115,14 @@ public class Protocol {
 		return 0;
 	}
 
-	/* Method to clsoe open Streams
+	/* Method to close open Streams
 	 * @param none
 	 * @return none*/
 	public void close()
 	{
 		try {
-			_ctlin.close();
-			_ctlout.close();
+			_ctlInStream.close();
+			_ctlOutStream.close();
 		}
 		catch (IOException e) {
 			e.printStackTrace();

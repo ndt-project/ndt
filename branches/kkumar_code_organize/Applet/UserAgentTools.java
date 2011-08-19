@@ -1,9 +1,16 @@
-/* This class has 
-* code taken from http://nerds.palmdrive.net/useragent/code.html
-* 
-* It has been move out and made into a non-static , outer class that can be replaced more quickly, if need be
-* TODO: this comment may be removed
-*/
+/* This class has code taken from
+ *   http://nerds.palmdrive.net/useragent/code.html
+ *
+ * Class used to obtain information about who is accessing a web-server.
+ *
+ * When a web browser accesses a web-server, it usually transmits a "User-Agent" string. 
+ * This is expected to include the name and versions of the browser and 
+ * the underlying Operating System. Though the information inside a user-agent string is not restricted to
+ * these alone, currently, NDT uses this to get Browser OS only. 
+ * 
+ * It has been moved out and made into a non-static outer class that can be replaced more quickly, if need be
+ * 
+ */
 //private static class UserAgentTools {
 public class UserAgentTools {
 
