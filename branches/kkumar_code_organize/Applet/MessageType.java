@@ -1,10 +1,4 @@
-/* Class to define the NDTP control message types 
- * 
- * Moved out of Tcpbw100.java
- * Changed access specifier of constants to public from private. These are static message
- *  types and not data members, and having public access privilege will not affect encapsulation
- *  TODO: Revisit documentation. Currently used also to hold record change history
- * 
+/* Class to define the NDTP control message types  
  * */
 
 public class MessageType {
