@@ -1,20 +1,47 @@
 #summary Description of the data collected by NDT
 
-=NDT data format= 
+=Data collected by the NDT= 
 
-NDT client/server program streams data for 10 seconds from the client to the server and a 2nd 10 sec test streams data in the opposite direction. The measured throughput (bytes transfered / time) for each test is reported to the user.
+== Abstract == 
 
-NDT records the following for each test run:
- 
-  * A *tcpdump trace* for every upload/download tests. This is a standard trace file for all packets (except the initial syn & syn/ack exchange). The tcpdump and tcptrace programs can read these files.
- 
-  * A *web100 snaplog trace* for every upload/download test. This file contains all the the web100 kernel MIB variables in 5 msec increments. The NDT package comes with a utility (called genplot) that can convert these trace files into text or xplot graph files. Alternatively the user can write their own analysis program using the web100 library functions.
+The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. The measured factors along with some additional analysis and detailed test traces are stored by the server for the future reuse. Moreover, multi-level results allow novice and expert users to view and understand the test results.
 
-  * The final value of 50 web100 variables with some analysis details in the *web100srv.log* file. The list of logged variables with a short description can be found in the [NDTProtocol#Appendix_A._web100_variables NDT Protocol document].
+== Table of Contents ==
 
-  * A *cputime trace* for the whole session. This file contains lines with `times` routine results recorded using a 100ms interval.
+<wiki:toc max_depth="3" />
 
-  * A *meta data file (.meta)* for every test session. This meta data file contains the names of the above files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. A sample of that data is
+== Introduction ==
+
+The NDT may store test results data in the following files:
+
+|| *File* || *Scope* || *Mandatory/Optional* ||
+|| *tcpdump trace* || C2S/S2C tests || *optional* ||
+|| *web100 snaplog trace* || C2S/S2C tests || *optional* ||
+|| *web100srv.log* || test session || mandatory ||
+|| *cputime trace* || test session || *optional* ||
+|| *meta data file* || test session || mandatory ||
+
+==Collected data formats==
+
+===tcpdump trace===
+
+This is a standard trace file for all packets (except the initial syn & syn/ack exchange). The tcpdump and tcptrace programs can read these files.
+
+===web100 snaplog trace===
+
+This file contains all the the web100 kernel MIB variables in 5 msec increments. The NDT package comes with a utility (called genplot) that can convert these trace files into text or xplot graph files. Alternatively the user can write their own analysis program using the web100 library functions.
+
+===web100srv.log file===
+
+The final value of the web100 variables with some analysis details are stored in the web100srv.log file. The list of logged variables with a short description can be found in the [NDTProtocol#Appendix_A._web100_variables NDT Protocol document].
+
+===cputime trace===
+
+This file contains lines with `times` routine results recorded using a 100ms interval.
+
+===meta data file===
+
+This meta data file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. A sample of that data is
  
 {{{
 [iupui_ndt@mlab1 ~]$ cat /usr/local/ndt/serverdata/
@@ -37,6 +64,8 @@ Summary data:313,2246,1658,0,69963,1020,19,8,1961,0,1448,392,1428,525600,112560,
 43440,0,10001122,25307,2899352,0,15,15,21720,270,525600,100,0,0,0,1,6,2,8,10,8,1961,
 66,10,22,964,0,166,0,-1208754176,3,0,31,0,360,1448,43440,8
 }}}
+
+==Displaying collected data==
 
 The NDT server also contains a Java application that can look through the NDT log files and link log entries to trace files, and it also simplifies the viewing of this data. The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
  
