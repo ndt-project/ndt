@@ -111,7 +111,7 @@
 		</HorizontalScrollView>
 		<RelativeLayout android:orientation="horizontal"
 			android:layout_width="fill_parent" android:layout_height="wrap_content"
-			android:padding="5sp" android:layout_alignParentBottom="true">
+			android:padding="10sp" android:layout_alignParentBottom="true">
 			<LinearLayout android:orientation="vertical"
 				android:layout_alignParentLeft="true" android:layout_width="wrap_content"
 				android:layout_height="wrap_content">
@@ -121,7 +121,7 @@
 				<TextView android:layout_width="fill_parent"
 					android:layout_height="wrap_content" android:id="@+id/MoreInfo"
 					android:text="@string/results_more_about" style="@style/NdtResultsMoreInfo"
-					android:padding="0sp" />
+					android:paddingTop="5sp" android:padding="0sp" />
 			</LinearLayout>
 			<LinearLayout android:orientation="vertical"
 				android:layout_alignParentRight="true" android:layout_width="wrap_content"

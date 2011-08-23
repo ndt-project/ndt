@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -80,12 +79,14 @@ public class ResultsActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		Map<String, Object> variables = (Map<String, Object>) getIntent()
+		Intent intent = getIntent();
+		Map<String, Object> variables = (Map<String, Object>) intent
 				.getSerializableExtra(NdtService.EXTRA_VARS);
 		formatSummaryResults(variables);
 		formatDetailedResults(variables);
-		formatAdvancedResults(getIntent().getStringExtra(
-				NdtService.EXTRA_DIAG_STATUS));
+		String diagnosticStatus = intent.getStringExtra(
+				NdtService.EXTRA_DIAG_STATUS);
+		formatAdvancedResults(diagnosticStatus);
 		
 		Toast resultsHint = Toast.makeText(getApplicationContext(), getString(R.string.results_swipe_hint), 10);
 		resultsHint.show();
@@ -143,6 +144,46 @@ public class ResultsActivity extends Activity {
 				variables, "pub_WaitSec", "pub_CurRTO"));
 		results.append(formatDetailedLine(R.string.results_detailed_ack,
 				variables, "pub_SACKsRcvd"));
+		
+		results.append('\n');
+		// TODO finish filling in the rest
+
+//		  if (a.get_mismatch() == "yes") {
+//		    d += "A duplex mismatch condition was detected.<br>";
+//		  }
+//		  else {
+//		    d += "No duplex mismatch condition was detected.<br>";
+//		  }
+//
+//		  if (a.get_Bad_cable() == "yes") {
+//		    d += "The test detected a cable fault.<br>";
+//		  }
+//		  else {
+//		    d += "The test did not detect a cable fault.<br>";
+//		  }
+//
+//		  if (a.get_congestion() == "yes") {
+//		    d += "Network congestion may be limiting the connection.<br>";
+//		  }
+//		  else {
+//		    d += "No network congestion was detected.<br>";
+//		  }
+//
+//		  if (a.get_natStatus() == "yes") {
+//		    d += "A network addess translation appliance was detected.<br>";
+//		  }
+//		  else {
+//		    d += "No network addess translation appliance was detected.<br>";
+//		  }
+//
+//		  d += "<br>";
+//
+//		  d += a.get_cwndtime() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
+//		  d += a.get_rcvrLimiting() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
+//		  d += "Optimal receive buffer: " + a.get_optimalRcvrBuffer() + " bytes<br>";
+//		  d += "Bottleneck link: " + a.get_AccessTech() + "<br>";
+//		  d += a.get_DupAcksOut() + " duplicate ACKs set<br>";
+
 
 		TextView textView = (TextView) findViewById(R.id.DetailedResultsInfo);
 		textView.setText(results);
@@ -151,7 +192,6 @@ public class ResultsActivity extends Activity {
 	private void formatAdvancedResults(String diagnosticStatus) {
 		String advanced = getString(R.string.results_advanced_web100,
 				diagnosticStatus);
-		Log.i(Constants.LOG_TAG, diagnosticStatus);
 		TextView textView = (TextView) findViewById(R.id.AdvancedResultsInfo);
 		textView.setText(advanced);
 	}

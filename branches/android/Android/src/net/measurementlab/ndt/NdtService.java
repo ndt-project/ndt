@@ -195,7 +195,10 @@ public class NdtService extends Service {
 					message.trim()));
 
 			if (statusBuffers.containsKey(viewId)) {
-				statusBuffers.get(viewId).append(message).append('\n');
+				statusBuffers.get(viewId).append(message);
+				if (!message.endsWith("\n")) {
+					statusBuffers.get(viewId).append('\n');
+				}
 			}
 
 			if (message.contains(C2S_MSG_FRAGMENT)

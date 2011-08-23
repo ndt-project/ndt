@@ -133,6 +133,7 @@ public class TestsActivity extends Activity {
 		imageView.setImageDrawable(null);
 		Intent intent = new Intent(getApplicationContext(), ResultsActivity.class);
 		intent.putExtra(NdtService.EXTRA_VARS, status.getSerializableExtra(NdtService.EXTRA_VARS));
+		intent.putExtra(NdtService.EXTRA_DIAG_STATUS, status.getStringExtra(NdtService.EXTRA_DIAG_STATUS));
 		startActivity(intent);
 	}
 
