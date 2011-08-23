@@ -18,6 +18,13 @@ There are several NDT mailing lists:
  * [https://lists.internet2.edu/sympa/info/ndt-announce Announcement List]
  * [https://lists.internet2.edu/sympa/info/ndt-users Users List]
 
+== Documentation ==
+
+ * [NDTProtocol Description of the NDT Protocol]
+ * [NDTTestMethodology Description of the NDT test methodology]
+ * [NDTDataFormat Description of the data collected by NDT]
+ * [WarningsAndMessages NDT Common Warnings and Errors]
+
 == Last Updated ==
 
 $Id$
