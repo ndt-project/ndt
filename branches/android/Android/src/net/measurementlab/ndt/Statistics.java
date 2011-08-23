@@ -11,7 +11,6 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 /**
  * Shows the testing report to the user, email application also could be called here.
@@ -30,22 +29,10 @@ public class Statistics extends Activity implements OnClickListener {
   @Override
   public void onCreate(Bundle icicle) {
     super.onCreate(icicle);
-    setContentView(R.layout.stats);
-    Bundle statsInfo = getIntent().getExtras();
     date = new Date();
-    buttonEmail = (Button) findViewById(R.id.ButtonEmail);
+    buttonEmail = null;
     buttonEmail.setOnClickListener(this);
-    if (statsInfo != null) {
-      statistics = statsInfo.getString(Constants.INTENT_STATISTICS);
-      location = statsInfo.getString(Constants.INTENT_LOCATION);
-      network = statsInfo.getString(Constants.INTENT_NETWORK);
-    } else {
-      Toast toast =
-          Toast.makeText(getApplicationContext(), R.string.intent_error, Toast.LENGTH_SHORT);
-      toast.show();
-      finish();
-    }
-    textViewStatistics = (TextView) findViewById(R.id.TextViewStatistics);
+    textViewStatistics = null;
     textViewStatistics.setText(statistics);
   }
 

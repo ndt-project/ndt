@@ -67,7 +67,7 @@ import java.net.*;
 import java.util.*;
 
 public class NdtTests implements Runnable {
-  public static final String VERSION = "3.6.3";
+  public static final String VERSION = "3.6.4";
 
   // Network (physical layer) types
   public static final String NETWORK_WIFI = "WIFI";

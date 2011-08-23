@@ -1,24 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">NDT Mobile Client for Android Ready.</string>
     <string name="app_name">NDT Mobile Client</string>
-    <string name="choice_server_title">Choose Testing Server</string>
-    <string name="exit">Exit</string>
     <string name="about">About</string>
     <string name="start">Start</string>
-    <string name="options">Options</string>
-    <string name="statistics">Statistics</string>
     <string name="label_about_description">Copyright 2009 Google Inc.\n\nThis software is based in part on NDT: Copyright (c) 2003 University of Chicago.</string>
     <string name="label_about_title">About NDT Mobile Client for Android</string>
-    <string name="close">Close</string>
-    <string name="save">Save</string>
-    <string name="email">E-Mail</string>
-    <string name="cancel">Cancel</string>
-    <string name="warning">Warning</string>
-    <string name="contents_warning">Server list error. Shutting down NDT Mobile Client.</string>
-    <string name="fail_tip">Test failed.</string>
     <string name="serverlist_corrupted_tip">Server list corrupted, please contact the publisher.</string>
-    <string name="test_begins_at">Testing started at %1$s</string>
     <string name="from_header">From:</string>
     <string name="to_header">To:</string>
     <string name="server_indicator">Server: %1$s</string>
@@ -29,11 +16,7 @@
     <string name="default_server_indicator">Default server: %1$s</string>
     <string name="network_type_indicator">NetworkType: %1$s</string>
     <string name="changed_server">Changed testing server to: %1$s</string>
-    <string name="os_line">OS: Name = %1$s, Architecture = %2$s, Version = %3$s</string>
-    <string name="java_line">Java: Version = %1$s, Vendor = %2$s</string>
     <string name="email_title">NDT Mobile Client for Android Result on %1$s</string>
-    <string name="intent_error">Intent Error.</string>
-    <string name="test_again">Press Start to test again.</string>
     
     <string name="mlab">M-Lab</string>
     <string name="mlabdesc">Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds — it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network administrator.</string>
@@ -45,13 +28,25 @@
     <string name="tests_test_server">TEST SERVER</string>
     <string name="tests_your_computer">YOUR COMPUTER</string>
     <string name="results_header">YOUR TEST RESULTS</string>
+    <string name="results_swipe_hint">Swipe to view detailed and advanced results.</string>
     <string name="results_upload_speed_header">UPLOAD SPEED</string>
     <string name="results_download_speed_header">DOWNLOAD SPEED</string>
     <string name="results_mpbs">mb/s</string>
     <string name="results_latency_label">Network latency:</string>
-    <string name="results_latency">{0} msec round trip time</string>
+    <string name="results_latency">%d msec round trip time</string>
     <string name="results_jitter_label">Jitter:</string>
-    <string name="results_jitter">{0} msec</string>
+    <string name="results_jitter">%d msec</string>
+    <string name="results_summary">Summary Results</string>
+    <string name="results_detailed">Detailed Results</string>
+    <string name="results_detailed_system">Your system: %1$s version %2$s \nJava version: %3$s (%4$s)</string>
+	<string name="results_detailed_tcp">TCP receive window: %1$d current,\n\t%2$d maximum</string>
+	<string name="results_detailed_packet_loss">%f packets lost during test</string>
+	<string name="results_detailed_rtt">Round trip time: %1$d msec (minimum),\n\t%2$d msec (maximum),\n\t%3$f msec (average)</string>
+	<string name="results_detailed_jitter">Jitter: %d msec</string>
+	<string name="results_detailed_timeout">%1$d seconds spend waiting following a timeout\nTCP time-out counter: %2$d</string>
+	<string name="results_detailed_ack">%d selective acknowledgement packets received</string>
+    <string name="results_advanced">Advanced Results</string>
+    <string name="results_advanced_web100">WEB100 Kernel Variables:\n%s</string>
     <string name="results_more_about">More information about M-Lab</string>
     <string name="results_test_again">Test Again</string>
 </resources>

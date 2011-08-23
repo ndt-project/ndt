@@ -10,7 +10,8 @@
 	<RelativeLayout android:orientation="vertical"
 		android:layout_width="fill_parent" android:layout_height="fill_parent">
 		<HorizontalScrollView android:orientation="horizontal"
-			android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_alignParentTop="true">
+			android:layout_width="fill_parent" android:layout_height="fill_parent"
+			android:layout_alignParentTop="true">
 			<LinearLayout android:layout_width="fill_parent"
 				android:layout_height="fill_parent" android:orientation="horizontal">
 				<!-- summary results -->
@@ -81,19 +82,31 @@
 					</LinearLayout>
 				</LinearLayout>
 				<!-- detailed results -->
-				<LinearLayout android:orientation="vertical"
+				<ScrollView android:orientation="vertical"
 					android:layout_width="fill_parent" android:layout_height="fill_parent">
-					<TextView android:layout_width="fill_parent"
-						android:layout_height="wrap_content" android:paddingTop="15sp"
-						android:text="Details" style="@style/NdtHeader" android:id="@+id/DetailedResultsHeader" />
-				</LinearLayout>
+					<LinearLayout android:orientation="vertical"
+						android:layout_width="fill_parent" android:layout_height="fill_parent">
+						<TextView android:layout_width="fill_parent"
+							android:layout_height="wrap_content" android:paddingTop="15sp"
+							android:text="Details" style="@style/NdtHeader" android:id="@+id/DetailedResultsHeader" />
+						<TextView android:layout_width="fill_parent"
+							android:layout_height="wrap_content" android:paddingTop="15sp"
+							style="@style/NdtTestsDetail.Info" android:id="@+id/DetailedResultsInfo" />
+					</LinearLayout>
+				</ScrollView>
 				<!-- advanced results -->
-				<LinearLayout android:orientation="vertical"
+				<ScrollView android:orientation="vertical"
 					android:layout_width="fill_parent" android:layout_height="fill_parent">
-					<TextView android:layout_width="fill_parent"
-						android:layout_height="wrap_content" android:paddingTop="15sp"
-						android:text="Advanced" style="@style/NdtHeader" android:id="@+id/AdvancedResultsHeader" />
-				</LinearLayout>
+					<LinearLayout android:orientation="vertical"
+						android:layout_width="fill_parent" android:layout_height="fill_parent">
+						<TextView android:layout_width="fill_parent"
+							android:layout_height="wrap_content" android:paddingTop="15sp"
+							android:text="Advanced" style="@style/NdtHeader" android:id="@+id/AdvancedResultsHeader" />
+						<TextView android:layout_width="fill_parent"
+							android:layout_height="wrap_content" android:paddingTop="15sp"
+							style="@style/NdtTestsDetail.Info" android:id="@+id/AdvancedResultsInfo" />
+					</LinearLayout>
+				</ScrollView>
 			</LinearLayout>
 		</HorizontalScrollView>
 		<RelativeLayout android:orientation="horizontal"

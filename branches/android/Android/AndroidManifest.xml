@@ -11,8 +11,6 @@
     </activity>
 	<activity android:name=".TestsActivity" android:label="@string/app_name" android:theme="@style/NdtTheme" />
 	<activity android:name=".ResultsActivity" android:label="@string/app_name" android:theme="@style/NdtTheme.Blue" />
-    <!-- SelectServer.java: Options Activity for selecting the test server -->
-    <activity android:name=".SelectServer" android:label="@string/choice_server_title" />
     <service android:name=".NdtService" />
   </application>
   <uses-sdk android:minSdkVersion="8" />

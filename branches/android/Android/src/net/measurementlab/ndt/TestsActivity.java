@@ -142,18 +142,18 @@ public class TestsActivity extends Activity {
 			@Override
 			public void onReceive(Context context, Intent intent) {
 				Log.i(LOG_TAG, "Status change received.");
-				int status = intent.getIntExtra(NdtService.EXTRA_STATUS, NdtService.PREPARING);
+				int status = intent.getIntExtra(NdtService.EXTRA_STATUS, NdtService.STATUS_PREPARING);
 				switch (status) {
-				case NdtService.PREPARING:
+				case NdtService.STATUS_PREPARING:
 					preparing();
 					break;
-				case NdtService.UPLOADING:
+				case NdtService.STATUS_UPLOADING:
 					uploading();
 					break;
-				case NdtService.DOWNLOADING:
+				case NdtService.STATUS_DOWNLOADING:
 					downloading();
 					break;
-				case NdtService.COMPLETE:
+				case NdtService.STATUS_COMPLETE:
 					complete(intent);
 					break;
 				default:
