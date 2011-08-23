@@ -5,8 +5,13 @@ import java.text.MessageFormat;
 import java.util.Map;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.Button;
 import android.widget.TextView;
 
 public class ResultsActivity extends Activity {
@@ -33,6 +38,40 @@ public class ResultsActivity extends Activity {
 		textView.setTypeface(typeFace);
 		textView = (TextView) findViewById(R.id.DownloadSpeedMbps);
 		textView.setTypeface(typeFace);
+
+		textView = (TextView) findViewById(R.id.DetailedResultsHeader);
+		textView.setTypeface(typeFace);
+
+		textView = (TextView) findViewById(R.id.AdvancedResultsHeader);
+		textView.setTypeface(typeFace);
+
+		textView = (TextView) findViewById(R.id.MoreInfo);
+		textView.setTypeface(typeFace);
+
+		OnClickListener aboutListener = new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://measurementlab.net"));
+				startActivity(intent);
+			}
+		};
+		View aboutView = findViewById(R.id.MoreInfo);
+		aboutView.setOnClickListener(aboutListener);
+		aboutView = findViewById(R.id.MLabLogo);
+		aboutView.setOnClickListener(aboutListener);
+		
+
+		Button startButton = (Button) findViewById(R.id.ButtonStart);
+		startButton.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(getApplicationContext(),
+						TestsActivity.class);
+				startActivity(intent);
+			}
+		});
 	}
 	
 	@SuppressWarnings("unchecked")

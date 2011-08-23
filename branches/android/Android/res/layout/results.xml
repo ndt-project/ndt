@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	android:orientation="vertical" android:layout_width="fill_parent"
-	android:layout_height="wrap_content" android:id="@+id/VisibleResults">
-	<LinearLayout android:orientation="vertical"
-		android:layout_width="fill_parent" android:layout_height="wrap_content">
-		<!-- header text -->
-		<TextView android:layout_width="fill_parent"
-			android:layout_height="wrap_content" android:paddingTop="15sp"
-			android:id="@+id/ResultsHeader" android:text="@string/results_header"
-			style="@style/NdtHeader" />
+	android:layout_height="fill_parent">
+	<!-- header text -->
+	<TextView android:layout_width="fill_parent"
+		android:layout_height="wrap_content" android:paddingTop="15sp"
+		android:id="@+id/ResultsHeader" android:text="@string/results_header"
+		style="@style/NdtHeader" />
+	<RelativeLayout android:orientation="vertical"
+		android:layout_width="fill_parent" android:layout_height="fill_parent">
 		<HorizontalScrollView android:orientation="horizontal"
-			android:layout_width="fill_parent" android:layout_height="fill_parent">
+			android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_alignParentTop="true">
 			<LinearLayout android:layout_width="fill_parent"
 				android:layout_height="fill_parent" android:orientation="horizontal">
 				<!-- summary results -->
@@ -82,24 +82,23 @@
 				</LinearLayout>
 				<!-- detailed results -->
 				<LinearLayout android:orientation="vertical"
-					android:layout_width="fill_parent" android:layout_height="fill_parent"
-					android:id="@+id/DetailedResults">
+					android:layout_width="fill_parent" android:layout_height="fill_parent">
 					<TextView android:layout_width="fill_parent"
 						android:layout_height="wrap_content" android:paddingTop="15sp"
-						android:text="Details" style="@style/NdtHeader" />
+						android:text="Details" style="@style/NdtHeader" android:id="@+id/DetailedResultsHeader" />
 				</LinearLayout>
 				<!-- advanced results -->
 				<LinearLayout android:orientation="vertical"
-					android:layout_width="fill_parent" android:layout_height="fill_parent"
-					android:id="@+id/AdvancedResults">
+					android:layout_width="fill_parent" android:layout_height="fill_parent">
 					<TextView android:layout_width="fill_parent"
 						android:layout_height="wrap_content" android:paddingTop="15sp"
-						android:text="Advanced" style="@style/NdtHeader" />
+						android:text="Advanced" style="@style/NdtHeader" android:id="@+id/AdvancedResultsHeader" />
 				</LinearLayout>
 			</LinearLayout>
 		</HorizontalScrollView>
 		<RelativeLayout android:orientation="horizontal"
-			android:layout_width="fill_parent" android:layout_height="wrap_content">
+			android:layout_width="fill_parent" android:layout_height="wrap_content"
+			android:padding="5sp" android:layout_alignParentBottom="true">
 			<LinearLayout android:orientation="vertical"
 				android:layout_alignParentLeft="true" android:layout_width="wrap_content"
 				android:layout_height="wrap_content">
@@ -107,15 +106,16 @@
 					android:layout_width="wrap_content" android:layout_height="wrap_content"
 					android:src="@drawable/mlab_logo_small" />
 				<TextView android:layout_width="fill_parent"
-					android:layout_height="wrap_content" android:paddingTop="15sp"
-					android:text="@string/results_header" style="@style/NdtHeader" />
+					android:layout_height="wrap_content" android:id="@+id/MoreInfo"
+					android:text="@string/results_more_about" style="@style/NdtResultsMoreInfo"
+					android:padding="0sp" />
 			</LinearLayout>
 			<LinearLayout android:orientation="vertical"
 				android:layout_alignParentRight="true" android:layout_width="wrap_content"
 				android:layout_height="wrap_content">
-				<Button android:text="@string/start" android:id="@+id/ButtonStart"
+				<Button android:text="@string/results_test_again" android:id="@+id/ButtonStart"
 					style="@style/NdtButton" />
 			</LinearLayout>
 		</RelativeLayout>
-	</LinearLayout>
-</ScrollView>
+	</RelativeLayout>
+</LinearLayout>

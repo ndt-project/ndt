@@ -5,6 +5,7 @@ package net.measurementlab.ndt;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -37,6 +38,16 @@ public class InitialActivity extends Activity {
 			public void onClick(View v) {
 				Intent intent = new Intent(getApplicationContext(),
 						TestsActivity.class);
+				startActivity(intent);
+			}
+		});
+
+		Button aboutButton = (Button) findViewById(R.id.ButtonAbout);
+		aboutButton.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://measurementlab.net"));
 				startActivity(intent);
 			}
 		});

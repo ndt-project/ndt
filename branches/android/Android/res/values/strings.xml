@@ -52,4 +52,6 @@
     <string name="results_latency">{0} msec round trip time</string>
     <string name="results_jitter_label">Jitter:</string>
     <string name="results_jitter">{0} msec</string>
+    <string name="results_more_about">More information about M-Lab</string>
+    <string name="results_test_again">Test Again</string>
 </resources>
