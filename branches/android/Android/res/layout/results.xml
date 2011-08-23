@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 	android:orientation="vertical" android:layout_width="fill_parent"
-	android:layout_height="wrap_content"
-	android:id="@+id/VisibleResults">
+	android:layout_height="wrap_content" android:id="@+id/VisibleResults">
 	<LinearLayout android:orientation="vertical"
 		android:layout_width="fill_parent" android:layout_height="wrap_content">
 		<!-- header text -->
@@ -83,7 +82,7 @@
 				</LinearLayout>
 				<!-- detailed results -->
 				<LinearLayout android:orientation="vertical"
-					android:layout_width="wrap_content" android:layout_height="fill_parent"
+					android:layout_width="fill_parent" android:layout_height="fill_parent"
 					android:id="@+id/DetailedResults">
 					<TextView android:layout_width="fill_parent"
 						android:layout_height="wrap_content" android:paddingTop="15sp"
@@ -91,7 +90,7 @@
 				</LinearLayout>
 				<!-- advanced results -->
 				<LinearLayout android:orientation="vertical"
-					android:layout_width="wrap_content" android:layout_height="fill_parent"
+					android:layout_width="fill_parent" android:layout_height="fill_parent"
 					android:id="@+id/AdvancedResults">
 					<TextView android:layout_width="fill_parent"
 						android:layout_height="wrap_content" android:paddingTop="15sp"
@@ -99,11 +98,24 @@
 				</LinearLayout>
 			</LinearLayout>
 		</HorizontalScrollView>
-		<!-- TODO relative layout -->
-		<!-- TODO linear layout to the left, vertical with image then text -->
-		<!-- TODO button to the right -->
-		<TextView android:layout_width="fill_parent"
-			android:layout_height="wrap_content" android:paddingTop="15sp"
-			android:text="@string/results_header" style="@style/NdtHeader" />
+		<RelativeLayout android:orientation="horizontal"
+			android:layout_width="fill_parent" android:layout_height="wrap_content">
+			<LinearLayout android:orientation="vertical"
+				android:layout_alignParentLeft="true" android:layout_width="wrap_content"
+				android:layout_height="wrap_content">
+				<ImageView android:id="@+id/MLabLogo"
+					android:layout_width="wrap_content" android:layout_height="wrap_content"
+					android:src="@drawable/mlab_logo_small" />
+				<TextView android:layout_width="fill_parent"
+					android:layout_height="wrap_content" android:paddingTop="15sp"
+					android:text="@string/results_header" style="@style/NdtHeader" />
+			</LinearLayout>
+			<LinearLayout android:orientation="vertical"
+				android:layout_alignParentRight="true" android:layout_width="wrap_content"
+				android:layout_height="wrap_content">
+				<Button android:text="@string/start" android:id="@+id/ButtonStart"
+					style="@style/NdtButton" />
+			</LinearLayout>
+		</RelativeLayout>
 	</LinearLayout>
 </ScrollView>
