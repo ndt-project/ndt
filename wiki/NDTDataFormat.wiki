@@ -31,7 +31,9 @@ This is a standard trace file for all packets (except the initial syn & syn/ack 
 
 ===web100 snaplog trace===
 
-This file contains all the the web100 kernel MIB variables in 5 msec increments. The NDT package comes with a utility (called genplot) that can convert these trace files into text or xplot graph files. Alternatively the user can write their own analysis program using the web100 library functions.
+Writing snaplog file is enabled by `--snaplog` option.
+
+This file contains all the the [http://www.web100.org/ web100] kernel MIB variables' values written in a fixed time (default is 5 msec) increments. The list of logged variables with a short description can be found in the [NDTProtocol#Appendix_A._web100_variables NDT Protocol document].
 
 ===web100srv.log file===
 
@@ -70,6 +72,8 @@ Summary data:313,2246,1658,0,69963,1020,19,8,1961,0,1448,392,1428,525600,112560,
 ==Displaying collected data==
 
 The tcpdump files can be read using [http://www.tcpdump.org/ tcpdump] and [http://www.tcptrace.org/ tcptrace] programs.
+
+The NDT package comes with a utility (called genplot) that can convert snaplog trace files into text or xplot graph files. Alternatively the user can write their own analysis program using the web100 library functions.
 
 The NDT server also contains a Java application that can look through the NDT log files and link log entries to trace files, and it also simplifies the viewing of this data. The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
  
