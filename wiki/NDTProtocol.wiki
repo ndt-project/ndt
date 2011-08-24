@@ -446,6 +446,7 @@ http://www.soldevelo.com/images/ndt/28.%20A%20META%20test%20session%20overview%2
 
 = Appendix A. web100 variables =
 
+|| !AbruptTimeouts || The number of timeouts that occurred without any immediately preceding duplicate acknowledgments or other indications of congestion. Abrupt Timeouts indicate that the path lost an entire window of data or acknowledgments. Timeouts that are preceded by duplicate acknowledgments or other congestion signals (e.g., ECN) are not counted as abrupt, and might have been avoided by a more sophisticated Fast Retransmit algorithm. ||
 || CurMSS || The current maximum segment size (MSS), in octets.||
 || X_Rcvbuf || The socket receive buffer size in octets.  Note that the meaning of this variable is implementation dependent.  In particular, it may or may not include the reassembly queue. ||
 || X_Sndbuf || The socket send buffer size in octets.  Note that the meaning of this variable is implementation dependent. Particularly, it may or may not include the retransmit queue. ||
@@ -461,6 +462,7 @@ http://www.soldevelo.com/images/ndt/28.%20A%20META%20test%20session%20overview%2
 || !CurRwinRcvd || The most recent window advertisement received, in octets. ||
 || !CurRwinSent || The most recent window advertisement sent, in octets. ||
 || !CurSsthresh || The current slow start threshold in octets. ||
+|| !CurTimeoutCount || The current number of times the retransmit timeout has expired without receiving an acknowledgment for new data. tcpEStatsStackCurTimeoutCount is reset to zero when new data is acknowledged and incremented for each invocation of section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
 || DSACKDups || The number of duplicate segments reported to the local host by D-SACK blocks. ||
 || !DataBytesIn || The number of octets contained in received data segments, including retransmitted data.  Note that this does not include TCP headers. ||
 || !DataBytesOut || The number of octets of data contained in transmitted segments, including retransmitted data.  Note that this does not include TCP headers. ||
@@ -505,6 +507,7 @@ http://www.soldevelo.com/images/ndt/28.%20A%20META%20test%20session%20overview%2
 || !SndLimBytesSender || The cumulative bytes sent while in the 'Sender Limited' state, as determined by the Local Host, when the Local Host is a sender.  This state is entered whenever TCP transmission stops because there is no more data in sender's buffer. ||
 || !SubsequentTimeouts || The number of times the retransmit timeout has expired after the RTO has been doubled. See section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
 || SumRTT || The sum of all sampled round trip times. ||
+|| !ThruBytesAcked || The number of octets for which cumulative acknowledgments have been received, on systems that can receive more than 10 million bits per second.  Note that this will be the sum of changes in tcpEStatsAppSndUna. ||
 || Timeouts || The number of times the retransmit timeout has expired when the RTO backoff multiplier is equal to one. ||
 || !TimestampsEnabled || Enabled(1) if TCP timestamps have been negotiated on, selfDisabled(2) if they are disabled or not implemented on the local host, or peerDisabled(3) if not negotiated by the remote hosts. ||
 || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
