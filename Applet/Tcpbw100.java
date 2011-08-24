@@ -94,7 +94,7 @@ import java.security.PrivilegedAction;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "3.6.4";
+  private static final String VERSION = "3.6.4-3.6.4.1";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
