@@ -12,7 +12,7 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 == Introduction ==
 
-The NDT uses the following files to store test results data:
+The NDT uses the following files to store the test results data:
 
 || *File* || *Scope of the collected data* || *Always used?* ||
 || *tcpdump trace* || C2S/S2C tests || *NO* (enabled by `-t, --tcpdump` options) ||
@@ -37,7 +37,66 @@ This file contains all the the [http://www.web100.org/ web100] kernel MIB variab
 
 ===web100srv.log file===
 
-The final value of the web100 variables with some analysis details are stored in the web100srv.log file. The list of logged variables with a short description can be found in the [NDTProtocol#Appendix_A._web100_variables NDT Protocol document].
+The NDT always writes a one-line summary of the test to the web100srv.log file. This one-line summary contains the final values of some of the web100 variables with an additional analysis details.
+
+The particular values are separated with commas without any spaces. The results are stored with the following order:
+
+|| *#* || *Name* || *Description/Comment* ||
+|| 1. || date || start time of the test session (in the form "Wed Jun 30 21:49:08 1993\n") ||
+|| 2. || client name || remote (client) host fully qualified name ||
+|| 3. || MID throughput speed || CWND limited throughput speed measured during Middlebox test (kb/s) ||
+|| 4. || S2C throughput speed || value in kb/s ||
+|| 5. || C2S throughput speed || value in kb/s ||
+|| 6. || Timeouts || The number of times the retransmit timeout has expired when the RTO backoff multiplier is equal to one. ||
+|| 7. || SumRTT || ||
+|| 8. || CountRTT || ||
+|| 9. || PktsRetrans || ||
+|| 10. || FastRetran || ||
+|| 11. || DataPktsOut || ||
+|| 12. || AckPktsOut || ||
+|| 13. || CurrentMSS || ||
+|| 14. || DupAcksIn || ||
+|| 15. || AckPktsIn || ||
+|| 16. || MaxRwinRcvd || ||
+|| 17. || Sndbuf || ||
+|| 18. || MaxCwnd || ||
+|| 19. || SndLimTimeRwin || ||
+|| 20. || SndLimTimeCwnd || ||
+|| 21. || SndLimTimeSender || ||
+|| 22. || DataBytesOut || ||
+|| 23. || SndLimTransRwin || ||
+|| 24. || SndLimTransCwnd || ||
+|| 25. || SndLimTransSender || ||
+|| 26. || MaxSsthresh || ||
+|| 27. || CurrentRTO || ||
+|| 28. || CurrentRwinRcvd || ||
+|| 29. || link || ||
+|| 30. || mismatch || ||
+|| 31. || bad_cable || ||
+|| 32. || half_duplex || ||
+|| 33. || congestion || ||
+|| 34. || c2sdata || ||
+|| 35. || c2sack || ||
+|| 36. || s2cdata || ||
+|| 37. || s2cack || ||
+|| 38. || CongestionSignals || ||
+|| 39. || PktsOut || ||
+|| 40. || MinRTT || ||
+|| 41. || RcvWinScale || ||
+|| 42. || autotune || ||
+|| 43. || CongAvoid || ||
+|| 44. || CongestionOverCount || ||
+|| 45. || MaxRTT || ||
+|| 46. || OtherReductions || ||
+|| 47. || CurTimeoutCount || ||
+|| 48. || AbruptTimeouts || ||
+|| 49. || SendStall || ||
+|| 50. || SlowStart || ||
+|| 51. || SubsequentTimeouts || ||
+|| 52. || ThruBytesAcked || ||
+|| 53. || peaks.min || ||
+|| 54. || peaks.max || ||
+|| 55. || peaks.amount || ||
 
 ===cputime trace===
 
