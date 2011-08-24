@@ -47,29 +47,29 @@ The particular values are separated with commas without any spaces. The results 
 || 3. || MID throughput speed || CWND limited throughput speed measured during Middlebox test (kb/s) ||
 || 4. || S2C throughput speed || value in kb/s ||
 || 5. || C2S throughput speed || value in kb/s ||
-|| 6. || Timeouts || The number of times the retransmit timeout has expired when the RTO backoff multiplier is equal to one. ||
-|| 7. || SumRTT || ||
-|| 8. || CountRTT || ||
-|| 9. || PktsRetrans || ||
-|| 10. || FastRetran || ||
-|| 11. || DataPktsOut || ||
-|| 12. || AckPktsOut || ||
-|| 13. || CurrentMSS || ||
-|| 14. || DupAcksIn || ||
-|| 15. || AckPktsIn || ||
-|| 16. || MaxRwinRcvd || ||
-|| 17. || Sndbuf || ||
-|| 18. || MaxCwnd || ||
-|| 19. || SndLimTimeRwin || ||
-|| 20. || SndLimTimeCwnd || ||
-|| 21. || SndLimTimeSender || ||
-|| 22. || DataBytesOut || ||
-|| 23. || SndLimTransRwin || ||
-|| 24. || SndLimTransCwnd || ||
-|| 25. || SndLimTransSender || ||
-|| 26. || MaxSsthresh || ||
-|| 27. || CurrentRTO || ||
-|| 28. || CurrentRwinRcvd || ||
+|| 6. || Timeouts || (*{{{*}}}*) The number of times the retransmit timeout has expired when the RTO backoff multiplier is equal to one. ||
+|| 7. || SumRTT || (*{{{*}}}*) The sum of all sampled round trip times. ||
+|| 8. || CountRTT || (*{{{*}}}*) The number of round trip time samples included in tcpEStatsPathSumRTT and tcpEStatsPathHCSumRTT. ||
+|| 9. || !PktsRetrans || (*{{{*}}}*) The number of segments transmitted containing at least some retransmitted data. ||
+|| 10. || !FastRetran || (*{{{*}}}*) The number of invocations of the Fast Retransmit algorithm. ||
+|| 11. || !DataPktsOut || (*{{{*}}}*) The number of segments sent containing a positive length data segment. ||
+|| 12. || !AckPktsOut || (*{{{*}}}*) The number of pure ack packets that have been sent on this connection by the Local Host. ||
+|| 13. || CurMSS || (*{{{*}}}*) The current maximum segment size (MSS), in octets.||
+|| 14. || !DupAcksIn || (*{{{*}}}*) The number of duplicate ACKs received. ||
+|| 15. || !AckPktsIn || (*{{{*}}}*) The number of valid pure ack packets that have been received on this connection by the Local Host. ||
+|| 16. || !MaxRwinRcvd || (*{{{*}}}*) The maximum window advertisement received, in octets. ||
+|| 17. || Sndbuf || (*{{{*}}}*) The socket send buffer size in octets. Note that the meaning of this variable is implementation dependent. Particularly, it may or may not include the retransmit queue. ||
+|| 18. || !MaxCwnd || (*{{{*}}}*) The maximum congestion window used during Slow Start, in octets. ||
+|| 19. || !SndLimTimeRwin || (*{{{*}}}*) The cumulative time spent in the 'Receiver Limited' state. ||
+|| 20. || !SndLimTimeCwnd || (*{{{*}}}*) The cumulative time spent in the 'Congestion Limited' state. ||
+|| 21. || !SndLimTimeSender || (*{{{*}}}*) The cumulative time spent in the 'Sender Limited' state. ||
+|| 22. || !DataBytesOut || (*{{{*}}}*) The number of octets of data contained in transmitted segments, including retransmitted data. Note that this does not include TCP headers. ||
+|| 23. || !SndLimTransRwin || (*{{{*}}}*) The number of transitions into the 'Receiver Limited' state from either the 'Congestion Limited' or 'Sender Limited' states. This state is entered whenever TCP transmission stops because the sender has filled the announced receiver window. ||
+|| 24. || !SndLimTransCwnd || (*{{{*}}}*) The number of transitions into the 'Congestion Limited' state from either the 'Receiver Limited' or 'Sender Limited' states. This state is entered whenever TCP transmission stops because the sender has reached some limit defined by congestion control (e.g. cwnd) or other algorithms (retransmission timeouts) designed to control network traffic. ||
+|| 25. || !SndLimTransSender || (*{{{*}}}*) The number of transitions into the 'Sender Limited' state from either the 'Receiver Limited' or 'Congestion Limited' states. This state is entered whenever TCP transmission stops due to some sender limit such as running out of application data or other resources and the Karn algorithm. When TCP stops sending data for any reason which can not be classified as Receiver Limited or Congestion Limited it MUST be treated as Sender Limited. ||
+|| 26. || !MaxSsthresh || (*{{{*}}}*) The maximum slow start threshold, excluding the initial value. ||
+|| 27. || CurRTO || (*{{{*}}}*) The current value of the retransmit timer RTO. ||
+|| 28. || !CurRwinRcvd || (*{{{*}}}*) The most recent window advertisement received, in octets. ||
 || 29. || link || ||
 || 30. || mismatch || ||
 || 31. || bad_cable || ||
@@ -79,24 +79,26 @@ The particular values are separated with commas without any spaces. The results 
 || 35. || c2sack || ||
 || 36. || s2cdata || ||
 || 37. || s2cack || ||
-|| 38. || CongestionSignals || ||
-|| 39. || PktsOut || ||
-|| 40. || MinRTT || ||
-|| 41. || RcvWinScale || ||
+|| 38. || !CongestionSignals || (*{{{*}}}*) The number of multiplicative downward congestion window adjustments due to all forms of congestion signals, including Fast Retransmit, ECN and timeouts. This object summarizes all events that invoke the MD portion of AIMD congestion control, and as such is the best indicator of how cwnd is being affected by congestion. ||
+|| 39. || !PktsOut || (*{{{*}}}*) The total number of segments sent. ||
+|| 40. || MinRTT || (*{{{*}}}*) The minimum sampled round trip time. ||
+|| 41. || !RcvWinScale || (*{{{*}}}*) The value of Rcv.Wind.Scale. Note that RcvWinScale is either zero or the same as WinScaleSent. ||
 || 42. || autotune || ||
-|| 43. || CongAvoid || ||
-|| 44. || CongestionOverCount || ||
-|| 45. || MaxRTT || ||
-|| 46. || OtherReductions || ||
-|| 47. || CurTimeoutCount || ||
-|| 48. || AbruptTimeouts || ||
-|| 49. || SendStall || ||
-|| 50. || SlowStart || ||
-|| 51. || SubsequentTimeouts || ||
-|| 52. || ThruBytesAcked || ||
+|| 43. || !CongAvoid || (*{{{*}}}*) The number of times the congestion window has been increased by the Congestion Avoidance algorithm. ||
+|| 44. || !CongestionOverCount || (*{{{*}}}*) The number of congestion events which were 'backed out' of the congestion control state machine such that the congestion window was restored to a prior value. This can happen due to the Eifel algorithm [http://www.ietf.org/rfc/rfc3522.txt RFC3522] or other algorithms which can be used to detect and cancel spurious invocations of the Fast Retransmit Algorithm. ||
+|| 45. || MaxRTT || (*{{{*}}}*) The maximum sampled round trip time. ||
+|| 46. || !OtherReductions || (*{{{*}}}*) The number of congestion window reductions made as a result of anything other than AIMD congestion control algorithms. Examples of non-multiplicative window reductions include Congestion Window Validation [http://www.ietf.org/rfc/rfc2861.txt RFC2861] and experimental algorithms such as Vegas. ||
+|| 47. || !CurTimeoutCount || ||
+|| 48. || !AbruptTimeouts || ||
+|| 49. || !SendStall || (*{{{*}}}*) The number of interface stalls or other sender local resource limitations that are treated as congestion signals. ||
+|| 50. || !SlowStart || (*{{{*}}}*) The number of times the congestion window has been increased by the Slow Start algorithm. ||
+|| 51. || !SubsequentTimeouts || (*{{{*}}}*) The number of times the retransmit timeout has expired after the RTO has been doubled. See section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
+|| 52. || !ThruBytesAcked || ||
 || 53. || peaks.min || ||
 || 54. || peaks.max || ||
 || 55. || peaks.amount || ||
+
+(*{{{*}}}*) web100 variable
 
 ===cputime trace===
 
