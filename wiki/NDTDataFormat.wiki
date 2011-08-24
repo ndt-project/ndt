@@ -96,7 +96,7 @@ The particular values are separated with commas without any spaces. The results 
 || 52. || !ThruBytesAcked || (*{{{*}}}*) The number of octets for which cumulative acknowledgments have been received, on systems that can receive more than 10 million bits per second.  Note that this will be the sum of changes in tcpEStatsAppSndUna. ||
 || 53. || peaks.min || The minimal value of the CWND peak ||
 || 54. || peaks.max || The maximal value of the CWND peak ||
-|| 55. || peaks.amount || The number of CWND peaks ||
+|| 55. || peaks.amount || The amount of the CWND peaks ||
 
 (*{{{*}}}*) web100 variable
 
