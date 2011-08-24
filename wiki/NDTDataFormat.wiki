@@ -83,7 +83,7 @@ The particular values are separated with commas without any spaces. The results 
 || 39. || !PktsOut || (*{{{*}}}*) The total number of segments sent. ||
 || 40. || MinRTT || (*{{{*}}}*) The minimum sampled round trip time. ||
 || 41. || !RcvWinScale || (*{{{*}}}*) The value of Rcv.Wind.Scale. Note that !RcvWinScale is either zero or the same as !WinScaleSent. ||
-|| 42. || autotune || ||
+|| 42. || autotune || (*deprecated/not used*) This value kept the information about web100 autotune functionality. It could have the following values: 0 - autotune is disabled, 1 - sbufmode autotune is enabled, 2 - rbufmode autotune is enabled, 3 - all autotune modes are enabled, 22 - autotune params cannot be found, 23 - autotune params cannot be read ||
 || 43. || !CongAvoid || (*{{{*}}}*) The number of times the congestion window has been increased by the Congestion Avoidance algorithm. ||
 || 44. || !CongestionOverCount || (*{{{*}}}*) The number of congestion events which were 'backed out' of the congestion control state machine such that the congestion window was restored to a prior value. This can happen due to the Eifel algorithm [http://www.ietf.org/rfc/rfc3522.txt RFC3522] or other algorithms which can be used to detect and cancel spurious invocations of the Fast Retransmit Algorithm. ||
 || 45. || MaxRTT || (*{{{*}}}*) The maximum sampled round trip time. ||
@@ -94,9 +94,9 @@ The particular values are separated with commas without any spaces. The results 
 || 50. || !SlowStart || (*{{{*}}}*) The number of times the congestion window has been increased by the Slow Start algorithm. ||
 || 51. || !SubsequentTimeouts || (*{{{*}}}*) The number of times the retransmit timeout has expired after the RTO has been doubled. See section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
 || 52. || !ThruBytesAcked || (*{{{*}}}*) The number of octets for which cumulative acknowledgments have been received, on systems that can receive more than 10 million bits per second.  Note that this will be the sum of changes in tcpEStatsAppSndUna. ||
-|| 53. || peaks.min || ||
-|| 54. || peaks.max || ||
-|| 55. || peaks.amount || ||
+|| 53. || peaks.min || The minimal value of the CWND peak ||
+|| 54. || peaks.max || The maximal value of the CWND peak ||
+|| 55. || peaks.amount || The number of CWND peaks ||
 
 (*{{{*}}}*) web100 variable
 
