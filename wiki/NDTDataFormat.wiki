@@ -44,7 +44,7 @@ The particular values are separated with commas without any spaces. The results 
 || *#* || *Name* || *Description/Comment* ||
 || 1. || date || start time of the test session (in the form "Wed Jun 30 21:49:08 1993\n") ||
 || 2. || client name || remote (client) host fully qualified name ||
-|| 3. || MID throughput speed || CWND limited throughput speed measured during Middlebox test (kb/s) ||
+|| 3. || MID throughput speed || CWND limited throughput speed measured during Middlebox test (value in kb/s) ||
 || 4. || S2C throughput speed || value in kb/s ||
 || 5. || C2S throughput speed || value in kb/s ||
 || 6. || Timeouts || (*{{{*}}}*) The number of times the retransmit timeout has expired when the RTO backoff multiplier is equal to one. ||
@@ -82,18 +82,18 @@ The particular values are separated with commas without any spaces. The results 
 || 38. || !CongestionSignals || (*{{{*}}}*) The number of multiplicative downward congestion window adjustments due to all forms of congestion signals, including Fast Retransmit, ECN and timeouts. This object summarizes all events that invoke the MD portion of AIMD congestion control, and as such is the best indicator of how cwnd is being affected by congestion. ||
 || 39. || !PktsOut || (*{{{*}}}*) The total number of segments sent. ||
 || 40. || MinRTT || (*{{{*}}}*) The minimum sampled round trip time. ||
-|| 41. || !RcvWinScale || (*{{{*}}}*) The value of Rcv.Wind.Scale. Note that RcvWinScale is either zero or the same as WinScaleSent. ||
+|| 41. || !RcvWinScale || (*{{{*}}}*) The value of Rcv.Wind.Scale. Note that !RcvWinScale is either zero or the same as !WinScaleSent. ||
 || 42. || autotune || ||
 || 43. || !CongAvoid || (*{{{*}}}*) The number of times the congestion window has been increased by the Congestion Avoidance algorithm. ||
 || 44. || !CongestionOverCount || (*{{{*}}}*) The number of congestion events which were 'backed out' of the congestion control state machine such that the congestion window was restored to a prior value. This can happen due to the Eifel algorithm [http://www.ietf.org/rfc/rfc3522.txt RFC3522] or other algorithms which can be used to detect and cancel spurious invocations of the Fast Retransmit Algorithm. ||
 || 45. || MaxRTT || (*{{{*}}}*) The maximum sampled round trip time. ||
 || 46. || !OtherReductions || (*{{{*}}}*) The number of congestion window reductions made as a result of anything other than AIMD congestion control algorithms. Examples of non-multiplicative window reductions include Congestion Window Validation [http://www.ietf.org/rfc/rfc2861.txt RFC2861] and experimental algorithms such as Vegas. ||
-|| 47. || !CurTimeoutCount || ||
-|| 48. || !AbruptTimeouts || ||
+|| 47. || !CurTimeoutCount || (*{{{*}}}*) The current number of times the retransmit timeout has expired without receiving an acknowledgment for new data. tcpEStatsStackCurTimeoutCount is reset to zero when new data is acknowledged and incremented for each invocation of section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
+|| 48. || !AbruptTimeouts || (*{{{*}}}*) The number of timeouts that occurred without any immediately preceding duplicate acknowledgments or other indications of congestion. Abrupt Timeouts indicate that the path lost an entire window of data or acknowledgments. Timeouts that are preceded by duplicate acknowledgments or other congestion signals (e.g., ECN) are not counted as abrupt, and might have been avoided by a more sophisticated Fast Retransmit algorithm. ||
 || 49. || !SendStall || (*{{{*}}}*) The number of interface stalls or other sender local resource limitations that are treated as congestion signals. ||
 || 50. || !SlowStart || (*{{{*}}}*) The number of times the congestion window has been increased by the Slow Start algorithm. ||
 || 51. || !SubsequentTimeouts || (*{{{*}}}*) The number of times the retransmit timeout has expired after the RTO has been doubled. See section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
-|| 52. || !ThruBytesAcked || ||
+|| 52. || !ThruBytesAcked || (*{{{*}}}*) The number of octets for which cumulative acknowledgments have been received, on systems that can receive more than 10 million bits per second.  Note that this will be the sum of changes in tcpEStatsAppSndUna. ||
 || 53. || peaks.min || ||
 || 54. || peaks.max || ||
 || 55. || peaks.amount || ||
