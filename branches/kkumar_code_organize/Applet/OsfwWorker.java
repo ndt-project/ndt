@@ -3,18 +3,18 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * OsfwWorker creates a thread that listens for a message from the server. It functions
- * to check if the server has sent a message that is valid and sufficient to determine 
- * if the server->client direction has a fire-wall.
+ * OsfwWorker creates a thread that listens for a message from the server. It
+ * functions to check if the server has sent a message that is valid and
+ * sufficient to determine if the server->client direction has a fire-wall.
  * 
  * <p>
- * As part of the simple firewall test, the Server must try 
- * to connect to the Client's ephemeral port and send a TEST_MSG message containing 
- * a pre-defined string "Simple firewall test" of 20 chars using this newly created 
+ * As part of the simple firewall test, the Server must try to connect to the
+ * Client's ephemeral port and send a TEST_MSG message containing a pre-defined
+ * string "Simple firewall test" of 20 chars using this newly created
  * connection. This class implements this functionality.
  * 
- * The result of the test is set back into the Tcpbw100._iS2cSFWResult variable 
- * (using setter methods) for the test results to be interpreted later 
+ * The result of the test is set back into the Tcpbw100._iS2cSFWResult variable
+ * (using setter methods) for the test results to be interpreted later
  * */
 
 public class OsfwWorker implements Runnable {
@@ -30,7 +30,7 @@ public class OsfwWorker implements Runnable {
 	 * 
 	 * @param Socket
 	 *            srvSocketParam Socket used to transmit protocol messages
-	 *            
+	 * 
 	 * @param iParamTestTime
 	 *            Test time duration to wait for message from server
 	 */
@@ -58,7 +58,7 @@ public class OsfwWorker implements Runnable {
 
 	/**
 	 * Make current thread sleep for 1000 ms
-	 * 	
+	 * 
 	 * */
 	public void finalize() {
 		// If test is not already complete/terminated, then sleep
@@ -86,13 +86,13 @@ public class OsfwWorker implements Runnable {
 			// set timeout to given value in ms
 			_srvSocket.setSoTimeout(_iTestTime * 1000);
 			try {
-				
+
 				// Blocking call trying to create connection to socket and
 				// accept it
 				socketObj = _srvSocket.accept();
 			} catch (Exception e) {
 				e.printStackTrace();
-				
+
 				// The "accept" call has failed, and indicates a firewall
 				// possibility
 				this._localTcpAppObj
@@ -105,7 +105,7 @@ public class OsfwWorker implements Runnable {
 
 			// commented out sections indicate move to outer class
 			if (sfwCtl.recv_msg(msg) != 0) {
-				
+
 				// error, msg read/received incorrectly. Hence set status as
 				// unknown
 				System.out
@@ -147,13 +147,13 @@ public class OsfwWorker implements Runnable {
 				_iFinalized = true;
 				return;
 			}
-			
-			//  If none of the above conditions were met, then, the server
-			//  message has been received correctly, and there seems to be no
-			//  firewall
+
+			// If none of the above conditions were met, then, the server
+			// message has been received correctly, and there seems to be no
+			// firewall
 			this._localTcpAppObj
 					.setS2cSFWTestResults(NDTConstants.SFW_NOFIREWALL);
-			
+
 		} catch (IOException ex) {
 			// Status of firewall could not be determined before concluding
 			this._localTcpAppObj.setS2cSFWTestResults(NDTConstants.SFW_UNKNOWN);
@@ -164,7 +164,8 @@ public class OsfwWorker implements Runnable {
 			socketObj.close();
 			_srvSocket.close();
 		} catch (IOException e) {
-			System.err.println("OsfwWorker: Exception trying to close sockets" + e);
+			System.err.println("OsfwWorker: Exception trying to close sockets"
+					+ e);
 			// log exception occurence
 		}
 		_iFinalized = true;

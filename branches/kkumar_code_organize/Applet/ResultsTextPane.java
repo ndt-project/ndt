@@ -12,40 +12,42 @@ import javax.swing.text.BadLocationException;
  * by users to customize based on individual needs
  * 
  */
-public class ResultsTextPane extends JTextPane
-{
-	
+public class ResultsTextPane extends JTextPane {
 
 	/**
 	 * Compiler auto-generate value not directly related to class functionality
 	 */
 	private static final long serialVersionUID = -2224271202004876654L;
 
-	/** Method to append String into the current document
-	 * @param paramTextStr String to be inserted into the document
+	/**
+	 * Method to append String into the current document
+	 * 
+	 * @param paramTextStr
+	 *            String to be inserted into the document
 	 **/
-	public void append(String paramTextStr)
-	{
+	public void append(String paramTextStr) {
 		try {
-			getStyledDocument().insertString(getStyledDocument().getLength(), paramTextStr, null);
-		}
-		catch (BadLocationException e) {
-			System.out.println("WARNING: failed to append text to the text pane! [" + paramTextStr + "]");
+			getStyledDocument().insertString(getStyledDocument().getLength(),
+					paramTextStr, null);
+		} catch (BadLocationException e) {
+			System.out
+					.println("WARNING: failed to append text to the text pane! ["
+							+ paramTextStr + "]");
 		}
 	}
 
 	/**
 	 * JTextPane method to insert a component into the document as a replacement
-	 * for currently selected content. If no selection is made, the
-	 * the component is inserted at the current position of the caret.
-	 * @param paramCompObj the component to insert	 
+	 * for currently selected content. If no selection is made, the the
+	 * component is inserted at the current position of the caret.
+	 * 
+	 * @param paramCompObj
+	 *            the component to insert
 	 * */
-	public void insertComponent(Component paramCompObj)
-	{
+	public void insertComponent(Component paramCompObj) {
 		setSelectionStart(this.getStyledDocument().getLength());
-		setSelectionEnd(this.getStyledDocument().getLength()); 
+		setSelectionEnd(this.getStyledDocument().getLength());
 		super.insertComponent(paramCompObj);
 	}
-	
-}
 
+}
