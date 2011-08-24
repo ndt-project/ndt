@@ -3,44 +3,48 @@ import java.awt.Component;
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
 
-/* Class used to extend textPane to  be used to display results
- * of tests
+/*
+ * Class that extends TextPane. This Text-pane is used as the chief
+ * Results window that summarizes the results of all tests 
+ * that have been run.
+ * 
+ * This class is declared separately so that it can be easily extended
+ * by users to customize based on individual needs
+ * 
  */
 public class ResultsTextPane extends JTextPane
 {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+	
 
-	/*Method to append String into the current document
-	 * @param String : Text to be inserted into the document
-	 * @return none*/
-	public void append(String text)
+	/**
+	 * Compiler auto-generate value not directly related to class functionality
+	 */
+	private static final long serialVersionUID = -2224271202004876654L;
+
+	/** Method to append String into the current document
+	 * @param paramTextStr String to be inserted into the document
+	 **/
+	public void append(String paramTextStr)
 	{
 		try {
-			getStyledDocument().insertString(getStyledDocument().getLength(), text, null);
+			getStyledDocument().insertString(getStyledDocument().getLength(), paramTextStr, null);
 		}
 		catch (BadLocationException e) {
-			System.out.println("WARNING: failed to append text to the text pane! [" + text + "]");
+			System.out.println("WARNING: failed to append text to the text pane! [" + paramTextStr + "]");
 		}
 	}
 
-	/* JTextPane method to insert a component into the document as a replacement for currently selected content; 
-	 * if no selection the component is inserted at the current position of the caret.
-	 * @param Component : the component to insert
-	 * @return none
-	 */
-	public void insertComponent(Component c)
+	/**
+	 * JTextPane method to insert a component into the document as a replacement
+	 * for currently selected content. If no selection is made, the
+	 * the component is inserted at the current position of the caret.
+	 * @param paramCompObj the component to insert	 
+	 * */
+	public void insertComponent(Component paramCompObj)
 	{
-		/*
-		  setSelectionStart(results.getStyledDocument().getLength());
-		  setSelectionEnd(results.getStyledDocument().getLength());
-		 */
-		//change "results" to "this". re-arch
 		setSelectionStart(this.getStyledDocument().getLength());
 		setSelectionEnd(this.getStyledDocument().getLength()); 
-		super.insertComponent(c);
+		super.insertComponent(paramCompObj);
 	}
 	
 }

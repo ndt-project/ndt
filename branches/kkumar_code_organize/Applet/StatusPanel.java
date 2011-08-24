@@ -6,19 +6,23 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
-/* Class that displays status of tests being run Status 
- * Also provides "utility" methods like displaying test number 
- * being currently run, and stopping tests 
+/** Class that displays status of tests being run.
+ * It also provides methods to set status message, 
+ *  record intention to stop tests, and to fetch the status of whether 
+ *  the test is to be stopped.
  * */
 
 public class StatusPanel extends JPanel
 {
 	/**
-	 * 
+	 * Compiler generated constant that is not related to current classes'
+	 * specific functionality
 	 */
-	private static final long serialVersionUID = 2609233901130079136L; //generated value
-	private int _iTestsCompleted; //variable used to record the count of "finished" tests
-	private int _iTestsNum;
+	private static final long serialVersionUID = 2609233901130079136L;
+	
+	
+	private int _iTestsCompleted; // variable used to record the count of "finished" tests
+	private int _iTestsNum; //total test count
 	private boolean _bStop = false;
 
 	private JLabel _labelTestNum = new JLabel();
@@ -27,22 +31,20 @@ public class StatusPanel extends JPanel
 
 	/* Constructor 
 	 * @param testsNum Total number of tests scheduled to be run
-	 * @param sParamaEnableMultiple Are multiple tests scheduled?*/
-	StatusPanel(int iParamTestsNum, String sParamEnableMultiple) {
+	 * @param sParamaEnableMultiple String indicating whether multiple tests 
+	 * 				have been scheduled */
+	public StatusPanel(int iParamTestsNum, String sParamEnableMultiple) {
 		this._iTestsCompleted = 1;
 		this._iTestsNum = iParamTestsNum;
 
 		setTestNoLabelText();
-		//re-arch
-		//If multiple tests are enabled to be run, then add information about the
-		//test number being run
+		
+		// If multiple tests are enabled to be run, then add information about the
+		// test number being run
 		if ( sParamEnableMultiple != null) {
 			add(_labelTestNum);
 		}
-		/*
-        if ( getParameter("enableMultipleTests") != null ) {
-            add(testNoLabel);
-        }*/
+		
 		_progressBarObj.setMinimum(0);
 		_progressBarObj.setMaximum(_iTestsNum);
 		_progressBarObj.setValue(0);
@@ -65,41 +67,40 @@ public class StatusPanel extends JPanel
 			}
 
 		});
-		/*
-        if ( getParameter("enableMultipleTests") != null ) {
-            add(stopButton);
-        }*/
-		//If multiple tests are enabled to be run, provide user option to 
-		//	stop the one currently running
+		
+		// If multiple tests are enabled to be run, provide user option to 
+		// stop the one currently running
 		if (sParamEnableMultiple != null) {
 			add(_buttonStop);
 		}
 	}
 
-	/*Set Test number being run*/
+	/** Set Test number being run
+	 * */
 	private void setTestNoLabelText() {
-		_labelTestNum.setText(NDTConstants.getMessageString("test") + " " + _iTestsCompleted + " " + NDTConstants.getMessageString("of") + " " +_iTestsNum);
+		_labelTestNum.setText(NDTConstants.getMessageString("test") + " " + _iTestsCompleted + " " +
+				NDTConstants.getMessageString("of") + " " +_iTestsNum);
+		
 	}
 
-	/*record intention to stop tests 
-	 * @param none
-	 * @return boolean: intention to stop or not*/
+	/** Get intention to stop tests 
+	 * @return boolean indicating intention to stop or not
+	 * */
 	public boolean wantToStop() {
 		return _bStop;
 	}
 
-	/*end the currently running test 
-	 * @param none
-	 * @return none*/
+	/** End the currently running test 
+	 * */
 	public void endTest() {
 		_progressBarObj.setValue(_iTestsCompleted);
 		_iTestsCompleted++;
 		setTestNoLabelText();
 	}
 
-	/* Set progress text
-	 * @param sParamText: String status
-	 * @return none */
+	/** Sets a string explaining progress of tests
+	 * @param sParamText String status of test-run
+	 * */
 	public void setText(String sParamText) {
 		if (!_progressBarObj.isIndeterminate()) {
 			_progressBarObj.setString(sParamText);

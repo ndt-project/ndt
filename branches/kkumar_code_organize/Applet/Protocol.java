@@ -3,7 +3,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-/* Class aggregating operations that can be performed for sending/receiving/reading
+/** Class aggregating operations that can be performed for sending/receiving/reading
  * Protocol messages
  * 
  * */
@@ -13,8 +13,10 @@ public class Protocol {
 	private InputStream _ctlInStream;
 	private OutputStream _ctlOutStream;
 
-	/* Class Constructor 
-	 * @param Socket: socket used to send the protocol messages over 
+	/** Constructor that accepts socket over which to communicate as parameter
+	 * @param ctlSocketParam socket used to send the protocol messages over 
+	 * @throws IOException if Input/Output streams cannot be 
+	 * 			read from/written into correctly
 	 */
 	public Protocol(Socket ctlSocketParam) throws IOException
 	{
@@ -22,10 +24,11 @@ public class Protocol {
 		_ctlOutStream = ctlSocketParam.getOutputStream();
 	}
 
-	/* Method to send message. Overloaded
-	 * @param bParamType: Ctrl Message Type
-	 * @param bParamToSend:  Data value to send
-	 * @return none
+	/** Send message given its Type and data byte
+	 * @param bParamType Control Message Type
+	 * @param bParamToSend Data value to send
+	 * @throws IOException If data cannot be successfully written to 
+	 * 						the Output Stream 
 	 * 
 	 * */
 	public void send_msg(byte bParamType, byte bParamToSend) throws IOException
@@ -35,31 +38,34 @@ public class Protocol {
 	}
 
 
-	/* Method to send msg. Overloaded
-	 * @param bParamType:  Ctrl Message Type
-	 * @param bParamToSend[]:  Data value to send
-	 * @return none
+	/** Send protocol messages given their type and data byte array
+	 * @param bParamType Control Message Type
+	 * @param bParamToSend Data value array to send
+	 * @throws IOException If data cannot be successfully written to 
+	 * 						the Output Stream 
 	 * 
 	 * */
-	public void send_msg(byte bParamType, byte[] baParamTab) throws IOException
+	public void send_msg(byte bParamType, byte[] bParamToSend) throws IOException
 	{
 		byte[] header = new byte[3];
 		header[0] = bParamType;
 
 		//2 bytes are used to hold data length. Thus, max(data length) = 65535
-		header[1] = (byte) (baParamTab.length >> 8);	
-		header[2] = (byte) baParamTab.length;
+		header[1] = (byte) (bParamToSend.length >> 8);	
+		header[2] = (byte) bParamToSend.length;
 
 		//Write data to outputStream
 		_ctlOutStream.write(header);
-		_ctlOutStream.write(baParamTab);
+		_ctlOutStream.write(bParamToSend);
 	}
 
-	/* Populate Message byte array with specific number of bytes of data
+	/** Populate Message byte array with specific number of bytes of data
 	 * from socket input stream
-	 * @param msgParam: Message object to be populated
-	 * @param iParamAmount:  specified number of bytes to be read
-	 * @return int: Actual number of bytes populated
+	 * @param msgParam Message object to be populated
+	 * @param iParamAmount specified number of bytes to be read
+	 * @return integer number of bytes populated
+	 * @throws IOException If data cannot be successfully read from 
+	 * 						the Input Stream 
 	 */
 	public int readn(Message msgParam, int iParamAmount) throws IOException
 	{
@@ -78,18 +84,24 @@ public class Protocol {
 		return read;
 	}
 
-	/* Receive message at end point of socket
-	 * @param Message object
-	 * @return : integer with values:
+	/** Receive message at end-point of socket
+	 * @param msgParam Message object
+	 * @return integer with values:
+	 * <p>
 	 *  a) Success: 
-	 * 	 value=0 : successfully read expected number of bytes
+	 *   <ul>
+	 *   <li>
+	 * 	 value=0 : successfully read expected number of bytes.
+	 * 	</li> </ul>
+	 * <p>
 	 *  b) Error:
-	 *   value= 1 : Error reading ctrl-message length and data type itself, since 
+	 *  <ul>
+	 *   <li>value= 1 : Error reading ctrl-message length and data type itself, since 
 	 * 		NDTP-control packet has to be at 
-	 * 		the least 3 octets long
-	 *   value= 3 : Error, mismatch between "length" field of ctrl-message and 
-	 * 		actual data read
-	 *  
+	 * 		the least 3 octets long </li>
+	 *   <li>value= 3 : Error, mismatch between "length" field of ctrl-message and 
+	 * 		actual data read </li>
+	 *  </ul>
 	 * */
 	public int recv_msg(Message msgParam) throws IOException
 	{
@@ -115,9 +127,8 @@ public class Protocol {
 		return 0;
 	}
 
-	/* Method to close open Streams
-	 * @param none
-	 * @return none*/
+	/** Method to close open Streams
+	 */
 	public void close()
 	{
 		try {
@@ -129,5 +140,5 @@ public class Protocol {
 		}
 	}
 
-
-}
+	
+} //end class Protocol
