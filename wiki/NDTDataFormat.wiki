@@ -12,20 +12,22 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 == Introduction ==
 
-The NDT may store test results data in the following files:
+The NDT uses the following files to store test results data:
 
-|| *File* || *Scope* || *Mandatory/Optional* ||
-|| *tcpdump trace* || C2S/S2C tests || *optional* ||
-|| *web100 snaplog trace* || C2S/S2C tests || *optional* ||
-|| *web100srv.log* || test session || mandatory ||
-|| *cputime trace* || test session || *optional* ||
-|| *meta data file* || test session || mandatory ||
+|| *File* || *Scope of the collected data* || *Always used?* ||
+|| *tcpdump trace* || C2S/S2C tests || *NO* (enabled by `-t, --tcpdump` options) ||
+|| *web100 snaplog trace* || C2S/S2C tests || *NO* (enabled by `--snaplog` option) ||
+|| *web100srv.log* || test session || YES ||
+|| *cputime trace* || test session || *NO* (enabled by `--cputime` option) ||
+|| *meta data file* || test session || YES ||
 
 ==Collected data formats==
 
 ===tcpdump trace===
 
-This is a standard trace file for all packets (except the initial syn & syn/ack exchange). The tcpdump and tcptrace programs can read these files.
+Writing tcpdump trace file is enabled by `-t, --tcpdump` options.
+
+This is a standard trace file for all packets (except the initial syn & syn/ack exchange) written using [http://www.tcpdump.org/ pcap] library.
 
 ===web100 snaplog trace===
 
@@ -66,6 +68,8 @@ Summary data:313,2246,1658,0,69963,1020,19,8,1961,0,1448,392,1428,525600,112560,
 }}}
 
 ==Displaying collected data==
+
+The tcpdump files can be read using [http://www.tcpdump.org/ tcpdump] and [http://www.tcptrace.org/ tcptrace] programs.
 
 The NDT server also contains a Java application that can look through the NDT log files and link log entries to trace files, and it also simplifies the viewing of this data. The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
  
