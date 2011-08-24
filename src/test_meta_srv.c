@@ -89,15 +89,20 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
       }
       *value = 0;
       value++;
-
+      
       if (strcmp(META_CLIENT_OS, buff) == 0) {
         snprintf(meta.client_os, sizeof(meta.client_os), "%s", value);
-        /*continue;*/
+        continue;
       }
 
       if (strcmp(META_BROWSER_OS, buff) == 0) {
         snprintf(meta.client_browser, sizeof(meta.client_browser), "%s", value);
-        /*continue;*/
+        continue;
+      }
+
+      if (strcmp(META_CLIENT_APPLICATION, buff) == 0) {
+        snprintf(meta.client_application, sizeof(meta.client_application), "%s", value);
+        continue;
       }
 
 	  if (new_entry) {
