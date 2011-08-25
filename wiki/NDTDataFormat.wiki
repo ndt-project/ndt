@@ -37,9 +37,9 @@ This file contains all the the [http://www.web100.org/ web100] kernel MIB variab
 
 ===web100srv.log file===
 
-The NDT always writes a one-line summary of the test to the web100srv.log file. This one-line summary contains the final values of some of the web100 variables with an additional analysis details.
+The NDT always writes a one-line summary of the test to the web100srv.log file.
 
-The particular values are separated with commas without any spaces. The results are stored with the following order:
+This one-line summary contains the final values of some of the web100 variables with an additional analysis details. The particular values are separated with commas without any spaces. The results are stored with the following order:
 
 || *#* || *Name* || *Description/Comment* ||
 || 1. || date || start time of the test session (in the form "Wed Jun 30 21:49:08 1993\n") ||
@@ -117,12 +117,30 @@ All times reported are in clock ticks.
 
 ===meta data file===
 
-This meta data file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. A sample of that data is
+The meta data file is always created for every test session.
+
+This file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. The meta data contains lines in the following order:
+
+|| *#* || *Name* || *Description/Comment* ||
+|| 1. || Date/Time || Timestamp of the beginning of the test session ||
+|| 2. || C2S snaplog file || Filename of the snaplog taken during C2S Throughput test ||
+|| 3. || C2S ndttrace file || Filename of the tcpdump trace taken during C2S Throughput test ||
+|| 4. || S2C snaplog file || Filename of the snaplog taken during S2C Throughput test ||
+|| 5. || S2C ndttrace file || Filename of the tcpdump trace taken during S2C Throughput test ||
+|| 6. || cputime file || Filename of the cputime trace taken during the whole test session ||
+|| 7. || server IP address || IP address of the NDT server ||
+|| 8. || server hostname || Fully qualified hostname of the NDT server ||
+|| 9. || server kernel version || Kernel version of the NDT server's OS ||
+|| 10. || client IP address || IP address of the NDT client ||
+|| 11. || client hostname || Fully qualified hostname of the NDT client ||
+|| 12. || client OS name || Name of the NDT client's OS ||
+|| 13. || client browser name || Name of the NDT client's web browser (if applicable) ||
+|| 14. || Summary data || A one-line summary of the test containing the final values of some of the web100 variables with an additional analysis details. The particular values are separated with commas without any spaces. The results are written with the same order and contain the same values as the one-line summary from the [NDTDataFormat#web100srv.log_file web100srv.log file] (except the date and client name) ||
+|| 15. || Additional data || (*optional*) A multi-line information containing additional data sent by the client using the META protocol. Currently defined key/value pairs can be found in the [NDTProtocol#META_test NDT Protocol document] ||
+
+Please look at the following sample meta data file:
  
 {{{
-[iupui_ndt@mlab1 ~]$ cat /usr/local/ndt/serverdata/
-2009/10/09/20091009T20:46:28.
-141927000Z_149.20.53.166:63251.meta
 Date/Time: 20091009T20:46:28.141927000Z
 c2s_snaplog file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_snaplog.gz
 c2s_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_ndttrace.gz
