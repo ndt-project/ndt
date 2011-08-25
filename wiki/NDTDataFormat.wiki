@@ -102,7 +102,18 @@ The particular values are separated with commas without any spaces. The results 
 
 ===cputime trace===
 
-This file contains lines with `times` routine results recorded using a 100ms interval.
+Writing cputime file is enabled by `--cputime` option.
+
+This file contains lines with `times` routine results recorded using a 100ms interval. Each of the lines contains the following data separated by a single space in this order:
+
+|| *#* || *Name* || *Description/Comment* ||
+|| 1. || time || seconds from the beginning of the test ||
+|| 2. || user time || contains  the  CPU  time spent executing instructions of the calling process ||
+|| 3. || system time || contains the CPU time spent in the system while executing tasks on behalf of the calling proces ||
+|| 4. || user time of the children || contains the sum of the user time and user time of the children values for all waited-for terminated children ||
+|| 5. || system time of the children || contains the sum of the system time and system time of the children values for all waited-for terminated children ||
+
+All times reported are in clock ticks.
 
 ===meta data file===
 
