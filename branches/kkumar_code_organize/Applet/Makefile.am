@@ -26,7 +26,7 @@ Tcpbw100dir = $(ndtdir)
 noinst_PROGRAMS = Tcpbw100.jar
 
 Tcpbw100_JAVA	= Tcpbw100.java
-Tcpbw100_jar_SOURCES	= Tcpbw100.java StatusPanel.java Protocol.java Message.java UserAgentTools.java NDTConstants.java OsfwWorker.java NewFrame.java ResultsTextPane.java MessageType.java
+Tcpbw100_jar_SOURCES	= Tcpbw100.java StatusPanel.java Protocol.java Message.java UserAgentTools.java NDTConstants.java OsfwWorker.java NewFrame.java ResultsTextPane.java MessageType.java NDTUtils.java
 
 Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
 	@rm -f Tcpbw100$(EXEEXT)
@@ -65,9 +65,10 @@ all.class: $(Tcpbw100_jar_SOURCES:.java=.class)
 #	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_jar_SOURCES)
 
 #dependency management
-Tcpbw100.class: StatusPanel.class Protocol.class Message.class UserAgentTools.class NDTConstants.class OsfwWorker.class NewFrame.class ResultsTextPane.class MessageType.class
+Tcpbw100.class: StatusPanel.class Protocol.class Message.class UserAgentTools.class NDTConstants.class OsfwWorker.class NewFrame.class ResultsTextPane.class MessageType.class NDTUtils.class
 Protocol.class: Message.class
 OsfwWorker.class: NDTConstants.class Message.class Protocol.class
+
 	
 #Include all classes into jar
 Tcpbw100.jar:	all.class

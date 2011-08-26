@@ -41,7 +41,7 @@ Admin.class	 - The java class file for the bottleneck link graph
 in the 'Applet' sub-directory
 Makefile.am      - Used by configure to build the runnable Makefile
 Makefile.in      - Used by configure to build the runnable Makefile
-Tcpbw100.java, StatusPanel.java, Protocol.java, Message.java, UserAgentTools.java, NDTConstants.java, OsfwWorker.java, NewFrame.java, ResultsTextPane.java, MessageType.java    
+Tcpbw100.java, StatusPanel.java, Protocol.java, Message.java, UserAgentTools.java, NDTConstants.java, OsfwWorker.java, NewFrame.java, ResultsTextPane.java, MessageType.java, NDTUtils.java   
 		 - The source code for the client side java applet and related classes
 *.class          - Corresponding java class versions of the client applet and related classes 
 Tcpbw100$N.class - java subclasses of the client applet

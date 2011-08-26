@@ -678,6 +678,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 							}
 						} catch (InterruptedException e) {
 							// do nothing.
+							System.err.println("INFO: Thread interrupted while sleeping before starting the next test.");
 						}
 					}
 				} catch (IOException e) {
@@ -1116,6 +1117,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_txtDiagnosis.selectAll();
 			} catch (SecurityException e) {
 				_bCanCopy = false;
+				// this Exception is only when the client cannot copy 
+				// some data, and is acted on by disabling the 
+				// copy button. 
+				System.err.println(" You may not have some security Permissions. Please confirm");
 			}
 		}
 		// "Statistics" copy button functionality
@@ -1547,7 +1552,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				sfwCtl.send_msg(MessageType.TEST_MSG, new String(
 						NDTConstants.SFW_PREDEFINED_TEST_MESSAGE).getBytes());
 			} catch (Exception e) {
-				e.printStackTrace(); //sfwFail needed
+				e.printStackTrace(); 
+				//Indication that there might be a firewall from C->S side.
 			}
 
 			// Server expected to respond back with a TEST_MSG too
@@ -1737,13 +1743,18 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					try {
 						Thread.sleep(10000);
 					} catch (InterruptedException e) {
-						System.out.println("Thread interrupted : " + e);
+						System.err.println("Thread interrupted : " + e);
+						// Thread was interrupted while timing 10 seconds 
+						// of the C->S test. So, streaming 10 seconds of data may not be complete.
+						// But, the throughput is correctly calculated based on the number of packets 
+						// that were actually sent
+						
 					}
 					try {
 						outStream.close();
 						outSocket.close();
 					} catch (IOException e) {
-						System.out.println("Caught IOException while closing stream after thread interrupted : " + e);
+						System.err.println("Caught IOException while closing stream after thread interrupted : " + e);
 					}
 				}
 			}.start();
@@ -1763,6 +1774,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					System.out.println("Client socket timed out");
 					break;
 				}
+				// In both cases above, thread was interrupted while timing 10 seconds 
+				// of the C->S test. So, streaming 10 seconds of data may not be complete.
+				// But, the throughput is correctly calculated based on the number of packets 
+				// that were actually sent
+				
 				_iPkts++;
 				// number of bytes sent = (num of iterations) X (buffer size)
 				pub_bytes = (_iPkts * _iLength);
@@ -2324,6 +2340,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				} catch (SecurityException e) {
 					System.err
 							.println("Couldn't set system property. Check your security settings.");
+					// retain this way for now
 				}
 			}
 			_chkboxPreferIPv6.setEnabled(false);
