@@ -131,11 +131,11 @@ public class OsfwWorker implements Runnable {
 				return;
 			}
 
-			/**
-			 * The server protocol is expected to send a 20 char message that
-			 * says "Simple firewall test" . Every other message string
-			 * indicates an unknown firewall status
-			 */
+			
+			// The server is expected to send a 20 char message that
+			// says "Simple firewall test" . Every other message string
+			// indicates an unknown firewall status
+			
 			if (!new String(msg.getBody())
 					.equals(NDTConstants.SFW_PREDEFINED_TEST_MESSAGE)) {
 				System.out.println("Simple firewall test: Improper message");

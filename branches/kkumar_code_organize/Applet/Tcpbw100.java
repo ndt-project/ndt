@@ -1,50 +1,3 @@
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Panel;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.URL;
-import java.net.UnknownHostException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Date;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.StringTokenizer;
-
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.JApplet;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.SpinnerNumberModel;
-
 /*
  Copyright 2003 University of Chicago.  All rights reserved.
  The Web100 Network Diagnostic Tool (NDT) is distributed subject to
@@ -106,6 +59,53 @@ import javax.swing.SpinnerNumberModel;
  The Software was developed at least in part by the University of Chicago,
  as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
  */
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Panel;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.Date;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.StringTokenizer;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JApplet;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JTextArea;
+import javax.swing.SpinnerNumberModel;
 
 /* 
  * Naming convention used: Hungarian, with the following details
@@ -271,6 +271,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * public static void main for invoking as an Application
+	 * @param args String array of command line arguments
 	 * */
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
@@ -294,9 +295,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		frame.setVisible(true);
 	}
 
-	/*
-	 * Accessor methods for public variables
-	 */
+	//
+	// Accessor methods for public variables
+	//
 
 	public String get_c2sspd() {
 		// Expressed as MiB using base 10
@@ -332,21 +333,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		return Double.toString(pub_avgrtt);
 	}
 
-	/*
-	 * public String get_MinRTO() { return pub_MinRTO; }
-	 */
-
-	/*
-	 * public String get_MaxRTO() { return pub_MaxRTO; }
-	 */
-
 	public String get_CurRTO() {
 		return Integer.toString(pub_CurRTO);
 	}
-
-	/*
-	 * public String get_CWNDpeaks() { return pub_CWNDpeaks; }
-	 */
 
 	public String get_SACKsRcvd() {
 		return Integer.toString(pub_SACKsRcvd);
@@ -415,7 +404,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	}
 
 	public String get_optimalRcvrBuffer() {
-		return Integer.toString(pub_MaxRwinRcvd * 1024);
+	    	//buffer size in bits
+		return Integer.toString(pub_MaxRwinRcvd * NDTConstants.KILO_BITS);
 	}
 
 	public String get_clientIP() {
@@ -458,9 +448,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	}
 
 	public String get_errmsg() {
-		// String result = "Test not run";
-		// result = pub_errmsg;
-		// return result;
 		return pub_errmsg;
 	}
 
@@ -477,7 +464,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	}
 
 	public String get_instSpeed() {
-		return Double.toString((8.0 * pub_bytes)
+	    	//Get speed in bits, hence multiply by 8 for byte->bit conversion
+		return Double.toString((NDTConstants.EIGHT * pub_bytes)
 				/ (System.currentTimeMillis() - pub_time));
 	}
 
@@ -540,9 +528,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		this._iS2cSFWResult = iParamS2CRes;
 	}
 
-	/*
-	 * End of accessor methods
-	 */
+	//
+	// End of accessor methods
+	//
 
 	/**
 	 * Class to start tests in a thread. Starts by disabling all buttons, and
@@ -771,9 +759,17 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			e.printStackTrace();
 		}
 
-		// call method to create a window
-		createMainWindow();
-
+		// create main window
+		try {
+			javax.swing.SwingUtilities.invokeAndWait(new Runnable() {
+				public void run() {
+					createMainWindow();
+				}
+			});
+		} catch (Exception e) {
+			System.err.println("createGUI didn't successfully complete");
+		}
+		
 		// Autorun functionality
 		_sIsAutoRun = getParameter("autoRun");
 		if ((_sIsAutoRun != null) && _sIsAutoRun.equals("true")) {
@@ -786,9 +782,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	/**
 	 * Initialize the "main" window. The main window is composed of 1. The
 	 * results pane, which describes the process and displays their results 2.
-	 * The buttons pane, which houses all the buttons for various options //TODO
-	 * :Can we move this to SwingUtilies? Plan for later release - it does'nt
-	 * help //with understanding the functionality itself
+	 * The buttons pane, which houses all the buttons for various options 
 	 * 
 	 * */
 	private void createMainWindow() {
@@ -1076,9 +1070,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * */
 	public void actionPerformed(ActionEvent paramEventObj) {
 		Object source = paramEventObj.getSource();
-		// System.err.println("Processing WINDOW event #" +event.getID());
-		// System.err.println("Processing event " + source);
-
+		
 		// Start the test
 		if (source == _buttonStartTest) {
 			if (_frameWeb100Vars != null) {
@@ -1322,14 +1314,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			System.out.println(bytes + " bytes " + tempSpeedInBits + " kb/s "
 					+ tempTimeInSecs + " secs");
 			// Calculate throughput in Kbps
-			_dS2cspd = tempSpeedInBits / NDTConstants.KILO; // ((8.0 * bytes) /
-															// 1000) / _dTime;
+			_dS2cspd = tempSpeedInBits / NDTConstants.KILO;
 
 			// Test is complete. Now, get results from server
-			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // msg
-																							// not
-																							// received
-																							// correctly
+			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { 
+					
+				// msg not received correctly
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
 						+ Integer.parseInt(new String(msg.getBody()), 16)
 						+ " instead\n";
@@ -1538,8 +1528,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				return true;
 			}
 
-			// re-arch new code
-			// OsfwWorker osfwTest = new OsfwWorker(srvSocket, testTime);
 			// Listen for server sending out a test for the S->C direction , and
 			// update test results
 			OsfwWorker osfwTest = new OsfwWorker(srvSocket, iTestTime, this);
@@ -1559,7 +1547,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				sfwCtl.send_msg(MessageType.TEST_MSG, new String(
 						NDTConstants.SFW_PREDEFINED_TEST_MESSAGE).getBytes());
 			} catch (Exception e) {
-				e.printStackTrace();
+				e.printStackTrace(); //sfwFail needed
 			}
 
 			// Server expected to respond back with a TEST_MSG too
@@ -1644,7 +1632,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// byte buff2[] = new byte[8192];
 		// Initialise for 64 Kb
-		byte yabuff2Write[] = new byte[64 * NDTConstants.KILO_BYTES];
+		byte yabuff2Write[] = new byte[64 * NDTConstants.KILO_BITS];
 		Message msg = new Message();
 		// start C2S throughput tests
 		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
@@ -1736,7 +1724,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 				yabuff2Write[i] = c++;
 			}
-			System.err.println("Send buffer size =" + i);
+			System.err.println("******Send buffer size =" + i);
 
 			_iPkts = 0;
 			_dTime = System.currentTimeMillis();
@@ -1749,13 +1737,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					try {
 						Thread.sleep(10000);
 					} catch (InterruptedException e) {
-						System.out.println(e);
+						System.out.println("Thread interrupted : " + e);
 					}
 					try {
 						outStream.close();
 						outSocket.close();
 					} catch (IOException e) {
-						System.out.println(e);
+						System.out.println("Caught IOException while closing stream after thread interrupted : " + e);
 					}
 				}
 			}.start();
@@ -1767,7 +1755,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				try {
 					outStream.write(yabuff2Write, 0, yabuff2Write.length);
 				} catch (SocketException e) {
-					System.out.println(e);
+					System.out.println("SocketException while writing to server" + e);
 					break;
 				}
 				// catch (InterruptedIOException iioe) {
@@ -1781,15 +1769,16 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			_dTime = System.currentTimeMillis() - _dTime;
-			System.err.println(_dTime + "sec test completed" + ","
-					+ yabuff2Write.length); // actually ms, not s
+			System.err.println(_dTime + " millisec test completed" + ","
+					+ yabuff2Write.length + ","+ _iPkts); 
 			if (_dTime == 0) {
 				_dTime = 1;
 			}
-			System.out.println((8.0 * _iPkts * yabuff2Write.length) / _dTime
-					+ " kb/s outbound");
-
+			
 			// Calculate C2S throughput in kbps
+			System.out.println((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / _dTime
+					+ " kb/s outbound"); //*8 for calculating bits
+
 			_dC2sspd = ((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / NDTConstants.KILO)
 					/ _dTime;
 
@@ -1825,16 +1814,16 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Print results in the most convenient units (kbps or Mbps)
 			if (_dSc2sspd < 1.0) {
-				_resultsTxtPane.append(prtdbl(_dSc2sspd * NDTConstants.KILO)
+				_resultsTxtPane.append(NDTUtils.prtdbl(_dSc2sspd * NDTConstants.KILO)
 						+ "kb/s\n");
-				_txtStatistics.append(prtdbl(_dSc2sspd * NDTConstants.KILO)
+				_txtStatistics.append(NDTUtils.prtdbl(_dSc2sspd * NDTConstants.KILO)
 						+ "kb/s\n");
-				_sEmailText += prtdbl(_dSc2sspd * NDTConstants.KILO)
+				_sEmailText += NDTUtils.prtdbl(_dSc2sspd * NDTConstants.KILO)
 						+ "kb/s\n%0A";
 			} else {
-				_resultsTxtPane.append(prtdbl(_dSc2sspd) + "Mb/s\n");
-				_txtStatistics.append(prtdbl(_dSc2sspd) + "Mb/s\n");
-				_sEmailText += prtdbl(_dSc2sspd) + "Mb/s\n%0A";
+				_resultsTxtPane.append(NDTUtils.prtdbl(_dSc2sspd) + "Mb/s\n");
+				_txtStatistics.append(NDTUtils.prtdbl(_dSc2sspd) + "Mb/s\n");
+				_sEmailText += NDTUtils.prtdbl(_dSc2sspd) + "Mb/s\n%0A";
 			}
 
 			// Expose upload speed to JavaScript clients
@@ -2039,16 +2028,16 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Represent throughput using optimal units (kbps / mbps)
 			if (_dS2cspd < 1.0) {
-				_resultsTxtPane.append(prtdbl(_dS2cspd * NDTConstants.KILO)
+				_resultsTxtPane.append(NDTUtils.prtdbl(_dS2cspd * NDTConstants.KILO)
 						+ "kb/s\n");
-				_txtStatistics.append(prtdbl(_dS2cspd * NDTConstants.KILO)
+				_txtStatistics.append(NDTUtils.prtdbl(_dS2cspd * NDTConstants.KILO)
 						+ "kb/s\n");
-				_sEmailText += prtdbl(_dS2cspd * NDTConstants.KILO)
+				_sEmailText += NDTUtils.prtdbl(_dS2cspd * NDTConstants.KILO)
 						+ "kb/s\n%0A";
 			} else {
-				_resultsTxtPane.append(prtdbl(_dS2cspd) + "Mb/s\n");
-				_txtStatistics.append(prtdbl(_dS2cspd) + "Mb/s\n");
-				_sEmailText += prtdbl(_dS2cspd) + "Mb/s\n%0A";
+				_resultsTxtPane.append(NDTUtils.prtdbl(_dS2cspd) + "Mb/s\n");
+				_txtStatistics.append(NDTUtils.prtdbl(_dS2cspd) + "Mb/s\n");
+				_sEmailText += NDTUtils.prtdbl(_dS2cspd) + "Mb/s\n%0A";
 			}
 
 			// Expose download speed to JavaScript clients
@@ -2330,7 +2319,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// use
 			if (_chkboxPreferIPv6.isSelected()) {
 				try {
-					System.setProperty("java.net._chkboxPreferIPv6Addresses",
+					System.setProperty("java.net.preferIPv6Addresses",
 							"true");
 				} catch (SecurityException e) {
 					System.err
@@ -2774,14 +2763,21 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Now write some _resBundDisplayMsgs to the screen
 			// Access speed/technology details added to the result main panel
 			// and mailing text. Link speed is also assigned.
+			
+			// Try to determine bottleneck link type
+			
 			if (_iC2sData < NDTConstants.DATA_RATE_ETHERNET) { // < 3
-				if (_iC2sData < NDTConstants.DATA_RATE_RTT) { // <0
+				if (_iC2sData < NDTConstants.DATA_RATE_RTT) { 
+					
+					// Data collected was not sufficient to determine bottleneck type
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("unableToDetectBottleneck") + "\n");
 					_sEmailText += "Server unable to determine bottleneck link type.\n%0A";
 					pub_AccessTech = "Connection type unknown";
 
 				} else {
+					// get link speed
+					
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("your")
 							+ " "
@@ -2793,7 +2789,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 							+ sClient + " "
 							+ _resBundDisplayMsgs.getString("connectedTo")
 							+ " ";
-					if (_iC2sData == NDTConstants.DATA_RATE_DIAL_UP) { // == 1
+					if (_iC2sData == NDTConstants.DATA_RATE_DIAL_UP) { 
 
 						_resultsTxtPane.append(_resBundDisplayMsgs
 								.getString("dialup") + "\n");
@@ -2838,6 +2834,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					mylink = 100;
 					pub_AccessTech = "100 Mbps Ethernet";
 
+					//Fast Ethernet. Determine if half/full duplex link was found
 					if (half_duplex == 0) {
 						_resultsTxtPane.append(_resBundDisplayMsgs
 								.getString("fullDuplex") + "\n");
@@ -2890,43 +2887,43 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// duplex mismatch
 			switch (mismatch) {
-			case 1:
+			case NDTConstants.DUPLEX_NOK_INDICATOR: //1
 				_resultsTxtPane.append(_resBundDisplayMsgs
 						.getString("oldDuplexMismatch") + "\n");
 				_sEmailText += _resBundDisplayMsgs
 						.getString("oldDuplexMismatch") + "\n%0A";
 				break;
-			case 2:
+			case NDTConstants.DUPLEX_SWITCH_FULL_HOST_HALF:
 				_resultsTxtPane.append(_resBundDisplayMsgs
 						.getString("duplexFullHalf") + "\n");
 				_sEmailText += _resBundDisplayMsgs.getString("duplexFullHalf")
 						+ "\n%0A";
 				break;
-			case 3:
+			case NDTConstants.DUPLEX_SWITCH_HALF_HOST_FULL:
 				_resultsTxtPane.append(_resBundDisplayMsgs
 						.getString("duplexHalfFull") + "\n");
 				_sEmailText += _resBundDisplayMsgs.getString("duplexHalfFull")
 						+ "\n%0A";
 				break;
-			case 4:
+			case NDTConstants.DUPLEX_SWITCH_FULL_HOST_HALF_POSS:
 				_resultsTxtPane.append(_resBundDisplayMsgs
 						.getString("possibleDuplexFullHalf") + "\n");
 				_sEmailText += _resBundDisplayMsgs
 						.getString("possibleDuplexFullHalf") + "\n%0A";
 				break;
-			case 5:
+			case NDTConstants.DUPLEX_SWITCH_HALF_HOST_FULL_POSS:
 				_resultsTxtPane.append(_resBundDisplayMsgs
 						.getString("possibleDuplexHalfFull") + "\n");
 				_sEmailText += _resBundDisplayMsgs
 						.getString("possibleDuplexHalfFull") + "\n%0A";
 				break;
-			case 7:
+			case NDTConstants.DUPLEX_SWITCH_HALF_HOST_FULL_WARN:
 				_resultsTxtPane.append(_resBundDisplayMsgs
 						.getString("possibleDuplexHalfFullWarning") + "\n");
 				_sEmailText += _resBundDisplayMsgs
 						.getString("possibleDuplexHalfFullWarning") + "\n%0A";
 				break;
-			case 0:
+			case NDTConstants.DUPLEX_OK_INDICATOR:
 				if (bad_cable == 1) {
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("excessiveErrors ") + "\n");
@@ -2939,20 +2936,32 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					_sEmailText += _resBundDisplayMsgs
 							.getString("otherTraffic") + "\n%0A";
 				}
-				if (((2 * rwin) / rttsec) < mylink) {
-					j = (float) ((mylink * avgrtt) * 1000) / 8 / 1024;
+
+				// We seem to be transmitting less than link speed possibly due
+				// a receiver window setting (i.e calculated bandwidth is greater
+				// than measured throughput). Advise appropriate size
+				
+				// Note: All comparisons henceforth of ( (window size * 2/rttsec) < mylink)
+				//  are along the same logic
+				
+				if (((2 * rwin) / rttsec) < mylink) {  // multiply by 2 to counter round-trip
+				    	
+				    	// link speed is in Mbps. Convert it back to kbps (*1000),
+				    	// and bytes (/8)
+					j = (float) ((mylink * avgrtt) * NDTConstants.KILO)
+							/ NDTConstants.EIGHT / NDTConstants.KILO_BITS;
 					if (j > (float) _iMaxRwinRcvd) {
 						_resultsTxtPane.append(_resBundDisplayMsgs
 								.getString("receiveBufferShouldBe")
 								+ " "
-								+ prtdbl(j)
+								+ NDTUtils.prtdbl(j)
 								+ _resBundDisplayMsgs
 										.getString("toMaximizeThroughput")
 								+ " \n");
 						_sEmailText += _resBundDisplayMsgs
 								.getString("receiveBufferShouldBe")
 								+ " "
-								+ prtdbl(j)
+								+ NDTUtils.prtdbl(j)
 								+ _resBundDisplayMsgs
 										.getString("toMaximizeThroughput")
 								+ "\n%0A";
@@ -2968,7 +2977,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 				if (_dSc2sspd < (_dC2sspd * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO: distinguish the host buffering from the middleboxes
-					// buffering
+					// buffering (older "todo" left as is)
 					JLabel info = new JLabel(
 							_resBundDisplayMsgs.getString("information"));
 					info.addMouseListener(new MouseAdapter() {
@@ -2989,7 +2998,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
 				if (_dS2cspd < (_dSs2cspd * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO: distinguish the host buffering from the middleboxes
-					// buffering
+					// buffering (older "todo" left as is)
 					JLabel info = new JLabel(
 							_resBundDisplayMsgs.getString("information"));
 					info.addMouseListener(new MouseAdapter() {
@@ -3029,69 +3038,57 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					+ _resBundDisplayMsgs.getString("web100Details")
 					+ "  ------\n");
 
-			/*
-			 * Now add data to the statistics pane about access speed/technology
-			 * Slightly different from the earlier switch (that added data about
-			 * this to the Results pane) in that negative values are checked for
-			 * too.
-			 */
+			// Now add data to the statistics pane about access speed/technology
+			// Slightly different from the earlier switch (that added data about
+			// this to the Results pane) in that negative values are checked for
+			// too.
+			
 			switch (_iC2sData) {
-			// case -2:
 			case NDTConstants.DATA_RATE_INSUFFICIENT_DATA:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("insufficient") + "\n");
 				break;
-			// case -1:
 			case NDTConstants.DATA_RATE_SYSTEM_FAULT:
 				_txtStatistics.append(_resBundDisplayMsgs.getString("ipcFail")
 						+ "\n");
 				break;
-			// case 0:
+
 			case NDTConstants.DATA_RATE_RTT:
 				_txtStatistics.append(_resBundDisplayMsgs.getString("rttFail")
 						+ "\n");
 				break;
-			// case 1:
 			case NDTConstants.DATA_RATE_DIAL_UP:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("foundDialup") + "\n");
 				break;
-			// case 2:
 			case NDTConstants.DATA_RATE_T1:
 				_txtStatistics.append(_resBundDisplayMsgs.getString("foundDsl")
 						+ "\n");
 				break;
-			// case 3:
 			case NDTConstants.DATA_RATE_ETHERNET:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found10mbps") + "\n");
 				break;
-			// case 4:
 			case NDTConstants.DATA_RATE_T3:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found45mbps") + "\n");
 				break;
-			// case 5:
 			case NDTConstants.DATA_RATE_FAST_ETHERNET:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found100mbps") + "\n");
 				break;
-			// case 6:
 			case NDTConstants.DATA_RATE_OC_12:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found622mbps") + "\n");
 				break;
-			// case 7:
 			case NDTConstants.DATA_RATE_GIGABIT_ETHERNET:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found1gbps") + "\n");
 				break;
-			// case 8:
 			case NDTConstants.DATA_RATE_OC_48:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found2.4gbps") + "\n");
 				break;
-			// case 9:
 			case NDTConstants.DATA_RATE_10G_ETHERNET:
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("found10gbps") + "\n");
@@ -3100,21 +3097,21 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Add decisions about duplex mode, congestion, duplex mismatch to
 			// Statistics pane
-			if (half_duplex == 0)
+			if (half_duplex == NDTConstants.DUPLEX_OK_INDICATOR)
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("linkFullDpx") + "\n");
 			else
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("linkHalfDpx") + "\n");
 
-			if (congestion == 0)
+			if (congestion == NDTConstants.CONGESTION_NONE)
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("congestNo") + "\n");
 			else
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("congestYes") + "\n");
 
-			if (bad_cable == 0)
+			if (bad_cable == NDTConstants.CABLE_STATUS_OK)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("cablesOk")
 						+ "\n");
 			else
@@ -3142,9 +3139,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			_txtStatistics.append("\n"
 					+ _resBundDisplayMsgs.getString("web100rtt") + " =  "
-					+ prtdbl(avgrtt) + " " + "ms" + "; ");
+					+ NDTUtils.prtdbl(avgrtt) + " " + "ms" + "; ");
 			_sEmailText += "\n%0A" + _resBundDisplayMsgs.getString("web100rtt")
-					+ " = " + prtdbl(avgrtt) + " " + "ms" + "; ";
+					+ " = " + NDTUtils.prtdbl(avgrtt) + " " + "ms" + "; ";
 
 			_txtStatistics.append(_resBundDisplayMsgs.getString("packetsize")
 					+ " = " + _iCurrentMSS + " "
@@ -3185,30 +3182,30 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 
 				_txtStatistics.append(_resBundDisplayMsgs.getString("connIdle")
-						+ " " + prtdbl(waitsec) + " "
+						+ " " + NDTUtils.prtdbl(waitsec) + " "
 						+ _resBundDisplayMsgs.getString("seconds") + " ("
-						+ prtdbl((waitsec / timesec) * 100)
+						+ NDTUtils.prtdbl((waitsec / timesec) * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ")\n");
 				_sEmailText += _resBundDisplayMsgs.getString("connStalled")
 						+ " " + _iTimeouts + " "
 						+ _resBundDisplayMsgs.getString("timesPktLoss")
 						+ "\n%0A";
 				_sEmailText += _resBundDisplayMsgs.getString("connIdle") + " "
-						+ prtdbl(waitsec) + " "
+						+ NDTUtils.prtdbl(waitsec) + " "
 						+ _resBundDisplayMsgs.getString("seconds") + " ("
-						+ prtdbl((waitsec / timesec) * 100)
+						+ NDTUtils.prtdbl((waitsec / timesec) * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ")\n%0A";
 			} else if (_iDupAcksIn > 0) { // No packets loss, but packets
 											// arrived out-of-order
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("noPktLoss1") + " - ");
 				_txtStatistics.append(_resBundDisplayMsgs.getString("ooOrder")
-						+ " " + prtdbl(order * 100)
+						+ " " + NDTUtils.prtdbl(order * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + "\n");
 				_sEmailText += _resBundDisplayMsgs.getString("noPktLoss1")
 						+ " - ";
 				_sEmailText += _resBundDisplayMsgs.getString("ooOrder") + " "
-						+ prtdbl(order * 100)
+						+ NDTUtils.prtdbl(order * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + "\n%0A";
 			} else { // no packets transmissions found
 				_txtStatistics.append(_resBundDisplayMsgs
@@ -3218,7 +3215,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			// Add Packet queuing details found during C2S throughput test to
-			// the statistics pane
+			// the statistics pane. Data is displayed as a percentage
+			
 			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 				if (_dC2sspd > _dSc2sspd) {
 					if (_dSc2sspd < (_dC2sspd * (1.0 - NDTConstants.VIEW_DIFF))) {
@@ -3227,7 +3225,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ " "
 								+ _resBundDisplayMsgs.getString("qSeen")
 								+ ": "
-								+ prtdbl(100 * (_dC2sspd - _dSc2sspd)
+								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dC2sspd - _dSc2sspd)
 										/ _dC2sspd) + "%\n");
 					} else {
 						_txtStatistics.append(_resBundDisplayMsgs
@@ -3235,14 +3233,15 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ " "
 								+ _resBundDisplayMsgs.getString("qSeen")
 								+ ": "
-								+ prtdbl(100 * (_dC2sspd - _dSc2sspd)
+								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dC2sspd - _dSc2sspd)
 										/ _dC2sspd) + "%\n");
 					}
 				}
 			}
 
 			// Add Packet queuing details found during S2C throughput test to
-			// the statistics pane
+			// the statistics pane. Data is displayed as a percentage
+			
 			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
 				if (_dSs2cspd > _dS2cspd) {
 					if (_dSs2cspd < (_dSs2cspd * (1.0 - NDTConstants.VIEW_DIFF))) {
@@ -3251,7 +3250,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ " "
 								+ _resBundDisplayMsgs.getString("qSeen")
 								+ ": "
-								+ prtdbl(100 * (_dSs2cspd - _dS2cspd)
+								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dSs2cspd - _dS2cspd)
 										/ _dSs2cspd) + "%\n");
 					} else {
 						_txtStatistics.append(_resBundDisplayMsgs
@@ -3259,7 +3258,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ " "
 								+ _resBundDisplayMsgs.getString("qSeen")
 								+ ": "
-								+ prtdbl(100 * (_dSs2cspd - _dS2cspd)
+								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dSs2cspd - _dS2cspd)
 										/ _dSs2cspd) + "%\n");
 					}
 				}
@@ -3274,23 +3273,23 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ " "
 						+ _resBundDisplayMsgs.getString("limitRx")
 						+ " "
-						+ prtdbl(rwintime * 100)
+						+ NDTUtils.prtdbl(rwintime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n");
 				_sEmailText += _resBundDisplayMsgs.getString("thisConnIs")
 						+ " " + _resBundDisplayMsgs.getString("limitRx") + " "
-						+ prtdbl(rwintime * 100)
+						+ NDTUtils.prtdbl(rwintime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n%0A";
-				pub_pctRcvrLimited = rwintime * 100;
+				pub_pctRcvrLimited = rwintime * NDTConstants.PERCENTAGE;
 
 				// I think there is a bug here, it sometimes tells you to
 				// increase the buffer
 				// size, but the new size is smaller than the current - (older
 				// comment left as is)
 
-				if (((2 * rwin) / rttsec) < mylink) {
+				if (((2 * rwin) / rttsec) < mylink) { //// multiply by 2 to counter round-trip
 					_txtStatistics.append("  "
 							+ _resBundDisplayMsgs.getString("incrRxBuf") + " ("
-							+ prtdbl(_iMaxRwinRcvd / 1024) + " KB) "
+							+ NDTUtils.prtdbl(_iMaxRwinRcvd / NDTConstants.KILO_BITS) + " KB) "
 							+ _resBundDisplayMsgs.getString("willImprove")
 							+ "\n");
 				}
@@ -3303,16 +3302,17 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ " "
 						+ _resBundDisplayMsgs.getString("limitTx")
 						+ " "
-						+ prtdbl(sendtime * 100)
+						+ NDTUtils.prtdbl(sendtime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n");
 				_sEmailText += _resBundDisplayMsgs.getString("thisConnIs")
 						+ " " + _resBundDisplayMsgs.getString("limitTx") + " "
-						+ prtdbl(sendtime * 100)
+						+ NDTUtils.prtdbl(sendtime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n%0A";
 				if ((2 * (swin / rttsec)) < mylink) {
+				    	// divide by 2 to counter round-trip
 					_txtStatistics.append("  "
 							+ _resBundDisplayMsgs.getString("incrTxBuf") + " ("
-							+ prtdbl(_iSndbuf / 2048) + " KB) "
+							+ NDTUtils.prtdbl(_iSndbuf / (2 * NDTConstants.KILO_BITS)) + " KB) "
 							+ _resBundDisplayMsgs.getString("willImprove")
 							+ "\n");
 				}
@@ -3325,21 +3325,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ " "
 						+ _resBundDisplayMsgs.getString("limitNet")
 						+ " "
-						+ prtdbl(cwndtime * 100)
+						+ NDTUtils.prtdbl(cwndtime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n");
 				_sEmailText += _resBundDisplayMsgs.getString("thisConnIs")
 						+ " " + _resBundDisplayMsgs.getString("limitNet") + " "
-						+ prtdbl(cwndtime * 100)
+						+ NDTUtils.prtdbl(cwndtime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n%0A";
-				// if (cwndtime > .15)
-				// statistics.append("  Contact your local network administrator to report a network problem\n");
-				// if (order > .15)
-				// statistics.append("  Contact your local network admin and report excessive packet reordering\n");
 			}
 
+			
 			// Is the loss excessive?
 			if ((spd < 4) && (loss > .01)) {
-				_txtStatistics.append(_resBundDisplayMsgs.getString("excLoss")
+			    	// If packet loss rate > 1% 
+			    	_txtStatistics.append(_resBundDisplayMsgs.getString("excLoss")
 						+ "\n");
 			}
 
@@ -3362,8 +3360,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 
-			_txtStatistics
-					.append("RFC 3168 Explicit Congestion Notification: ");
+			_txtStatistics.append("RFC 3168 Explicit Congestion Notification: ");
 			if (_iECNEnabled == iZero)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
@@ -3372,7 +3369,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n");
 
 			_txtStatistics.append("RFC 1323 Time Stamping: ");
-			if (_iTimestampsEnabled == 0)
+			if (_iTimestampsEnabled == NDTConstants.RFC_1323_DISABLED)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
 			else
@@ -3380,8 +3377,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n");
 
 			_txtStatistics.append("RFC 1323 Window Scaling: ");
-			if (_iMaxRwinRcvd < 65535)
-				_iWinScaleRcvd = 0;
+			if (_iMaxRwinRcvd < NDTConstants.TCP_MAX_RECV_WIN_SIZE)
+				_iWinScaleRcvd = 0; //Max rec window size lesser than TCP's max value, 
+						    // so, no scaling requested
 			if ((_iWinScaleRcvd == 0) || (_iWinScaleRcvd > 20))
 				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
@@ -3436,7 +3434,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					break;
 				}
 				// Results in the direction of Server to client
-				// s witch (_iS2cSFWResult) {
 				int iSFWResS2C = this.getS2cSFWTestResults();
 				switch (iSFWResS2C) {
 				// Update Statistics and email-text based on results
@@ -3466,11 +3463,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					break;
 				}
 			}
-
-			// diagnosis.append("\nEstimate = " + prtdbl(estimate) +
-			// " based on packet size = "
-			// + (CurrentMSS*8/1024) + "kbits, RTT = " + prtdbl(avgrtt) +
-			// "msec, " + "and loss = " + loss + "\n");
+			
 			_txtDiagnosis.append("\n");
 
 			// Output relevant to the "More Details" tab, related to factors
@@ -3480,49 +3473,50 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_txtDiagnosis.append(_resBundDisplayMsgs
 					.getString("theoreticalLimit")
 					+ " "
-					+ prtdbl(estimate)
+					+ NDTUtils.prtdbl(estimate)
 					+ " " + "Mbps\n");
 			_sEmailText += _resBundDisplayMsgs.getString("theoreticalLimit")
-					+ " " + prtdbl(estimate) + " Mbps\n%0A";
+					+ " " + NDTUtils.prtdbl(estimate) + " Mbps\n%0A";
 
-			// NDT server buffer imposed limit
+			// NDT server buffer imposed limit 
+			// divide by 2 to counter "round-trip" time
 			_txtDiagnosis.append(_resBundDisplayMsgs.getString("ndtServerHas")
-					+ " " + prtdbl(_iSndbuf / 2048) + " "
+					+ " " + NDTUtils.prtdbl(_iSndbuf / (2 * NDTConstants.KILO_BITS) ) + " "
 					+ _resBundDisplayMsgs.getString("kbyteBufferLimits") + " "
-					+ prtdbl(swin / rttsec) + " Mbps\n");
+					+ NDTUtils.prtdbl(swin / rttsec) + " Mbps\n");
 			_sEmailText += _resBundDisplayMsgs.getString("ndtServerHas") + " "
-					+ prtdbl(_iSndbuf / 2048) + " "
+					+ NDTUtils.prtdbl(_iSndbuf / (2 * NDTConstants.KILO_BITS)) + " "
 					+ _resBundDisplayMsgs.getString("kbyteBufferLimits") + " "
-					+ prtdbl(swin / rttsec) + " Mbps\n%0A";
+					+ NDTUtils.prtdbl(swin / rttsec) + " Mbps\n%0A";
 
 			// PC buffer imposed throughput limit
 			_txtDiagnosis.append(_resBundDisplayMsgs.getString("yourPcHas")
-					+ " " + prtdbl(_iMaxRwinRcvd / 1024) + " "
+					+ " " + NDTUtils.prtdbl(_iMaxRwinRcvd / NDTConstants.KILO_BITS) + " "
 					+ _resBundDisplayMsgs.getString("kbyteBufferLimits") + " "
-					+ prtdbl(rwin / rttsec) + " Mbps\n");
+					+ NDTUtils.prtdbl(rwin / rttsec) + " Mbps\n");
 			_sEmailText += _resBundDisplayMsgs.getString("yourPcHas") + " "
-					+ prtdbl(_iMaxRwinRcvd / 1024) + " "
+					+ NDTUtils.prtdbl(_iMaxRwinRcvd / NDTConstants.KILO_BITS) + " "
 					+ _resBundDisplayMsgs.getString("kbyteBufferLimits") + " "
-					+ prtdbl(rwin / rttsec) + " Mbps\n%0A";
+					+ NDTUtils.prtdbl(rwin / rttsec) + " Mbps\n%0A";
 
 			// Network based flow control limit imposed throughput limit
 			_txtDiagnosis.append(_resBundDisplayMsgs
 					.getString("flowControlLimits")
 					+ " "
-					+ prtdbl(cwin / rttsec) + " Mbps\n");
+					+ NDTUtils.prtdbl(cwin / rttsec) + " Mbps\n");
 			_sEmailText += _resBundDisplayMsgs.getString("flowControlLimits")
-					+ " " + prtdbl(cwin / rttsec) + " Mbps\n%0A";
+					+ " " + NDTUtils.prtdbl(cwin / rttsec) + " Mbps\n%0A";
 
 			// Client, Server data reports on link capacity
 			_txtDiagnosis.append("\n"
 					+ _resBundDisplayMsgs.getString("clientDataReports") + " '"
-					+ prttxt(_iC2sData) + "', "
+					+ NDTUtils.prttxt(_iC2sData, this._resBundDisplayMsgs) + "', "
 					+ _resBundDisplayMsgs.getString("clientAcksReport") + " '"
-					+ prttxt(_iC2sAck) + "'\n"
+					+ NDTUtils.prttxt(_iC2sAck,this._resBundDisplayMsgs) + "'\n"
 					+ _resBundDisplayMsgs.getString("serverDataReports") + " '"
-					+ prttxt(_iS2cData) + "', "
+					+ NDTUtils.prttxt(_iS2cData,this._resBundDisplayMsgs) + "', "
 					+ _resBundDisplayMsgs.getString("serverAcksReport") + " '"
-					+ prttxt(_iS2cAck) + "'\n");
+					+ NDTUtils.prttxt(_iS2cAck,this._resBundDisplayMsgs) + "'\n");
 			pub_diagnosis = _txtDiagnosis.getText();
 
 		} // end if (CountRTT >0)
@@ -3546,7 +3540,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		StringTokenizer tokens;
 		int k;
 
-		// results.append("Mbox stats: ");
 		tokens = new StringTokenizer(sMidBoxTestResParam, ";");
 		String sServerIp = tokens.nextToken();
 		String sClientIp = tokens.nextToken();
@@ -3556,11 +3549,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// based on public, not local IP.
 		pub_clientIP = sClientIp;
 
-		// results.append("ssip=" + ssip + " scip=" + scip + "\n");
-
-		// String mss = tokens.nextToken();
-		// String winsrecv = tokens.nextToken();
-		// String winssent = tokens.nextToken();
 		int iMss = Integer.parseInt(tokens.nextToken());
 		int iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but
 																// retaining
@@ -3577,28 +3565,15 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		k = sClientSideServerIp.indexOf("/");
 		sClientSideServerIp = sClientSideServerIp.substring(k + 1);
 
-		// results.append("csip=" + csip + " ccip=" + ccip + "\n");
-		// results.append("mss=" + mss + " winsrecv=" + winsrecv + " winssent="
-		// +
-		// winssent + "\n");
-
 		// MSS = 1456 = Ethernet MTU = 1500 - 24 -20 (bytes of IP header) =
 		// 1456, thus preserved
-		// if (iMss == 1456)
+		
 		if (iMss == NDTConstants.ETHERNET_MTU_SIZE)
 			_txtStatistics.append(_resBundDisplayMsgs
 					.getString("packetSizePreserved") + "\n");
 		else
 			_txtStatistics.append(_resBundDisplayMsgs
 					.getString("middleboxModifyingMss") + "\n");
-
-		/*
-		 * // if ((winsrecv == -1) && (winssent == -1)) //
-		 * statistics.append("Window scaling option is preserved End-to-End\n");
-		 * // else // statistics.append(
-		 * "Information: Network Middlebox is modifying Window scaling option\n"
-		 * );
-		 */
 
 		// server IP has been preserved end-to-end without changes
 
@@ -3664,81 +3639,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				JOptionPane.INFORMATION_MESSAGE);
 	}
 
-	/**
-	 * Utility method to print double value upto the hundreth place.
-	 * 
-	 * @param paramDblToFormat
-	 *            Double numbers to format
-	 * @return String value of double number
-	 */
-	public String prtdbl(double paramDblToFormat) {
-		String str = null;
-		int i;
-
-		if (paramDblToFormat == 0) {
-			return ("0");
-		}
-		str = Double.toString(paramDblToFormat);
-		i = str.indexOf(".");
-		i = i + 3;
-		if (i > str.length()) {
-			i = i - 1;
-		}
-		if (i > str.length()) {
-			i = i - 1;
-		}
-		return (str.substring(0, i));
-	} // prtdbl()
-
-	/**
-	 * Utility method to print Text values for data speed related keys.
-	 * 
-	 * @param paramIntVal
-	 *            integer parameter for which we find text value
-	 * @return String Textual name for input parameter
-	 */
-	public String prttxt(int paramIntVal) {
-		String strNameTxt = null;
-
-		switch (paramIntVal) {
-		case (NDTConstants.DATA_RATE_SYSTEM_FAULT):
-			strNameTxt = _resBundDisplayMsgs
-					.getString(NDTConstants.SYSTEM_FAULT_STR); // "systemFault"
-			break;
-		case NDTConstants.DATA_RATE_RTT:
-			strNameTxt = _resBundDisplayMsgs.getString(NDTConstants.RTT_STR); // "rtt"
-			break;
-		case NDTConstants.DATA_RATE_DIAL_UP:
-			strNameTxt = _resBundDisplayMsgs.getString(NDTConstants.DIALUP_STR); // "dialup2"
-			break;
-		case NDTConstants.DATA_RATE_T1:
-			strNameTxt = NDTConstants.T1_STR; // "T1"
-			break;
-		case NDTConstants.DATA_RATE_ETHERNET:
-			strNameTxt = NDTConstants.ETHERNET_STR; // "Ethernet";
-			break;
-		case NDTConstants.DATA_RATE_T3:
-			strNameTxt = NDTConstants.T3_STR; // "T3";
-			break;
-		case NDTConstants.DATA_RATE_FAST_ETHERNET:
-			strNameTxt = NDTConstants.FAST_ETHERNET; // "FastE";
-			break;
-		case NDTConstants.DATA_RATE_OC_12:
-			strNameTxt = NDTConstants.OC_12_STR; // "OC-12";
-			break;
-		case NDTConstants.DATA_RATE_GIGABIT_ETHERNET:
-			strNameTxt = NDTConstants.GIGABIT_ETHERNET_STR; // "GigE";
-			break;
-		case NDTConstants.DATA_RATE_OC_48:
-			strNameTxt = NDTConstants.OC_48_STR; // "OC-48";
-			break;
-		case NDTConstants.DATA_RATE_10G_ETHERNET:
-			strNameTxt = NDTConstants.TENGIGABIT_ETHERNET_STR; // "10 Gig";
-			break;
-		} // end switch
-		return (strNameTxt);
-	} // prttxt()
-
+	
 	/*
 	 * This routine saves the specific value into the variable of the same name.
 	 * There should probably be an easier way to do this.
@@ -3800,11 +3701,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * */
 
 	public void save_int_values(String sSysvarParam, int iSysvalParam) {
-		/*
-		 * Values saved for interpretation: SumRTT CountRTT CurrentMSS Timeouts
-		 * PktsRetrans SACKsRcvd DupAcksIn MaxRwinRcvd MaxRwinSent Sndbuf Rcvbuf
-		 * DataPktsOut SndLimTimeRwin SndLimTimeCwnd SndLimTimeSender
-		 */
+		//
+		// Values saved for interpretation: SumRTT CountRTT CurrentMSS Timeouts
+		// PktsRetrans SACKsRcvd DupAcksIn MaxRwinRcvd MaxRwinSent Sndbuf Rcvbuf
+		// DataPktsOut SndLimTimeRwin SndLimTimeCwnd SndLimTimeSender
+		//
 		if (sSysvarParam.equals("MSSSent:"))
 			MSSSent = iSysvalParam;
 		else if (sSysvarParam.equals("MSSRcvd:"))

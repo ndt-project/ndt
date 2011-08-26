@@ -43,8 +43,7 @@ public class StatusPanel extends JPanel {
 		setTestNoLabelText();
 
 		// If multiple tests are enabled to be run, then add information about
-		// the
-		// test number being run
+		// the test number being run
 		if (sParamEnableMultiple != null) {
 			add(_labelTestNum);
 		}

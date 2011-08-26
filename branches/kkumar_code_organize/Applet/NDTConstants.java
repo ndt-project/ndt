@@ -96,10 +96,21 @@ public class NDTConstants {
 														// for now
 	public static final String RTT_STR = "rtt"; // round trip time
 
+	// Section: RFC 1323 options ( Seems like 0/1/2/3 are the options available)
+	
+	public static final int RFC_1323_DISABLED = 0;
+	
+	// Section: Buffer limitation test thresholds
+	public static final float BUFFER_LIMITED = 0.15f; //unused right now
+	
+	
+	// Section: TCP constants
+	public static final int TCP_MAX_RECV_WIN_SIZE = 65535;
+	 
 	// Section: Data units
 	public static final int KILO = 1000; // Used in conversions from
 											// seconds->mS,
-	public static final int KILO_BYTES = 1024;// Used in kilobits->bits
+	public static final int KILO_BITS = 1024;// Used in kilobits->bits
 												// conversions
 	public static final int EIGHT = 8; // Used in octal number, conversions from
 										// Bytes-> bits etc
@@ -109,10 +120,22 @@ public class NDTConstants {
 	public static final int DUPLEX_NOK_INDICATOR = 1;
 	public static final int DUPLEX_SWITCH_FULL_HOST_HALF = 2;
 	public static final int DUPLEX_SWITCH_HALF_HOST_FULL = 3;
-
+	public static final int DUPLEX_SWITCH_FULL_HOST_HALF_POSS = 4;
+	public static final int DUPLEX_SWITCH_HALF_HOST_FULL_POSS = 5;
+	public static final int DUPLEX_SWITCH_HALF_HOST_FULL_WARN = 7;
+	
+	// Section: cable status indicators
+	public static final int CABLE_STATUS_OK = 0;
+	public static final int CABLE_STATUS_BAD = 1;
+	
+	// Section: Congestion status
+	public static final int CONGESTION_NONE = 0;
+	public static final int CONGESTION_FOUND = 1;
+	
 	// Section: miscellaneous
 	public static final int SOCKET_FREE_PORT_INDICATOR = 0;
 	public static final String LOOPBACK_ADDRS_STRING = "127.0.0.1";
+	public static final int PERCENTAGE = 100;
 
 	// constant to indicate protocol read success
 	public static final int PROTOCOL_MSG_READ_SUCCESS = 0;

@@ -83,10 +83,8 @@ public class Protocol {
 	public int readn(Message msgParam, int iParamAmount) throws IOException {
 		int read = 0;
 		int tmp;
-		// msg.body = new byte[amount];
 		msgParam.initBodySize(iParamAmount);
-		while (read != iParamAmount) {
-			// tmp = _ctlin.read(msg.body, read, amount - read);
+		while (read != iParamAmount) {			
 			tmp = _ctlInStream
 					.read(msgParam._yaBody, read, iParamAmount - read);
 			if (tmp <= 0) {
@@ -124,10 +122,7 @@ public class Protocol {
 		if (readn(msgParam, 3) != 3) {
 			return 1;
 		}
-		/*
-		 * msg.type = msg.body[0]; length = ((int) msg.body[1] & 0xFF) << 8;
-		 * length += (int) msg.body[2] & 0xFF;
-		 */
+		
 		byte[] yaMsgBody = msgParam.getBody();
 		msgParam.setType(yaMsgBody[0]);
 
