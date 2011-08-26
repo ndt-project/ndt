@@ -4,7 +4,7 @@
 
 == Abstract == 
 
-The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. The measured factors along with some additional analysis and detailed test traces are stored by the server for the future reuse. Moreover, multi-level results allow novice and expert users to view and understand the test results.
+The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. The measured factors along with some additional analysis and detailed test traces are stored by the server for the future reuse. Moreover, multi-level results allow novice and expert users to view and understand the test results. This document describes what, where and when is stored by the NDT server. The information contained here should be enough to support parsing of the collected data for analysis and visualization purposes.
 
 == Table of Contents ==
 
