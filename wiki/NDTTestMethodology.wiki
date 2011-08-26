@@ -1,6 +1,44 @@
 #summary Description of the NDT test methodology
 
-= Download Test =
+=NDT Test Methodology= 
+
+== Abstract == 
+
+The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. The NDT is designed to identify both performance problems and configuration problems. Performance problems affect the user experience, usually causing data transfers to take longer than expected. These problems are usually solved by tuning various TCP (Transmission Control Protocol) network parameters on the end host. Configuration problems also affect the user experience; however, tuning will not improve the end-to-end performance. The configuration fault must be found and corrected to change the end host behavior. The NDT is providing enough information to accomplish these tasks. This document describes how these information is gathered and what NDT is and is not capable of answering.
+
+== Table of Contents ==
+
+<wiki:toc max_depth="3" />
+
+== Introduction ==
+
+The NDT is a typical memory to memory client/server test device. Throughput measurements closely measure the network performance, and ignore the disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing a commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem. The FCC really needs to understand this message, or we will not be as effective as we need to be.
+
+The NDT operates on any client with a Java-enabled Web browser; further:
+ * What it can do:
+   * Positively state if Sender, Receiver, or Network is operating properly
+   * Provide accurate application tuning info
+   * Suggest changes to improve performance
+ * What it can’t do:
+   * Tell you where in the network the problem is
+   * Tell you how other servers perform
+   * Tell you how other clients will perform
+
+== Performed tests ==
+
+=== Middlebox Test ===
+
+=== Simple Firewall Test ===
+
+=== C2S Throughput Test ===
+ * A block of pseudo random data is generated on the client and stored in memory.
+ * The client repeatedly transmits this data to the server for 10 seconds.
+ * The server acknowledges receipt of this data and then discards it.
+ * The server calculates the average throughput by dividing the number of bytes sent by the test time.
+ * The server also makes measurements on a per-packet basis, calculating the capacity of the e2e path.
+ * Results from the test are returned to the client at the conclusion of the test.
+
+=== S2C Throughput Test ===
  * A block of pseudo random data is generated on the server and stored in memory.
  * The server repeatedly transmits this data to the Java client for 10 seconds.
  * The client acknowledges receipt of this data and then discards it.
@@ -9,25 +47,15 @@
  * The server measures the number of lost and delayed packets, the instantaneous round trip time, and examines the clients network configuration to determine what, if anything, caused a drop in the expected throughput.
  * Multiple clients may be served simultaneously.
 
-= Upload Test =
- * A block of pseudo random data is generated on the client and stored in memory.
- * The client repeatedly transmits this data to the server for 10 seconds.
- * The server acknowledges receipt of this data and then discards it.
- * The server calculates the average throughput by dividing the number of bytes sent by the test time.
- * The server also makes measurements on a per-packet basis, calculating the capacity of the e2e path.
- * Results from the test are returned to the client at the conclusion of the test.
+== Specific detection algorithms ==
 
-= Latency/Jitter =
+=== Latency/Jitter ===
  * Multiple measurements of the round trip delay and per-packet transmission/arrival times are collected.
  * The delay for each measurement is summed and divided by the total number of measurements to generate the average round trip delay.
 
-= Advanced diagnostics =
+=== Advanced diagnostics ===
  * The server determines what, if anything, is limiting the maximum download speed
  - Possible limits might be the clients/servers configuration, the clients/servers CPU utilization, or the network infrastructure
  * The server reports if a firewall is blocking connections in one or both directions
  * The client determines if a NAT box is being used
  * The server reports abnormal conditions such as high packet loss or packets arriving out of order
-
-
-------------------------
-What the above says is, the NDT is a typical memory to memory client/server test device.  Throughput measurements closely measure the network performance, and ignore the disk I/O effects.  The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test.  One of the MAJOR issues facing a commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system.  To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay.  Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem.  The FCC really needs to understand this message, or we will not be as effective as we need to be.
