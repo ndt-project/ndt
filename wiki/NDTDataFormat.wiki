@@ -33,7 +33,7 @@ This is a standard trace file for all packets (except the initial syn & syn/ack 
 
 Writing snaplog file is enabled by `--snaplog` option.
 
-This file contains all the the [http://www.web100.org/ web100] kernel MIB variables' values written in a fixed time (default is 5 msec) increments. The list of logged variables with a short description can be found in the [NDTProtocol#Appendix_A._web100_variables NDT Protocol document].
+This file contains all the [http://www.web100.org/ web100] kernel MIB variables' values written in a fixed time (default is 5 msec) increments. The list of logged variables with a short description can be found in the [NDTProtocol#Appendix_A._web100_variables NDT Protocol document].
 
 ===web100srv.log file===
 
@@ -178,7 +178,7 @@ The detailed tcpdump and snaplog files can be used to re-examine the test to see
   * were packets being reordered (e.g., sent 1, 2, 3, 4, 5 but received 1, 2, 4, 3, 5) 
   * what was the capacity of the bottleneck link in this path? 
   * did the test produce the expected results? 
-  * was the client connected to a wired or wireless (WiFi) network? 
+  * was the client connected to a wired or wireless (!WiFi) network? 
   * is there a firewall and/or NAT box in the path?
  
 More information about NDT:
