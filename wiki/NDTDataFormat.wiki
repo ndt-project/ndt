@@ -70,7 +70,7 @@ This one-line summary contains the final values of some of the web100 variables 
 || 26. || !MaxSsthresh || (*{{{*}}}*) The maximum slow start threshold, excluding the initial value. ||
 || 27. || CurRTO || (*{{{*}}}*) The current value of the retransmit timer RTO. ||
 || 28. || !CurRwinRcvd || (*{{{*}}}*) The most recent window advertisement received, in octets. ||
-|| 29. || link || ||
+|| 29. || link || A detected link type. The details of the detection algorithm can be found in the [NDTTestMethodology NDT Test Methodology document].<br><br>This variable can have the following values:<ul><li>*100* - link type cannot be detected</li><li>*0* - detection algorithm failed</li><li>*10* - Ethernet link (Fast Ethernet)</li><li>*3* - wireless link</li><li>*2* - DSL/Cable modem link</li></ul> ||
 || 30. || mismatch || ||
 || 31. || bad_cable || ||
 || 32. || half_duplex || ||
