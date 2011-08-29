@@ -3356,10 +3356,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			
 			// Is the loss excessive?
                         // If the link speed is less than a T3, and loss
-                        // is greater than .01 percent, loss is determined
+                        // is greater than 1 percent, loss is determined
                         // to be excessive.
 			if ((spd < 4) && (loss > .01)) {
-			    	// If packet loss rate > 1% 
 			    	_txtStatistics.append(_resBundDisplayMsgs.getString("excLoss")
 						+ "\n");
 			}
