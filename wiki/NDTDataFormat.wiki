@@ -161,6 +161,11 @@ This file contains lines with `times` routine results recorded using a 100ms int
 
 All times reported are in clock ticks.
 
+A clock tick is same as a cycle, the smallest unit of time recognized by a device. For personal computers, clock ticks generally refer to the main system clock. The number of clock ticks per second can be obtained using:
+{{{
+sysconf(_SC_CLK_TCK);
+}}}
+
 ===meta data file===
 
 The meta data file is always created for every test session.
