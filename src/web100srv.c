@@ -1329,7 +1329,7 @@ main(int argc, char** argv)
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
-  char isoTime[64], dir[64];
+  char isoTime[64], dir[128];
   int debug = 0;
 
   DIR *dp;

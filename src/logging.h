@@ -43,11 +43,11 @@ struct metaentry {
 };
 
 struct metadata {
-    char c2s_snaplog[64];
-    char c2s_ndttrace[64];
-    char s2c_snaplog[64];
-    char s2c_ndttrace[64];
-    char CPU_time[64];
+    char c2s_snaplog[128];
+    char c2s_ndttrace[128];
+    char s2c_snaplog[128];
+    char s2c_ndttrace[128];
+    char CPU_time[128];
     char summary[256];
     char date[32];
     char time[16];
