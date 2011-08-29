@@ -39,15 +39,13 @@ For example:
 
 The mentioned files are saved using the following filename format:
 
-{{{
-ISOtime_serverFQDN:portNumber.extension
-}}}
+|| *ISOtime*{{{_}}}*serverFQDN*:*portNumber*.*extension* ||
 
 where:
- # ISOtime - current time in the ISO format
- # serverFQDN - server host fully qualified name
- # portNumber - currently used port number (ephemeral ports for the snaplog and tcpdump traces, control session port for the cputime and meta files)
- # extension - extension used to distinguish file types
+ * *ISOtime* - current time in the ISO format
+ * *serverFQDN* - server host fully qualified name
+ * *portNumber* - currently used port number (ephemeral ports for the snaplog and tcpdump traces, control session port for the cputime and meta files)
+ * *extension* - extension used to distinguish file types
 
 For example:
 
