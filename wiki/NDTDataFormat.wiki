@@ -57,9 +57,13 @@ For example:
 
 ===tcpdump trace===
 
-Writing tcpdump trace file is enabled by `-t, --tcpdump` options.
+Writing tcpdump trace files is enabled by the `-t, --tcpdump` options.
 
-This is a standard trace file for all packets (except the initial syn & syn/ack exchange) written using [http://www.tcpdump.org/ pcap] library.
+These are a standard trace files for all packets (except the initial syn & syn/ack exchange) sent during the individual C2S/S2C subtests (only the throughput tests' traffic is gathered that is sent on a newly created connection, all the NDT control protocol communication is not captured in these dump files).
+
+The packets from the C2S Throughput test are stored in the {{{*}}}.c2s_ndttrace file, the packets from the S2C Throughput test are stored in the {{{*}}}.s2c_ndttrace file.
+
+These tcpdump files are written using the [http://www.tcpdump.org/ pcap] library.
 
 ===web100 snaplog trace===
 
