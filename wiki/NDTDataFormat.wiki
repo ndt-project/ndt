@@ -55,6 +55,51 @@ For example:
 
 ==Collected data formats==
 
+===meta data file===
+
+The meta data file is always created for every test session.
+
+This file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. The meta data contains lines in the following order:
+
+|| *#* || *Name* || *Description/Comment* ||
+|| 1. || Date/Time || Timestamp of the beginning of the test session ||
+|| 2. || C2S [NDTDataFormat#web100_snaplog_trace snaplog] file || Filename of the snaplog taken during C2S Throughput test ||
+|| 3. || C2S [NDTDataFormat#tcpdump_trace ndttrace] file || Filename of the tcpdump trace taken during C2S Throughput test ||
+|| 4. || S2C [NDTDataFormat#web100_snaplog_trace snaplog] file || Filename of the snaplog taken during S2C Throughput test ||
+|| 5. || S2C [NDTDataFormat#tcpdump_trace ndttrace] file || Filename of the tcpdump trace taken during S2C Throughput test ||
+|| 6. || [NDTDataFormat#cputime_trace cputime] file || Filename of the cputime trace taken during the whole test session ||
+|| 7. || server IP address || IP address of the NDT server ||
+|| 8. || server hostname || Fully qualified hostname of the NDT server ||
+|| 9. || server kernel version || Kernel version of the NDT server's OS ||
+|| 10. || client IP address || IP address of the NDT client ||
+|| 11. || client hostname || Fully qualified hostname of the NDT client ||
+|| 12. || client OS name || Name of the NDT client's OS ||
+|| 13. || client browser name || Name of the NDT client's web browser (if applicable) ||
+|| 14. || Summary data || A one-line summary of the test containing the final values of some of the web100 variables with an additional analysis details. The particular values are separated with commas without any spaces. The results are written with the same order and contain the same values as the one-line summary from the [NDTDataFormat#web100srv.log_file web100srv.log file] (except the date and client name) ||
+|| 15. || Additional data || (*optional*) A multi-line information containing additional data sent by the client using the META protocol. Currently defined key/value pairs can be found in the [NDTProtocol#META_test NDT Protocol document] ||
+
+Please look at the following sample meta data file:
+ 
+{{{
+Date/Time: 20091009T20:46:28.141927000Z
+c2s_snaplog file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_snaplog.gz
+c2s_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_ndttrace.gz
+s2c_snaplog file:
+s2c_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:61730.s2c_ndttrace.gz
+cputime file:
+server IP address: 4.71.254.147
+server hostname: mlab1.atl01.measurement-lab.org
+server kernel version: 2.6.22.19-vs2.3.0.34.32.mlab.pla
+client IP address: 149.20.53.166
+client hostname: nb.tech.org
+client OS name:
+client_browser name:
+Summary data:313,2246,1658,0,69963,1020,19,8,1961,0,1448,392,1428,525600,112560,
+43440,0,10001122,25307,2899352,0,15,15,21720,270,525600,100,0,0,0,1,6,2,8,10,8,1961,
+66,10,22,964,0,166,0,-1208754176,3,0,31,0,360,1448,43440,8
+}}}
+
+
 ===tcpdump trace===
 
 Writing tcpdump trace files is enabled by the `-t, --tcpdump` options.
@@ -164,50 +209,6 @@ All times reported are in clock ticks.
 A clock tick is same as a cycle, the smallest unit of time recognized by a device. For personal computers, clock ticks generally refer to the main system clock. The number of clock ticks per second can be obtained using:
 {{{
 sysconf(_SC_CLK_TCK);
-}}}
-
-===meta data file===
-
-The meta data file is always created for every test session.
-
-This file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. The meta data contains lines in the following order:
-
-|| *#* || *Name* || *Description/Comment* ||
-|| 1. || Date/Time || Timestamp of the beginning of the test session ||
-|| 2. || C2S snaplog file || Filename of the snaplog taken during C2S Throughput test ||
-|| 3. || C2S ndttrace file || Filename of the tcpdump trace taken during C2S Throughput test ||
-|| 4. || S2C snaplog file || Filename of the snaplog taken during S2C Throughput test ||
-|| 5. || S2C ndttrace file || Filename of the tcpdump trace taken during S2C Throughput test ||
-|| 6. || cputime file || Filename of the cputime trace taken during the whole test session ||
-|| 7. || server IP address || IP address of the NDT server ||
-|| 8. || server hostname || Fully qualified hostname of the NDT server ||
-|| 9. || server kernel version || Kernel version of the NDT server's OS ||
-|| 10. || client IP address || IP address of the NDT client ||
-|| 11. || client hostname || Fully qualified hostname of the NDT client ||
-|| 12. || client OS name || Name of the NDT client's OS ||
-|| 13. || client browser name || Name of the NDT client's web browser (if applicable) ||
-|| 14. || Summary data || A one-line summary of the test containing the final values of some of the web100 variables with an additional analysis details. The particular values are separated with commas without any spaces. The results are written with the same order and contain the same values as the one-line summary from the [NDTDataFormat#web100srv.log_file web100srv.log file] (except the date and client name) ||
-|| 15. || Additional data || (*optional*) A multi-line information containing additional data sent by the client using the META protocol. Currently defined key/value pairs can be found in the [NDTProtocol#META_test NDT Protocol document] ||
-
-Please look at the following sample meta data file:
- 
-{{{
-Date/Time: 20091009T20:46:28.141927000Z
-c2s_snaplog file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_snaplog.gz
-c2s_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:60102.c2s_ndttrace.gz
-s2c_snaplog file:
-s2c_ndttrace file: 20091009T20:46:28.141927000Z_149.20.53.166:61730.s2c_ndttrace.gz
-cputime file:
-server IP address: 4.71.254.147
-server hostname: mlab1.atl01.measurement-lab.org
-server kernel version: 2.6.22.19-vs2.3.0.34.32.mlab.pla
-client IP address: 149.20.53.166
-client hostname: nb.tech.org
-client OS name:
-client_browser name:
-Summary data:313,2246,1658,0,69963,1020,19,8,1961,0,1448,392,1428,525600,112560,
-43440,0,10001122,25307,2899352,0,15,15,21720,270,525600,100,0,0,0,1,6,2,8,10,8,1961,
-66,10,22,964,0,166,0,-1208754176,3,0,31,0,360,1448,43440,8
 }}}
 
 ==Displaying collected data==
