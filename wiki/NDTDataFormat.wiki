@@ -14,12 +14,46 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 The NDT uses the following files to store the test results data:
 
-|| *File* || *Scope of the collected data* || *Always used?* ||
-|| *tcpdump trace* || C2S/S2C tests || *NO* (enabled by `-t, --tcpdump` options) ||
-|| *web100 snaplog trace* || C2S/S2C tests || *NO* (enabled by `--snaplog` option) ||
-|| *web100srv.log* || test session || YES ||
-|| *cputime trace* || test session || *NO* (enabled by `--cputime` option) ||
-|| *meta data file* || test session || YES ||
+|| *File* || *Scope of the collected data* || *Always used?* || *File extension* ||
+|| *tcpdump trace* || C2S/S2C tests || *NO* (enabled by `-t, --tcpdump` options) || {{{*}}}.c2s_ndttrace / {{{*}}}.s2c_ndttrace ||
+|| *web100 snaplog trace* || C2S/S2C tests || *NO* (enabled by `--snaplog` option) || {{{*}}}.c2s_snaplog / {{{*}}}.s2c_snaplog ||
+|| *web100srv.log* || test session || YES || {{{*}}}.log ||
+|| *cputime trace* || test session || *NO* (enabled by `--cputime` option) || {{{*}}}.cputime ||
+|| *meta data file* || test session || YES || {{{*}}}.meta ||
+
+The web100srv.log file is by default written under the `/usr/local/ndt/` directory. However, this can be changed by using the `-l, --log` options.
+
+All other files are saved under the data directory (by default `/usr/local/ndt/serverdata/`) which can be set by using the `-L, --log_dir` options. To minimize the number of files in one directory, the test results are further grouped by the year, month and day the test was started in.
+
+To sum up, the result files are saved in the following directories:
+
+{{{
+/DataDirPath/YYYY/MM/DD/
+}}}
+
+For example:
+
+{{{
+/usr/local/ndt/serverdata/2011/08/24/
+}}}
+
+The mentioned files are saved using the following filename format:
+
+{{{
+ISOtime_serverFQDN:portNumber.extension
+}}}
+
+where:
+ # ISOtime - current time in the ISO format
+ # serverFQDN - server host fully qualified name
+ # portNumber - currently used port number (ephemeral ports for the snaplog and tcpdump traces, control session port for the cputime and meta files)
+ # extension - extension used to distinguish file types
+
+For example:
+
+{{{
+20110824T21:11:45.99598000Z_jeremian-laptop.local:33687.c2s_ndttrace
+}}}
 
 ==Collected data formats==
 
