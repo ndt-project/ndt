@@ -69,7 +69,7 @@ This file contains the names of the other files, the clients & servers IP addr a
 || 5. || S2C [NDTDataFormat#tcpdump_trace ndttrace] file || Filename of the tcpdump trace taken during S2C Throughput test ||
 || 6. || [NDTDataFormat#cputime_trace cputime] file || Filename of the cputime trace taken during the whole test session ||
 || 7. || server IP address || IP address of the NDT server ||
-|| 8. || server hostname || Fully qualified hostname of the NDT server ||
+|| 8. || server hostname || Hostname of the NDT server ||
 || 9. || server kernel version || Kernel version of the NDT server's OS ||
 || 10. || client IP address || IP address of the NDT client ||
 || 11. || client hostname || Fully qualified hostname of the NDT client ||
