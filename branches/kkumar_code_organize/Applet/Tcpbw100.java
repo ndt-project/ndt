@@ -3284,7 +3284,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Add connection details to statistics pane and email text
 
 			// Is the connection receiver limited?
-			if (rwintime > .015) {
+			if (rwintime > NDTConstants.BUFFER_LIMITED) {
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("thisConnIs")
 						+ " "
@@ -3313,7 +3313,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			// Is the connection sender limited?
-			if (sendtime > .015) {
+			if (sendtime > NDTConstants.BUFFER_LIMITED) {
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("thisConnIs")
 						+ " "
@@ -3336,6 +3336,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			// Is the connection network limited?
+                        // If the congestion window is limited more than 0.5%
+                        // of the time, NDT claims the connection is network
+                        // limited.
 			if (cwndtime > .005) {
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("thisConnIs")
@@ -3352,6 +3355,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			
 			// Is the loss excessive?
+                        // If the link speed is less than a T3, and loss
+                        // is greater than .01 percent, loss is determined
+                        // to be excessive.
 			if ((spd < 4) && (loss > .01)) {
 			    	// If packet loss rate > 1% 
 			    	_txtStatistics.append(_resBundDisplayMsgs.getString("excLoss")
@@ -3397,6 +3403,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			if (_iMaxRwinRcvd < NDTConstants.TCP_MAX_RECV_WIN_SIZE)
 				_iWinScaleRcvd = 0; //Max rec window size lesser than TCP's max value, 
 						    // so, no scaling requested
+                                                    // According to RFC1323, Section 2.3 the max valid value of _iWinScaleRcvd is 14.
+                                                    // Unclear why NDT uses 20 for this, but leaving for now in case this is a web100
+                                                    // error value of some kind. (Revisit after Methodology document written.)
 			if ((_iWinScaleRcvd == 0) || (_iWinScaleRcvd > 20))
 				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
