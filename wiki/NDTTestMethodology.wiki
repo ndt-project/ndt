@@ -49,7 +49,7 @@ When the 5 seconds throughput test is over, the server sends the following resul
 || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
 || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
 
-Next, the client sends its calculated throughput value to the server. This throughput value is calculated using the following value:
+Next, the client sends its calculated throughput value to the server. This throughput value is calculated using the following formula:
 {{{
 THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 }}}
