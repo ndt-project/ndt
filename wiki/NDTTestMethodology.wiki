@@ -36,7 +36,7 @@ As a first step the server binds an ephemeral port and notify the client about t
 
 Next, the client connects to the server's ephemeral port. When the connection is successfully established, the server sets the maximum value of the congestion window for this connection to `2 * (The current maximum segment size (MSS))`.
 
-In the next step the server starts a 5 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the buffer of the following size: `(The current maximum segment size (MSS))`. If such buffer cannot be used, then the server uses a 8192 Byte one.
+In the next step the server starts a 5 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the buffer of the following size: `(The current maximum segment size (MSS))`. If such buffer cannot be used, then the server uses a 8192 Byte one. The buffer contains a pre-generated pseudo random data (including only US-ASCII printable characters).
 
 The server can temporarily stop sending packets when the following formula is fulfilled:
 {{{
@@ -99,13 +99,26 @@ THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 }}}
 
 === S2C Throughput Test ===
- * A block of pseudo random data is generated on the server and stored in memory.
- * The server repeatedly transmits this data to the Java client for 10 seconds.
- * The client acknowledges receipt of this data and then discards it.
- * The server calculates the average throughput by dividing the number of bytes sent by the test time.
- * The server also makes measurements on a per-packet basis, calculating the capacity of the e2e path.
- * The server measures the number of lost and delayed packets, the instantaneous round trip time, and examines the clients network configuration to determine what, if anything, caused a drop in the expected throughput.
- * Multiple clients may be served simultaneously.
+
+The S2C throughput test tests the achievable network bandwidth from the server to the client by performing a 10 seconds memory-to-memory data transfer.
+
+A detailed description of all of the S2C protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
+
+As a first step the server binds an ephemeral port and notify the client about this port number.
+
+Next, the client connects to the server's ephemeral port. When the connection is successfully established, the server initializes the following routines:
+ * libpcap routines to perform packet trace used by the Bottleneck Link Detection algorithm.
+ * [NDTDataFormat#tcpdump_trace tcpdump trace] to dump all packets sent during the S2C throughput test on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set.
+ * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time (default is 5 msec) increments during the S2C throughput test for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+
+In the next step the server starts a 10 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the 8192 Byte buffer containing a pre-generated pseudo random data (including only US-ASCII printable characters).
+
+When the 10 seconds throughput test is over, the server sends to the client its calculated throughput value, amount of unsent data in the socket send queue and overall number of sent bytes. The throughput value is calculated using the following formula:
+{{{
+THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
+}}}
+
+Additionally, at the end of the S2C throughput test, the server also takes a web100 snapshot and sends all the web100 data variables to the client.
 
 == Specific detection algorithms ==
 
