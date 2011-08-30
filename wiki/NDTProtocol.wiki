@@ -291,7 +291,7 @@ http://www.soldevelo.com/images/ndt/17.%20A%20Simple%20firewall%20test%20session
 
 === C2S throughput test ===
 
-The C2S throughput test tests the achievable network bandwidth from the client to the server by performing a 10 seconds memory-to-memory data transfer.
+The C2S throughput test tests the achievable network bandwidth from the Client to the Server by performing a 10 seconds memory-to-memory data transfer.
 
 ==== C2S protocol ====
 
