@@ -30,7 +30,7 @@ The NDT operates on any client with a Java-enabled Web browser; further:
 
 The middlebox test is a short throughput test from the server to the client with a limited CWND to check for a duplex mismatch condition. Moreover, this test uses a pre-defined MSS value to check if any intermediate node will modify its connection settings.
 
-A detailed description of all of the SFW protocol messages can be found in the [NDTProtocol#Middlebox_test NDT Protocol document].
+A detailed description of all of the MID protocol messages can be found in the [NDTProtocol#Middlebox_test NDT Protocol document].
 
 As a first step the server binds an ephemeral port and notify the client about this port number. The server also sets MSS on this port to 1456 (strange value). 
 
