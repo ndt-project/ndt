@@ -130,10 +130,6 @@ Additionally, at the end of the S2C throughput test, the server also takes a web
 
 The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the measured throughput value is the same or smaller than the estimate (which is a correct situation).
 
-==== IEEE 802.11 (!WiFi) ====
-
-==== Ethernet link (Fast Ethernet) ====
-
 ==== DSL/Cable modem ====
 
 The link is treated as a DSL/Cable modem when all of the following conditions are met:
@@ -141,6 +137,18 @@ The link is treated as a DSL/Cable modem when all of the following conditions ar
  * The number of transitions into the 'Congestion Limited' state *is 0*
  * The web100 measured speed *is less than 2000000 bits per second*
  * The web100 measured speed *is less than estimate*
+
+==== IEEE 802.11 (!WiFi) ====
+
+==== Ethernet link (Fast Ethernet) ====
+
+The link is treated as an Ethernet link (Fast Ethernet) when all of the following conditions are met:
+ * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
+ * The web100 measured speed *is less than 9500000 bits per second*
+ * The web100 measured speed *is greater than 3000000 bits per second*
+ * The S2C throughput test measured speed *is less than 9500000 bits per second*
+ * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
+ * The proportion of the duplicate ACKs received to the overall number of valid pure ACKs received *is less than 3.5%*
 
 === Faulty Hardware Link Detection ===
 
