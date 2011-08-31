@@ -122,13 +122,34 @@ Additionally, at the end of the S2C throughput test, the server also takes a web
 
 == Specific detection algorithms ==
 
+=== Bottleneck Link Detection ===
+
+=== Duplex Mismatch Detection ===
+
+=== Link Type Detection Heuristics ===
+
+==== IEEE 802.11 (WiFi) ====
+
+==== Ethernet link (Fast Ethernet) ====
+
+==== DSL/Cable modem ====
+
+=== Faulty Hardware Link Detection ===
+
+=== Full/Half Link Duplex Setting ===
+
+=== Normal Congestion Detection ===
+
+=== Firewall Detection ===
+
+=== NAT Detection ===
+
+=== Abnormal Conditions Detection ===
+
+ * high packet loss
+ * packets arriving out of order
+
 === Latency/Jitter ===
+
  * Multiple measurements of the round trip delay and per-packet transmission/arrival times are collected.
  * The delay for each measurement is summed and divided by the total number of measurements to generate the average round trip delay.
-
-=== Advanced diagnostics ===
- * The server determines what, if anything, is limiting the maximum download speed
- - Possible limits might be the clients/servers configuration, the clients/servers CPU utilization, or the network infrastructure
- * The server reports if a firewall is blocking connections in one or both directions
- * The client determines if a NAT box is being used
- * The server reports abnormal conditions such as high packet loss or packets arriving out of order
