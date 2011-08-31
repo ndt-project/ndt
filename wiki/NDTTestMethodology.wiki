@@ -140,6 +140,14 @@ The link is treated as a DSL/Cable modem when all of the following conditions ar
 
 ==== IEEE 802.11 (!WiFi) ====
 
+The link is treated as a wireless one when all of the following conditions are met:
+ * The heuristic for DSL/Cable modem link *gives negative results*
+ * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
+ * The web100 measured speed *is less than 5000000 bits per second*
+ * The speed estimate *is greater than 52428800 bits per second*
+ * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
+ * The cumulative time spent in the 'Receiver Limited' state *is greater than 90% of the total test time*
+
 ==== Ethernet link (Fast Ethernet) ====
 
 The link is treated as an Ethernet link (Fast Ethernet) when all of the following conditions are met:
