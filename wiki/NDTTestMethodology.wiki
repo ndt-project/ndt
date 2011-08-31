@@ -128,7 +128,7 @@ Additionally, at the end of the S2C throughput test, the server also takes a web
 
 === Link Type Detection Heuristics ===
 
-==== IEEE 802.11 (WiFi) ====
+==== IEEE 802.11 (!WiFi) ====
 
 ==== Ethernet link (Fast Ethernet) ====
 
