@@ -126,6 +126,27 @@ Additionally, at the end of the S2C throughput test, the server also takes a web
 
 === Duplex Mismatch Detection ===
 
+The NDT contains two heuristics for the duplex mismatch detection.
+
+A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when all of the following conditions are met:
+ * The cumulative time spent in the 'Congestion Limited' state *is greater than 90% of the total test time*
+ * The speed estimate *is greater than 2000000 bits per second*
+ * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
+ * The maximum slow start threshold, excluding the initial value, *is greater than 0*
+ * The cumulative time of the expired retransmit timeouts RTO *is greater than 1% of the total test time*
+ * (link > 2) (*WARNING: this condition is always true*)
+ * The throughput speed measured during the MID test (with a limited CWND) *is greater than* the throughput speed measured during the S2C test
+ * The multi-test mode must be disabled (so the `-m, --multiple` options cannot be set)
+ * The throughput speed measured during the C2S test *is greater than* the throughput speed measured during the S2C test
+
+If all of the above conditions are met except the last one, then the NDT assumes that a new duplex mismatch detection algorithm discovers the problem.
+
+The new duplex mismatch detection algorithm also discovers the problem when all of the following conditions are met:
+ * The throughput speed measured during the S2C test *is greater than 50000000 bits per second*
+ * The web100 measured speed *is less than 5000000 bits per second*
+ * The cumulative time spent in the 'Receiver Limited' state *is greater than 90% of the total test time*
+ * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
+
 === Link Type Detection Heuristics ===
 
 The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the measured throughput value is the same or smaller than the estimate (which is a correct situation).
