@@ -363,3 +363,40 @@ where:
  * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
 
 The speed estimate is kept in mbits per second.
+
+=== 'Congestion Limited' state time share ===
+
+The 'Congestion Limited' state time share is computed using the following formula:
+
+{{{
+SndLimTimeCwnd/TotalTestTime
+}}}
+
+where:
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
+ * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state
+
+=== 'Receiver Limited' state time share ===
+
+The 'Receiver Limited' state time share is computed using the following formula:
+
+{{{
+SndLimTimeRwin/TotalTestTime
+}}}
+
+where:
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
+ * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state
+
+
+=== 'Sender Limited' state time share ===
+
+The 'Sender Limited' state time share is computed using the following formula:
+
+{{{
+SndLimTimeSender/TotalTestTime
+}}}
+
+where:
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
+ * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
