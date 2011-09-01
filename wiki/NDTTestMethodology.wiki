@@ -213,7 +213,7 @@ The link is treated as an Ethernet link (Fast Ethernet) when all of the followin
 === Faulty Hardware Link Detection ===
 
 A bad cable (faulty hardware link) is detected when all of the following conditions are met:
- * 100 divided by the total test time in seconds and multiplied by the proportion of the number of multiplicative downward congestion window adjustments to the total number of segments *is greater than 15*
+ * The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] *is greater than 15*
  * The proportion of the cumulative time spent in the 'Congestion Limited' state to the total test time divided by the total test time in seconds *is greater than 0.6* (*WARNING: this condition cannot be met*)
  * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
@@ -268,6 +268,19 @@ where:
  * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state
  * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state
  * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
+
+The total test time is kept in 10^-6 seconds.
+
+=== Total test time in seconds ===
+
+The total test time in seconds is computed using the following formula:
+
+{{{
+TotalTestTime/1000000
+}}}
+
+where:
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
 === Web100 measured speed ===
 
