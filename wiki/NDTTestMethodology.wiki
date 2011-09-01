@@ -155,7 +155,7 @@ The following link type detection heuristics are run only when there is no duple
 
 The link is treated as a DSL/Cable modem when all of the following conditions are met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
- * The number of transitions into the 'Congestion Limited' state *is 0*
+ * The number of transitions into the 'Sender Limited' state *is 0*
  * The web100 measured speed *is less than 2000000 bits per second*
  * The web100 measured speed *is less than estimate*
 
@@ -188,6 +188,11 @@ A bad cable (faulty hardware link) is detected when all of the following conditi
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
 
 === Full/Half Link Duplex Setting ===
+
+A half duplex is detected when all of the following conditions are met:
+ * The cumulative time spent in the 'Receiver Limited' state *is greater than 95% of the total test time*
+ * The number of transitions into the 'Receiver Limited' state *is greater than 30 per second*
+ * The number of transitions into the 'Sender Limited' state *is greater than 30 per second*
 
 === Normal Congestion Detection ===
 
