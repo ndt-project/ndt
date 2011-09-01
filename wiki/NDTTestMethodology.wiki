@@ -145,8 +145,8 @@ It means that the calculated speed is in mbits/second. The results are then quan
  * 0 < bits/time <= 0.01 - *RTT*
  * 0.01 < bits/time <= 0.064 - *Dial-up Modem*
  * 0.064 < bits/time <= 1.5 - *Cable/DSL modem*
- * 1.5 < bits/time <= 10 - *10 Mbps Ethernet or WiFi 11b subnet*
- * 10 < bits/time <= 40 - *45 Mbps T3/DS3 or WiFi 11 a/g subnet*
+ * 1.5 < bits/time <= 10 - *10 Mbps Ethernet or !WiFi 11b subnet*
+ * 10 < bits/time <= 40 - *45 Mbps T3/DS3 or !WiFi 11 a/g subnet*
  * 40 < bits/time <= 100 - *100 Mbps Fast Ethernet subnet*
  * 100 < bits/time <= 622 - *a 622 Mbps OC-12 subnet*
  * 622 < bits/time <= 1000 - *1.0 Gbps Gigabit Ethernet subnet*
