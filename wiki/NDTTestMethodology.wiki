@@ -320,3 +320,5 @@ SumRTT/CountRTT
 where:
  * *SumRTT* - The sum of all sampled round trip times
  * *CountRTT* - The number of round trip time samples
+
+The average round trip time is kept in milliseconds.
