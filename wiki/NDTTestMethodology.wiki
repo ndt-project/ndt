@@ -161,7 +161,7 @@ The NDT contains two heuristics for the duplex mismatch detection.
 
 A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when all of the following conditions are met:
  * The cumulative time spent in the 'Congestion Limited' state *is greater than 90% of the total test time*
- * The speed estimate *is greater than 2000000 bits per second*
+ * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 2000000 bits per second*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
  * The cumulative time of the expired retransmit timeouts RTO *is greater than 1% of the total test time*
@@ -180,7 +180,7 @@ The new duplex mismatch detection algorithm also discovers the problem when all 
 
 === Link Type Detection Heuristics ===
 
-The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the measured throughput value is the same or smaller than the estimate (which is a correct situation).
+The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is the same or smaller than the [NDTTestMethodology#Speed_estimate speed estimate] (which is a correct situation).
 
 ==== DSL/Cable modem ====
 
@@ -188,7 +188,7 @@ The link is treated as a DSL/Cable modem when all of the following conditions ar
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
  * The number of transitions into the 'Sender Limited' state *is 0*
  * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 2000000 bits per second*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than estimate*
+ * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than* [NDTTestMethodology#Speed_estimate speed estimate]
 
 ==== IEEE 802.11 (!WiFi) ====
 
@@ -196,7 +196,7 @@ The link is treated as a wireless one when all of the following conditions are m
  * The heuristic for DSL/Cable modem link *gives negative results*
  * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
  * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5000000 bits per second*
- * The speed estimate *is greater than 52428800 bits per second*
+ * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 52428800 bits per second*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
  * The cumulative time spent in the 'Receiver Limited' state *is greater than 90% of the total test time*
 
@@ -281,6 +281,8 @@ where:
  * *!DataBytesOut* - The number of octets of data contained in transmitted segments, including retransmitted data.
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
+The web100 measured speed is kept in mbits per second.
+
 === Packet loss ===
 
 The packet loss proportion is computed using the following formula:
@@ -347,4 +349,4 @@ where:
  * *AvgRTTSec* - [NDTTestMethodology#Average_RTT_in_seconds Average RTT in seconds]
  * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
 
-The speed estimate is kept in mbits.
+The speed estimate is kept in mbits per second.
