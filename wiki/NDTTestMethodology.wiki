@@ -160,7 +160,7 @@ It means that the calculated speed is in mbits/second. The results are then quan
 The NDT contains two heuristics for the duplex mismatch detection.
 
 A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when all of the following conditions are met:
- * The cumulative time spent in the 'Congestion Limited' state *is greater than 90% of the total test time*
+ * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 2000000 bits per second*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
@@ -175,7 +175,7 @@ If all of the above conditions are met except the last one, then the NDT assumes
 The new duplex mismatch detection algorithm also discovers the problem when all of the following conditions are met:
  * The throughput speed measured during the S2C test *is greater than 50000000 bits per second*
  * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5000000 bits per second*
- * The cumulative time spent in the 'Receiver Limited' state *is greater than 90% of the total test time*
+ * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
 
 === Link Type Detection Heuristics ===
@@ -198,7 +198,7 @@ The link is treated as a wireless one when all of the following conditions are m
  * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5000000 bits per second*
  * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 52428800 bits per second*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
- * The cumulative time spent in the 'Receiver Limited' state *is greater than 90% of the total test time*
+ * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
 
 ==== Ethernet link (Fast Ethernet) ====
 
@@ -214,21 +214,21 @@ The link is treated as an Ethernet link (Fast Ethernet) when all of the followin
 
 A bad cable (faulty hardware link) is detected when all of the following conditions are met:
  * The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] *is greater than 15*
- * The proportion of the cumulative time spent in the 'Congestion Limited' state to the total test time divided by the total test time in seconds *is greater than 0.6* (*WARNING: this condition cannot be met*)
+ * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds Total test time in seconds] *is greater than 0.6* (*WARNING: this condition cannot be met*)
  * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
 
 === Full/Half Link Duplex Setting ===
 
 A half duplex is detected when all of the following conditions are met:
- * The cumulative time spent in the 'Receiver Limited' state *is greater than 95% of the total test time*
+ * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 95%*
  * The number of transitions into the 'Receiver Limited' state *is greater than 30 per second*
  * The number of transitions into the 'Sender Limited' state *is greater than 30 per second*
 
 === Normal Congestion Detection ===
 
 A normal congestion is detected when all of the following conditions are met:
- * The cumulative time spent in the 'Congestion Limited' state *is greater than 2% of the total test time*
+ * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 2%*
  * The duplex mismatch condition heuristic *gives negative results*
  * The maximum window advertisement received *is greater than* the maximum congestion window used during Slow Start
 
