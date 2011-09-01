@@ -203,6 +203,10 @@ A normal congestion is detected when all of the following conditions are met:
 
 === Firewall Detection ===
 
+A firewall is detected when the connection to the ephemeral port was unsuccessful in the specified time. The results for the server are independent from the results for the client.
+
+Please note, that the NDT states that the node is only *probably* behind a firewall. The connection can be unsuccessful from a variety of other reasons.
+
 === NAT Detection ===
 
 === Abnormal Conditions Detection ===
