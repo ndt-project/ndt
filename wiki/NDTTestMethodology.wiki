@@ -196,6 +196,11 @@ A half duplex is detected when all of the following conditions are met:
 
 === Normal Congestion Detection ===
 
+A normal congestion is detected when all of the following conditions are met:
+ * The cumulative time spent in the 'Congestion Limited' state *is greater than 2% of the total test time*
+ * The duplex mismatch condition heuristic *gives negative results*
+ * The maximum window advertisement received *is greater than* the maximum congestion window used during Slow Start
+
 === Firewall Detection ===
 
 === NAT Detection ===
