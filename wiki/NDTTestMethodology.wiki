@@ -209,6 +209,20 @@ Please note, that the NDT states that the node is only *probably* behind a firew
 
 === NAT Detection ===
 
+The Network Address Translation (NAT) box is detected by the comparison of the client/server IP addresses visible from the server and the client boxes.
+
+When the server IP address visible to the client is different from the one known to the server itself, then the NAT box is modifying the server's IP address.
+
+Analogically, when the client IP address visible to the server is different from the one known to the client itself, then the NAT box is modifying the client's IP address.
+
+=== MSS Modifications ===
+
+The NDT checks packet size preservation by comparing the final value of the MSS variable in the MID test.
+
+When this variable's value is different than 1456, then the network middlebox had to change it during the test.
+
+When this variable's value is 1456, then it means that the packet size is preserved End-to-End.
+
 === Abnormal Conditions Detection ===
 
  * high packet loss
