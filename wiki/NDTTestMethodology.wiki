@@ -223,12 +223,44 @@ When this variable's value is different than 1456, then the network middlebox ha
 
 When this variable's value is 1456, then it means that the packet size is preserved End-to-End.
 
-=== Abnormal Conditions Detection ===
+== Computed variables ==
 
- * high packet loss
- * packets arriving out of order
+=== Packet loss ===
 
-=== Latency/Jitter ===
+The packet loss proportion is computed using the following formula:
 
- * Multiple measurements of the round trip delay and per-packet transmission/arrival times are collected.
- * The delay for each measurement is summed and divided by the total number of measurements to generate the average round trip delay.
+{{{
+CongestionSignals/PktsOut
+}}}
+
+where:
+ * *!CongestionSignals* - The number of multiplicative downward congestion window adjustments due to all forms of congestion signals
+ * *!PktsOut* - The total number of segments sent
+
+When the `CongestionSignals` value is *0*, then the packet loss proportion is set to the following values:
+ * *0.0000000001* - if a link type detected by the Bottleneck Link Detection algorithm using the *Client --> Server data packets*' inter-packet arrival times is faster than a 100 Mbps Fast Ethernet subnet.
+ * *0.000001* - otherwise
+
+=== Packets arriving out of order ===
+
+The out of order packets proportion is computed using the following formula:
+
+{{{
+DupAcksIn/AckPktsIn
+}}}
+
+where:
+ * *!DupAcksIn* - The number of duplicate ACKs received
+ * *!AckPktsIn* - The number of valid pure ACKs received
+
+=== Average round trip time (Latency/Jitter) ===
+
+The average round trip time is computed using the following formula:
+
+{{{
+SumRTT/CountRTT
+}}}
+
+where:
+ * *SumRTT* - The sum of all sampled round trip times
+ * *CountRTT* - The number of round trip time samples
