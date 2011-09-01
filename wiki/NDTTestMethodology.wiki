@@ -333,3 +333,18 @@ AvgRTT/1000
 
 where:
  * *AvgRTT* - [NDTTestMethodology#Average_round_trip_time_(Latency/Jitter) Average round trip time (Latency/Jitter)]
+
+=== Speed estimate ===
+
+The speed estimate is computed using the following formula:
+
+{{{
+(CurrentMSS / (AvgRTTSec * sqrt(PktsLoss))) * 8 / 1024 / 1024
+}}}
+
+where:
+ * *CurrentMSS* - The current maximum segment size (MSS), in octets
+ * *AvgRTTSec* - [NDTTestMethodology#Average_RTT_in_seconds Average RTT in seconds]
+ * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
+
+The speed estimate is kept in mbits.
