@@ -256,6 +256,31 @@ When this variable's value is 1456, then it means that the packet size is preser
 
 == Computed variables ==
 
+=== Total test time ===
+
+The total test time is computed using the following formula:
+
+{{{
+SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender
+}}}
+
+where:
+ * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state
+ * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state
+ * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
+
+=== Web100 measured speed ===
+
+The web100 measured speed is computed using the following formula:
+
+{{{
+DataBytesOut / TotalTestTime * 8
+}}}
+
+where:
+ * *!DataBytesOut* - The number of octets of data contained in transmitted segments, including retransmitted data.
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
+
 === Packet loss ===
 
 The packet loss proportion is computed using the following formula:
