@@ -322,3 +322,14 @@ where:
  * *CountRTT* - The number of round trip time samples
 
 The average round trip time is kept in milliseconds.
+
+=== Average RTT in seconds ===
+
+The average round trip time in seconds is computed using the following formula:
+
+{{{
+AvgRTT/1000
+}}}
+
+where:
+ * *AvgRTT* - [NDTTestMethodology#Average_round_trip_time_(Latency/Jitter) Average round trip time (Latency/Jitter)]
