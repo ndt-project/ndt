@@ -169,7 +169,9 @@ The results are quantized, meaning that the NDT doesn’t recognize fractional l
 
 The NDT contains two heuristics for the duplex mismatch detection.
 
-A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when all of the following conditions are met:
+A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when the connection is congestion limited 90% of the time, the !WiFi is not detected, the [NDTTestMethodology#Speed_estimate speed estimate] is greater than 2Mibps, there is a lot of packets retransmissions and the S2C throughput speed is much smaller than expected.
+
+This means that all of the following conditions should be met:
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 2Mibps*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
@@ -181,11 +183,13 @@ A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when all of t
 
 If all of the above conditions are met except the last one, then the NDT assumes that a new duplex mismatch detection algorithm discovers the problem.
 
-The new duplex mismatch detection algorithm also discovers the problem when all of the following conditions are met:
+The new duplex mismatch detection algorithm also discovers the problem when the connection is receiver limited 90% of the time, there is a big difference between the S2C throughput speed and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] and the packets are lost sporadically.
+
+This means that all of the following conditions should be met:
  * The throughput speed measured during the S2C test *is greater than 50 Mbps*
  * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
- * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
+ * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
 
 ==== Known limitations ====
 
