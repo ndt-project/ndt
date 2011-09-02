@@ -193,7 +193,6 @@ The Old Duplex-Mismatch algorithm does not work with multiple simultaneous tests
 
 The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
 
-
 === Link Type Detection Heuristics ===
 
 The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is the same or smaller than the [NDTTestMethodology#Speed_estimate speed estimate] (which is a correct situation).
@@ -210,7 +209,7 @@ This means that all of the following conditions should be met:
 
 ==== IEEE 802.11 (!WiFi) ====
 
-The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic gives negative results, the receiver is a bottleneck and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is less than 5 Mbps but the [NDTTestMethodology#Speed_estimate speed estimate] is greater than 50 Mibps.
+The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the receiver is a bottleneck and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is less than 5 Mbps but the [NDTTestMethodology#Speed_estimate speed estimate] is greater than 50 Mibps.
 
 This means that all of the following conditions should be met:
  * The heuristic for DSL/Cable modem link *gives negative results*
@@ -222,7 +221,7 @@ This means that all of the following conditions should be met:
 
 ==== Ethernet link (Fast Ethernet) ====
 
-The link is treated as an Ethernet link (Fast Ethernet) when the heuristics for !WiFi and DSL/Cable modem links give negative results, the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is between 3 and 9.5 Mbps and the connection is very stable.
+The link is treated as an Ethernet link (Fast Ethernet) when the !WiFi and DSL/Cable modem are not detected, the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is between 3 and 9.5 Mbps and the connection is very stable.
 
 This means that all of the following conditions should be met:
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
@@ -240,20 +239,30 @@ The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be
 
 A bad cable (faulty hardware link) is detected when all of the following conditions are met:
  * The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] *is greater than 15*
- * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds Total test time in seconds] *is greater than 0.6* (*WARNING: this condition cannot be met*)
+ * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] *is greater than 0.6*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
 
+==== Known limitations ====
+
+The condition "The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] is greater than 0.6" cannot be met, because the state time share is less than 1 and the total test time in seconds is around 10, so this result will be always less than 0.1.
+
+The both conditions "The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] is greater than 15" and "The [NDTTestMethodology#Packet_loss packet loss] is less than 1%" cannot be met at the same time, because if the packet loss is less than 0.01, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
+
 === Full/Half Link Duplex Setting ===
 
-A half duplex is detected when all of the following conditions are met:
+A half duplex is detected when the connection is receiver limited 95% of the time, but is flapping between 'receiver limited' and 'sender limited' states.
+
+This means that all of the following conditions should met:
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 95%*
  * The number of transitions into the 'Receiver Limited' state *is greater than 30 per second*
  * The number of transitions into the 'Sender Limited' state *is greater than 30 per second*
 
 === Normal Congestion Detection ===
 
-A normal congestion is detected when all of the following conditions are met:
+A normal congestion is detected when the connection is congestion limited a non-trivial percent of the time, the duplex mismatch is not detected and the receive window isn't the limiting factor.
+
+This means that all of the following conditions should be met:
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 2%*
  * The duplex mismatch condition heuristic *gives negative results*
  * The maximum window advertisement received *is greater than* the maximum congestion window used during Slow Start
