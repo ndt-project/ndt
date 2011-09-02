@@ -183,11 +183,11 @@ This means that all of the following conditions should be met:
 
 If all of the above conditions are met except the last one, then the NDT assumes that a new duplex mismatch detection algorithm discovers the problem.
 
-The new duplex mismatch detection algorithm also discovers the problem when the connection is receiver limited 90% of the time, there is a big difference between the S2C throughput speed and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] and the packets are lost sporadically.
+The new duplex mismatch detection algorithm also discovers the problem when the connection is receiver limited 90% of the time, there is a big difference between the S2C throughput speed and the [NDTTestMethodology#Total_send_throughput total send throughput] and the packets are lost sporadically.
 
 This means that all of the following conditions should be met:
  * The throughput speed measured during the S2C test *is greater than 50 Mbps*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5 Mbps*
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
 
@@ -197,40 +197,42 @@ The Old Duplex-Mismatch algorithm does not work with multiple simultaneous tests
 
 The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
 
+The difference between the S2C throughput speed (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
+
 === Link Type Detection Heuristics ===
 
-The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is the same or smaller than the [NDTTestMethodology#Speed_estimate speed estimate] (which is a correct situation).
+The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_send_throughput total send throughput] is the same or smaller than the [NDTTestMethodology#Speed_estimate speed estimate] (which is a correct situation).
 
 ==== DSL/Cable modem ====
 
-The link is treated as a DSL/Cable modem when the sender isn't a bottleneck and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is less than 2 Mbps and less than [NDTTestMethodology#Speed_estimate speed estimate].
+The link is treated as a DSL/Cable modem when the sender isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than [NDTTestMethodology#Speed_estimate speed estimate].
 
 This means that all of the following conditions should be met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
  * The number of transitions into the 'Sender Limited' state *is 0*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 2 Mbps*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than* [NDTTestMethodology#Speed_estimate speed estimate]
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 2 Mbps*
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than* [NDTTestMethodology#Speed_estimate speed estimate]
 
 ==== IEEE 802.11 (!WiFi) ====
 
-The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the receiver is a bottleneck and the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is less than 5 Mbps but the [NDTTestMethodology#Speed_estimate speed estimate] is greater than 50 Mibps.
+The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the receiver is a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 5 Mbps but the [NDTTestMethodology#Speed_estimate speed estimate] is greater than 50 Mibps.
 
 This means that all of the following conditions should be met:
  * The heuristic for DSL/Cable modem link *gives negative results*
  * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5 Mbps*
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 50 Mibps*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
 
 ==== Ethernet link (Fast Ethernet) ====
 
-The link is treated as an Ethernet link (Fast Ethernet) when the !WiFi and DSL/Cable modem are not detected, the [NDTTestMethodology#Web100_measured_speed web100 measured speed] is between 3 and 9.5 Mbps and the connection is very stable.
+The link is treated as an Ethernet link (Fast Ethernet) when the !WiFi and DSL/Cable modem are not detected, the [NDTTestMethodology#Total_send_throughput total send throughput] is between 3 and 9.5 Mbps and the connection is very stable.
 
 This means that all of the following conditions should be met:
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 9.5 Mbps*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is greater than 3 Mbps*
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 9.5 Mbps*
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is greater than 3 Mbps*
  * The S2C throughput test measured speed *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The proportion of the duplicate ACKs received to the overall number of valid pure ACKs received *is less than 3.5%*
@@ -321,9 +323,9 @@ TotalTestTime/1000000
 where:
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
-=== Web100 measured speed ===
+=== Total send throughput ===
 
-The web100 measured speed is computed using the following formula:
+The total send throughput is computed using the following formula:
 
 {{{
 DataBytesOut / TotalTestTime * 8
@@ -333,7 +335,7 @@ where:
  * *!DataBytesOut* - The number of octets of data contained in transmitted segments, including retransmitted data.
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
-The web100 measured speed is kept in Mbps.
+The total send throughput is kept in Mbps (because [NDTTestMethodology#Total_test_time Total test time] is kept in microseconds).
 
 === Packet loss ===
 
@@ -347,7 +349,7 @@ where:
  * *!CongestionSignals* - The number of multiplicative downward congestion window adjustments due to all forms of congestion signals
  * *!PktsOut* - The total number of segments sent
 
-When the `CongestionSignals` value is *0*, then the packet loss proportion is set to the following values:
+To avoid possible division by zero, the NDT sets the packet loss percentages to the following values when the `CongestionSignals` is 0:
  * *0.0000000001* - if a link type detected by the Bottleneck Link Detection algorithm using the *Client --> Server data packets*' inter-packet arrival times is faster than a 100 Mbps Fast Ethernet subnet.
  * *0.000001* - otherwise
 
@@ -361,7 +363,7 @@ DupAcksIn/AckPktsIn
 
 where:
  * *!DupAcksIn* - The number of duplicate ACKs received
- * *!AckPktsIn* - The number of valid pure ACKs received
+ * *!AckPktsIn* - The number of non-duplicate ACKs received
 
 === Average round trip time (Latency/Jitter) ===
 
@@ -401,7 +403,19 @@ where:
  * *AvgRTTSec* - [NDTTestMethodology#Average_RTT_in_seconds Average RTT in seconds]
  * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
 
-The speed estimate is kept in mbits per second.
+The speed estimate is kept in Mibps.
+
+The above speed estimate comes from the matthis equation ([http://www.psc.edu/networking/papers/model_ccr97.ps]):
+
+{{{
+Rate < (MSS/RTT)*(1 / sqrt(p))
+}}}
+
+where p is the loss probability.
+
+==== Known limitations ====
+
+The speed estimate should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
 
 === 'Congestion Limited' state time share ===
 
