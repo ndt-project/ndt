@@ -171,22 +171,28 @@ The NDT contains two heuristics for the duplex mismatch detection.
 
 A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when all of the following conditions are met:
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 90%*
- * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 2000000 bits per second*
+ * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 2Mibps*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
  * The cumulative time of the expired retransmit timeouts RTO *is greater than 1% of the total test time*
- * (link > 2) (*WARNING: this condition is always true*)
+ * The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link
  * The throughput speed measured during the MID test (with a limited CWND) *is greater than* the throughput speed measured during the S2C test
- * The multi-test mode must be disabled (so the `-m, --multiple` options cannot be set)
  * The throughput speed measured during the C2S test *is greater than* the throughput speed measured during the S2C test
 
 If all of the above conditions are met except the last one, then the NDT assumes that a new duplex mismatch detection algorithm discovers the problem.
 
 The new duplex mismatch detection algorithm also discovers the problem when all of the following conditions are met:
- * The throughput speed measured during the S2C test *is greater than 50000000 bits per second*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5000000 bits per second*
+ * The throughput speed measured during the S2C test *is greater than 50 Mbps*
+ * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
+
+==== Known limitations ====
+
+The Old Duplex-Mismatch algorithm does not work with multiple simultaneous tests. In order to enable this algorithm, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
+
+The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
+
 
 === Link Type Detection Heuristics ===
 
@@ -197,7 +203,7 @@ The following link type detection heuristics are run only when there is no duple
 The link is treated as a DSL/Cable modem when all of the following conditions are met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
  * The number of transitions into the 'Sender Limited' state *is 0*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 2000000 bits per second*
+ * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 2 Mbps*
  * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than* [NDTTestMethodology#Speed_estimate speed estimate]
 
 ==== IEEE 802.11 (!WiFi) ====
@@ -205,8 +211,8 @@ The link is treated as a DSL/Cable modem when all of the following conditions ar
 The link is treated as a wireless one when all of the following conditions are met:
  * The heuristic for DSL/Cable modem link *gives negative results*
  * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5000000 bits per second*
- * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 52428800 bits per second*
+ * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 5 Mbps*
+ * The [NDTTestMethodology#Speed_estimate speed estimate] *is greater than 50 Mibps*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
 
@@ -214,9 +220,9 @@ The link is treated as a wireless one when all of the following conditions are m
 
 The link is treated as an Ethernet link (Fast Ethernet) when all of the following conditions are met:
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 9500000 bits per second*
- * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is greater than 3000000 bits per second*
- * The S2C throughput test measured speed *is less than 9500000 bits per second*
+ * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is less than 9.5 Mbps*
+ * The [NDTTestMethodology#Web100_measured_speed web100 measured speed] *is greater than 3 Mbps*
+ * The S2C throughput test measured speed *is less than 9.5 Mbps*
  * The proportion of the number of multiplicative downward congestion window adjustments to the total number of segments sent *is less than 1%*
  * The proportion of the duplicate ACKs received to the overall number of valid pure ACKs received *is less than 3.5%*
 
@@ -304,7 +310,7 @@ where:
  * *!DataBytesOut* - The number of octets of data contained in transmitted segments, including retransmitted data.
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
-The web100 measured speed is kept in mbits per second.
+The web100 measured speed is kept in Mbps.
 
 === Packet loss ===
 
