@@ -68,7 +68,7 @@ As a first step both NDT components (the server and the client) bind an ephemera
 
 Both client and server are waiting for a valid connection a limited amount of time. If the MaxRTT or MaxRTO is greater than 3 seconds, than the time limit in the SFW test is 3 seconds. Otherwise the time limit in the SWF test is 1 second.
 
-The test is finished after the connection will be accepted or the time limit will be exceeded. If the time limit is exceeded, the firewall probably exists somewhere on the end-to-end path. If there is a connection and the pre-defined string is properly transferred, then there is no firewall on the end-to-end path. The third possibility is that there is a successful connection, but the expected pre-defined string is not transferred. This case does not adjudicate about the firewall existence.
+The test is finished after the connection will be accepted or the time limit will be exceeded. If the time limit is exceeded, the firewall probably exists somewhere on the end-to-end path. If there is a connection and the pre-defined string is properly transferred, then there is probably no firewall on the end-to-end path (technically there still could be a firewall with a range of opened ports or a special rules that allowed this one particular connection to the ephemeral port). The third possibility is that there is a successful connection, but the expected pre-defined string is not transferred. This case does not adjudicate about the firewall existence.
 
 In the last step the server sends its results to the client.
 
@@ -76,8 +76,8 @@ The possible simple firewall test result codes:
 
 || *Value* || *Description* ||
 || "0" || Test was not started ||
-|| "1" || Test was successful (i.e. connection to the ephemeral port was possible) ||
-|| "2" || There was a connection to the ephemeral port, but it was not recognized properly ||
+|| "1" || Test was successful (i.e. connection to the ephemeral port was possible and the pre-defined string was received) ||
+|| "2" || There was a connection to the ephemeral port, but the pre-defined string was not received ||
 || "3" || There was no connection to the ephemeral port within the specified time ||
 
 === C2S Throughput Test ===
