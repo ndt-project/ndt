@@ -142,22 +142,24 @@ bits/time
 
 where:
  * *bits* - the number of bits in the current packet
- * *time* - the time in 10^-6 seconds from the last packet arrival
+ * *time* - the time in microseconds from the last packet arrival
 
-It means that the calculated speed is in mbits/second. The results are then quantized into the following beans:
+It means that the calculated speed is in mbits/second. The results are then quantized into the following bins:
 
- * 0 < bits/time <= 0.01 - *RTT*
- * 0.01 < bits/time <= 0.064 - *Dial-up Modem*
- * 0.064 < bits/time <= 1.5 - *Cable/DSL modem*
- * 1.5 < bits/time <= 10 - *10 Mbps Ethernet or !WiFi 11b subnet*
- * 10 < bits/time <= 40 - *45 Mbps T3/DS3 or !WiFi 11 a/g subnet*
- * 40 < bits/time <= 100 - *100 Mbps Fast Ethernet subnet*
- * 100 < bits/time <= 622 - *a 622 Mbps OC-12 subnet*
- * 622 < bits/time <= 1000 - *1.0 Gbps Gigabit Ethernet subnet*
- * 1000 < bits/time <= 2400 - *2.4 Gbps OC-48 subnet*
- * 2400 < bits/time <= 10000 - *10 Gbps 10 Gigabit Ethernet/OC-192 subnet*
- * bits cannot be determined - *Retransmissions*
+ * 0 < calculated speed (mbits/second) <= 0.01 - *RTT*
+ * 0.01 < calculated speed (mbits/second) <= 0.064 - *Dial-up Modem*
+ * 0.064 < calculated speed (mbits/second) <= 1.5 - *Cable/DSL modem*
+ * 1.5 < calculated speed (mbits/second) <= 10 - *10 Mbps Ethernet or !WiFi 11b subnet*
+ * 10 < calculated speed (mbits/second) <= 40 - *45 Mbps T3/DS3 or !WiFi 11 a/g subnet*
+ * 40 < calculated speed (mbits/second) <= 100 - *100 Mbps Fast Ethernet subnet*
+ * 100 < calculated speed (mbits/second) <= 622 - *a 622 Mbps OC-12 subnet*
+ * 622 < calculated speed (mbits/second) <= 1000 - *1.0 Gbps Gigabit Ethernet subnet*
+ * 1000 < calculated speed (mbits/second) <= 2400 - *2.4 Gbps OC-48 subnet*
+ * 2400 < calculated speed (mbits/second) <= 10000 - *10 Gbps 10 Gigabit Ethernet/OC-192 subnet*
+ * bits cannot be determined - *Retransmissions* (this bin counts the duplicated or invalid packets and does not denote a real link type)
  * otherwise - ?
+
+The detected link type is indicated by the bin with the most packet pairs in it.
 
 ==== Known limitations ====
 
@@ -277,7 +279,7 @@ where:
  * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state
  * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
 
-The total test time is kept in 10^-6 seconds.
+The total test time is kept in microseconds.
 
 === Total test time in seconds ===
 
