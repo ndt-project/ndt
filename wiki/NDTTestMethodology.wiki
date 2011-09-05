@@ -213,7 +213,7 @@ The following link type detection heuristics are run only when there is no duple
 
 ==== DSL/Cable modem ====
 
-The link is treated as a DSL/Cable modem when the sender isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than [NDTTestMethodology#Speed_estimate speed estimate].
+The link is treated as a DSL/Cable modem when the sender isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Speed_estimate speed estimate].
 
 This means that all of the following conditions should be met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
@@ -243,9 +243,9 @@ This means that all of the following conditions should be met:
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is greater than 3 Mbps*
  * The S2C throughput test measured speed *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
- * The proportion of the duplicate ACKs received to the overall number of valid pure ACKs received *is less than 3.5%*
+ * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 3.5%*
 
-==== Known limitations ====
+==== Known issues ====
 
 The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.
 
