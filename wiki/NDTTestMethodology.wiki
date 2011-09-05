@@ -173,6 +173,8 @@ The results are quantized, meaning that the NDT doesn’t recognize fractional l
 
 === Duplex Mismatch Detection ===
 
+Duplex mismatch is a condition whereby the host Network Interface Card (NIC) and building switch port fail to agree on this basic network operating parameter. While this failure will have a large impact on application performance, basic network connectivity still exists. This means that normal testing procedures (e.g., ping, traceroute) will report that no problem exists while real applications will run extremely slowly.
+
 The NDT contains two heuristics for the duplex mismatch detection.
 
 A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when the connection is congestion limited 90% of the time, the !WiFi is not detected, the [NDTTestMethodology#Speed_estimate speed estimate] is greater than 2Mibps, there is a lot of packets retransmissions and the S2C throughput speed is much smaller than expected.
