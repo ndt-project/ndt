@@ -56,6 +56,12 @@ Next, the client sends its calculated throughput value to the server. The throug
 THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
 
+==== Known issues ====
+
+The formula used to find out when to temporarily stop sending packets is probably wrong. The idea was to use this as a part of the duplex mismatch detection, with a max of 2 packets in flight the Ethernet half-duplex sender should never see a collision so the throughput would be higher even though the buffer is limited.
+
+However, the formula allows for more packets in flight and it uses `"Next Sequence Number To Be Sent"` instead of `"Maximum Value of Next Sequence Number To Be Sent"`.
+
 === Simple Firewall Test ===
 
 The simple firewall test tries to find out any firewalls between the NDT client and the NDT server that will prevent connections to an ephemeral port numbers. The test is performed in both directions (i.e. the NDT client is trying to connect to the NDT server and the NDT server is trying to connect to the NDT client).
@@ -86,9 +92,9 @@ The C2S throughput test tests the achievable network bandwidth from the client t
 
 A detailed description of all of the C2S protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
 
-As a first step the server binds an ephemeral port and notify the client about this port number.
+As a first step the server binds a new port and notify the client about this port number.
 
-Next, the client connects to the server's ephemeral port. When the connection is successfully established, the server initializes the following routines:
+Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
  * [NDTDataFormat#tcpdump_trace tcpdump trace] to dump all packets sent during the [NDTTestMethodology#C2S_Throughput_Test C2S throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set.
  * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time (default is 5 msec) increments during the [NDTTestMethodology#C2S_Throughput_Test C2S throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
@@ -106,9 +112,9 @@ The S2C throughput test tests the achievable network bandwidth from the server t
 
 A detailed description of all of the S2C protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
 
-As a first step the server binds an ephemeral port and notify the client about this port number.
+As a first step the server binds a new port and notify the client about this port number.
 
-Next, the client connects to the server's ephemeral port. When the connection is successfully established, the server initializes the following routines:
+Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
  * [NDTDataFormat#tcpdump_trace tcpdump trace] to dump all packets sent during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set.
  * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time (default is 5 msec) increments during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
