@@ -56,7 +56,7 @@ Next, the client sends its calculated throughput value to the server. The throug
 THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
 
-==== Known issues ====
+==== Known issues (Middlebox Test) ====
 
 The formula used to find out when to temporarily stop sending packets is probably wrong. The idea was to use this as a part of the duplex mismatch detection, with a max of 2 packets in flight the Ethernet half-duplex sender should never see a collision so the throughput would be higher even though the buffer is limited.
 
@@ -167,7 +167,7 @@ It means that the calculated speed is in mbits/second. The results are then quan
 
 The detected link type is indicated by the bin with the most packet pairs in it.
 
-==== Known limitations ====
+==== Known limitations (Bottleneck Link Detection) ====
 
 The results are quantized, meaning that the NDT doesn’t recognize fractional link speed (Ethernet, T3, or FastE). It also wouldn’t detect bonded Etherchannel interfaces.
 
@@ -199,7 +199,7 @@ This means that all of the following conditions should be met:
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
 
-==== Known limitations ====
+==== Known issues/limitations (Duplex Mismatch Detection) ====
 
 The Old Duplex-Mismatch algorithm does not work with multiple simultaneous tests. In order to enable this algorithm, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
 
@@ -245,7 +245,7 @@ This means that all of the following conditions should be met:
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 3.5%*
 
-==== Known issues ====
+==== Known issues (Link Type Detection Heuristics) ====
 
 The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.
 
@@ -257,7 +257,7 @@ A bad cable (faulty hardware link) is detected when all of the following conditi
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
 
-==== Known limitations ====
+==== Known issues (Faulty Hardware Link Detection) ====
 
 The condition "The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] is greater than 0.6" cannot be met, because the state time share is less than 1 and the total test time in seconds is around 10, so this result will be always less than 0.1.
 
@@ -421,7 +421,7 @@ Rate < (MSS/RTT)*(1 / sqrt(p))
 
 where p is the loss probability.
 
-==== Known limitations ====
+==== Known issues (Speed estimate) ====
 
 The speed estimate should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
 
@@ -461,3 +461,13 @@ SndLimTimeSender/TotalTestTime
 where:
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
  * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
+
+== Known issues/limitations ==
+
+Some issues/limitations have been found in the NDT regarding the following areas:
+ * [NDTTestMethodology#Known_issues_(Middlebox_Test) Middlebox Test]
+ * [NDTTestMethodology#Known_limitations_(Bottleneck_Link_Detection) Bottleneck Link Detection]
+ * [NDTTestMethodology#Known_issues/limitations_(Duplex_Mismatch_Detection) Duples Mismatch Detection]
+ * [NDTTestMethodology#Known_issues_(Link_Type_Detection_Heuristics) Link Type Detection Heuristics]
+ * [NDTTestMethodology#Known_issues_(Faulty_Hardware_Link_Detection) Faulty Hardware Link Detection]
+ * [NDTTestMethodology#Known_issues_(Speed_estimate) Speed estimate]
