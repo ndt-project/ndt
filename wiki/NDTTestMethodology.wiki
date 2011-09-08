@@ -299,7 +299,7 @@ Analogically, when the client IP address visible to the server is different from
 
 === MSS Modifications ===
 
-The NDT checks packet size preservation by comparing the final value of the MSS variable in the MID test.
+The NDT checks packet size preservation by comparing the final value of the MSS variable in the MID test (the NDT Server sets the MSS value to 1456 on the listening socket before the NDT Client connects to it; the final value of the MSS variable is read after the NDT Client connects).
 
 When this variable's value is different than 1456, then the network middlebox had to change it during the test.
 
