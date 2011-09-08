@@ -287,6 +287,8 @@ A firewall is detected when the connection to the ephemeral port was unsuccessfu
 
 Please note, that the NDT states that the node is only *probably* behind a firewall. The connection can be unsuccessful from a variety of other reasons.
 
+Moreover, if there is a connection and the pre-defined string is properly transferred, then there is also only *probably* no firewall on the end-to-end path (technically there still could be a firewall with a range of opened ports or a special rules that allowed this one particular connection to the ephemeral port).
+
 === NAT Detection ===
 
 The Network Address Translation (NAT) box is detected by the comparison of the client/server IP addresses visible from the server and the client boxes.
