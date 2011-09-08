@@ -81,7 +81,7 @@ In the last step the server sends its results to the client.
 The possible simple firewall test result codes:
 
 || *Value* || *Description* ||
-|| "0" || Test was not started ||
+|| "0" || Test was not started/results were not received (this means an error condition like protocol error, which cannot happen during normal operation) ||
 || "1" || Test was successful (i.e. connection to the ephemeral port was possible and the pre-defined string was received) ||
 || "2" || There was a connection to the ephemeral port, but the pre-defined string was not received ||
 || "3" || There was no connection to the ephemeral port within the specified time ||
