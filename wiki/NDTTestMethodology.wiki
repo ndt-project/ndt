@@ -265,7 +265,7 @@ The both conditions "The [NDTTestMethodology#Packet_loss packet loss] multiplied
 
 === Full/Half Link Duplex Setting ===
 
-A half duplex is detected when the connection is receiver limited 95% of the time, but is flapping between 'receiver limited' and 'sender limited' states.
+A half duplex is detected (the link is probably half-duplex if this heuristic succeeds and full-duplex otherwise) when the connection is receiver limited 95% of the time, but is flapping between 'receiver limited' and 'sender limited' states.
 
 This means that all of the following conditions should met:
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 95%*
