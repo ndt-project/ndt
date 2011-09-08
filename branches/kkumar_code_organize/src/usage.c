@@ -68,7 +68,7 @@ srv_long_usage(char* info)
     printf("  -T, --refresh #time    - specify the refresh time of the admin page\n");
     printf("  --mrange #range        - set the port range used in multi-test mode\n");
     printf("                           Note: this enables multi-test mode\n");
-    printf("  -A, --adminfile #FN    - specify atlernate filename for Admin web page\n");
+    printf("  -A, --adminfile #FN    - specify alternate filename for Admin web page\n");
     printf("                           Note: this doesn't enable 'adminview'\n");
     printf("  -L, --log_dir DIR      - specify the base directory for snaplog and tcpdump files\n");
     printf("                           (default %s/serverdata)\n", BASEDIR);
