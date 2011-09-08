@@ -209,11 +209,11 @@ The difference between the S2C throughput speed (> 50 Mbps) and the [NDTTestMeth
 
 === Link Type Detection Heuristics ===
 
-The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_send_throughput total send throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] (which is a correct situation).
+The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_send_throughput total send throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] (which is an expected situation).
 
 ==== DSL/Cable modem ====
 
-The link is treated as a DSL/Cable modem when the sender isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth].
+The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth].
 
 This means that all of the following conditions should be met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
@@ -221,9 +221,13 @@ This means that all of the following conditions should be met:
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 2 Mbps*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than* [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth]
 
+===== Known issues (DSL/Cable modem detection heuristic) =====
+
+The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.
+
 ==== IEEE 802.11 (!WiFi) ====
 
-The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the receiver is a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] is greater than 50 Mibps.
+The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] is greater than 50 Mibps.
 
 This means that all of the following conditions should be met:
  * The heuristic for DSL/Cable modem link *gives negative results*
@@ -244,10 +248,6 @@ This means that all of the following conditions should be met:
  * The S2C throughput test measured speed *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 3.5%*
-
-==== Known issues (Link Type Detection Heuristics) ====
-
-The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.
 
 === Faulty Hardware Link Detection ===
 
@@ -468,6 +468,6 @@ Some issues/limitations have been found in the NDT regarding the following areas
  * [NDTTestMethodology#Known_issues_(Middlebox_Test) Middlebox Test]
  * [NDTTestMethodology#Known_limitations_(Bottleneck_Link_Detection) Bottleneck Link Detection]
  * [NDTTestMethodology#Known_issues/limitations_(Duplex_Mismatch_Detection) Duples Mismatch Detection]
- * [NDTTestMethodology#Known_issues_(Link_Type_Detection_Heuristics) Link Type Detection Heuristics]
+ * [NDTTestMethodology#Known_issues_(DSL/Cable_modem_detection_heuristic) DSL/Cable modem detection heuristic]
  * [NDTTestMethodology#Known_issues_(Faulty_Hardware_Link_Detection) Faulty Hardware Link Detection]
  * [NDTTestMethodology#Known_issues_(Theoretical_maximum_bandwidth) Theoretical maximum bandwidth]
