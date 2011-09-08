@@ -274,7 +274,7 @@ This means that all of the following conditions should met:
 
 === Normal Congestion Detection ===
 
-A normal congestion is detected when the connection is congestion limited a non-trivial percent of the time, the duplex mismatch is not detected and the receive window isn't the limiting factor.
+A normal congestion is detected when the connection is congestion limited a non-trivial percent of the time, the duplex mismatch is not detected and the NDT Client's receive window isn't the limiting factor.
 
 This means that all of the following conditions should be met:
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 2%*
