@@ -309,6 +309,8 @@ When this variable's value is 1456, then it means that the packet size is preser
 
 === Total test time ===
 
+The total test time is the total time used by the S2C throughput test.
+
 The total test time is computed using the following formula:
 
 {{{
@@ -324,6 +326,8 @@ The total test time is kept in microseconds.
 
 === Total send throughput ===
 
+The total send throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the S2C throughput test.
+
 The total send throughput is computed using the following formula:
 
 {{{
@@ -338,6 +342,8 @@ The total send throughput is kept in Mbps (because [NDTTestMethodology#Total_tes
 
 === Packet loss ===
 
+The packet loss is the percentage of the lost packets during the S2C throughput test.
+
 The packet loss proportion is computed using the following formula:
 
 {{{
@@ -345,7 +351,7 @@ CongestionSignals/PktsOut
 }}}
 
 where:
- * *!CongestionSignals* - The number of multiplicative downward congestion window adjustments due to all forms of congestion signals
+ * *!CongestionSignals* - The number of multiplicative downward congestion window adjustments due to all forms of congestion signals (this roughly correspond to a single lost packet)
  * *!PktsOut* - The total number of segments sent
 
 To avoid possible division by zero, the NDT sets the packet loss percentages to the following values when the `CongestionSignals` is 0:
@@ -354,6 +360,8 @@ To avoid possible division by zero, the NDT sets the packet loss percentages to 
 
 === Packets arriving out of order ===
 
+The packets arriving out of order is the percentage of the duplicated packets during the S2C throughput test.
+
 The out of order packets proportion is computed using the following formula:
 
 {{{
@@ -361,7 +369,7 @@ DupAcksIn/AckPktsIn
 }}}
 
 where:
- * *!DupAcksIn* - The number of duplicate ACKs received
+ * *!DupAcksIn* - The number of duplicate ACKs received (this roughly correspond to a single out-of-order packet when the TCP is forcing retries of such packets)
  * *!AckPktsIn* - The number of non-duplicate ACKs received
 
 === Average round trip time (Latency/Jitter) ===
@@ -378,17 +386,6 @@ where:
 
 The average round trip time is kept in milliseconds.
 
-=== Average RTT in seconds ===
-
-The average round trip time in seconds is computed using the following formula:
-
-{{{
-AvgRTT/1000
-}}}
-
-where:
- * *AvgRTT* - [NDTTestMethodology#Average_round_trip_time_(Latency/Jitter) Average round trip time (Latency/Jitter)]
-
 === Theoretical maximum bandwidth ===
 
 The theoretical maximum bandwidth is computed using the following formula:
@@ -399,7 +396,7 @@ The theoretical maximum bandwidth is computed using the following formula:
 
 where:
  * *CurrentMSS* - The current maximum segment size (MSS), in octets
- * *AvgRTTSec* - [NDTTestMethodology#Average_RTT_in_seconds Average RTT in seconds]
+ * *AvgRTTSec* - [NDTTestMethodology#Average_round_trip_time_(Latency/Jitter) Average round trip time (Latency/Jitter)] in seconds
  * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
 
 The theoretical maximum bandwidth is kept in Mibps.
@@ -418,6 +415,8 @@ The theoretical maximum bandwidth should be computed to receive Mbps instead of 
 
 === 'Congestion Limited' state time share ===
 
+The 'Congestion Limited' state time share is the percentage of the time that the NDT Server was limited in sending due to the congestion window.
+
 The 'Congestion Limited' state time share is computed using the following formula:
 
 {{{
@@ -425,10 +424,12 @@ SndLimTimeCwnd/TotalTestTime
 }}}
 
 where:
- * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
  * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
 === 'Receiver Limited' state time share ===
+
+The 'Receiver Limited' state time share is the percentage of the time that the NDT Server was limited in sending due to the NDT Client's receive window.
 
 The 'Receiver Limited' state time share is computed using the following formula:
 
@@ -437,11 +438,12 @@ SndLimTimeRwin/TotalTestTime
 }}}
 
 where:
- * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
  * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state
-
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
 === 'Sender Limited' state time share ===
+
+The 'Sender Limited' state time share is the percentage of the time that the NDT Server was limited in sending due to its own fault.
 
 The 'Sender Limited' state time share is computed using the following formula:
 
@@ -450,8 +452,8 @@ SndLimTimeSender/TotalTestTime
 }}}
 
 where:
- * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
  * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
+ * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
 == Known issues/limitations ==
 
