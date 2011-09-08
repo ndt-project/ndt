@@ -135,11 +135,11 @@ All of the following detection algorithms are run during the [NDTTestMethodology
 === Bottleneck Link Detection ===
 
 The NDT tries to find the answer to the question "What is the slowest link in the end-2-end path?" by doing the following:
- * monitoring packet arrival times using libpcap routine
- * using TCP dynamics to create packet pairs (i.e. compare two subsequent packets on the same connection)
+ * monitoring packet arrival times using libpcap routine (all test traffic during both the C2S and the S2C throughput tests is monitored)
+ * using TCP dynamics to analyze packet pairs (i.e. compare two subsequent packets on the same connection; for example if 4 packets are received (a, b, c and d), then all subsequent packet pairs are analyzed: a-b, b-c and c-d)
  * quantizing results into link type bins
 
-The NDT uses packet dispersion techniques; e.g., it measures the inter-packet arrival times for all data and ACK packets sent or received. It also knows the packet size, so it can calculate the speed for each pair of packets sent or received and quantize the results into the link type bins.
+The NDT uses packet dispersion techniques; e.g., it measures the inter-packet arrival times for all data and ACK packets sent or received during both the C2S and the S2C throughput tests. It also knows the packet size, so it can calculate the speed for each pair of packets sent or received and quantize the results into the link type bins.
 
 The speed calculation is done using the following formula:
 {{{
