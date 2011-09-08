@@ -252,16 +252,16 @@ This means that all of the following conditions should be met:
 === Faulty Hardware Link Detection ===
 
 A bad cable (faulty hardware link) is detected when all of the following conditions are met:
- * The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] *is greater than 15*
- * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] *is greater than 0.6*
+ * The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time total test time] in seconds *is greater than 15*
+ * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time total test time] in seconds *is greater than 0.6*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
 
 ==== Known issues (Faulty Hardware Link Detection) ====
 
-The condition "The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] is greater than 0.6" cannot be met, because the state time share is less than 1 and the total test time in seconds is around 10, so this result will be always less than 0.1.
+The condition "The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time total test time] in seconds is greater than 0.6" cannot be met, because the state time share is less than 1 and the total test time in seconds is around 10, so this result will be always less than 0.1.
 
-The both conditions "The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time_in_seconds total test time in seconds] is greater than 15" and "The [NDTTestMethodology#Packet_loss packet loss] is less than 1%" cannot be met at the same time, because if the packet loss is less than 0.01, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
+The both conditions "The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time total test time] in seconds is greater than 15" and "The [NDTTestMethodology#Packet_loss packet loss] is less than 1%" cannot be met at the same time, because if the packet loss is less than 0.01, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
 
 === Full/Half Link Duplex Setting ===
 
@@ -316,22 +316,11 @@ SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender
 }}}
 
 where:
- * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state
- * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state
- * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
+ * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state during the S2C throughput test
+ * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state during the S2C throughput test
+ * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state during the S2C throughput test
 
 The total test time is kept in microseconds.
-
-=== Total test time in seconds ===
-
-The total test time in seconds is computed using the following formula:
-
-{{{
-TotalTestTime/1000000
-}}}
-
-where:
- * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
 === Total send throughput ===
 
