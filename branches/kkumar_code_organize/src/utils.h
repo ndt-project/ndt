@@ -21,7 +21,7 @@ void mysleep(double time);
 
 // Numbers 1 and 65535 are used in mrange.c for determining "valid" ranges
 // While the methods could be used for any "range" comparison,
-// NDT uses them for porta
+// NDT uses them for ports
 #define MAX_TCP_PORT 65535
 #define MIN_TCP_PORT 1
 #define RESERVED_PORT "0"

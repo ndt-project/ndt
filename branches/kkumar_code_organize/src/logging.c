@@ -41,8 +41,8 @@ static long int		  utimestamp;
  *  @return integer 0 on success, error code on failure
  *   Possible error codes are:
  *  	-3: Failure to open source file for reading
- *  	-4: Failure to open dest file for writing
- *  	-1: Z_ERRNOd as defind by zlib library
+ *  	-4: Failure to open destination file for writing
+ *  	-1: Z_ERRNO as defined by zlib library
  *  	other error codes as defined by zlib's deflateInit(0 method:
  *  		Z_MEM_ERROR if there was not enough memory,
  *  		Z_STREAM_ERROR if level is not a valid compression level,
@@ -568,8 +568,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 		if (tcpdump)
 		{
 
-			// Try compressing C->S test tcpdump
-			// the tcpdump file extension is as specified
+			// Try compressing C->S test tcpdump.
+			// The tcpdump file extension is as specified in the "meta" data-structure
 			memset(filename, 0, 256);
 			sprintf(filename, "%s/%s", tmp2str, meta.c2s_ndttrace);
 			if (zlib_def(filename) != 0)
