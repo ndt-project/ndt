@@ -4,7 +4,7 @@
 
 == Abstract == 
 
-The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. The NDT is designed to identify both performance problems and configuration problems. Performance problems affect the user experience, usually causing data transfers to take longer than expected. These problems are usually solved by tuning various TCP (Transmission Control Protocol) network parameters on the end host. Configuration problems also affect the user experience; however, tuning will not improve the end-to-end performance. The configuration fault must be found and corrected to change the end host behavior. The NDT is providing enough information to accomplish these tasks. This document describes how these information is gathered and what NDT is and is not capable of answering.
+The Network Diagnostic Tool (NDT) is a client/server program that provides network configuration and performance testing to a user's computer. NDT is designed to identify both performance problems and configuration problems. Performance problems affect the user experience, usually causing data transfers to take longer than expected. These problems are usually solved by tuning various TCP (Transmission Control Protocol) network parameters on the end host. Configuration problems also affect the user experience; however, tuning will not improve the end-to-end performance. The configuration fault must be found and corrected to change the end host behavior. NDT is providing enough information to accomplish these tasks. This document describes how these information is gathered and what NDT is and is not capable of answering.
 
 == Table of Contents ==
 
@@ -12,9 +12,9 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 == Introduction ==
 
-The NDT is a typical memory to memory client/server test device. Throughput measurements closely measure the network performance, and ignore the disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing a commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem. The FCC really needs to understand this message, or we will not be as effective as we need to be.
+NDT is a typical memory to memory client/server test device. Throughput measurements closely measure the network performance, and ignore the disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing a commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem. The FCC really needs to understand this message, or we will not be as effective as we need to be.
 
-The NDT operates on any client with a Java-enabled Web browser; further:
+NDT operates on any client with a Java-enabled Web browser; further:
  * What it can do:
    * Positively state if Sender, Receiver, or Network is operating properly
    * Provide accurate application tuning info
@@ -136,12 +136,12 @@ The detection algorithms were created based on the specially developed analytica
 
 === Bottleneck Link Detection ===
 
-The NDT tries to find the answer to the question "What is the slowest link in the end-2-end path?" by doing the following:
+NDT tries to find the answer to the question "What is the slowest link in the end-to-end path?" by doing the following:
  * monitoring packet arrival times using libpcap routine (all test traffic during both the C2S and the S2C throughput tests is monitored)
  * using TCP dynamics to analyze packet pairs (i.e. compare two subsequent packets on the same connection; for example if 4 packets are received (a, b, c and d), then all subsequent packet pairs are analyzed: a-b, b-c and c-d)
  * quantizing results into link type bins
 
-The NDT uses packet dispersion techniques; e.g., it measures the inter-packet arrival times for all data and ACK packets sent or received during both the C2S and the S2C throughput tests. It also knows the packet size, so it can calculate the speed for each pair of packets sent or received and quantize the results into the link type bins.
+NDT uses packet dispersion techniques (i.e. it measures the inter-packet arrival times for all data and ACK packets sent or received during both the C2S and the S2C throughput tests). It also knows the packet size, so it can calculate the speed for each pair of packets sent or received and quantize the results into the link type bins.
 
 The speed calculation is done using the following formula:
 {{{
@@ -177,11 +177,17 @@ The results are quantized, meaning that the NDT doesn’t recognize fractional l
 
 Duplex mismatch is a condition whereby the host Network Interface Card (NIC) and building switch port fail to agree on whether to operate at 'half-duplex' or 'full-duplex'. While this failure will have a large impact on application performance, basic network connectivity still exists. This means that normal testing procedures (e.g., ping, traceroute) may report that no problem exists while real applications will run extremely slowly.
 
-The NDT contains two heuristics for the duplex mismatch detection.
+NDT contains two heuristics for the duplex mismatch detection. This heuristic was determined by looking at the web100 variables and determining which variables best indicated faulty hardware. The first heuristic detects whether or not the desktop client link has a duplex mismatch condition. The second heuristic is used to discover if an internal network link has a duplex mismatch condition.
 
-A duplex mismatch is detected by the Old Duplex-Mismatch algorithm when the connection is congestion limited 90% of the time, the !WiFi is not detected, the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] is greater than 2Mibps, there is a lot of packets retransmissions and the S2C throughput speed is much smaller than expected.
+The client link duplex mismatch detection uses the following heuristic.
 
-This means that all of the following conditions should be met:
+ * The connection spends over 90% of its time in the congestion window limited state.
+ * The estimated bandwidth over this link is less than 2 Mbps.
+ * There are more than 2 packets being retransmitted every second of the test.
+ * The connection experienced a transition into the TCP slow-start state.
+
+NDT implements the above heuristic in the following manner:
+
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] *is greater than 2Mibps*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
@@ -191,11 +197,15 @@ This means that all of the following conditions should be met:
  * The throughput speed measured during the MID test (with a limited CWND) *is greater than* the throughput speed measured during the S2C test
  * The throughput speed measured during the C2S test *is greater than* the throughput speed measured during the S2C test
 
-If all of the above conditions are met except the last one, then the NDT assumes that a new duplex mismatch detection algorithm discovers the problem.
+The internal network link duplex mismatch detect uses the following heuristic.
 
-The new duplex mismatch detection algorithm also discovers the problem when the connection is receiver limited 90% of the time, there is a big difference between the S2C throughput speed and the [NDTTestMethodology#Total_send_throughput total send throughput] and the packets are lost sporadically.
+ * The measured client to server throughput rate exceeded 50 Mbps.
+ * The measured server to client throughput rate is less than 5 Mbps.
+ * The connection spent more than 90% of the time in the receiver window limited state.
+ * There is less that 1% packet loss over the life of the connection.
 
-This means that all of the following conditions should be met:
+NDT implements the above heuristic in the following manner:
+
  * The throughput speed measured during the S2C test *is greater than 50 Mbps*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
@@ -203,9 +213,9 @@ This means that all of the following conditions should be met:
 
 ==== Known issues/limitations (Duplex Mismatch Detection) ====
 
-The Old Duplex-Mismatch algorithm does not work with multiple simultaneous tests. In order to enable this algorithm, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
+The client link duplex mismatch heuristic does not work with multiple simultaneous tests. In order to enable this heuristic, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
 
-The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
+<font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
 
 The difference between the S2C throughput speed (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
 
@@ -225,7 +235,7 @@ This means that all of the following conditions should be met:
 
 ===== Known issues (DSL/Cable modem detection heuristic) =====
 
-The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.
+<font color="red">The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.</font>
 
 ==== IEEE 802.11 (!WiFi) ====
 
@@ -249,11 +259,17 @@ This means that all of the following conditions should be met:
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is greater than 3 Mbps*
  * The S2C throughput test measured speed *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
- * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 3.5%*
+ * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 35%*
 
 === Faulty Hardware Link Detection ===
+NDT uses the following heuristic to determine whether or not faulty hardware, like a bad cable, is impacting performance. This heuristic was determined by looking at the web100 variables and determining which variables best indicated faulty hardware.
 
-A bad cable (faulty hardware link) is detected when all of the following conditions are met:
+ * The connection is losing more than 15 packets per second.
+ * The connection spends over 60% of the time in the congestion window limited state.
+ * The packet loss rate is less than 1% of the packets transmitted. While the connection is losing a large number of packets per second (test 1) the total number of packets transferred during the test is extremely small so the percentage of retransmitted packets is also small value of packet loss rate.
+ *  The connection entered the TCP slow-start state.
+
+NDT implements the above heuristic in the following manner:
  * The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time total test time] in seconds *is greater than 15*
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time total test time] in seconds *is greater than 0.6*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
@@ -261,24 +277,26 @@ A bad cable (faulty hardware link) is detected when all of the following conditi
 
 ==== Known issues (Faulty Hardware Link Detection) ====
 
-The condition "The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] divided by the [NDTTestMethodology#Total_test_time total test time] in seconds is greater than 0.6" cannot be met, because the state time share is less than 1 and the total test time in seconds is around 10, so this result will be always less than 0.1.
-
-The both conditions "The [NDTTestMethodology#Packet_loss packet loss] multiplied by 100 and divided by the [NDTTestMethodology#Total_test_time total test time] in seconds is greater than 15" and "The [NDTTestMethodology#Packet_loss packet loss] is less than 1%" cannot be met at the same time, because if the packet loss is less than 0.01, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
+<font color="red">NDT does not appear to implement the heuristic correctly.</font> Instead of taking the total number of lost packets, and dividing by the test duration to calculate the packet per second loss rate, the loss rate is multiplied times 100. Since the "The [NDTTestMethodology#Packet_loss packet loss]" is less than 1%, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
 
 === Full/Half Link Duplex Setting ===
 
-A half duplex is detected (the link is probably half-duplex if this heuristic succeeds and full-duplex otherwise) when the connection is receiver limited 95% of the time, but is flapping between 'receiver limited' and 'sender limited' states.
+NDT has a heuristic to detect a half-duplex link in the path. This heuristic was determined by looking at the web100 variables and determining which variables best indicated a half-duplex link.
 
-This means that all of the following conditions should met:
+NDT looks for a connection that toggles rapidly between the sender buffer limited and receiver buffer limited states. However, even though the connection toggles into and out of the sender buffer limited state numerous times, it does not remain in this state for long periods of time as over 95% of the time is spent in the receiver buffer limited state
+
+NDT implements the above heuristic in the following manner:
+
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 95%*
  * The number of transitions into the 'Receiver Limited' state *is greater than 30 per second*
  * The number of transitions into the 'Sender Limited' state *is greater than 30 per second*
 
 === Normal Congestion Detection ===
 
-A normal congestion is detected when the connection is congestion limited a non-trivial percent of the time, the duplex mismatch is not detected and the NDT Client's receive window isn't the limiting factor.
+A normal congestion is detected when the connection is congestion limited a non-trivial percent of the time, there isn't a duplex mismatch detected and the NDT Client's receive window isn't the limiting factor.
 
 This means that all of the following conditions should be met:
+
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 2%*
  * The duplex mismatch condition heuristic *gives negative results*
  * The maximum window advertisement received *is greater than* the maximum congestion window used during Slow Start
@@ -301,7 +319,7 @@ Analogically, when the client IP address visible to the server is different from
 
 === MSS Modifications ===
 
-The NDT checks packet size preservation by comparing the final value of the MSS variable in the MID test (the NDT Server sets the MSS value to 1456 on the listening socket before the NDT Client connects to it; the final value of the MSS variable is read after the NDT Client connects).
+NDT checks packet size preservation by comparing the final value of the MSS variable in the MID test (the NDT Server sets the MSS value to 1456 on the listening socket before the NDT Client connects to it; the final value of the MSS variable is read after the NDT Client connects).
 
 When this variable's value is different than 1456, then the network middlebox had to change it during the test.
 
