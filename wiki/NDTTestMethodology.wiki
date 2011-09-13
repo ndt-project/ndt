@@ -132,6 +132,8 @@ Additionally, at the end of the S2C throughput test, the server also takes a web
 
 All of the following detection algorithms are run during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test]. This means, that the NDT server is the sender and the client is the receiver during all these heuristics. The only exception is the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm, which observes all test traffic during both the C2S and the S2C throughput tests.
 
+The detection algorithms were created based on the specially developed analytical model of the TCP connection. The specific heuristics were then tuned during the tests performed in the laboratory and the real LAN, MAN and WAN environments.
+
 === Bottleneck Link Detection ===
 
 The NDT tries to find the answer to the question "What is the slowest link in the end-2-end path?" by doing the following:
