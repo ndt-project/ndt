@@ -57,9 +57,12 @@ For example:
 
 ===meta data file===
 
-The meta data file is always created for every test session.
+The meta data file is always created for every test session. If the particular test does not have a corresponding meta data file, it can be caused by the following issues:
+ * the test was abruptly interrupted by some unexpected error
+ * there was an error during file creation (for example lack of disk space)
+ * the test was performed by the old NDT version, that did not write meta data files
 
-This file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. The meta data contains lines in the following order:
+The meta data file contains the names of the other files, the clients & servers IP addr and FQDN, and the encoded line of the web100/analysis data. The meta data contains lines in the following order:
 
 || *#* || *Name* || *Description/Comment* ||
 || 1. || Date/Time || Timestamp of the beginning of the test session ||
