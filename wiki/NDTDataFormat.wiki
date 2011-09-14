@@ -37,7 +37,7 @@ For example:
 /usr/local/ndt/serverdata/2011/08/24/
 }}}
 
-The mentioned files are saved using the following filename format:
+The mentioned files (all except web100srv.log) are saved using the following filename format:
 
 || *ISOtime*{{{_}}}*serverFQDN*:*portNumber*.*extension* ||
 
