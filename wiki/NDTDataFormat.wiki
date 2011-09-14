@@ -140,9 +140,9 @@ This one-line summary contains the final values of some of the web100 variables 
 || *#* || *Name* || *Description/Comment* ||
 || 1. || date || start time of the test session (in the form "Jun 30 21:49:08"). *Warning:* this field does not contain information about the year ||
 || 2. || client name || remote (client) host fully qualified name (if the fully qualified name cannot be determined, then the numeric form of the address will be used here) ||
-|| 3. || MID throughput speed || CWND limited throughput speed measured during Middlebox test (value in kb/s) ||
-|| 4. || S2C throughput speed || measured throughput speed from server to client (value in kb/s) ||
-|| 5. || C2S throughput speed || measured throughput speed from client to server (value in kb/s) ||
+|| 3. || MID throughput speed || CWND limited throughput speed measured during Middlebox test (value in kb/s). The details how this value is computed can be found in the [NDTTestMethodology#Middlebox_Test NDT Test Methodology document]. ||
+|| 4. || S2C throughput speed || measured throughput speed from server to client (value in kb/s). The details how this value is computed can be found in the [NDTTestMethodology#S2C_Throughput_Test NDT Test Methodology document]. ||
+|| 5. || C2S throughput speed || measured throughput speed from client to server (value in kb/s). The details how this value is computed can be found in the [NDTTestMethodology#C2S_Throughput_Test NDT Test Methodology document]. ||
 || 6. || Timeouts || (*{{{*}}}*[http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt]) The number of times the retransmit timeout has expired when the RTO backoff multiplier is equal to one. ||
 || 7. || SumRTT || (*{{{*}}}*[http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt]) The sum of all sampled round trip times. ||
 || 8. || CountRTT || (*{{{*}}}*[http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt]) The number of round trip time samples included in tcpEStatsPathSumRTT and tcpEStatsPathHCSumRTT. ||
