@@ -76,10 +76,12 @@ The meta data file contains the names of the other files, the clients & servers 
 || 9. || server kernel version || Kernel version of the NDT server's OS ||
 || 10. || client IP address || IP address of the NDT client ||
 || 11. || client hostname || Fully qualified hostname of the NDT client ||
-|| 12. || client OS name || Name of the NDT client's OS ||
-|| 13. || client browser name || Name of the NDT client's web browser (if applicable) ||
+|| 12. || client OS name || (*optional*) Name of the NDT client's OS ||
+|| 13. || client browser name || (*optional*) Name of the NDT client's web browser (if applicable) ||
 || 14. || Summary data || A one-line summary of the test containing the final values of some of the web100 variables with an additional analysis details. The particular values are separated with commas without any spaces. The results are written with the same order and contain the same values as the one-line summary from the [NDTDataFormat#web100srv.log_file web100srv.log file] (except the date and client name) ||
 || 15. || Additional data || (*optional*) A multi-line information containing additional data sent by the client using the META protocol. Currently defined key/value pairs can be found in the [NDTProtocol#META_test NDT Protocol document] ||
+
+The optional values from the meta data file are set during the [NDTProtocol#META_test META test]. This means that these values are empty when the client does not support the [NDTProtocol#META_test META test] or it does not send these values.
 
 Please look at the following sample meta data file:
  
