@@ -218,7 +218,21 @@ sysconf(_SC_CLK_TCK);
 
 ==Displaying collected data==
 
-The NDT server also contains a Java application that can look through the NDT log files and link log entries to trace files, and it also simplifies the viewing of this data. The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
+The NDT server also contains a Java application that can look through the NDT log files and link log entries to trace files, and it also simplifies the viewing of this data.
+
+The JAnalyze application can be started by running a single jar file:
+
+{{{
+$ java -jar JAnalyze.jar
+}}}
+
+The NDT web100srv.log file can be loaded by using `Load` option from the `File` menu.
+
+You can see the JAnalyze application in action on the following screenshot:
+
+http://www.soldevelo.com/images/ndt/janalyze.png
+
+The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
  
 The detailed tcpdump and snaplog files can be used to re-examine the test to see what happened, i.e.:
   * was there packet loss during the s2c test, and if so when/how often did it occur? 
