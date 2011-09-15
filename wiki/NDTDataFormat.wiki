@@ -190,9 +190,9 @@ This one-line summary contains the final values of some of the web100 variables 
 || 50. || !SlowStart || (*{{{*}}}*[http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt]) The number of times the congestion window has been increased by the Slow Start algorithm. ||
 || 51. || !SubsequentTimeouts || (*{{{*}}}*[http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt]) The number of times the retransmit timeout has expired after the RTO has been doubled. See section 5.5 in [http://www.ietf.org/rfc/rfc2988.txt RFC2988]. ||
 || 52. || !ThruBytesAcked || (*{{{*}}}*[http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt]) The number of octets for which cumulative acknowledgments have been received, on systems that can receive more than 10 million bits per second.  Note that this will be the sum of changes in tcpEStatsAppSndUna. ||
-|| 53. || peaks.min || The minimum CWND value seen during the test By default, collected at 5ms intervals. ||
-|| 54. || peaks.max || The maximum CWND value seen during the test. By default, collected at 5ms intervals. ||
-|| 55. || peaks.amount || The number of times the CWND peaked (i.e. transitioned from increasing to decreasing). By default, collected at 5ms intervals. ||
+|| 53. || peaks.amount || The number of times the CWND peaked (i.e. transitioned from increasing to decreasing) during the S2C test. By default, collected at 5ms intervals. ||
+|| 54. || peaks.min || The minimum CWND peak seen during the S2C test. By default, collected at 5ms intervals. ||
+|| 55. || peaks.max || The maximum CWND peak seen during the S2C test. By default, collected at 5ms intervals. ||
 
 (*{{{*}}}*) web100 variable. For a more detailed and up-to-date description please look at the current version of the [http://www.web100.org/download/kernel/tcp-kis.txt tcp-kis.txt] file.
 
