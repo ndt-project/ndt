@@ -24,6 +24,11 @@ NDT operates on any client with a Java-enabled Web browser; further:
    * Tell you how other servers perform
    * Tell you how other clients will perform
 
+== Definitions ==
+
+||Throughput||The throughput as measured by the amount of data received from the TCP connection over the duration of the TCP connection. Also known as Goodput. ||
+||Total Send Throughput||The outgoing, TCP-level data throughput. This includes the all the data, including retransmits, sent. ||
+
 == Performed tests ==
 
 === Middlebox Test ===
@@ -36,7 +41,7 @@ As a first step the server binds an ephemeral port and notify the client about t
 
 Next, the client connects to the server's ephemeral port. When the connection is successfully established, the server sets the maximum value of the congestion window for this connection to `2 * (The current maximum segment size (MSS))`.
 
-In the next step the server starts a 5 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the buffer of the following size: `(The current maximum segment size (MSS))`. If such buffer cannot be used, then the server uses a 8192 Byte one. The buffer contains a pre-generated pseudo random data (including only US-ASCII printable characters).
+In the next step the server starts a 5 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the buffer of the following size: `(The current maximum segment size (MSS))`. If NDT is unable to allocate an appropriate-sized buffer (i.e. malloc() fails), the server uses a 8192 Byte one. The buffer contains a pre-generated pseudo random data (including only US-ASCII printable characters).
 
 The server can temporarily stop sending packets when the following formula is fulfilled:
 {{{
@@ -88,7 +93,7 @@ The possible simple firewall test result codes:
 
 === Client-To-Server Throughput Test ===
 
-The Client-To-Server throughput test tests the achievable network throughput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
+The Client-To-Server throughput test measures the throughput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the Client-To-Server protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
 
@@ -112,7 +117,7 @@ A 10 second test may not be enough time for TCP to reach a steady-state on a hig
 
 === Server-To-Client Throughput Test ===
 
-The Server-To-Client throughput test tests the achievable network throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
+The Server-To-Client throughput test measures the throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the Server-To-Client protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
 
@@ -120,17 +125,18 @@ As a first step the server binds a new port and notifies the client about this p
 
 Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
- * [NDTDataFormat#tcpdump_trace tcpdump trace] to dump all packets sent during the [NDTTestMethodology#Server-To-Client_Throughput_Test Server-To-Client throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set.
+ * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
  * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time (default is 5 msec) increments during the [NDTTestMethodology#Server-To-Client_Throughput_Test Server-To-Client throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
 
 In the next step the server starts a 10 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the 8192 Byte buffer containing a pre-generated pseudo random data (including only US-ASCII printable characters).
 
-When the 10 seconds throughput test is over, the server sends to the client its calculated throughput value, amount of unsent data in the socket send queue and overall number of sent bytes. The throughput value is calculated by taking the transmitted bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
+When the 10 seconds throughput test is over, the server sends to the client its calculated throughput value, the amount of unsent data in the socket send queue and the total number of bytes the application believed it had sent, as returned from calls to the 'send' syscall. The throughput value is calculated by taking that total number of bytes and dividing by the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
+
 {{{
 THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
 
-Additionally, at the end of the Server-To-Client throughput test, the server also takes a web100 snapshot and sends all the web100 data variables to the client.
+Additionally, at the end of the Server-To-Client throughput test, the server takes a web100 snapshot and sends all the web100 data variables to the client.
 
 ==== Known Limitations (Server-To-Client Throughput Test) ====
 
@@ -211,7 +217,7 @@ The internal network link duplex mismatch detect uses the following heuristic.
 NDT implements the above heuristic in the following manner:
 
  * The throughput measured during the Server-To-Client test *is greater than 50 Mbps*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
 
@@ -221,21 +227,21 @@ The client link duplex mismatch heuristic does not work with multiple simultaneo
 
 <font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
 
-The difference between the Server-To-Client throughput (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
+The difference between the Server-To-Client throughput (> 50 Mbps) and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
 
 === Link Type Detection Heuristics ===
 
-The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_send_throughput total send throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] (which is an expected situation).
+The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] (which is an expected situation).
 
 ==== DSL/Cable modem ====
 
-The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput].
+The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput].
 
 This means that all of the following conditions should be met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
  * The number of transitions into the 'Sender Limited' state *is 0*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 2 Mbps*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than* [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput]
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 2 Mbps*
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than* [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput]
 
 ===== Known issues (DSL/Cable modem detection heuristic) =====
 
@@ -243,24 +249,24 @@ This means that all of the following conditions should be met:
 
 ==== IEEE 802.11 (!WiFi) ====
 
-The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] is greater than 50 Mibps.
+The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] is greater than 50 Mibps.
 
 This means that all of the following conditions should be met:
  * The heuristic for DSL/Cable modem link *gives negative results*
  * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] *is greater than 50 Mibps*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
 
 ==== Ethernet link (Fast Ethernet) ====
 
-The link is treated as an Ethernet link (Fast Ethernet) when the !WiFi and DSL/Cable modem are not detected, the [NDTTestMethodology#Total_send_throughput total send throughput] is between 3 and 9.5 Mbps and the connection is very stable.
+The link is treated as an Ethernet link (Fast Ethernet) when the !WiFi and DSL/Cable modem are not detected, the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is between 3 and 9.5 Mbps and the connection is very stable.
 
 This means that all of the following conditions should be met:
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 9.5 Mbps*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is greater than 3 Mbps*
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 9.5 Mbps*
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is greater than 3 Mbps*
  * The Server-To-Client throughput test measured *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 35%*
@@ -348,11 +354,11 @@ where:
 
 The total test time is kept in microseconds.
 
-=== Total send throughput ===
+=== Total Send Throughput ===
 
-The total send throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the Server-To-Client throughput test.
+The Total Send Throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the Server-To-Client throughput test.
 
-The total send throughput is computed using the following formula:
+The Total Send Throughput is computed using the following formula:
 
 {{{
 DataBytesOut / TotalTestTime * 8
@@ -362,7 +368,7 @@ where:
  * *!DataBytesOut* - The number of octets of data contained in transmitted segments, including retransmitted data.
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
-The total send throughput is kept in Mbps (because [NDTTestMethodology#Total_test_time Total test time] is kept in microseconds).
+The Total Send Throughput is kept in Mbps (because [NDTTestMethodology#Total_test_time Total test time] is kept in microseconds).
 
 === Packet loss ===
 
