@@ -232,7 +232,7 @@ NDT implements the above heuristic by checking that the following conditions are
 
 The client link duplex mismatch heuristic does not work with multiple simultaneous tests. In order to enable this heuristic, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
 
-<font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
+<font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic. Also, the condition "The Theoretical Maximum Throughput over this link is less than 2 Mbps" does not appear to be handled correctly since the [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] is calculated in Mibps not Mbps.
 
 The difference between the Server-To-Client throughput (> 50 Mbps) and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
 
