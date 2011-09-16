@@ -93,6 +93,14 @@ char* ctStmt_4 = "c2sack INT,"
                           ");";
 char createTableStmt[2048];
 
+/**
+ * Retrieves all the diagnostics
+ *  associated with that a given SQL handle
+ * @param fn pointer to function name string
+ * @param handle SQLHandle
+ * @param type SQLHandle type
+ * */
+
 static void
 extract_error(char *fn, SQLHANDLE handle, SQLSMALLINT type)
 {
@@ -106,6 +114,8 @@ extract_error(char *fn, SQLHANDLE handle, SQLSMALLINT type)
     log_println(2, "\nThe driver reported the following diagnostics whilst running %s:\n", fn);
     do
     {
+    	// get current values of multiple fields(error, warning, and status) of diagnostic record
+    	// and see if return value indicated success
         ret = SQLGetDiagRec(type, handle, ++i, state, &native, text,
                             sizeof(text), &len );
         if (SQL_SUCCEEDED(ret))
@@ -115,6 +125,14 @@ extract_error(char *fn, SQLHANDLE handle, SQLSMALLINT type)
 }
 #endif
 
+/**
+ * Initialize Database
+ * @param options integer indicating whether DB should be used
+ * @param dsn data source name string pointer
+ * @param uid User name string pointer the db uses for authentication
+ * @param pwd pointer to password string pointer the db uses for authentication
+ * @return integer 0 if success, 1 if failure
+ * */
 int
 initialize_db(int options, char* dsn, char* uid, char* pwd)
 {
@@ -129,13 +147,14 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
         log_println(1, "Initializing DB with DSN='%s', UID='%s', PWD=%s", dsn, uid, pwd ? "yes" : "no");
         sprintf(createTableStmt, "%s%s%s%s", ctStmt_1, ctStmt_2, ctStmt_3, ctStmt_4);
 
-        /* Allocate an environment handle */
+        // Allocate an environment handle
         SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
-        /* We want ODBC 3 support */
+        // We want ODBC 3 support
         SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, (void *) SQL_OV_ODBC3, 0);
-        /* Allocate a connection handle */
+        // Allocate a connection handle
         SQLAllocHandle(SQL_HANDLE_DBC, env, &dbc);
-        /* Connect to the DSN */
+        // Connect to the DSN after creating summarizing login data
+        // into "loginstring"
         memset(loginstring, 0, 1024);
         snprintf(loginstring, 256, "DSN=%s;", dsn);
         if (uid) {
@@ -161,45 +180,46 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
             extract_error("SQLDriverConnect", dbc, SQL_HANDLE_DBC);
             return 1;
         }
-        /* Allocate a statement handle */
+        // Allocate a statement handle
         ret = SQLAllocHandle(SQL_HANDLE_STMT, dbc, &stmt);
         if (!SQL_SUCCEEDED(ret)) {
             log_println(0, "  Failed to alloc statement handle\n Continuing without DB logging");
             extract_error("SQLAllocHandle", dbc, SQL_HANDLE_DBC);
             return 1;
         }
-        /* Retrieve a list of tables */
+        // Retrieve a list of tables
         ret = SQLTables(stmt, NULL, 0, NULL, 0, NULL, 0, (unsigned char*) "TABLE", SQL_NTS);
         if (!SQL_SUCCEEDED(ret)) {
             log_println(0, "  Failed to fetch table info\n Continuing without DB logging");
             extract_error("SQLTables", dbc, SQL_HANDLE_DBC);
             return 1;
         }
-        /* How many columns are there */
+        // How many columns are there?
         SQLNumResultCols(stmt, &columns);
 
-        /* Loop through the rows in the result-set */
+        // Loop through the rows in the result-set
         while (SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
             SQLUSMALLINT i;
-            /* Loop through the columns */
+            // Loop through the columns
             for (i = 2; i <= columns; i++) {
                 SQLINTEGER indicator;
                 char buf[512];
-                /* retrieve column data as a string */
+                // retrieve column data as a string
                 ret = SQLGetData(stmt, i, SQL_C_CHAR,
                         buf, sizeof(buf), &indicator);
                 if (SQL_SUCCEEDED(ret)) {
-                    /* Handle null columns */
+                    // Handle null columns
                     if (indicator == SQL_NULL_DATA) strcpy(buf, "NULL");
                     if (strcmp(buf, "ndt_test_results") == 0) {
-                        /* the table exists - do nothing */
+                        // the table exists - do nothing
                         SQLFreeStmt(stmt, SQL_CLOSE);
                         return 0;
                     }
                 }
             }
         }
-        /* the table doesn't exist - create the one */
+
+        // the table doesn't exist - create it
         SQLFreeStmt(stmt, SQL_CLOSE);
         log_print(1, "The table 'ndt_test_results' doesn't exist, creating...");
         ret = SQLExecDirect(stmt, (unsigned char*) createTableStmt, strlen(createTableStmt));
@@ -217,6 +237,11 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
 #endif
 }
 
+/**
+ * Insert row of test results into Database
+ * @params All parameters related to test results collected
+ * @return integer 0 if success, 1 if failure
+ * */
 int
 db_insert(char spds[4][256], float runave[], char* cputimelog, char* snaplog, char* c2s_snaplog,
         char* hostName, int testPort,

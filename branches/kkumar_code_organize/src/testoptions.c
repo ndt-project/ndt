@@ -1264,7 +1264,7 @@ ximfd:
         for (;;) {
           ret = select(mon_pipe2[0]+1, &rfd, NULL, NULL, &sel_tv); 
           if ((ret == -1) && (errno == EINTR)) {
-	    log_println(6, "Inerrupt received while waiting for s2c select90 to finish, continuing");
+	    log_println(6, "Interrupt received while waiting for s2c select90 to finish, continuing");
             continue;
 	  }
 	  if (((ret == -1) && (errno != EINTR)) || (ret == 0)) {
@@ -1304,6 +1304,7 @@ ximfd:
 
     /* alarm(30); */  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
+    // Get web100 variables from snapshot taken earlier and send to client
     log_println(6, "S2C-Send web100 data vars to client pid=%d", mon_pid2);
     ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars);
     web100_snapshot_free(tsnap);

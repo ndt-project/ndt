@@ -23,10 +23,9 @@ static int testTime = 3;
 static int toWait = 1;
 static pthread_t threadId = -1;
 
-/*
- * Function name: catch_alrm
- * Description: Prints the appropriate message when the SIGALRM is catched.
- * Arguments: signo - the signal number (shuld be SIGALRM)
+/**
+ * Prints the appropriate message when the SIGALRM is caught.
+ * @param signo Signal number (should be SIGALRM)
  */
 
 void
@@ -43,10 +42,13 @@ catch_alrm(int signo)
   log_println(0, "Unknown (%d) signal was caught", signo);
 }
 
-/*
- * Function name: test_osfw_srv
- * Description: Performs the server part of the opposite Simple
- *              firewall test in the separate thread.
+/**
+ * Performs the server part of the opposite Simple
+ *              firewall test in a separate thread.
+ * In other words, sends the S->C TEST_MSG with message body
+ * "Simple firewall test"
+ * @param vptr void pointer
+ * @todo protocol validation log at line 67
  */
 
 void*
@@ -55,17 +57,21 @@ test_osfw_srv(void* vptr)
   int sfwsock;
   struct sigaction new, old;
 
-  /* ignore the alrm signal */
+  // ignore the alarm signal
   memset(&new, 0, sizeof(new));
   new.sa_handler = catch_alrm;
   sigaction(SIGALRM, &new, &old);
   alarm(testTime);
+
+  // connect to client and send TEST_MSG message containing a pre-defined string
   if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0, 0) == 0) {
     send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
   }
+
   alarm(0);
   sigaction(SIGALRM, &old, NULL);
 
+  // signal sleeping threads to wake up
   pthread_mutex_lock( &mainmutex);
   toWait = 0;
   pthread_cond_broadcast(&maincond);
@@ -74,35 +80,42 @@ test_osfw_srv(void* vptr)
   return NULL;
 }
 
-/*
- * Function name: finalize_sfw
- * Description: Waits for the every thread to accomplish and finalizes
+/**
+ * Wait for the every thread to conclude and finalize
  *              the SFW test.
- * Arguments: ctlsockfd - the client control socket descriptor
+ * @param ctlsockfd Client control socket descriptor
+ * @todo protocol validation log at line 97
  */
 
 void
 finalize_sfw(int ctlsockfd)
 {
+  // wait for mutex to be released before attempting to finalize
   while (toWait) {
     pthread_mutex_lock( &mainmutex);
     pthread_cond_wait(&maincond, &mainmutex);
     pthread_mutex_unlock( &mainmutex);
   }
+
+  // close the SFW test by sending a nil (0 length) message and set test status
   send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
   log_println(1, " <-------------------------->");
   setCurrentTest(TEST_NONE);
 }
 
-/*
- * Function name: test_sfw_srv
- * Description: Performs the server part of the Simple firewall test.
- * Arguments: ctlsockfd - the client control socket descriptor
- *            options - the test options
- *            conn_options - the connection options
- * Returns: 0 - success (no firewalls on the path),
- *          1 - failure (protocol mismatch),
- *          2 - unknown (probably firwall on the path).
+/**
+ * Performs the server part of the Simple firewall test.
+ * @param ctlsockfd Client control socket descriptor
+ * @param agent web100_agent
+ * @param options The test options
+ * @param conn_options The connection options
+ * @returns Integer with values:
+ * 			0 - success (no firewalls on the path),
+ *          1 - Message reception errors/inconsistencies
+ *			2 - Unexpected message type received/no message received due to timeout
+ *			3 - erroneous message  reception
+ *			4 - Client port number not received
+ *			5 - Unable to resolve client address
  */
 
 int
@@ -130,6 +143,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     setCurrentTest(TEST_SFW);
     log_println(1, " <-- %d - Simple firewall test -->", options->child0);
     
+    // bind to a new port and obtain address structure with details of port etc
     sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options, 0);
     if (sfwsrv_addr == NULL) {
       log_println(0, "Server (Simple firewall test): CreateListenSocket failed: %s", strerror(errno));
@@ -137,16 +151,25 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return -1;
     }
+
+    // get socket FD and the ephemeral port number to be used
     sfwsockfd = I2AddrFD(sfwsrv_addr);
     sfwsockport = I2AddrPort(sfwsrv_addr);
     log_println(1, "  -- port: %d", sfwsockport);
     
+
     cn = web100_connection_from_socket(agent, ctlsockfd);
     if (cn) {
+
+      // Get remote end's address
       web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
       web100_raw_read(var, cn, buff);
       memset(hostname, 0, 256);
       strncpy(hostname, web100_value_to_text(web100_get_var_type(var), buff), 255);
+
+      // Determine test time in seconds.
+      // test-time = max(round trip time, timeout) > 3 ? 3 : 1
+
       web100_agent_find_var_and_group(agent, "MaxRTT", &group, &var);
       web100_raw_read(var, cn, buff);
       maxRTT = atoi(web100_value_to_text(web100_get_var_type(var), buff));
@@ -170,14 +193,19 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     }
     log_println(1, "  -- SFW time: %d", testTime);
     
+    // try sending TEST_PREPARE msg with ephemeral port number to client.
+    // If unable to, return
     sprintf(buff, "%d %d", sfwsockport, testTime);
     if ((rc = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
-	return (rc);
+    	return (rc);
    
+    // Listen for TEST_MSG from client's port number sent as data.
+    // Any other type of message is unexpected at this juncture.
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) { // message reception error
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
+      	  //TODO above seems incorrect w.r.t the erroe message too
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       I2AddrFree(sfwsrv_addr);
       return 1;
@@ -189,15 +217,18 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       I2AddrFree(sfwsrv_addr);
       return 2;
     }
-    if (msgLen <= 0) {
+    if (msgLen <= 0) { // message reception has error
       log_println(0, "Improper message");
+      // TODO: why are log messages and msg to client different? why is the only
+      // status used all over here == Invalid port number?
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       I2AddrFree(sfwsrv_addr);
       return 3;
     }
+
     buff[msgLen] = 0;
-    if (check_int(buff, &sfwport)) {
+    if (check_int(buff, &sfwport)) { // message data is not number, thus no port info received
       log_println(0, "Invalid port number");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -205,8 +236,10 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       return 4;
     }
 
+    // Get node, port(if present) and other details of client end.
+    // If not able to resolve it, the test cannot proceed to the "throughput" stage
     if ((sfwcli_addr = I2AddrByNode(get_errhandle(), hostname)) == NULL) {
-      log_println(0, "Unable to resolve server address");
+      log_println(0, "Unable to resolve server address"); //todo is'nt this client address we cannot resolve?
       send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
       log_println(1, " <-------------------------->");
       I2AddrFree(sfwsrv_addr);
@@ -215,15 +248,23 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     I2AddrSetPort(sfwcli_addr, sfwport);
     log_println(1, "  -- oport: %d", sfwport);
     
+    // send S->C side TEST_MSG
     send_msg(ctlsockfd, TEST_START, "", 0);
+
+    // send the S->C default test message in a separate thread to client
     pthread_create(&threadId, NULL, &test_osfw_srv, NULL);
 
     FD_ZERO(&fds);
     FD_SET(sfwsockfd, &fds);
     sel_tv.tv_sec = testTime;
     sel_tv.tv_usec = 0;
+
+    // determine status of listening socket - looking for TEST_MSG from client.
+    // The following switch statement checks for cases where this socket status
+    // indicates error , and finalizes the test at this point.
+
     switch (select(sfwsockfd+1, &fds, NULL, NULL, &sel_tv)) {
-      case -1:
+      case -1:  // If SOCKET_ERROR - status of firewall unknown
         log_println(0, "Simple firewall test: select exited with error");
         sprintf(buff, "%d", SFW_UNKNOWN);
         send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -231,7 +272,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
         I2AddrFree(sfwsrv_addr);
         I2AddrFree(sfwcli_addr);
         return 1;
-      case 0:
+      case 0: // Time expiration. SFW possible in C->S side
         log_println(0, "Simple firewall test: no connection for %d seconds", testTime);
         sprintf(buff, "%d", SFW_POSSIBLE);
         send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -240,11 +281,16 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
         I2AddrFree(sfwcli_addr);
         return 2;
     }
+
+    // Now read actual data from the sockets listening for client message.
+    // Based on data, conclude SFW status and send TEST_MSG with result.
+    // In all cases, finalize the test
+
     clilen = sizeof(cli_addr);
     sockfd = accept(sfwsockfd, (struct sockaddr *) &cli_addr, &clilen);
 
     msgLen = sizeof(buff);
-    if (recv_msg(sockfd, &msgType, buff, &msgLen)) {
+    if (recv_msg(sockfd, &msgType, buff, &msgLen)) { // message received in error
       log_println(0, "Simple firewall test: unrecognized message");
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -255,6 +301,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       return 1;
     }
     if (check_msg_type("Simple firewall test", TEST_MSG, msgType, buff, msgLen)) {
+    	// unexpected message type received
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
       close(sockfd);
@@ -263,7 +310,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       I2AddrFree(sfwcli_addr);
       return 1;
     }
-    if (msgLen != 20) {
+    if (msgLen != 20) { // Expecting default 20 byte long "Simple firewall test" message
+    	// todo define constants for 20 and default message string
       log_println(0, "Simple firewall test: Improper message");
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -275,6 +323,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     }
     buff[msgLen] = 0;
     if (strcmp(buff, "Simple firewall test") != 0) {
+    	// Message was of correct length, but was not expected content-wise
       log_println(0, "Simple firewall test: Improper message");
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -285,6 +334,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       return 1;
     }
     
+    // All messages were received correctly, hence no firewall
     sprintf(buff, "%d", SFW_NOFIREWALL);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
     close(sockfd);

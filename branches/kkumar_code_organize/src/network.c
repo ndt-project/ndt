@@ -136,15 +136,14 @@ failsock:
 }
 
 /**
- * Function name: CreateListenSocket
- * Description: Creates the I2Addr structure with the listen socket.
- * Arguments: addr - the I2Addr structure, where listen socket should
+ * Creates the I2Addr structure with the listen socket.
+ * @param addr  the I2Addr structure, where listen socket should
  *                   be added, or NULL, if the new structure should be
  *                   created
- *            serv - the port number
- *            options - the binding socket options
- *            buf_sixe - manually set the TCP send/receive socket buffer
- * Returns: The I2Addr structure with the listen socket.
+ * @param serv  the port number
+ * @param options the binding socket options
+ * @param buf_size manually set the TCP send/receive socket buffer
+ * @returns I2Addr structure with the listen socket.
  */
 
 I2Addr
@@ -437,6 +436,10 @@ send_msg(int ctlSocket, int type, void* msg, int len)
  *            len - the target place for the length of the message
  * Returns: 0 - success
  *          !0 - error code.
+ *          Error codes:
+ *          -1 : Error reading from socket
+ *          -2 : No of bytes received were lesser than expected byte count
+ *          -3 : No of bytes received did not match expected byte count
  */
 
 int
@@ -449,12 +452,17 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   assert(msg);
   assert(len);
 
+  // if 3 bytes are not explicitly read, signal error
   if (readn(ctlSocket, buff, 3) != 3) {
     return -1;
   }
+
+  // get msg type, and calculate length as sum of the next 2 bytes
   *type = buff[0];
   length = buff[1];
   length = (length << 8) + buff[2];
+
+  // if received buffer size < length as conveyed by buffer contents, then error
   assert(length <= (*len));
   if (length > (*len)) {
     log_println(3, "recv_msg: length [%d] > *len [%d]", length, *len);
@@ -535,7 +543,7 @@ readn(int fd, void* buf, int amount)
    */
   while (received < amount) {
 
-	// check if fd_1 sockets are ready to be read
+	// check if fd+1 socket is ready to be read
     rc = select(fd+1, &rfd, NULL, NULL, &sel_tv);
     if (rc == 0) {  /* A timeout occurred, nothing to read from socket after 3 seconds */
       log_println(6, "readn() routine timeout occurred, return error signal and kill off child");
