@@ -12,7 +12,7 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 == Introduction ==
 
-NDT is a typical memory to memory client/server test device. Throughput measurements closely measure the network performance, and ignore the disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing a commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem. The FCC really needs to understand this message, or we will not be as effective as we need to be.
+NDT is a typical memory to memory client/server test device. Throughput measurements closely measure the network performance, and ignore disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem.
 
 NDT operates on any client with a Java-enabled Web browser; further:
  * What it can do:
@@ -51,9 +51,9 @@ When the 5 seconds throughput test is over, the server sends the following resul
 || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
 || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
 
-Next, the client sends its calculated throughput value to the server. The throughput value is calculated by taking the transmitted bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
+Next, the client sends its calculated throughput value to the server. The throughput value is calculated by taking the received bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
 {{{
-THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
+THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
 
 ==== Known issues (Middlebox Test) ====
@@ -68,11 +68,11 @@ The simple firewall test tries to find out any firewalls between the NDT client 
 
 A detailed description of all of the SFW protocol messages can be found in the [NDTProtocol#Simple_firewall_test NDT Protocol document].
 
-As a first step both NDT components (the server and the client) bind an ephemeral port and notify the second component about this port number. In the second step both NDT components are executing in parallel:
- # The client is trying to connect to the server's ephemeral port and send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20 using the newly created connection.
- # The server is trying to connect to the client's ephemeral port and send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20 using the newly created connection.
+As a first step both NDT components (the server and the client) bind an ephemeral port and notifies the second component about this port number. In the second step both NDT components are executing in parallel:
+ * The client is trying to connect to the server's ephemeral port and send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20 using the newly created connection.
+ * The server is trying to connect to the client's ephemeral port and send a TEST_MSG message containing a pre-defined string "Simple firewall test" of length 20 using the newly created connection.
 
-Both client and server are waiting for a valid connection a limited amount of time. If the MaxRTT or MaxRTO is greater than 3 seconds, than the time limit in the SFW test is 3 seconds. Otherwise the time limit in the SWF test is 1 second.
+Both client and server are waiting for a valid connection a limited amount of time. If the MaxRTT or MaxRTO is greater than 3 seconds, than the time limit in the SFW test is 3 seconds. Otherwise the time limit in the SFW test is 1 second.
 
 The test is finished after the connection will be accepted or the time limit will be exceeded. If the time limit is exceeded, the firewall probably exists somewhere on the end-to-end path. If there is a connection and the pre-defined string is properly transferred, then there is probably no firewall on the end-to-end path (technically there still could be a firewall with a range of opened ports or a special rules that allowed this one particular connection to the ephemeral port). The third possibility is that there is a successful connection, but the expected pre-defined string is not transferred. This case does not adjudicate about the firewall existence.
 
@@ -88,11 +88,11 @@ The possible simple firewall test result codes:
 
 === C2S Throughput Test ===
 
-The C2S throughput test tests the achievable network bandwidth from the client to the server by performing a 10 seconds memory-to-memory data transfer.
+The C2S throughput test tests the achievable network throughput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the C2S protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
 
-As a first step the server binds a new port and notify the client about this port number.
+As a first step the server binds a new port and notifies the client about this port number.
 
 Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
@@ -101,18 +101,22 @@ Next, the client connects to the server's newly bound port. When the connection 
 
 In the next step the client starts a 10 seconds throughput test using the newly created connection. The NDT client sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the 8192 Byte buffer containing a pre-generated pseudo random data (including only US-ASCII printable characters).
 
-When the 10 seconds throughput test is over, the server sends its calculated throughput value to the client. The throughput value is calculated by taking the transmitted bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
+When the 10 seconds throughput test is over, the server sends its calculated throughput value to the client. The throughput value is calculated by taking the received bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
 {{{
-THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
+THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
+
+==== Known Limitations (C2S Throughput Test) ====
+
+A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
 
 === S2C Throughput Test ===
 
-The S2C throughput test tests the achievable network bandwidth from the server to the client by performing a 10 seconds memory-to-memory data transfer.
+The S2C throughput test tests the achievable network throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the S2C protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
 
-As a first step the server binds a new port and notify the client about this port number.
+As a first step the server binds a new port and notifies the client about this port number.
 
 Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
@@ -128,6 +132,10 @@ THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 
 Additionally, at the end of the S2C throughput test, the server also takes a web100 snapshot and sends all the web100 data variables to the client.
 
+==== Known Limitations (S2C Throughput Test) ====
+
+A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
+
 == Specific detection algorithms ==
 
 All of the following detection algorithms are run during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test]. This means, that the NDT server is the sender and the client is the receiver during all these heuristics. The only exception is the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm, which observes all test traffic during both the C2S and the S2C throughput tests.
@@ -136,7 +144,7 @@ The detection algorithms were created based on the specially developed analytica
 
 === Bottleneck Link Detection ===
 
-NDT tries to find the answer to the question "What is the slowest link in the end-to-end path?" by doing the following:
+NDT tries to find the answer to the question "What is the link in the end-to-end path with the smallest capacity?" by doing the following:
  * monitoring packet arrival times using libpcap routine (all test traffic during both the C2S and the S2C throughput tests is monitored)
  * using TCP dynamics to analyze packet pairs (i.e. compare two subsequent packets on the same connection; for example if 4 packets are received (a, b, c and d), then all subsequent packet pairs are analyzed: a-b, b-c and c-d)
  * quantizing results into link type bins
@@ -171,6 +179,10 @@ The detected link type is indicated by the bin with the most packet pairs in it.
 
 ==== Known limitations (Bottleneck Link Detection) ====
 
+The Bottleneck Link Detection assumes that packet coalescing is disabled.
+
+Networking, especially DSL/Cable and !WiFi, have become notedly faster than when the bin boundaries were first defined.
+
 The results are quantized, meaning that the NDT doesn’t recognize fractional link speed (Ethernet, T3, or FastE). It also wouldn’t detect bonded Etherchannel interfaces.
 
 === Duplex Mismatch Detection ===
@@ -182,20 +194,20 @@ NDT contains two heuristics for the duplex mismatch detection. This heuristic wa
 The client link duplex mismatch detection uses the following heuristic.
 
  * The connection spends over 90% of its time in the congestion window limited state.
- * The estimated bandwidth over this link is less than 2 Mbps.
+ * The theoretical maximum throughput over this link is less than 2 Mbps.
  * There are more than 2 packets being retransmitted every second of the test.
  * The connection experienced a transition into the TCP slow-start state.
 
 NDT implements the above heuristic in the following manner:
 
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 90%*
- * The [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] *is greater than 2Mibps*
+ * The [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] *is greater than 2Mibps*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
  * The cumulative time of the expired retransmit timeouts RTO *is greater than 1% of the total test time*
  * The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link
- * The throughput speed measured during the MID test (with a limited CWND) *is greater than* the throughput speed measured during the S2C test
- * The throughput speed measured during the C2S test *is greater than* the throughput speed measured during the S2C test
+ * The throughput measured during the MID test (with a limited CWND) *is greater than* the throughput measured during the S2C test
+ * The throughput measured during the C2S test *is greater than* the throughput measured during the S2C test
 
 The internal network link duplex mismatch detect uses the following heuristic.
 
@@ -206,7 +218,7 @@ The internal network link duplex mismatch detect uses the following heuristic.
 
 NDT implements the above heuristic in the following manner:
 
- * The throughput speed measured during the S2C test *is greater than 50 Mbps*
+ * The throughput measured during the S2C test *is greater than 50 Mbps*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
@@ -217,21 +229,21 @@ The client link duplex mismatch heuristic does not work with multiple simultaneo
 
 <font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
 
-The difference between the S2C throughput speed (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
+The difference between the S2C throughput (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
 
 === Link Type Detection Heuristics ===
 
-The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_send_throughput total send throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] (which is an expected situation).
+The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_send_throughput total send throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] (which is an expected situation).
 
 ==== DSL/Cable modem ====
 
-The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth].
+The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput].
 
 This means that all of the following conditions should be met:
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
  * The number of transitions into the 'Sender Limited' state *is 0*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 2 Mbps*
- * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than* [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth]
+ * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than* [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput]
 
 ===== Known issues (DSL/Cable modem detection heuristic) =====
 
@@ -239,13 +251,13 @@ This means that all of the following conditions should be met:
 
 ==== IEEE 802.11 (!WiFi) ====
 
-The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] is greater than 50 Mibps.
+The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_send_throughput total send throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] is greater than 50 Mibps.
 
 This means that all of the following conditions should be met:
  * The heuristic for DSL/Cable modem link *gives negative results*
  * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
- * The [NDTTestMethodology#Theoretical_maximum_bandwidth theoretical maximum bandwidth] *is greater than 50 Mibps*
+ * The [NDTTestMethodology#Theoretical_maximum_throughput theoretical maximum throughput] *is greater than 50 Mibps*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
 
@@ -257,7 +269,7 @@ This means that all of the following conditions should be met:
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is greater than 3 Mbps*
- * The S2C throughput test measured speed *is less than 9.5 Mbps*
+ * The S2C throughput test measured *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 35%*
 
@@ -406,9 +418,9 @@ where:
 
 The average round trip time is kept in milliseconds.
 
-=== Theoretical maximum bandwidth ===
+=== Theoretical maximum throughput ===
 
-The theoretical maximum bandwidth is computed using the following formula:
+The theoretical maximum throughput is computed using the following formula:
 
 {{{
 (CurrentMSS / (AvgRTTSec * sqrt(PktsLoss))) * 8 / 1024 / 1024
@@ -419,9 +431,9 @@ where:
  * *AvgRTTSec* - [NDTTestMethodology#Average_round_trip_time_(Latency/Jitter) Average round trip time (Latency/Jitter)] in seconds
  * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
 
-The theoretical maximum bandwidth is kept in Mibps.
+The theoretical maximum throughput is kept in Mibps.
 
-The above theoretical maximum bandwidth comes from the matthis equation ([http://www.psc.edu/networking/papers/model_ccr97.ps]):
+The above theoretical maximum throughput comes from the matthis equation ([http://www.psc.edu/networking/papers/model_ccr97.ps]):
 
 {{{
 Rate < (MSS/RTT)*(1 / sqrt(p))
@@ -429,9 +441,9 @@ Rate < (MSS/RTT)*(1 / sqrt(p))
 
 where p is the loss probability.
 
-==== Known issues (Theoretical maximum bandwidth) ====
+==== Known issues (Theoretical maximum throughput) ====
 
-The theoretical maximum bandwidth should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
+The theoretical maximum throughput should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
 
 === 'Congestion Limited' state time share ===
 
@@ -483,4 +495,4 @@ Some issues/limitations have been found in the NDT regarding the following areas
  * [NDTTestMethodology#Known_issues/limitations_(Duplex_Mismatch_Detection) Duples Mismatch Detection]
  * [NDTTestMethodology#Known_issues_(DSL/Cable_modem_detection_heuristic) DSL/Cable modem detection heuristic]
  * [NDTTestMethodology#Known_issues_(Faulty_Hardware_Link_Detection) Faulty Hardware Link Detection]
- * [NDTTestMethodology#Known_issues_(Theoretical_maximum_bandwidth) Theoretical maximum bandwidth]
+ * [NDTTestMethodology#Known_issues_(Theoretical_maximum_throughput) Theoretical maximum throughput]
