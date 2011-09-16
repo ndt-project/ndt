@@ -86,18 +86,18 @@ The possible simple firewall test result codes:
 || "2" || There was a connection to the ephemeral port, but the pre-defined string was not received ||
 || "3" || There was no connection to the ephemeral port within the specified time ||
 
-=== C2S Throughput Test ===
+=== Client-To-Server Throughput Test ===
 
-The C2S throughput test tests the achievable network throughput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
+The Client-To-Server throughput test tests the achievable network throughput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
 
-A detailed description of all of the C2S protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
+A detailed description of all of the Client-To-Server protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
 
 As a first step the server binds a new port and notifies the client about this port number.
 
 Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
- * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#C2S_Throughput_Test C2S throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
- * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#C2S_Throughput_Test C2S throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+ * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
+ * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
 
 In the next step the client starts a 10 seconds throughput test using the newly created connection. The NDT client sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the 8192 Byte buffer containing a pre-generated pseudo random data (including only US-ASCII printable characters).
 
@@ -106,22 +106,22 @@ When the 10 seconds throughput test is over, the server sends its calculated thr
 THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
 
-==== Known Limitations (C2S Throughput Test) ====
+==== Known Limitations (Client-To-Server Throughput Test) ====
 
 A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
 
-=== S2C Throughput Test ===
+=== Server-To-Client Throughput Test ===
 
-The S2C throughput test tests the achievable network throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
+The Server-To-Client throughput test tests the achievable network throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
 
-A detailed description of all of the S2C protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
+A detailed description of all of the Server-To-Client protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
 
 As a first step the server binds a new port and notifies the client about this port number.
 
 Next, the client connects to the server's newly bound port. When the connection is successfully established, the server initializes the following routines:
  * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
- * [NDTDataFormat#tcpdump_trace tcpdump trace] to dump all packets sent during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set.
- * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time (default is 5 msec) increments during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+ * [NDTDataFormat#tcpdump_trace tcpdump trace] to dump all packets sent during the [NDTTestMethodology#Server-To-Client_Throughput_Test Server-To-Client throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set.
+ * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time (default is 5 msec) increments during the [NDTTestMethodology#Server-To-Client_Throughput_Test Server-To-Client throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
 
 In the next step the server starts a 10 seconds throughput test using the newly created connection. The NDT server sends packets as fast as possible (i.e. without any delays) during the test. These packets are written using the 8192 Byte buffer containing a pre-generated pseudo random data (including only US-ASCII printable characters).
 
@@ -130,15 +130,15 @@ When the 10 seconds throughput test is over, the server sends to the client its 
 THROUGHPUT_VALUE = (TRANSMITTED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
 }}}
 
-Additionally, at the end of the S2C throughput test, the server also takes a web100 snapshot and sends all the web100 data variables to the client.
+Additionally, at the end of the Server-To-Client throughput test, the server also takes a web100 snapshot and sends all the web100 data variables to the client.
 
-==== Known Limitations (S2C Throughput Test) ====
+==== Known Limitations (Server-To-Client Throughput Test) ====
 
 A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
 
 == Specific detection algorithms ==
 
-All of the following detection algorithms are run during the [NDTTestMethodology#S2C_Throughput_Test S2C throughput test]. This means, that the NDT server is the sender and the client is the receiver during all these heuristics. The only exception is the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm, which observes all test traffic during both the C2S and the S2C throughput tests.
+All of the following detection algorithms are run during the [NDTTestMethodology#Server-To-Client_Throughput_Test Server-To-Client throughput test]. This means, that the NDT server is the sender and the client is the receiver during all these heuristics. The only exception is the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm, which observes all test traffic during both the Client-To-Server and the Server-To-Client throughput tests.
 
 The detection algorithms were created based on the specially developed analytical model of the TCP connection. The specific heuristics were then tuned during the tests performed in the laboratory and the real LAN, MAN and WAN environments.
 
@@ -146,12 +146,12 @@ The detection algorithms were created based on the specially developed analytica
 
 NDT attempts to detect the link in the end-to-end path with the smallest capacity (i.e. the narrowest link) using the following methodology.
 
-The way NDT handles sends, there is no application-induced delay between successive packets being sent, so any delays between packets are introduced in-transit. NDT uses the inter-packet delay and the size of the packet as a metric to gauge what the narrowest link in the path is. It does this by calculating the inter-packet bandwidth which, on average, will correspond to the bandwidth of the lowest-speed link. 
+The way NDT handles sends, there is no application-induced delay between successive packets being sent, so any delays between packets are introduced in-transit. NDT uses the inter-packet delay and the size of the packet as a metric to gauge what the narrowest link in the path is. It does this by calculating the inter-packet throughput which, on average, should correspond to the bandwidth of the lowest-speed link. 
 
 The algorithm NDT uses to calculate the narrowest link is as follows:
   * NDT records the arrival time of each packet using the libpcap routine
-  * NDT calculates the inter-packet bandwidth by dividing the packet's size, in bits, by the difference between the time that it arrived and the time the previous packet arrived
-  * NDT quantizes the bandwidth into one of a group of pre-defined bins (described below), incrementing the counter for that bin
+  * NDT calculates the inter-packet throughput by dividing the packet's size, in bits, by the difference between the time that it arrived and the time the previous packet arrived
+  * NDT quantizes the throughput into one of a group of pre-defined bins (described below), incrementing the counter for that bin
   * Once the test is complete, NDT determines the link speed according to the bin with the largest counter value
 
 The bins are defined in mbits/second:
@@ -198,8 +198,8 @@ NDT implements the above heuristic in the following manner:
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
  * The cumulative time of the expired retransmit timeouts RTO *is greater than 1% of the total test time*
  * The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link
- * The throughput measured during the MID test (with a limited CWND) *is greater than* the throughput measured during the S2C test
- * The throughput measured during the C2S test *is greater than* the throughput measured during the S2C test
+ * The throughput measured during the MID test (with a limited CWND) *is greater than* the throughput measured during the Server-To-Client test
+ * The throughput measured during the Client-To-Server test *is greater than* the throughput measured during the Server-To-Client test
 
 The internal network link duplex mismatch detect uses the following heuristic.
 
@@ -210,7 +210,7 @@ The internal network link duplex mismatch detect uses the following heuristic.
 
 NDT implements the above heuristic in the following manner:
 
- * The throughput measured during the S2C test *is greater than 50 Mbps*
+ * The throughput measured during the Server-To-Client test *is greater than 50 Mbps*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
@@ -221,7 +221,7 @@ The client link duplex mismatch heuristic does not work with multiple simultaneo
 
 <font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic.
 
-The difference between the S2C throughput (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
+The difference between the Server-To-Client throughput (> 50 Mbps) and the [NDTTestMethodology#Total_send_throughput total send throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
 
 === Link Type Detection Heuristics ===
 
@@ -261,7 +261,7 @@ This means that all of the following conditions should be met:
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Total_send_throughput total send throughput] *is greater than 3 Mbps*
- * The S2C throughput test measured *is less than 9.5 Mbps*
+ * The Server-To-Client throughput test measured *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 35%*
 
@@ -333,7 +333,7 @@ When this variable's value is 1456, then it means that the packet size is preser
 
 === Total test time ===
 
-The total test time is the total time used by the S2C throughput test.
+The total test time is the total time used by the Server-To-Client throughput test.
 
 The total test time is computed using the following formula:
 
@@ -342,15 +342,15 @@ SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender
 }}}
 
 where:
- * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state during the S2C throughput test
- * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state during the S2C throughput test
- * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state during the S2C throughput test
+ * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state during the Server-To-Client throughput test
+ * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state during the Server-To-Client throughput test
+ * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state during the Server-To-Client throughput test
 
 The total test time is kept in microseconds.
 
 === Total send throughput ===
 
-The total send throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the S2C throughput test.
+The total send throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the Server-To-Client throughput test.
 
 The total send throughput is computed using the following formula:
 
@@ -366,7 +366,7 @@ The total send throughput is kept in Mbps (because [NDTTestMethodology#Total_tes
 
 === Packet loss ===
 
-The packet loss is the percentage of the lost packets during the S2C throughput test.
+The packet loss is the percentage of the lost packets during the Server-To-Client throughput test.
 
 The packet loss proportion is computed using the following formula:
 
@@ -384,7 +384,7 @@ To avoid possible division by zero, the NDT sets the packet loss percentages to 
 
 === Packets arriving out of order ===
 
-The packets arriving out of order is the percentage of the duplicated packets during the S2C throughput test.
+The packets arriving out of order is the percentage of the duplicated packets during the Server-To-Client throughput test.
 
 The out of order packets proportion is computed using the following formula:
 
@@ -411,7 +411,7 @@ where:
 The average round trip time is kept in milliseconds.
 
 ==== Known Limitations (Average round trip time) ====
-The average round trip time is calculated during the S2C throughput test. Because NDT is attempting to fill the link to discover what throughput it can obtain, the RTT calculations will be skewed by NDT. In this way, NDT's calculation of the RTT is conservative since the actual RTT should be no worse than the RTT when NDT is running the throughput test.
+The average round trip time is calculated during the Server-To-Client throughput test. Because NDT is attempting to fill the link to discover what throughput it can obtain, the RTT calculations will be skewed by NDT. In this way, NDT's calculation of the RTT is conservative since the actual RTT should be no worse than the RTT when NDT is running the throughput test.
 
 === Theoretical maximum throughput ===
 
