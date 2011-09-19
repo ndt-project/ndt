@@ -94,7 +94,7 @@ import java.security.PrivilegedAction;
 
 public class Tcpbw100 extends JApplet implements ActionListener
 {
-  private static final String VERSION = "3.6.4-3.6.4.1";
+  private static final String VERSION = "3.6.4-3.6.4.2";
   private static final byte TEST_MID = (1 << 0);
   private static final byte TEST_C2S = (1 << 1);
   private static final byte TEST_S2C = (1 << 2);
@@ -485,6 +485,8 @@ public class Tcpbw100 extends JApplet implements ActionListener
   //private static String lang="nb";
   //private static String country="NO";
   /***/
+  private String applet_id = "unknown_applet";
+  private String app_id = "unknown_java";
 
   int half_duplex, congestion, bad_cable, mismatch;
   double mylink;
@@ -519,6 +521,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
   public void init() {
       if (getParameter("country") != null) country = getParameter("country");
       if (getParameter("language") != null) lang = getParameter("language");
+      if (getParameter("client") != null) applet_id = getParameter("client");
 
       try {
           locale = new Locale(lang, country);
@@ -1693,7 +1696,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
                   break;
               case TEST_META:
                   sPanel.setText(messages.getString("meta"));
-                  if (test_meta(ctl, isApplication ? "java" : "applet")) {
+                  if (test_meta(ctl, isApplication ? app_id : applet_id)) {
                       results.append(errmsg);
                       results.append(messages.getString("metaFailed") + "\n");
                       tests &= (~TEST_META);
@@ -2910,6 +2913,7 @@ public class Tcpbw100 extends JApplet implements ActionListener
         System.exit(0);
       }
     });
+    applet.app_id = "java";
     applet.isApplication = true;
     applet.host = args[0];
     frame.getContentPane().add(applet);
