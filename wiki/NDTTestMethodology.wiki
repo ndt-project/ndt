@@ -57,7 +57,7 @@ The general test workflow is as follows:
     || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
  # After the client has received the results, it sends its calculated goodput value to the server. The goodput value is calculated by taking the received bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
     {{{
-    THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
+    GOODPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
     }}}
 
 ==== Known Issues (Middlebox Test) ====
@@ -112,7 +112,7 @@ The general test workflow is as follows:
  # The client performs a 10 second goodput test over the newly created connection
  # The server calculates its goodput, in Kbps, according to the following formula:
   {{{
-  THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
+  GOODPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
   }}}
  # The server sends the calculated goodput value to the client
 
@@ -139,7 +139,7 @@ The general test workflow is as follows:
  # The server takes a web100 snapshot
  # The server calculates its goodput, in Kbps, according to the following formula:
   {{{
-  THROUGHPUT_VALUE = (BYTES_SENT_TO_SEND_SYSCALL / TEST_DURATION_SECONDS) * 8 / 1000
+  GOODPUT_VALUE = (BYTES_SENT_TO_SEND_SYSCALL / TEST_DURATION_SECONDS) * 8 / 1000
   }}}
  # The server sends to the client its calculated goodput value, the amount of unsent data in the socket send queue and the total number of bytes the application sent to the send syscall
  # The server sends to the client all the web100 variables it collected in the final snapshot
