@@ -38,6 +38,8 @@ The middlebox test is a short throughput test from the server to the client with
 
 A detailed description of all of the Middlebox protocol messages can be found in the [NDTProtocol#Middlebox_test NDT Protocol document].
 
+The general test workflow is as follows:
+
  # The server selects a random port and opens a socket on that port
  # The server sends this port number to the client
  # The server sets the MSS on this port to 1456
@@ -72,6 +74,8 @@ The simple firewall test tries to find out any firewalls between the NDT client 
 
 A detailed description of all of the SFW protocol messages can be found in the [NDTProtocol#Simple_firewall_test NDT Protocol document].
 
+The general test workflow is as follows:
+
  # The server selects a random port and opens a socket on that port
  # The server sends this port number to the client
  # The client selects a random port and opens a socket on that port
@@ -96,6 +100,8 @@ The Client-To-Server throughput test measures the throughput from the client to 
 
 A detailed description of all of the Client-To-Server protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
 
+The general test workflow is as follows:
+
  # The server selects a random port and opens a socket on that port
  # The server sends this port number to the client
  # The client connects to the port the server opened
@@ -119,6 +125,8 @@ A 10 second test may not be enough time for TCP to reach a steady-state on a hig
 The Server-To-Client throughput test measures the throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the Server-To-Client protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
+
+The general test workflow is as follows:
 
  # The server selects a random port and opens a socket on that port
  # The server sends this port number to the client
