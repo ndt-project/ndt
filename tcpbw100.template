@@ -72,6 +72,7 @@ It can also identify 2 serious error conditions:</font>
 
   <PARAM NAME="language" VALUE="en">
   <PARAM NAME="country" VALUE="US">
+  <PARAM NAME="client" VALUE="applet">
 
 </applet>
 </td></tr></table>
