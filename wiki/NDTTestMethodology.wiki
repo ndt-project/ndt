@@ -58,7 +58,9 @@ A detailed description of all of the Middlebox protocol messages can be found in
     THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
     }}}
 
-==== Known issues (Middlebox Test) ====
+==== Known Issues (Middlebox Test) ====
+
+The middlebox test's use of sequence numbers assumes that TCP Reno is being used.
 
 The formula used to find out when to temporarily stop sending packets is probably wrong. The idea was to use this as a part of the duplex mismatch detection, with a max of 2 packets in flight the Ethernet half-duplex sender should never see a collision so the throughput would be higher even though the buffer is limited.
 
@@ -83,6 +85,10 @@ A detailed description of all of the SFW protocol messages can be found in the [
 || "1" || The test was successful (i.e. connection to the random port was possible and the pre-defined string was received) ||
 || "2" || There was a connection to the random port, but the pre-defined string was not received ||
 || "3" || There was no connection to the random port within the specified time ||
+
+==== Known Issues (Simple Firewall Test) ====
+
+The client does not send its results to the server which means the server is not sure whether or not it was able to properly connect to the client.
 
 === Client-To-Server Throughput Test ===
 
@@ -173,7 +179,7 @@ The bins are defined in mbits/second:
  * bits cannot be determined - *Retransmissions* (this bin counts the duplicated or invalid packets and does not denote a real link type)
  * otherwise - ?
 
-==== Known limitations (Bottleneck Link Detection) ====
+==== Known Limitations (Bottleneck Link Detection) ====
 
 The Bottleneck Link Detection assumes that packet coalescing is disabled.
 
@@ -219,7 +225,7 @@ NDT implements the above heuristic by checking that the following conditions are
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
 
-==== Known issues/limitations (Duplex Mismatch Detection) ====
+==== Known Issues/limitations (Duplex Mismatch Detection) ====
 
 The client link duplex mismatch heuristic does not work with multiple simultaneous tests. In order to enable this heuristic, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
 
@@ -242,7 +248,7 @@ NDT implements the above heuristic by checking that the following conditions are
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 2 Mbps*
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than* [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput]
 
-===== Known issues (DSL/Cable modem detection heuristic) =====
+===== Known Issues (DSL/Cable modem detection heuristic) =====
 
 <font color="red">The [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] heuristic appears to be broken now because the DSL/Cable modems commonly go above 2Mbps nowadays.</font>
 
@@ -287,7 +293,7 @@ NDT implements the above heuristic by checking that the following conditions are
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
 
-==== Known issues (Faulty Hardware Link Detection) ====
+==== Known Issues (Faulty Hardware Link Detection) ====
 
 <font color="red">NDT does not appear to implement the heuristic correctly.</font> Instead of taking the total number of lost packets, and dividing by the test duration to calculate the packet per second loss rate, the loss rate is multiplied times 100. Since the "The [NDTTestMethodology#Packet_loss packet loss]" is less than 1%, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
 
@@ -442,7 +448,7 @@ Rate < (MSS/RTT)*(1 / sqrt(p))
 
 where p is the loss probability.
 
-==== Known issues (Theoretical Maximum Throughput) ====
+==== Known Issues (Theoretical Maximum Throughput) ====
 
 The Theoretical Maximum Throughput should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
 
@@ -488,14 +494,14 @@ where:
  * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state
  * *!TotalTestTime* - [NDTTestMethodology#Total_test_time Total test time]
 
-== Known issues/limitations ==
+== Known Issues/Limitations ==
 
 Two overall known limitations are that NDT requires that the TCP congestion algorithms be Reno, and that it requires packet coalescing to be disabled. If these are not the case, some of NDT's heuristics may not be accurate. These limitations, however, will negatively impact the throughput tests. NDT's results are, thus, conservative, showing the worst performance a client might see.
 
 Some specific issues/limitations have been found in the NDT regarding the following areas:
- * [NDTTestMethodology#Known_issues_(Middlebox_Test) Middlebox Test]
- * [NDTTestMethodology#Known_limitations_(Bottleneck_Link_Detection) Bottleneck Link Detection]
- * [NDTTestMethodology#Known_issues/limitations_(Duplex_Mismatch_Detection) Duples Mismatch Detection]
- * [NDTTestMethodology#Known_issues_(DSL/Cable_modem_detection_heuristic) DSL/Cable modem detection heuristic]
- * [NDTTestMethodology#Known_issues_(Faulty_Hardware_Link_Detection) Faulty Hardware Link Detection]
- * [NDTTestMethodology#Known_issues_(Theoretical_Maximum_Throughput) Theoretical maximum throughput]
+ * [NDTTestMethodology#Known_Issues_(Middlebox_Test) Middlebox Test]
+ * [NDTTestMethodology#Known_Limitations_(Bottleneck_Link_Detection) Bottleneck Link Detection]
+ * [NDTTestMethodology#Known_Issues/limitations_(Duplex_Mismatch_Detection) Duples Mismatch Detection]
+ * [NDTTestMethodology#Known_Issues_(DSL/Cable_modem_detection_heuristic) DSL/Cable modem detection heuristic]
+ * [NDTTestMethodology#Known_Issues_(Faulty_Hardware_Link_Detection) Faulty Hardware Link Detection]
+ * [NDTTestMethodology#Known_Issues_(Theoretical_Maximum_Throughput) Theoretical maximum throughput]
