@@ -1,0 +1,13 @@
+April 27, 2004
+Cleaned up distribution package to reflect use of automake
+process.
+
+April 11, 2004
+Beginning of command line tool development.  This allows
+administrators and users to run an NDT test from the command
+line of a local or remote computer.  This removes the need to
+use X to remote a browser window back to your local computer.
+
+March 3, 2004
+Beginning of transition from simple makefile tool to automake
+based configuration and compile package.
