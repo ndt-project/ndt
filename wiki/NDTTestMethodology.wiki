@@ -145,7 +145,7 @@ The general test workflow is as follows:
 
 ==== Known Limitations (Server-To-Client Throughput Test) ====
 
-A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
+A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link. However, the increased information that the web100 variables provide could be used to answer this question. Thus the NDT server could detect and report if something was preventing the system from fully utilising the link. For example tracking how long slow start ran and what the maximum CWND value was can tell us if the connection was network limited or configuration limited.  On a transatlantic 10 Gbps link slow start should run for about 3 seconds and CWND should indicate the speed peaked at 10 Gbps.
 
 == Specific Detection Algorithms/Heuristics ==
 
