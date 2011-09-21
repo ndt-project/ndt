@@ -12,7 +12,7 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 == Introduction ==
 
-NDT is a typical memory to memory client/server test device. Goodput measurements closely measure the network performance, ignoring disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem.
+NDT is a typical memory to memory client/server test device. Throughput measurements closely measure the network performance, ignoring disk I/O effects. The real strength is in the advanced diagnostic features that are enabled by the kernel data automatically collected by the web100 monitoring infrastructure.  This data is collected during the test (at 5 msec increments) and analyzed after the test completes to determine what, if anything, impacted the test. One of the MAJOR issues facing commodity Internet users is the performance limiting host configuration settings for the Windows XP operating system. To illustrate this, a cable modem user with basic service (15 Mbps download) would MAX out at 13 Mbps with a 40 msec RTT delay. Thus unless the ISP proxies content, the majority of traffic will be limited by the clients configuration and NOT the ISP's infrastructure.  The NDT server can detect and report this problem, saving consumers and ISP's dollars by allowing them to quickly identify where to start looking for a problem.
 
 NDT operates on any client with a Java-enabled Web browser; further:
  * What it can do:
@@ -24,17 +24,17 @@ NDT operates on any client with a Java-enabled Web browser; further:
    * Tell you how other servers perform
    * Tell you how other clients will perform
 
-== Definitions ==
+== Document Definitions ==
 
-||Goodput||The amount of data received by the application from the TCP connection over the duration of the TCP connection. ||
-||Total Send Throughput||The outgoing, TCP-level data throughput. This includes the all the data, including retransmits, sent. ||
-||Theoretical Maximum Goodput||The maximum goodput of the link according to the [http://www.psc.edu/networking/papers/model_ccr97.ps Matthis equation]. ||
+||Throughput||In this document, the term "Throughput" refers to Application-Level Throughput, the amount of data received by the application from the TCP connection over the duration of the TCP connection. ||
+||Total Send Throughput||The term "Total Send Throughput" refers to outgoing, TCP-level data throughput. This includes the all the data, including retransmitted data, sent over the TCP connection over the duration of the TCP connection. ||
+||Theoretical Maximum Throughput||The maximum throughput of the link according to the [http://www.psc.edu/networking/papers/model_ccr97.ps Matthis equation]. ||
 
 == Performed tests ==
 
 === Middlebox Test ===
 
-The middlebox test is a short goodput test from the server to the client with a limited Congestion Window ([http://en.wikipedia.org/wiki/Congestion_window congestion window] - one of the factors that determines the number of bytes that can be outstanding at any time) to check for a duplex mismatch condition. Moreover, this test uses a pre-defined Maximum Segment Size (MSS) to check if any intermediate node is modifying the connection settings.
+The middlebox test is a short throughput test from the server to the client with a limited Congestion Window ([http://en.wikipedia.org/wiki/Congestion_window congestion window] - one of the factors that determines the number of bytes that can be outstanding at any time) to check for a duplex mismatch condition. Moreover, this test uses a pre-defined Maximum Segment Size (MSS) to check if any intermediate node is modifying the connection settings.
 
 A detailed description of all of the Middlebox protocol messages can be found in the [NDTProtocol#Middlebox_test NDT Protocol document].
 
@@ -45,26 +45,26 @@ The general test workflow is as follows:
  # The server sets the MSS on this port to 1456
  # The client creates a connection to the server's port
  # The server sets the congestion window of the connection to be `2 * (The current MSS)`
- # The server performs a 5 second goodput test over the connection
+ # The server performs a 5 second throughput test over the connection
  # The server can temporarily stop sending packets when the following formula is fulfilled:
     {{{
     BUFFER_SIZE * 16 < ((Next Sequence Number To Be Sent) - (Oldest Unacknowledged Sequence Number) - 1)
     }}}
     The both `"Next Sequence Number To Be Sent"` and `"Oldest Unacknowledged Sequence Number"` values are obtained from the connection with the help of the [http://www.web100.org/ web100] library.
- # After the goodput test, the server sends the following results to the client:
+ # After the throughput test, the server sends the following results to the client:
     || CurMSS || The current maximum segment size (MSS), in octets.||
     || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
     || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
- # After the client has received the results, it sends its calculated goodput value to the server. The goodput value is calculated by taking the received bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
+ # After the client has received the results, it sends its calculated throughput value to the server. The throughput value is calculated by taking the received bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
     {{{
-    GOODPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
+    THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
     }}}
 
 ==== Known Issues (Middlebox Test) ====
 
 The middlebox test's use of sequence numbers assumes that TCP Reno is being used.
 
-The formula used to find out when to temporarily stop sending packets is probably wrong. The idea was to use this as a part of the duplex mismatch detection, with a max of 2 packets in flight the Ethernet half-duplex sender should never see a collision so the goodput would be higher even though the buffer is limited.
+The formula used to find out when to temporarily stop sending packets is probably wrong. The idea was to use this as a part of the duplex mismatch detection, with a max of 2 packets in flight the Ethernet half-duplex sender should never see a collision so the throughput would be higher even though the buffer is limited.
 
 However, the formula allows for more packets in flight and it uses the `"Next Sequence Number To Be Sent"` instead of the `"Maximum Value of Next Sequence Number To Be Sent"`. The difference between these values is that the first one is not monotonic (and thus not a counter) because TCP sometimes retransmits lost data by pulling the Next Sequence Number back to the missing data. The latter one is the farthest forward (right most or largest) value of the Next Sequence Number. These values are the same except the situation when the Next Sequence Number is pulled back during recovery.
 
@@ -94,9 +94,9 @@ The general test workflow is as follows:
 
 The client does not send its results to the server which means the server is not sure whether or not it was able to properly connect to the client.
 
-=== Client-To-Server Goodput Test ===
+=== Client-To-Server Throughput Test ===
 
-The Client-To-Server goodput test measures the goodput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
+The Client-To-Server throughput test measures the throughput from the client to the server by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the Client-To-Server protocol messages can be found in the [NDTProtocol#C2S_throughput_test NDT Protocol document].
 
@@ -107,22 +107,22 @@ The general test workflow is as follows:
  # The client connects to the port the server opened
  # The server starts one or more of the following routines:
    * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
-   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Client-To-Server_Goodput_Test Client-To-Server goodput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
-   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Client-To-Server_Goodput_Test Client-To-Server goodput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
- # The client performs a 10 second goodput test over the newly created connection
- # The server calculates its goodput, in Kbps, according to the following formula:
+   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
+   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+ # The client performs a 10 second throughput test over the newly created connection
+ # The server calculates its throughput, in Kbps, according to the following formula:
   {{{
-  GOODPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
+  THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
   }}}
- # The server sends the calculated goodput value to the client
+ # The server sends the calculated throughput value to the client
 
-==== Known Limitations (Client-To-Server Goodput Test) ====
+==== Known Limitations (Client-To-Server Throughput Test) ====
 
 A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
 
-=== Server-To-Client Goodput Test ===
+=== Server-To-Client Throughput Test ===
 
-The Server-To-Client goodput test measures the goodput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
+The Server-To-Client throughput test measures the throughput from the server to the client by performing a 10 seconds memory-to-memory data transfer.
 
 A detailed description of all of the Server-To-Client protocol messages can be found in the [NDTProtocol#S2C_throughput_test NDT Protocol document].
 
@@ -133,26 +133,26 @@ The general test workflow is as follows:
  # The client connects to the port the server opened
  # The server starts one or more of the following routines:
    * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
-   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Server-To-Client_Goodput_Test Client-To-Server goodput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
-   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Server-To-Client_Goodput_Test Client-To-Server goodput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
- # The client performs a 10 second goodput test over the newly created connection
+   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Server-To-Client_Throughput_Test Client-To-Server throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
+   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Server-To-Client_Throughput_Test Client-To-Server throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+ # The client performs a 10 second throughput test over the newly created connection
  # The server takes a web100 snapshot
- # The server calculates its goodput, in Kbps, according to the following formula:
+ # The server calculates its throughput, in Kbps, according to the following formula:
   {{{
-  GOODPUT_VALUE = (BYTES_SENT_TO_SEND_SYSCALL / TEST_DURATION_SECONDS) * 8 / 1000
+  THROUGHPUT_VALUE = (BYTES_SENT_TO_SEND_SYSCALL / TEST_DURATION_SECONDS) * 8 / 1000
   }}}
- # The server sends to the client its calculated goodput value, the amount of unsent data in the socket send queue and the total number of bytes the application sent to the send syscall
+ # The server sends to the client its calculated throughput value, the amount of unsent data in the socket send queue and the total number of bytes the application sent to the send syscall
  # The server sends to the client all the web100 variables it collected in the final snapshot
 
-==== Known Limitations (Server-To-Client Goodput Test) ====
+==== Known Limitations (Server-To-Client Throughput Test) ====
 
 A 10 second test may not be enough time for TCP to reach a steady-state on a high bandwidth, high latency link.
 
 == Specific Detection Algorithms/Heuristics ==
 
-Most of the following detection algorithms and heuristics use data obtained during the [NDTTestMethodology#Server-To-Client_Goodput_Test Server-To-Client goodput test]. This means, that the NDT server is the sender and the client is the receiver during all these heuristics. 
+Most of the following detection algorithms and heuristics use data obtained during the [NDTTestMethodology#Server-To-Client_Throughput_Test Server-To-Client throughput test]. This means, that the NDT server is the sender and the client is the receiver during all these heuristics. 
 
-The [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm uses data collected during both the Client-To-Server and the Server-To-Client goodput tests.
+The [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm uses data collected during both the Client-To-Server and the Server-To-Client throughput tests.
 
 The [NDTTestMethodology#Firewall_Detection Firewall Detection] heuristic uses data collected during the Simple Firewall Test.
 
@@ -204,31 +204,31 @@ NDT contains two heuristics for the duplex mismatch detection. This heuristic wa
 The client link duplex mismatch detection uses the following heuristic.
 
  * The connection spends over 90% of its time in the congestion window limited state.
- * The Theoretical Maximum Goodput over this link is less than 2 Mbps.
+ * The Theoretical Maximum Throughput over this link is less than 2 Mbps.
  * There are more than 2 packets being retransmitted every second of the test.
  * The connection experienced a transition into the TCP slow-start state.
 
 NDT implements the above heuristic by checking that the following conditions are all true:
 
  * The [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] *is greater than 90%*
- * The [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput] *is greater than 2Mibps*
+ * The [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] *is greater than 2Mibps*
  * The number of segments transmitted containing at least some retransmitted data *is greater than 2 per second*
  * The maximum slow start threshold, excluding the initial value, *is greater than 0*
  * The cumulative time of the expired retransmit timeouts RTO *is greater than 1% of the total test time*
  * The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link
- * The goodput measured during the Middlebox test (with a limited CWND) *is greater than* the goodput measured during the Server-To-Client test
- * The goodput measured during the Client-To-Server test *is greater than* the goodput measured during the Server-To-Client test
+ * The throughput measured during the Middlebox test (with a limited CWND) *is greater than* the throughput measured during the Server-To-Client test
+ * The throughput measured during the Client-To-Server test *is greater than* the throughput measured during the Server-To-Client test
 
 The internal network link duplex mismatch detect uses the following heuristic.
 
- * The measured client to server goodput rate exceeded 50 Mbps.
- * The measured server to client goodput rate is less than 5 Mbps.
+ * The measured client to server throughput rate exceeded 50 Mbps.
+ * The measured server to client throughput rate is less than 5 Mbps.
  * The connection spent more than 90% of the time in the receiver window limited state.
  * There is less that 1% packet loss over the life of the connection.
 
 NDT implements the above heuristic by checking that the following conditions are all true:
 
- * The goodput measured during the Server-To-Client test *is greater than 50 Mbps*
+ * The throughput measured during the Server-To-Client test *is greater than 50 Mbps*
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 5 Mbps*
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
@@ -237,24 +237,24 @@ NDT implements the above heuristic by checking that the following conditions are
 
 The client link duplex mismatch heuristic does not work with multiple simultaneous tests. In order to enable this heuristic, the multi-test mode must be disabled (so the `-m, --multiple` options cannot be set).
 
-<font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic. Also, the condition "The Theoretical Maximum Goodput over this link is less than 2 Mbps" does not appear to be handled correctly since the [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput] is calculated in Mibps not Mbps, and NDT checks if the [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput] is greater than 2, not less than 2.
+<font color="red">NDT does not appear to implement the heuristic correctly.</font> The condition "The link type detected by the [NDTTestMethodology#Link_Type_Detection_Heuristics Link Type Detection Heuristics] is not a wireless link" is always fulfilled, because the Duplex Mismatch Detection heuristic is run before the Link Type Detection heuristic. Also, the condition "The Theoretical Maximum Throughput over this link is less than 2 Mbps" does not appear to be handled correctly since the [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] is calculated in Mibps not Mbps, and NDT checks if the [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] is greater than 2, not less than 2.
 
-The difference between the Server-To-Client goodput (> 50 Mbps) and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
+The difference between the Server-To-Client throughput (> 50 Mbps) and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] (< 5 Mbps) is incredibly big, so it looks like a bug in the formula.
 
 === Link Type Detection Heuristics ===
 
-The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput] (which is an expected situation).
+The following link type detection heuristics are run only when there is no duplex mismatch condition detected and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is the same or smaller than the [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] (which is an expected situation).
 
 ==== DSL/Cable modem ====
 
-The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput].
+The link is treated as a DSL/Cable modem when the NDT Server isn't a bottleneck and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is less than 2 Mbps and less than the [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput].
 
 NDT implements the above heuristic by checking that the following conditions are all true:
 
  * The cumulative time spent in the 'Sender Limited' state *is less than 0.6 ms*
  * The number of transitions into the 'Sender Limited' state *is 0*
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 2 Mbps*
- * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than* [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput]
+ * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than* [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput]
 
 ===== Known Issues (DSL/Cable modem detection heuristic) =====
 
@@ -262,14 +262,14 @@ NDT implements the above heuristic by checking that the following conditions are
 
 ==== IEEE 802.11 (!WiFi) ====
 
-The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput] is greater than 50 Mibps.
+The link is treated as a wireless one when the [NDTTestMethodology#DSL/Cable_modem DSL/Cable modem] is not detected, the NDT Client is a bottleneck and the [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] is less than 5 Mbps but the [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] is greater than 50 Mibps.
 
 NDT implements the above heuristic by checking that the following conditions are all true:
 
  * The heuristic for DSL/Cable modem link *gives negative results*
  * The cumulative time spent in the 'Sender Limited' state *is 0 ms*
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 5 Mbps*
- * The [NDTTestMethodology#Theoretical_Maximum_Goodput Theoretical Maximum Goodput] *is greater than 50 Mibps*
+ * The [NDTTestMethodology#Theoretical_Maximum_Throughput Theoretical Maximum Throughput] *is greater than 50 Mibps*
  * The number of transitions into the 'Receiver Limited' state *is the same* as the number of transitions into the 'Congestion Limited' state
  * The [NDTTestMethodology#'Receiver_Limited'_state_time_share 'Receiver Limited' state time share] *is greater than 90%*
 
@@ -282,7 +282,7 @@ NDT implements the above heuristic by checking that the following conditions are
  * The heuristics for !WiFi and DSL/Cable modem links *give negative results*
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Total_Send_Throughput Total Send Throughput] *is greater than 3 Mbps*
- * The Server-To-Client goodput test measured *is less than 9.5 Mbps*
+ * The Server-To-Client throughput test measured *is less than 9.5 Mbps*
  * The [NDTTestMethodology#Packet_loss packet loss] *is less than 1%*
  * The [NDTTestMethodology#Packets_arriving_out_of_order out of order packets proportion] *is less than 35%*
 
@@ -353,7 +353,7 @@ When this variable's value is 1456, it means that the packet size is preserved E
 
 === Total test time ===
 
-The total test time is the total time used by the Server-To-Client goodput test.
+The total test time is the total time used by the Server-To-Client throughput test.
 
 The total test time is computed using the following formula:
 
@@ -362,15 +362,15 @@ SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender
 }}}
 
 where:
- * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state during the Server-To-Client goodput test
- * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state during the Server-To-Client goodput test
- * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state during the Server-To-Client goodput test
+ * *!SndLimTimeRwin* - The cumulative time spent in the 'Receiver Limited' state during the Server-To-Client throughput test
+ * *!SndLimTimeCwnd* - The cumulative time spent in the 'Congestion Limited' state during the Server-To-Client throughput test
+ * *!SndLimTimeSender* - The cumulative time spent in the 'Sender Limited' state during the Server-To-Client throughput test
 
 The total test time is kept in microseconds.
 
 === Total Send Throughput ===
 
-The Total Send Throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the Server-To-Client goodput test.
+The Total Send Throughput is the total amount of data (including retransmits) sent by the NDT Server to the NDT Client in the Server-To-Client throughput test.
 
 The Total Send Throughput is computed using the following formula:
 
@@ -386,7 +386,7 @@ The Total Send Throughput is kept in Mbps (because [NDTTestMethodology#Total_tes
 
 === Packet loss ===
 
-The packet loss is the percentage of the lost packets during the Server-To-Client goodput test.
+The packet loss is the percentage of the lost packets during the Server-To-Client throughput test.
 
 The packet loss proportion is computed using the following formula:
 
@@ -404,7 +404,7 @@ To avoid possible division by zero, the NDT sets the packet loss percentages to 
 
 === Packets arriving out of order ===
 
-The packets arriving out of order is the percentage of the duplicated packets during the Server-To-Client goodput test.
+The packets arriving out of order is the percentage of the duplicated packets during the Server-To-Client throughput test.
 
 The out of order packets proportion is computed using the following formula:
 
@@ -431,11 +431,11 @@ where:
 The average round trip time is kept in milliseconds.
 
 ==== Known Limitations (Average round trip time) ====
-The average round trip time is calculated during the Server-To-Client goodput test. Because NDT is attempting to fill the link to discover what goodput it can obtain, the RTT calculations will be skewed by NDT. In this way, NDT's calculation of the RTT is conservative since the actual RTT should be no worse than the RTT when NDT is running the goodput test.
+The average round trip time is calculated during the Server-To-Client throughput test. Because NDT is attempting to fill the link to discover what throughput it can obtain, the RTT calculations will be skewed by NDT. In this way, NDT's calculation of the RTT is conservative since the actual RTT should be no worse than the RTT when NDT is running the throughput test.
 
-=== Theoretical Maximum Goodput ===
+=== Theoretical Maximum Throughput ===
 
-The Theoretical Maximum Goodput is computed using the following formula:
+The Theoretical Maximum Throughput is computed using the following formula:
 
 {{{
 (CurrentMSS / (AvgRTTSec * sqrt(PktsLoss))) * 8 / 1024 / 1024
@@ -446,9 +446,9 @@ where:
  * *AvgRTTSec* - [NDTTestMethodology#Average_round_trip_time_(Latency/Jitter) Average round trip time (Latency/Jitter)] in seconds
  * *!PktsLoss* - [NDTTestMethodology#Packet_loss Packet loss]
 
-The Theoretical Maximum Goodput is kept in Mibps.
+The Theoretical Maximum Throughput is kept in Mibps.
 
-The above Theoretical Maximum Goodput comes from the matthis equation ([http://www.psc.edu/networking/papers/model_ccr97.ps]):
+The above Theoretical Maximum Throughput comes from the matthis equation ([http://www.psc.edu/networking/papers/model_ccr97.ps]):
 
 {{{
 Rate < (MSS/RTT)*(1 / sqrt(p))
@@ -456,9 +456,9 @@ Rate < (MSS/RTT)*(1 / sqrt(p))
 
 where p is the loss probability.
 
-==== Known Issues (Theoretical Maximum Goodput) ====
+==== Known Issues (Theoretical Maximum Throughput) ====
 
-The Theoretical Maximum Goodput should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
+The Theoretical Maximum Throughput should be computed to receive Mbps instead of Mibps. This is the only variable in the NDT that is kept in Mibps, so it might lead to the inconsistent results when comparing it with the other values.
 
 === 'Congestion Limited' state time share ===
 
@@ -504,7 +504,7 @@ where:
 
 == Known Issues/Limitations ==
 
-Two overall known limitations are that NDT requires that the TCP congestion algorithms be Reno, and that it requires packet coalescing to be disabled. If these are not the case, some of NDT's heuristics may not be accurate. These limitations, however, will negatively impact the goodput tests. NDT's results are, thus, conservative, showing the worst performance a client might see.
+Two overall known limitations are that NDT requires that the TCP congestion algorithms be Reno, and that it requires packet coalescing to be disabled. If these are not the case, some of NDT's heuristics may not be accurate. These limitations, however, will negatively impact the throughput tests. NDT's results are, thus, conservative, showing the worst performance a client might see.
 
 Some specific issues/limitations have been found in the NDT regarding the following areas:
  * [NDTTestMethodology#Known_Issues_(Middlebox_Test) Middlebox Test]
@@ -512,4 +512,4 @@ Some specific issues/limitations have been found in the NDT regarding the follow
  * [NDTTestMethodology#Known_Issues/limitations_(Duplex_Mismatch_Detection) Duples Mismatch Detection]
  * [NDTTestMethodology#Known_Issues_(DSL/Cable_modem_detection_heuristic) DSL/Cable modem detection heuristic]
  * [NDTTestMethodology#Known_Issues_(Faulty_Hardware_Link_Detection) Faulty Hardware Link Detection]
- * [NDTTestMethodology#Known_Issues_(Theoretical_Maximum_Goodput) Theoretical maximum goodput]
+ * [NDTTestMethodology#Known_Issues_(Theoretical_Maximum_Throughput) Theoretical maximum throughput]
