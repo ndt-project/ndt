@@ -50,7 +50,8 @@ The general test workflow is as follows:
     {{{
     BUFFER_SIZE * 16 < ((Next Sequence Number To Be Sent) - (Oldest Unacknowledged Sequence Number) - 1)
     }}}
-    The both `"Next Sequence Number To Be Sent"` and `"Oldest Unacknowledged Sequence Number"` values are obtained from the connection with the help of the [http://www.web100.org/ web100] library.
+    The both `"Next Sequence Number To Be Sent"` and `"Oldest Unacknowledged Sequence Number"` values are obtained from the connection with the help of the [http://www.web100.org/ web100] library.<br/>
+    The above mechanism is a part of the duplex mismatch detection. The idea for this came from Matt Mathis, and the NPAD duplex mismatch detection. If the server sends a maximum of 2 packets then it will never trigger a mismatch condition. Later when the Server-To-Client test is run a duplex mismatch will cause the Middlebox test to be faster than the Server-To-Client test.
  # After the throughput test, the server sends the following results to the client:
     || CurMSS || The current maximum segment size (MSS), in octets.||
     || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
@@ -64,9 +65,7 @@ The general test workflow is as follows:
 
 The middlebox test's use of sequence numbers assumes that TCP Reno is being used.
 
-The formula used to find out when to temporarily stop sending packets is probably wrong. The idea was to use this as a part of the duplex mismatch detection, with a max of 2 packets in flight the Ethernet half-duplex sender should never see a collision so the throughput would be higher even though the buffer is limited.
-
-However, the formula allows for more packets in flight and it uses the `"Next Sequence Number To Be Sent"` instead of the `"Maximum Value of Next Sequence Number To Be Sent"`. The difference between these values is that the first one is not monotonic (and thus not a counter) because TCP sometimes retransmits lost data by pulling the Next Sequence Number back to the missing data. The latter one is the farthest forward (right most or largest) value of the Next Sequence Number. These values are the same except the situation when the Next Sequence Number is pulled back during recovery.
+The formula used to find out when to temporarily stop sending packets is probably wrong, because it allows for more packets in flight (16?).
 
 === Simple Firewall Test ===
 
