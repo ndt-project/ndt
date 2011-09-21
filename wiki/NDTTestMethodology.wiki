@@ -27,8 +27,8 @@ NDT operates on any client with a Java-enabled Web browser; further:
 == Document Definitions ==
 
 ||Throughput||In this document, the term "Throughput" refers to Application-Level Throughput, the amount of data received by the application from the TCP connection over the duration of the TCP connection. ||
-||Total Send Throughput||The term "Total Send Throughput" refers to outgoing, TCP-level data throughput. This includes the all the data, including retransmitted data, sent over the TCP connection over the duration of the TCP connection. ||
-||Theoretical Maximum Throughput||The maximum throughput of the link according to the [http://www.psc.edu/networking/papers/model_ccr97.ps Matthis equation]. ||
+||Total Send Throughput||The term "Total Send Throughput" refers to outgoing, TCP-level data throughput. This includes the all the data octets sent in TCP packets, including retransmits, over the duration of the TCP connection. ||
+||Theoretical Maximum Throughput||The term "Theoretical Maximum Throughput" refers to the maximum throughput of the link according to the [http://www.psc.edu/networking/papers/model_ccr97.ps Matthis equation]. ||
 
 == Performed tests ==
 
