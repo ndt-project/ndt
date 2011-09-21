@@ -105,9 +105,9 @@ The general test workflow is as follows:
  # The server sends this port number to the client
  # The client connects to the port the server opened
  # The server starts one or more of the following routines:
-   * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
-   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
-   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Client-To-Server_Throughput_Test Client-To-Server throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+   * libpcap routine to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
+   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the Client-To-Server throughput test on the newly created connection. The packets for the tcpdump trace are saved by the same libpcap routine as used for the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set by the NDT administrator.
+   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the Client-To-Server throughput test for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set by the NDT administrator.
  # The client performs a 10 second throughput test over the newly created connection
  # The server calculates its throughput, in Kbps, according to the following formula:
   {{{
@@ -131,9 +131,9 @@ The general test workflow is as follows:
  # The server sends this port number to the client
  # The client connects to the port the server opened
  # The server starts one or more of the following routines:
-   * libpcap routines to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
-   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the [NDTTestMethodology#Server-To-Client_Throughput_Test Client-To-Server throughput test] on the newly created connection. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set. The use of tcpdump duplicates work being done by the libpcap trace above. However, this approach simplifies the NDT codebase.
-   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the [NDTTestMethodology#Server-To-Client_Throughput_Test Client-To-Server throughput test] for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set.
+   * libpcap routine to perform packet trace used by the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm.
+   * [NDTDataFormat#tcpdump_trace tcpdump trace] to save to a standard tcpdump file all packets sent during the Server-To-Client throughput test on the newly created connection. The packets for the tcpdump trace are saved by the same libpcap routine as used for the [NDTTestMethodology#Bottleneck_Link_Detection Bottleneck Link Detection] algorithm. This tcpdump trace dump is only started when the `-t, --tcpdump` options are set by the NDT administrator.
+   * [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] to dump web100 kernel MIB variables' values written in a fixed time interval (default is 5 msec) during the Server-To-Client throughput test for the newly created connection. This snaplog trace dump is only started when the `--snaplog` option is set by the NDT administrator.
  # The client performs a 10 second throughput test over the newly created connection
  # The server takes a web100 snapshot
  # The server calculates its throughput, in Kbps, according to the following formula:
