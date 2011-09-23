@@ -77,16 +77,16 @@ public class Tcpbw100 extends Applet implements ActionListener
 {
 	TextArea results, diagnosis, statistics, reports;
 	String inresult, outresult, errmsg;
-	Button _buttonStartTest;
-	Button _buttonDismiss, _buttonStatsDismiss;
+	Button startTest;
+	Button disMiss, disMiss2;
 	Button copy, copy2;
-	Button _buttonDetails;
-	Button _buttonStatistics;
-	Button _buttonMailTo;
+	Button deTails;
+	Button sTatistics;
+	Button mailTo;
 	Label lab1, lab2, lab3, lab4;
-	boolean _bRandomize, failed, cancopy;
+	boolean Randomize, failed, cancopy;
 	URL location;
-	NewFrame f, ff;
+	clsFrame f, ff;
 	String s;
 	Frame frame;
 	double t;
@@ -131,7 +131,7 @@ public class Tcpbw100 extends Applet implements ActionListener
 		setLayout(new FlowLayout(FlowLayout.CENTER, 5, 5));
 		showStatus("Tcpbw100 ready");
 		failed = false ;
-		_bRandomize = false;
+		Randomize = false;
 		cancopy = false;
 
 /*************************************************************************
@@ -155,28 +155,28 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 /************************************************************************/
 
 		results.append("click START to begin\n");
-		_buttonStartTest = new Button("START");
-		_buttonStartTest.addActionListener(this);
-		add("West", _buttonStartTest);
+		startTest = new Button("START");
+		startTest.addActionListener(this);
+		add("West", startTest);
 		Panel mPanel = new Panel();
-		_buttonStatistics = new Button("Statistics");
-		_buttonStatistics.addActionListener(this);
-		_buttonStatistics.setEnabled(false);
-		_buttonDetails = new Button("More Details...");
-		_buttonDetails.addActionListener(this);
-		_buttonDetails.setEnabled(false);
-		_buttonMailTo = new Button("Report Problem");
-		_buttonMailTo.addActionListener(this);
-		_buttonMailTo.setEnabled(false);
+		sTatistics = new Button("Statistics");
+		sTatistics.addActionListener(this);
+		sTatistics.setEnabled(false);
+		deTails = new Button("More Details...");
+		deTails.addActionListener(this);
+		deTails.setEnabled(false);
+		mailTo = new Button("Report Problem");
+		mailTo.addActionListener(this);
+		mailTo.setEnabled(false);
 
 /*************************************************************************
 * Changed by Seth Peery on 2006-08-04
 * Change values here to remove buttons from the applet.
 * Note that these lines are relocated from above. 
 */
-        //      mPanel.add(_buttonMailTo);
-                mPanel.add(_buttonDetails);
-                mPanel.add(_buttonStatistics);
+        //      mPanel.add(mailTo);
+                mPanel.add(deTails);
+                mPanel.add(sTatistics);
 /************************************************************************/
 
 		add("South", mPanel);
@@ -187,10 +187,10 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 	public void runtest() {
 		diagnose();
 		statistics();
-		_buttonStartTest.setEnabled(false);
-		_buttonDetails.setEnabled(false);
-		_buttonStatistics.setEnabled(false);
-		_buttonMailTo.setEnabled(false);
+		startTest.setEnabled(false);
+		deTails.setEnabled(false);
+		sTatistics.setEnabled(false);
+		mailTo.setEnabled(false);
 		
 		try {
 			dottcp();
@@ -204,12 +204,12 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 			results.append(errmsg);
 		}
 		
-		_buttonDetails.setEnabled(true);
-		_buttonStatistics.setEnabled(true);
-		_buttonMailTo.setEnabled(true);
+		deTails.setEnabled(true);
+		sTatistics.setEnabled(true);
+		mailTo.setEnabled(true);
 		showStatus("Tcpbw100 done");
 		results.append("\nclick START to re-test\n");
-		_buttonStartTest.setEnabled(true);
+		startTest.setEnabled(true);
 	}
 
 
@@ -456,7 +456,7 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 		t = System.currentTimeMillis();
 		stop_time = t + 10000; // ten seconds
 		do {
-			// if (_bRandomize) rng.nextBytes(buff2);
+			// if (Randomize) rng.nextBytes(buff2);
 			out.write(buff2, 0, buff2.length);
 			pkts++;
 		} while (System.currentTimeMillis() < stop_time);
@@ -1334,24 +1334,24 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 		showStatus("Get WEB100 Variables");
 		
 		if (f == null) {
-			f = new NewFrame();
+			f = new clsFrame();
 		}
 		f.setTitle("Web100 Variables");
 		Panel buttons = new Panel();
 		f.add("South", buttons);
 		
-		_buttonDismiss = new Button("Close");
-		_buttonDismiss.addActionListener(this);
+		disMiss = new Button("Close");
+		disMiss.addActionListener(this);
 		
 		copy = new Button("Copy");
 		copy.addActionListener(this);
 		
 		diagnosis = new TextArea("WEB100 Kernel Variables:\n", 15,30);
 		diagnosis.setEditable(true);
-		_buttonDismiss.setEnabled(true);
+		disMiss.setEnabled(true);
 		copy.setEnabled(cancopy);
 		
-		buttons.add("West", _buttonDismiss);
+		buttons.add("West", disMiss);
 		buttons.add("East", copy);
 		f.add(diagnosis);
 		f.pack();
@@ -1363,24 +1363,24 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 		showStatus("Print Detailed Statistics");
 
 		if (ff == null) {
-			ff = new NewFrame();
+			ff = new clsFrame();
 		}
 		ff.setTitle("Detailed Statistics");
 		Panel buttons = new Panel();
 		ff.add("South", buttons);
 		
-		_buttonStatsDismiss = new Button("Close");
-		_buttonStatsDismiss.addActionListener(this);
+		disMiss2 = new Button("Close");
+		disMiss2.addActionListener(this);
 		
 		copy2 = new Button("Copy");
 		copy2.addActionListener(this);
 		
 		statistics = new TextArea("WEB100 Enabled Statistics:\n", 25,70);
 		statistics.setEditable(true);
-		_buttonStatsDismiss.setEnabled(true);
+		disMiss2.setEnabled(true);
 		copy2.setEnabled(cancopy);
 		
-		buttons.add("West", _buttonStatsDismiss);
+		buttons.add("West", disMiss2);
 		buttons.add("East", copy2);
 		ff.add(statistics);
 		ff.pack();
@@ -1393,7 +1393,7 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 		// System.err.println("Processing WINDOW event #" +event.getID());
 		// System.err.println("Processing event " + source);
 
-		if (source == _buttonStartTest) {
+		if (source == startTest) {
 			if(f != null) {
 				f.toBack();
 				f.dispose();
@@ -1408,19 +1408,19 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 			runtest();
 		}
 
-		else if (source == _buttonDetails) {
-			_buttonDetails.setEnabled(false);
+		else if (source == deTails) {
+			deTails.setEnabled(false);
 			f.setResizable(true);
 			f.show();
-			_buttonDetails.setEnabled(true);
+			deTails.setEnabled(true);
 		}
 
-		else if (source == _buttonDismiss) {
+		else if (source == disMiss) {
 			f.toBack();
 			f.dispose();
 		}
 
-		else if (source == _buttonStatsDismiss) {
+		else if (source == disMiss2) {
 			ff.toBack();
 			ff.dispose();
 		}
@@ -1446,20 +1446,20 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 			statistics.selectAll();
 		}
 
-		else if (source == _buttonStatistics) {
-			_buttonStatistics.setEnabled(false);
+		else if (source == sTatistics) {
+			sTatistics.setEnabled(false);
 			ff.setResizable(true);
 			ff.show();
-			_buttonStatistics.setEnabled(true);
+			sTatistics.setEnabled(true);
 		}
 
-		else if (source == _buttonMailTo) {
+		else if (source == mailTo) {
 			int i;
 			char key;
 			String to[], from[], comments[];
 			String Name, Host;
 
-			_buttonMailTo.setEnabled(false);
+			mailTo.setEnabled(false);
 			// envoke mailto: function
 			showStatus("Tcpbw100 Invoking Mailto function...");
 			
@@ -1493,8 +1493,8 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 	}  // actionPerformed()
 
 
-	public class NewFrame extends Frame {
-		public NewFrame() {
+	public class clsFrame extends Frame {
+		public clsFrame() {
 			addWindowListener(new WindowAdapter() {
 				public void windowClosing(WindowEvent event) {
 					// System.err.println("Handling window closing event");
@@ -1503,6 +1503,6 @@ results.append("\nThis is a modified version of the original NDT applet, incorpo
 			});
 			// System.err.println("Extended Frame class - RAC9/15/03");
 		}
-	} // class: NewFrame
+	} // class: clsFrame
 
 } // class: Tcpbw100
