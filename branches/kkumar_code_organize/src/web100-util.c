@@ -217,8 +217,8 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
     web100_snap_read(var, snap, line);
     SndUna = atoi(web100_value_to_text(web100_get_var_type(var), line));
 
-    // stop sending data if (buf size * 16) <
-    //  [ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
+    // stop sending data if (buf size * 16) < 
+    //  	[ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
     if ((currentMSSval<<4) < (SndMax - SndUna - 1)) {
       continue;
     }
@@ -299,7 +299,7 @@ web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int c
     ok = 1;
   }
 
-  //close file pointers after web100 variables have been fetched
+  // close file pointers after web100 variables have been fetched
   if (fp) {
     fprintf(fp, "\n");
     fclose(fp);
@@ -309,7 +309,9 @@ web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int c
 
 
 /**
- * Collect Web100 stats from a snapshot and transmit to a receiver
+ * Collect Web100 stats from a snapshot and transmit to a receiver.
+ * The transmission is done using a TES_MSG type message and sent to
+ * client reachable via the input parameter socket FD.
  *
  * @param snap pointer to a web100_snapshot taken earlier
  * @param ctlsock integer socket file descriptor indicating data recipient

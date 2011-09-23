@@ -24,6 +24,7 @@
 static int                _debuglevel        = 0;
 static char*              _programname       = "";
 static char*              LogFileName        = BASEDIR"/"LOGFILE;
+static char*              ProtoLogFileName    = BASEDIR"/"PROTOLOGFILE;
 static I2ErrHandle        _errorhandler_nl   = NULL;
 static I2ErrHandle        _errorhandler      = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
@@ -61,7 +62,7 @@ int zlib_def(char *src_fn) {
   unsigned char in[16384];
   unsigned char out[16384];
 
-    /* allocate deflate state */
+    // allocate deflate state
     strm.zalloc = Z_NULL;
     strm.zfree = Z_NULL;
     strm.opaque = Z_NULL;
@@ -80,7 +81,7 @@ int zlib_def(char *src_fn) {
 	log_println(6, "zlib_def(): failed to open dest file '%s' for writing", dest_fn);
 	return -4;
     }
-    /* compress until end of file */
+    // compress until end of file
     do {
         strm.avail_in = fread(in, 1, 16384, source);
         if (ferror(source)) {
@@ -90,8 +91,8 @@ int zlib_def(char *src_fn) {
         flush = feof(source) ? Z_FINISH : Z_NO_FLUSH;
         strm.next_in = in;
 
-        /* run deflate() on input until output buffer not full, finish
- *            compression if all of source has been read in */
+        // run deflate() on input until output buffer not full, finish
+        //   compression if all of source has been read in
         do {
             strm.avail_out = 16384;
             strm.next_out = out;
@@ -122,10 +123,9 @@ int zlib_def(char *src_fn) {
 /* #endif */
 
 /**
- * Function name: log_init
- * Description: Initializes the logging system.
- * Arguments: progname - the name of the program
- *            debuglvl - the debug level
+ * Initialize the logging system.
+ * @param progname The name of the program
+ * @param debuglvl The debug level
  */
 
 void
@@ -189,6 +189,30 @@ void
 set_logfile(char* filename)
 {
   LogFileName = filename;
+}
+
+/**
+ * Function name: set_protologfile
+ * Description: Sets the log filename.
+ * Arguments: filename - new log filename
+ */
+
+void
+set_protologfile(char* filename)
+{
+	ProtoLogFileName = filename;
+}
+
+/**
+ * Function name: get_protocollogfile
+ * Description: Returns the protocol validation log filename.
+ * Returns: The log filename
+ */
+
+char*
+get_protologfile()
+{
+  return ProtoLogFileName;
 }
 
 /**

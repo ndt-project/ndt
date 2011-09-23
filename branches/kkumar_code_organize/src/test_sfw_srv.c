@@ -113,7 +113,7 @@ finalize_sfw(int ctlsockfd)
  * 			0 - success (no firewalls on the path),
  *          1 - Message reception errors/inconsistencies
  *			2 - Unexpected message type received/no message received due to timeout
- *			3 - erroneous message  reception
+ *			3 - Received message is invalid
  *			4 - Client port number not received
  *			5 - Unable to resolve client address
  */

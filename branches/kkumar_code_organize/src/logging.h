@@ -15,6 +15,7 @@
 #include <sys/types.h>
 
 #define LOGFILE "web100srv.log"   /* Name of log file */
+#define PROTOLOGFILE "web100srvprotocol.log"   /* Name of protocol validation log file */
 
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
@@ -36,32 +37,40 @@ char * DataDirName;
 
 int zlib_def(char *src_fn);
 
+/**
+ * Format used to exchange meta test data between client->server.
+ * */
 struct metaentry {
-  char key[64];
-  char value[256];
-  struct metaentry* next;
+  char key[64]; // key name
+  char value[256]; // value associated with this meta key
+  struct metaentry* next; // pointer to next link
 };
 
+/**
+ * Used to save results of meta tests.
+ * These values (most) are thes logged in the
+ *  meta data file created  for every session
+ * */
 struct metadata {
-    char c2s_snaplog[64];
-    char c2s_ndttrace[64];
-    char s2c_snaplog[64];
-    char s2c_ndttrace[64];
-    char CPU_time[64];
-    char summary[256];
-    char date[32];
-    char time[16];
-    char client_ip[64];
-    struct sockaddr_storage c_addr;
-    char client_name[64];
-    char client_os[32];
-    char client_browser[32];
-    int  ctl_port;
-    char server_ip[64];
-    char server_name[64];
-    char server_os[32];
-    int  family;
-    struct metaentry* additional;    
+    char c2s_snaplog[64]; // C->S test Snaplog file name
+    char c2s_ndttrace[64]; // C->S NDT trace file name
+    char s2c_snaplog[64]; // S->C test Snaplog file name
+    char s2c_ndttrace[64]; // S->C NDT trace file name
+    char CPU_time[64]; // CPU time file
+    char summary[256]; // Summary data
+    char date[32]; // Date and,
+    char time[16]; // time
+    char client_ip[64]; // Client IP Address
+    struct sockaddr_storage c_addr; // client socket details, not logged
+    char client_name[64]; // client's host-name
+    char client_os[32]; // client OS name
+    char client_browser[32]; // client's browser name
+    int  ctl_port; // ? todo map use
+    char server_ip[64]; // server IP address
+    char server_name[64]; // server's host-name
+    char server_os[32]; // server os name
+    int  family; // IP family
+    struct metaentry* additional; // all other additional data
 };
 
 struct metadata meta;

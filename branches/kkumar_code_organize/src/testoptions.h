@@ -12,7 +12,7 @@
 #include "web100srv.h"
 
 typedef struct testoptions {
-  int multiple;
+  int multiple; // TODO field comments
   int mainport;
   
   int midopt;

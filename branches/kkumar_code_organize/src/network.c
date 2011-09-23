@@ -371,9 +371,9 @@ error:
  * Returns: 0 - success,
  *          !0 - error code.
  *        Error codes:
- *        -1 : Cannot write message header information
- *        -2 : Cannot write message data
- *        -3 : TODO: cannot write after retries?
+ *        -1 - Cannot write to socket at all
+ *        -2 - Cannot complete writing full message data into socket
+ *        -3 - Cannot write after retries
  *
  */
 
@@ -382,18 +382,19 @@ send_msg(int ctlSocket, int type, void* msg, int len)
 {
   unsigned char buff[3];
   int rc, i;
+  FILE *fp; //kk
   
   assert(msg);
   assert(len >= 0);
 
  /*  memset(0, buff, 3); */
   // set message type and length into message itself
-  // TODO why the shift operator? store into byte
   buff[0] = type;
   buff[1] = len >> 8;
   buff[2] = len;
 
-  //What is 5 here? TODO
+  //TODO could define a constant for 5, or leave it that way here
+  // retry sending data 5 times
   for (i=0; i<5; i++) {
 	// Write initial data about length and type to socket
     rc = writen(ctlSocket, buff, 3);
@@ -405,7 +406,7 @@ send_msg(int ctlSocket, int type, void* msg, int len)
       return -1;
   }
 
-  //TODO
+  // Exceeded retries, return as "failed trying to write"
   if (i == 5)
     return -3;
 
@@ -424,6 +425,16 @@ send_msg(int ctlSocket, int type, void* msg, int len)
   if (i == 5)
     return -3;
   log_println(8, ">>> send_msg: type=%d, len=%d, msg=%s, pid=%d", type, len, msg, getpid());
+  // kk start
+  fp = fopen(get_protologfile(),"a");
+  if (fp == NULL) {
+	  log_println(0, "Unable to open protocol log file '%s', continuing on without logging", get_logfile());
+  }
+  else {
+	  fprintf(fp, "Sent message: type=%d, len=%d, msg=%s, pid=%d on socket=%d\n", type, len, msg, getpid(), ctlSocket);
+	  fclose(fp);
+  }
+  // kk end
   return 0;
 }
 
@@ -447,6 +458,7 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
 {
   unsigned char buff[3];
   int length;
+  FILE *fp; //kk
   
   assert(type);
   assert(msg);
@@ -473,6 +485,18 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
     return -3;
   }
   log_println(8, "<<< recv_msg: type=%d, len=%d", *type, *len);
+  //kk here
+  fp = fopen(get_protologfile(),"a");
+  if (fp == NULL) {
+	  log_println(0, "Unable to open protocol log file '%s', continuing on without logging", get_logfile());
+  }
+  else {
+	  //fprintf(fp, "Rcd message: type=%d, len=%d, msg=%s, pid=%d on socket=%d\n", *type, *len, (char*)msg, getpid(), ctlSocket);
+	  fprintf(fp, "Rcd message: type=%d, len=%d,pid=%d on socket=%d\n", *type, *len, getpid(), ctlSocket);
+
+	  fclose(fp);
+  }
+  //end kk
   return 0;
 }
 

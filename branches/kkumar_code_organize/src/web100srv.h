@@ -77,7 +77,7 @@ typedef struct CwndPeaks {
 typedef struct options {
     u_int32_t limit;
     int snapDelay;
-    char avoidSndBlockUp;
+    char avoidSndBlockUp; // flag set to indicate avoiding  send buffer blocking in the S2C test
     char snaplog;
     char cwndDecrease;
     char s2c_logname[128];
@@ -90,18 +90,19 @@ typedef struct portpair {
   int port2;
 } PortPair;
 
+// Structure defining NDT child process
 struct ndtchild {
-	int pid;
-	char addr[64];
-	char host[256];
-	time_t stime;
-	time_t qtime;
-	int pipe;
-	int running;
-	int ctlsockfd;
-	int oldclient;
-	char tests[16];
-	struct ndtchild *next;
+	int pid;		// process id
+	char addr[64];	// IP Address
+	char host[256];	// Hostname
+	time_t stime;   // estimated start time of test
+	time_t qtime;	// time when queued
+	int pipe;		// writing end of pipe
+	int running;	// Is process running?
+	int ctlsockfd;	// Socket file descriptor
+	int oldclient;  // Is old client?
+	char tests[16]; // What tests are scheduled?
+	struct ndtchild *next; // next process in queue
 };
 
 struct spdpair {

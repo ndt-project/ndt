@@ -34,6 +34,7 @@
 #include "logging.h"
 
 #define LOGFILE "web100srv.log"
+#define PROTOLOGFILE "web100srvprotocol.log" //kk protocol validation
 #define WEB100_VARS 128  /*number of web100 variables you want to access*/
 #define WEB100_FILE "web100_variables"  /*names of the variables to access*/
 #define BUFFSIZE 512
@@ -44,6 +45,7 @@ int randomize=0;
 char *rmt_host;
 char *VarFileName=NULL;
 char *LogFileName=NULL;
+char *ProtoLogFileName=NULL; // Log file used to log protocol validation logs
 double avgrtt, loss, loss2, rttsec, bw, bw2, rwin, swin, cwin, speed;
 double rwintime, cwndtime, sendtime, timesec;
 int n, m, one=1;
@@ -394,7 +396,8 @@ main(int argc, char** argv)
   int debug = 0;
 
   iponly = 0;
-  while ((c = getopt_long(argc, argv, "dnhl:v", long_options, 0)) != -1) {
+  //while ((c = getopt_long(argc, argv, "dnhl:v", long_options, 0)) != -1) {
+  while ((c = getopt_long(argc, argv, "udnhl:v", long_options, 0)) != -1) { //protocol validation, kk
     switch (c) {
       case 'h':
         analyze_long_usage("ANL/Internet2 NDT version " VERSION " (analyze)");
@@ -406,6 +409,11 @@ main(int argc, char** argv)
       case 'l':
         LogFileName = optarg;
         break;
+      //kk for protocol validation
+      case 'u':
+              ProtoLogFileName = optarg;
+              break;
+      //end protocol validation
       case 'n':
         iponly=1;
         break;
@@ -429,6 +437,14 @@ main(int argc, char** argv)
     LogFileName = tmpstr;
   }
   log_println(1, "log file = %s", LogFileName);
+
+  //protocol validation. kk new
+  if (ProtoLogFileName == NULL) {
+     sprintf(tmpstr, "%s/%s", BASEDIR, PROTOLOGFILE);
+     ProtoLogFileName = tmpstr;
+  }
+  log_println(1, "log file = %s", ProtoLogFileName);
+  //end protocol validation
 
   if ((fp = fopen(LogFileName, "r")) == NULL)
     err_sys("Missing Log file ");

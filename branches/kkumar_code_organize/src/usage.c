@@ -12,11 +12,10 @@
 #include <sys/socket.h>
 #include <assert.h>
 
-/*
- * Function name: short_usage
- * Description: Prints the short usage of the application.
- * Arguments: prog - the name of the application
- *            info - the text printed in the first line
+/**
+ * Prints the short usage of the application.
+ * @param prog The name of the application
+ * @param info Text printed in the first line
  */
 
 void

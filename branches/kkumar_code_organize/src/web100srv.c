@@ -107,7 +107,9 @@ int admin_view=0;
 int queue=1;
 int view_flag=0;
 int record_reverse=0;
-int testing, waiting, mclients;
+int testing; // a test is currently being performed.
+int waiting; // # of many tests pending
+int mclients; // multiple client mode client count
 int refresh = 30;
 int old_mismatch=0;  /* use the old duplex mismatch detection heuristic */
 /* int sig1, sig2, sig17; */
@@ -198,7 +200,11 @@ static struct option long_options[] = {
   {0, 0, 0, 0}
 };
 
-/* Process a SIGCHLD signal */
+
+/**
+ * Process a SIGCHLD signal.
+ * @param pid_t Process id to be processed
+ * */
 void
 child_sig(pid_t chld_pid)
 {
@@ -210,15 +216,15 @@ child_sig(pid_t chld_pid)
   log_println(2, "Processing SIGCHLD signal for active web100srv process [%d], sig17=%d", chld_pid, sig17);
 
   /* this routine cleans up after a child process has terminated.  There are 2 types of
-   * child processes.  The pkt-pair timing children are type 1 and the spawnd children to run
+   * child processes.  The pkt-pair timing children are type 1 and the spawned children to run
    * the test are type 0.  For the pkt-pair children, just acknowledge their signal to keep
-   * them from becoming defunt.  For the type 0 children, use wait3() to figure out which 
+   * them from becoming defunct.  For the type 0 children, use wait3() to figure out which
    * child terminated and then clean up the FIFO queue.
    * RAC 2/8/10
    *
    * Added new type (-1) on 2/11/10.  This type indicates a child has terminated due to
    * a communications fault.  For some reason the child is stuck in the FIFO queue and
-   * it needs to be removed.  In this csse, the calling function will grab the head pointer's
+   * it needs to be removed.  In this case, the calling function will grab the head pointer's
    * PID value, call this function with a -1 to remove the entry from the FIFO, issue a 
    * SIGTERM signal and call this function with the childs PID.  This should prevent the
    * code from entering into a loop.
@@ -383,7 +389,11 @@ reap_child:
   log_println(6, "Did we get here???");
 }
 
-/* Catch termination signal(s) and print message in log file */
+
+/**
+ * Catch termination signal(s) and print message in log file
+ * @param signo Signal number
+ * */
 void
 cleanup(int signo)
 {
@@ -522,7 +532,11 @@ cleanup(int signo)
   }
 }
 
-/* LoadConfig routine copied from Internet2. */
+/** LoadConfig routine copied from Internet2.
+ * @param *name Pointer to Application name
+ * @param **lbuf line buffer
+ * @param *lbuf_max line buffer max - both help keep track of a dynamically grown "line" buffer.*/
+
 static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 {
   FILE *conf;
@@ -536,6 +550,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
 
   log_println(1, " Reading config file %s to obtain options", ConfigFileName);
 
+  // Read the values for various keys and store them in appropriate variables
   while ((rc = I2ReadConfVar(conf, rc, key, val, 256, lbuf, lbuf_max)) > 0) {
     if (strncasecmp(key, "administrator_view", 5) == 0) {
       admin_view = 1;
@@ -735,10 +750,12 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   fclose(conf);
 }
 
-/* This routine walks through the list of queued clients and kills off those
- * that don't respond.  New clients (after v3.5.5) will reqpond to this query
+/**
+ *  This routine walks through the list of queued clients and kills off those
+ * that don't respond.  New clients (after v3.5.5) will respond to this query
  * older clients wouldn't, so use the oldclient flag to tell them apart.
  * RAC 7/8/09
+ * @param *head_ptr Pointer to the head of the list
  */
 void *
 zombieWorker(void *head_ptr) {
@@ -772,6 +789,8 @@ zombieWorker(void *head_ptr) {
 	    continue;
 	}
 	log_println(6, "New client found, checking for response, child=%d", tmp_ptr->pid);
+
+	// send "keep-alive" SRV_QUEUE message to client and expect a response
 	rc = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 	log_println(6, "send_msg() returned %d during zombie check on client %d", rc, tmp_ptr->pid);
 	FD_ZERO(&rfd);
@@ -782,7 +801,7 @@ zombieWorker(void *head_ptr) {
 	  rc = select((tmp_ptr->ctlsockfd)+1, &rfd, NULL, NULL, &sel_tv);
 	  switch (rc) {
 	    case 0:
-	      /*  a timeout occurred, remove zombie client from list */
+	      //  a timeout occurred, remove zombie client from list
 	      log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
               while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
 	        log_println(6, "Waiting for ndtq semaphore to free - adding new client 1");
@@ -810,7 +829,7 @@ zombieWorker(void *head_ptr) {
 		child_sig(0);
 	   */
 	      break;
-	    case -1:
+	    case -1: // some error status
 	      if (errno == EINTR) {
 		log_println(6, "select() interrupted by signal, continue waiting for action or timeout");
 		continue;
@@ -824,6 +843,12 @@ zombieWorker(void *head_ptr) {
     return NULL;
 }
 
+/**
+ * Capture CPU time details
+ *
+ * @param arg* void pointer to the log file sued to record CPU time details
+ * @param void* NULL
+ * */
 void*
 cputimeWorker(void* arg)
 {
@@ -851,6 +876,13 @@ cputimeWorker(void* arg)
     return NULL;
 }
 
+/**
+ * Capture CPU time details
+ *
+ * @param arg* void pointer to the log file sued to record CPU time details
+ * @param void* NULL
+ * */
+
 int
 run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_suite)
 {
@@ -861,7 +893,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   char tmpstr[256];
   char isoTime[64];
 
-  int n;
+  int n; // todo what is n?
   int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
   int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
   int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
@@ -872,8 +904,12 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   int RcvWinScale, SndWinScale;
   int link=100, mismatch=0, bad_cable=0, half_duplex=0, congestion=0, totaltime;
   int ret, spd_index;
-  int index, links[16], max, total;
-  int c2sdata = 0, c2sack = 0, s2cdata = 0, s2cack = 0;
+  int index, links[16], max;
+  int total; // total ifspeed ? todo
+  int c2sdata = 0; // C->S data link speed indicator determined using results
+  int c2sack = 0;  //
+  int s2cdata = 0; // S->C data link speed indicator determined using results
+  int s2cack = 0;
   int j;
   int totalcnt;
   int autotune;
@@ -884,11 +920,17 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 
   double rttsec, rwin, swin, cwin;
   double rwintime, cwndtime, sendtime;
-  double oo_order, waitsec;
-  double bw2, avgrtt, timesec, loss2, RTOidle;
-  double s2cspd, c2sspd;
+  double oo_order; // out-of-order packet ratio
+  double waitsec;
+  double bw2;
+  double avgrtt; // Average roundtrip time
+  double timesec;
+  double loss2;  // Packet loss as calculated from S->c tests. TODO change name. There also is no "loss"
+  double RTOidle;
+  double s2cspd; // average throughput
+  double c2sspd;
   double s2c2spd;
-  double spd;
+  double spd; // total send throughput in S->C
   double acks, aspd = 0, tmouts, rtran, dack;
   float runave[4];
 
@@ -900,17 +942,21 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   log_println(4, "Child process %d started", getpid());
   testopt->child0 = getpid();
 
+  // initialize speed_index array. todo. what is this spd index?
   for (spd_index=0; spd_index<4; spd_index++)
     for (ret=0; ret<256; ret++)
       spds[spd_index][ret] = 0x00;
   spd_index = 0;
 
+  // obtain web100 connection and check auto-tune status
   conn = web100_connection_from_socket(agent, ctlsockfd);
   autotune = web100_autotune(ctlsockfd, agent, conn);
 
+  // client needs to be version compatible. Send current version
   sprintf(buff, "v%s", VERSION);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
 
+  // initiate test with MSG_LOGIN message. TODO test_suite
   log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   send_msg(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite));
   /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
@@ -937,6 +983,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   }
   
 /*  alarm(15); */
+  // Run scheduled test. Log error code if necessary
   log_println(6, "Starting middlebox test");
   if ((ret = test_mid(ctlsockfd, agent, &*testopt, conn_options, &s2c2spd)) != 0) {
       if (ret < 0)
@@ -982,7 +1029,12 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
     }
   }
 
+  // Compute variable values from test results and deduce results
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
+
+  // The section below helps determine link speeds.
+  //    NDT quantizes throughput into one of a group of pre-defined bins/buckets that contain
+  //     counters. Get values of these bins (12 in number) and other key stats
   for (n=0; n<spd_index; n++) {
     sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d %d", &links[0],
         &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
@@ -992,8 +1044,12 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
     index = 0;
     total = 0;
     /* for (j=0; j<10; j++) { */
+
     if ((ifspeed == -1) || (ifspeed == 0) || (ifspeed > 10))
-	ifspeed = 10;
+    	ifspeed = 10;  // ifspeed was probably not collected in these cases
+
+    // get the ifspeed bin with the biggest counter value.
+    // NDT determines link speed using this
     for (j=0; j<=ifspeed; j++) {
       total += links[j];
       if (max < links[j]) {
@@ -1001,8 +1057,12 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
         index = j;
       }
     }
+
+    // speed data was not collected correctly
     if (links[index] == -1)
       index = -1;
+
+    // log
     fp = fopen(get_logfile(),"a");
     if (fp == NULL) {
       log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -1013,7 +1073,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
       fclose(fp);
     }
 
-    /* When the C2S test is disabled, we have to skip the results */
+    // When the C2S test is disabled, we have to skip the results
+    // Note: spd[0] , [1] contains C->S test results
+    // spd[2] , spd [3] contains S->C test results
     switch (n  + (testopt->c2sopt ? 0 : 2)) {
       case 0: c2sdata = index;
               log_print(1, "Client --> Server data detects link = ");
@@ -1027,6 +1089,8 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
       case 3: s2cack = index;
               log_print(1, "Server <-- Client Ack's detect link = ");
     }
+
+    // classify link speed based on the max ifspeed seen
     switch (index) {
       case -1: log_println(1, "System Fault");     break;
       case 0:  log_println(1, "RTT");              break;
@@ -1041,15 +1105,18 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
       case 9:  log_println(1, "10 Gigabit Enet");  break;
       case 10: log_println(1, "Retransmissions");  break;
     }
-  }
+  } //end section to determine speed. TODO - break into new function? calc_link_speed
 
-  /* get some web100 vars */
+  // Get web100 vars
+
+  // ...determine number of times congestion window has been changed
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
     CwndDecrease(agent, options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d", dec_cnt, inc_cnt, same_cnt);
   }
 
+  // ...other variables
   web100_logvars(&Timeouts, &SumRTT, &CountRTT,
       &PktsRetrans, &FastRetran, &DataPktsOut,
       &AckPktsOut, &CurrentMSS, &DupAcksIn,
@@ -1064,22 +1131,33 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
       &CurTimeoutCount, &AbruptTimeouts, &SendStall, &SlowStart, 
       &SubsequentTimeouts, &ThruBytesAcked);
 
+  // end getting web100 variable values
   /* if (rc == 0) { */
-  /* Calculate some values */
+
+  // section to calculate duplex mismatch
+
+  // Calculate average sound trip time and convert to seconds
   avgrtt = (double) SumRTT/CountRTT;
   rttsec = avgrtt * .001;
   /* loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut); */
+
+  // Calculate packet loss
   loss2 = (double)CongestionSignals/PktsOut;
   if (loss2 == 0) {
     if (c2sdata > 5)
-      loss2 = .0000000001;  /* set to 10^-10 for links faster than FastE */
+      loss2 = .0000000001;  // set to 10^-10 for links faster than FastE
     else
-      loss2 = .000001;    /* set to 10^-6 for now */
+      loss2 = .000001;    // set to 10^-6 for now
   }
 
+  // Calculate ratio of packets arriving out of order
   oo_order = (double)DupAcksIn/AckPktsIn;
+
+  // calculate theoretical maximum goodput in bits
+  // todo constants for 1024, 8.
   bw2 = (CurrentMSS / (rttsec * sqrt(loss2))) * 8 / 1024 / 1024;
 
+  //
   if ((SndWinScale > 15) || (Sndbuf < 65535))
     SndWinScale = 0;
   if ((RcvWinScale > 15) || (MaxRwinRcvd < 65535))
@@ -1094,20 +1172,36 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   swin = (double)Sndbuf * 8 / 1024 / 1024;
   cwin = (double)MaxCwnd * 8 / 1024 / 1024;
 
+  // Total test time
   totaltime = SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender;
-  rwintime = (double)SndLimTimeRwin/totaltime;
-  cwndtime = (double)SndLimTimeCwnd/totaltime;
-  sendtime = (double)SndLimTimeSender/totaltime;
-  timesec = totaltime/1000000;
-  RTOidle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
-  tmouts = (double)Timeouts / PktsOut;
-  rtran = (double)PktsRetrans / PktsOut;
-  acks = (double)AckPktsIn / PktsOut;
-  dack = (double)DupAcksIn / (double)AckPktsIn;
 
+  // time spent being send-limited due to congestion window
+  rwintime = (double)SndLimTimeRwin/totaltime;
+
+  // time spent in being receive limited due to client's recv window
+  cwndtime = (double)SndLimTimeCwnd/totaltime;
+
+  // time spent in being send-limited due to own fault
+  sendtime = (double)SndLimTimeSender/totaltime;
+  timesec = totaltime/1000000; 		// microsecs
+
+  // Current retransmit timeoutX timeout count = idle time spent waiting for packets to arrive
+  // When divided by total test time, they indicate fraction of time spent idle due to RTO
+  RTOidle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
+  tmouts = (double)Timeouts / PktsOut;  // timeout fraction //todo rename all 4
+  rtran = (double)PktsRetrans / PktsOut; // retrans fraction
+  acks = (double)AckPktsIn / PktsOut; 	 // Fraction of acks recived for sent data
+  dack = (double)DupAcksIn / (double)AckPktsIn; // duplicate acks fraction
+
+  // actual throughput in Mbps (totaltime is in microseconds)
   spd = ((double)DataBytesOut / (double)totaltime) * 8;
+  	  // todo rename spd to "calculated total send throughput"
+
+  // total time spent waiting
   waitsec = (double) (CurrentRTO * Timeouts)/1000;
   log_println(2, "CWND limited test = %0.2f while unlimited = %0.2f", s2c2spd, s2cspd);
+
+  // Is goodput measured from from S->C as reported by client > as reported by server?
   if ((s2c2spd > s2cspd) && (multiple == 0))
     log_println(2, "Better throughput when CWND is limited, may be duplex mismatch");
   else
@@ -1115,20 +1209,35 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 
 
   /* remove the following line when the new detection code is ready for release */
+  // retaining old comment above
+
+  // client link duplex mismatch detection heuristic
   old_mismatch = 1;
   if (old_mismatch == 1) {
-    if ((cwndtime > .9) && (bw2 > 2) && (PktsRetrans/timesec > 2) &&
-        (MaxSsthresh > 0) && (RTOidle > .01) && (link > 2) && (s2cspd < s2c2spd) &&
-	(multiple == 0))
-    {  if (s2cspd < c2sspd)
+    if ((cwndtime > .9)  // more than 90% time spent being receiver window limited
+    		&& (bw2 > 2)  // theoretical max goodput > 2mbps
+    			&& (PktsRetrans/timesec > 2)
+    				 // #of segments with pkt-retransmissions> 2
+    				&& (MaxSsthresh > 0)   // max slow start threshold > 0
+    					&& (RTOidle > .01) // cumulative RTO time > 1% test duration
+    						&& (link > 2)  // not wireless link
+    							&& (s2cspd < s2c2spd) //S->C throughput calculated
+    												// by server < client value
+    								&& (multiple == 0))
+    {
+	  if (s2cspd < c2sspd) // also, S->C throughput is lesser than C->S throughput
       mismatch = 1;
       else
         mismatch = 2;
       link = 0;
     }
 
-    /* test for uplink with duplex mismatch condition */
-    if (((s2cspd/1000) > 50) && (spd < 5) && (rwintime > .9) && (loss2 < .01)) {
+    // test for uplink with duplex mismatch condition
+    if (((s2cspd/1000) > 50)		// S->C goodput > 50 Mbps
+    		&& (spd < 5) 			// actual send throughput < 5 Mbps
+    			&& (rwintime > .9)	// receive window limited for >90% of the time
+    				&& (loss2 < .01)) // packet loss < 1%
+    {
       mismatch = 2;
       link = 0;
     }
@@ -1139,38 +1248,52 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
      *  RAC 5-11-06
      */
   }
+  // end section calculating duplex mismatch
 
-  /* estimate is less than throughput, something is wrong */
+  // Section to deduce if there is faulty hardware links
+
+  // estimate is less than actual throughput, something is wrong
   if (bw2 < spd)
     link = 0;
 
+  // Faulty hardware link heuristic. todo read about error here
   if (((loss2*100)/timesec > 15) && (cwndtime/timesec > .6) &&
       (loss2 < .01) && (MaxSsthresh > 0))
     bad_cable = 1;
 
-  /* test for Ethernet link (assume Fast E.) */
+  // test for Ethernet link (assume Fast E.)
   if ((spd < 9.5) && (spd > 3.0) && ((s2cspd/1000) < 9.5) &&
       (loss2 < .01) && (oo_order < .035) && (link > 0))
     link = 10;
 
-  /* test for wireless link */
+  // test for wireless link
   if ((sendtime == 0) && (spd < 5) && (bw2 > 50) &&
       ((SndLimTransRwin/SndLimTransCwnd) == 1) &&
       (rwintime > .90) && (link > 0))
     link = 3;
 
-  /* test for DSL/Cable modem link */
+  // test for DSL/Cable modem link
   if ((SndLimTimeSender < 600) && (SndLimTransSender == 0) && (spd < 2) &&
       (spd < bw2) && (link > 0))
     link = 2;
+
+  // full/half link duplex setting heuristic:
+  // receiver-limited- time > 95%,
+  //  .. number of transitions into the 'Receiver Limited' state is greater than 30 ps
+  //  ...and the number of transitions into the 'Sender Limited' state is greater than 30 per second
 
   if ((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
       (SndLimTransSender/timesec > 30))
     half_duplex = 1;
 
+  // congestion detection heuristic
+  // ..Congestion-limited time share > 2%,
+  // ...no duplex mismatch ,
+  // ....max window advt received is > max congestion window used during Slow Start
   if ((cwndtime > .02) && (mismatch == 0) && ((cwin/rttsec) < (rwin/rttsec)))
     congestion = 1;
 
+  // Send results and variable values to clients
   sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n",
       c2sdata, c2sack, s2cdata, s2cack);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
@@ -1194,8 +1317,10 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   sprintf(buff, "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n", peaks.min, peaks.max, peaks.amount);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
+  // Signal end of test results to client
   send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
+  // Copy collected values into the meta data structures
     sprintf(meta.date, "%s", get_ISOtime(isoTime));
     memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
     memset(tmpstr, 0, 255);
@@ -1227,6 +1352,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
     strncat(meta.summary, tmpstr, strlen(tmpstr));
     writeMeta(options.compress, cputime, options.snaplog, dumptrace);
 
+   // Write into log files, DB
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
     log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -1281,6 +1407,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
     closelog();
     log_println(4, "%s", logstr1);
   }
+
+  // close resources
+
   if (testopt->s2copt) {
     close(testopt->s2csockfd);
   }
@@ -1303,6 +1432,11 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   return (0);
 }
 
+/**
+ * main method
+ * @param argc Number of arguments
+ * @param argv string command line arguments
+ * */
 int
 main(int argc, char** argv)
 {
@@ -1376,25 +1510,26 @@ main(int argc, char** argv)
     }
   }
 
+  // Initialize logging system, and then read configuration
   log_init(argv[0], debug);
   
   if (ConfigFileName == NULL)
     ConfigFileName = CONFIGFILE;
 
-  /*
-   * Load Config file.
-   * lbuf/lbuf_max keep track of a dynamically grown "line" buffer.
-   * (It is grown using realloc.)
-   * This will be used throughout all the config file reading and
-   * should be free'd once all config files have been read.
-   */
+  // Load Config file.
+  // lbuf/lbuf_max keep track of a dynamically grown "line" buffer.
+  // (It is grown using realloc.)
+  // This will be used throughout all the config file reading and
+  // should be free'd once all config files have been read.
 
   opterr =  optind = 1;
   LoadConfig(argv[0], &lbuf, &lbuf_max);
   debug = 0;
 
+  // Get server execution options
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+         // GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:p:T:A:S:")), long_options, 0)) != -1) { //kk changed for protocol validation
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1414,6 +1549,7 @@ main(int argc, char** argv)
         break;
       case 'p':
         port = optarg;
+
         if (check_int(port, &testopt.mainport)) {
           char tmpText[200];
           snprintf(tmpText, 200, "Invalid primary port number: %s", optarg);
@@ -1453,6 +1589,9 @@ main(int argc, char** argv)
       case 'l':
         set_logfile(optarg);
         break;
+      case 'u': //kk addedd case for protocol validation
+              set_protologfile(optarg);
+              break;
       case 'o':
         old_mismatch = 1;
         break;
@@ -1548,10 +1687,10 @@ main(int argc, char** argv)
   
   testopt.multiple = multiple;
   
-  /* First check to see if program is running as root.  If not, then warn
-   * the user that link type detection is suspect.  Then downgrade effective
-   * userid to non-root user until needed.
-   */
+  // First check to see if program is running as root.  If not, then warn
+  // the user that link type detection is suspect.  Then downgrade effective
+  // userid to non-root user until needed.
+
   if (getuid() != 0) {
     log_print(0, "Warning: This program must be run as root to enable the Link Type");
     log_println(0, " detection algorithm.\nContinuing execution without this algorithm");
@@ -1607,9 +1746,9 @@ main(int argc, char** argv)
   memset(&new, 0, sizeof(new));
   new.sa_handler = cleanup;
 
-  /* Grab all signals and run them through my cleanup routine.  2/24/05 */
-  /* sigemptyset(&newmask);
-   * sigemptyset(&oldmask); */
+  // Grab all signals and run them through my cleanup routine.  2/24/05 */
+  // sigemptyset(&newmask);
+  // sigemptyset(&oldmask);
   for (i=1; i<32; i++) {
     if ((i == SIGKILL) || (i == SIGSTOP))
       continue;    /* these signals can't be caught */
@@ -1617,9 +1756,9 @@ main(int argc, char** argv)
     /* sigaddset(&newmask, i); */
   }
 
-  /*
-   * Bind our local address so that the client can send to us.
-   */
+
+  // Bind our local address so that the client can send to us.
+
   if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
     err_sys("server: Invalid source address specified");
   }
@@ -1631,25 +1770,25 @@ main(int argc, char** argv)
 
   log_println(1, "server ready on port %s", port);
 
-  /* Initialize Web100 structures */
+  // Initialize Web100 structures
   count_vars = web100_init(VarFileName);
   if (count_vars == -1) {
     log_println(0, "No web100 variables file found, terminating program");
     exit (-5);
   }
 
-  /* The administrator view automatically generates a usage page for the
-   * NDT server.  This page is then accessable to the general public.
-   * At this point read the existing log file and generate the necessary
-   * data.  This data is then updated at the end of each test.
-   * RAC 11/28/03
-   */
+	//   The administrator view automatically generates a usage page for the
+	//    NDT server.  This page is then accessible to the general public.
+	//    At this point read the existing log file and generate the necessary
+	//    data.  This data is then updated at the end of each test.
+	//    RAC 11/28/03
+
   if (admin_view == 1)
     view_init(refresh);
 
-  /* Get the server's metadata info (OS name and kernel version
-   * RAC 7/7/09
-   */
+  // Get the server's metadata info (OS name and kernel version
+  // RAC 7/7/09
+
   if ((fp = fopen("/proc/sys/kernel/hostname", "r")) == NULL)
     log_println(0, "Unable to determine server Hostname.");
   else {
@@ -1664,7 +1803,8 @@ main(int argc, char** argv)
   }
   
 
-  /* create a log file entry every time the web100srv process starts up. */
+  // create a log file entry every time the web100srv process starts up
+
   ndtpid = getpid();
   tt = time(0);
   log_println(6, "NDT server (v%s) proces [%d] started at %15.15s", VERSION, ndtpid, ctime(&tt)+4);
@@ -1681,26 +1821,23 @@ main(int argc, char** argv)
     syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started",
         VERSION);
 
-  /* scan through the interface device list and get the names/speeds of each
-   * if.  The speed data can be used to cap the search for the bottleneck link
-   * capacity.  The intent is to reduce the impact of interrupt coalescing on 
-   * the bottleneck link detection algorithm
-   * RAC 7/14/09
-   */
+  // scan through the interface device list and get the names/speeds of each
+  //  if.  The speed data can be used to cap the search for the bottleneck link
+  //  capacity.  The intent is to reduce the impact of interrupt coalescing on
+  //  the bottleneck link detection algorithm
+  //  RAC 7/14/09
+
   get_iflist();
 
   for (i=0; iflist.speed[i]>0; i++)
      log_println(4, "Generated iflist with device=%s and if_speed=%d", iflist.name[i], iflist.speed[i]);
 
-  /*
-   * Wait at accept() for a new connection from a client process.
-   */
+  // Wait at accept() for a new connection from a client process.
 
-  /* These 2 flags keep track of running processes.  The 'testing' flag
-   * indicated a test is currently being performed.  The 'waiting' counter
-   * shows how many tests are pending.
-   * Rich Carlson 3/11/04
-   */
+  // These 2 flags keep track of running processes.  The 'testing' flag
+  //  indicates a test is currently being performed.  The 'waiting' counter
+  //  shows how many tests are pending.
+  //  Rich Carlson 3/11/04
 
   options.compress = compress;
   testing = 0;
@@ -1723,7 +1860,7 @@ mainloop:
       log_println(3, "Queue pointer=%d, testing=%d, waiting=%d, mclients=%d, zombie_check=%d",
 		head_ptr->pid, testing, waiting, mclients, zombie_check);
 
-    /* moved condition from interrupt handler to here */
+    // moved condition from interrupt handler to here
     /* if ((sig1 > 0) || (sig2 > 0))
      * 	check_signal_flags;
      */
@@ -1740,16 +1877,16 @@ mainloop:
     } 
 
     if ((multiple == 1) && (mclients < max_clients) && (waiting >= max_clients)) {
-	/* this condition means that there are clients waiting and there are open slots
-	 * in the test queue, so dispatch another client.
-	 * RAC 12/11/09
-	 */
+	// This condition means that there are clients waiting and there are open slots
+	//   in the test queue, so dispatch another client.
+	//   RAC 12/11/09
+
 	log_println(5, "Empty slot in test queue, find new client to dispatch");
 	/* tmp_ptr = head_ptr; */
 	mchild = head_ptr;
 	i = 0;
 	while (mchild != NULL) {
-	   i++;   /* Keep count of how many times we go through this loop */
+	   i++;   // Keep count of how many times we go through this loop
 	   log_println(2, "walking queue look for non-running client current=%d, running=%d, next=0x%x",
 			mchild->pid, mchild->running, mchild->next);
 	    if (mchild->running == 0) {
@@ -1770,11 +1907,11 @@ mainloop:
 	 * if (mchild != head_ptr) {
 	 */
 	  tmp_ptr = mchild;
-	  /* update queued clients, send message to client when it moves
-	   * up in the queue enough to get closer to running a test.  This happens
-	   * when the client falls into the next lower maxquee bin
-	   * RAC 3/21/10
-	   */
+	  // Update queued clients, send message to client when it moves
+	  //  up in the queue enough to get closer to running a test.  This happens
+	  //  when the client falls into the next lower maxquee bin
+	  //  RAC 3/21/10
+
 	  int rac;
 	  if (waiting > (2*max_clients)) {
 	    for (i=max_clients; i<=waiting; i++) {
@@ -1800,7 +1937,7 @@ mainloop:
 	log_println(6, "Fault: Negative number of clents waiting=%d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
             /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9933", 4); */
-            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4); // TODO constants
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
             tpid = head_ptr->pid;
@@ -1831,21 +1968,19 @@ mainloop:
     }
 
     if (head_ptr != NULL) {
-        if ((time(0) - head_ptr->stime) > 70)  {
+        if ((time(0) - head_ptr->stime) > 70)  { // TODO: 70 => WAIT_TIME-THRESH
 	    log_println(6, "Fault: Something in queue, but child %d (fd=%d) has exceeded wait time",
 			head_ptr->pid, head_ptr->ctlsockfd);
-	    /* Should send new 9977 'test aborted' signal to client.  Using this
-	     * for now.
-	     *
-	     * rac 3/26/10
-	     */
+	    // Should send new 9977 'test aborted' signal to client.  Using this for now
+	    // rac 3/26/10
+
             log_println(6, "pid=%d, client='%s', stime=%ld, qtime=%ld now=%ld", head_ptr->pid, head_ptr->addr,
 			 head_ptr->stime, head_ptr->qtime, time(0));
 	    log_println(6, "pipe-fd=%d, running=%d, ctlsockfd=%d, client-type=%d, tests='%s'", 
         		head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
 			head_ptr->oldclient, head_ptr->tests);
             /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9966", 4); */
-            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4); // boot the client
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
             tpid = head_ptr->pid;
@@ -1867,35 +2002,35 @@ mainloop:
 
     FD_ZERO(&rfd);
     FD_SET(listenfd, &rfd);
-    if (waiting > 0) {
-      sel_tv.tv_sec = 3;
+    if (waiting > 0) { // there are clients waiting
+      sel_tv.tv_sec = 3; // todo 3 seconds == WAIT_TIME_SRVR
       sel_tv.tv_usec = 0;
       log_println(3, "Waiting for new connection, timer running");
 sel_11:
       rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
       if ((rc == -1) && (errno == EINTR))
-	/* continue; */  /* a signal caused the select() to exit, re-enter loop & check */
+	/* continue; */  // a signal caused the select() to exit, re-enter loop & check
 	goto sel_11;
       tt = time(0);
 
     }
     else {
-	/* Nothing is in the queue, so wait forever until a new connection request arrives */
+	  // Nothing is in the queue, so wait forever until a new connection request arrives
       log_println(3, "Timer not running, waiting for new connection");
       mclients = 0;
 sel_12:
       rc = select(listenfd+1, &rfd, NULL, NULL, NULL);
       if ((rc == -1) && (errno == EINTR))
-	goto sel_12;  /* a signal caused the select() to exit, re-enter loop & check */
+	goto sel_12;  // a signal caused the select() to exit, re-enter loop & check
     }
 
     if (rc < 0) {
-	/* an interrupt or signal caused the select() to exit, go back and start over */
+      // an interrupt or signal caused the select() to exit, go back and start over
       log_println(5, "Select exited with rc = %d", rc);
       continue;
     }
 
-    if (rc == 0) {    /* select exited due to timer expired */
+    if (rc == 0) {    // select exited due to timer expiration
       log_println(3, "Timer expired while waiting for a new connection");
       /* if ((waiting > 0) && (testing == 0)) */
       if (multiple == 0) {
@@ -1909,7 +2044,7 @@ sel_12:
       }
     } else {
         log_println(3, "New connection received, waiting for accept() to complete");
-        if ((waiting > 0) && (testing == 0))
+        if ((waiting > 0) && (testing == 0))  // no clients waiting, no test in progress
           goto ChldRdy;
       /* } */
       clilen = sizeof(cli_addr);
@@ -1927,32 +2062,32 @@ sel_12:
 	ctlsockfd = 0;
         ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
         if ((ctlsockfd == -1) && (errno == EINTR))
-            continue; /*sig child */
+            continue; // sig child
         size_t tmpstrlen = sizeof(tmpstr);
 	memset(tmpstr, 0, tmpstrlen);
+		// get addr details based on socket info available
         I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         /* I2AddrFree(tmp_addr); */
         log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", tmp_addr, tmpstr, ctlsockfd);
 	break;
       }
-      /* verify that accept really worked and don't process connections that hav
-       * failed
-       * RAC 2/11/10
-       */
+
+      // verify that accept really worked and don't process connections that've failed
+      // RAC 2/11/10
       if (ctlsockfd <= 0) {
         log_println(4, "New connection request failed sockfd=%d reason-%d.", ctlsockfd, errno);
 	continue;
       }
 
-      /* the specially crafted data that kicks off the old clients */
-      for (i=0; i<5; i++) {
+      // the specially crafted data that kicks off the old clients
+      for (i=0; i<5; i++) { // todo 5==SOCKET_IO_RETRY_COUNT
         rc = write(ctlsockfd, "123456 654321", 13);
-	if ((rc == -1) && (errno == EINTR))
+	if ((rc == -1) && (errno == EINTR)) // interrupted, retyr
 	  continue;
-	if (rc == 13)
+	if (rc == 13) // 13 bytes correctly written, exit
 	  break;
-	if (rc == -1) {
+	if (rc == -1) { // socket error hindering further retries
 	  log_println(1, "Initial contact with client failed errno=%d", errno);
           close(chld_pipe[0]);
           close(chld_pipe[1]);
@@ -1979,15 +2114,15 @@ sel_12:
       name = tmpstr;
       rmt_host = tmpstr;
 
-      /* At this point we have received a connection from a client, meaning that
-       * a test is being requested.  At this point we should apply any policy 
-       * or AAA functions to the incoming connection.  If we don't like the
-       * client, we can refuse the connection and loop back to the begining.
-       * There would need to be some additional logic installed if this AAA
-       * test relied on more than the client's IP address.  The client would
-       * also require modification to allow more credentials to be created/passed
-       * between the user and this application.
-       */
+      // At this point we have received a connection from a client, meaning that
+      //  a test is being requested.  At this point we should apply any policy
+      //  or AAA functions to the incoming connection.  If we don't like the
+      //  client, we can refuse the connection and loop back to the begining.
+      //  There would need to be some additional logic installed if this AAA
+      //  test relied on more than the client's IP address.  The client would
+      //  also require modification to allow more credentials to be created/passed
+      //  between the user and this application.
+
     }
 
     if (pipe(chld_pipe) == -1) 
@@ -1997,25 +2132,25 @@ sel_12:
     switch (chld_pid) {
       case -1:    /* an error occured, log it and quit */
         log_println(0, "fork() failed, errno = %d", errno);
-	/* todo: handle error and continue */
+	 /* todo: handle error and continue */
         break;
-      default:    /* this is the parent process, handle scheduling and
-                   * queuing of multiple incoming clients
-                   */
+      default:    // this is the parent process, handle scheduling and
+                  // queuing of multiple incoming clients
+
         log_println(5, "Parent process spawned child = %d", chld_pid);
         log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", chld_pipe[0], chld_pipe[1]);
 
          close(chld_pipe[0]); 
 
-        /* Check to see if we have more than max_clients waiting in the queue
-         * If so, tell them to go away.
-         * changed for M-Lab deployment  1/28/09  RAC
-         */
+        // Check to see if we have more than max_clients waiting in the queue
+        //  If so, tell them to go away.
+        //  changed for M-Lab deployment  1/28/09  RAC
+
         if (((multiple == 0) && (waiting >= (max_clients-1))) || 
 		((multiple == 1) && (waiting >= ((4*max_clients)-1)))) {
           log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.",
 			chld_pid);
-          sprintf(tmpstr, "9988");
+          sprintf(tmpstr, "9988");  //TODO 9988= server_BUSY_OR_ERROR
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
           close(chld_pipe[0]);
           close(chld_pipe[1]);
@@ -2030,7 +2165,7 @@ sel_12:
         }
 
 	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
-	if (t_opts < 1) {
+	if (t_opts < 1) { // some error in initialization routines
 	    log_println(3, "Invalid test suite string '%s' received, terminate child", test_suite);
             close(chld_pipe[0]);
             close(chld_pipe[1]);
@@ -2043,7 +2178,7 @@ sel_12:
 	    }
 	    continue;
 	}
-        while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+        while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) { // socket interrupt, retry
 	  log_println(6, "Waiting for ndtq semaphore to free - 1");
           continue;
         }
@@ -2052,6 +2187,9 @@ sel_12:
         new_child->pid = chld_pid;
         strncpy(new_child->addr, rmt_host, strlen(rmt_host));
         strncpy(new_child->host, name, strlen(name));
+
+        // compute start time based in the number of waiting clients
+        // set other properties on this child process
 	if (multiple == 0)
             new_child->stime = tt + (waiting*45);
 	else
@@ -2061,7 +2199,7 @@ sel_12:
 	new_child->running = 0;
         new_child->ctlsockfd = ctlsockfd;
 	if (t_opts & TEST_STATUS)
-	    new_child->oldclient = 1;
+	    new_child->oldclient = 1; //todo what does oldclient mean?
 	else
 	    new_child->oldclient = 0;
 	memset(new_child->tests, 0, sizeof(test_suite));
@@ -2091,7 +2229,7 @@ sel_12:
           continue;
         }
 
-        waiting++;
+        waiting++; // new client has arrived and is queue-able. increment waiting
         log_println(5, "Incrementing waiting variable now = %d", waiting);
         if (head_ptr == NULL)
           head_ptr = new_child;
@@ -2122,11 +2260,11 @@ sel_12:
           }
         }
 
-        /* At this point send a message to the client via the ctlsockfd
-         * saying that N clients are waiting in the queue & testing will
-         * begin within Nx60 seconds.  Only if (waiting > 0)
-         * Clients who leave will be handled in the run_test routine.
-         */
+        // At this point send a message to the client via the ctlsockfd
+        //  saying that N clients are waiting in the queue & testing will
+        //   begin within Nx60 seconds.  Only if (waiting > 0)
+        //    Clients who leave will be handled in the run_test routine.
+
         if ((multiple == 0) && (waiting > 1)) {
           log_println(3, "%d clients waiting, telling client (%d) testing will begin within %d minutes",
               (waiting-1), tmp_ptr->pid, (waiting-1));
@@ -2153,20 +2291,20 @@ sel_12:
 ChldRdy:
 	log_println(3, "___-------______  client process is ready for testing!");
 
-	/* There are clients waiting in the queue, but if running in multi-client mode and
-	 * there are already the max number of mclients being serverd, then just continue
-	 * 9/2/09 RAC
-	 */
+	// There are clients waiting in the queue, but if running in multi-client mode and
+	// there are already the max number of mclients being served, then just continue
+	// 9/2/09 RAC
+
 	if ((multiple ==1) && (mclients >= max_clients))
 	  continue;
 
         testing = 1;
 
-        /* update all the clients so they have some idea that progress is occurring */
+        // update all the clients so they have some idea that progress is occurring
         if ((multiple == 0) && (waiting > 1)) {
           j = waiting - 1;
           tmp_ptr = head_ptr->next;
-	  if (tmp_ptr == NULL)
+	  if (tmp_ptr == NULL) // no more clients waiting after the current one
 	      waiting = 1;
           while (tmp_ptr != NULL) {
             log_println(3, "%d clients waiting, updating client %d testing will begin within %d minutes",
@@ -2177,11 +2315,11 @@ ChldRdy:
             tmp_ptr = tmp_ptr->next;
             j--;
           }
-	  if ((waiting > 5) && (zombie_check == 0)) {
+	  if ((waiting > 5) && (zombie_check == 0)) { // todo why specifically 5 clients for killing zombies?
 	    zombie_check = -1;
 	    log_println(4, "More than 5 clients in the queue, remove zombies");
               if (pthread_create(&zombieThreadId, NULL, zombieWorker, (void *)head_ptr)) {
-		log_println(0, "Cannot create thread to kill off zonbie clients!");
+		log_println(0, "Cannot create thread to kill off zombie clients!");
 		zombie_check = 0;
 	      }
 	      if (zombie_check > 0) {
@@ -2201,19 +2339,20 @@ ChldRdy:
 	else
           log_println(3, "Telling client %d testing will begin now", head_ptr->pid);
 
-        /* at this point we have successfully set everything up and are ready to
-         * start testing.  The write() on the control socket tells the client
-         * that the applet should drop out of the wait loop and get ready to begin
-         * testing.  The write() on the pipe tells the child process it's at the
-         * head of the queue, or it's in multi-client mode, and its OK for this 
-         * client process to wake up and begin testing.
-         *
-         * This is the point in time where we can/should contact any meta
-         * scheduler to verify that it is OK to really start a test.  If
-         * we are sharing the server host with other applications, and we
-         * want unfettered access to the link, now is the time to make this
-         * request.
-         */
+
+        // at this point we have successfully set everything up and are ready to
+        //  start testing.  The write() on the control socket tells the client
+        //  that the applet should drop out of the wait loop and get ready to begin
+        //  testing.  The write() on the pipe tells the child process it's at the
+        //  head of the queue, or it's in multi-client mode, and its OK for this
+        //  client process to wake up and begin testing.
+        //
+        //  This is the point in time where we can/should contact any meta
+        //  scheduler to verify that it is OK to really start a test.  If
+        //  we are sharing the server host with other applications, and we
+        //  want unfettered access to the link, now is the time to make this
+        //  request.
+
 
 dispatch_client:
 	memset(tmpstr, 0, sizeof(tmpstr));
@@ -2228,7 +2367,7 @@ dispatch_client:
 	  mclients++;
           sprintf(tmpstr, "go %d %s", t_opts, mchild->tests);
 	  log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
-          send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
+          send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1); // test session starts now
 	  for (i=0; i<5; i++) {
             rc = write(mchild->pipe, tmpstr, strlen(tmpstr));
 	    log_println(6, "write(%d) returned %d, errno=%d", mchild->pid, rc, errno);
@@ -2249,7 +2388,7 @@ dispatch_client:
 	  }
           close(mchild->pipe);
           close(mchild->ctlsockfd);
-        }
+        } // multiple client loop complete
         else {
           head_ptr->stime = time(0);
 	  head_ptr->running = 1;
@@ -2276,9 +2415,8 @@ dispatch_client:
         }
         continue;
         break;
-      case 0:    /* this is the child process, it handles
-                  * the testing function 
-                  */
+      case 0:    // this is the child process, it handles
+                 //   the testing function
         log_println(4, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d",
             chld_pipe[0], chld_pipe[1], chld_pid);
         close(listenfd);
@@ -2288,18 +2426,18 @@ dispatch_client:
           return 1;
         }
 
-        /* This is the child process from the above fork().  The parent
-         * is in control, and will send this child a signal when it gets
-         * to the head of the testing queue.  Post a read() and simply
-         * wait for the parent to let us know it's time to move on.
-         * Rich Carlson 3/11/04
-         */
-        for (;;) {
+        // This is the child process from the above fork().  The parent
+        //  is in control, and will send this child a signal when it gets
+        //  to the head of the testing queue.  Post a read() and simply
+        //  wait for the parent to let us know it's time to move on.
+        //  Rich Carlson 3/11/04
+               for (;;) {
 	  memset(buff, 0, sizeof(buff));
-/* the read() could return if an interrupt was caught.  This condition
- * should be checked for and the read() restarted if necessary
- * RAC 3/18/10
- */
+
+	  // the read() could return if an interrupt was caught.  This condition
+	  // should be checked for and the read() restarted if necessary
+	  // RAC 3/18/10
+	  //
           rc = read(chld_pipe[0], buff, 32);
 	  log_println(6, "Child %d received '%s' from parent", getpid(), buff);
 	  if ((rc == -1) && (errno == EINTR))
@@ -2316,18 +2454,19 @@ dispatch_client:
 
         set_timestamp();
 
-	/* The next 3 instructions retrieve the passed in values for the tests to run.
-	 * t_opts will be the bitmapped version of this data and test_suite will be a 
-	 * character string with the same info.  Note: this assumes that the structure
-	 * of buff is fixed with the character strings starting in these locations.
-	 * RAC 7/8/09
-	 */
+	// The next 3 instructions retrieve the passed in values for the tests to run.
+	//  t_opts will be the bitmapped version of this data and test_suite will be a
+	//   character string with the same info.  Note: this assumes that the structure
+	//    of buff is fixed with the character strings starting in these locations.
+	//     RAC 7/8/09
+
 	memset(test_suite, 0, sizeof(test_suite));
 	t_opts = atoi(buff+3);
 	memcpy(test_suite, buff+5, (strlen(buff)-5));
 	/* memcpy(test_suite, buff+6, 7); */
 	log_println(5, "extracting test_suite '%s' and t_opts '%x' from buff '%s'", test_suite, t_opts, buff);
 
+		// construct cputime log folder
         {
             I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
             testPort = I2AddrPort(tmp_addr);
@@ -2368,7 +2507,7 @@ dispatch_client:
               }
             }
         }
-        /* write the incoming connection data into the log file */
+        // write the incoming connection data into the log file
         fp = fopen(get_logfile(),"a");
         if (fp == NULL) {
           log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -2383,6 +2522,8 @@ dispatch_client:
           fclose(fp);
         }
         close(chld_pipe[0]);
+
+        // Set test options
 	if (t_opts & TEST_MID)
 	    testopt.midopt = TOPT_ENABLED;
 	if (t_opts & TEST_SFW)
@@ -2393,15 +2534,17 @@ dispatch_client:
 	    testopt.c2sopt = TOPT_ENABLED;
 	if (t_opts & TEST_S2C)
 	    testopt.s2copt = TOPT_ENABLED;
-        alarm(120);  /* die in 120 seconds, but only if a test doesn't get started 
-                     * reset alarm() before every test */
+        alarm(120);  // die in 120 seconds, but only if a test doesn't get started
+                     // reset alarm() before every test
 	log_println(6, "setting master alarm() to 120 seconds, tests must start (complete?) before this timer expires");
 
+	// run tests based on options
 	if (strncmp(test_suite, "Invalid", 7) != 0) {
 	  log_println(3, "Valid test sequence requested, run test for client=%d", getpid());
           rc = run_test(agent, ctlsockfd, &testopt, test_suite);
 	}
 
+	// conclude all test runs
 	if (rc == 0)
           log_println(3, "Successfully returned from run_test() routine");
 	else {
@@ -2417,15 +2560,15 @@ dispatch_client:
             pthread_join(workerThreadId, NULL);
         }
 
-/* At this point the tests have been run and we need to clean up and handle
- * and child processes that might still be lying around.  If we don't we get
- * zombies.  The pkt-pair handling created 2 childern and we need to get
- * rid of them.  To know what PIDs to look for on 1/19/10 the run_test()
- * routine was modified to pass around these values.  The values are set in 
- * the proper routine in the testoptions.c file.
- * Then add call to child_sig() routine and pass in these PID's so we handle
- * each child in sequence
- */ 
+	// At this point the tests have been run and we need to clean up and handle
+	// and child processes that might still be lying around.  If we don't we get
+	// zombies.  The pkt-pair handling created 2 childern and we need to get
+	// rid of them.  To know what PIDs to look for on 1/19/10 the run_test()
+	// routine was modified to pass around these values.  The values are set in
+	// the proper routine in the testoptions.c file.
+	// Then add call to child_sig() routine and pass in these PID's so we handle
+	// each child in sequence
+
 	log_println(6, "remove pkt-pair children c2s=%d, s2c=%d", testopt.child1, testopt.child2);
 	if (testopt.child1 != 0) 
 	    child_sig(testopt.child1);

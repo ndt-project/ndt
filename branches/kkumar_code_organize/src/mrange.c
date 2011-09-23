@@ -90,16 +90,15 @@ mrange_parse(char* text)
   return 0;
 }
 
-/*
- * Function name: mrange_next
- * Description: Checks if a given number (passed in as string argument)
+/**
+ * Checks if a given number (passed in as string argument)
  *  is available as a valid integer in the free pool. For example,
  *  if we construct a list of valid port ranges, then this function
  *  could be used to parse through the list to check for a usable port
  *
- * Arguments: text - the string containing port
- * Returns: char* containing 0 if the argument port is invalid
- *          char* containing the port number if port is valid
+ * @param port  string containing port
+ * @returns char* containing 0 if the argument is invalid,
+ *  or the port passed as parameter, if valid
  */
 
 char*
