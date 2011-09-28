@@ -12,6 +12,11 @@ The Network Diagnostic Tool (NDT) is a client/server program that provides netwo
 
 == Introduction ==
 
+Only NDT Client and NDT Server are needed to perform all tests defined by the [NDTProtocol NDT Protocol]. However, the full NDT suite consists of the wide spectrum of tools that can be used for different purposes. We can specify three categories of the NDT components based on their areas of usage:
+ * Client Tools
+ * Server Tools
+ * Administrative Tools
+
 == Architecture Overview ==
 
 == Life Cycle ==
