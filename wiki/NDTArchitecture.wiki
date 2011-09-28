@@ -17,6 +17,10 @@ Only NDT Client and NDT Server are needed to perform all tests defined by the [N
  * Server Tools
  * Administrative Tools
 
+The NDT project is hosted on the [http://code.google.com/p/ndt Google Project Hosting] infrastructure. The latest project source code can be obtained anonymously over HTTP by using the following command:
+
+{{{svn checkout http://ndt.googlecode.com/svn/trunk/ ndt-read-only}}}
+
 == Architecture Overview ==
 
 == Life Cycle ==
