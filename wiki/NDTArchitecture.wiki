@@ -23,19 +23,19 @@ The NDT project is hosted on the [http://code.google.com/p/ndt Google Project Ho
 
 == Architecture Overview ==
 
-The brief information about each of the NDT component can be found in the following table:
+The brief information about each of the NDT component can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
 
 || *Component Name* || *Type* || *Description* || *Sources Location* ||
-|| *web100clt* || Client Tools || The NDT Client application. ||  ||
-|| *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. ||  ||
-|| *web100srv* || Server Tools || The NDT Server application. ||  ||
-|| fakewww || Server Tools || Optional 'lite' web server. ||  ||
-|| analyze || Administrative Tools || Console based utility application that can look through the NDT log files and display the old test results. ||  ||
-|| viewtrace || Administrative Tools || Console based utility application that can read [NDTDataFormat#tcpdump_trace tcpdump trace] files to perform packet pair timings to determine [NDTTestMethodology#Bottleneck_Link_Detection what type of bottleneck link exists] on the analyzed path. ||  ||
-|| tr-mkmap || Administrative Tools || Console based utility application that can build a default traceroute tree between all federated NDT servers. The fakewww web server uses such pre-built traceroute trees to redirect clients to the closest NDT servers. ||  ||
-|| genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] files and generate xplot graphs from the obtained web100 variables. ||  ||
-|| JAnalyze.jar || Administrative Tools || Java based utility application that can look through the NDT log files and display the old test results (along with displaying existing snaplog/tcpdump trace files and additional graphs). ||  ||
-|| Admin.class || Administrative Tools || The Java Applet-based application that provides an administrator view of the NDT usage statistics (this applet is responsible for drawing the bar graph that appears on the admin view html page). ||  ||
+|| *web100clt* || Client Tools || The NDT Client application. || *src* <br/><br/> {{{web100clt.c network.c usage.c logging.c utils.c protocol.c test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c}}} ||
+|| *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. || *Applet* <br/><br/> {{{Tcpbw100.java}}}||
+|| *web100srv* || Server Tools || The NDT Server application. || *src* <br/><br/> {{{web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c utils.c mrange.c logging.c testoptions.c protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c}}} ||
+|| fakewww || Server Tools || Optional 'lite' web server. || *src* <br/><br/> {{{fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c}}} ||
+|| analyze || Administrative Tools || Console based utility application that can look through the NDT log files and display the old test results. || *src* <br/><br/> {{{analyze.c usage.c logging.c}}} ||
+|| viewtrace || Administrative Tools || Console based utility application that can read [NDTDataFormat#tcpdump_trace tcpdump trace] files to perform packet pair timings to determine [NDTTestMethodology#Bottleneck_Link_Detection what type of bottleneck link exists] on the analyzed path. || *src* <br/><br/> {{{viewtrace.c usage.c logging.c utils.c}}} ||
+|| tr-mkmap || Administrative Tools || Console based utility application that can build a default traceroute tree between all federated NDT servers. The fakewww web server uses such pre-built traceroute trees to redirect clients to the closest NDT servers. || *src* <br/><br/> {{{tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c}}} ||
+|| genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] files and generate xplot graphs from the obtained web100 variables. || *src* <br/><br/> {{{genplot.c usage.c}}} ||
+|| JAnalyze.jar || Administrative Tools || Java based utility application that can look through the NDT log files and display the old test results (along with displaying existing snaplog/tcpdump trace files and additional graphs). || *janalyze/src* <br/><br/> {{{DBConfFrame.java Helpers.java LoadingDBFrame.java MaxPeakInfo.java PeakInfo.java ResultsContainer.java SimpleTextPane.java SwingWorker.java FilterFrame.java JAnalyze.java LoadingFrame.java MinPeakInfo.java PropertyListener.java ResultsList.java SnaplogFrame.java}}} ||
+|| Admin.class || Administrative Tools || The Java Applet-based application that provides an administrator view of the NDT usage statistics (this applet is responsible for drawing the bar graph that appears on the admin view html page). || *Admin* <br/><br/> {{{Admin.java}}} ||
 
 == Life Cycle ==
 
