@@ -300,7 +300,7 @@ NDT implements the above heuristic by checking that the following conditions are
 
 ==== Known Issues (Faulty Hardware Link Detection) ====
 
-<font color="red">NDT does not appear to implement the heuristic correctly.</font> Instead of taking the total number of lost packets, and dividing by the test duration to calculate the packet per second loss rate, the loss rate is multiplied times 100. Since the "The [NDTTestMethodology#Packet_loss packet loss]" is less than 1%, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1.
+<font color="red">NDT does not appear to implement the heuristic correctly.</font> Instead of taking the total number of lost packets, and dividing by the test duration to calculate the packet per second loss rate, the loss rate is multiplied times 100. Since the "The [NDTTestMethodology#Packet_loss packet loss]" is less than 1%, then the packet loss multiplied by 100 and divided by the total test time in seconds is less than 1. Moreover, the [NDTTestMethodology#'Congestion_Limited'_state_time_share 'Congestion Limited' state time share] should *not* be divided by the [NDTTestMethodology#Total_test_time total test time] in seconds (it should be directly compared to 0.6).
 
 === Full/Half Link Duplex Setting ===
 
