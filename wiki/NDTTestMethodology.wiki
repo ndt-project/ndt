@@ -45,13 +45,13 @@ The general test workflow is as follows:
  # The server sets the MSS on this port to 1456
  # The client creates a connection to the server's port
  # The server sets the congestion window of the connection to be `2 * (The current MSS)`
+    By setting this congestion window setting the code limits TCP to sending only 2 packets per RTT. This mechanism is a part of the duplex mismatch detection. The idea for this came from Matt Mathis, and the NPAD duplex mismatch detection. If the server sends a maximum of 2 packets then it will never trigger a mismatch condition. Later when the Server-To-Client test is run a duplex mismatch will cause the Middlebox test to be faster than the Server-To-Client test.
  # The server performs a 5 second throughput test over the connection
  # The server can temporarily stop sending packets when the following formula is fulfilled:
     {{{
     BUFFER_SIZE * 16 < ((Next Sequence Number To Be Sent) - (Oldest Unacknowledged Sequence Number) - 1)
     }}}
-    The both `"Next Sequence Number To Be Sent"` and `"Oldest Unacknowledged Sequence Number"` values are obtained from the connection with the help of the [http://www.web100.org/ web100] library.<br/>
-    The above mechanism is a part of the duplex mismatch detection. The idea for this came from Matt Mathis, and the NPAD duplex mismatch detection. If the server sends a maximum of 2 packets then it will never trigger a mismatch condition. Later when the Server-To-Client test is run a duplex mismatch will cause the Middlebox test to be faster than the Server-To-Client test.
+    The both `"Next Sequence Number To Be Sent"` and `"Oldest Unacknowledged Sequence Number"` values are obtained from the connection with the help of the [http://www.web100.org/ web100] library. This code is trying to keep the server from filling up the TCP transmit queue.
  # After the throughput test, the server sends the following results to the client:
     || CurMSS || The current maximum segment size (MSS), in octets.||
     || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
@@ -64,8 +64,6 @@ The general test workflow is as follows:
 ==== Known Issues (Middlebox Test) ====
 
 The middlebox test's use of sequence numbers assumes that TCP Reno is being used.
-
-The formula used to find out when to temporarily stop sending packets is probably wrong, because it allows for more packets in flight (16?).
 
 === Simple Firewall Test ===
 
