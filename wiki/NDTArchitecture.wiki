@@ -21,7 +21,21 @@ The NDT project is hosted on the [http://code.google.com/p/ndt Google Project Ho
 
 {{{svn checkout http://ndt.googlecode.com/svn/trunk/ ndt-read-only}}}
 
+Moreover, it can be also obtained by downloading the newest tar package from the download page:
+
+{{{http://code.google.com/p/ndt/downloads}}}
+
 == Architecture Overview ==
+
+After downloading the NDT sources, we can find the NDT components in the following directories:
+ * src:
+   {{{ }}}*web100clt*{{{, }}}*web100srv*{{{, fakewww, analyze, viewtrace, tr-mkmap, genplot}}}
+ * Applet:
+   {{{ }}}*Tcpbw100.jar*
+ * Admin:
+   {{{ }}}Admin.class
+ * janalyze/src:
+   {{{ }}}JAnalyze.jar
 
 The brief information about each of the NDT component can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
 
