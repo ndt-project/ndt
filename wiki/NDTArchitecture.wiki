@@ -87,3 +87,19 @@ A basic NDT test session with the web100clt client looks as following:
  # The results are recorded in the servers’ log file and the results are returned to the client for display to the user.
 
 == Build Instructions ==
+
+=== Requirements ===
+
+In order to build the NDT programs, the following dependencies should be fulfilled:
+ * Web100 enhancements (user library for compilation, Linux kernel for running NDT server)
+ * pcap library
+ * !I2Util library
+ * zlib library (for compressing test results)
+ * odbc library (to support writing test results to the SQL database)
+ * Java SDK (to build Java Applet-based client, Admin.class and the JAnalyze application)
+
+=== Sources ===
+
+NDT sources can be obtained in two ways:
+ * by checking out the newest code from the subversion repository ({{{http://ndt.googlecode.com/svn/trunk}}})
+ * by downloading the newest tar package from the download page ({{{http://code.google.com/p/ndt/downloads}}})
