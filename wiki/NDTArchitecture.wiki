@@ -98,6 +98,20 @@ In order to build the NDT programs, the following dependencies should be fulfill
  * odbc library (to support writing test results to the SQL database)
  * Java SDK (to build Java Applet-based client, Admin.class and the JAnalyze application)
 
+==== Web100 patched Linux kernel ====
+
+Web100 patch for the Linux kernel can be obtained from the [http://www.web100.org/download/ Web100 download page].
+
+The base Linux kernel can be obtained from the [kernel.org] ftp site:
+ * ftp [ftp.kernel.org] and change directory to the proper Linux kernel directory
+
+Unpack the kernel tar file in the {{{/usr/src}}} directory, unpack the Web100 kernel patch, and apply the patch:
+ * {{{patch –p3 < path-to-kernel-patch-file}}}
+
+It is important to note that kernel patch files are keyed to a specific version of the Linux kernel. You must look at the Web100 kernel readme file to determine which kernel version you need to download/patch.
+
+Configure and build the new kernel; note: you must enable _“Prompt for development code ...”_ so that Web100 options appear under _“Networking Options.”_ Modify the boot loader configuration file, reboot, and test the new system.
+
 ==== Web100 user library ====
 
 Web100 user library can be obtained from the [http://www.web100.org/download/ Web100 download page].
