@@ -98,6 +98,18 @@ In order to build the NDT programs, the following dependencies should be fulfill
  * odbc library (to support writing test results to the SQL database)
  * Java SDK (to build Java Applet-based client, Admin.class and the JAnalyze application)
 
+==== Web100 user library ====
+
+Web100 user library can be obtained from the [http://www.web100.org/download/ Web100 download page].
+
+After downloading the Web100 user library sources, unpack the downloaded tar file and use the standard GNU automake commands:
+ # Change directory to package directory
+ # Create local make files (./configure {--prefix=dir})
+ # Build library and utility files (make)
+ # Install library and utility files (make install)
+
+Once the kernel is built and running, it will automatically begin collecting data on every TCP connection to/from the server. The user library file contains the routines needed to extract that kernel data from the system. The administrator can verify that the kernel is recording properly by using the /usr/local/bin/gutil program. This X-windows based GUI allows the administrator to monitor any TCP connection going to/from the server.
+
 === Sources ===
 
 NDT sources can be obtained in two ways:
