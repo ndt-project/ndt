@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "ndtptestconstants.h"
 
 #define LOGFILE "web100srv.log"   /* Name of log file */
 #define PROTOLOGFILE "web100srvprotocol.log"   /* Name of protocol validation log file */
@@ -20,8 +21,10 @@
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
 void set_logfile(char* filename);
+void set_protologfile(char* filename);
 int get_debuglvl();
 char* get_logfile();
+char* get_protologfile();
 I2ErrHandle get_errhandle();
 void log_print(int lvl, const char* format, ...);
 void log_println(int lvl, const char* format, ...);
@@ -36,6 +39,7 @@ void   get_DD(char * day);
 char * DataDirName;
 
 int zlib_def(char *src_fn);
+
 
 /**
  * Format used to exchange meta test data between client->server.
@@ -72,6 +76,14 @@ struct metadata {
     int  family; // IP family
     struct metaentry* additional; // all other additional data
 };
+
+
+void protolog_printgeneric(int lvl, const char* key, const char* val);
+void protolog_status(int lvl, int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus);
+void protolog_println(int lvl, char *msgdirection,
+		 const int type, void* msg, const int len, const int processid, const int ctlSocket);
+void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket);
+void protolog_rcvprintln  (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket);
 
 struct metadata meta;
 #endif

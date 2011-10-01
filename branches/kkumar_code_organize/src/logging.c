@@ -20,6 +20,10 @@
 /* #endif */
 
 #include "logging.h"
+//new addition after separating out ndtptests header, to include test types
+#include "testoptions.h" // Used only for getCurrentTest(), which can probably be moved elsewhere
+#include "runningtest.h" // protocol validation
+
 
 static int                _debuglevel        = 0;
 static char*              _programname       = "";
@@ -31,6 +35,8 @@ static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
 static time_t             timestamp;
 static long int		  utimestamp;
+
+
 
 /**
  * Compress snaplog, tcpdump, and cputime files to save disk space.
@@ -192,26 +198,28 @@ set_logfile(char* filename)
 }
 
 /**
- * Function name: set_protologfile
- * Description: Sets the log filename.
- * Arguments: filename - new log filename
+ * set_protologfile
+ * Sets the protocol log filename.
+ * @param filename The new protocol log filename
  */
-
 void
 set_protologfile(char* filename)
 {
+	printf ("SET FILENAME=%s;", filename);
 	ProtoLogFileName = filename;
+	printf ("END SET FILENAME=%s;", get_protologfile()); //protocol validation to remove printf
 }
 
 /**
- * Function name: get_protocollogfile
- * Description: Returns the protocol validation log filename.
- * Returns: The log filename
+ * Returns the protocol validation log filename.
+ * @returns The protocol log filename
  */
 
 char*
 get_protologfile()
 {
+  printf ("GET FILENAME=");
+  printf ("%s;\n",ProtoLogFileName);
   return ProtoLogFileName;
 }
 
@@ -297,9 +305,144 @@ log_println(int lvl, const char* format, ...)
   va_end(ap);
 }
 
+
+/** Log in a single key-value pair as a particular event
+ *
+ * In future, based on need, this may be expanded to log
+ * in a list of key-value pairs
+ *
+ */
+void
+protolog_printgeneric(int lvl,  const char* key, const char* value)
+{
+	FILE *fp;
+	//va_list   ap;
+
+	if (lvl > _debuglevel) {
+		return;
+	}
+
+	fp = fopen(get_protologfile(),"a");
+	if (fp == NULL) {
+		printf("--Unable to open proto file while trying to record key-vale: %s:%s \n", key, value);
+		log_println(0, "--Unable to open proto file while trying to record msg: %s \n", key, value);
+	}
+	else {
+		fprintf(fp, " event = \"%s\", name = \"%s\" \n", key, value);
+		printf("%s = \"%s\" \n", key, value);
+		fclose(fp);
+	}
+}
+
 /**
- * Function name: set_timestamp
- * Description: Sets the timestamp to actual time.
+ * Logs a protocol message specifically indicating the start/end or other status of tests
+ * @param lvl Level of the message
+ * @param testid enumerator indicating name of the test @see TEST_ID
+ * @param pid PID of process
+ * @param teststatus enumerator indicating test status. @see TEST_STATUS_INT
+ * TODO: It may be good to define constants for event, pid etc. Use these instead.
+ */
+void
+protolog_status(int lvl, int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus)
+{
+	FILE *fp;
+	va_list   ap;
+   char protomessage[256];
+   char currenttestarr[TEST_NAME_DESC_SIZE];
+   char currentstatusarr[TEST_STATUS_DESC_SIZE];
+   char *currenttestname = "";
+   char *teststatusdesc = "";
+
+   //get descriptive strings for test name and status
+   currenttestname = get_testnamedesc(testid, currenttestarr);
+   teststatusdesc = get_teststatusdesc(teststatus, currentstatusarr);
+
+	if (lvl > _debuglevel) {
+		return;
+	}
+
+	fp = fopen(get_protologfile(),"a");
+	if (fp == NULL) {
+		printf("--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
+				teststatusdesc, currenttestname);
+		log_println(0, "--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
+				teststatusdesc, currenttestname);
+	}
+	else {
+		sprintf(protomessage, " event = \"%s\", name=\"%s\", pid=\"%d\" \n",teststatusdesc, currenttestname, pid );
+		printf("%s: <-- %d - %s - %s --> \n ", protomessage, pid, teststatusdesc, currenttestname );
+		fprintf(fp, "%s", protomessage);
+		fclose(fp);
+	}
+}
+
+/** Log all send/receive protocol messages.
+ * @param lvl Level of the message
+ * @param *msgdirection Direction of msg (S->C, C->S)
+ * @param type message type
+ * @param *msg Actual message
+ * @param len Message length
+ * @param processid PID of process
+ * @param ctlSocket socket over which message has been exchanged
+ * */
+
+void protolog_println(int lvl, char *msgdirection,
+		 const int type, void* msg, const int len, const int processid, const int ctlSocket)
+{
+	FILE *fp;
+	char currentdrcnarr[TEST_DIRN_DESC_SIZE];
+	char msgtypedescarr[MSG_TYPE_DESC_SIZE];
+	char *currenttestname, *currentmsgtype;
+
+	// get descriptive strings for test name and direction
+	currenttestname = get_currenttestdesc();
+	currentmsgtype = get_msgtypedesc(type,msgtypedescarr);
+
+	fp = fopen(get_protologfile(),"a");
+	 if (fp == NULL) {
+		  //printf("--Unable to open proto, RCV");
+		  log_println(0, "Unable to open protocol log file '%s\n', continuing on without logging", get_protologfile());
+	 }
+	 else {
+		  fprintf(fp, " event = \"message\", direction = \"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\"\n",
+				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket);
+		  printf("direction = %s, test= %s, type=%s, len=%d, msg=%s, pid=%d, socket=%d\n",
+		 				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket);
+		  fclose(fp);
+	 }
+}
+
+/** Log "sent" protocol messages.
+ * Picks up the "send" direction and calls the generic protocol log method.
+ * @param lvl Level of the message
+ * @param type message type
+ * @param *msg Actual message
+ * @param len Message length
+ * @param processid PID of process
+ * @param ctlSocket socket over which message has been exchanged
+ * */
+void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket) {
+	  char *currentDir = get_currentdirndesc();
+	  protolog_println(lvl, currentDir, type, msg, len, processid, ctlSocket);
+}
+
+/**
+ * Log all received protocol messages.
+ * Picks up the "receive" direction and calls the generic protocol log method.
+ * @param lvl Level of the message
+ * @param type message type
+ * @param *msg Actual message
+ * @param len Message length
+ * @param processid PID of process
+ * @param ctlSocket socket over which message has been exchanged
+ * */
+void protolog_rcvprintln  (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket){
+	 char *otherDir = get_otherdirndesc();
+	  protolog_println(lvl, otherDir, type, msg, len, processid, ctlSocket);
+}
+
+/**
+ * Set the timestamp to actual time.
  */
 void
 set_timestamp()

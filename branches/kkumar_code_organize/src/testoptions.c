@@ -17,10 +17,11 @@
 #include "utils.h"
 #include "protocol.h"
 #include "I2util/util.h"
+#include "runningtest.h"
 
 int mon_pipe1[2];
 int mon_pipe2[2]; // used to store PIDs of pipes created for snap data in S2c test
-static int currentTest = TEST_NONE;
+//static int currentTest = TEST_NONE;
 
 typedef struct snapArgs {
   web100_snapshot* snap;
@@ -286,7 +287,11 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   char tmpstr[256];
   struct timeval sel_tv;
   fd_set rfd;
-  
+
+  // variables used for protocol validation logging
+  enum TEST_ID thistestId = NONE;
+  enum TEST_STATUS_INT teststatusnow = TEST_NOT_STARTED;
+
   assert(ctlsockfd != -1);
   assert(agent);
   assert(options);
@@ -295,6 +300,12 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   if (options->midopt) { // ready to run middlebox tests
     setCurrentTest(TEST_MID);
     log_println(1, " <-- %d - Middlebox test -->", options->child0);
+
+    //protocol validation logs
+    printf(" <--- %d - Middlebox test --->", options->child0);
+    thistestId = MIDDLEBOX;
+    teststatusnow = TEST_STARTED;
+    protolog_status(1, options->child0, thistestId, teststatusnow);
 
     // determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port3 (3003),
@@ -343,7 +354,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     if (midsrv_addr == NULL) {
       log_println(0, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
       sprintf(buff, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff)); //todo protocol validation log
+      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return -1;
     }
 
@@ -354,7 +365,7 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     
     // send this port number to client
     sprintf(buff, "%d", options->midsockport);
-    if ((ret = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0) //protocol validation log
+    if ((ret = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
 	return ret;
     
     /* set mss to 1456 (strange value), and large snd/rcv buffers
@@ -468,6 +479,13 @@ midfd:
     close(options->midsockfd);
     send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
     log_println(1, " <--------- %d ----------->", options->child0);
+
+    printf(" <--- %d - Middlebox test --->", options->child0);
+
+    // log end of test into protocol doc, just to delimit.
+    teststatusnow = TEST_ENDED;
+    protolog_status(1, options->child0, thistestId, teststatusnow);
+
     setCurrentTest(TEST_NONE);
   /* I2AddrFree(midsrv_addr); */
   }
@@ -530,11 +548,19 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
+  // Test ID and status descriptors
+  enum TEST_ID testids = C2S;
+  enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
     log_println(1, " <-- %d - C2S throughput test -->", testOptions->child0);
     strcpy(listenc2sport, PORT2);
     
+    //log protocol validation logs
+    teststatuses = TEST_STARTED;
+    protolog_status(0,testOptions->child0, testids, teststatuses);
+
     // Determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port2 (3002).
     if (testOptions->c2ssockport) {
@@ -598,7 +624,7 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     log_println(1, "Sending 'GO' signal, to tell client %d to head for the next test", testOptions->child0);
     sprintf(buff, "%d", testOptions->c2ssockport);
 
-    // send TEST_PREPARE message with ephemreal port detail, indicating start of tests
+    // send TEST_PREPARE message with ephemeral port detail, indicating start of tests
     if ((ret = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
 	return ret;
 
@@ -778,7 +804,7 @@ recfd:
     /* alarm(30); */  /* reset alarm() again, this 10 sec test should finish before this signal
                  * is generated.  */
 
-    // write into snaplog file, based on options. Lock/release resources as necessary
+    // write into snaplog file, based on options. Lock/release web10 log file as necessary
     {
         WorkerArgs workerArgs;
         workerArgs.snapArgs = &snapArgs;
@@ -920,7 +946,14 @@ recfd:
       close(mon_pipe1[1]);
     }
 
+    // log end of C->S test
     log_println(1, " <----------- %d -------------->", testOptions->child0);
+    //protocol logs
+    teststatuses = TEST_ENDED;
+    protolog_status(0,testOptions->child0, testids, teststatuses);
+
+
+    //set current test status and free address
     setCurrentTest(TEST_NONE);
   /* I2AddrFree(c2ssrv_addr); */
   I2AddrFree(src_addr);
@@ -946,7 +979,7 @@ recfd:
  *				-2 	   - Cannot write message data while attempting to send
  *           		 TEST_PREPARE message, or Unexpected message type received
  *           	-3 	   -  Received message is invalid
- *          	-100   - timeout while waitinf for client to connect to serverÕs ephemeral port
+ *          	-100   - timeout while waiting for client to connect to serverÕs ephemeral port
  *				-101   - Retries exceeded while waiting for client to connect
  *				-102   - Retries exceeded while waiting for data from connected client
  *  			-errno - Other specific socket error numbers
@@ -1004,11 +1037,20 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
   
+  // variables used for protocol validation logs
+  enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+  enum TEST_ID testids = S2C;
+
   // Determine port to be used. Compute based on options set earlier
   // by reading from config file, or use default port2 (3003)
   if (testOptions->s2copt) {
     setCurrentTest(TEST_S2C);
     log_println(1, " <-- %d - S2C throughput test -->", testOptions->child0);
+
+    //protocol logs
+    teststatuses = TEST_STARTED;
+    protolog_status(0,testOptions->child0, testids, teststatuses);
+
     strcpy(listens2cport, PORT4);
     
     if (testOptions->s2csockport) {
@@ -1491,7 +1533,12 @@ ximfd:
       close(mon_pipe2[1]);
     }
 
+    // log end of test (generic and protocol logs)
     log_println(1, " <------------ %d ------------->", testOptions->child0);
+    //log protocol validation logs
+    teststatuses = TEST_ENDED;
+    protolog_status(1,testOptions->child0, testids, teststatuses);
+
     setCurrentTest(TEST_NONE);
     /* I2AddrFree(s2csrv_addr); */
     I2AddrFree(src_addr);
@@ -1503,23 +1550,4 @@ ximfd:
   return 0;
 }
 
-/**
- * Return the id of the currently running test.
- * @return integer id of the currently running test.
- */
 
-int
-getCurrentTest()
-{
-  return currentTest;
-}
-
-/** Set the id of the currently running test.
- * @param testId Id of the currently running test
- */
-
-void
-setCurrentTest(int testId)
-{
-  currentTest = testId;
-}

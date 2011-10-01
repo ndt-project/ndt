@@ -47,9 +47,17 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
   struct metaentry *new_entry = NULL;
   char* value;
 
+  // protocol validation logs
+  enum TEST_ID testids = META;
+  enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+
   if (testOptions->metaopt) {
     setCurrentTest(TEST_META);
     log_println(1, " <-- META test -->");
+
+    // log protocol validation details
+    teststatuses = TEST_STARTED;
+    protolog_status(0,testOptions->child0, testids, teststatuses);
 
     // first message exchanged is am empty TEST_PREPARE message
     j = send_msg(ctlsockfd, TEST_PREPARE, "", 0);
@@ -57,6 +65,7 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 	log_println(6, "META Error!, Test start message not sent!");
 	return j;
     }
+
 
     // Now, transmit an empty TEST_START message
     if (send_msg(ctlsockfd, TEST_START, "", 0) < 0) {
@@ -136,7 +145,12 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 	  log_println(6, "META test - failed to send finalize message");
 	}
 
+	//log end of test and conclude
     log_println(1, " <-------------------------->");
+
+    teststatuses = TEST_ENDED; // protocol log section
+    protolog_status(0,testOptions->child0, testids, teststatuses);
+
     setCurrentTest(TEST_NONE);
   }
   return 0;

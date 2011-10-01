@@ -425,16 +425,11 @@ send_msg(int ctlSocket, int type, void* msg, int len)
   if (i == 5)
     return -3;
   log_println(8, ">>> send_msg: type=%d, len=%d, msg=%s, pid=%d", type, len, msg, getpid());
-  // kk start
-  fp = fopen(get_protologfile(),"a");
-  if (fp == NULL) {
-	  log_println(0, "Unable to open protocol log file '%s', continuing on without logging", get_logfile());
-  }
-  else {
-	  fprintf(fp, "Sent message: type=%d, len=%d, msg=%s, pid=%d on socket=%d\n", type, len, msg, getpid(), ctlSocket);
-	  fclose(fp);
-  }
-  // kk end
+
+  //todo level = 0 could be made into a constant or option. move out of here in that case
+  protolog_sendprintln(0,
+		  type, msg, len, getpid(),ctlSocket);
+
   return 0;
 }
 
@@ -460,6 +455,14 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   int length;
   FILE *fp; //kk
   
+  // todo remove
+
+  int itype = *type;
+  int ilen = *len;
+  char *msgtemp = (char*)msg;
+
+  //end
+
   assert(type);
   assert(msg);
   assert(len);
@@ -485,18 +488,11 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
     return -3;
   }
   log_println(8, "<<< recv_msg: type=%d, len=%d", *type, *len);
-  //kk here
-  fp = fopen(get_protologfile(),"a");
-  if (fp == NULL) {
-	  log_println(0, "Unable to open protocol log file '%s', continuing on without logging", get_logfile());
-  }
-  else {
-	  //fprintf(fp, "Rcd message: type=%d, len=%d, msg=%s, pid=%d on socket=%d\n", *type, *len, (char*)msg, getpid(), ctlSocket);
-	  fprintf(fp, "Rcd message: type=%d, len=%d,pid=%d on socket=%d\n", *type, *len, getpid(), ctlSocket);
 
-	  fclose(fp);
-  }
-  //end kk
+  //todo level = 0 could be made into a constant or option. move out of here in that case
+  //protolog_rcvprintln(0, itype, msgtemp, ilen, getpid(),ctlSocket);
+  protolog_rcvprintln(0, *type, msgtemp, *len, getpid(),ctlSocket);
+
   return 0;
 }
 

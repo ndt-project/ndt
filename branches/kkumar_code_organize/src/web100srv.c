@@ -81,6 +81,8 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "web100-admin.h"
 #include "test_sfw.h"
 #include "ndt_odbc.h"
+#include "runningtest.h"
+
 
 static char lgfn[256];
 static char wvfn[256];
@@ -179,6 +181,7 @@ static struct option long_options[] = {
   {"file", 1, 0, 'f'},
   {"interface", 1, 0, 'i'},
   {"log", 1, 0, 'l'},
+  {"protocol_log", 1, 0, 'u'},
   {"port", 1, 0, 'p'},
   {"midport", 1, 0, 302},
   {"c2sport", 1, 0, 303},
@@ -601,9 +604,15 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     else if (strncasecmp(key, "log_file", 3) == 0) {
       sprintf(lgfn, "%s", val);
       set_logfile(lgfn);
+      sprintf(lgfn, "%s", val);
       continue;
     }
-    
+    else if (strncasecmp(key, "protocol_log", 12) == 0) {
+         sprintf(lgfn, "%s", val);
+         printf("protocol_log: %s\n", val); //todo remove printf
+         set_protologfile(lgfn);
+         continue;
+    }
     else if (strncasecmp(key, "admin_file", 10) == 0) {
       sprintf(apfn, "%s", val);
       AdminFileName = apfn;
@@ -937,6 +946,10 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   FILE *fp;
 
   web100_connection* conn;
+  // protocol logging addition
+  // start with a clean slate of currently running test and direction
+  setCurrentTest(TEST_NONE);
+
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -1470,6 +1483,12 @@ main(int argc, char** argv)
   int j;
   char *name;
 
+  // variables used for protocol validation logs
+  char startsrvmsg[256]; // used to log start of server process
+  char *srvstatusdesc;
+  enum PROCESS_STATUS_INT srvstatusenum = UNKNOWN;
+  char statustemparr[PROCESS_STATUS_DESC_SIZE]; // temp storage for process name
+
   options.limit = 0;
   options.snapDelay = 5;
   options.avoidSndBlockUp = 0;
@@ -1485,7 +1504,7 @@ main(int argc, char** argv)
   memset(&testopt, 0, sizeof(testopt));
   /* sigset_t newmask, oldmask; */
 
-#ifdef AF_INET6
+ #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
 #else
 #define GETOPT_LONG_INET6(x) x
@@ -1499,7 +1518,8 @@ main(int argc, char** argv)
   
   opterr = 0;
   while ((c = getopt_long(argc, argv,
-          GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+         // GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
+		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -1526,10 +1546,15 @@ main(int argc, char** argv)
   LoadConfig(argv[0], &lbuf, &lbuf_max);
   debug = 0;
 
+  // set options for test direction
+  enum Tx_DIRECTION currentDirn = S_C;
+  setCurrentDirn(currentDirn);
+   // end protocol logging
+
   // Get server execution options
   while ((c = getopt_long(argc, argv,
          // GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
-		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:p:T:A:S:")), long_options, 0)) != -1) { //kk changed for protocol validation
+		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1587,11 +1612,11 @@ main(int argc, char** argv)
         device = optarg;
         break;
       case 'l':
-        set_logfile(optarg);
+    	set_logfile(optarg);
         break;
-      case 'u': //kk addedd case for protocol validation
-              set_protologfile(optarg);
-              break;
+      case 'u':
+    	set_protologfile(optarg);
+        break;
       case 'o':
         old_mismatch = 1;
         break;
@@ -1807,7 +1832,7 @@ main(int argc, char** argv)
 
   ndtpid = getpid();
   tt = time(0);
-  log_println(6, "NDT server (v%s) proces [%d] started at %15.15s", VERSION, ndtpid, ctime(&tt)+4);
+  log_println(6, "NDT server (v%s) process [%d] started at %15.15s", VERSION, ndtpid, ctime(&tt)+4);
   fp = fopen(get_logfile(),"a");
   if (fp == NULL) {
     log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
@@ -1820,6 +1845,13 @@ main(int argc, char** argv)
   if (usesyslog == 1)
     syslog(LOG_FACILITY|LOG_INFO, "Web100srv (ver %s) process started",
         VERSION);
+
+  // create protocol validation entry every time a process starts up
+  sprintf(startsrvmsg, "Web100srv (ver %s)",VERSION);
+  srvstatusenum = PROCESS_STARTED;
+  srvstatusdesc = get_procstatusdesc(srvstatusenum, statustemparr);
+  protolog_printgeneric(0, srvstatusdesc, startsrvmsg);
+
 
   // scan through the interface device list and get the names/speeds of each
   //  if.  The speed data can be used to cap the search for the bottleneck link

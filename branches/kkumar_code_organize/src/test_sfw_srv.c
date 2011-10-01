@@ -48,7 +48,6 @@ catch_alrm(int signo)
  * In other words, sends the S->C TEST_MSG with message body
  * "Simple firewall test"
  * @param vptr void pointer
- * @todo protocol validation log at line 67
  */
 
 void*
@@ -84,12 +83,13 @@ test_osfw_srv(void* vptr)
  * Wait for the every thread to conclude and finalize
  *              the SFW test.
  * @param ctlsockfd Client control socket descriptor
- * @todo protocol validation log at line 97
  */
 
 void
 finalize_sfw(int ctlsockfd)
 {
+  enum TEST_ID thistestId = SFW;
+  enum TEST_STATUS_INT teststatusnow = NONE;
   // wait for mutex to be released before attempting to finalize
   while (toWait) {
     pthread_mutex_lock( &mainmutex);
@@ -97,9 +97,14 @@ finalize_sfw(int ctlsockfd)
     pthread_mutex_unlock( &mainmutex);
   }
 
-  // close the SFW test by sending a nil (0 length) message and set test status
+  // close the SFW test by sending a nil (0 length) message
   send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+
+  // log
+  teststatusnow = TEST_ENDED;
+  protolog_status(1, getpid() , thistestId, teststatusnow); //todo will getpid() be correct?
   log_println(1, " <-------------------------->");
+  // unset test name
   setCurrentTest(TEST_NONE);
 }
 
@@ -136,12 +141,19 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
   char hostname[256];
   int rc;
   
+  // variables used for protocol validation
+  enum TEST_ID thistestId = NONE;
+  enum TEST_STATUS_INT teststatusnow = TEST_NOT_STARTED;
+
   assert(ctlsockfd != -1);
   assert(options);
 
   if (options->sfwopt) {
     setCurrentTest(TEST_SFW);
     log_println(1, " <-- %d - Simple firewall test -->", options->child0);
+    thistestId = SFW;
+    teststatusnow = TEST_STARTED;
+    protolog_status(1, options->child0, thistestId, teststatusnow);
     
     // bind to a new port and obtain address structure with details of port etc
     sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options, 0);
@@ -241,6 +253,10 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     if ((sfwcli_addr = I2AddrByNode(get_errhandle(), hostname)) == NULL) {
       log_println(0, "Unable to resolve server address"); //todo is'nt this client address we cannot resolve?
       send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+
+      // log end
+      teststatusnow = TEST_ENDED;
+      protolog_status(0,options->child0, thistestId, teststatusnow);
       log_println(1, " <-------------------------->");
       I2AddrFree(sfwsrv_addr);
       return 5;
