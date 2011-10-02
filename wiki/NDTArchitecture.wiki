@@ -102,8 +102,8 @@ In order to build the NDT programs, the following dependencies should be fulfill
 
 Web100 patch for the Linux kernel can be obtained from the [http://www.web100.org/download/ Web100 download page].
 
-The base Linux kernel can be obtained from the [kernel.org] ftp site:
- * ftp [ftp.kernel.org] and change directory to the proper Linux kernel directory
+The base Linux kernel can be obtained from the [http://kernel.org kernel.org] ftp site:
+ * ftp [ftp://ftp.kernel.org ftp.kernel.org] and change directory to the proper Linux kernel directory
 
 Unpack the kernel tar file in the {{{/usr/src}}} directory, unpack the Web100 kernel patch, and apply the patch:
  * {{{patch –p3 < path-to-kernel-patch-file}}}
