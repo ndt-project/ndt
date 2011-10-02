@@ -141,7 +141,7 @@ However, it is not included in the source code obtained from the NDT subversion 
 {{{svn checkout http://anonsvn.internet2.edu/svn/I2util/trunk/ I2util}}}
 
 Next, the following steps need to be performed before the NDT can be properly built:
- # Change directory to the newly created I2Util directory
+ # Change directory to the newly created !I2Util directory
  # Create the _configure_ scripts ({{{./bootstrap}}})
 
 === Sources ===
