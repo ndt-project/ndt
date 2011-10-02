@@ -59,7 +59,7 @@ The NDT client and server interaction details can be found in the [NDTProtocol#P
 
 A basic NDT test session with the Java Applet-based client looks as following:
 
-*TODO - add a basic flow chart for the NDT session with a federated fakewww*
+http://www.soldevelo.com/images/ndt/NDT_flow_1.png
 
  # The process starts with the user opening a browser and entering the NDT server URL
    * An optional step is to point to a well known server and accept a redirect message (Federated mode)
@@ -77,7 +77,7 @@ A basic NDT test session with the Java Applet-based client looks as following:
 
 A basic NDT test session with the web100clt client looks as following:
 
-*TODO - add a basic flow chart for the NDT session with web100clt*
+http://www.soldevelo.com/images/ndt/NDT_flow_2.png
 
  # The process starts with connecting to the server's testing engine (web100srv process) by the web100clt client.
  # A child process is created to handle the test and the parent goes back to listening for more test requests. The parent keeps a FIFO queue to process multiple requests.
