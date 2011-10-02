@@ -149,3 +149,39 @@ Next, the following steps need to be performed before the NDT can be properly bu
 NDT sources can be obtained in two ways:
  * by checking out the newest code from the subversion repository ({{{http://ndt.googlecode.com/svn/trunk}}})
  * by downloading the newest tar package from the download page ({{{http://code.google.com/p/ndt/downloads}}})
+
+=== Building the NDT Programs ===
+
+Once all the pre-requisites are installed, the admin is now ready to create the NDT system by using the standard GNU automake tools to create and install the executables:
+ # Change directory to package directory
+ # Create make files (./configure {--prefix=/some/dir})
+   The _configure_ process displays the short summary about the configured NDT modules:
+{{{
+***********************************
+***   Network Diagnostic Tool   ***
+***********************************
+*       configured modules        *
+***********************************
+
+
+*** Client Tools - complete
+* web100clt:    YES
+
+*** Server Tools - complete
+* fakewww:      YES
+* web100srv:    YES
+* Tcpbw100.jar: YES
+
+*** Administrative Tools - complete
+* analyze:      YES
+* viewtrace:    YES
+* tr-mkmap:     YES
+* genplot:      YES
+* JAnalyze.jar: YES
+* Admin.class:  YES
+}}}
+ # Build executables (make)
+ # Install executables (make install)
+
+This process creates both server programs (web100srv and fakewww), the client tool (web100clt), the administrative tools (analyze, viewtrace, genplot, tr-mkmap), and it builds the java class and jar programs. The _make install_
+process puts all the executables in the proper place.
