@@ -1,0 +1,1452 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1600px"
+   height="1200px"
+   id="svg10467"
+   version="1.1"
+   inkscape:version="0.48.1 r9760"
+   sodipodi:docname="Nowy dokument 2">
+  <defs
+     id="defs10469">
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(1.3273179,0.75339901)"
+       id="g601"
+       x1="59.518522"
+       y1="-30.611269"
+       x2="59.518522"
+       y2="119.12678">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6807" />
+      <stop
+         stop-color="#993300"
+         offset="100%"
+         id="stop6809" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(1.3494955,0.74101764)"
+       id="g599"
+       x1="61.874973"
+       y1="-31.797489"
+       x2="61.874973"
+       y2="123.81622">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6768" />
+      <stop
+         stop-color="#999999"
+         offset="100%"
+         id="stop6770" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(0.86717934,1.153164)"
+       id="g596"
+       x1="162.01954"
+       y1="-81.731652"
+       x2="162.01954"
+       y2="324.75866">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6729" />
+      <stop
+         stop-color="#006633"
+         offset="100%"
+         id="stop6731" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(1.3464992,0.7426666)"
+       id="g585"
+       x1="65.35466"
+       y1="-33.536246"
+       x2="65.35466"
+       y2="130.77874">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6558" />
+      <stop
+         stop-color="#990000"
+         offset="100%"
+         id="stop6560" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(1.3273179,0.75339901)"
+       id="g583"
+       x1="59.518522"
+       y1="-30.611269"
+       x2="59.518522"
+       y2="119.12678">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6523" />
+      <stop
+         stop-color="#006600"
+         offset="100%"
+         id="stop6525" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(1.3494955,0.74101764)"
+       id="g581"
+       x1="61.874973"
+       y1="-31.797489"
+       x2="61.874973"
+       y2="123.81622">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6484" />
+      <stop
+         stop-color="#999999"
+         offset="100%"
+         id="stop6486" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(1.3435302,0.74430779)"
+       id="g580"
+       x1="62.521854"
+       y1="-32.118769"
+       x2="62.521854"
+       y2="125.11625">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop6467" />
+      <stop
+         stop-color="#999999"
+         offset="100%"
+         id="stop6469" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(0.7193269,1.3901885)"
+       id="g2"
+       x1="195.32149"
+       y1="-98.367954"
+       x2="195.32149"
+       y2="391.6735">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop32" />
+      <stop
+         stop-color="#ff9933"
+         offset="100%"
+         id="stop34" />
+    </linearGradient>
+    <linearGradient
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="scale(0.7193269,1.3901885)"
+       id="g0"
+       x1="195.32149"
+       y1="-98.367954"
+       x2="195.32149"
+       y2="391.6735">
+      <stop
+         stop-color="white"
+         offset="0%"
+         id="stop11" />
+      <stop
+         stop-color="#3399ff"
+         offset="100%"
+         id="stop13" />
+    </linearGradient>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.42426407"
+     inkscape:cx="800"
+     inkscape:cy="600"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:window-width="1280"
+     inkscape:window-height="726"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata10472">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer">
+    <g
+       transform="translate(973.16667,54.656253)"
+       id="g6">
+      <defs
+         id="defs8">
+        <linearGradient
+           id="linearGradient10199"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10201" />
+          <stop
+             stop-color="#3399ff"
+             offset="100%"
+             id="stop10203" />
+        </linearGradient>
+      </defs>
+      <rect
+         y="0"
+         x="0"
+         width="281"
+         height="544"
+         style="fill:url(#g0);stroke:#333333;stroke-width:1"
+         id="rect15" />
+      <g
+         id="g17" />
+    </g>
+    <g
+       transform="translate(998.66667,57.156253)"
+       id="g19">
+      <g
+         transform="translate(0,60.5)"
+         id="g21">
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="-7"
+           id="text23">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan25">Client</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(448.16667,54.656253)"
+       id="g27">
+      <defs
+         id="defs29">
+        <linearGradient
+           id="linearGradient10213"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10215" />
+          <stop
+             stop-color="#ff9933"
+             offset="100%"
+             id="stop10217" />
+        </linearGradient>
+      </defs>
+      <rect
+         y="0"
+         x="0"
+         width="281"
+         height="544"
+         style="fill:url(#g2);stroke:#333333;stroke-width:1"
+         id="rect36" />
+      <g
+         id="g38" />
+    </g>
+    <g
+       transform="translate(502.66667,159.34375)"
+       id="g6462">
+      <defs
+         id="defs6464">
+        <linearGradient
+           id="linearGradient10223"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10225" />
+          <stop
+             stop-color="#999999"
+             offset="100%"
+             id="stop10227" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="46.3125"
+         sodipodi:rx="84"
+         sodipodi:cy="46.3125"
+         sodipodi:cx="84"
+         cx="84"
+         cy="46.3125"
+         rx="84"
+         ry="46.3125"
+         style="fill:url(#g580);stroke:#333333;stroke-width:1"
+         id="ellipse6471"
+         d="M 168,46.3125 C 168,71.890187 130.39192,92.625 84,92.625 37.608081,92.625 0,71.890187 0,46.3125 0,20.734813 37.608081,0 84,0 c 46.39192,0 84,20.734813 84,46.3125 z" />
+      <g
+         transform="translate(0,52.3125)"
+         id="g6473">
+        <text
+           x="84"
+           style="text-anchor:middle"
+           y="-2"
+           id="text6475">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6477">Web Server</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(505.16667,317.03125)"
+       id="g6479">
+      <defs
+         id="defs6481">
+        <linearGradient
+           id="linearGradient10235"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10237" />
+          <stop
+             stop-color="#999999"
+             offset="100%"
+             id="stop10239" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="45.625"
+         sodipodi:rx="83.5"
+         sodipodi:cy="45.625"
+         sodipodi:cx="83.5"
+         cx="83.5"
+         cy="45.625"
+         rx="83.5"
+         ry="45.625"
+         style="fill:url(#g581);stroke:#333333;stroke-width:1"
+         id="ellipse6488"
+         d="M 167,45.625 C 167,70.822992 129.61578,91.25 83.5,91.25 37.384223,91.25 0,70.822992 0,45.625 0,20.427008 37.384223,0 83.5,0 129.61578,0 167,20.427008 167,45.625 z" />
+      <g
+         transform="translate(0,42.625)"
+         id="g6490">
+        <text
+           x="83.5"
+           style="text-anchor:middle"
+           y="-2"
+           id="text6492">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6494">Testing Engine</tspan>        </text>
+        <text
+           x="83.5"
+           style="text-anchor:middle"
+           y="15.6"
+           id="text6496">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6498">web100srv</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(506.16667,471.03125)"
+       id="g6500">
+      <defs
+         id="defs6502">
+        <linearGradient
+           id="linearGradient6504"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop6506" />
+          <stop
+             stop-color="#999999"
+             offset="100%"
+             id="stop6508" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="47.625"
+         sodipodi:rx="82.5"
+         sodipodi:cy="47.625"
+         sodipodi:cx="82.5"
+         cx="82.5"
+         cy="47.625"
+         rx="82.5"
+         ry="47.625"
+         style="fill:url(#g582);stroke:#333333;stroke-width:1"
+         id="ellipse6510"
+         d="M 165,47.625 C 165,73.927561 128.06349,95.25 82.5,95.25 36.936508,95.25 0,73.927561 0,47.625 0,21.322439 36.936508,0 82.5,0 128.06349,0 165,21.322439 165,47.625 z" />
+      <g
+         transform="translate(0,53.625)"
+         id="g6512">
+        <text
+           x="82.5"
+           style="text-anchor:middle"
+           y="-2"
+           id="text6514">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6516">Child Test Engine</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1033.6667,189.03125)"
+       id="g6518">
+      <defs
+         id="defs6520">
+        <linearGradient
+           id="linearGradient10258"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10260" />
+          <stop
+             stop-color="#006600"
+             offset="100%"
+             id="stop10262" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="44.625"
+         sodipodi:rx="79"
+         sodipodi:cy="44.625"
+         sodipodi:cx="79"
+         cx="79"
+         cy="44.625"
+         rx="79"
+         ry="44.625"
+         style="fill:url(#g583);stroke:#333333;stroke-width:1"
+         id="ellipse6527"
+         d="M 158,44.625 C 158,69.270707 122.6305,89.25 79,89.25 35.369505,89.25 0,69.270707 0,44.625 0,19.979293 35.369505,0 79,0 c 43.6305,0 79,19.979293 79,44.625 z" />
+      <g
+         transform="translate(0,52.625)"
+         id="g6529">
+        <text
+           x="79"
+           style="text-anchor:middle"
+           y="-3"
+           id="text6531">
+          <tspan
+             style="font-size:18px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="18"
+             font-weight="bold"
+             id="tspan6533">Web Browser</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1036.6667,341.03125)"
+       id="g6535">
+      <defs
+         id="defs6537">
+        <linearGradient
+           id="linearGradient6539"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop6541" />
+          <stop
+             stop-color="#663300"
+             offset="100%"
+             id="stop6543" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="44.625"
+         sodipodi:rx="79"
+         sodipodi:cy="44.625"
+         sodipodi:cx="79"
+         cx="79"
+         cy="44.625"
+         rx="79"
+         ry="44.625"
+         style="fill:url(#g584);stroke:#333333;stroke-width:1"
+         id="ellipse6545"
+         d="M 158,44.625 C 158,69.270707 122.6305,89.25 79,89.25 35.369505,89.25 0,69.270707 0,44.625 0,19.979293 35.369505,0 79,0 c 43.6305,0 79,19.979293 79,44.625 z" />
+      <g
+         transform="translate(0,52.625)"
+         id="g6547">
+        <text
+           x="79"
+           style="text-anchor:middle"
+           y="-3"
+           id="text6549">
+          <tspan
+             style="font-size:18px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="18"
+             font-weight="bold"
+             id="tspan6551">Java Applet</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(744.66667,18.343753)"
+       id="g6553">
+      <defs
+         id="defs6555">
+        <linearGradient
+           id="linearGradient10279"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10281" />
+          <stop
+             stop-color="#990000"
+             offset="100%"
+             id="stop10283" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="48.3125"
+         sodipodi:rx="88"
+         sodipodi:cy="48.3125"
+         sodipodi:cx="88"
+         cx="88"
+         cy="48.3125"
+         rx="88"
+         ry="48.3125"
+         style="fill:url(#g585);stroke:#333333;stroke-width:1"
+         id="ellipse6562"
+         d="M 176,48.3125 C 176,74.994757 136.60106,96.625 88,96.625 39.398942,96.625 0,74.994757 0,48.3125 0,21.630243 39.398942,0 88,0 c 48.60106,0 88,21.630243 88,48.3125 z" />
+      <g
+         transform="translate(0,45.3125)"
+         id="g6564">
+        <text
+           x="88"
+           style="text-anchor:middle"
+           y="-3"
+           id="text6566">
+          <tspan
+             style="font-size:18px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="18"
+             font-weight="bold"
+             id="tspan6568">Well Known</tspan>        </text>
+        <text
+           x="88"
+           style="text-anchor:middle"
+           y="19.200001"
+           id="text6570">
+          <tspan
+             style="font-size:18px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="18"
+             font-weight="bold"
+             id="tspan6572">NDT Server</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(869.66667,116.65625)"
+       id="g6574">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:15, 9"
+         x1="0"
+         y1="0"
+         x2="168.22813"
+         y2="88.072372"
+         id="line6576" />
+      <g
+         transform="matrix(-0.88593352,-0.46381225,0.46381225,-0.88593352,170,89)"
+         id="g6578">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6580" />
+      </g>
+      <g
+         transform="translate(76.140665,44.5)"
+         id="g6582">
+        <rect
+           style="fill:#ffffff"
+           x="-51.5"
+           y="-10"
+           width="103"
+           height="16"
+           id="rect6584" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6586">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6588">Redirect msg</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1098.6667,185.65625)"
+       id="g6590">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:15, 9"
+         x1="0"
+         y1="0"
+         x2="-176.23557"
+         y2="-94.058311"
+         id="line6592" />
+      <g
+         transform="matrix(0.88221571,0.47084546,-0.47084546,0.88221571,-178,-95)"
+         id="g6594">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6596" />
+      </g>
+      <g
+         transform="translate(-97.822157,-47.5)"
+         id="g6598">
+        <rect
+           style="fill:#ffffff"
+           x="-52"
+           y="-10"
+           width="104"
+           height="16"
+           id="rect6600" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6602">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6604">Web Request</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1034.6667,218.65625)"
+       id="g6606">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="-359.00641"
+         y2="-28.839851"
+         id="line6608" />
+      <g
+         transform="matrix(0.99678889,0.08007445,-0.08007445,0.99678889,-361,-29)"
+         id="g6610">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6612" />
+      </g>
+      <g
+         transform="translate(-190.46789,-14.5)"
+         id="g6614">
+        <rect
+           style="fill:#ffffff"
+           x="-71.5"
+           y="-10"
+           width="143"
+           height="16"
+           id="rect6616" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6618">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6620">Web Page Request</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1032.6667,250.65625)"
+       id="g6622">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="-1.9945205"
+         y1="-0.14794521"
+         x2="-364"
+         y2="-27"
+         id="line6624" />
+      <g
+         transform="matrix(-0.99726027,-0.0739726,0.0739726,-0.99726027,0,0)"
+         id="g6626">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6628" />
+      </g>
+      <g
+         transform="translate(-191.9726,-13.5)"
+         id="g6630">
+        <rect
+           style="fill:#ffffff"
+           x="-77.5"
+           y="-10"
+           width="155"
+           height="16"
+           id="rect6632" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6634">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6636">Web Page Response</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(588.66667,408.65625)"
+       id="g6638">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="0"
+         y2="60.75"
+         id="line6640" />
+      <g
+         transform="matrix(0,-1,1,0,0,62.75)"
+         id="g6642">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6644" />
+      </g>
+      <g
+         transform="translate(0,36.375)"
+         id="g6646">
+        <rect
+           style="fill:#ffffff"
+           x="-47"
+           y="-10"
+           width="94"
+           height="16"
+           id="rect6648" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6650">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6652">Spawn child</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(471.66667,57.156253)"
+       id="g6654">
+      <g
+         transform="translate(0,40.5)"
+         id="g6656">
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="-7"
+           id="text6658">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan6660">NDT -</tspan>        </text>
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="36.400002"
+           id="text6662">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan6664">Server</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1045.6667,360.65625)"
+       id="g6666">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="-366.00037"
+         y2="-6.9619632"
+         id="line6668" />
+      <g
+         transform="matrix(0.99981914,0.0190183,-0.0190183,0.99981914,-368,-7)"
+         id="g6670">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6672" />
+      </g>
+      <g
+         transform="translate(-193.99819,-3.5)"
+         id="g6674">
+        <rect
+           style="fill:#ffffff"
+           x="-51.5"
+           y="-10"
+           width="103"
+           height="16"
+           id="rect6676" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6678">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6680">Test Request</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(653.66667,481.65625)"
+       id="g6682">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="1.9255075"
+         y1="-0.54075933"
+         x2="381"
+         y2="-107"
+         id="line6684" />
+      <g
+         transform="matrix(0.96275378,-0.27037967,0.27037967,0.96275378,0,0)"
+         id="g6686">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6688" />
+      </g>
+      <g
+         transform="translate(195.68623,-58.5)"
+         id="g6690">
+        <rect
+           style="fill:#ffffff"
+           x="-62"
+           y="-10"
+           width="124"
+           height="16"
+           id="rect6692" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6694">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6696">Control Channel</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(1038.6667,402.65625)"
+       id="g6698">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="-361.07877"
+         y2="104.44427"
+         id="line6700" />
+      <g
+         transform="matrix(0.96062005,-0.2778653,0.2778653,0.96062005,-363,105)"
+         id="g6702">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6704" />
+      </g>
+      <g
+         transform="translate(-176.3031,47.5)"
+         id="g6706" />
+    </g>
+    <g
+       transform="translate(669.66667,536.65625)"
+       id="g6708">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="389.07733"
+         y2="-111.44926"
+         id="line6710" />
+      <g
+         transform="matrix(-0.96133817,0.27537052,-0.27537052,-0.96133817,391,-112)"
+         id="g6712">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6714" />
+      </g>
+      <g
+         transform="translate(200.69331,-61)"
+         id="g6716">
+        <rect
+           style="fill:#ffffff"
+           x="-82.5"
+           y="-10"
+           width="165"
+           height="16"
+           id="rect6718" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6720">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6722">Specific test channels</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(904.16667,807.65625)"
+       id="g6724">
+      <defs
+         id="defs6726">
+        <linearGradient
+           id="linearGradient10368"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10370" />
+          <stop
+             stop-color="#006633"
+             offset="100%"
+             id="stop10372" />
+        </linearGradient>
+      </defs>
+      <rect
+         y="0"
+         x="0"
+         width="281"
+         height="374"
+         style="fill:url(#g596);stroke:#333333;stroke-width:1"
+         id="rect6733" />
+      <g
+         id="g6735" />
+    </g>
+    <g
+       transform="translate(929.66667,810.15625)"
+       id="g6737">
+      <g
+         transform="translate(0,40.5)"
+         id="g6739">
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="-7"
+           id="text6741">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan6743">NDT -</tspan>        </text>
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="36.400002"
+           id="text6745">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan6747">Client</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(379.16667,807.65625)"
+       id="g6749">
+      <defs
+         id="defs6751">
+        <linearGradient
+           id="linearGradient6753"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop6755" />
+          <stop
+             stop-color="#336699"
+             offset="100%"
+             id="stop6757" />
+        </linearGradient>
+      </defs>
+      <rect
+         y="0"
+         x="0"
+         width="281"
+         height="374"
+         style="fill:url(#g598);stroke:#333333;stroke-width:1"
+         id="rect6759" />
+      <g
+         id="g6761" />
+    </g>
+    <g
+       transform="translate(436.16667,897.03125)"
+       id="g6763">
+      <defs
+         id="defs6765">
+        <linearGradient
+           id="linearGradient10391"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10393" />
+          <stop
+             stop-color="#999999"
+             offset="100%"
+             id="stop10395" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="45.625"
+         sodipodi:rx="83.5"
+         sodipodi:cy="45.625"
+         sodipodi:cx="83.5"
+         cx="83.5"
+         cy="45.625"
+         rx="83.5"
+         ry="45.625"
+         style="fill:url(#g599);stroke:#333333;stroke-width:1"
+         id="ellipse6772"
+         d="M 167,45.625 C 167,70.822992 129.61578,91.25 83.5,91.25 37.384223,91.25 0,70.822992 0,45.625 0,20.427008 37.384223,0 83.5,0 129.61578,0 167,20.427008 167,45.625 z" />
+      <g
+         transform="translate(0,42.625)"
+         id="g6774">
+        <text
+           x="83.5"
+           style="text-anchor:middle"
+           y="-2"
+           id="text6776">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6778">Testing Engine</tspan>        </text>
+        <text
+           x="83.5"
+           style="text-anchor:middle"
+           y="15.6"
+           id="text6780">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6782">web100srv</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(437.16667,1051.0313)"
+       id="g6784">
+      <defs
+         id="defs6786">
+        <linearGradient
+           id="linearGradient6788"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop6790" />
+          <stop
+             stop-color="#999999"
+             offset="100%"
+             id="stop6792" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="47.625"
+         sodipodi:rx="82.5"
+         sodipodi:cy="47.625"
+         sodipodi:cx="82.5"
+         cx="82.5"
+         cy="47.625"
+         rx="82.5"
+         ry="47.625"
+         style="fill:url(#g600);stroke:#333333;stroke-width:1"
+         id="ellipse6794"
+         d="M 165,47.625 C 165,73.927561 128.06349,95.25 82.5,95.25 36.936508,95.25 0,73.927561 0,47.625 0,21.322439 36.936508,0 82.5,0 128.06349,0 165,21.322439 165,47.625 z" />
+      <g
+         transform="translate(0,53.625)"
+         id="g6796">
+        <text
+           x="82.5"
+           style="text-anchor:middle"
+           y="-2"
+           id="text6798">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="14"
+             font-weight="bold"
+             id="tspan6800">Child Test Engine</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(967.66667,921.03125)"
+       id="g6802">
+      <defs
+         id="defs6804">
+        <linearGradient
+           id="linearGradient10414"
+           x1="0.5"
+           y1="-0.25"
+           x2="0.5"
+           y2="1">
+          <stop
+             stop-color="white"
+             offset="0%"
+             id="stop10416" />
+          <stop
+             stop-color="#993300"
+             offset="100%"
+             id="stop10418" />
+        </linearGradient>
+      </defs>
+      <ellipse
+         sodipodi:ry="44.625"
+         sodipodi:rx="79"
+         sodipodi:cy="44.625"
+         sodipodi:cx="79"
+         cx="79"
+         cy="44.625"
+         rx="79"
+         ry="44.625"
+         style="fill:url(#g601);stroke:#333333;stroke-width:1"
+         id="ellipse6811"
+         d="M 158,44.625 C 158,69.270707 122.6305,89.25 79,89.25 35.369505,89.25 0,69.270707 0,44.625 0,19.979293 35.369505,0 79,0 c 43.6305,0 79,19.979293 79,44.625 z" />
+      <g
+         transform="translate(0,52.625)"
+         id="g6813">
+        <text
+           x="79"
+           style="text-anchor:middle"
+           y="-3"
+           id="text6815">
+          <tspan
+             style="font-size:18px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="18"
+             font-weight="bold"
+             id="tspan6817">web100clt</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(519.66667,988.28125)"
+       id="g6819">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="0"
+         y2="60.75"
+         id="line6821" />
+      <g
+         transform="matrix(0,-1,1,0,0,62.75)"
+         id="g6823">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6825" />
+      </g>
+      <g
+         transform="translate(0,36.375)"
+         id="g6827">
+        <rect
+           style="fill:#ffffff"
+           x="-47"
+           y="-10"
+           width="94"
+           height="16"
+           id="rect6829" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6831">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6833">Spawn child</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(402.66667,810.15625)"
+       id="g6835">
+      <g
+         transform="translate(0,40.5)"
+         id="g6837">
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="-7"
+           id="text6839">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan6841">NDT -</tspan>        </text>
+        <text
+           x="118"
+           style="text-anchor:middle"
+           y="36.400002"
+           id="text6843">
+          <tspan
+             style="font-size:36px;font-weight:bold;fill:#000000;font-family:Arial"
+             xml:space="preserve"
+             font-size="36"
+             font-weight="bold"
+             id="tspan6845">Server</tspan>        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(976.66667,940.65625)"
+       id="g6847">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="-366.00037"
+         y2="-6.9619632"
+         id="line6849" />
+      <g
+         transform="matrix(0.99981914,0.0190183,-0.0190183,0.99981914,-368,-7)"
+         id="g6851">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6853" />
+      </g>
+      <g
+         transform="translate(-193.99819,-3.5)"
+         id="g6855">
+        <rect
+           style="fill:#ffffff"
+           x="-51.5"
+           y="-10"
+           width="103"
+           height="16"
+           id="rect6857" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6859">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6861">Test Request</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(584.66667,1061.6563)"
+       id="g6863">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="1.9255075"
+         y1="-0.54075933"
+         x2="381"
+         y2="-107"
+         id="line6865" />
+      <g
+         transform="matrix(0.96275378,-0.27037967,0.27037967,0.96275378,0,0)"
+         id="g6867">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6869" />
+      </g>
+      <g
+         transform="translate(195.68623,-58.5)"
+         id="g6871">
+        <rect
+           style="fill:#ffffff"
+           x="-62"
+           y="-10"
+           width="124"
+           height="16"
+           id="rect6873" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6875">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6877">Control Channel</tspan>
+        </text>
+      </g>
+    </g>
+    <g
+       transform="translate(969.66667,982.65625)"
+       id="g6879">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="-361.07877"
+         y2="104.44427"
+         id="line6881" />
+      <g
+         transform="matrix(0.96062005,-0.2778653,0.2778653,0.96062005,-363,105)"
+         id="g6883">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6885" />
+      </g>
+      <g
+         transform="translate(-176.3031,47.5)"
+         id="g6887" />
+    </g>
+    <g
+       transform="translate(600.66667,1116.6563)"
+       id="g6889">
+      <line
+         style="stroke:#000000;stroke-width:2;stroke-dasharray:23, 0"
+         x1="0"
+         y1="0"
+         x2="389.07733"
+         y2="-111.44926"
+         id="line6891" />
+      <g
+         transform="matrix(-0.96133817,0.27537052,-0.27537052,-0.96133817,391,-112)"
+         id="g6893">
+        <polygon
+           style="fill:#000000;stroke:#000000;stroke-width:2"
+           points="3,0 9,-3 9,3 "
+           id="polygon6895" />
+      </g>
+      <g
+         transform="translate(200.69331,-61)"
+         id="g6897">
+        <rect
+           style="fill:#ffffff"
+           x="-82.5"
+           y="-10"
+           width="165"
+           height="16"
+           id="rect6899" />
+        <text
+           x="0"
+           style="text-anchor:middle"
+           y="2"
+           id="text6901">
+          <tspan
+             style="font-size:14px;font-weight:bold;fill:#000000;font-family:Arial"
+             font-size="14px"
+             font-weight="bold"
+             id="tspan6903">Specific test channels</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>
