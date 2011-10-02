@@ -124,6 +124,14 @@ After downloading the Web100 user library sources, unpack the downloaded tar fil
 
 Once the kernel is built and running, it will automatically begin collecting data on every TCP connection to/from the server. The user library file contains the routines needed to extract that kernel data from the system. The administrator can verify that the kernel is recording properly by using the /usr/local/bin/gutil program. This X-windows based GUI allows the administrator to monitor any TCP connection going to/from the server.
 
+==== pcap library ====
+
+The pcap library provides raw access to the network interface. The NDT uses packet pair dispersion techniques to determine the bottleneck link speed/type. This means that the _libpcap.so_ runtime libraries must be installed on the NDT server. This library is a standard part of all Linux distributions. The administrator should check the NDT server to ensure they were installed when the system was built. The command:
+
+{{{ls /usr/lib/libpcap*}}}
+
+– will return several files if the libraries are installed. If they are not installed, obtain the installation package from your favorite mirror site or download and install the source from the [http://www.tcpdump.org] web site.
+
 === Sources ===
 
 NDT sources can be obtained in two ways:
