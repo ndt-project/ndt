@@ -187,3 +187,24 @@ Once all the pre-requisites are installed, the admin is now ready to create the 
 
 This process creates both server programs (web100srv and fakewww), the client tool (web100clt), the administrative tools (analyze, viewtrace, genplot, tr-mkmap), and it builds the java class and jar programs. The _make install_
 process puts all the executables in the proper place.
+
+=== Preparing release packages ===
+
+In order to prepare the release package, the I2Util library sources have to be located inside the NDT sources directory.
+
+The release package is created with the following command:
+
+{{{make dist}}}
+
+The above command will create a gzipped tar archive (ndt-VERSION.tar.gz).
+
+It is also possible to create release packages in different formats. You can find all supported formats in the following table:
+
+|| *command* || *package type* || *package name* ||
+|| {{{make dist-gzip}}} || tar archive compressed with {{{gzip}}} || ndt-VERSION.tar.gz ||
+|| {{{make dist-bzip2}}} || tar archive compressed with {{{bzip2}}} || ndt-VERSION.tar.bz2 ||
+|| {{{make dist-lzma}}} || tar archive compressed with {{{lzma}}} || ndt-VERSION.tar.lzma ||
+|| {{{make dist-xz}}} || tar archive compressed with {{{xz}}} || ndt-VERSION.tar.xz ||
+|| {{{make dist-tarZ}}} || tar archive compressed with {{{compress}}} || ndt-VERSION.tar.Z ||
+|| {{{make dist-shar}}} || shar archive compressed with {{{gzip}}} || ndt-VERSION.shar.gz ||
+|| {{{make dist-zip}}} || zip archive || ndt-VERSION.zip ||
