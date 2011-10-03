@@ -190,7 +190,7 @@ process puts all the executables in the proper place.
 
 === Preparing release packages ===
 
-In order to prepare the release package, the I2Util library sources have to be located inside the NDT sources directory.
+In order to prepare the release package, the !I2Util library sources have to be located inside the NDT sources directory.
 
 The release package is created with the following command:
 
