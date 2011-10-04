@@ -59,6 +59,14 @@ The brief information about each of the NDT component can be found in the follow
 
 === NDT subsystems ===
 
+The brief information about each of the NDT subsystem can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
+
+|| *Subsystem* || *Used by* || *Description* || *Example functions* || *Sources* ||
+|| logging || web100srv<br/>web100clt || Logging subsystem that is responsible for printing informational messages on to the console. It can filter messages according to the currently set debug level. || {{{log_println(int lvl, const char* format, ...)}}} || {{{logging.c logging.h}}} ||
+|| network || web100srv<br/>web100clt || Subsystem that is responsible for all network operations. || {{{CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size)}}}<br/>{{{send_msg(int ctlSocket, int type, void* msg, int len)}}}<br/>{{{recv_msg(int ctlSocket, int* type, void* msg, int* len)}}} || {{{network.c network.h}}} ||
+|| protocol || web100srv<br/>web100clt || Functions to support [NDTProtocol NDT Protocol]. || {{{check_msg_type(char* prefix, int expected, int received, char* buff, int len)}}} || {{{protocol.c protocol.h}}} ||
+|| utils || web100srv<br/>web100clt || Functions to handle numbers sanity checks and some other utility things. || {{{check_int(char* text, int* number)}}}<br/>{{{check_rint(char* text, int* number, int minVal, int maxVal)}}} || utils.c utils.h ||
+
 == Life Cycle ==
 
 The NDT client and server interaction details can be found in the [NDTProtocol#Protocol_description NDT Protocol description].
