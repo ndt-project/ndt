@@ -27,6 +27,12 @@ Moreover, it can be also obtained by downloading the newest tar package from the
 
 == Architecture Overview ==
 
+We can look at the NDT architecture in two different ways:
+ * by distinguish separate components on the executables level (i.e. talk about web100clt and web100srv as two NDT components)
+ * by distinguish different subsystems that the NDT components are using (i.e. both web100clt and web100srv are using logging subsystem)
+
+=== NDT components ===
+
 After downloading the NDT sources, we can find the NDT components in the following directories:
  * src:
    {{{ }}}*web100clt*{{{, }}}*web100srv*{{{, fakewww, analyze, viewtrace, tr-mkmap, genplot}}}
@@ -50,6 +56,8 @@ The brief information about each of the NDT component can be found in the follow
 || genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace web100 snaplog trace] files and generate xplot graphs from the obtained web100 variables. || *src* <br/><br/> {{{genplot.c usage.c}}} ||
 || JAnalyze.jar || Administrative Tools || Java based utility application that can look through the NDT log files and display the old test results (along with displaying existing snaplog/tcpdump trace files and additional graphs). || *janalyze/src* <br/><br/> {{{DBConfFrame.java Helpers.java LoadingDBFrame.java MaxPeakInfo.java PeakInfo.java ResultsContainer.java SimpleTextPane.java SwingWorker.java FilterFrame.java JAnalyze.java LoadingFrame.java MinPeakInfo.java PropertyListener.java ResultsList.java SnaplogFrame.java}}} ||
 || Admin.class || Administrative Tools || The Java Applet-based application that provides an administrator view of the NDT usage statistics (this applet is responsible for drawing the bar graph that appears on the admin view html page). || *Admin* <br/><br/> {{{Admin.java}}} ||
+
+=== NDT subsystems ===
 
 == Life Cycle ==
 
