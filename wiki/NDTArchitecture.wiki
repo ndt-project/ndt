@@ -86,13 +86,13 @@ The brief information about each of the NDT subsystem can be found in the follow
 
 All subsystems of the NDT Server (web100srv) can be seen on the following diagram:
 
-http://www.soldevelo.com/images/ndt/NDTA1.png
+http://www.soldevelo.com/images/ndt/NDTA2.png
 
 ==== NDT Client subsystems ====
 
 All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
 
-http://www.soldevelo.com/images/ndt/NDTA2.png
+http://www.soldevelo.com/images/ndt/NDTA3.png
 
 ==== NDT Java Applet subsystems ====
 
@@ -107,7 +107,7 @@ The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as th
 
 This simple architecture can be seen on the following diagram:
 
-http://www.soldevelo.com/images/ndt/NDTA3.png
+http://www.soldevelo.com/images/ndt/NDTA1.png
 
 == Life Cycle ==
 
