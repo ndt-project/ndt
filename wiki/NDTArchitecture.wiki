@@ -82,6 +82,33 @@ The brief information about each of the NDT subsystem can be found in the follow
 || META Test (C) || web100clt || The client part of the META Test || {{{test_meta_clt(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
 || META Test (S) || web100srv || The server part of the META Test || {{{test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
 
+==== NDT Server subsystems ====
+
+All subsystems of the NDT Server (web100srv) can be seen on the following diagram:
+
+*TODO - insert diagram here*
+
+==== NDT Client subsystems ====
+
+All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
+
+*TODO - insert diagram here*
+
+==== NDT Java Applet subsystems ====
+
+The NDT Java Applet-based client has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
+
+|| *Subsystem* || *Method* ||
+|| SFW Test (C) || {{{test_sfw(Protocol ctl)}}} ||
+|| MID Test (C) || {{{test_mid(Protocol ctl)}}} ||
+|| C2S Test (C) || {{{test_c2s(Protocol ctl)}}} ||
+|| S2C Test (C) || {{{test_s2c(Protocol ctl, Socket ctlSocket)}}} ||
+|| META Test (C) || {{{test_meta(Protocol ctl) }}} ||
+
+This simple architecture can be seen on the following diagram:
+
+*TODO - insert diagram here*
+
 == Life Cycle ==
 
 The NDT client and server interaction details can be found in the [NDTProtocol#Protocol_description NDT Protocol description].
