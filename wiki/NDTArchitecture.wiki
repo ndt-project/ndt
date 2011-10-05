@@ -70,6 +70,17 @@ The brief information about each of the NDT subsystem can be found in the follow
 || pcap support || web100srv || Functions that use pcap library in the bottleneck detection algorithm. || {{{print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)}}}<br/>{{{void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA, int portB)}}} || {{{web100-pcap.c web100srv.h}}} ||
 || admin page || web100srv || Functions needed to handle the Admin page, which allows a remote user to view the usage statistics via a web page. || {{{gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf, int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh)}}} || {{{web100-admin.c web100-admin.h}}} ||
 || mrange || web100srv || Functions to handle number ranges. || {{{mrange_parse(char* text)}}}<br/>{{{mrange_next(char* port)}}} || {{{mrange.c mrange.h}}} ||
+|| || || || || ||
+|| SFW Test (C) || web100clt || The client part of the Simple Firewall Test || {{{test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options)}}} || {{{test_sfw_clt.c test_sfw.h}}} ||
+|| SFW Test (S) || web100srv || The server part of the Simple Firewall Test || {{{test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options)}}} || {{{test_sfw_srv.c test_sfw.h testoptions.h}}} ||
+|| MID Test (C) || web100clt || The client part of the Middlebox Test || {{{test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_size, char* tmpstr2)}}} || {{{test_mid_clt.c clt_tests.h}}} ||
+|| MID Test (S) || web100srv || The server part of the Middlebox Test || {{{test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd)}}} || {{{testoptions.c testoptions.h}}} ||
+|| C2S Test (C) || web100clt || The client part of the Client-To-Server Throughput Test || {{{test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_size)}}} || {{{test_c2s_clt.c clt_tests.h}}} ||
+|| C2S Test (S) || web100srv || The server part of the Client-To-Server Throughput Test || {{{test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* c2sspd, int set_buff, int window, int autotune, char* device, Options* options, int record_reverse, int count_vars, char spds[4][256], int* spd_index)}}} || {{{testoptions.c testoptions.h}}} ||
+|| S2C Test (C) || web100clt || The client part of the Server-To-Client Throughput Test || {{{test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_size, char* tmpstr)}}} || {{{test_s2c_clt.c clt_tests.h}}} ||
+|| S2C Test (S) || web100srv || The server part of the Server-To-Client Throughput Test || {{{test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd, int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256], int* spd_index, int count_vars, CwndPeaks* peaks)}}} || {{{testoptions.c testoptions.h}}} ||
+|| META Test (C) || web100clt || The client part of the META Test || {{{test_meta_clt(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
+|| META Test (S) || web100srv || The server part of the META Test || {{{test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
 
 == Life Cycle ==
 
