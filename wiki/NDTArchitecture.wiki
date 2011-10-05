@@ -96,7 +96,7 @@ All subsystems of the NDT Client (web100clt) can be seen on the following diagra
 
 ==== NDT Java Applet subsystems ====
 
-The NDT Java Applet-based client has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
+The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
 
 || *Subsystem* || *Method* ||
 || SFW Test (C) || {{{test_sfw(Protocol ctl)}}} ||
