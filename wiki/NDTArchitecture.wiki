@@ -25,90 +25,6 @@ Moreover, it can be also obtained by downloading the newest tar package from the
 
 {{{http://code.google.com/p/ndt/downloads}}}
 
-== Architecture Overview ==
-
-We can look at the NDT architecture in two different ways:
- * by distinguish separate components on the executables level (i.e. talk about web100clt and web100srv as two NDT components)
- * by distinguish different subsystems that the NDT components are using (i.e. both web100clt and web100srv are using logging subsystem)
-
-=== NDT components ===
-
-After downloading the NDT sources, we can find the NDT components in the following directories:
- * src:
-   {{{ }}}*web100clt*{{{, }}}*web100srv*{{{, fakewww, analyze, viewtrace, tr-mkmap, genplot}}}
- * Applet:
-   {{{ }}}*Tcpbw100.jar*
- * Admin:
-   {{{ }}}Admin.class
- * janalyze/src:
-   {{{ }}}JAnalyze.jar
-
-The brief information about each of the NDT components can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
-
-|| *Component Name* || *Type* || *Description* || *Sources Location* ||
-|| *web100clt* || Client Tools || The NDT Client application (used from command line). || *src* <br/><br/> {{{web100clt.c network.c usage.c logging.c utils.c protocol.c test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c}}} ||
-|| *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. || *Applet* <br/><br/> {{{Tcpbw100.java}}}||
-|| *web100srv* || Server Tools || The NDT Server application. || *src* <br/><br/> {{{web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c utils.c mrange.c logging.c testoptions.c protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c}}} ||
-|| fakewww || Server Tools || Optional 'lite' web server. || *src* <br/><br/> {{{fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c}}} ||
-|| analyze || Administrative Tools || Console based utility application that can look through the NDT log files and display the old test results. || *src* <br/><br/> {{{analyze.c usage.c logging.c}}} ||
-|| viewtrace || Administrative Tools || Console based utility application that can read [NDTDataFormat#tcpdump_trace tcpdump trace] files to perform packet pair timings to determine [NDTTestMethodology#Bottleneck_Link_Detection what type of bottleneck link exists] on the analyzed path. || *src* <br/><br/> {{{viewtrace.c usage.c logging.c utils.c}}} ||
-|| tr-mkmap || Administrative Tools || Console based utility application that can build a default traceroute tree between all federated NDT servers. The fakewww web server uses such pre-built traceroute trees to redirect clients to the closest NDT server. || *src* <br/><br/> {{{tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c}}} ||
-|| genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace Web100 snaplog trace] files and generate xplot graphs from the obtained Web100 variables. || *src* <br/><br/> {{{genplot.c usage.c}}} ||
-|| JAnalyze.jar || Administrative Tools || Java based utility application that can look through the NDT log files and display the old test results (along with displaying existing snaplog/tcpdump trace files and additional graphs). || *janalyze/src* <br/><br/> {{{DBConfFrame.java Helpers.java LoadingDBFrame.java MaxPeakInfo.java PeakInfo.java ResultsContainer.java SimpleTextPane.java SwingWorker.java FilterFrame.java JAnalyze.java LoadingFrame.java MinPeakInfo.java PropertyListener.java ResultsList.java SnaplogFrame.java}}} ||
-|| Admin.class || Administrative Tools || The Java Applet-based application that provides an administrator view of the NDT usage statistics (this applet is responsible for drawing the bar graph that appears on the admin view html page). || *Admin* <br/><br/> {{{Admin.java}}} ||
-
-=== NDT subsystems ===
-
-The brief information about each of the NDT subsystems can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
-
-|| *Subsystem* || *Used by* || *Description* || *Functions* || *Sources* ||
-|| logging || web100srv<br/>web100clt || Logging subsystem that is responsible for printing informational messages on to the console. It can filter messages according to the currently set debug level. Moreover, this subsystem is also responsible for dates/timestamps handling. || {{{void }}}*log_init*{{{(char* progname, int debuglvl)}}}<br/>{{{void }}}*set_debuglvl*{{{(int debuglvl)}}}<br/>{{{void }}}*set_logfile*{{{(char* filename)}}}<br/>{{{int }}}*get_debuglvl*{{{()}}}<br/>{{{char* }}}*get_logfile*{{{()}}}<br/>{{{I2ErrHandle }}}*get_errhandle*{{{()}}}<br/>{{{void }}}*log_print*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_println*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_free*{{{(void)}}}<br/>{{{void }}}*set_timestamp*{{{()}}}<br/>{{{time_t }}}*get_timestamp*{{{()}}}<br/>{{{long int }}}*get_utimestamp*{{{()}}}<br/>{{{char* }}}*get_ISOtime*{{{(char * isoTime)}}}<br/>{{{void }}}*get_YYYY*{{{(char * year)}}}<br/>{{{void }}}*get_MM*{{{(char * month)}}}<br/>{{{void }}}*get_DD*{{{(char * day)}}} || {{{logging.c logging.h}}} ||
-|| network || web100srv<br/>web100clt || Subsystem that is responsible for all network operations. || {{{I2Addr }}}*!CreateListenSocket*{{{(I2Addr addr, char* serv, int options, int buf_size)}}}<br/>{{{int }}}*!CreateConnectSocket*{{{(int* sockfd, I2Addr local_addr, I2Addr server_addr, int option, int buf_sizes)}}}<br/>{{{int }}}*send_msg*{{{(int ctlSocket, int type, void* msg, int len)}}}<br/>{{{int }}}*recv_msg*{{{(int ctlSocket, int* type, void* msg, int* len)}}}<br/>{{{int }}}*writen*{{{(int fd, void* buf, int amount)}}}<br/>{{{int }}}*readn*{{{(int fd, void* buf, int amount)}}} || {{{network.c network.h}}} ||
-|| protocol || web100srv<br/>web100clt || Functions to support [NDTProtocol NDT Protocol]. || {{{int }}}*check_msg_type*{{{(char* prefix, int expected, int received, char* buff, int len)}}} || {{{protocol.c protocol.h}}} ||
-|| utils || web100srv<br/>web100clt || Functions to handle numbers sanity checks and some other utility things. || {{{int }}}*check_int*{{{(char* text, int* number)}}}<br/>{{{int }}}*check_rint*{{{(char* text, int* number, int minVal, int maxVal)}}}<br/>{{{int }}}*check_long*{{{(char* text, long* number)}}}<br/>{{{double }}}*secs*{{{()}}}<br/>{{{void }}}*err_sys*{{{(char* s)}}}<br/>{{{int }}}*sndq_len*{{{(int fd)}}}<br/>{{{void }}}*mysleep*{{{(double time)}}} || utils.c utils.h ||
-|| Web100 support || web100srv || Functions needed to read the Web100 variables. || {{{void }}}*get_iflist*{{{(void)}}}<br/>{{{int }}}*web100_init*{{{(char *VarFileName)}}}<br/>{{{int }}}*web100_autotune*{{{(int sock, web100_agent* agent, web100_connection* cn)}}}<br/>{{{void }}}*web100_middlebox*{{{(int sock, web100_agent* agent, web100_connection* cn, char *results)}}}<br/>{{{int }}}*web100_setbuff*{{{(int sock, web100_agent* agent, web100_connection* cn, int autotune)}}}<br/>{{{void }}}*web100_get_data_recv*{{{(int sock, web100_agent* agent, web100_connection* cn, int count_vars)}}}<br/>{{{int }}}*web100_get_data*{{{(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars)}}}<br/>{{{int }}}*!CwndDecrease*{{{(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt)}}}<br/>{{{int }}}*web100_logvars*{{{(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut, int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd, int *Sndbuf, int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd, int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin, int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh, int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals, int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale, int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions, int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart, int *SubsequentTimeouts, int *ThruBytesAcked)}}} || {{{web100-util.c web100srv.h}}} ||
-|| pcap support || web100srv || Functions that use pcap library in the bottleneck detection algorithm. || {{{void }}}*init_vars*{{{(struct spdpair *cur)}}}<br/>{{{void }}}*print_bins*{{{(struct spdpair *cur, int monitor_pipe[2])}}}<br/>{{{void }}}*calculate_spd*{{{(struct spdpair *cur, struct spdpair *cur2, int port2, int port3)}}}<br/>{{{void }}}*init_pkttrace*{{{(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2], char *device, PortPair* pair, char * direction, int compress)}}}<br/>{{{int }}}*check_signal_flags*{{{()}}} || {{{web100-pcap.c web100srv.h}}} ||
-|| admin page || web100srv || Functions needed to handle the Admin page, which allows a remote user to view the usage statistics via a web page. || {{{void }}}*view_init*{{{(int refresh)}}}<br/>{{{int }}}*calculate*{{{(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut, int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin, int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd, int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd, int c2sdata, int s2cack, int view_flag)}}}<br/>{{{void }}}*gen_html*{{{(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf, int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh)}}} || {{{web100-admin.c web100-admin.h}}} ||
-|| mrange || web100srv || Functions to handle port number ranges. This means that the numbers generated by these methods are always between 1 and 65535 inclusive. || {{{int }}}*mrange_parse*{{{(char* text)}}}<br/>{{{char* }}}*mrange_next*{{{(char* port)}}} || {{{mrange.c mrange.h}}} ||
-|| || || || || ||
-|| SFW Test (C) || web100clt || The client part of the Simple Firewall Test || {{{int }}}*test_sfw_clt*{{{(int ctlsockfd, char tests, char* host, int conn_options)}}}<br/>{{{int }}}*results_sfw*{{{(char tests, char* host)}}} || {{{test_sfw_clt.c test_sfw.h}}} ||
-|| SFW Test (S) || web100srv || The server part of the Simple Firewall Test || {{{int }}}*test_sfw_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options)}}} || {{{test_sfw_srv.c test_sfw.h testoptions.h}}} ||
-|| MID Test (C) || web100clt || The client part of the Middlebox Test || {{{int }}}*test_mid_clt*{{{(int ctlSocket, char tests, char* host, int conn_options, int buf_size, char* tmpstr2)}}} || {{{test_mid_clt.c clt_tests.h}}} ||
-|| MID Test (S) || web100srv || The server part of the Middlebox Test || {{{int }}}*test_mid*{{{(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd)}}} || {{{testoptions.c testoptions.h}}} ||
-|| C2S Test (C) || web100clt || The client part of the Client-To-Server Throughput Test || {{{int }}}*test_c2s_clt*{{{(int ctlSocket, char tests, char* host, int conn_options, int buf_size)}}} || {{{test_c2s_clt.c clt_tests.h}}} ||
-|| C2S Test (S) || web100srv || The server part of the Client-To-Server Throughput Test || {{{int }}}*test_c2s*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* c2sspd, int set_buff, int window, int autotune, char* device, Options* options, int record_reverse, int count_vars, char spds[4][256], int* spd_index)}}} || {{{testoptions.c testoptions.h}}} ||
-|| S2C Test (C) || web100clt || The client part of the Server-To-Client Throughput Test || {{{int }}}*test_s2c_clt*{{{(int ctlSocket, char tests, char* host, int conn_options, int buf_size, char* tmpstr)}}} || {{{test_s2c_clt.c clt_tests.h}}} ||
-|| S2C Test (S) || web100srv || The server part of the Server-To-Client Throughput Test || {{{int }}}*test_s2c*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd, int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256], int* spd_index, int count_vars, CwndPeaks* peaks)}}} || {{{testoptions.c testoptions.h}}} ||
-|| META Test (C) || web100clt || The client part of the META Test || {{{int }}}*test_meta_clt*{{{(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
-|| META Test (S) || web100srv || The server part of the META Test || {{{int }}}*test_meta_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
-
-==== NDT Server subsystems ====
-
-All subsystems of the NDT Server (web100srv) can be seen on the following diagram:
-
-http://www.soldevelo.com/images/ndt/NDTA2.png
-
-==== NDT Client subsystems ====
-
-All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
-
-http://www.soldevelo.com/images/ndt/NDTA3.png
-
-==== NDT Java Applet subsystems ====
-
-The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
-
-|| *Subsystem* || *Method* ||
-|| SFW Test (C) || {{{boolean }}}*test_sfw*{{{(Protocol ctl)}}} ||
-|| MID Test (C) || {{{boolean }}}*test_mid*{{{(Protocol ctl)}}} ||
-|| C2S Test (C) || {{{boolean }}}*test_c2s*{{{(Protocol ctl)}}} ||
-|| S2C Test (C) || {{{boolean }}}*test_s2c*{{{(Protocol ctl, Socket ctlSocket)}}} ||
-|| META Test (C) || {{{boolean }}}*test_meta*{{{(Protocol ctl) }}} ||
-
-This simple architecture can be seen on the following diagram:
-
-http://www.soldevelo.com/images/ndt/NDTA1.png
-
 == Life Cycle ==
 
 The NDT client and server interaction details can be found in the [NDTProtocol#Protocol_description NDT Protocol description].
@@ -143,6 +59,92 @@ http://www.soldevelo.com/images/ndt/NDT_flow_2.png
  # The NDT client and the NDT server performs the negotiated test suite. The client opens new data channels back to the server for testing purposes. Allowing the client to open connections makes it easy to get past client-side firewall boxes.
  # The server extracts the Web100 data and analyzes the connection for faults.
  # The results are recorded in the [NDTDataFormat#web100srv.log_file servers’ log file] and the results are returned to the client for display to the user.
+
+== Architecture Overview ==
+
+We can look at the NDT architecture in two different ways:
+ * by distinguish separate components on the executables level (i.e. talk about web100clt and web100srv as two NDT components)
+ * by distinguish different subsystems that the NDT components are using (i.e. both web100clt and web100srv are using logging subsystem)
+
+=== NDT components ===
+
+After downloading the NDT sources, we can find the NDT components in the following directories:
+ * src:
+   {{{ }}}*web100clt*{{{, }}}*web100srv*{{{, fakewww, analyze, viewtrace, tr-mkmap, genplot}}}
+ * Applet:
+   {{{ }}}*Tcpbw100.jar*
+ * Admin:
+   {{{ }}}Admin.class
+ * janalyze/src:
+   {{{ }}}JAnalyze.jar
+
+The brief information about each of the NDT components can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
+
+|| *Component Name* || *Type* || *Description* || *Sources Location* ||
+|| *web100clt* || Client Tools || The NDT Client application (used from command line). || *src* <br/><br/> {{{web100clt.c network.c usage.c logging.c utils.c protocol.c test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c}}} ||
+|| *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. || *Applet* <br/><br/> {{{Tcpbw100.java}}}||
+|| *web100srv* || Server Tools || The NDT Server application. || *src* <br/><br/> {{{web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c utils.c mrange.c logging.c testoptions.c protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c}}} ||
+|| fakewww || Server Tools || Optional 'lite' web server. || *src* <br/><br/> {{{fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c}}} ||
+|| analyze || Administrative Tools || Console based utility application that can look through the NDT log files and display the old test results. || *src* <br/><br/> {{{analyze.c usage.c logging.c}}} ||
+|| viewtrace || Administrative Tools || Console based utility application that can read [NDTDataFormat#tcpdump_trace tcpdump trace] files to perform packet pair timings to determine [NDTTestMethodology#Bottleneck_Link_Detection what type of bottleneck link exists] on the analyzed path. || *src* <br/><br/> {{{viewtrace.c usage.c logging.c utils.c}}} ||
+|| tr-mkmap || Administrative Tools || Console based utility application that can build a default traceroute tree between all federated NDT servers. The fakewww web server uses such pre-built traceroute trees to redirect clients to the closest NDT server. || *src* <br/><br/> {{{tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c}}} ||
+|| genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace Web100 snaplog trace] files and generate xplot graphs from the obtained Web100 variables. || *src* <br/><br/> {{{genplot.c usage.c}}} ||
+|| JAnalyze.jar || Administrative Tools || Java based utility application that can look through the NDT log files and display the old test results (along with displaying existing snaplog/tcpdump trace files and additional graphs). || *janalyze/src* <br/><br/> {{{DBConfFrame.java Helpers.java LoadingDBFrame.java MaxPeakInfo.java PeakInfo.java ResultsContainer.java SimpleTextPane.java SwingWorker.java FilterFrame.java JAnalyze.java LoadingFrame.java MinPeakInfo.java PropertyListener.java ResultsList.java SnaplogFrame.java}}} ||
+|| Admin.class || Administrative Tools || The Java Applet-based application that provides an administrator view of the NDT usage statistics (this applet is responsible for drawing the bar graph that appears on the admin view html page). || *Admin* <br/><br/> {{{Admin.java}}} ||
+
+=== NDT subsystems ===
+
+==== NDT Server subsystems ====
+
+All subsystems of the NDT Server (web100srv) can be seen on the following diagram:
+
+http://www.soldevelo.com/images/ndt/NDTA2.png
+
+==== NDT Client subsystems ====
+
+All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
+
+http://www.soldevelo.com/images/ndt/NDTA3.png
+
+==== NDT Java Applet subsystems ====
+
+The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
+
+|| *Subsystem* || *Method* ||
+|| SFW Test (C) || {{{boolean }}}*test_sfw*{{{(Protocol ctl)}}} ||
+|| MID Test (C) || {{{boolean }}}*test_mid*{{{(Protocol ctl)}}} ||
+|| C2S Test (C) || {{{boolean }}}*test_c2s*{{{(Protocol ctl)}}} ||
+|| S2C Test (C) || {{{boolean }}}*test_s2c*{{{(Protocol ctl, Socket ctlSocket)}}} ||
+|| META Test (C) || {{{boolean }}}*test_meta*{{{(Protocol ctl) }}} ||
+
+This simple architecture can be seen on the following diagram:
+
+http://www.soldevelo.com/images/ndt/NDTA1.png
+
+==== Subsystems description ====
+
+The brief information about each of the NDT subsystems can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
+
+|| *Subsystem* || *Used by* || *Description* || *Functions* || *Sources* ||
+|| logging || web100srv<br/>web100clt || Logging subsystem that is responsible for printing informational messages on to the console. It can filter messages according to the currently set debug level. Moreover, this subsystem is also responsible for dates/timestamps handling. || {{{void }}}*log_init*{{{(char* progname, int debuglvl)}}}<br/>{{{void }}}*set_debuglvl*{{{(int debuglvl)}}}<br/>{{{void }}}*set_logfile*{{{(char* filename)}}}<br/>{{{int }}}*get_debuglvl*{{{()}}}<br/>{{{char* }}}*get_logfile*{{{()}}}<br/>{{{I2ErrHandle }}}*get_errhandle*{{{()}}}<br/>{{{void }}}*log_print*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_println*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_free*{{{(void)}}}<br/>{{{void }}}*set_timestamp*{{{()}}}<br/>{{{time_t }}}*get_timestamp*{{{()}}}<br/>{{{long int }}}*get_utimestamp*{{{()}}}<br/>{{{char* }}}*get_ISOtime*{{{(char * isoTime)}}}<br/>{{{void }}}*get_YYYY*{{{(char * year)}}}<br/>{{{void }}}*get_MM*{{{(char * month)}}}<br/>{{{void }}}*get_DD*{{{(char * day)}}} || {{{logging.c logging.h}}} ||
+|| network || web100srv<br/>web100clt || Subsystem that is responsible for all network operations. || {{{I2Addr }}}*!CreateListenSocket*{{{(I2Addr addr, char* serv, int options, int buf_size)}}}<br/>{{{int }}}*!CreateConnectSocket*{{{(int* sockfd, I2Addr local_addr, I2Addr server_addr, int option, int buf_sizes)}}}<br/>{{{int }}}*send_msg*{{{(int ctlSocket, int type, void* msg, int len)}}}<br/>{{{int }}}*recv_msg*{{{(int ctlSocket, int* type, void* msg, int* len)}}}<br/>{{{int }}}*writen*{{{(int fd, void* buf, int amount)}}}<br/>{{{int }}}*readn*{{{(int fd, void* buf, int amount)}}} || {{{network.c network.h}}} ||
+|| protocol || web100srv<br/>web100clt || Functions to support [NDTProtocol NDT Protocol]. || {{{int }}}*check_msg_type*{{{(char* prefix, int expected, int received, char* buff, int len)}}} || {{{protocol.c protocol.h}}} ||
+|| utils || web100srv<br/>web100clt || Functions to handle numbers sanity checks and some other utility things. || {{{int }}}*check_int*{{{(char* text, int* number)}}}<br/>{{{int }}}*check_rint*{{{(char* text, int* number, int minVal, int maxVal)}}}<br/>{{{int }}}*check_long*{{{(char* text, long* number)}}}<br/>{{{double }}}*secs*{{{()}}}<br/>{{{void }}}*err_sys*{{{(char* s)}}}<br/>{{{int }}}*sndq_len*{{{(int fd)}}}<br/>{{{void }}}*mysleep*{{{(double time)}}} || utils.c utils.h ||
+|| Web100 support || web100srv || Functions needed to read the Web100 variables. || {{{void }}}*get_iflist*{{{(void)}}}<br/>{{{int }}}*web100_init*{{{(char *VarFileName)}}}<br/>{{{int }}}*web100_autotune*{{{(int sock, web100_agent* agent, web100_connection* cn)}}}<br/>{{{void }}}*web100_middlebox*{{{(int sock, web100_agent* agent, web100_connection* cn, char *results)}}}<br/>{{{int }}}*web100_setbuff*{{{(int sock, web100_agent* agent, web100_connection* cn, int autotune)}}}<br/>{{{void }}}*web100_get_data_recv*{{{(int sock, web100_agent* agent, web100_connection* cn, int count_vars)}}}<br/>{{{int }}}*web100_get_data*{{{(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars)}}}<br/>{{{int }}}*!CwndDecrease*{{{(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt)}}}<br/>{{{int }}}*web100_logvars*{{{(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut, int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd, int *Sndbuf, int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd, int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin, int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh, int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals, int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale, int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions, int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart, int *SubsequentTimeouts, int *ThruBytesAcked)}}} || {{{web100-util.c web100srv.h}}} ||
+|| pcap support || web100srv || Functions that use pcap library in the bottleneck detection algorithm. || {{{void }}}*init_vars*{{{(struct spdpair *cur)}}}<br/>{{{void }}}*print_bins*{{{(struct spdpair *cur, int monitor_pipe[2])}}}<br/>{{{void }}}*calculate_spd*{{{(struct spdpair *cur, struct spdpair *cur2, int port2, int port3)}}}<br/>{{{void }}}*init_pkttrace*{{{(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, int monitor_pipe[2], char *device, PortPair* pair, char * direction, int compress)}}}<br/>{{{int }}}*check_signal_flags*{{{()}}} || {{{web100-pcap.c web100srv.h}}} ||
+|| admin page || web100srv || Functions needed to handle the Admin page, which allows a remote user to view the usage statistics via a web page. || {{{void }}}*view_init*{{{(int refresh)}}}<br/>{{{int }}}*calculate*{{{(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int PktsOut, int DupAcksIn, int AckPktsIn, int CurrentMSS, int SndLimTimeRwin, int SndLimTimeCwnd, int SndLimTimeSender, int MaxRwinRcvd, int CurrentCwnd, int Sndbuf, int DataBytesOut, int mismatch, int bad_cable, int c2sspd, int s2cspd, int c2sdata, int s2cack, int view_flag)}}}<br/>{{{void }}}*gen_html*{{{(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts, int Sndbuf, int MaxRwinRcvd, int CurrentCwnd, int mismatch, int bad_cable, int totalcnt, int refresh)}}} || {{{web100-admin.c web100-admin.h}}} ||
+|| mrange || web100srv || Functions to handle port number ranges. This means that the numbers generated by these methods are always between 1 and 65535 inclusive. || {{{int }}}*mrange_parse*{{{(char* text)}}}<br/>{{{char* }}}*mrange_next*{{{(char* port)}}} || {{{mrange.c mrange.h}}} ||
+|| || || || || ||
+|| SFW Test (C) || web100clt || The client part of the Simple Firewall Test || {{{int }}}*test_sfw_clt*{{{(int ctlsockfd, char tests, char* host, int conn_options)}}}<br/>{{{int }}}*results_sfw*{{{(char tests, char* host)}}} || {{{test_sfw_clt.c test_sfw.h}}} ||
+|| SFW Test (S) || web100srv || The server part of the Simple Firewall Test || {{{int }}}*test_sfw_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options)}}} || {{{test_sfw_srv.c test_sfw.h testoptions.h}}} ||
+|| MID Test (C) || web100clt || The client part of the Middlebox Test || {{{int }}}*test_mid_clt*{{{(int ctlSocket, char tests, char* host, int conn_options, int buf_size, char* tmpstr2)}}} || {{{test_mid_clt.c clt_tests.h}}} ||
+|| MID Test (S) || web100srv || The server part of the Middlebox Test || {{{int }}}*test_mid*{{{(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd)}}} || {{{testoptions.c testoptions.h}}} ||
+|| C2S Test (C) || web100clt || The client part of the Client-To-Server Throughput Test || {{{int }}}*test_c2s_clt*{{{(int ctlSocket, char tests, char* host, int conn_options, int buf_size)}}} || {{{test_c2s_clt.c clt_tests.h}}} ||
+|| C2S Test (S) || web100srv || The server part of the Client-To-Server Throughput Test || {{{int }}}*test_c2s*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* c2sspd, int set_buff, int window, int autotune, char* device, Options* options, int record_reverse, int count_vars, char spds[4][256], int* spd_index)}}} || {{{testoptions.c testoptions.h}}} ||
+|| S2C Test (C) || web100clt || The client part of the Server-To-Client Throughput Test || {{{int }}}*test_s2c_clt*{{{(int ctlSocket, char tests, char* host, int conn_options, int buf_size, char* tmpstr)}}} || {{{test_s2c_clt.c clt_tests.h}}} ||
+|| S2C Test (S) || web100srv || The server part of the Server-To-Client Throughput Test || {{{int }}}*test_s2c*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd, int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256], int* spd_index, int count_vars, CwndPeaks* peaks)}}} || {{{testoptions.c testoptions.h}}} ||
+|| META Test (C) || web100clt || The client part of the META Test || {{{int }}}*test_meta_clt*{{{(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
+|| META Test (S) || web100srv || The server part of the META Test || {{{int }}}*test_meta_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
 
 == Build Instructions ==
 
