@@ -119,12 +119,12 @@ A basic NDT test session with the Java Applet-based client looks as following:
 
 http://www.soldevelo.com/images/ndt/NDT_flow_1.png
 
- # The process starts with the user opening a browser and entering the NDT server URL
-   * An optional step is to point to a well known server and accept a redirect message (Federated mode)
-   * Otherwise the URL points to the NDT server itself (either an apache web server or the fakewww process answer the request)
- # The web server responds by returning the page, with an embedded java applet (class or jar file)
+ # The process starts with the user opening a browser and entering the NDT server URL:
+   * An optional step is to point to a well known server and accept a redirect message (Federated mode).
+   * Otherwise the URL points to the NDT server itself (either an apache web server or the fakewww process answer the request).
+ # The web server responds by returning the page, with an embedded java applet (class or jar file).
  # The user must manually request a test be performed by clicking the “start” button
- # The applet opens a connection back to the server’s testing engine (web100srv process)
+ # The applet opens a connection back to the server’s testing engine (web100srv process).
  # A child process is created to handle the test and the parent goes back to listening for more test requests. The parent keeps a FIFO queue to process multiple requests.
  # A control channel is created between the server and the client to control the client’s actions and synchronize the start of the various tests. The server and the client negotiate the test suite.
  # The NDT client and the NDT server performs the negotiated test suite. The client opens new data channels back to the server for testing purposes. Allowing the client to open connections makes it easy to get past client-side firewall boxes.
