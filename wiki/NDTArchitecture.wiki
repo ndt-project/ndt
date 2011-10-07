@@ -96,7 +96,7 @@ The brief information about each of the NDT components can be found in the follo
 
 ==== NDT Server subsystems ====
 
-All subsystems of the NDT Server (web100srv) can be seen on the following diagram:
+All subsystems of the NDT Server (web100srv) can be seen on the following diagram (please note, that web100srv is the component that is using all subsystems included in it, the subsystems like _mrange_ and _admin page_ are used during initialization and after each test session):
 
 http://www.soldevelo.com/images/ndt/NDTA2.png
 
@@ -105,21 +105,6 @@ http://www.soldevelo.com/images/ndt/NDTA2.png
 All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
 
 http://www.soldevelo.com/images/ndt/NDTA3.png
-
-==== NDT Java Applet subsystems ====
-
-The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
-
-|| *Subsystem* || *Method* ||
-|| SFW Test (C) || {{{boolean }}}*test_sfw*{{{(Protocol ctl)}}} ||
-|| MID Test (C) || {{{boolean }}}*test_mid*{{{(Protocol ctl)}}} ||
-|| C2S Test (C) || {{{boolean }}}*test_c2s*{{{(Protocol ctl)}}} ||
-|| S2C Test (C) || {{{boolean }}}*test_s2c*{{{(Protocol ctl, Socket ctlSocket)}}} ||
-|| META Test (C) || {{{boolean }}}*test_meta*{{{(Protocol ctl) }}} ||
-
-This simple architecture can be seen on the following diagram:
-
-http://www.soldevelo.com/images/ndt/NDTA1.png
 
 ==== Subsystems description ====
 
@@ -145,6 +130,21 @@ The brief information about each of the NDT subsystems can be found in the follo
 || S2C Test (S) || web100srv || The server part of the Server-To-Client Throughput Test || {{{int }}}*test_s2c*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options, double* s2cspd, int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256], int* spd_index, int count_vars, CwndPeaks* peaks)}}} || {{{testoptions.c testoptions.h}}} ||
 || META Test (C) || web100clt || The client part of the META Test || {{{int }}}*test_meta_clt*{{{(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
 || META Test (S) || web100srv || The server part of the META Test || {{{int }}}*test_meta_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
+
+==== NDT Java Applet subsystems ====
+
+The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
+
+|| *Subsystem* || *Method* ||
+|| SFW Test (C) || {{{boolean }}}*test_sfw*{{{(Protocol ctl)}}} ||
+|| MID Test (C) || {{{boolean }}}*test_mid*{{{(Protocol ctl)}}} ||
+|| C2S Test (C) || {{{boolean }}}*test_c2s*{{{(Protocol ctl)}}} ||
+|| S2C Test (C) || {{{boolean }}}*test_s2c*{{{(Protocol ctl, Socket ctlSocket)}}} ||
+|| META Test (C) || {{{boolean }}}*test_meta*{{{(Protocol ctl) }}} ||
+
+This simple architecture can be seen on the following diagram:
+
+http://www.soldevelo.com/images/ndt/NDTA1.png
 
 == Build Instructions ==
 
