@@ -123,7 +123,7 @@ http://www.soldevelo.com/images/ndt/NDT_flow_1.png
    * An optional step is to point to a well known server and accept a redirect message (Federated mode).
    * Otherwise the URL points to the NDT server itself (either an apache web server or the fakewww process answer the request).
  # The web server responds by returning the page, with an embedded java applet (class or jar file).
- # The user must manually request a test be performed by clicking the “start” button
+ # The user must manually request a test be performed by clicking the “start” button.
  # The applet opens a connection back to the server’s testing engine (web100srv process).
  # A child process is created to handle the test and the parent goes back to listening for more test requests. The parent keeps a FIFO queue to process multiple requests.
  # A control channel is created between the server and the client to control the client’s actions and synchronize the start of the various tests. The server and the client negotiate the test suite.
