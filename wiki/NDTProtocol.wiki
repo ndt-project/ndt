@@ -46,11 +46,11 @@ Please look at the figures describing the two main NDTP-Tests protocols:
 
  * C2S throughput test
 
-http://www.soldevelo.com/images/ndt/1.%20C2S%20throughput%20test.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/1.%20C2S%20throughput%20test.png
 
  * S2C throughput test
 
-http://www.soldevelo.com/images/ndt/2.%20S2C%20throughput%20test.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/2.%20S2C%20throughput%20test.png
 
 == Protocol Overview ==
 
@@ -74,7 +74,7 @@ An implementation SHOULD expunge unused state to prevent denial-of-service attac
 
 Each of the NDTP-Control messages always has the following format:
 
-http://www.soldevelo.com/images/ndt/3.%20Each%20of%20the%20NDTP-Control%20messages%20always%20has%20the%20following%20format.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/3.%20Each%20of%20the%20NDTP-Control%20messages%20always%20has%20the%20following%20format.png
 
 === Message types ===
 
@@ -101,7 +101,7 @@ Before the Client can start the test session, it has to establish a connection t
 
 First, the Client opens a TCP connection to the Server on a well-known port 3001 and sends a LOGIN message:
 
-http://www.soldevelo.com/images/ndt/4.%20Server%20on%20a%20well-known%20port%203001%20and%20sends%20a%20LOGIN%20message.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/4.%20Server%20on%20a%20well-known%20port%203001%20and%20sends%20a%20LOGIN%20message.png
 
 Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite. The Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
 
@@ -111,7 +111,7 @@ All Clients MUST always request the TEST_STATUS (16 (1L << 4)) test in order to 
 
 In the same time the Server MUST send the specially crafted 13 octets long data that kicks off the old Clients. This message does not follow the NDTP-Control protocol message format and MUST be sent verbatim as a string of US-ASCII bytes:
 
-http://www.soldevelo.com/images/ndt/5.%2013%20octets%20long%20data%20that%20kicks%20off%20the%20old%20Clients%20%28%22123456%20654321%22%29.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/5.%2013%20octets%20long%20data%20that%20kicks%20off%20the%20old%20Clients%20%28%22123456%20654321%22%29.png
 
 All non-compatible Clients MUST drop the connection after receiving the above message. This message is different from all other message types, because it was designed to exploit the old Clients behavior, that tried to treat these string encoded numbers as the port numbers.
 
@@ -128,7 +128,7 @@ Next, the NDT Server MUST send a one or more SRV_QUEUE messages to inform the Cl
 
 When the NDT Server decides that the Client can start its test session, it sends the SRV_QUEUE message with value *'0'*:
 
-http://www.soldevelo.com/images/ndt/6.%20sends%20SRV_QUEUE%20message%20with%20value%20%270%27.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/6.%20sends%20SRV_QUEUE%20message%20with%20value%20%270%27.png
 
 The SRV_QUEUE messages are only sent to the queued Clients.
 
@@ -138,7 +138,7 @@ At the beginning of the test session the Server and the Client MUST verify their
 
 The Server MUST send a MSG_LOGIN message containing its version identifier in the following form:
 
-http://www.soldevelo.com/images/ndt/7.%20MSG_LOGIN%20message%20containing%20its%20version%20identifier%20in%20the%20following%20form.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/7.%20MSG_LOGIN%20message%20containing%20its%20version%20identifier%20in%20the%20following%20form.png
 
 where VERSION is the current NDT version encoded as ascii string, for example *"3.6.4"*.
 
@@ -150,11 +150,11 @@ The current version of the protocol is backwards compatible to version 3.3.12. C
 
 In the next step the NDT Server MUST send a MSG_LOGIN message containing a list of tests' ids, encoded as ascii string, that will be performed. This list of tests's ids MUST NOT contain any tests that were not requested by the Client in the first MSG_LOGIN message. The Server's MSG_LOGIN message looks as following:
 
-http://www.soldevelo.com/images/ndt/8.%20encoded%20as%20ascii%20string,%20that%20will%20be%20performed.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/8.%20encoded%20as%20ascii%20string,%20that%20will%20be%20performed.png
 
 This list is a string containing space separated numbers that describes the particular tests. The test suite containing all five tests (Middlebox test, Simple firewall test, C2S throughput test, S2C throughput test and META test) will be encoded in the following message:
 
-http://www.soldevelo.com/images/ndt/ndt_8b.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/ndt_8b.png
 
 The Client MUST drop the connection when it receives unknown test id, because such situation means an error on the Server's part.
 
@@ -164,7 +164,7 @@ The next step is to run the negotiated test suite. The tests MUST be performed i
 
 After the last accomplished NDTP-Tests test (the particular NDTP-Tests sub-protocols are described in the [NDTProtocol#NDTP-Tests NDTP-Tests] section) the Server MUST send all gathered results to the Client. These results MUST be sent in a set of MSG_RESULTS messages:
 
-http://www.soldevelo.com/images/ndt/9.%20These%20results%20MUST%20be%20sent%20in%20a%20set%20of%20MSG_RESULTS%20messages.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/9.%20These%20results%20MUST%20be%20sent%20in%20a%20set%20of%20MSG_RESULTS%20messages.png
 
 All standard results MUST be encoded as a human-readable strings to allow the Client to display them directly on the screen without any modifications.
 
@@ -172,7 +172,7 @@ At the end the Server MUST close the whole test session by sending an empty MSG_
 
 The whole test session overview can be seen on the following sequence diagram. Both the Server and the Client MUST follow the described sequence:
 
-http://www.soldevelo.com/images/ndt/10.%20Both%20Server%20and%20Client%20MUST%20follow%20the%20described%20sequence.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/10.%20Both%20Server%20and%20Client%20MUST%20follow%20the%20described%20sequence.png
 
 == NDTP-Tests ==
 
@@ -202,7 +202,7 @@ All messages exchanged between the Client and the Server during the MID protocol
 
 As a first step the Server MUST bind a new port and send a TEST_PREPARE message containing this port number to the Client using the NDTP-Control connection:
 
-http://www.soldevelo.com/images/ndt/18.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/18.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
 
 The port number must be encoded as string.
 
@@ -230,7 +230,7 @@ The above variables can be obtained by using a [http://www.web100.org/ web100] p
 
 The whole TEST_MSG message sent to the Client looks as following:
 
-http://www.soldevelo.com/images/ndt/12.%20TEST_MSG%20message%20to%20Client.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/12.%20TEST_MSG%20message%20to%20Client.png
 
 Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
@@ -241,7 +241,7 @@ At the end the Server MUST close the MID test session by sending an empty TEST_F
 
 A Middlebox test session overview can be seen on the following sequence diagram:
 
-http://www.soldevelo.com/images/ndt/13.%20A%20Middlebox%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/13.%20A%20Middlebox%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
 
 === Simple firewall test ===
 
@@ -253,11 +253,11 @@ All messages exchanged between the Client and the Server during the SFW protocol
 
 As a first step the Server MUST bind the ephemeral port and send a TEST_PREPARE message containing this port number and a test time (in seconds) to the Client using the NDTP-Control connection:
 
-http://www.soldevelo.com/images/ndt/15.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20and%20test%20time%20%28in%20seconds%29%20to%20the%20Client.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/15.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20and%20test%20time%20%28in%20seconds%29%20to%20the%20Client.png
 
 The port number and the test time MUST be encoded as strings and separated by a single space. For example the whole message will look as following:
 
-http://www.soldevelo.com/images/ndt/ndt_15b.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/ndt_15b.png
 
 Next, the Client MUST bind the ephemeral port and send a TEST_MSG message containing only this port number to the Server using the NDTP-Control connection. The port number MUST be encoded as string.
 
@@ -269,11 +269,11 @@ The test MUST be performed in both directions in parallel:
 
 The both messages looks as following:
 
-http://www.soldevelo.com/images/ndt/14.%20of%20length%2020.%20The%20whole%20message%20looks%20as%20following.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/14.%20of%20length%2020.%20The%20whole%20message%20looks%20as%20following.png
 
 After performing the Simple firewall test in both directions, the Server MUST send to the Client its SFW results encoded as string in the TEST_MSG message using the NDTP-Control connection:
 
-http://www.soldevelo.com/images/ndt/16.%20Client%20its%20SFW%20%28c2s%29%20results%20encoded%20as%20string%20in%20the%20TEST_MSG%20message.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/16.%20Client%20its%20SFW%20%28c2s%29%20results%20encoded%20as%20string%20in%20the%20TEST_MSG%20message.png
 
 The Simple firewall test defines the following result codes:
 
@@ -287,7 +287,7 @@ At the end the Server MUST close the SFW test session by sending an empty TEST_F
 
 A Simple firewall test session overview can be seen on the following sequence diagram:
 
-http://www.soldevelo.com/images/ndt/17.%20A%20Simple%20firewall%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/17.%20A%20Simple%20firewall%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
 
 === C2S throughput test ===
 
@@ -299,7 +299,7 @@ All messages exchanged between the Client and the Server during the C2S protocol
 
 As a first step the Server MUST bind the new port and send a TEST_PREPARE message containing this port number to the Client using the NDTP-Control connection:
 
-http://www.soldevelo.com/images/ndt/18.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/18.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
 
 The port number must be encoded as string.
 
@@ -318,13 +318,13 @@ THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 
 The Server's TEST_MSG message looks as following: 
 
-http://www.soldevelo.com/images/ndt/20.%20Client%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/20.%20Client%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
 
 At the end the Server MUST close the C2S test session by sending an empty TEST_FINALIZE message using the NDTP-Control connection.
 
 A C2S throughput test session overview can be seen on the following sequence diagram:
 
-http://www.soldevelo.com/images/ndt/21.%20A%20C2S%20throughput%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/21.%20A%20C2S%20throughput%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
 
 === S2C throughput test ===
 
@@ -338,7 +338,7 @@ All messages exchanged between the Client and the Server during the S2C protocol
 
 As a first step the Server MUST bind the new port. Next, it MUST send a TEST_PREPARE message containing this port number to the Client using the NDTP-Control connection:
 
-http://www.soldevelo.com/images/ndt/22.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/22.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20to%20the%20Client.png
 
 The port number must be encoded as string.
 
@@ -357,7 +357,7 @@ THROUGHPUT_VALUE = 8 * SENT_BYTES / 1000 / TEST_DURATION_SECONDS
 
 The Server's TEST_MSG message looks as following: 
 
-http://www.soldevelo.com/images/ndt/23.%20overall%20number%20of%20sent%20bytes%20%28encoded%20as%20string%20in%20float%20format%29%20in%20the%20TEST_MSG%20message.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/23.%20overall%20number%20of%20sent%20bytes%20%28encoded%20as%20string%20in%20float%20format%29%20in%20the%20TEST_MSG%20message.png
 
 All these values MUST be separated by spaces.
 
@@ -368,13 +368,13 @@ THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS
 
 The Client's TEST_MSG message looks as following: 
 
-http://www.soldevelo.com/images/ndt/24.%20MUST%20send%20to%20the%20Server%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/24.%20MUST%20send%20to%20the%20Server%20its%20calculated%20throughput%20value%20encoded%20as%20string%20%28float%20format%29%20in%20the%20TEST_MSG%20message.png
 
 Following the throughput value, the Server SHOULD send its [NDTProtocol#Appendix_A._web100_variables web100 data variables] gathered during S2C throughput test to the Client using the NDTP-Control connection.
 
 Each name/value pair MUST be encoded as a US-ASCII string in individual and separate TEST_MSG messages, each using the following format:
 
-http://www.soldevelo.com/images/ndt/ndt_24b.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/ndt_24b.png
 
 where '\n' is a single new line character.
 
@@ -404,7 +404,7 @@ At the end the Server MUST close the S2C test session by sending an empty TEST_F
 
 A S2C throughput test session overview can be seen on the following sequence diagram:
 
-http://www.soldevelo.com/images/ndt/25.%20A%20S2C%20throughput%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/25.%20A%20S2C%20throughput%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
 
 === META test ===
 
@@ -418,11 +418,11 @@ The Server MUST start this test by sending an empty TEST_PREPARE message followe
 
 Next, the Client SHOULD send as many name/value meta data pairs encoded as a US-ASCII string in individual and separate TEST_MSG messages, each using the following format:
 
-http://www.soldevelo.com/images/ndt/26.%20Next,%20the%20Client%20SHOULD%20send%20meta%20data%20encoded%20as%20strings%20in%20the%20TEST_MSG%20messages.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/26.%20Next,%20the%20Client%20SHOULD%20send%20meta%20data%20encoded%20as%20strings%20in%20the%20TEST_MSG%20messages.png
 
 For example:
 
-http://www.soldevelo.com/images/ndt/27.%20For%20example.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/27.%20For%20example.png
 
 Both parts (keys and values) of the meta data MUST be strings with the following constraints:
  * Keys MUST be shorter than 64 characters
@@ -442,7 +442,7 @@ At the end the Server MUST close the META test session by sending an empty TEST_
 
 A META test session overview can be seen on the following sequence diagram:
 
-http://www.soldevelo.com/images/ndt/28.%20A%20META%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/28.%20A%20META%20test%20session%20overview%20can%20be%20seen%20on%20the%20following%20sequence%20diagram.png
 
 = Appendix A. web100 variables =
 

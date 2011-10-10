@@ -33,7 +33,7 @@ The NDT client and server interaction details can be found in the [NDTProtocol#P
 
 A basic NDT test session with the Java Applet-based client looks as following:
 
-http://www.soldevelo.com/images/ndt/NDT_flow_1.png
+http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDT_flow_1.png
 
  # The process starts with the user opening a browser and entering the NDT server URL:
    * An optional step is to point to a well known server and accept a redirect message (Federated mode).
@@ -51,7 +51,7 @@ http://www.soldevelo.com/images/ndt/NDT_flow_1.png
 
 A basic NDT test session with the web100clt client looks as following:
 
-http://www.soldevelo.com/images/ndt/NDT_flow_2.png
+http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDT_flow_2.png
 
  # The process starts with connecting to the server's testing engine (web100srv process) by the web100clt client.
  # A child process is created to handle the test and the parent goes back to listening for more test requests. The parent keeps a FIFO queue to process multiple requests.
@@ -98,13 +98,13 @@ The brief information about each of the NDT components can be found in the follo
 
 All subsystems of the NDT Server (web100srv) can be seen on the following diagram (please note, that web100srv is the component that is using all subsystems included in it, the subsystems like _mrange_ and _admin page_ are used during initialization and after each test session):
 
-http://www.soldevelo.com/images/ndt/NDTA2.png
+http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA2.png
 
 ==== NDT Client subsystems ====
 
 All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
 
-http://www.soldevelo.com/images/ndt/NDTA3.png
+http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA3.png
 
 ==== Subsystems description ====
 
@@ -144,7 +144,7 @@ The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as th
 
 This simple architecture can be seen on the following diagram:
 
-http://www.soldevelo.com/images/ndt/NDTA1.png
+http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA1.png
 
 == Build Instructions ==
 

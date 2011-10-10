@@ -230,7 +230,7 @@ The NDT web100srv.log file can be loaded by using `Load` option from the `File` 
 
 You can see the JAnalyze application in action on the following screenshot:
 
-http://www.soldevelo.com/images/ndt/janalyze.png
+http://ndt.googlecode.com/svn/wiki/NDTDataFormat.images/janalyze.png
 
 The utility will need to be rewritten slightly to take advantage of the meta files instead of (in addition to) the log files.
  
