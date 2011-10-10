@@ -409,8 +409,14 @@ main(int argc, char** argv)
       case 'l':
         LogFileName = optarg;
         break;
+        /*
       case 'u':
         ProtoLogFileName = optarg;
+        break;
+        */
+      case 'u':
+    	  printf("Calling set protolog from analyze.c");
+        set_protologdir(optarg);
         break;
       case 'n':
         iponly=1;
@@ -436,6 +442,7 @@ main(int argc, char** argv)
   }
   log_println(1, "log file = %s", LogFileName);
 
+  //TODO do we need protocol log file in analyze????
   if (ProtoLogFileName == NULL) {
      sprintf(tmpstr, "%s/%s", BASEDIR, PROTOLOGFILE);
      ProtoLogFileName = tmpstr;

@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions of the logging system.
  *
  * Jakub S�awi�ski 2006-06-14
@@ -22,13 +22,18 @@
 #include "logging.h"
 //new addition after separating out ndtptests header, to include test types
 #include "testoptions.h" // Used only for getCurrentTest(), which can probably be moved elsewhere
-#include "runningtest.h" // protocol validation
+//#include "runningtest.h" // protocol validation
 
 
 static int                _debuglevel        = 0;
 static char*              _programname       = "";
 static char*              LogFileName        = BASEDIR"/"LOGFILE;
-static char*              ProtoLogFileName    = BASEDIR"/"PROTOLOGFILE;
+static char               ProtocolLogFileName[256] = BASEDIR"/"PROTOLOGFILE;
+//static char*              ProtocolLogFileName ;
+static char*              ProtocolLogDirName    = BASEDIR"/"LOGDIR;
+static char               protocollogfilestore[256];
+static char               enableprotologging = 0;
+static const char*        abc = "/var/log/ndt//web100srvprotocol_207.75.164.174.log";
 static I2ErrHandle        _errorhandler_nl   = NULL;
 static I2ErrHandle        _errorhandler      = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
@@ -174,9 +179,8 @@ log_free(void)
 }
 
 /**
- * Function name: set_debuglvl
- * Description: Sets the debug level to the given value.
- * Arguments: debuglvl - the new debug level
+ * Set the debug level to the given value.
+ * @param debuglvl new debug level to use
  */
 
 void
@@ -186,9 +190,8 @@ set_debuglvl(int debuglvl)
 }
 
 /**
- * Function name: set_logfile
- * Description: Sets the log filename.
- * Arguments: filename - new log filename
+ * Set the log filename.
+ * @param  new log filename
  */
 
 void
@@ -198,35 +201,116 @@ set_logfile(char* filename)
 }
 
 /**
- * set_protologfile
- * Sets the protocol log filename.
+ * Set the protocol log directory. The log directory is accepted as
+ * a command line argument using the -u option.
  * @param filename The new protocol log filename
+ *
  */
 void
-set_protologfile(char* filename)
+set_protologdir(char* dirname)
 {
-	printf ("SET FILENAME=%s;", filename);
-	ProtoLogFileName = filename;
-	printf ("END SET FILENAME=%s;", get_protologfile()); //protocol validation to remove printf
+	char * localstr[256];
+
+	// Protocol log location being set
+	if (dirname == NULL) {
+		//use default of BASEDIR/LOGDIR
+		printf ("PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
+		log_println (0, "PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
+		return;
+	}
+	else if (dirname[0] != '/') {
+		sprintf(localstr, "%s/%s/", BASEDIR, dirname);
+		ProtocolLogDirName = localstr;
+		//printf ("PV: 2: non-dir proto location. So=%s;\n", dirname);
+		log_println (0, "PV: 2: non-dir proto location. So=%s;\n", dirname);
+	} //end protocol dir name
+	else {
+		sprintf(localstr, "%s", dirname);
+		ProtocolLogDirName = dirname;
+		//printf ("PV3: proto location=%s;\n", ProtocolLogDirName);
+		log_println (0, "PV33: proto location=%s;\n", ProtocolLogDirName);
+	}
+
 }
 
 /**
- * Returns the protocol validation log filename.
- * @returns The protocol log filename
+ * Get the directory where the protocol log will be placed
+ * @return directory where protocol logs are placed
+*/
+char* get_protologdir() {
+	printf ("PV34: proto location=%s;\n", ProtocolLogDirName);
+	return ProtocolLogDirName;
+}
+
+/**
+ * Sets the protocol log filename.
+ * @param filename The new protocol log filename
+ *
+ */
+
+void set_protologfile(char* client_ip, char* protologlocalarr){
+	FILE *fp;
+
+	if (ProtocolLogDirName == NULL) {
+		ProtocolLogDirName = BASEDIR;
+		//printf ("ProtoLogDir was empty when trying to create protologFILE");
+	}
+	sprintf(protologlocalarr, "%s/%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX , client_ip,
+			PROTOLOGSUFFIX,"\0");
+	                        PROTOLOGSUFFIX);
+	strncpy(ProtocolLogFileName, protologlocalarr, strnlen(protologlocalarr));
+
+
+	//log_println (0, "***SET %s: %s;****\n", ProtocolLogFileName, ProtocolLogDirName);
+
+	/* debug block
+	fp = fopen(get_protologfile(),"a");
+	if (fp == NULL) {
+		printf("--Unable to trial open proto file ");
+		log_println(0, "--Unable to trial open proto");
+	}
+	else {
+		printf("--****** to trial open proto file ");
+		log_println(0, "********trial open proto");
+		fclose(fp);
+	}
+	*/
+}
+
+/**
+ * concatenate input parameters to form a protocol log file name that contains the client's
+ * IP address.
+ * @param client_ip client IP address
+ * @param textappendarg local protocol store file
+ * @return File name of protocol log file.
+ * @todo: Can be deleted. unused currently. leaving for pre-release
+ */
+char *createprotologfilename (char* client_ip, char* textappendarg) {
+	char localprotofilename[256];
+
+	log_println (0, "%s, %s %s;\n",protocollogfilestore, ProtocolLogFileName, ProtocolLogDirName);
+	sprintf(localprotofilename, "%s/%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX , client_ip,
+	  				PROTOLOGSUFFIX);
+	textappendarg = localprotofilename;
+	return textappendarg;
+}
+
+/**
+ * Return the protocol validation log filename.
+ * @return The protocol log filename
  */
 
 char*
 get_protologfile()
 {
-  printf ("GET FILENAME=");
-  printf ("%s;\n",ProtoLogFileName);
-  return ProtoLogFileName;
+  //return ProtocolLogFileName;
+  log_println (0, "**ProtoLog = %s ", ProtocolLogFileName);
+  return abc;
 }
 
 /**
- * Function name: get_debuglvl
- * Description: Returns the current debug level.
- * Returns: The current debug level
+ * Return the current debug level.
+ * @return  current debug level
  */
 
 int
@@ -236,9 +320,8 @@ get_debuglvl()
 }
 
 /**
- * Function name: get_logfile
- * Description: Returns the log filename.
- * Returns: The log filename
+ * Return the log filename.
+ * @return The log filename
  */
 
 char*
@@ -248,10 +331,9 @@ get_logfile()
 }
 
 /**
- * Function name: get_errhandle
- * Description: Returns the error handle, that writes the messages
+ * Return the error handle, that writes the messages
  *              with the new line.
- * Returns: The error handle
+ * @return The error handle
  */
 
 I2ErrHandle
@@ -261,10 +343,9 @@ get_errhandle()
 }
 
 /**
- * Function name: ndt_print
- * Description: Logs the message with the given lvl.
- * Arguments: lvl - the level of the message
- *            format - the format of the message
+ * Logs the message with the given level.
+ * @param lvl  level of the message
+ * @param format format of the message
  *            ... - the additional arguments
  */
 
@@ -283,11 +364,10 @@ log_print(int lvl, const char* format, ...)
 }
 
 /**
- * Function name: ndt_println
- * Description: Logs the message with the given lvl. New line character
+ * Log the message with the given level. New line character
  *              is appended to the error stream.
- * Arguments: lvl - the level of the message
- *            format - the format of the message
+ * @arg lvl     level of the message
+ * @arg format  format of the message
  *            ... - the additional arguments
  */
 
@@ -306,21 +386,36 @@ log_println(int lvl, const char* format, ...)
 }
 
 
-/** Log in a single key-value pair as a particular event
+/**
+ * Log in a single key-value pair as a particular event
  *
  * In future, based on need, this may be expanded to log
  * in a list of key-value pairs
- *
+ * @arg key string key
+ * @arg value string value associated with this key
  */
 void
-protolog_printgeneric(int lvl,  const char* key, const char* value)
+protolog_printgeneric(const char* key, const char* value)
 {
 	FILE *fp;
+	char isotime[64];
+	char *parsedvalue;
+	char logmessage[4096]; /* 4096 is just a random default buffer size for the protocol message
+							Ideally, twice the messsage size will suffice */
 	//va_list   ap;
 
+	/*
 	if (lvl > _debuglevel) {
 		return;
 	}
+	 */
+	if (!enableprotologging) {
+		log_println(0, "Protocol logging is not enabled");
+		return;
+	}
+
+	// // make delimiters in message payload explicit
+	quote_delimiters(value, strlen(value), logmessage, sizeof(logmessage));
 
 	fp = fopen(get_protologfile(),"a");
 	if (fp == NULL) {
@@ -328,8 +423,8 @@ protolog_printgeneric(int lvl,  const char* key, const char* value)
 		log_println(0, "--Unable to open proto file while trying to record msg: %s \n", key, value);
 	}
 	else {
-		fprintf(fp, " event = \"%s\", name = \"%s\" \n", key, value);
-		printf("%s = \"%s\" \n", key, value);
+		fprintf(fp, " event=\"%s\", name=\"%s\", time=\"%s\"\n", key, value, get_ISOtime(isotime));
+		printf("%s = \"%s\" \n", key, logmessage);
 		fclose(fp);
 	}
 }
@@ -343,21 +438,28 @@ protolog_printgeneric(int lvl,  const char* key, const char* value)
  * TODO: It may be good to define constants for event, pid etc. Use these instead.
  */
 void
-protolog_status(int lvl, int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus)
+protolog_status(int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus)
 {
 	FILE *fp;
 	va_list   ap;
-   char protomessage[256];
-   char currenttestarr[TEST_NAME_DESC_SIZE];
-   char currentstatusarr[TEST_STATUS_DESC_SIZE];
-   char *currenttestname = "";
-   char *teststatusdesc = "";
+	char protomessage[256];
+	char currenttestarr[TEST_NAME_DESC_SIZE];
+	char currentstatusarr[TEST_STATUS_DESC_SIZE];
+	char isotime[64];
+	char *currenttestname = "";
+	char *teststatusdesc = "";
 
-   //get descriptive strings for test name and status
-   currenttestname = get_testnamedesc(testid, currenttestarr);
-   teststatusdesc = get_teststatusdesc(teststatus, currentstatusarr);
+	//get descriptive strings for test name and status
+	currenttestname = get_testnamedesc(testid, currenttestarr);
+	teststatusdesc = get_teststatusdesc(teststatus, currentstatusarr);
 
+	/*
 	if (lvl > _debuglevel) {
+		return;
+	}
+	 */
+	if (!enableprotologging) {
+		log_println(0, "Protocol logging is not enabled");
 		return;
 	}
 
@@ -369,14 +471,75 @@ protolog_status(int lvl, int pid, enum  TEST_ID testid, enum TEST_STATUS_INT tes
 				teststatusdesc, currenttestname);
 	}
 	else {
-		sprintf(protomessage, " event = \"%s\", name=\"%s\", pid=\"%d\" \n",teststatusdesc, currenttestname, pid );
+		sprintf(protomessage, " event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",teststatusdesc, currenttestname, pid, get_ISOtime(isotime) );
 		printf("%s: <-- %d - %s - %s --> \n ", protomessage, pid, teststatusdesc, currenttestname );
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
 	}
 }
 
+/**
+ * Logs a protocol message specifically indicating the start/end or other status of processes.
+ * This method is different from the protolog_status in that this logs in status/progress of generic
+ * processes.
+ * @param pid PID of process
+ * @param testidarg enumerator indicating name of the test @see TEST_ID
+ * @param procidarg enumerator indicating name of the test @see PROCESS_TYPE_INT
+ * @param teststatusarg enumerator indicating test status. @see TEST_STATUS_INT
+ *
+ */
+void
+protolog_procstatus(int pid, enum TEST_ID  testidarg,
+		enum  PROCESS_TYPE_INT procidarg,
+		enum PROCESS_STATUS_INT teststatusarg)
+{
+	FILE *fp;
+	char protomessage[256];
+	char isotime[64];
+	char currentprocarr[TEST_NAME_DESC_SIZE]; // size suffices to describe process name name too
+	char currentstatusarr[PROCESS_STATUS_DESC_SIZE];
+	char currenttestarr[TEST_NAME_DESC_SIZE];
+
+	char *currentprocname = "";
+	char *procstatusdesc = "";
+	char *currenttestname = "";
+
+	//get descriptive strings for test name and status
+	currenttestname = get_testnamedesc(testidarg, currenttestarr);
+	currentprocname = get_processtypedesc(procidarg, currentprocarr);
+	procstatusdesc = get_procstatusdesc(teststatusarg, currentstatusarr);
+
+	if (!enableprotologging) {
+		log_println(0, "Protocol logging is not enabled");
+		return;
+	}
+
+	fp = fopen(get_protologfile(),"a");
+	if (fp == NULL) {
+		printf("--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
+				procstatusdesc, currentprocname);
+		log_println(0, "--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
+				procstatusdesc, currentprocname);
+	}
+	else {
+		sprintf(protomessage, " event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",procstatusdesc,
+				currentprocname, currenttestname, pid, get_ISOtime(isotime) );
+		printf("%s: -- %d - %s - %s - %s -- \n ", protomessage, pid,currenttestname, procstatusdesc, currentprocname );
+		fprintf(fp, "%s", protomessage);
+		fclose(fp);
+	}
+}
+
+/**
+ * Enable protocol logging
+ */
+void enableprotocollogging() {
+	enableprotologging = 1;
+}
+
 /** Log all send/receive protocol messages.
+ *  This method currently is called only internally, and thus
+ *  does not check for whether protocol logging is enabled
  * @param lvl Level of the message
  * @param *msgdirection Direction of msg (S->C, C->S)
  * @param type message type
@@ -386,30 +549,41 @@ protolog_status(int lvl, int pid, enum  TEST_ID testid, enum TEST_STATUS_INT tes
  * @param ctlSocket socket over which message has been exchanged
  * */
 
-void protolog_println(int lvl, char *msgdirection,
-		 const int type, void* msg, const int len, const int processid, const int ctlSocket)
+//void protolog_println(int lvl, char *msgdirection,
+void protolog_println(char *msgdirection,
+		const int type, void* msg, const int len, const int processid, const int ctlSocket)
 {
 	FILE *fp;
 	char currentdrcnarr[TEST_DIRN_DESC_SIZE];
 	char msgtypedescarr[MSG_TYPE_DESC_SIZE];
 	char *currenttestname, *currentmsgtype;
+	char isotime[64];
+	char logmessage[4096]; // message after replacing unnecessary characters
 
 	// get descriptive strings for test name and direction
 	currenttestname = get_currenttestdesc();
 	currentmsgtype = get_msgtypedesc(type,msgtypedescarr);
 
+	// make delimiters in message payload explicit
+	quote_delimiters(msg, strlen(msg), logmessage, sizeof(logmessage));
+
 	fp = fopen(get_protologfile(),"a");
-	 if (fp == NULL) {
-		  //printf("--Unable to open proto, RCV");
-		  log_println(0, "Unable to open protocol log file '%s\n', continuing on without logging", get_protologfile());
-	 }
-	 else {
-		  fprintf(fp, " event = \"message\", direction = \"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\"\n",
-				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket);
-		  printf("direction = %s, test= %s, type=%s, len=%d, msg=%s, pid=%d, socket=%d\n",
-		 				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket);
-		  fclose(fp);
-	 }
+	if (fp == NULL) {
+		//printf("--Unable to open proto, RCV");
+		log_println(0, "Unable to open protocol log file '%s', continuing on without logging", get_protologfile());
+	}
+	else {
+		/*fprintf(fp, " event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
+				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket,get_ISOtime(isotime));
+		  printf("direction = %s, test= %s, type=%s, len=%d, msg=%s, pid=%d, socket=%d, time=%s\n",
+		 				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket, get_ISOtime(isotime));
+		 */
+		fprintf(fp, " event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
+				msgdirection, currenttestname, currentmsgtype, len, logmessage, processid, ctlSocket,get_ISOtime(isotime));
+		printf("direction = %s, test= %s, type=%s, len=%d, msg=%s, pid=%d, socket=%d, time=%s\n",
+				msgdirection, currenttestname, currentmsgtype, len, logmessage, processid, ctlSocket, get_ISOtime(isotime));
+		fclose(fp);
+	}
 }
 
 /** Log "sent" protocol messages.
@@ -421,9 +595,15 @@ void protolog_println(int lvl, char *msgdirection,
  * @param processid PID of process
  * @param ctlSocket socket over which message has been exchanged
  * */
-void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket) {
-	  char *currentDir = get_currentdirndesc();
-	  protolog_println(lvl, currentDir, type, msg, len, processid, ctlSocket);
+//void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket) {
+void protolog_sendprintln (const int type, void* msg, const int len, const int processid, const int ctlSocket) {
+	if (!enableprotologging) {
+		log_println(0, "Protocol logging is not enabled");
+		return;
+	}
+	char *currentDir = get_currentdirndesc();
+	//protolog_println(lvl, currentDir, type, msg, len, processid, ctlSocket);
+	protolog_println(currentDir, type, msg, len, processid, ctlSocket);
 }
 
 /**
@@ -436,9 +616,14 @@ void protolog_sendprintln (int lvl, const int type, void* msg, const int len, co
  * @param processid PID of process
  * @param ctlSocket socket over which message has been exchanged
  * */
-void protolog_rcvprintln  (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket){
-	 char *otherDir = get_otherdirndesc();
-	  protolog_println(lvl, otherDir, type, msg, len, processid, ctlSocket);
+void protolog_rcvprintln  (const int type, void* msg, const int len, const int processid, const int ctlSocket){
+	if (!enableprotologging) {
+		log_println(0, "Protocol logging is not enabled");
+		return;
+	}
+	char *otherDir = get_otherdirndesc();
+	//protolog_println(lvl, otherDir, type, msg, len, processid, ctlSocket);
+	protolog_println(otherDir, type, msg, len, processid, ctlSocket);
 }
 
 /**
@@ -461,9 +646,8 @@ set_timestamp()
 }
 
 /**
- * Function name: get_timestamp
- * Description: Returns the previously recorded timestamp.
- * Returns: The timestamp
+ * Return the previously recorded timestamp.
+ * @return  timestamp
  */
 time_t
 get_timestamp()
@@ -472,9 +656,8 @@ get_timestamp()
 }
 
 /**
- * Function name: get_utimestamp
- * Description: Returns the previously recorded utimestamp.
- * Returns: The utimestamp
+ * Return the previously recorded utimestamp.
+ * @return The utimestamp
  */
 long int
 get_utimestamp()
@@ -483,8 +666,7 @@ get_utimestamp()
 }
 
 /**
- * Function name get_YYYY
- * Description: Returns a character string YYYY for the current year
+ * Return a character string YYYY for the current year
  * Author: Rich Carlson - 6/29/09
  * @param Pointer to the string indicating the year
  */
@@ -505,8 +687,7 @@ sprintf(year, "%d", 1900+result->tm_year);
 
 
 /**
- * Function name get_MM
- * Description: Returns a character string MM for the current year
+ * Return a character string MM for the current year
  * Author: Rich Carlson - 6/29/09
  * @param Pointer to the string indicating month
  */
@@ -530,8 +711,7 @@ else
 }
 
 /**
- * Function name get_DD
- * Description: Returns a character string DD for the current year
+ * Return a character string DD for the current year
  * Author: Rich Carlson - 6/29/09
  * @param Pointer to the string indicating day
  */
@@ -553,13 +733,12 @@ else
     sprintf(day, "%d", result->tm_mday);
 }
 
-/**
- * Function name get_ISOtime
- * Description: Returns a character string in the ISO8601 time foramt
+/** Return a character string in the ISO8601 time foramt
  * 		used to create snaplog and trace file names
- * Returns: character string with ISO time string.
+ *
  * Author: Rich Carlson - 5/6/09
  * @param Pointer to the string indicating ISO time
+ * @param character string with ISO time string.
  */
 
 char *
@@ -666,7 +845,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	// and name themselves record the year, month, date, time and client name.
 	// The "primary" location for this log file is obtained as a command line option
 	// from the user, or is the default location of BASE_DIR+LOG_DIR of the NDT installation
-
+//TODO : Move this into a new method??
 	strncpy(tmpstr, DataDirName, strlen(DataDirName));
 	// Open the directory or create one if not yet present
 	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
@@ -691,7 +870,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	closedir(dp);
 
 	// end block creating log directory
-
+//end creating dir
 
 	memcpy(tmp2str, tmpstr, tmpstrlen); // tmp2str now contains the dir name intended
 	// tmpstr will henceforth refer to the log file's name
@@ -808,3 +987,59 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 		fclose(fp);
 	}
 }
+
+
+
+/**
+ * Method to replace certain characters in received messages with ones that are quoted, so that
+ * the content is explicitly legible.
+ *
+ * @param line string containing characters to be replaced
+ * @param line_size length of the string to be replaced
+ * @param output_buf output buffer
+ * @param output_buf_size size of buffer to write output to
+ * */
+
+int quote_delimiters(char *line, int line_size, char *output_buf, int output_buf_size) {
+    static quoted[4][2] = {
+                          { '\n', 'n' },
+                          { '"',  '"' },
+                          { '\0', '0' },
+                          { '\\',  '\\' },
+                        };
+    char quote_char = '\\';
+
+    int i, j, k;
+    int match;
+
+    for(i = j = 0; i < line_size && j < output_buf_size - 1; i++) {
+        // find any matching characters among the quoted
+        int match = 0;
+        for(k = 0; k < 4; k++) {
+            if (line[i] == quoted[k][0]) {
+                output_buf[j] = quote_char;
+                output_buf[j + 1] = quoted[k][1];
+                j += 2;
+                match = 1;
+                break;
+            }
+        }
+
+        if (match == 0) {
+            output_buf[j] = line[i];
+            j++;
+        }
+    }
+
+    output_buf[j] = '\0'; // make sure it's null-terminated
+    //log_println(0,"****Received=%s; len=%d; dest=%d; MSG=%s",line , line_size,output_buf_size, output_buf);
+
+    return j - 1;
+}
+
+
+/** Method to create directories for log files */
+/*
+createDir(char *dirName)  {
+}
+*/

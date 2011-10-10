@@ -43,6 +43,7 @@ static int slowStart = 1;
 static int prevCWNDval = -1;
 static int decreasing = 0;
 
+
 /**
  * Count the CWND peaks from a snapshot and record the minimal and maximum one.
  * @param agent Web100 agent used to track the connection
@@ -200,6 +201,9 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
   int msgType;
   int msgLen = 1;
   int first = 1;
+  char remhostarr[256], protologlocalarr[256];
+  char *remhost_ptr = get_remotehost();
+
 
   assert(ctlsockfd != -1);
   assert(options);
@@ -220,6 +224,14 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return (-2);
   }
+  // client connect received correctly. Logging activity
+  // log that client connected, and create log file
+  log_println(0,
+		  "Client connect received from :IP %s to some server on socket %d", get_remotehost(), ctlsockfd);
+
+  set_protologfile(get_remotehost(), protologlocalarr);
+
+
   if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META))) {
 	  	  	  // message received does not indicate a valid test!
       sprintf(buff, "Invalid test suite request");
@@ -257,7 +269,7 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
  *          Error codes:
  * 				-1 - Listener socket creation failed
  *				-3-web100 connection data not obtained
- *				-100 -timeout while waitinf for client to connect to server’s ephemeral port
+ *				-100 -timeout while waiting for client to connect to server’s ephemeral port
  *				-errono- Other specific socket error numbers
  *				-101 - Retries exceeded while waiting for client to connect
  *				-102 - Retries exceeded while waiting for data from connected client
@@ -291,6 +303,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   // variables used for protocol validation logging
   enum TEST_ID thistestId = NONE;
   enum TEST_STATUS_INT teststatusnow = TEST_NOT_STARTED;
+  enum PROCESS_STATUS_INT procstatusenum = PROCESS_STARTED;
+  enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 
   assert(ctlsockfd != -1);
   assert(agent);
@@ -305,7 +319,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     printf(" <--- %d - Middlebox test --->", options->child0);
     thistestId = MIDDLEBOX;
     teststatusnow = TEST_STARTED;
-    protolog_status(1, options->child0, thistestId, teststatusnow);
+    //protolog_status(1, options->child0, thistestId, teststatusnow);
+    protolog_status(options->child0, thistestId, teststatusnow);
 
     // determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port3 (3003),
@@ -413,8 +428,13 @@ midfd:
 
 	  // if a valid connection request is received, client has connected. Proceed.
 	  // Note the new socket fd used in the throughput test is this (midsfd)
-      if ((midsfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0)
+      if ((midsfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0) {
+    	  // log protocol validation indicating client connection
+    	  procstatusenum = PROCESS_STARTED;
+    	  proctypeenum = CONNECT_TYPE;
+    	  protolog_procstatus(options->child0, thistestId, proctypeenum, procstatusenum);
 	break;
+      }
 
       if ((midsfd == -1) && (errno == EINTR)) // socket interrupted, wait some more
 	goto midfd;
@@ -484,7 +504,8 @@ midfd:
 
     // log end of test into protocol doc, just to delimit.
     teststatusnow = TEST_ENDED;
-    protolog_status(1, options->child0, thistestId, teststatusnow);
+    //protolog_status(1, options->child0, thistestId, teststatusnow);
+    protolog_status( options->child0, thistestId, teststatusnow);
 
     setCurrentTest(TEST_NONE);
   /* I2AddrFree(midsrv_addr); */
@@ -551,6 +572,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   // Test ID and status descriptors
   enum TEST_ID testids = C2S;
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
+  enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
+
 
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
@@ -559,7 +583,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     
     //log protocol validation logs
     teststatuses = TEST_STARTED;
-    protolog_status(0,testOptions->child0, testids, teststatuses);
+    //protolog_status(0,testOptions->child0, testids, teststatuses);
+    protolog_status(testOptions->child0, testids, teststatuses);
 
     // Determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port2 (3002).
@@ -653,6 +678,10 @@ recfd:
       recvsfd = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr, &clilen);
       if (recvsfd > 0) {
 	log_println(6, "accept() for %d completed", testOptions->child0);
+		// log protocol validation indicating client accept
+		procstatusenum = PROCESS_STARTED;
+	    proctypeenum = CONNECT_TYPE;
+	    protolog_procstatus(testOptions->child0,testids, proctypeenum, procstatusenum);
 	break;
       }
       if ((recvsfd == -1) && (errno == EINTR)) { // socket interrupted, wait some more
@@ -950,7 +979,8 @@ recfd:
     log_println(1, " <----------- %d -------------->", testOptions->child0);
     //protocol logs
     teststatuses = TEST_ENDED;
-    protolog_status(0,testOptions->child0, testids, teststatuses);
+    //protolog_status(0,testOptions->child0, testids, teststatuses);
+    protolog_status(testOptions->child0, testids, teststatuses);
 
 
     //set current test status and free address
@@ -1040,6 +1070,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = S2C;
+  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
+  enum  PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 
   // Determine port to be used. Compute based on options set earlier
   // by reading from config file, or use default port2 (3003)
@@ -1049,7 +1081,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     //protocol logs
     teststatuses = TEST_STARTED;
-    protolog_status(0,testOptions->child0, testids, teststatuses);
+    //protolog_status(0,testOptions->child0, testids, teststatuses);
+    protolog_status(testOptions->child0, testids, teststatuses);
 
     strcpy(listens2cport, PORT4);
     
@@ -1156,8 +1189,12 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 ximfd:
       xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen);
       if (xmitsfd > 0) {
-	log_println(6, "accept() for %d completed", testOptions->child0);
-	break;
+    	  log_println(6, "accept() for %d completed", testOptions->child0);
+    	  //protocol logging
+    	  procstatusenum = PROCESS_STARTED;
+    	  proctypeenum = CONNECT_TYPE;
+    	  protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum);
+    	  break;
       }
       if ((xmitsfd == -1) && (errno == EINTR)) { // socket interrupted, wait some more
 	log_println(6, "Child %d interrupted while waiting for accept() to complete", 
@@ -1537,7 +1574,8 @@ ximfd:
     log_println(1, " <------------ %d ------------->", testOptions->child0);
     //log protocol validation logs
     teststatuses = TEST_ENDED;
-    protolog_status(1,testOptions->child0, testids, teststatuses);
+    //protolog_status(1,testOptions->child0, testids, teststatuses);
+    protolog_status(testOptions->child0, testids, teststatuses);
 
     setCurrentTest(TEST_NONE);
     /* I2AddrFree(s2csrv_addr); */

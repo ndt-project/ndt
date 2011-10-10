@@ -218,6 +218,8 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
 
+char *get_remotehost();
+
 /* global variables for signal processing */
 sig_atomic_t sig1;
 sig_atomic_t sig2;

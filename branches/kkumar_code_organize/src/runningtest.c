@@ -21,8 +21,20 @@ static char *recvdirnstr;
 /**
  * array defining possible events pertaining to process status
  */
+/*
 static char *_procstatusarray[] = { "unknown", "process_started",
 		"process_ended" };
+*/
+
+
+static char *_procstatusarray[] = { "unknown", "started",
+		"completed" };
+
+/** array defining various "processes" like a web100srv process,
+ * or a client connection
+ */
+static char *_proctypesarray[] = { "process", "connect"};
+
 
 /**
  * Get ID of currently running test
@@ -139,7 +151,19 @@ char *get_otherdirndesc() {
  *  */
 char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) {
 	sprocarg = _procstatusarray[procstatusarg];
-	printf("--current test name = %s for %d\n", sprocarg, procstatusarg);
+	printf("--current process status = %s for %d\n", sprocarg, procstatusarg);
 	return sprocarg;
+}
+
+/**
+ * Get descriptive string for process name
+ * @param procid Id of the test
+ * @param *snamearg  storage for test name description
+ * @return char*  Descriptive string for process (process, connect )
+ * */
+char *get_processtypedesc(enum PROCESS_TYPE_INT procidarg, char *snamearg) {
+	snamearg = _proctypesarray[procidarg];
+	printf ("--current process name = %s for %d\n", snamearg ,procidarg);
+	return snamearg;
 }
 

@@ -15,6 +15,8 @@
 #include "network.h"
 #include "utils.h"
 #include "testoptions.h"
+#include "runningtest.h"
+
 
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
@@ -102,7 +104,8 @@ finalize_sfw(int ctlsockfd)
 
   // log
   teststatusnow = TEST_ENDED;
-  protolog_status(1, getpid() , thistestId, teststatusnow); //todo will getpid() be correct?
+  //protolog_status(1, getpid() , thistestId, teststatusnow); //todo will getpid() be correct?
+  protolog_status (getpid() , thistestId, teststatusnow);
   log_println(1, " <-------------------------->");
   // unset test name
   setCurrentTest(TEST_NONE);
@@ -144,6 +147,9 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
   // variables used for protocol validation
   enum TEST_ID thistestId = NONE;
   enum TEST_STATUS_INT teststatusnow = TEST_NOT_STARTED;
+  enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
+  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
+
 
   assert(ctlsockfd != -1);
   assert(options);
@@ -153,7 +159,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     log_println(1, " <-- %d - Simple firewall test -->", options->child0);
     thistestId = SFW;
     teststatusnow = TEST_STARTED;
-    protolog_status(1, options->child0, thistestId, teststatusnow);
+    //protolog_status(1, options->child0, thistestId, teststatusnow);
+    protolog_status(options->child0, thistestId, teststatusnow);
     
     // bind to a new port and obtain address structure with details of port etc
     sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options, 0);
@@ -217,7 +224,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) { // message reception error
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
-      	  //TODO above seems incorrect w.r.t the erroe message too
+      	  //TODO above seems incorrect w.r.t the error message too
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       I2AddrFree(sfwsrv_addr);
       return 1;
@@ -256,7 +263,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
 
       // log end
       teststatusnow = TEST_ENDED;
-      protolog_status(0,options->child0, thistestId, teststatusnow);
+      //protolog_status(0,options->child0, thistestId, teststatusnow);
+      protolog_status(options->child0, thistestId, teststatusnow);
       log_println(1, " <-------------------------->");
       I2AddrFree(sfwsrv_addr);
       return 5;
@@ -301,9 +309,12 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     // Now read actual data from the sockets listening for client message.
     // Based on data, conclude SFW status and send TEST_MSG with result.
     // In all cases, finalize the test
-
     clilen = sizeof(cli_addr);
     sockfd = accept(sfwsockfd, (struct sockaddr *) &cli_addr, &clilen);
+    // protocol validation log to indicate client tried connecting
+    procstatusenum = PROCESS_STARTED;
+    protolog_procstatus(options->child0, thistestId, proctypeenum, procstatusenum);
+
 
     msgLen = sizeof(buff);
     if (recv_msg(sockfd, &msgType, buff, &msgLen)) { // message received in error

@@ -161,10 +161,9 @@ sndq_len(int fd)
 #endif
 }
 
-/*
- * Function name: mysleep
- * Description: Sleeps for the given amount of seconds.
- * Arguments: time - the amount of seconds to sleep for
+/**
+ * Sleep for the given amount of seconds.
+ * @arg time in seconds to sleep for
  */
 
 void
@@ -183,3 +182,30 @@ mysleep(double time)
 	    return;
     }
 }
+
+/**
+ * Replace part of string by another string
+ * @param strinput Input string that contains pasrt of string
+ * 		needing to be replaced
+ * @param orig original string to be replaced
+ * @param repl Replacement string
+ * @param arrsize Size of array
+ * @todo This function will have changed in the todo areas listed below
+ * */
+/*
+char *replaceStr(char *strinput, char *orig, char *repl, int arrsize) {
+  char buffer[arrsize]; //todo size
+  char *ch;
+  memcpy(buffer, strinput, strlen(strinput));
+  printf("0.%s,%s,\n",buffer, strinput);
+  while ((ch = strstr(strinput, orig))) {
+        strncpy (buffer, strinput, ch-strinput);
+        buffer [ch-strinput] = 0;
+        sprintf(buffer+(ch-strinput), "%s%s", repl, ch+strlen(orig));
+        strinput = buffer;
+        printf ("1=%s,%s\n", buffer, ch);
+  }
+        printf ("2=%s,%s\n", buffer, ch);
+   return buffer;
+}
+*/

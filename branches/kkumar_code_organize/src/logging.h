@@ -14,17 +14,19 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "ndtptestconstants.h"
+#include "runningtest.h" // protocol validation
 
 #define LOGFILE "web100srv.log"   /* Name of log file */
 #define PROTOLOGFILE "web100srvprotocol.log"   /* Name of protocol validation log file */
+#define PROTOLOGPREFIX "web100srvprotocol_" /* prefix for protocol validation log file */
+#define PROTOLOGSUFFIX ".log" /* suffix for protocol validation log file */
 
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
 void set_logfile(char* filename);
-void set_protologfile(char* filename);
 int get_debuglvl();
 char* get_logfile();
-char* get_protologfile();
+
 I2ErrHandle get_errhandle();
 void log_print(int lvl, const char* format, ...);
 void log_println(int lvl, const char* format, ...);
@@ -77,13 +79,25 @@ struct metadata {
     struct metaentry* additional; // all other additional data
 };
 
+void set_protologdir(char* dirname);
+//void set_protologfile(char* ipaddress);
+void set_protologfile(char* client_ip, char *protologfileparam);
+char* get_protologfile();
+char* get_protologdir();
+//char *createprotologfilename (char* textappendarg);
+void enableprotocollogging();
+char *createprotologfilename (char* client_ip, char* textappendarg);
 
-void protolog_printgeneric(int lvl, const char* key, const char* val);
-void protolog_status(int lvl, int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus);
-void protolog_println(int lvl, char *msgdirection,
-		 const int type, void* msg, const int len, const int processid, const int ctlSocket);
-void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket);
-void protolog_rcvprintln  (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket);
+
+void protolog_printgeneric(const char* key, const char* val);
+void protolog_status(int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus);
+void protolog_sendprintln (const int type, void* msg, const int len, const int processid, const int ctlSocket);
+void protolog_rcvprintln  (const int type, void* msg, const int len, const int processid, const int ctlSocket);
+void protolog_procstatus(int pid, enum TEST_ID  testidarg, enum  PROCESS_TYPE_INT procidarg,
+							enum PROCESS_STATUS_INT teststatusarg);
+void protolog_procstatuslog(int pid, enum TEST_ID  testidarg,
+				enum  PROCESS_TYPE_INT procidarg,
+					enum PROCESS_STATUS_INT teststatusarg);
 
 struct metadata meta;
 #endif

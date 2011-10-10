@@ -383,6 +383,10 @@ send_msg(int ctlSocket, int type, void* msg, int len)
   unsigned char buff[3];
   int rc, i;
   FILE *fp; //kk
+  //todo remove
+  char tmpstr[256];
+  I2Addr tmp_addr;
+  //todo remove
   
   assert(msg);
   assert(len >= 0);
@@ -426,9 +430,22 @@ send_msg(int ctlSocket, int type, void* msg, int len)
     return -3;
   log_println(8, ">>> send_msg: type=%d, len=%d, msg=%s, pid=%d", type, len, msg, getpid());
 
-  //todo level = 0 could be made into a constant or option. move out of here in that case
-  protolog_sendprintln(0,
-		  type, msg, len, getpid(),ctlSocket);
+    protolog_sendprintln(type, msg, len, getpid(),ctlSocket);
+
+    //This section is used to get remote/local address on the fly, so that
+    // both could be included in the name of the protocol log. todo
+    /*
+    tmp_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, 0);
+    I2AddrNodeName(tmp_addr, tmpstr, 255);
+    log_println(0, ">>> send_msg: from %s", tmpstr);
+    // get addr details based on socket info available
+    tmp_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, 0);
+
+    I2AddrNodeName(tmp_addr, tmpstr, 256);
+     log_println(0, "to %s", tmpstr);
+
+     *
+     */
 
   return 0;
 }
@@ -454,7 +471,9 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   unsigned char buff[3];
   int length;
   FILE *fp; //kk
-  
+  //todo remove
+  I2Addr tmp_addr;
+  char tmpstr[256];
   // todo remove
 
   int itype = *type;
@@ -489,9 +508,23 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   }
   log_println(8, "<<< recv_msg: type=%d, len=%d", *type, *len);
 
-  //todo level = 0 could be made into a constant or option. move out of here in that case
-  //protolog_rcvprintln(0, itype, msgtemp, ilen, getpid(),ctlSocket);
-  protolog_rcvprintln(0, *type, msgtemp, *len, getpid(),ctlSocket);
+  // This section is used to get the local and remote addresses of the socket on the fly
+  //    to be used in the protocol log name
+  /*
+  tmp_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, 0);
+  I2AddrNodeName(tmp_addr, tmpstr, 256);
+  log_println(0, "<<< recv_msg: from %s", tmpstr);
+
+  // get addr details based on socket info available
+  tmp_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, 0);
+
+  I2AddrNodeName(tmp_addr, tmpstr, 256);
+  log_println(0, "to %s", tmpstr);
+
+  //end todo
+   * */
+
+  protolog_rcvprintln(*type, msgtemp, *len, getpid(),ctlSocket);
 
   return 0;
 }

@@ -57,7 +57,8 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 
     // log protocol validation details
     teststatuses = TEST_STARTED;
-    protolog_status(0,testOptions->child0, testids, teststatuses);
+    //protolog_status(0,testOptions->child0, testids, teststatuses);
+    protolog_status(testOptions->child0, testids, teststatuses);
 
     // first message exchanged is am empty TEST_PREPARE message
     j = send_msg(ctlsockfd, TEST_PREPARE, "", 0);
@@ -149,7 +150,8 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
     log_println(1, " <-------------------------->");
 
     teststatuses = TEST_ENDED; // protocol log section
-    protolog_status(0,testOptions->child0, testids, teststatuses);
+    //protolog_status(0,testOptions->child0, testids, teststatuses);
+    protolog_status(testOptions->child0, testids, teststatuses);
 
     setCurrentTest(TEST_NONE);
   }

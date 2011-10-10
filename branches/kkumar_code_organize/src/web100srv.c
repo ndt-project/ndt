@@ -182,6 +182,7 @@ static struct option long_options[] = {
   {"interface", 1, 0, 'i'},
   {"log", 1, 0, 'l'},
   {"protocol_log", 1, 0, 'u'},
+  {"enableprotolog", 0, 0, 'e'},
   {"port", 1, 0, 'p'},
   {"midport", 1, 0, 302},
   {"c2sport", 1, 0, 303},
@@ -609,9 +610,14 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     }
     else if (strncasecmp(key, "protocol_log", 12) == 0) {
          sprintf(lgfn, "%s", val);
-         printf("protocol_log: %s\n", val); //todo remove printf
-         set_protologfile(lgfn);
+         printf("protocol_log calling set_protocoldir from: %s\n", val); //todo remove printf
+         set_protologdir(lgfn);
          continue;
+    }
+    else if (strncasecmp(key, "enableprotolog", 11) == 0) {
+    	printf("enabling protocol logging from: %s\n", val); //todo remove printf
+    	enableprotocollogging();
+    	continue;
     }
     else if (strncasecmp(key, "admin_file", 10) == 0) {
       sprintf(apfn, "%s", val);
@@ -886,10 +892,12 @@ cputimeWorker(void* arg)
 }
 
 /**
- * Capture CPU time details
+ * Run all tests, process results, record them into relevant log files
  *
- * @param arg* void pointer to the log file sued to record CPU time details
- * @param void* NULL
+ * @param agent pointer to web_100 agent
+ * @param ctlsockfd socket used for server->client communication
+ * @param testopt TestOptions *
+ * @param test_suite pointer to string indicating tests to be run
  * */
 
 int
@@ -949,7 +957,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   // protocol logging addition
   // start with a clean slate of currently running test and direction
   setCurrentTest(TEST_NONE);
-
+  printf ("Remote host= %s", get_remotehost());
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -1149,7 +1157,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 
   // section to calculate duplex mismatch
 
-  // Calculate average sound trip time and convert to seconds
+  // Calculate average round trip time and convert to seconds
   avgrtt = (double) SumRTT/CountRTT;
   rttsec = avgrtt * .001;
   /* loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut); */
@@ -1488,6 +1496,8 @@ main(int argc, char** argv)
   char *srvstatusdesc;
   enum PROCESS_STATUS_INT srvstatusenum = UNKNOWN;
   char statustemparr[PROCESS_STATUS_DESC_SIZE]; // temp storage for process name
+  enum PROCESS_TYPE_INT proctypeenum = PROCESS_TYPE;
+  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
 
   options.limit = 0;
   options.snapDelay = 5;
@@ -1504,6 +1514,8 @@ main(int argc, char** argv)
   memset(&testopt, 0, sizeof(testopt));
   /* sigset_t newmask, oldmask; */
 
+
+
  #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
 #else
@@ -1519,7 +1531,7 @@ main(int argc, char** argv)
   opterr = 0;
   while ((c = getopt_long(argc, argv,
          // GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
-		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:p:T:A:S:")), long_options, 0)) != -1) {
+		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:e:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case 'c':
         ConfigFileName = optarg;
@@ -1554,7 +1566,7 @@ main(int argc, char** argv)
   // Get server execution options
   while ((c = getopt_long(argc, argv,
          // GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:p:T:A:S:")), long_options, 0)) != -1) {
-		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:p:T:A:S:")), long_options, 0)) != -1) {
+		  GETOPT_LONG_INET6(GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:e:p:T:A:S:")), long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -1615,7 +1627,12 @@ main(int argc, char** argv)
     	set_logfile(optarg);
         break;
       case 'u':
-    	set_protologfile(optarg);
+    	printf("Calling set protolog from case-u");
+    	set_protologdir(optarg);
+        break;
+      case 'e':
+        printf("Enabling protocol logging");
+        enableprotocollogging();
         break;
       case 'o':
         old_mismatch = 1;
@@ -1740,6 +1757,7 @@ main(int argc, char** argv)
     DataDirName = logd;
   }
 
+
   if (SysLogFacility != NULL) {
     i = 0;
     while (facilitynames[i].c_name) {
@@ -1850,7 +1868,8 @@ main(int argc, char** argv)
   sprintf(startsrvmsg, "Web100srv (ver %s)",VERSION);
   srvstatusenum = PROCESS_STARTED;
   srvstatusdesc = get_procstatusdesc(srvstatusenum, statustemparr);
-  protolog_printgeneric(0, srvstatusdesc, startsrvmsg);
+  //protolog_printgeneric(0, srvstatusdesc, startsrvmsg);
+  protolog_printgeneric(srvstatusdesc, startsrvmsg);
 
 
   // scan through the interface device list and get the names/speeds of each
@@ -2093,7 +2112,8 @@ sel_12:
       for (i=0;i<5;i++) {
 	ctlsockfd = 0;
         ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
-        if ((ctlsockfd == -1) && (errno == EINTR))
+
+        if ((ctlsockfd == -1) && (errno == EINTR)) // socket interrupted, retry
             continue; // sig child
         size_t tmpstrlen = sizeof(tmpstr);
 	memset(tmpstr, 0, tmpstrlen);
@@ -2102,7 +2122,8 @@ sel_12:
         I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
         /* I2AddrFree(tmp_addr); */
         log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", tmp_addr, tmpstr, ctlsockfd);
-	break;
+
+        break;
       }
 
       // verify that accept really worked and don't process connections that've failed
@@ -2111,11 +2132,16 @@ sel_12:
         log_println(4, "New connection request failed sockfd=%d reason-%d.", ctlsockfd, errno);
 	continue;
       }
+      else { // accept worked, log protocol validation log to indicate that client tried connecting
+    	  procstatusenum = PROCESS_STARTED;
+    	  proctypeenum = CONNECT_TYPE;
+    	  protolog_procstatus(getpid(), getCurrentTest(), proctypeenum, procstatusenum); // todo pid?
+      }
 
       // the specially crafted data that kicks off the old clients
       for (i=0; i<5; i++) { // todo 5==SOCKET_IO_RETRY_COUNT
         rc = write(ctlsockfd, "123456 654321", 13);
-	if ((rc == -1) && (errno == EINTR)) // interrupted, retyr
+	if ((rc == -1) && (errno == EINTR)) // interrupted, retry
 	  continue;
 	if (rc == 13) // 13 bytes correctly written, exit
 	  break;
@@ -2130,6 +2156,7 @@ sel_12:
 
 	log_println(6, "xxx, calling initialize_tests()");
 	t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
+
 	if (t_opts < 1) {
 	    log_println(3, "Invalid test suite string '%s' received, terminate child", test_suite);
             close(chld_pipe[0]);
@@ -2611,3 +2638,10 @@ dispatch_client:
     }
   }
 }
+
+/** Method to get remote hots's address.
+ * */
+char *get_remotehost() {
+	return rmt_host;
+}
+
