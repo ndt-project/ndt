@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">NDT Mobile Client</string>
+    <string name="app_name">NDT Mobile Client (beta 2)</string>
     <string name="about">About</string>
     <string name="start">Start</string>
     <string name="label_about_description">Copyright 2009 Google Inc.\n\nThis software is based in part on NDT: Copyright (c) 2003 University of Chicago.</string>
