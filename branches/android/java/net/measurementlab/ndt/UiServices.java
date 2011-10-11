@@ -120,6 +120,8 @@ public interface UiServices {
    */
   // TODO: remove this polling, change to a listener or something cleaner
   public boolean wantToStop();
+  
+  public String getClientApp();
 
   // Hack for the Applet's JavaScript access API extension
   public void setVariable(String name, int value);

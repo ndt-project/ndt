@@ -352,5 +352,10 @@ public class NdtService extends Service {
 		void requestStop() {
 			wantToStop = true;
 		}
+
+		@Override
+		public String getClientApp() {
+			return "mobile_android";
+		}
 	}
 }
