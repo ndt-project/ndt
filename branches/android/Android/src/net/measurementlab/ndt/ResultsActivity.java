@@ -148,28 +148,28 @@ public class ResultsActivity extends Activity {
 
 		results.append('\n');
 
-		if (variables.get("pub_mismatch") == "yes") {
+		if (isVarSet(variables, "pub_mismatch")) {
 			results.append(getString(R.string.results_detailed_mismatch));
 		} else {
 			results.append(getString(R.string.results_detailed_no_mismatch));
 		}
 		results.append('\n');
 
-		if (variables.get("pub_Bad_cable") == "yes") {
+		if (isVarSet(variables, "pub_Bad_cable")) {
 			results.append(getString(R.string.results_detailed_cable_fault));
 		} else {
 			results.append(getString(R.string.results_detailed_no_cable_fault));
 		}
 		results.append('\n');
 
-		if (variables.get("pub_congestion") == "yes") {
+		if (isVarSet(variables, "pub_congestion")) {
 			results.append(getString(R.string.results_detailed_congestion));
 		} else {
 			results.append(getString(R.string.results_detailed_no_congestion));
 		}
 		results.append('\n');
 
-		if (variables.get("pub_natBox") == "yes") {
+		if (isVarSet(variables, "pub_natBox")) {
 			results.append(getString(R.string.results_detailed_nat));
 		} else {
 			results.append(getString(R.string.results_detailed_no_nat));
@@ -209,5 +209,13 @@ public class ResultsActivity extends Activity {
 		String message = getString(templateId, params.toArray(new Object[params
 				.size()]));
 		return message.concat("\n");
+	}
+	
+	private boolean isVarSet(Map<String,Object> variables, String key) {
+		Object value = variables.get(key);
+		if (value instanceof String) {
+			return "yes".equals(value) || "1".equals(value);
+		}
+		return Integer.valueOf(1).equals(value);
 	}
 }
