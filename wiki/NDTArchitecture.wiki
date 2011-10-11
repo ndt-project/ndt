@@ -53,7 +53,7 @@ A basic NDT test session with the web100clt client looks as following:
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDT_flow_2.png
 
  # The process starts with the user specifying a known NDT server for the web100clt client to connect to.
-   * Unlike in the Applet client scenario, the only way to redirect the web100clt client is to use a DNS-based solution like [http://donardns.org/ DONAR].
+   * Unlike in the Applet client scenario, the web100clt does not support redirection so, unless a DNS-based solution like [http://donardns.org/ DONAR] is employed, the user must direct the client to a specific NDT server.
  # The web100clt client connects to the server's testing engine (web100srv process).
  # A child process is created to handle the test and the parent goes back to listening for more test requests. The parent keeps a FIFO queue to process multiple requests.
  # A control channel is created between the server and the client to control the client’s actions and synchronize the start of the various tests. The server and the client negotiate the test suite.
