@@ -33,7 +33,6 @@ static char               ProtocolLogFileName[256] = BASEDIR"/"PROTOLOGFILE;
 static char*              ProtocolLogDirName    = BASEDIR"/"LOGDIR;
 static char               protocollogfilestore[256];
 static char               enableprotologging = 0;
-static const char*        abc = "/var/log/ndt//web100srvprotocol_207.75.164.174.log";
 static I2ErrHandle        _errorhandler_nl   = NULL;
 static I2ErrHandle        _errorhandler      = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
@@ -214,7 +213,7 @@ set_protologdir(char* dirname)
 	// Protocol log location being set
 	if (dirname == NULL) {
 		//use default of BASEDIR/LOGDIR
-		printf ("PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
+		// printf ("PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
 		log_println (0, "PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
 		return;
 	}
@@ -257,9 +256,7 @@ void set_protologfile(char* client_ip, char* protologlocalarr){
 	}
 	sprintf(protologlocalarr, "%s/%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX , client_ip,
 			PROTOLOGSUFFIX,"\0");
-	                        PROTOLOGSUFFIX);
 	strncpy(ProtocolLogFileName, protologlocalarr, strnlen(protologlocalarr));
-
 
 	//log_println (0, "***SET %s: %s;****\n", ProtocolLogFileName, ProtocolLogDirName);
 
@@ -303,9 +300,8 @@ char *createprotologfilename (char* client_ip, char* textappendarg) {
 char*
 get_protologfile()
 {
-  //return ProtocolLogFileName;
-  log_println (0, "**ProtoLog = %s ", ProtocolLogFileName);
-  return abc;
+  //log_println (0, "**ProtoLog = %s ", ProtocolLogFileName);
+  return ProtocolLogFileName;
 }
 
 /**
@@ -414,7 +410,7 @@ protolog_printgeneric(const char* key, const char* value)
 		return;
 	}
 
-	// // make delimiters in message payload explicit
+	// make delimiters in message payload explicit
 	quote_delimiters(value, strlen(value), logmessage, sizeof(logmessage));
 
 	fp = fopen(get_protologfile(),"a");
@@ -558,14 +554,14 @@ void protolog_println(char *msgdirection,
 	char msgtypedescarr[MSG_TYPE_DESC_SIZE];
 	char *currenttestname, *currentmsgtype;
 	char isotime[64];
-	char logmessage[4096]; // message after replacing unnecessary characters
+	char logmessage[4096]; // message after replacing delimiter characters
 
 	// get descriptive strings for test name and direction
 	currenttestname = get_currenttestdesc();
 	currentmsgtype = get_msgtypedesc(type,msgtypedescarr);
 
 	// make delimiters in message payload explicit
-	quote_delimiters(msg, strlen(msg), logmessage, sizeof(logmessage));
+	quote_delimiters(msg, len, logmessage, sizeof(logmessage));
 
 	fp = fopen(get_protologfile(),"a");
 	if (fp == NULL) {
@@ -597,11 +593,13 @@ void protolog_println(char *msgdirection,
  * */
 //void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket) {
 void protolog_sendprintln (const int type, void* msg, const int len, const int processid, const int ctlSocket) {
+	char *currentDir;
+
 	if (!enableprotologging) {
 		log_println(0, "Protocol logging is not enabled");
-		return;
+	        return;
 	}
-	char *currentDir = get_currentdirndesc();
+	currentDir = get_currentdirndesc();
 	//protolog_println(lvl, currentDir, type, msg, len, processid, ctlSocket);
 	protolog_println(currentDir, type, msg, len, processid, ctlSocket);
 }
@@ -617,11 +615,12 @@ void protolog_sendprintln (const int type, void* msg, const int len, const int p
  * @param ctlSocket socket over which message has been exchanged
  * */
 void protolog_rcvprintln  (const int type, void* msg, const int len, const int processid, const int ctlSocket){
+	char *otherDir;
 	if (!enableprotologging) {
 		log_println(0, "Protocol logging is not enabled");
 		return;
 	}
-	char *otherDir = get_otherdirndesc();
+	otherDir = get_otherdirndesc();
 	//protolog_println(lvl, otherDir, type, msg, len, processid, ctlSocket);
 	protolog_println(otherDir, type, msg, len, processid, ctlSocket);
 }
