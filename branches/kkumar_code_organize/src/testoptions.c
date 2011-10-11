@@ -20,20 +20,24 @@
 #include "runningtest.h"
 
 int mon_pipe1[2];
-int mon_pipe2[2]; // used to store PIDs of pipes created for snap data in S2c test
+int mon_pipe2[2]; // used to store file descriptors of pipes created for snap data in S2c test
 //static int currentTest = TEST_NONE;
 
+static const int RETRY_COUNT = 5;
+
+// Snap log characteristics
 typedef struct snapArgs {
-  web100_snapshot* snap;
-  web100_log* log;
-  int delay;
+  web100_snapshot* snap;	// web_100 snapshot indicator
+  web100_log* log;			// web_100 log
+  int delay;				// periodicity, in ms, of collecting snap
 } SnapArgs;
 
+// todo comments for these 2 structs
 typedef struct workerArgs {
     SnapArgs* snapArgs;
     web100_agent* agent;
     CwndPeaks* peaks;
-    int writeSnap;
+    int writeSnap;    // enable writing snaplog
 } WorkerArgs;
 
 static int workerLoop = 0;
@@ -43,9 +47,22 @@ static int slowStart = 1;
 static int prevCWNDval = -1;
 static int decreasing = 0;
 
+// error codes used to indicate status of test runs
+static const int LISTENER_SOCKET_CREATE_FAILED = -1;
+static const int SOCKET_CONNECT_TIMEOUT = -100;
+static const int RETRY_EXCEEDED_WAITING_CONNECT = -101;
+static const int RETRY_EXCEEDED_WAITING_DATA = -102;
+static const int SOCKET_STATUS_FAILED = -1;
+
+//other constants
+static const int ETHERNET_MTU_SIZE = 1456;
+
+
 
 /**
  * Count the CWND peaks from a snapshot and record the minimal and maximum one.
+ * Also record the number of transitions between increasing or decreasing
+ * trends of the values.
  * @param agent Web100 agent used to track the connection
  * @param peaks Structure containing CWND peaks information
  * @param snap Web100 snapshot structure
@@ -111,7 +128,7 @@ catch_s2c_alrm(int signo)
 
 /**
  * Write the snap logs with fixed time intervals in a separate
- *              thread, locking and releasing resources as necessary
+ *              thread, locking and releasing resources as necessary.
  * @param arg pointer to the snapshot structure
  * @return void pointer null
  */
@@ -125,6 +142,7 @@ snapWorker(void* arg)
     CwndPeaks* peaks = workerArgs->peaks;
     int writeSnap = workerArgs->writeSnap;
 
+    // snap log written into every "delay" milliseconds
     double delay = ((double) snapArgs->delay) / 1000.0;
 
     while (1) {
@@ -138,6 +156,8 @@ snapWorker(void* arg)
         mysleep(0.01);
     }
 
+    // Find Congestion window peaks from a web_100 snapshot,
+    //   and log it in a synchronous manner.
     while (1) {
         pthread_mutex_lock(&mainmutex);
         if (!workerLoop) {
@@ -231,7 +251,6 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
 
   set_protologfile(get_remotehost(), protologlocalarr);
 
-
   if (!(useropt & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META))) {
 	  	  	  // message received does not indicate a valid test!
       sprintf(buff, "Invalid test suite request");
@@ -262,17 +281,18 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
  * @param ctlsockfd Client control socket descriptor
  * @param agent Web100 agent used to track the connection
  * @param options  Test options
- * @param s2c2spd In-out parameter for S2C throughput results (evaluated by the MID TEST),
+ * @param s2c_throughput_mid In-out parameter for S2C throughput results (evaluated by the MID TEST),
  * @param conn_options Connection options
- * Returns: 0 - success,
+ * @return 0 - success,
  *          >0 - error code.
  *          Error codes:
  * 				-1 - Listener socket creation failed
- *				-3-web100 connection data not obtained
- *				-100 -timeout while waiting for client to connect to serverÕs ephemeral port
+ *				-3 - web100 connection data not obtained
+ *				-100 - timeout while waiting for client to connect to serverÕs ephemeral port
  *				-errono- Other specific socket error numbers
  *				-101 - Retries exceeded while waiting for client to connect
  *				-102 - Retries exceeded while waiting for data from connected client
+ *			Other used return codes:
  *				1 - Message reception errors/inconsistencies
  *				2 - Unexpected message type received/no message received due to timeout
  *				3 Ð Received message is invalid
@@ -280,19 +300,20 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
  */
 
 int
-test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c2spd)
+test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_options, double* s2c_throughput_mid)
 {
-  int maxseg=1456;
+  //int maxseg=1456;
+  int maxseg = ETHERNET_MTU_SIZE;
   /* int maxseg=1456, largewin=16*1024*1024; */
   /* int seg_size, win_size; */
-  int midsfd; // socket file-descriptor, used in throuput test from S->C
-  int j, ret;
+  int midsfd; // socket file-descriptor, used in throughput test from S->C
+  int j, msgretvalue;
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
   socklen_t clilen;
   char buff[BUFFSIZE+1];
   I2Addr midsrv_addr = NULL;
-  char listenmidport[10];
+  char listenmidport[10];    // listener socket for middlebox tests
   int msgType;
   int msgLen;
   web100_connection* conn;
@@ -309,17 +330,18 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
   assert(ctlsockfd != -1);
   assert(agent);
   assert(options);
-  assert(s2c2spd);
+  assert(s2c_throughput_mid);
   
-  if (options->midopt) { // ready to run middlebox tests
+  if (options->midopt) { // middlebox tests need to be run.
+
+	// Start with readying up (initializing)
     setCurrentTest(TEST_MID);
     log_println(1, " <-- %d - Middlebox test -->", options->child0);
 
-    //protocol validation logs
+    // protocol validation logs indicating start of tests
     printf(" <--- %d - Middlebox test --->", options->child0);
     thistestId = MIDDLEBOX;
     teststatusnow = TEST_STARTED;
-    //protolog_status(1, options->child0, thistestId, teststatusnow);
     protolog_status(options->child0, thistestId, teststatusnow);
 
     // determine port to be used. Compute based on options set earlier
@@ -362,10 +384,11 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
             log_println(0, "WARNING: ephemeral port number was bound");
             break;
         }
-        if (options->multiple == 0) { // todo
+        if (options->multiple == 0) { // simultaneous tests from multiple clients not allowed, quit now
             break;
         }
     }
+
     if (midsrv_addr == NULL) {
       log_println(0, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
       sprintf(buff, "Server (Middlebox test): CreateListenSocket failed: %s", strerror(errno));
@@ -380,26 +403,13 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     
     // send this port number to client
     sprintf(buff, "%d", options->midsockport);
-    if ((ret = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
-	return ret;
+    if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
+    	return msgretvalue;
     
     /* set mss to 1456 (strange value), and large snd/rcv buffers
      * should check to see if server supports window scale ?
      */
     setsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &maxseg, sizeof(maxseg));
-    /* setsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-    setsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-    log_println(2, "Middlebox test, Port %d waiting for incoming connection (fd=%d)",
-        options->midsockport, options->midsockfd);
-    if (get_debuglvl() > 1) {
-      optlen = sizeof(seg_size);
-      getsockopt(options->midsockfd, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
-      getsockopt(options->midsockfd, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
-      log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
-      getsockopt(options->midsockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
-      log_println(2, "Sending Window size set to %dKB", win_size);
-    }
-*/
 
     /* Post a listen on port 3003.  Client will connect here to run the 
      * middlebox test.  At this time it really only checks the MSS value
@@ -414,18 +424,18 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     FD_SET(options->midsockfd, &rfd);
     sel_tv.tv_sec = 5;
     sel_tv.tv_usec = 0;
-    for (j=0; j<5; j++) { // TODO 5 constant declaration
-      ret = select((options->midsockfd)+1, &rfd, NULL, NULL, &sel_tv);
-      if ((ret == -1) && (errno == EINTR)) // socket interruption. continue waiting for activity on socket
+    for (j=0; j<RETRY_COUNT; j++) {
+      msgretvalue = select((options->midsockfd)+1, &rfd, NULL, NULL, &sel_tv);
+      if ((msgretvalue == -1) && (errno == EINTR)) // socket interruption. continue waiting for activity on socket
 	continue;
-      if (ret == 0)  // timeout
-	return -100;
-      if (ret < 0) // other socket errors, exit
+      if (msgretvalue == 0)  // timeout
+	return SOCKET_CONNECT_TIMEOUT;
+      if (msgretvalue < 0) // other socket errors, exit
 	return -errno; 
       if (j == 4) // retry exceeded. Quit
-	return -101;
-midfd:
+	return RETRY_EXCEEDED_WAITING_CONNECT;
 
+midfd:
 	  // if a valid connection request is received, client has connected. Proceed.
 	  // Note the new socket fd used in the throughput test is this (midsfd)
       if ((midsfd = accept(options->midsockfd, (struct sockaddr *) &cli_addr, &clilen)) > 0) {
@@ -433,7 +443,7 @@ midfd:
     	  procstatusenum = PROCESS_STARTED;
     	  proctypeenum = CONNECT_TYPE;
     	  protolog_procstatus(options->child0, thistestId, proctypeenum, procstatusenum);
-	break;
+    	  break;
       }
 
       if ((midsfd == -1) && (errno == EINTR)) // socket interrupted, wait some more
@@ -445,7 +455,7 @@ midfd:
       if (midsfd < 0)
 	return -errno;
       if (j == 4)
-	return -102;
+	return RETRY_EXCEEDED_WAITING_DATA;
     } 
 
     // get meta test details copied into results
@@ -490,8 +500,8 @@ midfd:
 
     // message payload from client == midbox S->c throughput
     buff[msgLen] = 0;
-    *s2c2spd = atof(buff); //todo s2c2spd could be named better
-    log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c2spd, buff);
+    *s2c_throughput_mid = atof(buff); //todo s2c_throughput_mid could be named better
+    log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c_throughput_mid, buff);
 
     // finalize the midbox test ; disabling socket used for throughput test and closing out both sockets
     shutdown(midsfd, SHUT_WR);
@@ -515,17 +525,59 @@ midfd:
 }
 
 /**
+ * Set Cwnd limit
+ * @param connarg web100_connection pointer
+ * @param group_arg web100 group pointer
+ * @param agentarg web100 agent pointer
+ * */
+void setCwndlimit(web100_connection* connarg, web100_group* grouparg, web100_agent* agentarg, Options* optionsarg) {
+
+ 	web100_var *LimRwin, *yar;
+	u_int32_t limrwin_val;
+	char yuff[32];
+
+	if (optionsarg->limit > 0) {
+		log_print(1, "Setting Cwnd limit - ");
+
+		if (connarg != NULL) {
+			log_println(1, "Got web100 connection pointer for recvsfd socket\n");
+			web100_agent_find_var_and_group(agentarg, "CurMSS", &grouparg, &yar);
+			web100_raw_read(yar, connarg, yuff);
+			log_println(1, "MSS = %s, multiplication factor = %d",
+					web100_value_to_text(web100_get_var_type(yar), yuff), optionsarg->limit);
+			limrwin_val = optionsarg->limit * (atoi(web100_value_to_text(web100_get_var_type(yar), yuff)));
+			web100_agent_find_var_and_group(agentarg, "LimRwin", &grouparg, &LimRwin);
+			log_print(1, "now write %d to limit the Receive window", limrwin_val);
+			web100_raw_write(LimRwin, connarg, &limrwin_val);
+			log_println(1, "  ---  Done");
+		}
+
+	}
+
+
+}
+
+/**
  * Perform the C2S Throughput test.
  * @param ctlsockfd Client control socket descriptor
  * @param agent Web100 agent used to track the connection
  * @param testOptions Test options
+ * @param c2sspd In-out parameter to store C2S throughput value
+ * @param set_buff todo
+ * @param window todo
+ * @param autotune todo
+ * @param device string todo
+ * @param options Test Option variables
+ * @param record_reverse integer *
+ * @param count_vars
+ * @param spds[] [] todo
+ * @param spd_index todo
  * @param conn_options Connection options
  * @return 0 - success,
  *          >0 - error code
  *          Error codes:
- *          -1 - Listener socket creation failed -100 -timeout
- *              while waitin for client to connect to serverÕs ephemeral port
- *			-100 - timeout while waitinf for client to connect to serverÕs ephemeral port
+ *          -1 - Listener socket creation failed
+ *          -100 - timeout while waiting for client to connect to serverÕs ephemeral port
  * 			-errno - Other specific socket error numbers
  *			-101 - Retries exceeded while waiting for client to connect
  *			-102 - Retries exceeded while waiting for data from connected client
@@ -538,8 +590,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     int record_reverse, int count_vars, char spds[4][256], int* spd_index)
 {
   /* int largewin=16*1024*1024; */
-  int recvsfd;
-  pid_t mon_pid1 = 0;
+  int recvsfd; // receiver socket file descriptor
+  pid_t mon_pid1 = 0;  // child process pids
   int ret, n, i, j;
   /* int seg_size, win_size; */
   struct sockaddr_storage cli_addr;
@@ -554,11 +606,13 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   I2Addr c2ssrv_addr=NULL, src_addr=NULL;
   char listenc2sport[10];
   pthread_t workerThreadId;
-  char namebuf[256], dir[128];
-  size_t nameBufLen = 255; // TODO constant?
-  char isoTime[64];
-  DIR *dp;
+
+  // moving to comment out soon-to-be unused variables
   FILE *fp;
+  size_t nameBufLen = 255;
+  DIR *dp;
+  char isoTime[64];
+  char namebuf[256], dir[128];
 
   web100_group* group;
   web100_connection* conn;
@@ -625,25 +679,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
 
-/*
-    if (set_buff > 0) {
-      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &window, sizeof(window));
-      setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &window, sizeof(window));
-      if (get_debuglvl() > 1) {
-        optlen = sizeof(seg_size);
-        getsockopt(testOptions->c2ssockfd, SOL_TCP, TCP_MAXSEG, &seg_size, &optlen);
-        getsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &win_size, &optlen);
-        log_println(2, "Set MSS to %d, Receiving Window size set to %dKB", seg_size, win_size);
-        getsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &win_size, &optlen);
-        log_println(2, "Sending Window size set to %dKB", win_size);
-      }
-    }
-*/
-    /* if (autotune > 0) {
-     *  setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_SNDBUF, &largewin, sizeof(largewin));
-     *  setsockopt(testOptions->c2ssockfd, SOL_SOCKET, SO_RCVBUF, &largewin, sizeof(largewin));
-     * }
-     */
     log_println(1, "listening for Inet connection on testOptions->c2ssockfd, fd=%d", testOptions->c2ssockfd);
 
     log_println(1, "Sending 'GO' signal, to tell client %d to head for the next test", testOptions->child0);
@@ -661,16 +696,17 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     FD_SET(testOptions->c2ssockfd, &rfd);
     sel_tv.tv_sec = 5;
     sel_tv.tv_usec = 0;
-    for (j=0; j<5; j++) { //todo 5 constant decl
+    //for (j=0; j<5; j++) { //todo 5 constant decl
+    for (j=0; j<RETRY_COUNT; j++) {
       ret = select((testOptions->c2ssockfd)+1, &rfd, NULL, NULL, &sel_tv);
       if ((ret == -1) && (errno == EINTR)) // socket interrupted. continue waiting for activity on socket
     	  continue;
       if (ret == 0)   	// timeout
-    	  return -100;
+    	  return -SOCKET_CONNECT_TIMEOUT;
       if (ret < 0) 		// other socket errors. exit
     	  return -errno;
       if (j == 4) 		// retry exceeded. exit
-    	  return -101;
+    	  return -RETRY_EXCEEDED_WAITING_CONNECT;
 recfd:
 
 	  // If a valid connection request is received, client has connected. Proceed.
@@ -695,7 +731,7 @@ recfd:
 	return -errno; 
       if (j == 4) {    // retry exceeded, quit
 	log_println(6, "c2s child %d, uable to open connection, return from test", testOptions->child0);
-        return -102;
+        return RETRY_EXCEEDED_WAITING_DATA;
       }
     } 
 
@@ -755,7 +791,9 @@ recfd:
      * Data will be processed by the read loop below.
      */
 
-    /* experimental code, delete when finished */
+    // experimental code, delete when finished
+
+    /*
     {
         web100_var *LimRwin, *yar;
         u_int32_t limrwin_val;
@@ -763,6 +801,7 @@ recfd:
 
         if (options->limit > 0) {
             log_print(1, "Setting Cwnd limit - ");
+
             if (conn != NULL) {
                 log_println(1, "Got web100 connection pointer for recvsfd socket\n");
                 web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
@@ -775,8 +814,10 @@ recfd:
                 web100_raw_write(LimRwin, conn, &limrwin_val);
                 log_println(1, "  ---  Done");
             }
+
         }
     }
+    */
     /* End of test code */
 
     // Create C->S log directories, and open the file for writing, if snaplog option is enabled
@@ -1061,18 +1102,19 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   pthread_t workerThreadId;
   int SndMax=0, SndUna=0;
   int c1=0, c2=0; // sent data attempt queue, Draining Queue. TODO name appr
-  SnapArgs snapArgs;
-  snapArgs.snap = NULL;
-  snapArgs.log = NULL;
-  snapArgs.delay = options->snapDelay;
-  wait_sig = 0;
-  
+
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = S2C;
   enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
   enum  PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 
+  SnapArgs snapArgs;
+  snapArgs.snap = NULL;
+  snapArgs.log = NULL;
+  snapArgs.delay = options->snapDelay;
+  wait_sig = 0;
+  
   // Determine port to be used. Compute based on options set earlier
   // by reading from config file, or use default port2 (3003)
   if (testOptions->s2copt) {
@@ -1256,6 +1298,8 @@ ximfd:
      */
 
       /* experimental code, delete when finished */
+       setCwndlimit(conn, group, agent,options);
+      /*
       {
           web100_var *LimCwnd, *yar;
           u_int32_t limcwnd_val;
@@ -1274,6 +1318,7 @@ ximfd:
               log_println(1, "  ---  Done");
           }
       }
+      */
       /* End of test code */
 
       // create directory to write web100 snaplog trace
@@ -1587,5 +1632,7 @@ ximfd:
   /* testOptions->child2 = mon_pid2; */
   return 0;
 }
+
+
 
 
