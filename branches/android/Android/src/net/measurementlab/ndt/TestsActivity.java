@@ -18,6 +18,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -107,7 +109,8 @@ public class TestsActivity extends Activity {
 		}
 		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
 		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar));
-		// TODO show preparation animation
+		Animation myFadeOutAnimation = AnimationUtils.loadAnimation(imageView.getContext(), R.anim.blink);
+		imageView.startAnimation(myFadeOutAnimation); //Set animation to your ImageView
 	}
 	
 	private void uploading() {
@@ -115,7 +118,8 @@ public class TestsActivity extends Activity {
 		updateHeader(R.string.tests_both_header, R.string.tests_upload_info);
 		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
 		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar_left));
-		// TODO show upload animation
+		Animation myFadeOutAnimation = AnimationUtils.loadAnimation(imageView.getContext(), R.anim.left_translate);
+		imageView.startAnimation(myFadeOutAnimation); //Set animation to your ImageView
 	}
 	
 	private void downloading() {
@@ -123,7 +127,8 @@ public class TestsActivity extends Activity {
 		updateHeader(R.string.tests_both_header, R.string.tests_download_info);
 		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
 		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar_right));
-		// TODO show download animation
+		Animation myFadeOutAnimation = AnimationUtils.loadAnimation(imageView.getContext(), R.anim.right_translate);
+		imageView.startAnimation(myFadeOutAnimation); //Set animation to your ImageView
 	}
 	
 	private void complete(Intent status) {
