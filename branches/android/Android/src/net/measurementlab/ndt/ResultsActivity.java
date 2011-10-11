@@ -84,11 +84,12 @@ public class ResultsActivity extends Activity {
 				.getSerializableExtra(NdtService.EXTRA_VARS);
 		formatSummaryResults(variables);
 		formatDetailedResults(variables);
-		String diagnosticStatus = intent.getStringExtra(
-				NdtService.EXTRA_DIAG_STATUS);
+		String diagnosticStatus = intent
+				.getStringExtra(NdtService.EXTRA_DIAG_STATUS);
 		formatAdvancedResults(diagnosticStatus);
-		
-		Toast resultsHint = Toast.makeText(getApplicationContext(), getString(R.string.results_swipe_hint), 10);
+
+		Toast resultsHint = Toast.makeText(getApplicationContext(),
+				getString(R.string.results_swipe_hint), 10);
 		resultsHint.show();
 	}
 
@@ -138,52 +139,55 @@ public class ResultsActivity extends Activity {
 		if (null == timeouts) {
 			timeouts = 0;
 		}
-		Integer waitSec = (curRTO * timeouts)/1000;
+		Integer waitSec = (curRTO * timeouts) / 1000;
 		variables.put("pub_WaitSec", waitSec);
 		results.append(formatDetailedLine(R.string.results_detailed_timeout,
 				variables, "pub_WaitSec", "pub_CurRTO"));
 		results.append(formatDetailedLine(R.string.results_detailed_ack,
 				variables, "pub_SACKsRcvd"));
-		
+
 		results.append('\n');
-		// TODO finish filling in the rest
 
-//		  if (a.get_mismatch() == "yes") {
-//		    d += "A duplex mismatch condition was detected.<br>";
-//		  }
-//		  else {
-//		    d += "No duplex mismatch condition was detected.<br>";
-//		  }
-//
-//		  if (a.get_Bad_cable() == "yes") {
-//		    d += "The test detected a cable fault.<br>";
-//		  }
-//		  else {
-//		    d += "The test did not detect a cable fault.<br>";
-//		  }
-//
-//		  if (a.get_congestion() == "yes") {
-//		    d += "Network congestion may be limiting the connection.<br>";
-//		  }
-//		  else {
-//		    d += "No network congestion was detected.<br>";
-//		  }
-//
-//		  if (a.get_natStatus() == "yes") {
-//		    d += "A network addess translation appliance was detected.<br>";
-//		  }
-//		  else {
-//		    d += "No network addess translation appliance was detected.<br>";
-//		  }
-//
-//		  d += "<br>";
-//
-//		  d += a.get_cwndtime() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
-//		  d += a.get_rcvrLimiting() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
-//		  d += "Optimal receive buffer: " + a.get_optimalRcvrBuffer() + " bytes<br>";
-//		  d += "Bottleneck link: " + a.get_AccessTech() + "<br>";
-//		  d += a.get_DupAcksOut() + " duplicate ACKs set<br>";
+		if (variables.get("pub_mismatch") == "yes") {
+			results.append(getString(R.string.results_detailed_mismatch));
+		} else {
+			results.append(getString(R.string.results_detailed_no_mismatch));
+		}
+		results.append('\n');
 
+		if (variables.get("pub_Bad_cable") == "yes") {
+			results.append(getString(R.string.results_detailed_cable_fault));
+		} else {
+			results.append(getString(R.string.results_detailed_no_cable_fault));
+		}
+		results.append('\n');
+
+		if (variables.get("pub_congestion") == "yes") {
+			results.append(getString(R.string.results_detailed_congestion));
+		} else {
+			results.append(getString(R.string.results_detailed_no_congestion));
+		}
+		results.append('\n');
+
+		if (variables.get("pub_natBox") == "yes") {
+			results.append(getString(R.string.results_detailed_nat));
+		} else {
+			results.append(getString(R.string.results_detailed_no_nat));
+		}
+		results.append('\n');
+
+		results.append(formatDetailedLine(R.string.results_detailed_cwndtime, variables,
+				"pub_cwndtime"));
+		results.append(formatDetailedLine(R.string.results_detailed_rcvr_limiting, variables,
+				"pub_pctRcvrLimited"));
+		variables.put("pub_OptimalRcvrBuffer", ((Integer) variables
+				.get("pub_MaxRwinRcvd") * 1024));
+		results.append(formatDetailedLine(R.string.results_detailed_optimal_rcvr_buffer,
+				variables, "pub_OptimalRcvrBuffer"));
+		results.append(formatDetailedLine(R.string.results_detailed_bottleneck_link,
+				variables, "pub_AccessTech"));
+//		results.append(formatDetailedLine(R.string.results_detailed_dupe_acks, variables,
+//				"pub_DupAcksOut"));
 
 		TextView textView = (TextView) findViewById(R.id.DetailedResultsInfo);
 		textView.setText(results);
