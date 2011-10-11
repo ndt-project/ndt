@@ -35,9 +35,8 @@ A basic NDT test session with the Java Applet-based client looks as following:
 
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDT_flow_1.png
 
- # The process starts with the user opening a browser and entering the NDT server URL:
-   * An optional step is to point to a well known server and accept a redirect message (Federated mode).
-   * Otherwise the URL points to the NDT server itself (either an apache web server or the fakewww process answer the request).
+ # The process starts with the user opening a browser and entering a known NDT server URL.
+   * This URL can either point directly to a specific NDT server, or the web browser can be redirected to a different NDT server (either via a Web redirect, or using a DNS-based solution like [http://donardns.org/ DONAR]).
  # The web server responds by returning the page, with an embedded java applet (class or jar file).
  # The user must manually request a test be performed by clicking the “start” button.
  # The applet opens a connection back to the server’s testing engine (web100srv process).
@@ -53,7 +52,9 @@ A basic NDT test session with the web100clt client looks as following:
 
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDT_flow_2.png
 
- # The process starts with connecting to the server's testing engine (web100srv process) by the web100clt client.
+ # The process starts with the user specifying a known NDT server for the web100clt client to connect to.
+   * Unlike in the Applet client scenario, the only way to redirect the web100clt client is to use a DNS-based solution like [http://donardns.org/ DONAR].
+ # The web100clt client connects to the server's testing engine (web100srv process).
  # A child process is created to handle the test and the parent goes back to listening for more test requests. The parent keeps a FIFO queue to process multiple requests.
  # A control channel is created between the server and the client to control the client’s actions and synchronize the start of the various tests. The server and the client negotiate the test suite.
  # The NDT client and the NDT server performs the negotiated test suite. The client opens new data channels back to the server for testing purposes. Allowing the client to open connections makes it easy to get past client-side firewall boxes.
@@ -63,55 +64,45 @@ http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDT_flow_2.png
 == Architecture Overview ==
 
 We can look at the NDT architecture in two different ways:
- * by distinguish separate components on the executables level (i.e. talk about web100clt and web100srv as two NDT components)
- * by distinguish different subsystems that the NDT components are using (i.e. both web100clt and web100srv are using logging subsystem)
+ * by distinguish separate executable components (i.e. talk about web100clt and web100srv as two NDT components)
+ * by distinguish different subcomponents that the NDT components are using (i.e. both web100clt and web100srv are using logging subcomponent)
 
-=== NDT components ===
+=== NDT Components ===
 
-After downloading the NDT sources, we can find the NDT components in the following directories:
- * src:
-   {{{ }}}*web100clt*{{{, }}}*web100srv*{{{, fakewww, analyze, viewtrace, tr-mkmap, genplot}}}
- * Applet:
-   {{{ }}}*Tcpbw100.jar*
- * Admin:
-   {{{ }}}Admin.class
- * janalyze/src:
-   {{{ }}}JAnalyze.jar
+A brief description of each of the NDT components can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
 
-The brief information about each of the NDT components can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
-
-|| *Component Name* || *Type* || *Description* || *Sources Location* ||
+|| *Component* || *Type* || *Description* || *Sources Location* ||
 || *web100clt* || Client Tools || The NDT Client application (used from command line). || *src* <br/><br/> {{{web100clt.c network.c usage.c logging.c utils.c protocol.c test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c}}} ||
 || *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. || *Applet* <br/><br/> {{{Tcpbw100.java}}}||
 || *web100srv* || Server Tools || The NDT Server application. || *src* <br/><br/> {{{web100srv.c web100-util.c web100-pcap.c web100-admin.c network.c usage.c utils.c mrange.c logging.c testoptions.c protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c}}} ||
 || fakewww || Server Tools || Optional 'lite' web server. || *src* <br/><br/> {{{fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c}}} ||
 || analyze || Administrative Tools || Console based utility application that can look through the NDT log files and display the old test results. || *src* <br/><br/> {{{analyze.c usage.c logging.c}}} ||
 || viewtrace || Administrative Tools || Console based utility application that can read [NDTDataFormat#tcpdump_trace tcpdump trace] files to perform packet pair timings to determine [NDTTestMethodology#Bottleneck_Link_Detection what type of bottleneck link exists] on the analyzed path. || *src* <br/><br/> {{{viewtrace.c usage.c logging.c utils.c}}} ||
-|| tr-mkmap || Administrative Tools || Console based utility application that can build a default traceroute tree between all federated NDT servers. The fakewww web server uses such pre-built traceroute trees to redirect clients to the closest NDT server. || *src* <br/><br/> {{{tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c}}} ||
+|| tr-mkmap || Administrative Tools || Console based utility application can be used with NDT's federated mode. The utility takes files containing traceroute runs between all the federated ndt servers, and generates a "tree" file. fakewww will consult this tree file when clients connect to ascertain which is the closest NDT server to the client. fakewww will then redirect the client to that server. || *src* <br/><br/> {{{tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c}}} ||
 || genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace Web100 snaplog trace] files and generate xplot graphs from the obtained Web100 variables. || *src* <br/><br/> {{{genplot.c usage.c}}} ||
 || JAnalyze.jar || Administrative Tools || Java based utility application that can look through the NDT log files and display the old test results (along with displaying existing snaplog/tcpdump trace files and additional graphs). || *janalyze/src* <br/><br/> {{{DBConfFrame.java Helpers.java LoadingDBFrame.java MaxPeakInfo.java PeakInfo.java ResultsContainer.java SimpleTextPane.java SwingWorker.java FilterFrame.java JAnalyze.java LoadingFrame.java MinPeakInfo.java PropertyListener.java ResultsList.java SnaplogFrame.java}}} ||
 || Admin.class || Administrative Tools || The Java Applet-based application that provides an administrator view of the NDT usage statistics (this applet is responsible for drawing the bar graph that appears on the admin view html page). || *Admin* <br/><br/> {{{Admin.java}}} ||
 
-=== NDT subsystems ===
+=== NDT subcomponents ===
 
-==== NDT Server subsystems ====
+==== NDT Server subcomponents ====
 
-All subsystems of the NDT Server (web100srv) can be seen on the following diagram (please note, that web100srv is the component that is using all subsystems included in it, the subsystems like _mrange_ and _admin page_ are used during initialization and after each test session):
+All subcomponents of the NDT Server (web100srv) can be seen on the following diagram (please note, that web100srv is the component that is using all subcomponents included in it, the subcomponents like _mrange_ and _admin page_ are used during initialization and after each test session):
 
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA2.png
 
-==== NDT Client subsystems ====
+==== NDT Client subcomponents ====
 
-All subsystems of the NDT Client (web100clt) can be seen on the following diagram:
+All subcomponents of the NDT Client (web100clt) can be seen on the following diagram:
 
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA3.png
 
 ==== Subsystems description ====
 
-The brief information about each of the NDT subsystems can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
+The brief information about each of the NDT subcomponents can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
 
 || *Subsystem* || *Used by* || *Description* || *Functions* || *Sources* ||
-|| logging || web100srv<br/>web100clt || Logging subsystem that is responsible for printing informational messages on to the console. It can filter messages according to the currently set debug level. Moreover, this subsystem is also responsible for dates/timestamps handling. || {{{void }}}*log_init*{{{(char* progname, int debuglvl)}}}<br/>{{{void }}}*set_debuglvl*{{{(int debuglvl)}}}<br/>{{{void }}}*set_logfile*{{{(char* filename)}}}<br/>{{{int }}}*get_debuglvl*{{{()}}}<br/>{{{char* }}}*get_logfile*{{{()}}}<br/>{{{I2ErrHandle }}}*get_errhandle*{{{()}}}<br/>{{{void }}}*log_print*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_println*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_free*{{{(void)}}}<br/>{{{void }}}*set_timestamp*{{{()}}}<br/>{{{char* }}}*get_ISOtime*{{{(char * isoTime)}}}<br/>{{{void }}}*get_YYYY*{{{(char * year)}}}<br/>{{{void }}}*get_MM*{{{(char * month)}}}<br/>{{{void }}}*get_DD*{{{(char * day)}}} || {{{logging.c logging.h}}} ||
+|| logging || web100srv<br/>web100clt || Logging subcomponent that is responsible for printing informational messages on to the console. It can filter messages according to the currently set debug level. Moreover, this subcomponent is also responsible for dates/timestamps handling. || {{{void }}}*log_init*{{{(char* progname, int debuglvl)}}}<br/>{{{void }}}*set_debuglvl*{{{(int debuglvl)}}}<br/>{{{void }}}*set_logfile*{{{(char* filename)}}}<br/>{{{int }}}*get_debuglvl*{{{()}}}<br/>{{{char* }}}*get_logfile*{{{()}}}<br/>{{{I2ErrHandle }}}*get_errhandle*{{{()}}}<br/>{{{void }}}*log_print*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_println*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_free*{{{(void)}}}<br/>{{{void }}}*set_timestamp*{{{()}}}<br/>{{{char* }}}*get_ISOtime*{{{(char * isoTime)}}}<br/>{{{void }}}*get_YYYY*{{{(char * year)}}}<br/>{{{void }}}*get_MM*{{{(char * month)}}}<br/>{{{void }}}*get_DD*{{{(char * day)}}} || {{{logging.c logging.h}}} ||
 || network || web100srv<br/>web100clt || Subsystem that is responsible for all network operations. || {{{I2Addr }}}*!CreateListenSocket*{{{(I2Addr addr, char* serv, int options, int buf_size)}}}<br/>{{{int }}}*!CreateConnectSocket*{{{(int* sockfd, I2Addr local_addr, I2Addr server_addr, int option, int buf_sizes)}}}<br/>{{{int }}}*send_msg*{{{(int ctlSocket, int type, void* msg, int len)}}}<br/>{{{int }}}*recv_msg*{{{(int ctlSocket, int* type, void* msg, int* len)}}}<br/>{{{int }}}*writen*{{{(int fd, void* buf, int amount)}}}<br/>{{{int }}}*readn*{{{(int fd, void* buf, int amount)}}} || {{{network.c network.h}}} ||
 || protocol || web100srv<br/>web100clt || Functions to support [NDTProtocol NDT Protocol]. || {{{int }}}*check_msg_type*{{{(char* prefix, int expected, int received, char* buff, int len)}}} || {{{protocol.c protocol.h}}} ||
 || utils || web100srv<br/>web100clt || Functions to handle numbers sanity checks and some other utility things. || {{{int }}}*check_int*{{{(char* text, int* number)}}}<br/>{{{int }}}*check_rint*{{{(char* text, int* number, int minVal, int maxVal)}}}<br/>{{{int }}}*check_long*{{{(char* text, long* number)}}}<br/>{{{double }}}*secs*{{{()}}}<br/>{{{void }}}*err_sys*{{{(char* s)}}}<br/>{{{int }}}*sndq_len*{{{(int fd)}}}<br/>{{{void }}}*mysleep*{{{(double time)}}} || utils.c utils.h ||
@@ -131,9 +122,9 @@ The brief information about each of the NDT subsystems can be found in the follo
 || META Test (C) || web100clt || The client part of the META Test || {{{int }}}*test_meta_clt*{{{(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
 || META Test (S) || web100srv || The server part of the META Test || {{{int }}}*test_meta_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
 
-==== NDT Java Applet subsystems ====
+==== NDT Java Applet subcomponents ====
 
-The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subsystems related to particular tests:
+The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subcomponents related to particular tests:
 
 || *Subsystem* || *Method* ||
 || SFW Test (C) || {{{boolean }}}*test_sfw*{{{(Protocol ctl)}}} ||
@@ -150,13 +141,17 @@ http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA1.png
 
 === Requirements ===
 
-In order to build the NDT programs, the following dependencies should be fulfilled:
- * Web100 enhancements (user library for compilation, Linux kernel for running NDT server)
- * pcap library
- * !I2Util library
- * zlib library (for compressing test results)
- * odbc library (to support writing test results to the SQL database)
- * Java SDK (to build Java Applet-based client, Admin.class and the JAnalyze application)
+NDT makes use of a number of third-party components:
+|| Library || Required To Build Client? || Required To Run Client? || Required To Build Server? || Required To Run Server? ||
+|| Web100 Kernel Modifications || No || No || No || Yes ||
+|| Web100 Library || No || No || Yes || Yes ||
+|| pcap library || No || No || Yes || Yes ||
+|| !I2Util library || Yes (C Client Only) || No || Yes || No ||
+|| zlib library || No || No || No (compression of test results will be disabled) || No ||
+|| odbc library || No || No || No (storing results in a SQL database will be disabled) || No ||
+|| Java SDK || Yes (Java Client-only) || Yes (Java Client-only) || No (JAnalyze application and Admin.class will not be built) || No ||
+
+If NDT discovers the above components during the _configure_ process, the associated software will be built. Otherwise, only the software that can be built with the available third-party components will be built.
 
 ==== Web100 patched Linux kernel ====
 
