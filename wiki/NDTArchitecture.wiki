@@ -87,23 +87,23 @@ A brief description of each of the NDT components can be found in the following 
 
 ==== NDT Server subcomponents ====
 
-All subcomponents of the NDT Server (web100srv) can be seen on the following diagram (please note, that web100srv is the component that is using all subcomponents included in it, the subcomponents like _mrange_ and _admin page_ are used during initialization and after each test session):
+All subcomponents of the NDT Server (web100srv) can be seen on the following diagram:
 
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA2.png
 
-==== NDT Client subcomponents ====
+==== NDT C Client subcomponents ====
 
-All subcomponents of the NDT Client (web100clt) can be seen on the following diagram:
+All subcomponents of the NDT C Client (web100clt) can be seen on the following diagram:
 
 http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA3.png
 
-==== Subsystems description ====
+==== Subcomponents description ====
 
-The brief information about each of the NDT subcomponents can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
+A description of each of the NDT subcomponents can be found in the following table. All source files are located in the *src* directory under the root of the checked out sources from the code repository.
 
-|| *Subsystem* || *Used by* || *Description* || *Functions* || *Sources* ||
+|| *Subcomponent* || *Used by* || *Description* || *Functions* || *Sources* ||
 || logging || web100srv<br/>web100clt || Logging subcomponent that is responsible for printing informational messages on to the console. It can filter messages according to the currently set debug level. Moreover, this subcomponent is also responsible for dates/timestamps handling. || {{{void }}}*log_init*{{{(char* progname, int debuglvl)}}}<br/>{{{void }}}*set_debuglvl*{{{(int debuglvl)}}}<br/>{{{void }}}*set_logfile*{{{(char* filename)}}}<br/>{{{int }}}*get_debuglvl*{{{()}}}<br/>{{{char* }}}*get_logfile*{{{()}}}<br/>{{{I2ErrHandle }}}*get_errhandle*{{{()}}}<br/>{{{void }}}*log_print*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_println*{{{(int lvl, const char* format, ...)}}}<br/>{{{void }}}*log_free*{{{(void)}}}<br/>{{{void }}}*set_timestamp*{{{()}}}<br/>{{{char* }}}*get_ISOtime*{{{(char * isoTime)}}}<br/>{{{void }}}*get_YYYY*{{{(char * year)}}}<br/>{{{void }}}*get_MM*{{{(char * month)}}}<br/>{{{void }}}*get_DD*{{{(char * day)}}} || {{{logging.c logging.h}}} ||
-|| network || web100srv<br/>web100clt || Subsystem that is responsible for all network operations. || {{{I2Addr }}}*!CreateListenSocket*{{{(I2Addr addr, char* serv, int options, int buf_size)}}}<br/>{{{int }}}*!CreateConnectSocket*{{{(int* sockfd, I2Addr local_addr, I2Addr server_addr, int option, int buf_sizes)}}}<br/>{{{int }}}*send_msg*{{{(int ctlSocket, int type, void* msg, int len)}}}<br/>{{{int }}}*recv_msg*{{{(int ctlSocket, int* type, void* msg, int* len)}}}<br/>{{{int }}}*writen*{{{(int fd, void* buf, int amount)}}}<br/>{{{int }}}*readn*{{{(int fd, void* buf, int amount)}}} || {{{network.c network.h}}} ||
+|| network || web100srv<br/>web100clt || Subcomponent that is responsible for all network operations. || {{{I2Addr }}}*!CreateListenSocket*{{{(I2Addr addr, char* serv, int options, int buf_size)}}}<br/>{{{int }}}*!CreateConnectSocket*{{{(int* sockfd, I2Addr local_addr, I2Addr server_addr, int option, int buf_sizes)}}}<br/>{{{int }}}*send_msg*{{{(int ctlSocket, int type, void* msg, int len)}}}<br/>{{{int }}}*recv_msg*{{{(int ctlSocket, int* type, void* msg, int* len)}}}<br/>{{{int }}}*writen*{{{(int fd, void* buf, int amount)}}}<br/>{{{int }}}*readn*{{{(int fd, void* buf, int amount)}}} || {{{network.c network.h}}} ||
 || protocol || web100srv<br/>web100clt || Functions to support [NDTProtocol NDT Protocol]. || {{{int }}}*check_msg_type*{{{(char* prefix, int expected, int received, char* buff, int len)}}} || {{{protocol.c protocol.h}}} ||
 || utils || web100srv<br/>web100clt || Functions to handle numbers sanity checks and some other utility things. || {{{int }}}*check_int*{{{(char* text, int* number)}}}<br/>{{{int }}}*check_rint*{{{(char* text, int* number, int minVal, int maxVal)}}}<br/>{{{int }}}*check_long*{{{(char* text, long* number)}}}<br/>{{{double }}}*secs*{{{()}}}<br/>{{{void }}}*err_sys*{{{(char* s)}}}<br/>{{{int }}}*sndq_len*{{{(int fd)}}}<br/>{{{void }}}*mysleep*{{{(double time)}}} || utils.c utils.h ||
 || Web100 support || web100srv || Functions needed to read the Web100 variables. || {{{void }}}*get_iflist*{{{(void)}}}<br/>{{{int }}}*web100_init*{{{(char *VarFileName)}}}<br/>{{{int }}}*web100_autotune*{{{(int sock, web100_agent* agent, web100_connection* cn)}}}<br/>{{{void }}}*web100_middlebox*{{{(int sock, web100_agent* agent, web100_connection* cn, char *results)}}}<br/>{{{int }}}*web100_setbuff*{{{(int sock, web100_agent* agent, web100_connection* cn, int autotune)}}}<br/>{{{void }}}*web100_get_data_recv*{{{(int sock, web100_agent* agent, web100_connection* cn, int count_vars)}}}<br/>{{{int }}}*web100_get_data*{{{(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars)}}}<br/>{{{int }}}*!CwndDecrease*{{{(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt)}}}<br/>{{{int }}}*web100_logvars*{{{(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut, int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd, int *Sndbuf, int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd, int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin, int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh, int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals, int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale, int *SndWinScale, int *CongAvoid, int *CongestionOverCount, int *MaxRTT, int *OtherReductions, int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall, int *SlowStart, int *SubsequentTimeouts, int *ThruBytesAcked)}}} || {{{web100-util.c web100srv.h}}} ||
@@ -122,16 +122,22 @@ The brief information about each of the NDT subcomponents can be found in the fo
 || META Test (C) || web100clt || The client part of the META Test || {{{int }}}*test_meta_clt*{{{(int ctlSocket, char tests, char* host, int conn_options)}}} || {{{test_meta_clt.c test_meta.h}}} ||
 || META Test (S) || web100srv || The server part of the META Test || {{{int }}}*test_meta_srv*{{{(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_options)}}} || {{{test_meta_srv.c test_meta.h testoptions.h}}} ||
 
+Some of the above subcomponents depend on other of the above subcomponents. The test subcomponents dependencies were included in the diagrams above. The non-test subcomponent dependencies are listed in the diagram below.
+
+http://ndt.googlecode.com/svn/wiki/NDTArchitecture.images/NDTA4.png
+
 ==== NDT Java Applet subcomponents ====
 
 The NDT Java Applet-based client (Tcpbw100.jar) has the same functionality as the command line client (web100clt), but all its code is located in a single Tcpbw100.java file. The concise implementation allow us to only distinguish the following subcomponents related to particular tests:
 
-|| *Subsystem* || *Method* ||
+|| *Subcomponent* || *Location* ||
 || SFW Test (C) || {{{boolean }}}*test_sfw*{{{(Protocol ctl)}}} ||
 || MID Test (C) || {{{boolean }}}*test_mid*{{{(Protocol ctl)}}} ||
 || C2S Test (C) || {{{boolean }}}*test_c2s*{{{(Protocol ctl)}}} ||
 || S2C Test (C) || {{{boolean }}}*test_s2c*{{{(Protocol ctl, Socket ctlSocket)}}} ||
 || META Test (C) || {{{boolean }}}*test_meta*{{{(Protocol ctl) }}} ||
+|| Protocol || {{{Class }}}*Protocol* ||
+|| User Interface || Throughout ||
 
 This simple architecture can be seen on the following diagram:
 
