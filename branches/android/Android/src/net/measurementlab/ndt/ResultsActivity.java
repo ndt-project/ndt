@@ -186,11 +186,12 @@ public class ResultsActivity extends Activity {
 				variables, "pub_OptimalRcvrBuffer"));
 		results.append(formatDetailedLine(R.string.results_detailed_bottleneck_link,
 				variables, "pub_AccessTech"));
+		// haven't been able to deduce where this var is set
 //		results.append(formatDetailedLine(R.string.results_detailed_dupe_acks, variables,
-//				"pub_DupAcksOut"));
+//				"pub_DupAcksIn"));
 
 		TextView textView = (TextView) findViewById(R.id.DetailedResultsInfo);
-		textView.setText(results);
+		textView.setText(results.toString());
 	}
 
 	private void formatAdvancedResults(String diagnosticStatus) {
