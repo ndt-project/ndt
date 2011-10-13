@@ -68,21 +68,23 @@
 #define PORT3 "3003"
 #define PORT4 "3003"
 
+// Congestion window peak information
 typedef struct CwndPeaks {
-    int min;
-    int max;
-    int amount;
+    int min;		// trough of peak value
+    int max;        // maximun peak value
+    int amount;		// number of transitions between peaks
 } CwndPeaks;
 
+// Options to run test with
 typedef struct options {
-    u_int32_t limit;
-    int snapDelay;
-    char avoidSndBlockUp; // flag set to indicate avoiding  send buffer blocking in the S2C test
-    char snaplog;
-    char cwndDecrease;
-    char s2c_logname[128];
-    char c2s_logname[128];
-    int  compress;
+    u_int32_t limit;		// used to calculate receive window limit
+    int snapDelay;			// Frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
+    char avoidSndBlockUp; 	// flag set to indicate avoiding  send buffer blocking in the S2C test
+    char snaplog;		  	// enable collecting snap log
+    char cwndDecrease;    	// enable analysis of the cwnd changes (S2C test)
+    char s2c_logname[128];  // S2C log file name
+    char c2s_logname[128];  // C2S log file name
+    int  compress; 			// enable compressing log files
 } Options;
 
 typedef struct portpair {

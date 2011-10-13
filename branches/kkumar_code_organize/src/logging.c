@@ -896,7 +896,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 			memset(filename, 0, 256);
 			sprintf(filename, "%s/%s", tmp2str, meta.c2s_snaplog);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed");
+				//log_println(5, "compression failed ");
+				log_println(0, "compression failed for file:%s", meta.c2s_snaplog);
 			else
 				strncat(meta.c2s_snaplog, ".gz", 3);
 
@@ -904,7 +905,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 			memset(filename, 0, 256);
 			sprintf(filename, "%s/%s", tmp2str, meta.s2c_snaplog);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed");
+				//log_println(5, "compression failed");
+				log_println(0, "compression failed for file :%s",meta.s2c_snaplog);
 			else
 				strncat(meta.s2c_snaplog, ".gz", 3);
 		}
@@ -1037,8 +1039,54 @@ int quote_delimiters(char *line, int line_size, char *output_buf, int output_buf
 }
 
 
-/** Method to create directories for log files */
-/*
-createDir(char *dirName)  {
-}
+/** Method to create directories for snap log files
+* @param namebufarg    string containing ip address/name of client
+* @param socketaddrarg string containing socket address
+* @param direnamedestarg location to store final directory name
+* @param finalsuffix     string constant suffix indicating C2S/S2c etc
 */
+//void createDir(char const* namebufarg, char const *socketaddrarg, char *dirnamedestarg,
+//    char *finalsuffix)  {
+void createDir(struct sockaddr *cliaddrarg, socklen_t clilenarg, char *dirnamedestarg,
+    char *finalsuffix)  {
+	char namebuf[256];
+	size_t namebuflen = 255;
+	char dir[128];
+	DIR *dp;
+	char isoTime[64];
+	char *socketaddrport;
+
+	I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), cliaddrarg, clilenarg, 0, 0);
+       	memset(namebuf, 0, 256);
+        I2AddrNodeName(sockAddr, namebuf, &namebuflen);
+        socketaddrport = I2AddrPort(sockAddr);
+
+
+        strncpy(dirnamedestarg, DataDirName, strlen(DataDirName));
+        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+                mkdir(dirnamedestarg, 0755);
+        closedir(dp);
+        get_YYYY(dir);
+        strncat(dirnamedestarg, dir, 4);
+        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+                mkdir(dirnamedestarg, 0755);
+        closedir(dp);
+        strncat(dirnamedestarg, "/", 1);
+        get_MM(dir);
+        strncat(dirnamedestarg, dir, 2);
+        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+                mkdir(dirnamedestarg, 0755);
+        closedir(dp);
+        strncat(dirnamedestarg, "/", 1);
+        get_DD(dir);
+        strncat(dirnamedestarg, dir, 2);
+        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+                mkdir(dirnamedestarg, 0755);
+        closedir(dp);
+        strncat(dirnamedestarg, "/", 1);
+        sprintf(dir, "%s_%s:%d.%s", get_ISOtime(isoTime), namebuf, socketaddrport, finalsuffix);
+        strncpy(finalsuffix, dir, strlen(dir));
+        strncat(dirnamedestarg, dir, strlen(dir));
+
+        I2AddrFree(sockAddr);
+}
