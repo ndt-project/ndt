@@ -110,7 +110,8 @@ test_mid_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
     if (check_msg_type("Middlebox test results", TEST_MSG, msgType, buff, msgLen)) {
       return 2;
     }
-    strncat(tmpstr2, buff, msgLen);
+    //strncat(tmpstr2, buff, msgLen);
+    strlcat(tmpstr2, buff, 512); //todo hardcoded size for now
 
     memset(buff, 0, 128);
     sprintf(buff, "%0.0f", spdin);

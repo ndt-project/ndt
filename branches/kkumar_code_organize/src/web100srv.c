@@ -82,7 +82,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "test_sfw.h"
 #include "ndt_odbc.h"
 #include "runningtest.h"
-
+#include "strlutils.h"
 
 static char lgfn[256];
 static char wvfn[256];
@@ -1342,8 +1342,12 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
   // Copy collected values into the meta data structures
-    sprintf(meta.date, "%s", get_ISOtime(isoTime));
+    sprintf(meta.date, "%s", get_ISOtime(isoTime,sizeof(isoTime)));
+//todo remove debug
+    log_println(0, "meta.date=%s, meta.clientip =%s:%s:%d", meta.date, meta.client_ip, rmt_host,strlen(rmt_host));
     memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
+    log_println(0, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
+//todo remove debug
     memset(tmpstr, 0, 255);
     sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
         (int)s2c2spd,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
@@ -1354,23 +1358,28 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
         MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
         SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
         SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+    strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr,"%d,%d,%d,%d,%d",
         link, mismatch, bad_cable, half_duplex, congestion);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+    strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
         CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+    strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
         OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
         SubsequentTimeouts, ThruBytesAcked);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+    strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
-    strncat(meta.summary, tmpstr, strlen(tmpstr));
+    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+    strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     writeMeta(options.compress, cputime, options.snaplog, dumptrace);
 
    // Write into log files, DB
@@ -2171,6 +2180,9 @@ sel_12:
       memset(new_child, 0, sizeof(struct ndtchild));
       tt = time(0);
       name = tmpstr;
+ //todo remove debug log
+      log_println(" CLIENT CLIENT CLIENT IP=%s",tmpstr);
+
       rmt_host = tmpstr;
 
       // At this point we have received a connection from a client, meaning that
@@ -2244,8 +2256,10 @@ sel_12:
 	log_println(6, "creating new child - semaphore locked");
 	/*sigprocmask(SIG_BLOCK, &newmask, &oldmask); */
         new_child->pid = chld_pid;
-        strncpy(new_child->addr, rmt_host, strlen(rmt_host));
-        strncpy(new_child->host, name, strlen(name));
+       /* strncpy(new_child->addr, rmt_host, strlen(rmt_host));
+        strncpy(new_child->host, name, strlen(name));*/
+        strlcpy(new_child->addr, rmt_host, sizeof(new_child->addr));
+        strlcpy(new_child->host, name, sizeof(new_child->host));
 
         // compute start time based in the number of waiting clients
         // set other properties on this child process
@@ -2534,30 +2548,38 @@ dispatch_client:
             I2AddrFree(tmp_addr);
             memset(cputimelog, 0, 256);
             if (cputime) {
-		strncpy(cputimelog, DataDirName, strlen(DataDirName));
+		//strncpy(cputimelog, DataDirName, strlen(DataDirName));
+        strlcpy(cputimelog, DataDirName, sizeof(cputimelog));
 		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
 		closedir(dp);
 		get_YYYY(dir);
-		strncat(cputimelog, dir, 4);
+		//strncat(cputimelog, dir, 4);
+		strlcat(cputimelog, dir, sizeof(cputimelog));
 		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
 		closedir(dp);
-		strncat(cputimelog, "/", 1);
+		//strncat(cputimelog, "/", 1);
+		strncat(cputimelog, "/", sizeof(cputimelog));
 		get_MM(dir);
-		strncat(cputimelog, dir, 2);
+		//strncat(cputimelog, dir, 2);
+		strlcat(cputimelog, dir, sizeof(cputimelog));
 		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
 		closedir(dp);
-		strncat(cputimelog, "/", 1);
+		//strncat(cputimelog, "/", 1);
+		strlcat(cputimelog, "/", sizeof(cputimelog));
 		get_DD(dir);
-		strncat(cputimelog, dir, 2);
+		//strncat(cputimelog, dir, 2);
+		strlcat(cputimelog, dir, sizeof(cputimelog));
 		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
 		    mkdir(cputimelog, 0755);
 		closedir(dp);
-		strncat(cputimelog, "/", 1);
-		sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime), name, testPort);
-		strncat(cputimelog, dir, strlen(dir));
+		//strncat(cputimelog, "/", 1);
+		strncat(cputimelog, "/", sizeof(cputimelog));
+		sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
+		//strncat(cputimelog, dir, strlen(dir));
+		strlcat(cputimelog, dir, sizeof(cputimelog));
 		memcpy(meta.CPU_time, dir, strlen(dir));
               if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
                   log_println(0, "Cannot create worker thread for writing cpu usage!");

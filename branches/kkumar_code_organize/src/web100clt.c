@@ -17,6 +17,7 @@
 #include "test_sfw.h"
 #include "test_meta.h"
 #include "clt_tests.h"
+#include "strlutils.h"
 
 #ifndef VIEW_DIFF
 #define VIEW_DIFF 0.1
@@ -389,9 +390,11 @@ middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr)
   size_t tmpLen;
 
   str = strtok(tmpstr, ";");
-  strcpy(ssip, str);
+  //strcpy(ssip, str);
+  strlcpy(ssip, str, sizeof(ssip));
   str = strtok(NULL, ";");
-  strcpy(scip, str);
+  //strcpy(scip, str);
+  strlcpy(scip, str, sizeof(scip));
 
   str = strtok(NULL, ";");
   mss = atoi(str);
@@ -905,14 +908,16 @@ main(int argc, char *argv[])
     if (check_msg_type("Tests results", MSG_RESULTS, msgType, buff, msgLen)) {
       exit(2);
     }
-    strncat(tmpstr, buff, msgLen);
+    //strncat(tmpstr, buff, msgLen);
+    strlcat(tmpstr, buff, sizeof(tmpstr));
     log_println(6, "tmpstr = '%s'", tmpstr);
   }
 
   local_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, False);
   remote_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, False);
   I2AddrFree(server_addr);
-  strcpy(varstr, tmpstr);
+  //strcpy(varstr, tmpstr);
+  strlcpy(varstr, tmpstr, sizeof(varstr));
   testResults(tests, tmpstr, host);
   if (tests & TEST_MID) {
     middleboxResults(tmpstr2, local_addr, remote_addr);

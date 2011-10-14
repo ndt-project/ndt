@@ -40,6 +40,7 @@
 #include "tr-tree.h"
 #include "usage.h"
 #include "logging.h"
+#include "strlutils.h"
 
 struct tr_tree *tr_root, *tr_cur;
 char* DefaultTree = NULL;
@@ -634,9 +635,11 @@ compare(char* cmp_ip)
 
   hp = gethostbyaddr((char *) &ip_addr, 4, AF_INET);
   if (hp == NULL)
-    strncpy(c_name, "Unknown Host", 13);
+    //strncpy(c_name, "Unknown Host", 13);
+	strlcpy(c_name, "Unknown Host", sizeof(c_name));
   else
-    strncpy(c_name, hp->h_name, strlen(hp->h_name));
+    //strncpy(c_name, hp->h_name, strlen(hp->h_name));
+	strlcpy(c_name, hp->h_name, sizeof(c_name));
 
   if (found_node == 1) {
     printf("Host %s [%u.%u.%u.%u] is remote eNDT server!\n",
@@ -653,9 +656,11 @@ compare(char* cmp_ip)
   }
   hp = (struct hostent *)gethostbyaddr((char *) &current->ip_addr, 4, AF_INET);
   if (hp == NULL)
-    strncpy(h_name, "Unknown Host", 13);
+    //strncpy(h_name, "Unknown Host", 13);
+	  strlcpy(h_name, "Unknown Host", sizeof(h_name));
   else
-    strncpy(h_name, hp->h_name, strlen(hp->h_name));
+    //strncpy(h_name, hp->h_name, strlen(hp->h_name));
+	strlcpy(h_name, hp->h_name, sizeof(h_name));
 
   printf("\tThe eNDT server %s [%u.%u.%u.%u] is closest to host %s [%u.%u.%u.%u]\n",
       h_name, (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),

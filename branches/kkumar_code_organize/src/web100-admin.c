@@ -145,11 +145,13 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
 
     str = strchr(str, ',') +1;
     sscanf(str, "%[^,]s", tmpstr);
-    strncpy(maxdate, tmpstr, strlen(tmpstr));
+    //strncpy(maxdate, tmpstr, strlen(tmpstr));
+    strlcpy(maxdate, tmpstr, sizeof(maxdate));
 
     str = strchr(str, ',') +1;
     sscanf(str, "%[^,]s", tmpstr);
-    strncpy(mindate, tmpstr, strlen(tmpstr));
+    //strncpy(mindate, tmpstr, strlen(tmpstr));
+    strlcpy(mindate, tmpstr, sizeof(mindate));
 
     for (i=0; i<strlen(mindate); i++)
       if (mindate[i] == '\n')
@@ -199,7 +201,8 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
   }
 
   /* Calculate some values */
-  strncpy(date, now, strlen(now));
+  //strncpy(date, now, strlen(now));
+  strlcpy(date, now, sizeof(date));
   avgrtt = (double) SumRTT/CountRTT;
   rttsec = avgrtt * .001;
   loss2 = (double)CongestionSignals/PktsOut;
@@ -226,25 +229,33 @@ calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals, int Pkt
     mins2cspd = s2cspd;
     maxc2sspd = c2sspd;
     maxs2cspd = s2cspd;
-    strncpy(startdate, date, strlen(date));
+    /*strncpy(startdate, date, strlen(date));
     strncpy(maxdate, date, strlen(date));
-    strncpy(mindate, date, strlen(date));
+    strncpy(mindate, date, strlen(date));*/
+    strlcpy(startdate, date, sizeof(startdate));
+    strlcpy(maxdate, date, sizeof(maxdate));
+    strlcpy(mindate, date, sizeof(mindate));
   }
   if (c2sspd > maxc2sspd) {
     maxc2sspd = c2sspd;
-    strncpy(maxdate, date, strlen(date));
+    //strncpy(maxdate, date, strlen(date));
+    strlcpy(maxdate, date, sizeof(maxdate));
   }
   if (s2cspd > maxs2cspd) {
     maxs2cspd = s2cspd;
-    strncpy(maxdate, date, strlen(date));
+    //strncpy(maxdate, date, strlen(date));
+    strlcpy(maxdate, date, sizeof(maxdate));
   }
   if (c2sspd < minc2sspd) {
     minc2sspd = c2sspd;
-    strncpy(mindate, date, strlen(date));
+    //strncpy(mindate, date, strlen(date));
+    strlcpy(mindate, date, sizeof(mindate));
+
   }
   if (s2cspd < mins2cspd) {
     mins2cspd = s2cspd;
-    strncpy(mindate, date, strlen(date));
+    //strncpy(mindate, date, strlen(date));
+    strlcpy(mindate, date, sizeof(mindate));
   }
 
   log_println(1, "Initial counter Values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",

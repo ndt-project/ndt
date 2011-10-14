@@ -19,6 +19,7 @@
 #include <net/if.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
+#include "strlutils.h"
 
 int dumptrace;
 pcap_t *pd;
@@ -701,8 +702,8 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
   src_addr = I2AddrSAddr(srcAddr, 0);
   /* special check for localhost, set device accordingly */
   if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
-    strncpy(device, "lo", 3);
-
+    //strncpy(device, "lo", 3);
+	strlcpy(device, "lo", 100); //hardcoding device address to 100, as initialised in main()
   if (device == NULL) {
     if (pcap_findalldevs(&alldevs, errbuf) == 0) {
 	for (dp=alldevs; dp!=NULL; dp=dp->next) {
@@ -837,33 +838,41 @@ endLoop:
     return;
   }
 
-  if (dumptrace == 1) {
+  if (dumptrace == 1) { //todo call create_client_log
     fprintf(stderr, "Creating trace file for connection\n");
     memset(cmdbuf, 0, 256);
-    strncpy(cmdbuf, DataDirName, strlen(DataDirName));
+    //strncpy(cmdbuf, DataDirName, strlen(DataDirName));
+    strlcpy(cmdbuf, DataDirName, sizeof(cmdbuf));
     if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
     closedir(dip);
     get_YYYY(dir);
-    strncat(cmdbuf, dir, 4); 
+    //strncat(cmdbuf, dir, 4);
+    strlcat(cmdbuf, dir, sizeof(cmdbuf));
     if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
     closedir(dip);
-    strncat(cmdbuf, "/", 1);
+    //strncat(cmdbuf, "/", 1);
+    strlcat(cmdbuf, "/", sizeof(cmdbuf));
     get_MM(dir);
-    strncat(cmdbuf, dir, 2); 
+    //strncat(cmdbuf, dir, 2);
+    strlcat(cmdbuf, dir, sizeof(cmdbuf));
     if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
     closedir(dip);
-    strncat(cmdbuf, "/", 1);
+    //strncat(cmdbuf, "/", 1);
+    strlcat(cmdbuf, "/", sizeof(cmdbuf));
     get_DD(dir);
-    strncat(cmdbuf, dir, 2); 
+    //strncat(cmdbuf, dir, 2);
+    strlcat(cmdbuf, dir, sizeof(cmdbuf));
     if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
 	mkdir(cmdbuf, 0755);
     closedir(dip);
-    strncat(cmdbuf, "/", 1);
-    sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime), namebuf, I2AddrPort(sockAddr), direction);
-    strncat(cmdbuf, dir, strlen(dir));
+    //strncat(cmdbuf, "/", 1);
+    strlcat(cmdbuf, "/", sizeof(cmdbuf));
+    sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime, sizeof(isoTime)), namebuf, I2AddrPort(sockAddr), direction);
+    //strncat(cmdbuf, dir, strlen(dir));
+    strlcat(cmdbuf, dir, sizeof(cmdbuf));
     pdump = pcap_dump_open(pd, cmdbuf);
     fprintf(stderr, "Opening '%s' log fine\n", cmdbuf);
     if (pdump == NULL) {

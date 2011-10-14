@@ -23,6 +23,7 @@
 //new addition after separating out ndtptests header, to include test types
 #include "testoptions.h" // Used only for getCurrentTest(), which can probably be moved elsewhere
 //#include "runningtest.h" // protocol validation
+#include "strlutils.h"
 
 
 static int                _debuglevel        = 0;
@@ -256,7 +257,8 @@ void set_protologfile(char* client_ip, char* protologlocalarr){
 	}
 	sprintf(protologlocalarr, "%s/%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX , client_ip,
 			PROTOLOGSUFFIX,"\0");
-	strncpy(ProtocolLogFileName, protologlocalarr, strnlen(protologlocalarr));
+	//strncpy(ProtocolLogFileName, protologlocalarr, strnlen(protologlocalarr));
+	strlcpy(ProtocolLogFileName, protologlocalarr, sizeof(ProtocolLogFileName));
 
 	//log_println (0, "***SET %s: %s;****\n", ProtocolLogFileName, ProtocolLogDirName);
 
@@ -419,7 +421,7 @@ protolog_printgeneric(const char* key, const char* value)
 		log_println(0, "--Unable to open proto file while trying to record msg: %s \n", key, value);
 	}
 	else {
-		fprintf(fp, " event=\"%s\", name=\"%s\", time=\"%s\"\n", key, value, get_ISOtime(isotime));
+		fprintf(fp, " event=\"%s\", name=\"%s\", time=\"%s\"\n", key, value, get_ISOtime(isotime,sizeof(isotime)));
 		printf("%s = \"%s\" \n", key, logmessage);
 		fclose(fp);
 	}
@@ -467,7 +469,7 @@ protolog_status(int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus)
 				teststatusdesc, currenttestname);
 	}
 	else {
-		sprintf(protomessage, " event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",teststatusdesc, currenttestname, pid, get_ISOtime(isotime) );
+		sprintf(protomessage, " event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",teststatusdesc, currenttestname, pid, get_ISOtime(isotime, sizeof(isotime)) );
 		printf("%s: <-- %d - %s - %s --> \n ", protomessage, pid, teststatusdesc, currenttestname );
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
@@ -519,7 +521,7 @@ protolog_procstatus(int pid, enum TEST_ID  testidarg,
 	}
 	else {
 		sprintf(protomessage, " event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",procstatusdesc,
-				currentprocname, currenttestname, pid, get_ISOtime(isotime) );
+				currentprocname, currenttestname, pid, get_ISOtime(isotime, sizeof(isotime)) );
 		printf("%s: -- %d - %s - %s - %s -- \n ", protomessage, pid,currenttestname, procstatusdesc, currentprocname );
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
@@ -575,9 +577,9 @@ void protolog_println(char *msgdirection,
 		 				  msgdirection, currenttestname, currentmsgtype, len, (char*)msg, processid, ctlSocket, get_ISOtime(isotime));
 		 */
 		fprintf(fp, " event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
-				msgdirection, currenttestname, currentmsgtype, len, logmessage, processid, ctlSocket,get_ISOtime(isotime));
+				msgdirection, currenttestname, currentmsgtype, len, logmessage, processid, ctlSocket,get_ISOtime(isotime,sizeof(isotime)));
 		printf("direction = %s, test= %s, type=%s, len=%d, msg=%s, pid=%d, socket=%d, time=%s\n",
-				msgdirection, currenttestname, currentmsgtype, len, logmessage, processid, ctlSocket, get_ISOtime(isotime));
+				msgdirection, currenttestname, currentmsgtype, len, logmessage, processid, ctlSocket, get_ISOtime(isotime,sizeof(isotime)));
 		fclose(fp);
 	}
 }
@@ -738,10 +740,11 @@ else
  * Author: Rich Carlson - 5/6/09
  * @param Pointer to the string indicating ISO time
  * @param character string with ISO time string.
+ * #param
  */
 
 char *
- get_ISOtime (char *isoTime)
+ get_ISOtime (char *isoTime, int isotimearrsize)
 {
 
 struct tm *result;
@@ -757,34 +760,40 @@ if (1+result->tm_mon < 10)
     sprintf(tmpstr, "0%d", 1+result->tm_mon);
 else
     sprintf(tmpstr, "%d", 1+result->tm_mon);
-strncat(isoTime, tmpstr, 2);
+//strncat(isoTime, tmpstr, 2);
+strlcat(isoTime, tmpstr, isotimearrsize);
 
 if (result->tm_mday < 10)
     sprintf(tmpstr, "0%d", result->tm_mday);
 else
     sprintf(tmpstr, "%d", result->tm_mday);
-strncat(isoTime, tmpstr, 2);
+//strncat(isoTime, tmpstr, 2);
+strlcat(isoTime, tmpstr, isotimearrsize);
 
 if (result->tm_hour < 10)
     sprintf(tmpstr, "T0%d", result->tm_hour);
 else
     sprintf(tmpstr, "T%d", result->tm_hour);
-strncat(isoTime, tmpstr, 3);
+//strncat(isoTime, tmpstr, 3);
+strlcat(isoTime, tmpstr, isotimearrsize);
 
 if (result->tm_min < 10)
     sprintf(tmpstr, ":0%d", result->tm_min);
 else
     sprintf(tmpstr, ":%d", result->tm_min);
-strncat(isoTime, tmpstr, 3);
+//strncat(isoTime, tmpstr, 3);
+strlcat(isoTime, tmpstr, isotimearrsize);
 
 if (result->tm_sec < 10)
     sprintf(tmpstr, ":0%d", result->tm_sec);
 else
     sprintf(tmpstr, ":%d", result->tm_sec);
-strncat(isoTime, tmpstr, 3);
+//strncat(isoTime, tmpstr, 3);
+strlcat(isoTime, tmpstr, isotimearrsize);
 
 sprintf(tmpstr, ".%ldZ", get_utimestamp()*1000);
-strncat(isoTime, tmpstr, 11);
+//strncat(isoTime, tmpstr, 11);
+strlcat(isoTime, tmpstr, isotimearrsize);
 return isoTime;
 }
 
@@ -845,25 +854,31 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	// The "primary" location for this log file is obtained as a command line option
 	// from the user, or is the default location of BASE_DIR+LOG_DIR of the NDT installation
 //TODO : Move this into a new method??
-	strncpy(tmpstr, DataDirName, strlen(DataDirName));
+	//strncpy(tmpstr, DataDirName, strlen(DataDirName));
+	strlcpy(tmpstr, DataDirName, sizeof(tmpstr));
 	// Open the directory or create one if not yet present
 	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
 		mkdir(tmpstr, 0755);
 	closedir(dp); // close opened directory
 	get_YYYY(dir); // get current year
-	strncat(tmpstr, dir, 4);
+	//strncat(tmpstr, dir, 4);
+	strlcat(tmpstr, dir, sizeof(tmpstr));
 	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
 		mkdir(tmpstr, 0755); // create directory with year appended
 	closedir(dp); // close the opened directory
-	strncat(tmpstr, "/", 1);
+	//strncat(tmpstr, "/", 1);
+	strlcat(tmpstr, "/", sizeof(tmpstr));
 	get_MM(dir); // get month info
-	strncat(tmpstr, dir, 2); // append month info to the directory name
+	//strncat(tmpstr, dir, 2); // append month info to the directory name
+	strlcat(tmpstr, dir, sizeof(tmpstr)); // append month info to the directory name
 	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
 		mkdir(tmpstr, 0755);
 	closedir(dp);
-	strncat(tmpstr, "/", 1);
+	//strncat(tmpstr, "/", 1);
+	strlcat(tmpstr, "/", sizeof(tmpstr));
 	get_DD(dir); // get date
-	strncat(tmpstr, dir, 2); // append date info to directory name
+	//strncat(tmpstr, dir, 2); // append date info to directory name
+	strlcat(tmpstr, dir, sizeof(tmpstr)); // append date info to directory name
 	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
 		mkdir(tmpstr, 0755);
 	closedir(dp);
@@ -873,11 +888,17 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 
 	memcpy(tmp2str, tmpstr, tmpstrlen); // tmp2str now contains the dir name intended
 	// tmpstr will henceforth refer to the log file's name
-	strncat(tmpstr, "/", 1);
-	sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime), meta.client_ip,
+	//strncat(tmpstr, "/", 1);
+	strlcat(tmpstr, "/", sizeof(tmpstr));
+	// todo remove debug stmt
+	log_println(0, " ***meta.client_ip now: %s",
+				meta.client_ip);
+	sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime,sizeof(isoTime)), meta.client_ip,
 			meta.ctl_port); // now get ISO time, the client's name and port
-	strncat(tmpstr, dir, strlen(dir)); // append above details to log filename
-
+	//strncat(tmpstr, dir, strlen(dir)); // append above details to log filename
+	strlcat(tmpstr, dir, sizeof(tmpstr)); // append above details to log filename
+	log_println(0, " ** meta.client_ip now: %s",
+	                                meta.client_ip); //todo remove debug stmt
 
 	log_println(6, "Should compress snaplog and tcpdump files compress=%d",
 			compress);
@@ -897,18 +918,20 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 			sprintf(filename, "%s/%s", tmp2str, meta.c2s_snaplog);
 			if (zlib_def(filename) != 0)
 				//log_println(5, "compression failed ");
-				log_println(0, "compression failed for file:%s", meta.c2s_snaplog);
+				log_println(0, "compression failed for file:%s: %s.", filename, tmp2str);
 			else
-				strncat(meta.c2s_snaplog, ".gz", 3);
+				//strncat(meta.c2s_snaplog, ".gz", 3);
+				strlcat(meta.c2s_snaplog, ".gz", sizeof(meta.c2s_snaplog));
 
 			// Try compressing S->C test snaplogs
 			memset(filename, 0, 256);
 			sprintf(filename, "%s/%s", tmp2str, meta.s2c_snaplog);
 			if (zlib_def(filename) != 0)
 				//log_println(5, "compression failed");
-				log_println(0, "compression failed for file :%s",meta.s2c_snaplog);
+				log_println(0, "compression failed for file :%s",filename);
 			else
-				strncat(meta.s2c_snaplog, ".gz", 3);
+				//strncat(meta.s2c_snaplog, ".gz", 3);
+				strlcat(meta.s2c_snaplog, ".gz", sizeof(meta.s2c_snaplog));
 		}
 
 		// If tcpdump file writing is enabled, compress those
@@ -920,17 +943,23 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 			memset(filename, 0, 256);
 			sprintf(filename, "%s/%s", tmp2str, meta.c2s_ndttrace);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed");
+				//log_println(5, "compression failed");
+				//todo change level
+				log_println(0, "compression failed for tcpdump file %s =%s",filename, meta.c2s_ndttrace);
 			else
-				strncat(meta.c2s_ndttrace, ".gz", 3);
+				//strncat(meta.c2s_ndttrace, ".gz", 3);
+				strlcat(meta.c2s_ndttrace, ".gz", sizeof(meta.c2s_ndttrace));
 
 			// Try compressing S->C test tcpdumps
 			memset(filename, 0, 256);
 			sprintf(filename, "%s/%s", tmp2str, meta.s2c_ndttrace);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed");
+				//log_println(5, "compression failed");
+				//todo change level
+			        log_println(0, "compression failed for tcpdump file %s =%s",filename, meta.s2c_ndttrace);
 			else
-				strncat(meta.s2c_ndttrace, ".gz", 3);
+				//strncat(meta.s2c_ndttrace, ".gz", 3);
+				strlcat(meta.s2c_ndttrace, ".gz", sizeof(meta.s2c_ndttrace));
 		}
 
 		// If writing "cputime" file is enabled, compress those log files too
@@ -941,7 +970,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 			if (zlib_def(filename) != 0)
 				log_println(5, "compression failed");
 			else
-				strncat(meta.CPU_time, ".gz", 3);
+				//strncat(meta.CPU_time, ".gz", 3);
+				strlcat(meta.CPU_time, ".gz", sizeof(meta.CPU_time));
 		}
 		else
 			log_println(
@@ -1040,15 +1070,15 @@ int quote_delimiters(char *line, int line_size, char *output_buf, int output_buf
 
 
 /** Method to create directories for snap log files
-* @param namebufarg    string containing ip address/name of client
-* @param socketaddrarg string containing socket address
-* @param direnamedestarg location to store final directory name
-* @param finalsuffix     string constant suffix indicating C2S/S2c etc
+* @param namebufarg             string containing ip address/name of client
+* @param socketaddrarg          string containing socket address
+* @param direnamedestarg        location to store final directory name
+* @param destnamearrsize        Size of dest name string
+* @param finalsuffix            string constant suffix indicating C2S/S2c etc
+* @param finalsuffixsize        string constant suffix indicating C2S/S2c etc
 */
-//void createDir(char const* namebufarg, char const *socketaddrarg, char *dirnamedestarg,
-//    char *finalsuffix)  {
-void createDir(struct sockaddr *cliaddrarg, socklen_t clilenarg, char *dirnamedestarg,
-    char *finalsuffix)  {
+void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg, char *dirnamedestarg, int destnamearrsize,
+    char *finalsuffix, int finalsuffixsize)  {
 	char namebuf[256];
 	size_t namebuflen = 255;
 	char dir[128];
@@ -1062,31 +1092,40 @@ void createDir(struct sockaddr *cliaddrarg, socklen_t clilenarg, char *dirnamede
         socketaddrport = I2AddrPort(sockAddr);
 
 
-        strncpy(dirnamedestarg, DataDirName, strlen(DataDirName));
+        //strncpy(dirnamedestarg, DataDirName, strlen(DataDirName));
+        strlcpy(dirnamedestarg, DataDirName, destnamearrsize);
         if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
                 mkdir(dirnamedestarg, 0755);
         closedir(dp);
         get_YYYY(dir);
-        strncat(dirnamedestarg, dir, 4);
+        //strncat(dirnamedestarg, dir, 4);
+        strlcat(dirnamedestarg, dir, destnamearrsize);
         if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
                 mkdir(dirnamedestarg, 0755);
         closedir(dp);
-        strncat(dirnamedestarg, "/", 1);
+        //strncat(dirnamedestarg, "/", 1);
+        strlcat(dirnamedestarg, "/", destnamearrsize);
         get_MM(dir);
-        strncat(dirnamedestarg, dir, 2);
+        //strncat(dirnamedestarg, dir, 2);
+        strlcat(dirnamedestarg, dir, destnamearrsize);
         if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
                 mkdir(dirnamedestarg, 0755);
         closedir(dp);
-        strncat(dirnamedestarg, "/", 1);
+        //strncat(dirnamedestarg, "/", 1);
+        strlcat(dirnamedestarg, "/", destnamearrsize);
         get_DD(dir);
-        strncat(dirnamedestarg, dir, 2);
+        //strncat(dirnamedestarg, dir, 2);
+        strlcat(dirnamedestarg, dir, destnamearrsize);
         if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
                 mkdir(dirnamedestarg, 0755);
         closedir(dp);
-        strncat(dirnamedestarg, "/", 1);
-        sprintf(dir, "%s_%s:%d.%s", get_ISOtime(isoTime), namebuf, socketaddrport, finalsuffix);
-        strncpy(finalsuffix, dir, strlen(dir));
-        strncat(dirnamedestarg, dir, strlen(dir));
+        //strncat(dirnamedestarg, "/", 1);
+        strlcat(dirnamedestarg, "/", destnamearrsize);
+        sprintf(dir, "%s_%s:%d.%s", get_ISOtime(isoTime, sizeof(isoTime)), namebuf, socketaddrport, finalsuffix);
+        //strncpy(finalsuffix, dir, strlen(dir));
+        strlcpy(finalsuffix, dir, finalsuffixsize);
+        //strncat(dirnamedestarg, dir, strlen(dir));
+        strlcat(dirnamedestarg, dir, destnamearrsize);
 
         I2AddrFree(sockAddr);
 }

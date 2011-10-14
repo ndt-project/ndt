@@ -16,6 +16,7 @@
 #include "utils.h"
 #include "testoptions.h"
 #include "runningtest.h"
+#include "strlutils.h"
 
 
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
@@ -184,7 +185,8 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
       web100_raw_read(var, cn, buff);
       memset(hostname, 0, 256);
-      strncpy(hostname, web100_value_to_text(web100_get_var_type(var), buff), 255);
+      //strncpy(hostname, web100_value_to_text(web100_get_var_type(var), buff), 255);
+      strlcpy(hostname, web100_value_to_text(web100_get_var_type(var), buff), sizeof(hostname));
 
       // Determine test time in seconds.
       // test-time = max(round trip time, timeout) > 3 ? 3 : 1

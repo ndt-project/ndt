@@ -15,6 +15,7 @@
 #include "logging.h"
 #include "utils.h"
 #include "protocol.h"
+#include "strlutils.h"
 
 /**
  * set up the necessary structures for monitoring connections at the
@@ -46,7 +47,8 @@ web100_init(char *VarFileName)
     if ((line[0] == '#') || (line[0] == '\n')) // if newline or comment, ignore
       continue;
     // copy web100 variable into our array and increment count of read variables
-    strncpy(web_vars[count_vars].name, line, (strlen(line)-1));
+    //strncpy(web_vars[count_vars].name, line, (strlen(line)-1));
+    strlcpy(web_vars[count_vars].name, line, sizeof(web_vars[count_vars].name));
     count_vars++;
   }
   fclose(fp);
@@ -123,7 +125,8 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
   // terminate the IP address string
   meta.server_ip[(strlen(line)-1)] = 0;
   // Add this address to results
-  strncat(results, line, strlen(line));
+  //strncat(results, line, strlen(line));
+  strlcat(results, line, (BUFFSIZE+1)); //todo : later: using a "known" hardcoded value for size of results
   I2AddrFree(addr); // free memory
 
   // Now perform the above set of functions for client address/service name
@@ -135,7 +138,8 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
   sprintf(line, "%s;", tmpstr);
   I2AddrServName(addr, tmpstr, &tmpstrlen);
   log_print(3, "Client: %s%s ",  line, tmpstr);
-  strncat(results, line, strlen(line));
+  //strncat(results, line, strlen(line));
+  strlcat(results, line,  (BUFFSIZE+1)); //todo :later: using a "known" hardcoded value for size of results
   I2AddrFree(addr);
 
   // get web100 values for the middlebox test result group
@@ -152,7 +156,8 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
     sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buff));
     if (strcmp(line, "4294967295;") == 0) // TODO what is this number?
       sprintf(line, "%d;", -1);
-    strcat(results, line);
+    //strcat(results, line);
+    strlcat(results, line, sizeof(results));
     log_print(3, "%s",  line);
   }
   log_println(3, "");

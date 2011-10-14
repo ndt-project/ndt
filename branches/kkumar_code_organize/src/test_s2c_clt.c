@@ -182,7 +182,8 @@ test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options, int buf_si
       if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff, msgLen)) {
         return 2;
       }
-      strncat(tmpstr, buff, msgLen);
+      //strncat(tmpstr, buff, msgLen);
+      strlcat(tmpstr, buff, 512); //todo hardcoded size of array for now
       log_println(6, "tmpstr = '%s'", tmpstr);
     }
     log_println(1, " <------------------------->");

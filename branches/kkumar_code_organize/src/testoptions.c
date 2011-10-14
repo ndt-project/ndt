@@ -18,6 +18,7 @@
 #include "protocol.h"
 #include "I2util/util.h"
 #include "runningtest.h"
+#include "strlutils.h"
 
 int mon_pipe1[2]; // used to store file descriptors of pipes created for ndttrace for C2S tests
 int mon_pipe2[2]; // used to store file descriptors of pipes created for ndttrace data in S2c test
@@ -194,7 +195,8 @@ add_test_to_suite(int* first, char * buff, int test_id)
   else {
     memset(tmpbuff, 0, 16);
     sprintf(tmpbuff, " %d", test_id);
-    strcat(buff, tmpbuff);
+    //strcat(buff, tmpbuff);
+    strlcat(buff, tmpbuff, 16); //setting buffsize= 16 as is initialized in main()
   }
 }
 
@@ -275,9 +277,17 @@ initialize_tests(int ctlsockfd, TestOptions* options, char * buff)
   return useropt;
 }
 
-/* Method to write into snap worker */
-//start_snap_worker (&snapArgs, agent, options->snaplog, &workerLoop);
-
+/** Method to start snap worker thread that collects snap logs
+ * @param snaparg object
+ * @param web100_agent Agent
+ * @param snaplogenabled Is snap logging enabled?
+ * @param workerlooparg integer used to syncronize writing/reading from snaplog/web100 snapshot
+ * @param wrkrthreadidarg Thread Id of worker
+ * @param metafilevariablename Which variable of the meta file gets assigned the snaplog name (unused now)
+ * @param metafilename	value of metafile name
+ * @param web100_connection connection pointer
+ * @param web100_group group web100_group pointer
+ */
 void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, char snaplogenabled, int *workerlooparg,
 		pthread_t *wrkrthreadidarg,
 		char *metafilevariablename, char *metafilename,
@@ -359,7 +369,8 @@ void stop_snap_worker (int *workerThreadId, char snaplogenabled, SnapArgs* snapA
  * */
 
 void start_packet_trace (int socketfdarg, int socketfdarg2, pid_t *childpid, int *imonarg,
-		struct sockaddr *cliaddrarg, socklen_t clilenarg, char* device, PortPair* pairarg, const char* testindicatorarg, int iscompressionenabled, char *copylocationarg) {
+		struct sockaddr *cliaddrarg, socklen_t clilenarg, char* device, PortPair* pairarg, const char* testindicatorarg,
+		int iscompressionenabled, char *copylocationarg) {
 
 	char tmpstr[256];
 	int i, readretval;
@@ -541,7 +552,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
 
     // determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port3 (3003),
-    strcpy(listenmidport, PORT3);
+    //strcpy(listenmidport, PORT3);
+    strlcpy(listenmidport, PORT3, sizeof(listenmidport));
 
     if (options->midsockport) {
       sprintf(listenmidport, "%d", options->midsockport);
@@ -551,7 +563,8 @@ test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_opti
     }
     
     if (options->multiple) {
-      strcpy(listenmidport, "0");
+      //strcpy(listenmidport, "0");
+    	strlcpy(listenmidport, "0", sizeof(listenmidport));
     }
     
 /*  RAC debug  */
@@ -816,7 +829,9 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
     log_println(1, " <-- %d - C2S throughput test -->", testOptions->child0);
-    strcpy(listenc2sport, PORT2);
+    //strcpy(listenc2sport, PORT2);
+    strlcpy(listenc2sport, PORT2, sizeof(listenc2sport));
+
     
     //log protocol validation logs
     teststatuses = TEST_STARTED;
@@ -833,7 +848,8 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     }
     
     if (testOptions->multiple) {
-      strcpy(listenc2sport, "0");
+      //strcpy(listenc2sport, "0");
+    	strlcpy(listenc2sport, "0", sizeof(listenc2sport));
     }
     
     // attempt to bind to a new port and obtain address structure with details of listening port
@@ -936,6 +952,7 @@ recfd:
       log_println(0, "C2S test calling pkt_trace_start() with pd=%d", clilen);
       start_packet_trace (recvsfd, testOptions->c2ssockfd, &c2s_childpid, mon_pipe1,
     		  (struct sockaddr *) &cli_addr, clilen, device, &pair, "c2s", options->compress, meta.c2s_ndttrace) ;
+      log_println(0, "--tracefile after packet_trace %s",  meta.c2s_ndttrace); //todo change level
     }
 
 
@@ -953,7 +970,8 @@ recfd:
     //createDir(namebuf, I2AddrPort(sockAddr),options->c2s_logname, namesuffix);
      *
      */
-    createDir((struct sockaddr *) &cli_addr, clilen,options->c2s_logname, namesuffix);
+    create_client_logdir((struct sockaddr *) &cli_addr, clilen,
+    		options->c2s_logname, sizeof(options->c2s_logname), namesuffix, sizeof(namesuffix));
 
     //group = web100_group_find(agent, "read");
     //snapArgs.snap = web100_snapshot_alloc(group, conn);
@@ -1156,10 +1174,10 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
   socklen_t  clilen;
-  double bytes_written;				// bytes written in the througput test
+  double bytes_written;				// bytes written in the throughput test
   double tx_duration;				// total time for which data was txed
   double tmptime;					// temporary time store
-  double x2cspd;					// s->c test throuput
+  double x2cspd;					// s->c test throuhput
   struct timeval sel_tv;			// time
   fd_set rfd;						// receive file descriptor
   char buff[BUFFSIZE+1];			// message payload buffer
@@ -1218,7 +1236,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     //protolog_status(0,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
-    strcpy(listens2cport, PORT4);
+    //strcpy(listens2cport, PORT4);
+    strlcpy(listens2cport, PORT4, sizeof(listens2cport));
     
     if (testOptions->s2csockport) {
       sprintf(listens2cport, "%d", testOptions->s2csockport);
@@ -1228,7 +1247,8 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     }
     
     if (testOptions->multiple) {
-      strcpy(listens2cport, "0");
+      //strcpy(listens2cport, "0");
+      strlcpy(listens2cport, "0",sizeof(listens2cport));
     }
     
     // attempt to bind to a new port and obtain address structure with details of listening port
@@ -1343,7 +1363,8 @@ ximfd:
       /* End of test code */
 
       // create directory to write web100 snaplog trace
-       createDir((struct sockaddr *) &cli_addr, clilen ,options->s2c_logname, snaplogsuffix);
+       create_client_logdir((struct sockaddr *) &cli_addr, clilen ,
+    		   options->s2c_logname, sizeof(options->s2c_logname), snaplogsuffix, sizeof(snaplogsuffix));
 
        /* Kludge way of nuking Linux route cache.  This should be done
        * using the sysctl interface.

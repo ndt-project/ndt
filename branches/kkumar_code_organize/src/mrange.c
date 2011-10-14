@@ -12,6 +12,7 @@
 
 #include "utils.h"
 #include "logging.h"
+#include "strlutils.h"
 
 typedef struct range {
   int min; /**< lower end of the range */
@@ -43,7 +44,8 @@ mrange_parse(char* text)
   if (strlen(text) > 299) {
     return 1;
   }
-  strcpy(tmp, text);
+  //strcpy(tmp, text);
+  strlcpy(tmp, text, sizeof(tmp));
   // tokenize based on a "," character.
   // An example of the string : 2003:3000,4000:5000
   ptr = strtok(tmp, ",");

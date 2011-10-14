@@ -16,6 +16,7 @@
 
 #include "ndt_odbc.h"
 #include "logging.h"
+#include "strlutils.h"
 
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
 SQLHENV env;
@@ -158,13 +159,18 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
         memset(loginstring, 0, 1024);
         snprintf(loginstring, 256, "DSN=%s;", dsn);
         if (uid) {
-            strcat(loginstring, "UID=");
+            /*strcat(loginstring, "UID=");
             strncat(loginstring, uid, 256);
-            strcat(loginstring, ";");
+            strcat(loginstring, ";");*/
+        	strlcat(loginstring, "UID=", sizeof(loginstring));
+        	strlcat(loginstring, uid, sizeof(loginstring));
+        	strlcat(loginstring, ";", sizeof(loginstring));
         }
         if (pwd) {
-            strcat(loginstring, "PWD=");
-            strncat(loginstring, pwd, 256);
+            //strcat(loginstring, "PWD=");
+        	strlcat(loginstring, "PWD=", sizeof(loginstring));
+            //strncat(loginstring, pwd, 256);
+        	strlcat(loginstring, pwd, sizeof(loginstring));
         }
         ret = SQLDriverConnect(dbc, NULL, (unsigned char*) loginstring, SQL_NTS,
                 outstr, sizeof(outstr), &outstrlen, SQL_DRIVER_NOPROMPT);
@@ -209,7 +215,9 @@ initialize_db(int options, char* dsn, char* uid, char* pwd)
                         buf, sizeof(buf), &indicator);
                 if (SQL_SUCCEEDED(ret)) {
                     // Handle null columns
-                    if (indicator == SQL_NULL_DATA) strcpy(buf, "NULL");
+                    if (indicator == SQL_NULL_DATA)
+                    	//strcpy(buf, "NULL");
+                    	strlcpy(buf, "NULL", sizeof(buf));
                     if (strcmp(buf, "ndt_test_results") == 0) {
                         // the table exists - do nothing
                         SQLFreeStmt(stmt, SQL_CLOSE);

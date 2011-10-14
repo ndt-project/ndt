@@ -21,6 +21,7 @@
 #include <errno.h>
 
 #include "utils.h"
+#include "strlutils.h"
 
 /*
  * Function name: check_int

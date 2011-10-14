@@ -34,7 +34,7 @@ void log_free(void);
 void set_timestamp();
 time_t get_timestamp();
 long int get_utimestamp();
-char * get_ISOtime(char * isoTime);
+char * get_ISOtime(char * isoTime, int isoTimeArrSize);
 void   get_YYYY(char * year);
 void   get_MM(char * month);
 void   get_DD(char * day);
@@ -58,10 +58,10 @@ struct metaentry {
  *  meta data file created  for every session
  * */
 struct metadata {
-    char c2s_snaplog[64]; // C->S test Snaplog file name
-    char c2s_ndttrace[64]; // C->S NDT trace file name
-    char s2c_snaplog[64]; // S->C test Snaplog file name
-    char s2c_ndttrace[64]; // S->C NDT trace file name
+    char c2s_snaplog[256]; // C->S test Snaplog file name, changed to 256 to avoid truncation
+    char c2s_ndttrace[256]; // C->S NDT trace file name, changed to 256 to avoid truncation
+    char s2c_snaplog[256]; // S->C test Snaplog file name, changed to 256 to avoid truncation
+    char s2c_ndttrace[256]; // S->C NDT trace file name, changed to 256 to avoid truncation
     char CPU_time[64]; // CPU time file
     char summary[256]; // Summary data
     char date[32]; // Date and,
