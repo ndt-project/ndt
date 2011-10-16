@@ -83,20 +83,21 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "ndt_odbc.h"
 #include "runningtest.h"
 #include "strlutils.h"
+#include "heuristics.h"
 
-static char lgfn[256];
-static char wvfn[256];
-static char apfn[256];
-static char slfa[256];
-static char logd[256];
-static char portbuf[10];
-static char devicebuf[100];
-static char dbDSNbuf[256];
-static char dbUIDbuf[256];
-static char dbPWDbuf[256];
+static char lgfn[FILENAME_SIZE];   // log file name
+static char wvfn[FILENAME_SIZE];   // file name of web100-variables list
+static char apfn[FILENAME_SIZE];   // admin file name
+static char slfa[256];             // syslog facility
+static char logd[256];             // log dir name
+static char portbuf[10];           // port number user option store
+static char devicebuf[100];        // device name buf (seems unused)
+static char dbDSNbuf[256];         // DB datasource name
+static char dbUIDbuf[256];         // DB UID
+static char dbPWDbuf[256];         // DB Password
 
-/* list of global variables used throughout this program. */
-int window = 64000;
+// list of global variables used throughout this program.
+int window = 64000;				// TCP buffer size
 int randomize=0;
 int count_vars=0;
 int dumptrace=0;
@@ -610,12 +611,10 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
     }
     else if (strncasecmp(key, "protocol_log", 12) == 0) {
          sprintf(lgfn, "%s", val);
-         printf("protocol_log calling set_protocoldir from: %s\n", val); //todo remove printf
          set_protologdir(lgfn);
          continue;
     }
     else if (strncasecmp(key, "enableprotolog", 11) == 0) {
-    	printf("enabling protocol logging from: %s\n", val); //todo remove printf
     	enableprotocollogging();
     	continue;
     }
@@ -861,8 +860,7 @@ zombieWorker(void *head_ptr) {
 /**
  * Capture CPU time details
  *
- * @param arg* void pointer to the log file sued to record CPU time details
- * @param void* NULL
+ * @param arg* void pointer to the log file used to record CPU time details
  * */
 void*
 cputimeWorker(void* arg)
@@ -904,13 +902,13 @@ int
 run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_suite)
 {
 
-  char date[32];
-  char spds[4][256];
-  char logstr1[4096], logstr2[1024];
+  char date[32];						// date indicator
+  char spds[4][256];					// speed "bin" array containing counters for speeds
+  char logstr1[4096], logstr2[1024];	// log
   char tmpstr[256];
   char isoTime[64];
 
-  int n; // todo what is n?
+  //int n; // temporary iterator variable --// commented out -> calc_linkspeed
   int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
   int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
   int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender, DataBytesOut;
@@ -919,42 +917,56 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   int CongAvoid, CongestionOverCount, MaxRTT, OtherReductions, CurTimeoutCount;
   int AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts, ThruBytesAcked;
   int RcvWinScale, SndWinScale;
-  int link=100, mismatch=0, bad_cable=0, half_duplex=0, congestion=0, totaltime;
+  int link=CANNOT_DETERMINE_LINK; // local temporary variable indicative of link speed. Transmitted
+  	  	  	  	  // but unused at client end , which has a similar link speed variable
+  int mismatch=0, bad_cable=0;
+  int half_duplex = NO_HALF_DUPLEX;
+  int congestion=0, totaltime;
   int ret, spd_index;
-  int index, links[16], max;
-  int total; // total ifspeed ? todo
+  //int index; // commented out -> calc_linkspeed
+  //int links[16]; // commented out -> calc_linkspeed
+  // int max; // commented out -> calc_linkspeed
+  // int total;// commented out -> calc_linkspeed
   int c2sdata = 0; // C->S data link speed indicator determined using results
   int c2sack = 0;  //
   int s2cdata = 0; // S->C data link speed indicator determined using results
   int s2cack = 0;
-  int j;
+  //int j;        // commented out -> calc_linkspeed
   int totalcnt;
   int autotune;
-  int dec_cnt, same_cnt, inc_cnt, timeout, dupack;
-  int ifspeed;
+  int dec_cnt, same_cnt, inc_cnt, timeout, dupack; // values collected from the sped tests
+  //int ifspeed;
 
   time_t stime;
 
-  double rttsec, rwin, swin, cwin;
-  double rwintime, cwndtime, sendtime;
+  double rttsec;   // average round trip time
+  double swin, cwin; //send, congestion window sizes respectively
+  double rwin;	  // max window size advertisement rcvd
+  double rwintime; // time spent being limited due to rcvr end
+  double cwndtime; // time spent being limited due to congestion
+  double sendtime; // time spent being limited due to sender's own fault
+
   double oo_order; // out-of-order packet ratio
   double waitsec;
-  double bw2;
-  double avgrtt; // Average roundtrip time
-  double timesec;
-  double loss2;  // Packet loss as calculated from S->c tests. TODO change name. There also is no "loss"
-  double RTOidle;
-  double s2cspd; // average throughput
-  double c2sspd;
-  double s2c2spd;
-  double spd; // total send throughput in S->C
-  double acks, aspd = 0, tmouts, rtran, dack;
+  double bw_theortcl;  // theoretical bandwidth
+  double avgrtt; // Average round-trip time
+  double timesec; // Total test time in microseconds
+  double packetloss_s2c;  // Packet loss as calculated from S->c tests.
+  double RTOidle;         // Proportion of idle time spent waiting for packets to arrive
+  double s2cspd; // average throughput as calculated by S->C test
+  double c2sspd;  // average throughput as calculated by C->S test
+  double s2c2spd; // average throughput as calculated by midbox test
+  double realthruput; // total send throughput in S->C
+  double acksratio;   // ratio of acks over packets sent
+  double aspd = 0;
+  double tmoutsratio;	  // timeouts fraction
+  double rtranratio, dackratio; // ratio of retransmissions and duplicate acks over packets sent
   float runave[4];
 
   FILE *fp;
 
   web100_connection* conn;
-  // protocol logging addition
+
   // start with a clean slate of currently running test and direction
   setCurrentTest(TEST_NONE);
   printf ("Remote host= %s", get_remotehost());
@@ -963,7 +975,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   log_println(4, "Child process %d started", getpid());
   testopt->child0 = getpid();
 
-  // initialize speed_index array. todo. what is this spd index?
+  // initialize speeds array
   for (spd_index=0; spd_index<4; spd_index++)
     for (ret=0; ret<256; ret++)
       spds[spd_index][ret] = 0x00;
@@ -977,7 +989,7 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   sprintf(buff, "v%s", VERSION);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
 
-  // initiate test with MSG_LOGIN message. TODO test_suite
+  // initiate test with MSG_LOGIN message.
   log_println(3, "run_test() routine, asking for test_suite = %s", test_suite);
   send_msg(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite));
   /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
@@ -1034,8 +1046,9 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 
 /*  alarm(25); */
   log_println(6, "Starting s2c throughput test");
-  if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd, set_buff, window, autotune,
-      device, &options, spds, &spd_index, count_vars, &peaks)) != 0) {
+  if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options,
+		  &s2cspd, set_buff, window, autotune,
+		  	  device, &options, spds, &spd_index, count_vars, &peaks)) != 0) {
       if (ret < 0)
 	log_println(6, "S2C test failed with rc=%d", ret);
       log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -1051,83 +1064,13 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   }
 
   // Compute variable values from test results and deduce results
-  log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps", c2sspd/1000, s2cspd/1000);
+  log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps",
+		  	  c2sspd/1000, s2cspd/1000);
 
-  // The section below helps determine link speeds.
-  //    NDT quantizes throughput into one of a group of pre-defined bins/buckets that contain
-  //     counters. Get values of these bins (12 in number) and other key stats
-  for (n=0; n<spd_index; n++) {
-    sscanf(spds[n], "%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d %d", &links[0],
-        &links[1], &links[2], &links[3], &links[4], &links[5], &links[6],
-        &links[7], &links[8], &links[9], &links[10], &links[11], &runave[n],
-        &inc_cnt, &dec_cnt, &same_cnt, &timeout, &dupack, &ifspeed);
-    max = 0;
-    index = 0;
-    total = 0;
-    /* for (j=0; j<10; j++) { */
-
-    if ((ifspeed == -1) || (ifspeed == 0) || (ifspeed > 10))
-    	ifspeed = 10;  // ifspeed was probably not collected in these cases
-
-    // get the ifspeed bin with the biggest counter value.
-    // NDT determines link speed using this
-    for (j=0; j<=ifspeed; j++) {
-      total += links[j];
-      if (max < links[j]) {
-        max = links[j];
-        index = j;
-      }
-    }
-
-    // speed data was not collected correctly
-    if (links[index] == -1)
-      index = -1;
-
-    // log
-    fp = fopen(get_logfile(),"a");
-    if (fp == NULL) {
-      log_println(0, "Unable to open log file '%s', continuing on without logging", get_logfile());
-    }
-    else {
-      fprintf(fp, "spds[%d] = '%s' max=%d [%0.2f%%]\n", n, spds[n],
-          max, (float) max*100/total);
-      fclose(fp);
-    }
-
-    // When the C2S test is disabled, we have to skip the results
-    // Note: spd[0] , [1] contains C->S test results
-    // spd[2] , spd [3] contains S->C test results
-    switch (n  + (testopt->c2sopt ? 0 : 2)) {
-      case 0: c2sdata = index;
-              log_print(1, "Client --> Server data detects link = ");
-              break;
-      case 1: c2sack = index;
-              log_print(1, "Client <-- Server Ack's detect link = ");
-              break;
-      case 2: s2cdata = index;
-              log_print(1, "Server --> Client data detects link = ");
-              break;
-      case 3: s2cack = index;
-              log_print(1, "Server <-- Client Ack's detect link = ");
-    }
-
-    // classify link speed based on the max ifspeed seen
-    switch (index) {
-      case -1: log_println(1, "System Fault");     break;
-      case 0:  log_println(1, "RTT");              break;
-      case 1:  log_println(1, "Dial-up");          break;
-      case 2:  log_println(1, "T1");               break;
-      case 3:  log_println(1, "Ethernet");         break;
-      case 4:  log_println(1, "T3");               break;
-      case 5:  log_println(1, "FastEthernet");     break;
-      case 6:  log_println(1, "OC-12");            break;
-      case 7:  log_println(1, "Gigabit Ethernet"); break;
-      case 8:  log_println(1, "OC-48");            break;
-      case 9:  log_println(1, "10 Gigabit Enet");  break;
-      case 10: log_println(1, "Retransmissions");  break;
-    }
-  } //end section to determine speed. TODO - break into new function? calc_link_speed
-
+  // Determine link speed
+  calc_linkspeed (spds, spd_index, &c2sdata, &c2sack,
+  		&s2cdata, &s2cack, runave, &dec_cnt, &same_cnt, &inc_cnt,
+  			&timeout, &dupack , testopt->c2sopt);
   // Get web100 vars
 
   // ...determine number of times congestion window has been changed
@@ -1158,72 +1101,55 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   // section to calculate duplex mismatch
 
   // Calculate average round trip time and convert to seconds
-  avgrtt = (double) SumRTT/CountRTT;
-  rttsec = avgrtt * .001;
-  /* loss = (double)(PktsRetrans- FastRetran)/(double)(DataPktsOut-AckPktsOut); */
+  rttsec =  calc_avg_rtt(SumRTT,CountRTT, &avgrtt);
 
   // Calculate packet loss
-  loss2 = (double)CongestionSignals/PktsOut;
-  if (loss2 == 0) {
-    if (c2sdata > 5)
-      loss2 = .0000000001;  // set to 10^-10 for links faster than FastE
-    else
-      loss2 = .000001;    // set to 10^-6 for now
-  }
+  packetloss_s2c = calc_packetloss(CongestionSignals, PktsOut, c2sdata);
 
   // Calculate ratio of packets arriving out of order
-  oo_order = (double)DupAcksIn/AckPktsIn;
+  oo_order = calc_packets_outoforder(DupAcksIn,AckPktsIn);
 
   // calculate theoretical maximum goodput in bits
-  // todo constants for 1024, 8.
-  bw2 = (CurrentMSS / (rttsec * sqrt(loss2))) * 8 / 1024 / 1024;
+  bw_theortcl = calc_max_theoretical_thruput(CurrentMSS,rttsec,packetloss_s2c);
 
-  //
-  if ((SndWinScale > 15) || (Sndbuf < 65535))
-    SndWinScale = 0;
-  if ((RcvWinScale > 15) || (MaxRwinRcvd < 65535))
-    RcvWinScale = 0;
-  /* MaxRwinRcvd <<= RcvWinScale; */
-  /* if ((SndWinScale > 0) && (RcvWinScale > 0))
-   *    Sndbuf = (64 * 1024) << RcvWinScale;
-   */
-  /* MaxCwnd <<= RcvWinScale; */
-
-  rwin = (double)MaxRwinRcvd * 8 / 1024 / 1024;
-  swin = (double)Sndbuf * 8 / 1024 / 1024;
-  cwin = (double)MaxCwnd * 8 / 1024 / 1024;
+  //get window sizes
+  calc_window_sizes(&SndWinScale, &RcvWinScale, &Sndbuf, &MaxRwinRcvd, &MaxCwnd,
+		  &rwin, &swin, &cwin);
 
   // Total test time
-  totaltime = SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender;
+  totaltime = calc_totaltesttime(SndLimTimeRwin , SndLimTimeCwnd , SndLimTimeSender);
 
-  // time spent being send-limited due to congestion window
-  rwintime = (double)SndLimTimeRwin/totaltime;
+  // time spent being send-limited due to client's recv window
+  rwintime = calc_sendlimited_rcvrfault(SndLimTimeRwin,totaltime);
 
-  // time spent in being receive limited due to client's recv window
-  cwndtime = (double)SndLimTimeCwnd/totaltime;
+  // time spent in being send-limited due to congestion window
+  cwndtime = calc_sendlimited_cong(SndLimTimeCwnd,totaltime);
 
   // time spent in being send-limited due to own fault
-  sendtime = (double)SndLimTimeSender/totaltime;
-  timesec = totaltime/1000000; 		// microsecs
+  sendtime = calc_sendlimited_sndrfault(SndLimTimeSender,totaltime);
 
-  // Current retransmit timeoutX timeout count = idle time spent waiting for packets to arrive
-  // When divided by total test time, they indicate fraction of time spent idle due to RTO
-  RTOidle = (Timeouts * ((double)CurrentRTO/1000))/timesec;
-  tmouts = (double)Timeouts / PktsOut;  // timeout fraction //todo rename all 4
-  rtran = (double)PktsRetrans / PktsOut; // retrans fraction
-  acks = (double)AckPktsIn / PktsOut; 	 // Fraction of acks recived for sent data
-  dack = (double)DupAcksIn / (double)AckPktsIn; // duplicate acks fraction
+  timesec = totaltime/MEGA; 		// total time in get microsecs
 
-  // actual throughput in Mbps (totaltime is in microseconds)
-  spd = ((double)DataBytesOut / (double)totaltime) * 8;
-  	  // todo rename spd to "calculated total send throughput"
+
+  // get fraction of total test time waiting for packets to arrive
+  RTOidle = calc_RTOIdle(Timeouts , CurrentRTO, timesec);
+
+  // get timeout, retransmission, acks and dup acks ratios.
+  tmoutsratio = (double)Timeouts / PktsOut;
+  rtranratio = (double)PktsRetrans / PktsOut;
+  acksratio = (double)AckPktsIn / PktsOut;
+  dackratio = (double)DupAcksIn / (double)AckPktsIn;
+
+  // get actual throughput in Mbps (totaltime is in microseconds)
+  realthruput = calc_real_thruput(DataBytesOut, totaltime);
 
   // total time spent waiting
-  waitsec = (double) (CurrentRTO * Timeouts)/1000;
+  waitsec = cal_totalwaittime( CurrentRTO, Timeouts);
+
   log_println(2, "CWND limited test = %0.2f while unlimited = %0.2f", s2c2spd, s2cspd);
 
-  // Is goodput measured from from S->C as reported by client > as reported by server?
-  if ((s2c2spd > s2cspd) && (multiple == 0))
+  // Is thruput measured with limited cwnd(midbox test) > as reported S->C test
+  if (is_limited_cwnd_thruput_better(s2c2spd, s2cspd) && isNotMultipleTestMode(multiple))
     log_println(2, "Better throughput when CWND is limited, may be duplex mismatch");
   else
     log_println(2, "Better throughput without CWND limits - normal operation");
@@ -1234,85 +1160,75 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 
   // client link duplex mismatch detection heuristic
   old_mismatch = 1;
-  if (old_mismatch == 1) {
-    if ((cwndtime > .9)  // more than 90% time spent being receiver window limited
-    		&& (bw2 > 2)  // theoretical max goodput > 2mbps
-    			&& (PktsRetrans/timesec > 2)
-    				 // #of segments with pkt-retransmissions> 2
-    				&& (MaxSsthresh > 0)   // max slow start threshold > 0
-    					&& (RTOidle > .01) // cumulative RTO time > 1% test duration
-    						&& (link > 2)  // not wireless link
-    							&& (s2cspd < s2c2spd) //S->C throughput calculated
-    												// by server < client value
-    								&& (multiple == 0))
-    {
-	  if (s2cspd < c2sspd) // also, S->C throughput is lesser than C->S throughput
-      mismatch = 1;
-      else
-        mismatch = 2;
-      link = 0;
-    }
 
-    // test for uplink with duplex mismatch condition
-    if (((s2cspd/1000) > 50)		// S->C goodput > 50 Mbps
-    		&& (spd < 5) 			// actual send throughput < 5 Mbps
-    			&& (rwintime > .9)	// receive window limited for >90% of the time
-    				&& (loss2 < .01)) // packet loss < 1%
-    {
-      mismatch = 2;
-      link = 0;
-    }
-  } else {
-    /* This section of code is being held up for non-technical reasons.
-     * Once those issues are resolved a new mismatch detection algorim 
-     * will be placed here.
-     *  RAC 5-11-06
-     */
-  }
+  if (old_mismatch == 1) {
+		if (detect_duplexmismatch(cwndtime, bw_theortcl, PktsRetrans, timesec,
+				MaxSsthresh, RTOidle, link, s2cspd, s2c2spd, multiple)) {
+			if (is_c2s_thruputbetter(c2sspd, s2cspd)) { // also, S->C throughput is lesser than C->S throughput
+				mismatch = DUPLEX_OLD_ALGO_INDICATOR;
+				// possible duplex, from Old Duplex-Mismatch logic
+			} else {
+				mismatch = DUPLEX_SWITCH_FULL_HOST_HALF;
+				// switch full, host half
+			}
+			link = LINK_ALGO_FAILED;
+		}
+
+		// test for uplink with duplex mismatch condition
+		if (detect_internal_duplexmismatch(
+				(s2cspd / 1000), realthruput, rwintime, packetloss_s2c )) {
+			mismatch = DUPLEX_SWITCH_FULL_HOST_HALF; // switch full, host half
+			link = LINK_ALGO_FAILED;
+		}
+	} else {
+		/* This section of code is being held up for non-technical reasons.
+		 * Once those issues are resolved a new mismatch detection algorim
+		 * will be placed here.
+		 *  RAC 5-11-06
+		 */
+	}
+
   // end section calculating duplex mismatch
+
+
 
   // Section to deduce if there is faulty hardware links
 
   // estimate is less than actual throughput, something is wrong
-  if (bw2 < spd)
-    link = 0;
+  if (bw_theortcl < realthruput)
+    link = LINK_ALGO_FAILED;
 
-  // Faulty hardware link heuristic. todo read about error here
-  if (((loss2*100)/timesec > 15) && (cwndtime/timesec > .6) &&
-      (loss2 < .01) && (MaxSsthresh > 0))
-    bad_cable = 1;
+  // Faulty hardware link heuristic.
+  if (detect_faultyhardwarelink( packetloss_s2c,  cwndtime,
+  		 timesec,  MaxSsthresh))
+    bad_cable = POSSIBLE_BAD_CABLE;
 
   // test for Ethernet link (assume Fast E.)
-  if ((spd < 9.5) && (spd > 3.0) && ((s2cspd/1000) < 9.5) &&
-      (loss2 < .01) && (oo_order < .035) && (link > 0))
-    link = 10;
+   if ( detect_ethernetlink (realthruput, s2cspd, packetloss_s2c, oo_order, link) )
+    link = LINK_ETHERNET;
 
   // test for wireless link
-  if ((sendtime == 0) && (spd < 5) && (bw2 > 50) &&
-      ((SndLimTransRwin/SndLimTransCwnd) == 1) &&
-      (rwintime > .90) && (link > 0))
-    link = 3;
+   if ( detect_wirelesslink( sendtime, realthruput, bw_theortcl,
+		SndLimTransRwin, SndLimTransCwnd, rwintime, link) )
+    link = LINK_WIRELESS;
 
   // test for DSL/Cable modem link
-  if ((SndLimTimeSender < 600) && (SndLimTransSender == 0) && (spd < 2) &&
-      (spd < bw2) && (link > 0))
-    link = 2;
+   if( detect_DSLCablelink ( SndLimTimeSender, SndLimTransSender,
+   		 realthruput, bw_theortcl,  link) )
+    link = LINK_DSLORCABLE;
 
   // full/half link duplex setting heuristic:
   // receiver-limited- time > 95%,
   //  .. number of transitions into the 'Receiver Limited' state is greater than 30 ps
   //  ...and the number of transitions into the 'Sender Limited' state is greater than 30 per second
 
-  if ((rwintime > .95) && (SndLimTransRwin/timesec > 30) &&
-      (SndLimTransSender/timesec > 30))
-    half_duplex = 1;
+  if ( detect_halfduplex( rwintime, SndLimTransRwin, SndLimTransSender,
+		   timesec) )
+    half_duplex = POSSIBLE_HALF_DUPLEX;
 
   // congestion detection heuristic
-  // ..Congestion-limited time share > 2%,
-  // ...no duplex mismatch ,
-  // ....max window advt received is > max congestion window used during Slow Start
-  if ((cwndtime > .02) && (mismatch == 0) && ((cwin/rttsec) < (rwin/rttsec)))
-    congestion = 1;
+  if (detect_congestionwindow( cwndtime, mismatch, cwin, rwin, rttsec))
+    congestion = POSSIBLE_CONGESTION;
 
   // Send results and variable values to clients
   sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n",
@@ -1320,11 +1236,11 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\nmismatch: %d\nspd: %0.2f\n",
-      half_duplex, link, congestion, bad_cable, mismatch, spd);
+      half_duplex, link, congestion, bad_cable, mismatch, realthruput);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\ntimesec: %0.2f\norder: %0.4f\n",
-      bw2, loss2, avgrtt, waitsec, timesec, oo_order);
+      bw_theortcl, packetloss_s2c, avgrtt, waitsec, timesec, oo_order);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   sprintf(buff, "rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\nrwin: %0.4f\nswin: %0.4f\n",
@@ -1341,13 +1257,14 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
   // Signal end of test results to client
   send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
 
-  // Copy collected values into the meta data structures
+  // Copy collected values into the meta data structures. This section
+  // seems most readable, easy to debug here.
     sprintf(meta.date, "%s", get_ISOtime(isoTime,sizeof(isoTime)));
-//todo remove debug
-    log_println(0, "meta.date=%s, meta.clientip =%s:%s:%d", meta.date, meta.client_ip, rmt_host,strlen(rmt_host));
+
+    log_println(9, "meta.date=%s, meta.clientip =%s:%s:%d", meta.date, meta.client_ip, rmt_host,strlen(rmt_host));
     memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
-    log_println(0, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
-//todo remove debug
+    log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
+
     memset(tmpstr, 0, 255);
     sprintf(tmpstr,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
         (int)s2c2spd,(int)s2cspd,(int)c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
@@ -1358,27 +1275,27 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
         MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
         SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
         SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
-    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+
     strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr,"%d,%d,%d,%d,%d",
         link, mismatch, bad_cable, half_duplex, congestion);
-    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+
     strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata, s2cack,
         CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
-    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+
     strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid, CongestionOverCount, MaxRTT, 
         OtherReductions, CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
         SubsequentTimeouts, ThruBytesAcked);
-    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+
     strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     memset(tmpstr, 0, 255);
     sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
-    //strncat(meta.summary, tmpstr, strlen(tmpstr));
+
     strlcat(meta.summary, tmpstr, sizeof(meta.summary));
     writeMeta(options.compress, cputime, options.snaplog, dumptrace);
 
@@ -1463,7 +1380,10 @@ run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt, char *test_su
 }
 
 /**
- * main method
+ * Initializes data structures,
+ *  web100 structures and logging systems.  Read/load configuration, get process
+ *  execution options. Accept test requests and manage their execution order and
+ *  initiate tests. Keep track of running processes.
  * @param argc Number of arguments
  * @param argv string command line arguments
  * */
@@ -1967,9 +1887,10 @@ mainloop:
 	 * if (mchild != head_ptr) {
 	 */
 	  tmp_ptr = mchild;
+
 	  // Update queued clients, send message to client when it moves
 	  //  up in the queue enough to get closer to running a test.  This happens
-	  //  when the client falls into the next lower maxquee bin
+	  //  when the client falls into the next lower maxqueue bin
 	  //  RAC 3/21/10
 
 	  int rac;
@@ -2063,7 +1984,7 @@ mainloop:
     FD_ZERO(&rfd);
     FD_SET(listenfd, &rfd);
     if (waiting > 0) { // there are clients waiting
-      sel_tv.tv_sec = 3; // todo 3 seconds == WAIT_TIME_SRVR
+      sel_tv.tv_sec = 3; // 3 seconds == WAIT_TIME_SRVR
       sel_tv.tv_usec = 0;
       log_println(3, "Waiting for new connection, timer running");
 sel_11:
@@ -2118,7 +2039,7 @@ sel_12:
 	  }
 	}
       }
-      for (i=0;i<5;i++) {
+      for (i=0;i<RETRY_COUNT;i++) {
 	ctlsockfd = 0;
         ctlsockfd = accept(listenfd, (struct sockaddr *) &cli_addr, &clilen);
 
@@ -2144,11 +2065,11 @@ sel_12:
       else { // accept worked, log protocol validation log to indicate that client tried connecting
     	  procstatusenum = PROCESS_STARTED;
     	  proctypeenum = CONNECT_TYPE;
-    	  protolog_procstatus(getpid(), getCurrentTest(), proctypeenum, procstatusenum); // todo pid?
+    	  protolog_procstatus(getpid(), getCurrentTest(), proctypeenum, procstatusenum);
       }
 
       // the specially crafted data that kicks off the old clients
-      for (i=0; i<5; i++) { // todo 5==SOCKET_IO_RETRY_COUNT
+      for (i=0; i<RETRY_COUNT; i++) {
         rc = write(ctlsockfd, "123456 654321", 13);
 	if ((rc == -1) && (errno == EINTR)) // interrupted, retry
 	  continue;
@@ -2180,8 +2101,6 @@ sel_12:
       memset(new_child, 0, sizeof(struct ndtchild));
       tt = time(0);
       name = tmpstr;
- //todo remove debug log
-      log_println(" CLIENT CLIENT CLIENT IP=%s",tmpstr);
 
       rmt_host = tmpstr;
 
@@ -2221,7 +2140,7 @@ sel_12:
 		((multiple == 1) && (waiting >= ((4*max_clients)-1)))) {
           log_println(0, "Too many clients/mclients (%d) waiting to be served, Please try again later.",
 			chld_pid);
-          sprintf(tmpstr, "9988");  //TODO 9988= server_BUSY_OR_ERROR
+          sprintf(tmpstr, "9988");  // 9988 = server_BUSY_OR_ERROR
           send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
           close(chld_pipe[0]);
           close(chld_pipe[1]);
@@ -2272,7 +2191,7 @@ sel_12:
 	new_child->running = 0;
         new_child->ctlsockfd = ctlsockfd;
 	if (t_opts & TEST_STATUS)
-	    new_child->oldclient = 1; //todo what does oldclient mean?
+	    new_child->oldclient = 1;
 	else
 	    new_child->oldclient = 0;
 	memset(new_child->tests, 0, sizeof(test_suite));
@@ -2388,7 +2307,7 @@ ChldRdy:
             tmp_ptr = tmp_ptr->next;
             j--;
           }
-	  if ((waiting > 5) && (zombie_check == 0)) { // todo why specifically 5 clients for killing zombies?
+	  if ((waiting > 5) && (zombie_check == 0)) { // more then 5 clients waiting, killing zombies
 	    zombie_check = -1;
 	    log_println(4, "More than 5 clients in the queue, remove zombies");
               if (pthread_create(&zombieThreadId, NULL, zombieWorker, (void *)head_ptr)) {
@@ -2661,7 +2580,9 @@ dispatch_client:
   }
 }
 
-/** Method to get remote hots's address.
+/**
+ * Method to get remote host's address.
+ * @return remote host name
  * */
 char *get_remotehost() {
 	return rmt_host;

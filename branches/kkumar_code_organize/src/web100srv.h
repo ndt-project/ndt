@@ -71,7 +71,7 @@
 // Congestion window peak information
 typedef struct CwndPeaks {
     int min;		// trough of peak value
-    int max;        // maximun peak value
+    int max;        // maximum peak value
     int amount;		// number of transitions between peaks
 } CwndPeaks;
 
@@ -82,8 +82,8 @@ typedef struct options {
     char avoidSndBlockUp; 	// flag set to indicate avoiding  send buffer blocking in the S2C test
     char snaplog;		  	// enable collecting snap log
     char cwndDecrease;    	// enable analysis of the cwnd changes (S2C test)
-    char s2c_logname[128];  // S2C log file name
-    char c2s_logname[128];  // C2S log file name
+    char s2c_logname[256];  // S2C log file name - size changed to 256
+    char c2s_logname[256];  // C2S log file name - size changed to 256
     int  compress; 			// enable compressing log files
 } Options;
 
@@ -107,49 +107,51 @@ struct ndtchild {
 	struct ndtchild *next; // next process in queue
 };
 
+/* structure used to collect speed data in bins */
 struct spdpair {
-  int family;
+  int family;			// Address family
 #if defined(AF_INET6)
-	u_int32_t saddr[4];
-	u_int32_t daddr[4];
+	u_int32_t saddr[4]; // source address
+	u_int32_t daddr[4]; // dest address
 #else
-	u_int32_t saddr;
-	u_int32_t daddr;
+	u_int32_t saddr;	// source address
+	u_int32_t daddr;	 // dest address
 #endif
-	u_int16_t sport;
-	u_int16_t dport;
-	u_int32_t seq;
-	u_int32_t ack;
-	u_int32_t win;
-	int links[16];
-	u_int32_t sec;
-	u_int32_t usec;
+	u_int16_t sport;	// source port
+	u_int16_t dport;	// destination port
+	u_int32_t seq;		// seq number
+	u_int32_t ack;		// number of acked bytes
+	u_int32_t win;		// window size
+	int links[16];		// bins for link speeds
+	u_int32_t sec;		// time indicator
+	u_int32_t usec;		// time indicator, microsecs
 	u_int32_t st_sec;
 	u_int32_t st_usec;
-	u_int32_t inc_cnt;
-	u_int32_t dec_cnt;
-	u_int32_t same_cnt;
-	u_int32_t timeout;
-	u_int32_t dupack;
-	double time;
-	double totalspd;
-	double totalspd2;
-	u_int32_t totalcount;
+	u_int32_t inc_cnt;   // count of times window size was incremented
+	u_int32_t dec_cnt;   // count of times window size was decremented
+	u_int32_t same_cnt;  // count of times window size remained same
+	u_int32_t timeout;   // # of timeouts
+	u_int32_t dupack;    // # of duplicate acks
+	double time;         // time, often sec+usec from above
+	double totalspd;     // speed observed
+	double totalspd2;    // running average (spd of current calculated (total speed) and prior value)
+	u_int32_t totalcount; // total number of valid speed data bins
 };
 
 struct spdpair fwd, rev;
 
+
 struct web100_variables {
-	char name[256];
-	char value[256];
+	char name[256];      // key
+	char value[256];     // value
 } web_vars[WEB100_VARS];
 
 struct pseudo_hdr {   /* used to compute TCP checksum */
-    unsigned long s_addr;
-    unsigned long d_addr;
-    char pad;
-    unsigned char protocol;
-    unsigned short len;
+    unsigned long s_addr;	// source addr
+    unsigned long d_addr;   // destination address
+    char pad;				// padding characterr
+    unsigned char protocol; // protocol indicator
+    unsigned short len;		// header length
 };
 
 int32_t gmt2local(time_t);

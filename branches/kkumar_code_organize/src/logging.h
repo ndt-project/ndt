@@ -20,6 +20,7 @@
 #define PROTOLOGFILE "web100srvprotocol.log"   /* Name of protocol validation log file */
 #define PROTOLOGPREFIX "web100srvprotocol_" /* prefix for protocol validation log file */
 #define PROTOLOGSUFFIX ".log" /* suffix for protocol validation log file */
+#define FILENAME_SIZE 256	// This could have been in utils.h, but will be used immediately here
 
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
@@ -58,10 +59,10 @@ struct metaentry {
  *  meta data file created  for every session
  * */
 struct metadata {
-    char c2s_snaplog[256]; // C->S test Snaplog file name, changed to 256 to avoid truncation
-    char c2s_ndttrace[256]; // C->S NDT trace file name, changed to 256 to avoid truncation
-    char s2c_snaplog[256]; // S->C test Snaplog file name, changed to 256 to avoid truncation
-    char s2c_ndttrace[256]; // S->C NDT trace file name, changed to 256 to avoid truncation
+    char c2s_snaplog[FILENAME_SIZE]; // C->S test Snaplog file name, changed to 256 to avoid truncation
+    char c2s_ndttrace[FILENAME_SIZE]; // C->S NDT trace file name, changed to 256 to avoid truncation
+    char s2c_snaplog[FILENAME_SIZE]; // S->C test Snaplog file name, changed to 256 to avoid truncation
+    char s2c_ndttrace[FILENAME_SIZE]; // S->C NDT trace file name, changed to 256 to avoid truncation
     char CPU_time[64]; // CPU time file
     char summary[256]; // Summary data
     char date[32]; // Date and,
@@ -87,7 +88,10 @@ char* get_protologdir();
 //char *createprotologfilename (char* textappendarg);
 void enableprotocollogging();
 char *createprotologfilename (char* client_ip, char* textappendarg);
-
+void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
+    char *finalsuffix);
+void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg, char *dirnamedestarg, int destnamearrsize,
+    char *finalsuffix, int finalsuffixsize) ;
 
 void protolog_printgeneric(const char* key, const char* val);
 void protolog_status(int pid, enum  TEST_ID testid, enum TEST_STATUS_INT teststatus);

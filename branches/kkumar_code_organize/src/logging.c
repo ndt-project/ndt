@@ -817,6 +817,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	size_t tmpstrlen = sizeof(tmpstr);
 	socklen_t len;
 	DIR *dp;
+	char metafilesuffix[256] = "meta";
 
 	/* Get the clients domain name and same in metadata file
 	 * changed to use getnameinfo 7/24/09
@@ -848,57 +849,10 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump)
 	// reset tmpstr
 	memset(tmpstr, 0, tmpstrlen);
 
-	// The following section of code creates a log directory to record meta data,
-	// if one is not already present with the details needed. The log file location,
-	// and name themselves record the year, month, date, time and client name.
-	// The "primary" location for this log file is obtained as a command line option
-	// from the user, or is the default location of BASE_DIR+LOG_DIR of the NDT installation
-//TODO : Move this into a new method??
-	//strncpy(tmpstr, DataDirName, strlen(DataDirName));
-	strlcpy(tmpstr, DataDirName, sizeof(tmpstr));
-	// Open the directory or create one if not yet present
-	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
-		mkdir(tmpstr, 0755);
-	closedir(dp); // close opened directory
-	get_YYYY(dir); // get current year
-	//strncat(tmpstr, dir, 4);
-	strlcat(tmpstr, dir, sizeof(tmpstr));
-	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
-		mkdir(tmpstr, 0755); // create directory with year appended
-	closedir(dp); // close the opened directory
-	//strncat(tmpstr, "/", 1);
-	strlcat(tmpstr, "/", sizeof(tmpstr));
-	get_MM(dir); // get month info
-	//strncat(tmpstr, dir, 2); // append month info to the directory name
-	strlcat(tmpstr, dir, sizeof(tmpstr)); // append month info to the directory name
-	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
-		mkdir(tmpstr, 0755);
-	closedir(dp);
-	//strncat(tmpstr, "/", 1);
-	strlcat(tmpstr, "/", sizeof(tmpstr));
-	get_DD(dir); // get date
-	//strncat(tmpstr, dir, 2); // append date info to directory name
-	strlcat(tmpstr, dir, sizeof(tmpstr)); // append date info to directory name
-	if ((dp = opendir(tmpstr)) == NULL && errno == ENOENT)
-		mkdir(tmpstr, 0755);
-	closedir(dp);
+	// Create metadata file
+	create_client_logdir((struct sockaddr *) &meta.c_addr, len,
+	                tmpstr, sizeof(tmpstr), metafilesuffix, sizeof(metafilesuffix));
 
-	// end block creating log directory
-//end creating dir
-
-	memcpy(tmp2str, tmpstr, tmpstrlen); // tmp2str now contains the dir name intended
-	// tmpstr will henceforth refer to the log file's name
-	//strncat(tmpstr, "/", 1);
-	strlcat(tmpstr, "/", sizeof(tmpstr));
-	// todo remove debug stmt
-	log_println(0, " ***meta.client_ip now: %s",
-				meta.client_ip);
-	sprintf(dir, "%s_%s:%d.meta", get_ISOtime(isoTime,sizeof(isoTime)), meta.client_ip,
-			meta.ctl_port); // now get ISO time, the client's name and port
-	//strncat(tmpstr, dir, strlen(dir)); // append above details to log filename
-	strlcat(tmpstr, dir, sizeof(tmpstr)); // append above details to log filename
-	log_println(0, " ** meta.client_ip now: %s",
-	                                meta.client_ip); //todo remove debug stmt
 
 	log_println(6, "Should compress snaplog and tcpdump files compress=%d",
 			compress);
@@ -1068,8 +1022,66 @@ int quote_delimiters(char *line, int line_size, char *output_buf, int output_buf
     return j - 1;
 }
 
+/** Create directories for snap/tcp trace log files, and meta files.
+ *
+ *
+* The log file location, and name themselves record the year, month, date,
+* time and client name.
+*
+* The "primary" location for this log file is obtained as a command line option
+* from the user, or is the default location of BASE_DIR+LOG_DIR of the NDT installation
+*
+* @param direnamedestarg        location to store final directory name
+* @param destnamearrsize        Size of dest name string
+* @param finalsuffix            string constant suffix (C2S/S2C IP:port.ndttrace etc)
+*
+*
+*/
+void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
+    char *finalsuffix) {
 
-/** Method to create directories for snap log files
+  char namebuf[256];
+  size_t namebuflen = 255;
+  char dir[128];
+  DIR *dp;
+
+  strlcpy(dirnamedestarg, DataDirName, destnamearrsize);
+  if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+          mkdir(dirnamedestarg, 0755);
+  closedir(dp);
+  get_YYYY(dir);
+
+  strlcat(dirnamedestarg, dir, destnamearrsize);
+  if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+          mkdir(dirnamedestarg, 0755);
+  closedir(dp);
+
+  strlcat(dirnamedestarg, "/", destnamearrsize);
+  get_MM(dir);
+
+  strlcat(dirnamedestarg, dir, destnamearrsize);
+  if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+          mkdir(dirnamedestarg, 0755);
+  closedir(dp);
+
+  strlcat(dirnamedestarg, "/", destnamearrsize);
+  get_DD(dir);
+
+  strlcat(dirnamedestarg, dir, destnamearrsize);
+  if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
+          mkdir(dirnamedestarg, 0755);
+  closedir(dp);
+
+  strlcat(dirnamedestarg, "/", destnamearrsize);
+  sprintf(dir, "%s", finalsuffix);
+  strlcat(dirnamedestarg, dir, destnamearrsize);
+
+}
+
+/** Create directories for snap/tcp trace log files, and meta files.
+ * Gets the endpoint name and port details and then builds the logfile name.
+ * Calls the create_named_logdir(..) method with the endpoint details.
+ *
 * @param namebufarg             string containing ip address/name of client
 * @param socketaddrarg          string containing socket address
 * @param direnamedestarg        location to store final directory name
@@ -1091,41 +1103,11 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg, char
         I2AddrNodeName(sockAddr, namebuf, &namebuflen);
         socketaddrport = I2AddrPort(sockAddr);
 
-
-        //strncpy(dirnamedestarg, DataDirName, strlen(DataDirName));
-        strlcpy(dirnamedestarg, DataDirName, destnamearrsize);
-        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
-                mkdir(dirnamedestarg, 0755);
-        closedir(dp);
-        get_YYYY(dir);
-        //strncat(dirnamedestarg, dir, 4);
-        strlcat(dirnamedestarg, dir, destnamearrsize);
-        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
-                mkdir(dirnamedestarg, 0755);
-        closedir(dp);
-        //strncat(dirnamedestarg, "/", 1);
-        strlcat(dirnamedestarg, "/", destnamearrsize);
-        get_MM(dir);
-        //strncat(dirnamedestarg, dir, 2);
-        strlcat(dirnamedestarg, dir, destnamearrsize);
-        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
-                mkdir(dirnamedestarg, 0755);
-        closedir(dp);
-        //strncat(dirnamedestarg, "/", 1);
-        strlcat(dirnamedestarg, "/", destnamearrsize);
-        get_DD(dir);
-        //strncat(dirnamedestarg, dir, 2);
-        strlcat(dirnamedestarg, dir, destnamearrsize);
-        if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
-                mkdir(dirnamedestarg, 0755);
-        closedir(dp);
-        //strncat(dirnamedestarg, "/", 1);
-        strlcat(dirnamedestarg, "/", destnamearrsize);
         sprintf(dir, "%s_%s:%d.%s", get_ISOtime(isoTime, sizeof(isoTime)), namebuf, socketaddrport, finalsuffix);
-        //strncpy(finalsuffix, dir, strlen(dir));
         strlcpy(finalsuffix, dir, finalsuffixsize);
-        //strncat(dirnamedestarg, dir, strlen(dir));
-        strlcat(dirnamedestarg, dir, destnamearrsize);
+
+        create_named_logdir(dirnamedestarg, destnamearrsize,finalsuffix);
 
         I2AddrFree(sockAddr);
+
 }

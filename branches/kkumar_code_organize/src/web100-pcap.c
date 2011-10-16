@@ -689,6 +689,9 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
   DIR *dip;
   int rc;
 
+  char logdir[256];
+  char logfilesuffix[256] = "ndttrace"; // logfile suffix
+
   cnt = -1;  /* read forever, or until end of file */
   sig1 = 0;
   sig2 = 0;
@@ -700,6 +703,7 @@ init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr, socklen_t saddrlen, in
   sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
   sock_addr = I2AddrSAddr(sockAddr, 0);
   src_addr = I2AddrSAddr(srcAddr, 0);
+
   /* special check for localhost, set device accordingly */
   if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
     //strncpy(device, "lo", 3);
@@ -825,6 +829,7 @@ endLoop:
   memset(cmdbuf, 0, 256);
   sprintf(cmdbuf, "host %s and port %d", namebuf, I2AddrPort(sockAddr));
 
+
   log_println(1, "installing pkt filter for '%s'", cmdbuf);
   log_println(1, "Initial pkt src data = %x", (int) fwd.saddr);
 
@@ -838,45 +843,15 @@ endLoop:
     return;
   }
 
-  if (dumptrace == 1) { //todo call create_client_log
-    fprintf(stderr, "Creating trace file for connection\n");
-    memset(cmdbuf, 0, 256);
-    //strncpy(cmdbuf, DataDirName, strlen(DataDirName));
-    strlcpy(cmdbuf, DataDirName, sizeof(cmdbuf));
-    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
-	mkdir(cmdbuf, 0755);
-    closedir(dip);
-    get_YYYY(dir);
-    //strncat(cmdbuf, dir, 4);
-    strlcat(cmdbuf, dir, sizeof(cmdbuf));
-    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
-	mkdir(cmdbuf, 0755);
-    closedir(dip);
-    //strncat(cmdbuf, "/", 1);
-    strlcat(cmdbuf, "/", sizeof(cmdbuf));
-    get_MM(dir);
-    //strncat(cmdbuf, dir, 2);
-    strlcat(cmdbuf, dir, sizeof(cmdbuf));
-    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
-	mkdir(cmdbuf, 0755);
-    closedir(dip);
-    //strncat(cmdbuf, "/", 1);
-    strlcat(cmdbuf, "/", sizeof(cmdbuf));
-    get_DD(dir);
-    //strncat(cmdbuf, dir, 2);
-    strlcat(cmdbuf, dir, sizeof(cmdbuf));
-    if ((dip = opendir(cmdbuf)) == NULL && errno == ENOENT)
-	mkdir(cmdbuf, 0755);
-    closedir(dip);
-    //strncat(cmdbuf, "/", 1);
-    strlcat(cmdbuf, "/", sizeof(cmdbuf));
-    sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime, sizeof(isoTime)), namebuf, I2AddrPort(sockAddr), direction);
-    //strncat(cmdbuf, dir, strlen(dir));
-    strlcat(cmdbuf, dir, sizeof(cmdbuf));
-    pdump = pcap_dump_open(pd, cmdbuf);
-    fprintf(stderr, "Opening '%s' log fine\n", cmdbuf);
+  if (dumptrace == 1) {
+	// Create log file
+	sprintf(dir, "%s_%s:%d.%s_ndttrace", get_ISOtime(isoTime, sizeof(isoTime)), namebuf, I2AddrPort(sockAddr), direction);
+	create_named_logdir(
+			logdir, sizeof(logdir), dir);
+    pdump = pcap_dump_open(pd, logdir);
+    fprintf(stderr, "Opening '%s' log fine\n", logdir);
     if (pdump == NULL) {
-      fprintf(stderr, "Unable to create trace file '%s'\n", cmdbuf);
+       	fprintf(stderr, "Unable to create trace file '%s'\n", logdir);
       dumptrace = 0;
     }
   }

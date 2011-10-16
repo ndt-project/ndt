@@ -34,7 +34,7 @@ bin_PROGRAMS = web100clt
 endif
 
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
-                    test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c
+                    test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
@@ -43,28 +43,28 @@ genplot_SOURCES = genplot.c usage.c
 genplot_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
 genplot_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-analyze_SOURCES = analyze.c usage.c logging.c runningtest.c ndtptestconstants.c
+analyze_SOURCES = analyze.c usage.c logging.c runningtest.c ndtptestconstants.c strlutils.c
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
-	 runningtest.c ndtptestconstants.c
+	 runningtest.c ndtptestconstants.c strlutils.c
 fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
-                    protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c
+                    protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 
-viewtrace_SOURCES = viewtrace.c usage.c logging.c utils.c runningtest.c ndtptestconstants.c
+viewtrace_SOURCES = viewtrace.c usage.c logging.c utils.c runningtest.c ndtptestconstants.c strlutils.c
 viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 viewtrace_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
-tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c runningtest.c ndtptestconstants.c
+tr_mkmap_SOURCES = tr-mkmap.c tr-tree.c tr-tree6.c usage.c logging.c runningtest.c ndtptestconstants.c strlutils.c
 tr_mkmap_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 tr_mkmap_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
