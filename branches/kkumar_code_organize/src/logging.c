@@ -370,7 +370,6 @@ int quote_delimiters(char *line, int line_size, char *output_buf,
 	return j - 1;
 }
 
-
 /**
  * Log in a single key-value pair as a particular event
  *
@@ -923,7 +922,6 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 	}
 }
 
-
 /** Create directories for snap/tcp trace log files, and meta files.
  *
  *
@@ -977,7 +975,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 	strlcat(dirnamedestarg, "/", destnamearrsize);
 	sprintf(dir, "%s", finalsuffix);
 	strlcat(dirnamedestarg, dir, destnamearrsize);
-log_println(0,"end named_log_create %s", dirnamedestarg);
+	log_println(0, "end named_log_create %s", dirnamedestarg);
 }
 
 /** Create directories for snap/tcp trace log files, and meta files.

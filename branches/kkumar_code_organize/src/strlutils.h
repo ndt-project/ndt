@@ -1,4 +1,3 @@
-
 /*      $OpenBSD: strlcpy.c,v 1.11 2006/05/05 15:27:38 millert Exp $    */
 
 /*
@@ -33,6 +32,4 @@ strlcpy(char *dst, const char *src, size_t siz);
 size_t strlcat(char *dst, const char *src, size_t siz);
 
 #endif
-
-
 

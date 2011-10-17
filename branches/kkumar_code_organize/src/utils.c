@@ -32,25 +32,22 @@
  *         2 - not the valid int number.
  */
 
-int
-check_int(char* text, int* number)
-{
-    char* znak;
-    long tmp;
+int check_int(char* text, int* number) {
+	char* znak;
+	long tmp;
 
-    assert(text != NULL);
-    assert(number != NULL);
+	assert(text != NULL);
+	assert(number != NULL);
 
-    if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
-        return 1;
-    }
-    if ((*text != '\0') && (*znak == '\0')) {
-        *number = tmp;
-        return 0;
-    }
-    else {
-        return 2;
-    }
+	if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
+		return 1;
+	}
+	if ((*text != '\0') && (*znak == '\0')) {
+		*number = tmp;
+		return 0;
+	} else {
+		return 2;
+	}
 }
 
 /**
@@ -65,20 +62,18 @@ check_int(char* text, int* number)
  *          2 - not the valid int number.
  */
 
-int
-check_rint(char* text, int* number, int minVal, int maxVal)
-{
-    int ret;
+int check_rint(char* text, int* number, int minVal, int maxVal) {
+	int ret;
 
-    assert(maxVal >= minVal);
+	assert(maxVal >= minVal);
 
-    if ((ret = check_int(text, number))) {
-        return ret;
-    }
-    if ((*number < minVal) || (*number > maxVal)) {
-        return 1;
-    }
-    return 0;
+	if ((ret = check_int(text, number))) {
+		return ret;
+	}
+	if ((*number < minVal) || (*number > maxVal)) {
+		return 1;
+	}
+	return 0;
 }
 
 /**
@@ -90,23 +85,21 @@ check_rint(char* text, int* number, int minVal, int maxVal)
  *          2 - not the valid long number.
  */
 
-int
-check_long(char* text, long* number)
-{
-    char* tmp;
+int check_long(char* text, long* number) {
+	char* tmp;
 
-    assert(text != NULL);
-    assert(number != NULL);
+	assert(text != NULL);
+	assert(number != NULL);
 
-    if (((*number = strtol(text, &tmp, 10)) == LONG_MAX) || (*number == LONG_MIN)) {
-        return 1;
-    }
-    if ((*text != '\0') && (*tmp == '\0')) {
-        return 0;
-    }
-    else {
-        return 2;
-    }
+	if (((*number = strtol(text, &tmp, 10)) == LONG_MAX)
+			|| (*number == LONG_MIN)) {
+		return 1;
+	}
+	if ((*text != '\0') && (*tmp == '\0')) {
+		return 0;
+	} else {
+		return 2;
+	}
 }
 
 /**
@@ -114,12 +107,10 @@ check_long(char* text, long* number)
  * @return seconds from the beginning of the epoch.
  */
 
-double
-secs()
-{
-    struct timeval ru;
-    gettimeofday(&ru, (struct timezone *)0);
-    return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
+double secs() {
+	struct timeval ru;
+	gettimeofday(&ru, (struct timezone *) 0);
+	return (ru.tv_sec + ((double) ru.tv_usec) / 1000000);
 }
 
 /**
@@ -127,11 +118,9 @@ secs()
  * @param s  the argument to the perror() function
  */
 
-void
-err_sys(char* s)
-{
-    perror(s);
-    return -1;
+void err_sys(char* s) {
+	perror(s);
+	return -1;
 }
 
 /**
@@ -141,18 +130,16 @@ err_sys(char* s)
  * @return length of the sending queue.
  */
 
-int
-sndq_len(int fd)
-{
+int sndq_len(int fd) {
 #ifdef SIOCOUTQ
-    int length = -1;
+	int length = -1;
 
-    if (ioctl(fd, SIOCOUTQ, &length)) {
-        return -1;
-    }
-    return length;
+	if (ioctl(fd, SIOCOUTQ, &length)) {
+		return -1;
+	}
+	return length;
 #else
-    return 0;
+	return 0;
 #endif
 }
 
@@ -161,19 +148,17 @@ sndq_len(int fd)
  * @arg time in seconds to sleep for
  */
 
-void
-mysleep(double time)
-{
-    int rc;
-    struct timeval tv;
-    tv.tv_sec = (int) time;
-    tv.tv_usec = (int)(time * 1000000)%1000000;
+void mysleep(double time) {
+	int rc;
+	struct timeval tv;
+	tv.tv_sec = (int) time;
+	tv.tv_usec = (int) (time * 1000000) % 1000000;
 
-    for (;;) {
-        rc = select(0, NULL, NULL, NULL, &tv);
-        if ((rc == -1) && (errno == EINTR))
-	    continue;
-	if (rc == 0)
-	    return;
-    }
+	for (;;) {
+		rc = select(0, NULL, NULL, NULL, &tv);
+		if ((rc == -1) && (errno == EINTR))
+			continue;
+		if (rc == 0)
+			return;
+	}
 }

@@ -20,17 +20,24 @@
 #define MSG_TYPE_DESC_SIZE 15    /* max size for now derived from "TEST_FINALIZE" */
 
 /* status of tests. Used mainly to log a "textual" explanation using below array */
-enum  TEST_STATUS_INT { TEST_NOT_STARTED, TEST_STARTED, TEST_INPROGRESS, TEST_INCOMPLETE, TEST_ENDED } teststatusint;
+enum TEST_STATUS_INT {
+	TEST_NOT_STARTED, TEST_STARTED, TEST_INPROGRESS, TEST_INCOMPLETE, TEST_ENDED
+} teststatusint;
 
 /* Test IDs */
-enum TEST_ID{ NONE, MIDDLEBOX, SFW, C2S, S2C, META } testid;
+enum TEST_ID {
+	NONE, MIDDLEBOX, SFW, C2S, S2C, META
+} testid;
 
 /* Transmission direction */
-enum Tx_DIRECTION { NO_DIR, C_S , S_C} txdirection;
+enum Tx_DIRECTION {
+	NO_DIR, C_S, S_C
+} txdirection;
 
 char *get_testnamedesc(enum TEST_ID testid, char *stestnamearg);
 char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *steststatusarg);
-char *get_testdirectiondesc(enum Tx_DIRECTION testdirection, char *stestdirectionarg);
-char *get_msgtypedesc(int msgtypearg, char *smsgtypearg) ;
+char *get_testdirectiondesc(enum Tx_DIRECTION testdirection,
+		char *stestdirectionarg);
+char *get_msgtypedesc(int msgtypearg, char *smsgtypearg);
 
 #endif

@@ -32,7 +32,7 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
 		int MaxRwinRcvd, int MaxCwnd, double *rwin, double *swin, double *cwin);
 
 // calculate RTO Idle time
-double calc_RTOIdle (int timeouts, int CurrentRTO, double totaltime);
+double calc_RTOIdle(int timeouts, int CurrentRTO, double totaltime);
 
 // calculate total test time for S_C test
 int calc_totaltesttime(int SndLimTimeRwin, int SndLimTimeCwnd,

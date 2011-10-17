@@ -12,45 +12,21 @@
 
 // The arrays below rely on the ordering of corresponding enum in the .h file.
 // test names
-static char *_teststatusdescarray[] = {
-		"test_not_started",
-		"test_started",
-		"test_in_progress",
-		"test_incomplete",
-		"test_complete"
-};
+static char *_teststatusdescarray[] = { "test_not_started", "test_started",
+		"test_in_progress", "test_incomplete", "test_complete" };
 
 // names of tests.
-static char *_testnamesarray[] = {
-		"None",
-		"Middlebox",
-		"SFW",
-		"C2S",
-		"S2C",
-		"Meta"
-};
+static char *_testnamesarray[] = { "None", "Middlebox", "SFW", "C2S", "S2C",
+		"Meta" };
 
 // names of test messages to log in descriptive names instead of numbers
-static char * _testmsgtypesarray[] = {
-  "COMM_FAILURE",
-  "SRV_QUEUE",
-  "MSG_LOGIN",
-  "TEST_PREPARE",
-  "TEST_START",
- "TEST_MSG",
- "TEST_FINALIZE",
- "MSG_ERROR",
- "MSG_RESULTS",
- "MSG_LOGOUT",
- "MSG_WAITING",
-};
+static char * _testmsgtypesarray[] = { "COMM_FAILURE", "SRV_QUEUE", "MSG_LOGIN",
+		"TEST_PREPARE", "TEST_START", "TEST_MSG", "TEST_FINALIZE", "MSG_ERROR",
+		"MSG_RESULTS", "MSG_LOGOUT", "MSG_WAITING", };
 
 // names of protocol message transmission directions
-static char *_txdirectionsarray[] = {
-		"none",
-		"client_to_server",
-		"server_to_client"
-};
+static char *_txdirectionsarray[] = { "none", "client_to_server",
+		"server_to_client" };
 
 /**
  * Get descriptive string for test name
@@ -71,7 +47,7 @@ char *get_testnamedesc(enum TEST_ID testid, char *snamearg) {
  * @return char*  Descriptive string for test status
  * */
 char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *sstatusarg) {
-	sstatusarg =  _teststatusdescarray[teststatus];
+	sstatusarg = _teststatusdescarray[teststatus];
 	//printf ("--current test status = %s, for %d \n", sstatusarg, teststatus);
 	return sstatusarg;
 }

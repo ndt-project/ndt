@@ -17,9 +17,9 @@
 #define OPT_IPV6_ONLY 1
 #define OPT_IPV4_ONLY 2
 
-
 I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size);
-int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr, int option, int buf_sizes);
+int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
+		int option, int buf_sizes);
 int send_msg(int ctlSocket, int type, void* msg, int len);
 int recv_msg(int ctlSocket, int* type, void* msg, int* len);
 int writen(int fd, void* buf, int amount);
