@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions needed to handle network related
  * stuff.
  *
@@ -14,15 +14,14 @@
 #include "logging.h"
 
 /**
- * Function name: OpenSocket
- * Description: Creates and binds the socket.
- * Arguments: addr - the I2Addr structure, where the new socket will be stored
- *            serv - the port number
- *            options - the binding socket options
- * Returns: The socket descriptor or error code (<0).
- * Error codes:
- * -1 : Unable to set socket address/port/file descriptor in address record "addr"
- * -2 : Unable to set socket options
+ * Create and bind socket.
+ * @param addr I2Addr structure, where the new socket will be stored
+ * @param serv the port number
+ * @param options the binding socket options
+ * @returns The socket descriptor or error code (<0).
+ * 			Error codes:
+ * 			-1 : Unable to set socket address/port/file descriptor in address record "addr"
+ * 			-2 : Unable to set socket options
  */
 
 static int
@@ -55,10 +54,6 @@ OpenSocket(I2Addr addr, char* serv, int options)
     // create socket with obtained address domain, socket type and protocol
     fd = socket(ai->ai_family,ai->ai_socktype,ai->ai_protocol);
 
-/* 
-    if (meta.family == 0)
-	meta.family = ai->ai_family;
- */
     // socket create failed. Abandon further activities using this socket
     if (fd < 0) {
       continue;
@@ -136,7 +131,7 @@ failsock:
 }
 
 /**
- * Creates the I2Addr structure with the listen socket.
+ * Createsthe I2Addr structure with the listen socket.
  * @param addr  the I2Addr structure, where listen socket should
  *                   be added, or NULL, if the new structure should be
  *                   created
@@ -382,11 +377,7 @@ send_msg(int ctlSocket, int type, void* msg, int len)
 {
   unsigned char buff[3];
   int rc, i;
-  FILE *fp; //kk
-  //todo remove
-  char tmpstr[256];
-  I2Addr tmp_addr;
-  //todo remove
+  FILE *fp;
   
   assert(msg);
   assert(len >= 0);
@@ -397,7 +388,6 @@ send_msg(int ctlSocket, int type, void* msg, int len)
   buff[1] = len >> 8;
   buff[2] = len;
 
-  //TODO could define a constant for 5, or leave it that way here
   // retry sending data 5 times
   for (i=0; i<5; i++) {
 	// Write initial data about length and type to socket
@@ -432,21 +422,6 @@ send_msg(int ctlSocket, int type, void* msg, int len)
 
     protolog_sendprintln(type, msg, len, getpid(),ctlSocket);
 
-    //This section is used to get remote/local address on the fly, so that
-    // both could be included in the name of the protocol log. todo
-    /*
-    tmp_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, 0);
-    I2AddrNodeName(tmp_addr, tmpstr, 255);
-    log_println(0, ">>> send_msg: from %s", tmpstr);
-    // get addr details based on socket info available
-    tmp_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, 0);
-
-    I2AddrNodeName(tmp_addr, tmpstr, 256);
-     log_println(0, "to %s", tmpstr);
-
-     *
-     */
-
   return 0;
 }
 
@@ -470,17 +445,9 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
 {
   unsigned char buff[3];
   int length;
-  FILE *fp; //kk
-  //todo remove
-  I2Addr tmp_addr;
-  char tmpstr[256];
-  // todo remove
+  FILE *fp;
 
-  int itype = *type;
-  int ilen = *len;
   char *msgtemp = (char*)msg;
-
-  //end
 
   assert(type);
   assert(msg);
@@ -508,34 +475,17 @@ recv_msg(int ctlSocket, int* type, void* msg, int* len)
   }
   log_println(8, "<<< recv_msg: type=%d, len=%d", *type, *len);
 
-  // This section is used to get the local and remote addresses of the socket on the fly
-  //    to be used in the protocol log name
-  /*
-  tmp_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, 0);
-  I2AddrNodeName(tmp_addr, tmpstr, 256);
-  log_println(0, "<<< recv_msg: from %s", tmpstr);
-
-  // get addr details based on socket info available
-  tmp_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, 0);
-
-  I2AddrNodeName(tmp_addr, tmpstr, 256);
-  log_println(0, "to %s", tmpstr);
-
-  //end todo
-   * */
-
   protolog_rcvprintln(*type, msgtemp, *len, getpid(),ctlSocket);
 
   return 0;
 }
 
 /**
- * Function name: writen
- * Description: Writes the given amount of data to the file descriptor.
- * Arguments: fd - the file descriptor
- *            buf - buffer with data to write
- *            amount - the size of the data
- * Returns: The amount of bytes written to the file descriptor
+ * Write the given amount of data to the file descriptor.
+ * @param fd the file descriptor
+ * @param buf buffer with data to write
+ * @param amount the size of the data
+ * @return The amount of bytes written to the file descriptor
  */
 
 int
@@ -565,12 +515,11 @@ writen(int fd, void* buf, int amount)
 }
 
 /**
- * Function name: readn
- * Description: Reads the given amount of data from the file descriptor.
- * Arguments: fd - the file descriptor
- *            buf - buffer for data
- *            amount - the size of the data to read
- * Returns: The amount of bytes read from the file descriptor.
+ * Read the given amount of data from the file descriptor.
+ * @param fd the file descriptor
+ * @param buf buffer for data
+ * @param amount size of the data to read
+ * @return The amount of bytes read from the file descriptor
  */
 
 int

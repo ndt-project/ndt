@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions needed to handle simple firewall
  * test (server part).
  *
@@ -105,7 +105,6 @@ finalize_sfw(int ctlsockfd)
 
   // log
   teststatusnow = TEST_ENDED;
-  //protolog_status(1, getpid() , thistestId, teststatusnow); //todo will getpid() be correct?
   protolog_status (getpid() , thistestId, teststatusnow);
   log_println(1, " <-------------------------->");
   // unset test name
@@ -160,7 +159,6 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     log_println(1, " <-- %d - Simple firewall test -->", options->child0);
     thistestId = SFW;
     teststatusnow = TEST_STARTED;
-    //protolog_status(1, options->child0, thistestId, teststatusnow);
     protolog_status(options->child0, thistestId, teststatusnow);
     
     // bind to a new port and obtain address structure with details of port etc
@@ -226,7 +224,6 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) { // message reception error
       log_println(0, "Protocol error!");
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
-      	  //TODO above seems incorrect w.r.t the error message too
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       I2AddrFree(sfwsrv_addr);
       return 1;
@@ -240,13 +237,14 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     }
     if (msgLen <= 0) { // message reception has error
       log_println(0, "Improper message");
-      // TODO: why are log messages and msg to client different? why is the only
-      // status used all over here == Invalid port number?
       sprintf(buff, "Server (Simple firewall test): Invalid port number received");
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       I2AddrFree(sfwsrv_addr);
       return 3;
     }
+    // Note: The same error message is transmitted to the client
+    // under any error condition, but the log messages  indicate the difference
+
 
     buff[msgLen] = 0;
     if (check_int(buff, &sfwport)) { // message data is not number, thus no port info received
@@ -260,12 +258,11 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
     // Get node, port(if present) and other details of client end.
     // If not able to resolve it, the test cannot proceed to the "throughput" stage
     if ((sfwcli_addr = I2AddrByNode(get_errhandle(), hostname)) == NULL) {
-      log_println(0, "Unable to resolve server address"); //todo is'nt this client address we cannot resolve?
+      log_println(0, "Unable to resolve server address"); //todo, this is the client address we cannot resolve?
       send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
 
       // log end
       teststatusnow = TEST_ENDED;
-      //protolog_status(0,options->child0, thistestId, teststatusnow);
       protolog_status(options->child0, thistestId, teststatusnow);
       log_println(1, " <-------------------------->");
       I2AddrFree(sfwsrv_addr);
@@ -339,8 +336,7 @@ test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options, int conn_
       I2AddrFree(sfwcli_addr);
       return 1;
     }
-    if (msgLen != 20) { // Expecting default 20 byte long "Simple firewall test" message
-    	// todo define constants for 20 and default message string
+    if (msgLen != SFW_TEST_DEFAULT_LEN) { // Expecting default 20 byte long "Simple firewall test" message
       log_println(0, "Simple firewall test: Improper message");
       sprintf(buff, "%d", SFW_UNKNOWN);
       send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));

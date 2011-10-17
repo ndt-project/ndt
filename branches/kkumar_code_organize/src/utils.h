@@ -56,7 +56,16 @@ void mysleep(double time);
 #define NO_BAD_CABLE 0
 #define POSSIBLE_BAD_CABLE 1
 
+// SFW Test default message length
+#define SFW_TEST_DEFAULT_LEN 20
 
 // generic system wide retry counts
 #define RETRY_COUNT 5
+
+// middlebox test default MSS
+#define MIDDLEBOX_PREDEFINED_MSS 8192
+
+// MAX TCP window size in bytes
+#define MAX_TCP_WIN_BYTES 64
+
 

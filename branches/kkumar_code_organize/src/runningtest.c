@@ -8,11 +8,6 @@
 #include "ndtptestconstants.h"
 #include "runningtest.h"
 
-/**
- * Return the id of the currently running test.
- * @return integer id of the currently running test.
- */
-
 static int currentTest = TEST_NONE;
 static enum Tx_DIRECTION currentDirection = NONE;
 static char *senddirnstr;
@@ -21,14 +16,9 @@ static char *recvdirnstr;
 /**
  * array defining possible events pertaining to process status
  */
-/*
-static char *_procstatusarray[] = { "unknown", "process_started",
-		"process_ended" };
-*/
-
-
 static char *_procstatusarray[] = { "unknown", "started",
 		"completed" };
+
 
 /** array defining various "processes" like a web100srv process,
  * or a client connection
@@ -40,7 +30,6 @@ static char *_proctypesarray[] = { "process", "connect"};
  * Get ID of currently running test
  * @return integer current running test Id
  * */
-
 int getCurrentTest() {
 	return currentTest;
 }
@@ -61,9 +50,7 @@ int getCurrentDirn() {
 	return currentDirection;
 }
 
-/** Set the id of the currently running test.
- * Then determine the string descriptions for
- * the test directions for the current process.
+/** Set the test directions for the current process.
  * For example, for server process,
  * the current-test-direction = S->C (send direction)
  * , and the other/reverse
@@ -72,7 +59,7 @@ int getCurrentDirn() {
  * that decides to have protocol logging.
  * An example direction: client->server or vice
  * versa.
- * @param testId Id of the currently running test
+ * @param directionarg direction of the currently running process
  */
 
 void setCurrentDirn(enum Tx_DIRECTION directionarg) {
@@ -97,8 +84,9 @@ void setCurrentDirn(enum Tx_DIRECTION directionarg) {
 	}
 }
 
-/** Get a description of the currently running test
- * @returns descriptive name for the currently running test
+/**
+ * Get a description of the currently running test
+ * @return descriptive name for the currently running test
  */
 char *get_currenttestdesc() {
 	enum TEST_ID currenttestId = NONE;

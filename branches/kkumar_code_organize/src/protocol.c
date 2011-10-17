@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions for the protocol handling.
  *
  * Jakub S³awiñski 2006-07-11
@@ -9,16 +9,15 @@
 #include "logging.h"
 
 /**
- * Function name: check_msg_type
- * Description: Checks if the received msg type is compatible
+ * Check if the received msg type is compatible
  *              with the expected one.
- * Arguments: prefix - the prefix printed before the error message
- *            expected - the expected msg type
- *            received - the received msg type
- * @param     buff actual message received
- *            len length of received message
- * Return: 0 - everything is ok
- *         1 - error code
+ * @param  prefix  the prefix printed before the error message
+ * @param  expected the expected msg type
+ * @param  received the received msg type
+ * @param  buff actual message received
+ * @param  len length of received message
+ * @return  0 if everything is ok, 1 otherwise
+ *
  */
 
 int

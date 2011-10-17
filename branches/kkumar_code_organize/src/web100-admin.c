@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions needed to handle the Admin
  * page.  This page allows a remote user to view the usage statistics
  * via a web page.

@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the libpcap routines needed by the web100srv
  * program.  The global headers and variables are defined in the
  * web100srv.h file. This should make it easier to maintain the

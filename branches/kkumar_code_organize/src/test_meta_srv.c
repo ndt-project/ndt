@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions needed to handle META
  * test (server part).
  *
@@ -25,7 +25,7 @@
  * @param agent Web100 agent used to track the connection
  * @param testOptions The test options
  * @param conn_options The connection options
- * @returns 0 - success,
+ * @return 0 - success,
  *          >0 - error code.
  *          Error codes:
  *           -1 - Cannot write message header information while attempting to send
@@ -43,7 +43,7 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 {
   int j;
   int msgLen, msgType;
-  char buff[BUFFSIZE+1]; // TODO
+  char buff[BUFFSIZE+1];
   struct metaentry *new_entry = NULL;
   char* value;
 
@@ -57,7 +57,6 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 
     // log protocol validation details
     teststatuses = TEST_STARTED;
-    //protolog_status(0,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
     // first message exchanged is am empty TEST_PREPARE message
@@ -66,7 +65,6 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
 	log_println(6, "META Error!, Test start message not sent!");
 	return j;
     }
-
 
     // Now, transmit an empty TEST_START message
     if (send_msg(ctlsockfd, TEST_START, "", 0) < 0) {
@@ -150,7 +148,6 @@ test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int 
     log_println(1, " <-------------------------->");
 
     teststatuses = TEST_ENDED; // protocol log section
-    //protolog_status(0,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
     setCurrentTest(TEST_NONE);

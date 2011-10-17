@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions needed to handle various tests.
  *
  * Jakub S�awi�ski 2006-06-24
@@ -22,8 +22,6 @@
 
 int mon_pipe1[2]; // used to store file descriptors of pipes created for ndttrace for C2S tests
 int mon_pipe2[2]; // used to store file descriptors of pipes created for ndttrace data in S2c test
-
-static const int RETRY_COUNT = 5;
 
 // Snap log characteristics
 typedef struct snapArgs {
@@ -362,10 +360,17 @@ void stop_snap_worker (int *workerThreadId, char snaplogenabled, SnapArgs* snapA
 
 /**
  * Start packet tracing for this client
- * @param socketfd
- * @param socketfdarg
- * todo: change testindicatorarg to const instead pf str compare, in web100-pcap too
- *
+ * @param socketfdarg socket file descriptor to initialize packet trace from
+ * @param socketfdarg socket file descriptor to close
+ * @param childpid pid resulting from fork()
+ * @param imonarg int array of socket fd from pipe
+ * @param cliaddrarg sock_addr used to determine client IP
+ * @param clilenarg socket length
+ * @param device device type
+ * @param pairarg portpair struct instance
+ * @param testindicator string indicating C2S/S2c test
+ * @param iscompressionenabled  is compression enabled  (for log files)?
+ * @param copylocationarg memory location to copy resulting string (from packet trace) into
  * */
 
 void start_packet_trace (int socketfdarg, int socketfdarg2, pid_t *childpid, int *imonarg,
@@ -400,10 +405,10 @@ void start_packet_trace (int socketfdarg, int socketfdarg2, pid_t *childpid, int
 	// name of nettrace file passed back from pcap child copied into meta structure
 	if (strlen(tmpstr) > 5) {
 	  memcpy(copylocationarg, tmpstr, strlen(tmpstr));
-	  log_println(0, "**memcopied dir name %s", tmpstr );
+	  log_println(8, "**start pkt trace, memcopied dir name %s", tmpstr );
 	}
 
-	//free this address now. Lets see if this works alright
+	// free this address now.
 	I2AddrFree(src_addr);
 
 }
@@ -708,7 +713,7 @@ midfd:
 
     // message payload from client == midbox S->c throughput
     buff[msgLen] = 0;
-    *s2c_throughput_mid = atof(buff); //todo s2c_throughput_mid could be named better
+    *s2c_throughput_mid = atof(buff);
     log_println(4, "CWND limited throughput = %0.0f kbps (%s)", *s2c_throughput_mid, buff);
 
     // finalize the midbox test ; disabling socket used for throughput test and closing out both sockets
@@ -776,14 +781,13 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     int set_buff, int window, int autotune, char* device, Options* options,
     int record_reverse, int count_vars, char spds[4][256], int* spd_index)
 {
-  /* int largewin=16*1024*1024; */
   int recvsfd; 						// receiver socket file descriptor
   pid_t c2s_childpid = 0;   		// child process pids
   int msgretvalue, tmpbytecount;	// used during the "read"/"write" process
   int i, j;							// used as loop iterators
-  /* int seg_size, win_size; */
+
   struct sockaddr_storage cli_addr;
-  /* socklen_t optlen, clilen; */
+
   socklen_t clilen;
   char tmpstr[256];					// string array used for all sorts of temp storage purposes
   double tmptime;					// time indicator
@@ -796,16 +800,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   //I2Addr src_addr=NULL;			// c2s test source address
   char listenc2sport[10];			// listening port
   pthread_t workerThreadId;
-
-  // comment out unused variables
-  //FILE *fp;
-  //DIR *dp;
-   //char isoTime[64];
-  //char dir[128];
-
-  // server address stores
-  //size_t nameBufLen = 255;
-  //char namebuf[256];
 
   // web_100 related variables
   web100_group* group;
@@ -829,13 +823,10 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
     log_println(1, " <-- %d - C2S throughput test -->", testOptions->child0);
-    //strcpy(listenc2sport, PORT2);
     strlcpy(listenc2sport, PORT2, sizeof(listenc2sport));
 
-    
     //log protocol validation logs
     teststatuses = TEST_STARTED;
-    //protolog_status(0,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
     // Determine port to be used. Compute based on options set earlier
@@ -848,7 +839,6 @@ test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     }
     
     if (testOptions->multiple) {
-      //strcpy(listenc2sport, "0");
     	strlcpy(listenc2sport, "0", sizeof(listenc2sport));
     }
     
@@ -952,7 +942,7 @@ recfd:
       log_println(0, "C2S test calling pkt_trace_start() with pd=%d", clilen);
       start_packet_trace (recvsfd, testOptions->c2ssockfd, &c2s_childpid, mon_pipe1,
     		  (struct sockaddr *) &cli_addr, clilen, device, &pair, "c2s", options->compress, meta.c2s_ndttrace) ;
-      log_println(0, "--tracefile after packet_trace %s",  meta.c2s_ndttrace); //todo change level
+      log_println(3, "--tracefile after packet_trace %s",  meta.c2s_ndttrace);
     }
 
 
@@ -963,20 +953,10 @@ recfd:
 
     // Create C->S snaplog directories, and perform some initialization based on options
 
-    /*
-    I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), (struct sockaddr *) &cli_addr, clilen, 0, 0);
-    memset(namebuf, 0, 256);
-    I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-    //createDir(namebuf, I2AddrPort(sockAddr),options->c2s_logname, namesuffix);
-     *
-     */
+
     create_client_logdir((struct sockaddr *) &cli_addr, clilen,
     		options->c2s_logname, sizeof(options->c2s_logname), namesuffix, sizeof(namesuffix));
 
-    //group = web100_group_find(agent, "read");
-    //snapArgs.snap = web100_snapshot_alloc(group, conn);
-
-    //I2AddrFree(sockAddr);
 
     sleep(2);
 
@@ -1038,7 +1018,7 @@ recfd:
     // get receiver side Web100 stats and write them to the log file. close sockets
     if (record_reverse == 1)
       web100_get_data_recv(recvsfd, agent, conn, count_vars);
-    /* shutdown(recvsfd, SHUT_RD); */
+
     close(recvsfd);
     close(testOptions->c2ssockfd);
 
@@ -1080,13 +1060,7 @@ recfd:
 	    sel_tv.tv_usec = 100000;
 	    continue;
 	  }
-          /* if ((ret = read(mon_pipe1[0], spds[*spd_index], 128)) < 0)
-           *  sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-           * log_println(1, "%d bytes read '%s' from C2S monitor pipe", ret, spds[*spd_index]);
-           * (*spd_index)++;
-	   * break;
-           * } 
-           */
+
       }
     }
 
@@ -1105,12 +1079,9 @@ recfd:
     //protolog_status(0,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
-
     //set current test status and free address
     setCurrentTest(TEST_NONE);
-  /* I2AddrFree(c2ssrv_addr); */
-  //I2AddrFree(src_addr); //commenting out now
-  /* testOptions->child1 = c2s_childpid; */
+
   }
 
   return 0; 
@@ -1140,7 +1111,7 @@ recfd:
  * @param autotune autotuning option. Deprecated.
  * @param device string devine name inout parameter
  * @param options Test Option variables
- * @param spds[] [] speed check array
+ * @param spds[][] speed check array
  * @param spd_index  index used for speed check array
  * @param count_vars count of web100 variables
  * @param peaks Cwnd peaks structure pointer
@@ -1164,15 +1135,15 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     int set_buff, int window, int autotune, char* device, Options* options, char spds[4][256],
     int* spd_index, int count_vars, CwndPeaks* peaks)
 {
-  /* int largewin=16*1024*1024; */
+
   int ret;							// ctrl protocol read/write return status
   int j, k, n;
   int xmitsfd;						// transmit (i.e server) socket fd
   pid_t s2c_childpid = 0;           // s2c_childpid
-  /* int seg_size, win_size; */
+
   char tmpstr[256];					// string array used for temp storage of many char*
   struct sockaddr_storage cli_addr;
-  /* socklen_t optlen, clilen; */
+
   socklen_t  clilen;
   double bytes_written;				// bytes written in the throughput test
   double tx_duration;				// total time for which data was txed
@@ -1190,13 +1161,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
   int msgLen;
   int sndqueue;
   struct sigaction new, old;
-  //char namebuf[256];
-  	  	  //dir[126];
-  //char isoTime[64];
-  //size_t nameBufLen = 255;
-  //DIR *dp;
-  //FILE *fp;
-  //I2Addr src_addr=NULL;
   
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -1233,10 +1197,9 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
 
     //protocol logs
     teststatuses = TEST_STARTED;
-    //protolog_status(0,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
-    //strcpy(listens2cport, PORT4);
+
     strlcpy(listens2cport, PORT4, sizeof(listens2cport));
     
     if (testOptions->s2csockport) {
@@ -1247,7 +1210,6 @@ test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions, int conn_
     }
     
     if (testOptions->multiple) {
-      //strcpy(listens2cport, "0");
       strlcpy(listens2cport, "0",sizeof(listens2cport));
     }
     
@@ -1325,7 +1287,6 @@ ximfd:
       xmitsfd = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr, &clilen);
       if (xmitsfd > 0) {
     	  log_println(6, "accept() for %d completed", testOptions->child0);
-    	  //protocol logging
     	  procstatusenum = PROCESS_STARTED;
     	  proctypeenum = CONNECT_TYPE;
     	  protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum);
@@ -1524,13 +1485,6 @@ ximfd:
 	    sel_tv.tv_usec = 100000;
 	    continue;
 	  }
-          /*   if ((ret = read(mon_pipe2[0], spds[*spd_index], 128)) < 0)
-           *    sprintf(spds[*spd_index], " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-           *  log_println(1, "%d bytes read '%s' from S2C monitor pipe", ret, spds[*spd_index]);
-           *  (*spd_index)++;
-	   *  break;
-           * } 
-          */
         }
       }
 
@@ -1589,13 +1543,10 @@ ximfd:
     log_println(1, " <------------ %d ------------->", testOptions->child0);
     //log protocol validation logs
     teststatuses = TEST_ENDED;
-    //protolog_status(1,testOptions->child0, testids, teststatuses);
     protolog_status(testOptions->child0, testids, teststatuses);
 
     setCurrentTest(TEST_NONE);
-    /* I2AddrFree(s2csrv_addr); */
-    // I2AddrFree(src_addr); //commented for packettrace. moved into function
-    /* testOptions->child2 = mon_pid2; */
+
   }
   return 0;
 }

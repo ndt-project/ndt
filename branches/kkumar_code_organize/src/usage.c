@@ -60,7 +60,7 @@ srv_long_usage(char* info)
     printf("  -f, --file variable_FN - specify alternate 'web100_variables' file\n");
     printf("  -i, --interface device - specify network interface (libpcap device)\n");
     printf("  -l, --log Log_FN       - specify alternate 'web100srv.log' file\n");
-    printf("  -u, --protolog_dir protolog_DIR  - specify the base directory for protocol validation logs \n");
+    printf("  -u, --protolog_dir DIR - specify the base directory for protocol validation logs \n");
     printf("  --enableprotolog       - enable protocol logging \n");
     printf("  -p, --port #port       - specify primary port number (default 3001)\n");
     printf("  --midport #port        - specify Middlebox test port number (default 3003)\n");

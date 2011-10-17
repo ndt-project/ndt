@@ -122,7 +122,7 @@ CwndPeaks peaks;
 int cputime = 0;
 char cputimelog[256];
 pthread_t workerThreadId, zombieThreadId;
-int workerLoop=1, zombie_check=0;
+int cputimeworkerLoop=1, zombie_check=0;
 
 int useDB = 0;
 char* dbDSN = NULL;
@@ -213,11 +213,10 @@ static struct option long_options[] = {
 void
 child_sig(pid_t chld_pid)
 {
-  int pid, status, rc;
-  /* int i=0, j=0; */
-  struct ndtchild *tmp1, *tmp2;
+  int pid, status, retcode;
+  struct ndtchild *child_proc1, *child_proc2;
 
-  tmp1 = head_ptr;
+  child_proc1 = head_ptr;
   log_println(2, "Processing SIGCHLD signal for active web100srv process [%d], sig17=%d", chld_pid, sig17);
 
   /* this routine cleans up after a child process has terminated.  There are 2 types of
@@ -297,17 +296,17 @@ child_sig(pid_t chld_pid)
     if (head_ptr == NULL)
       return;
     log_println(5, "checking for pktpair timing children, skip them");
-    tmp1 = head_ptr;
-    while (tmp1 != NULL) {
-        log_println(5, "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x", pid, tmp1->pid,
-            tmp1->host, tmp1->addr, (u_int64_t) tmp1->next);
-        if (tmp1->pid == pid) {
+    child_proc1 = head_ptr;
+    while (child_proc1 != NULL) {
+        log_println(5, "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x", pid, child_proc1->pid,
+            child_proc1->host, child_proc1->addr, (u_int64_t) child_proc1->next);
+        if (child_proc1->pid == pid) {
 	  log_println(4, "Main test process %d terminated, remove from queue", pid);
           break;
 	}
-        tmp1 = tmp1->next;
+        child_proc1 = child_proc1->next;
     }
-    if (tmp1 == NULL)
+    if (child_proc1 == NULL)
         return;
 
 reap_child:
@@ -322,27 +321,27 @@ reap_child:
 
           if (get_debuglvl() > 5) {
             log_println(5, "Walkingqueue");
-            tmp1 = head_ptr;
-            while (tmp1 != NULL) {
-              log_println(5, "\tChild %d, host: %s [%s], next=0x%x", tmp1->pid,
-                  tmp1->host, tmp1->addr, (u_int64_t) tmp1->next);
-              if (tmp1->next == NULL)
+            child_proc1 = head_ptr;
+            while (child_proc1 != NULL) {
+              log_println(5, "\tChild %d, host: %s [%s], next=0x%x", child_proc1->pid,
+                  child_proc1->host, child_proc1->addr, (u_int64_t) child_proc1->next);
+              if (child_proc1->next == NULL)
                 break;
-              tmp1 = tmp1->next;
+              child_proc1 = child_proc1->next;
             }
           }
 
-      while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+      while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
 	log_println(6, "Waiting for ndtq semaphore to free - 1");
         continue;
       }
       log_println(5, "Child process %d causing head pointer modification, semaphore locked", pid);
       if (head_ptr != NULL) {
-        tmp1 = head_ptr;
-	log_println(6, "modifying queue tmp1=0x%x, head_ptr=0x%x", tmp1, head_ptr);
+        child_proc1 = head_ptr;
+	log_println(6, "modifying queue child_proc1=0x%x, head_ptr=0x%x", child_proc1, head_ptr);
         head_ptr = head_ptr->next;
-	log_println(6, "free tmp1=0x%x", tmp1);
-        free(tmp1);
+	log_println(6, "free child_proc1=0x%x", child_proc1);
+        free(child_proc1);
       }
       if (head_ptr == NULL)
         testing = 0;
@@ -357,18 +356,18 @@ reap_child:
       return;
     }
     else {
-      tmp1 = head_ptr;
-      while (tmp1->next != NULL) {
-        if (tmp1->next->pid == pid) {
-          while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+      child_proc1 = head_ptr;
+      while (child_proc1->next != NULL) {
+        if (child_proc1->next->pid == pid) {
+          while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
 	    log_println(6, "Waiting for ndtq semaphore to free - 2");
             continue;
 	  }
           log_println(4, "Child process %d causing task list modification, semaphore locked", chld_pid);
-          tmp2 = tmp1->next;
-          tmp1->next = tmp2->next;
-	  log_println(6, "free tmp2=0x%x", tmp2);
-          free(tmp2);
+          child_proc2 = child_proc1->next;
+          child_proc1->next = child_proc2->next;
+	  log_println(6, "free child_proc2=0x%x", child_proc2);
+          free(child_proc2);
           /* testing = 0; */
           waiting--;
           log_println(3, "Removing Child from list, decremented waiting/mclients %d/%d", waiting, mclients);
@@ -378,8 +377,8 @@ reap_child:
 	      sig17--;
           return;
         }
-        tmp1 = tmp1->next;
-        log_println(6, "Looping through service queue ptr = 0x%x", (u_int64_t) tmp1);
+        child_proc1 = child_proc1->next;
+        log_println(6, "Looping through service queue ptr = 0x%x", (u_int64_t) child_proc1);
       }
     }
     if (sig17 > 0)
@@ -547,7 +546,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   FILE *conf;
   char keybuf[256], valbuf[256];
   char *key=keybuf, *val=valbuf;
-  int rc=0;
+  int retcode=0;
 
 
   if (!(conf = fopen(ConfigFileName, "r")))
@@ -556,7 +555,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
   log_println(1, " Reading config file %s to obtain options", ConfigFileName);
 
   // Read the values for various keys and store them in appropriate variables
-  while ((rc = I2ReadConfVar(conf, rc, key, val, 256, lbuf, lbuf_max)) > 0) {
+  while ((retcode = I2ReadConfVar(conf, retcode, key, val, 256, lbuf, lbuf_max)) > 0) {
     if (strncasecmp(key, "administrator_view", 5) == 0) {
       admin_view = 1;
       continue;
@@ -757,8 +756,8 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max)
       exit(1);
     }
   }
-  if (rc < 0) {
-    log_println(0, "Syntax error in line %d of the config file %s", (-rc), ConfigFileName);
+  if (retcode < 0) {
+    log_println(0, "Syntax error in line %d of the config file %s", (-retcode), ConfigFileName);
     exit(1);
   }
   fclose(conf);
@@ -775,7 +774,7 @@ void *
 zombieWorker(void *head_ptr) {
 
     struct ndtchild *tmp_ptr, *tmp, *pre_ptr=NULL;
-    int i=0, rc;
+    int i=0, retcode;
     struct timeval sel_tv;
     fd_set rfd;
     char tmpstr[8], buff[32];
@@ -805,19 +804,19 @@ zombieWorker(void *head_ptr) {
 	log_println(6, "New client found, checking for response, child=%d", tmp_ptr->pid);
 
 	// send "keep-alive" SRV_QUEUE message to client and expect a response
-	rc = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
-	log_println(6, "send_msg() returned %d during zombie check on client %d", rc, tmp_ptr->pid);
+	retcode = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+	log_println(6, "send_msg() returned %d during zombie check on client %d", retcode, tmp_ptr->pid);
 	FD_ZERO(&rfd);
 	FD_SET(tmp_ptr->ctlsockfd, &rfd);
 	sel_tv.tv_sec = 1;
 	sel_tv.tv_usec = 500000;
 	for (;;) {
-	  rc = select((tmp_ptr->ctlsockfd)+1, &rfd, NULL, NULL, &sel_tv);
-	  switch (rc) {
+	  retcode = select((tmp_ptr->ctlsockfd)+1, &rfd, NULL, NULL, &sel_tv);
+	  switch (retcode) {
 	    case 0:
 	      //  a timeout occurred, remove zombie client from list
 	      log_println(6, "New client didn't respond - must be a zombie, get rid of it, child=%d", tmp_ptr->pid);
-              while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+              while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
 	        log_println(6, "Waiting for ndtq semaphore to free - adding new client 1");
                 continue;
 	      }
@@ -832,7 +831,7 @@ zombieWorker(void *head_ptr) {
 	      log_println(6, "Free'd semaphore lock - 4");
 	      break;
 	    default:
-	      log_println(6, "%d new client(s) responded, bumping pointers child=%d", rc, tmp_ptr->pid);
+	      log_println(6, "%d new client(s) responded, bumping pointers child=%d", retcode, tmp_ptr->pid);
 	      recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
 	      tmp_ptr = tmp_ptr->next;
 	      pre_ptr = pre_ptr->next;
@@ -874,7 +873,7 @@ cputimeWorker(void* arg)
         return NULL;
 
     while (1) {
-        if (!workerLoop) {
+        if (!cputimeworkerLoop) {
             break;
         }
         times(&buf);
@@ -1391,7 +1390,7 @@ int
 main(int argc, char** argv)
 {
   pid_t chld_pid;
-  int rc;
+  int retcode;
   int tpid, mwaiting = 0;
   int ctlsockfd = -1;
   int c, chld_pipe[2];
@@ -1413,7 +1412,7 @@ main(int argc, char** argv)
   I2Addr listenaddr = NULL;
   int listenfd;
   char* srcname = NULL;
-  char isoTime[64], dir[64];
+  char isoTime[64], dir[128];
   int debug = 0;
 
   DIR *dp;
@@ -1918,7 +1917,7 @@ mainloop:
 	log_println(6, "Fault: Negative number of clents waiting=%d, mclients=%d, nuke them", waiting, mclients);
 	while (head_ptr != NULL) {
             /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9933", 4); */
-            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4); // TODO constants
+            send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4); // indicate server waiting in queue
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
             tpid = head_ptr->pid;
@@ -1949,7 +1948,7 @@ mainloop:
     }
 
     if (head_ptr != NULL) {
-        if ((time(0) - head_ptr->stime) > 70)  { // TODO: 70 => WAIT_TIME-THRESH
+        if ((time(0) - head_ptr->stime) > 70)  { // 70 => WAIT-TIME-THRESH
 	    log_println(6, "Fault: Something in queue, but child %d (fd=%d) has exceeded wait time",
 			head_ptr->pid, head_ptr->ctlsockfd);
 	    // Should send new 9977 'test aborted' signal to client.  Using this for now
@@ -1960,7 +1959,6 @@ mainloop:
 	    log_println(6, "pipe-fd=%d, running=%d, ctlsockfd=%d, client-type=%d, tests='%s'", 
         		head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
 			head_ptr->oldclient, head_ptr->tests);
-            /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9966", 4); */
             send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4); // boot the client
 	    shutdown(head_ptr->ctlsockfd, SHUT_WR);
 	    close(head_ptr->ctlsockfd);
@@ -1988,8 +1986,8 @@ mainloop:
       sel_tv.tv_usec = 0;
       log_println(3, "Waiting for new connection, timer running");
 sel_11:
-      rc = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
-      if ((rc == -1) && (errno == EINTR))
+      retcode = select(listenfd+1, &rfd, NULL, NULL, &sel_tv);
+      if ((retcode == -1) && (errno == EINTR))
 	/* continue; */  // a signal caused the select() to exit, re-enter loop & check
 	goto sel_11;
       tt = time(0);
@@ -2000,18 +1998,18 @@ sel_11:
       log_println(3, "Timer not running, waiting for new connection");
       mclients = 0;
 sel_12:
-      rc = select(listenfd+1, &rfd, NULL, NULL, NULL);
-      if ((rc == -1) && (errno == EINTR))
+      retcode = select(listenfd+1, &rfd, NULL, NULL, NULL);
+      if ((retcode == -1) && (errno == EINTR))
 	goto sel_12;  // a signal caused the select() to exit, re-enter loop & check
     }
 
-    if (rc < 0) {
+    if (retcode < 0) {
       // an interrupt or signal caused the select() to exit, go back and start over
-      log_println(5, "Select exited with rc = %d", rc);
+      log_println(5, "Select exited with return code = %d", retcode);
       continue;
     }
 
-    if (rc == 0) {    // select exited due to timer expiration
+    if (retcode == 0) {    // select exited due to timer expiration
       log_println(3, "Timer expired while waiting for a new connection");
       /* if ((waiting > 0) && (testing == 0)) */
       if (multiple == 0) {
@@ -2030,8 +2028,8 @@ sel_12:
       /* } */
       clilen = sizeof(cli_addr);
       memset(&cli_addr, 0, clilen);
-      log_println(6, "Select() found %d clients ready, highest fd=%d", rc, listenfd);
-      if (rc > 1) {
+      log_println(6, "Select() found %d clients ready, highest fd=%d", retcode, listenfd);
+      if (retcode > 1) {
         for (i=3; i<=listenfd; i++) {
 	  if (FD_ISSET(i, &rfd)) {
 	    listenfd = i;
@@ -2070,12 +2068,12 @@ sel_12:
 
       // the specially crafted data that kicks off the old clients
       for (i=0; i<RETRY_COUNT; i++) {
-        rc = write(ctlsockfd, "123456 654321", 13);
-	if ((rc == -1) && (errno == EINTR)) // interrupted, retry
+        retcode = write(ctlsockfd, "123456 654321", 13);
+	if ((retcode == -1) && (errno == EINTR)) // interrupted, retry
 	  continue;
-	if (rc == 13) // 13 bytes correctly written, exit
+	if (retcode == 13) // 13 bytes correctly written, exit
 	  break;
-	if (rc == -1) { // socket error hindering further retries
+	if (retcode == -1) { // socket error hindering further retries
 	  log_println(1, "Initial contact with client failed errno=%d", errno);
           close(chld_pipe[0]);
           close(chld_pipe[1]);
@@ -2168,7 +2166,7 @@ sel_12:
 	    }
 	    continue;
 	}
-        while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) { // socket interrupt, retry
+        while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) { // socket interrupt, retry
 	  log_println(6, "Waiting for ndtq semaphore to free - 1");
           continue;
         }
@@ -2227,7 +2225,7 @@ sel_12:
           head_ptr = new_child;
         else {
           log_println(4, "New request has arrived, adding request to queue list");
-          while ((rc = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+          while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
 	    log_println(6, "Waiting for ndtq semaphore to free, adding new client 2");
             continue;
 	  }
@@ -2361,16 +2359,16 @@ dispatch_client:
 	  log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
           send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1); // test session starts now
 	  for (i=0; i<5; i++) {
-            rc = write(mchild->pipe, tmpstr, strlen(tmpstr));
-	    log_println(6, "write(%d) returned %d, errno=%d", mchild->pid, rc, errno);
-	    if ((rc == -1) && (errno == EINTR))
+            retcode = write(mchild->pipe, tmpstr, strlen(tmpstr));
+	    log_println(6, "write(%d) returned %d, errno=%d", mchild->pid, retcode, errno);
+	    if ((retcode == -1) && (errno == EINTR))
 	      continue;
-	    if (rc == strlen(tmpstr))
+	    if (retcode == strlen(tmpstr))
 	      break;
 	    log_println(6, "Failed to write 'GO' message to client %d, reason=%d, errno=%d",
-			mchild->pid, rc, errno);
+			mchild->pid, retcode, errno);
 	    /* TODO: handle other error conditions */
-	    if (rc == -1) {
+	    if (retcode == -1) {
 	      log_println(1, "Dispatch multi-client failed because '%s'", strerror(errno));
 	      shutdown(mchild->ctlsockfd, SHUT_WR);
               close(mchild->ctlsockfd);
@@ -2388,13 +2386,13 @@ dispatch_client:
 	  log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
           send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
 	  for (i=0; i<5; i++) {
-            rc = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
-	    if ((rc == -1) && (errno == EINTR))
+            retcode = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
+	    if ((retcode == -1) && (errno == EINTR))
 	      continue;
-	    if (rc == strlen(tmpstr))
+	    if (retcode == strlen(tmpstr))
 	      break;
 	    /* TODO: handle other error conditions */
-	    if (rc == -1) {
+	    if (retcode == -1) {
 	      log_println(1, "Dispatch multi-client failed because '%s'", strerror(errno));
 	      shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
@@ -2430,9 +2428,9 @@ dispatch_client:
 	  // should be checked for and the read() restarted if necessary
 	  // RAC 3/18/10
 	  //
-          rc = read(chld_pipe[0], buff, 32);
+          retcode = read(chld_pipe[0], buff, 32);
 	  log_println(6, "Child %d received '%s' from parent", getpid(), buff);
-	  if ((rc == -1) && (errno == EINTR))
+	  if ((retcode == -1) && (errno == EINTR))
 	    continue;
           if (strncmp(buff, "go", 2) == 0) {
             log_println(6, "Got 'go' signal from parent, ready to start testing %d", getpid());
@@ -2467,39 +2465,10 @@ dispatch_client:
             I2AddrFree(tmp_addr);
             memset(cputimelog, 0, 256);
             if (cputime) {
-		//strncpy(cputimelog, DataDirName, strlen(DataDirName));
-        strlcpy(cputimelog, DataDirName, sizeof(cputimelog));
-		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
-		    mkdir(cputimelog, 0755);
-		closedir(dp);
-		get_YYYY(dir);
-		//strncat(cputimelog, dir, 4);
-		strlcat(cputimelog, dir, sizeof(cputimelog));
-		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
-		    mkdir(cputimelog, 0755);
-		closedir(dp);
-		//strncat(cputimelog, "/", 1);
-		strncat(cputimelog, "/", sizeof(cputimelog));
-		get_MM(dir);
-		//strncat(cputimelog, dir, 2);
-		strlcat(cputimelog, dir, sizeof(cputimelog));
-		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
-		    mkdir(cputimelog, 0755);
-		closedir(dp);
-		//strncat(cputimelog, "/", 1);
-		strlcat(cputimelog, "/", sizeof(cputimelog));
-		get_DD(dir);
-		//strncat(cputimelog, dir, 2);
-		strlcat(cputimelog, dir, sizeof(cputimelog));
-		if ((dp = opendir(cputimelog)) == NULL && errno == ENOENT)
-		    mkdir(cputimelog, 0755);
-		closedir(dp);
-		//strncat(cputimelog, "/", 1);
-		strncat(cputimelog, "/", sizeof(cputimelog));
-		sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
-		//strncat(cputimelog, dir, strlen(dir));
-		strlcat(cputimelog, dir, sizeof(cputimelog));
-		memcpy(meta.CPU_time, dir, strlen(dir));
+            	sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
+            	log_println(0, "CPUTIME:suffix=%s",dir);
+            	create_named_logdir(cputimelog, sizeof(cputimelog),dir);
+            	memcpy(meta.CPU_time, dir, strlen(dir));
               if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
                   log_println(0, "Cannot create worker thread for writing cpu usage!");
                   workerThreadId = 0;
@@ -2541,14 +2510,14 @@ dispatch_client:
 	// run tests based on options
 	if (strncmp(test_suite, "Invalid", 7) != 0) {
 	  log_println(3, "Valid test sequence requested, run test for client=%d", getpid());
-          rc = run_test(agent, ctlsockfd, &testopt, test_suite);
+          retcode = run_test(agent, ctlsockfd, &testopt, test_suite);
 	}
 
 	// conclude all test runs
-	if (rc == 0)
+	if (retcode == 0)
           log_println(3, "Successfully returned from run_test() routine");
 	else {
-          log_println(3, "Child %d returned non-zero (%d) from run_test() results some test failed!", getpid(), rc);
+          log_println(3, "Child %d returned non-zero (%d) from run_test() results some test failed!", getpid(), retcode);
 	  child_sig(0);
 	}
         close(ctlsockfd);
@@ -2556,15 +2525,15 @@ dispatch_client:
 	log_free();
 
         if (cputime && workerThreadId) {
-            workerLoop = 0;
+            cputimeworkerLoop = 0;
             pthread_join(workerThreadId, NULL);
         }
 
 	// At this point the tests have been run and we need to clean up and handle
 	// and child processes that might still be lying around.  If we don't we get
-	// zombies.  The pkt-pair handling created 2 childern and we need to get
-	// rid of them.  To know what PIDs to look for on 1/19/10 the run_test()
-	// routine was modified to pass around these values.  The values are set in
+	// zombies. The pkt-pair handling created 2 childern and we need to get
+	// rid of them. To know what PIDs to look for on 1/19/10 the run_test()
+	// routine was modified to pass around these values. The values are set in
 	// the proper routine in the testoptions.c file.
 	// Then add call to child_sig() routine and pass in these PID's so we handle
 	// each child in sequence

@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the definitions and function declarations to
  * handle network related stuff.
  *

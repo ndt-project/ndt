@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions needed to read the web100
  * variables.  It links into the main web100srv program.
  *
@@ -22,11 +22,7 @@
  * beginning
  * @param *VarFileName pointer to file name of Web100 variables
  * @return integer indicating number of web100 variables read
- * 	, or indicating failure of initialization
- *  Error codes:
- *  	5 : Unable to open web100 variable file
- *  	-1: TODO :When is -1 returned? Calling code seems to rely on -1?
- *
+ * 		or indicating failure of initialization
  */
 int
 web100_init(char *VarFileName)
@@ -67,7 +63,6 @@ web100_init(char *VarFileName)
  *    These are written using a buffer of the size of the current MSS or
  *    8192 bytes.
  *
- * @TODO Why is this method in web100-util.c?
  * @param sock integer socket file descriptor
  * @param agent pointer to a web100_agent
  * @param cn pointer to the web100_connection
@@ -125,8 +120,7 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
   // terminate the IP address string
   meta.server_ip[(strlen(line)-1)] = 0;
   // Add this address to results
-  //strncat(results, line, strlen(line));
-  strlcat(results, line, (BUFFSIZE+1)); //todo : later: using a "known" hardcoded value for size of results
+  strlcat(results, line, (BUFFSIZE+1)); // using a "known" hardcoded value for size of results
   I2AddrFree(addr); // free memory
 
   // Now perform the above set of functions for client address/service name
@@ -138,8 +132,7 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
   sprintf(line, "%s;", tmpstr);
   I2AddrServName(addr, tmpstr, &tmpstrlen);
   log_print(3, "Client: %s%s ",  line, tmpstr);
-  //strncat(results, line, strlen(line));
-  strlcat(results, line,  (BUFFSIZE+1)); //todo :later: using a "known" hardcoded value for size of results
+  strlcat(results, line,  (BUFFSIZE+1));
   I2AddrFree(addr);
 
   // get web100 values for the middlebox test result group
@@ -154,9 +147,9 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
     if (strcmp(vars[i], "CurMSS") == 0)
     	currentMSSval = atoi(web100_value_to_text(web100_get_var_type(var), buff));
     sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buff));
-    if (strcmp(line, "4294967295;") == 0) // TODO what is this number?
+    if (strcmp(line, "4294967295;") == 0)
       sprintf(line, "%d;", -1);
-    //strcat(results, line);
+
     strlcat(results, line, sizeof(results));
     log_print(3, "%s",  line);
   }
@@ -180,10 +173,10 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
 
   // try to allocate memory of the size of current MSS Value
   sndbuff = malloc(currentMSSval);
-  if (sndbuff == NULL) { // not possible, use 8192 bytes
+  if (sndbuff == NULL) { // not possible, use MIDDLEBOX_PREDEFINED_MSS bytes
     log_println(0, "Failed to allocate memory --> switching to 8192 Byte packets");
     sndbuff = buff;
-    currentMSSval = 8192; //todo define constant
+    currentMSSval = MIDDLEBOX_PREDEFINED_MSS;
   }
   if (getuid() == 0) {
     system("echo 1 > /proc/sys/net/ipv4/route/flush");
@@ -198,13 +191,12 @@ web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *res
     sndbuff[j] = (k++ & 0x7f);
   }
 
-  // search web100 group with name "read"?
+  // get web100 group with name "read"
   group = web100_group_find(agent, "read");
   snap = web100_snapshot_alloc(group, cn);
 
   FD_ZERO(&wfd);
   FD_SET(sock, &wfd);
-  // TODO: define constants for 5 seconds, 0 ms
   sel_tv.tv_sec = 5; // 5 seconds maximum for select call below to complete
   sel_tv.tv_usec = 0; // 5s + 0ms
   while ((ret = select(sock+1, NULL, &wfd, NULL, &sel_tv)) > 0) {
@@ -255,7 +247,7 @@ web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int c
 {
   int i, ok;
   web100_var* var;
-  char buf[32], line[256], *ctime(); // todo: define constants for 32, 256
+  char buf[32], line[256], *ctime();
   web100_group* group;
   FILE *fp;
   time_t tt;
@@ -501,7 +493,7 @@ int
 web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotune)
 {
   web100_var* var;
-  char buf[32]; // todo defined constants for 32
+  char buf[32];
   web100_group* group;
   int buff;
   int sScale, rScale;
@@ -530,7 +522,7 @@ web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotun
     rScale = 0;
 
   if ((sScale > 0) && (rScale > 0)) {
-    buff = (64 * 1024) << sScale; // todo define constants for 64k( max TCP rcv window)
+    buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << sScale; // 64k( max TCP rcv window)
     if (autotune & 0x01) { // autotune send buffer is not enabled
       if ((web100_agent_find_var_and_group(agent, "LimCwnd", &group, &var)) != WEB100_ERR_SUCCESS)
         return(22);
@@ -540,7 +532,7 @@ web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotun
         return(23);
       }
     }
-    buff = (64 * 1024) << rScale;
+    buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << rScale;
 
 
     if (autotune & 0x02) { // autotune receive buffer is not enabled
@@ -560,8 +552,8 @@ web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotun
 /**
 * @param sock integer socket file descriptor indicating data recipient
 * @param pointers to local copies of web100 variables
-* @return Integer 0
-* 	@TODO this method can be altered to return void
+* @return integer 0
+*
 *
 */
 int

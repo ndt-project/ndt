@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains function declarations for heuristics and algorithms.
  *
  *  Created : Oct 2011

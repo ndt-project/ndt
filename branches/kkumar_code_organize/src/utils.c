@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains functions needed to handle numbers sanity checks
  * and some other utility things.
  *
@@ -23,14 +23,13 @@
 #include "utils.h"
 #include "strlutils.h"
 
-/*
- * Function name: check_int
- * Description: Checks if the string is a valid int number.
- * Arguments: text - the string representing number
- *            number - the pointer where decoded number will be stored
- * Returns: 0 - success,
- *          1 - value from outside the int number range,
- *          2 - not the valid int number.
+/**
+ * Check if the string is a valid int number.
+ * @param text the string representing number
+ * @param number the pointer where decoded number will be stored
+ * @return 0 on success,
+ *         1 - value from outside the int number range,
+ *         2 - not the valid int number.
  */
 
 int
@@ -54,15 +53,14 @@ check_int(char* text, int* number)
     }
 }
 
-/*
- * Function name: check_rint
- * Description: Checks if the string is a valid int number from the specified
+/**
+ * Check if the string is a valid int number from the specified
  *              range.
- * Arguments: text - the string representing number
- *            number - the pointer where decoded number will be stored
- *            minVal - the minimal value restriction (inclusive)
- *            maxVal - the maximum value restriction (inclusive)
- * Returns: 0 - success,
+ * @param text  string representing number
+ * @param number pointer where decoded number will be stored
+ * @param minVal the minimal value restriction (inclusive)
+ * @param maxVal the maximum value restriction (inclusive)
+ * @return 0 - success,
  *          1 - value from outside the specified range,
  *          2 - not the valid int number.
  */
@@ -83,12 +81,11 @@ check_rint(char* text, int* number, int minVal, int maxVal)
     return 0;
 }
 
-/*
- * Function name: check_long
- * Description: Checks if the string is a valid long number.
- * Arguments: text - the string representing number
- *            number - the pointer where decoded number will be stored
- * Returns: 0 - success,
+/**
+ * Check if the string is a valid long number.
+ * @param text the string representing number
+ * @param number the pointer where decoded number will be stored
+ * @return  0 - success,
  *          1 - value from outside the long number range,
  *          2 - not the valid long number.
  */
@@ -112,10 +109,9 @@ check_long(char* text, long* number)
     }
 }
 
-/*
- * Function name: secs
- * Description: Returns the seconds from the beginning of the epoch.
- * Returns: The seconds from the beginning of the epoch.
+/**
+ * Return the seconds from the beginning of the epoch.
+ * @return seconds from the beginning of the epoch.
  */
 
 double
@@ -126,10 +122,9 @@ secs()
     return(ru.tv_sec + ((double)ru.tv_usec)/1000000);
 }
 
-/*
- * Function name: err_sys
- * Description: Prints the perror and exits.
- * Arguments: s - the argument to the perror() function
+/**
+ * Print the perror and exit.
+ * @param s  the argument to the perror() function
  */
 
 void
@@ -139,12 +134,11 @@ err_sys(char* s)
     return -1;
 }
 
-/*
- * Function name: sndq_len
- * Description: Returns the length of the sending queue of the given
+/**
+ * Return the length of the sending queue of the given
  *              file descriptor.
- * Arguments: fd - file descriptor to check
- * Returns: The length of the sending queue.
+ * @param fd file descriptor to check
+ * @return length of the sending queue.
  */
 
 int
@@ -183,30 +177,3 @@ mysleep(double time)
 	    return;
     }
 }
-
-/**
- * Replace part of string by another string
- * @param strinput Input string that contains pasrt of string
- * 		needing to be replaced
- * @param orig original string to be replaced
- * @param repl Replacement string
- * @param arrsize Size of array
- * @todo This function will have changed in the todo areas listed below
- * */
-/*
-char *replaceStr(char *strinput, char *orig, char *repl, int arrsize) {
-  char buffer[arrsize]; //todo size
-  char *ch;
-  memcpy(buffer, strinput, strlen(strinput));
-  printf("0.%s,%s,\n",buffer, strinput);
-  while ((ch = strstr(strinput, orig))) {
-        strncpy (buffer, strinput, ch-strinput);
-        buffer [ch-strinput] = 0;
-        sprintf(buffer+(ch-strinput), "%s%s", repl, ch+strlen(orig));
-        strinput = buffer;
-        printf ("1=%s,%s\n", buffer, ch);
-  }
-        printf ("2=%s,%s\n", buffer, ch);
-   return buffer;
-}
-*/

@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the function declarations of the logging
  * system.
  *
