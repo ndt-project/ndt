@@ -26,7 +26,6 @@ extern pthread_cond_t maincond;
 
 int mon_pipe2[2]; // used to store file descriptors of pipes created for ndttrace for C2S tests
 
-
 /**
  * Perform the S2C Throughput test. This throughput test tests the achievable
  * network bandwidth from the Server to the Client by performing a 10 seconds
@@ -90,7 +89,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	struct timeval sel_tv; // time
 	fd_set rfd; // receive file descriptor
 	char buff[BUFFSIZE + 1]; // message payload buffer
-int 	bufctrlattempts = 0; // number of buffer control attempts
+	int bufctrlattempts = 0; // number of buffer control attempts
 	int i; // temporary var used for iterators etc
 	PortPair pair; // socket ports
 	I2Addr s2csrv_addr = NULL;
@@ -157,7 +156,7 @@ int 	bufctrlattempts = 0; // number of buffer control attempts
 							NULL,
 							(testOptions->multiple ?
 									mrange_next(listens2cport) : listens2cport), conn_options, 0)
-							;
+									;
 			if (s2csrv_addr == NULL) {
 				/*
 				 log_println(1, " Calling KillHung() because s2csrv_address failed to bind");
@@ -331,11 +330,11 @@ int 	bufctrlattempts = 0; // number of buffer control attempts
 			}
 			// get web100 snapshot and also log it based on options
 			/*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
-					&workerThreadId, meta.s2c_snaplog, options->s2c_logname,
-					conn, group);*/ //new file changes
+			 &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
+			 conn, group);*///new file changes
 			start_snap_worker(&snapArgs, agent, options->snaplog,
-								&workerThreadId, meta.s2c_snaplog, options->s2c_logname,
-								conn, group);
+					&workerThreadId, meta.s2c_snaplog, options->s2c_logname,
+					conn, group);
 
 			/* alarm(20); */
 			tmptime = secs(); // current time
