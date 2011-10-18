@@ -60,7 +60,7 @@ struct metadata {
 	char c2s_ndttrace[FILENAME_SIZE]; // C->S NDT trace file name, changed to 256 to avoid truncation
 	char s2c_snaplog[FILENAME_SIZE]; // S->C test Snaplog file name, changed to 256 to avoid truncation
 	char s2c_ndttrace[FILENAME_SIZE]; // S->C NDT trace file name, changed to 256 to avoid truncation
-	char CPU_time[64]; // CPU time file
+	char CPU_time[FILENAME_SIZE]; // CPU time file
 	char summary[256]; // Summary data
 	char date[32]; // Date and,
 	char time[16]; // time
@@ -69,7 +69,7 @@ struct metadata {
 	char client_name[64]; // client's host-name
 	char client_os[32]; // client OS name
 	char client_browser[32]; // client's browser name
-	int ctl_port; // ? todo map use
+	int ctl_port; // ctl port
 	char server_ip[64]; // server IP address
 	char server_name[64]; // server's host-name
 	char server_os[32]; // server os name
@@ -78,11 +78,9 @@ struct metadata {
 };
 
 void set_protologdir(char* dirname);
-//void set_protologfile(char* ipaddress);
 void set_protologfile(char* client_ip, char *protologfileparam);
 char* get_protologfile();
 char* get_protologdir();
-//char *createprotologfilename (char* textappendarg);
 void enableprotocollogging();
 char *createprotologfilename(char* client_ip, char* textappendarg);
 void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
@@ -90,6 +88,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 		char *dirnamedestarg, int destnamearrsize, char *finalsuffix,
 		int finalsuffixsize);
+void log_linkspeed(int index);
 
 void protolog_printgeneric(const char* key, const char* val);
 void protolog_status(int pid, enum TEST_ID testid,

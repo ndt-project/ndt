@@ -985,14 +985,14 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	//int links[16]; // commented out -> calc_linkspeed
 	// int max; // commented out -> calc_linkspeed
 	// int total;// commented out -> calc_linkspeed
-	int c2sdata = 0; // C->S data link speed indicator determined using results
-	int c2sack = 0; //
-	int s2cdata = 0; // S->C data link speed indicator determined using results
-	int s2cack = 0;
+	int c2s_linkspeed_data = 0; // C->S data link speed indicator determined using results
+	int c2s_linkspeed_ack = 0; //
+	int s2c_linkspeed_data = 0; // S->C data link speed indicator determined using results
+	int s2c_linkspeed_ack = 0;
 	//int j;        // commented out -> calc_linkspeed
 	int totalcnt;
 	int autotune;
-	int dec_cnt, same_cnt, inc_cnt, timeout, dupack; // values collected from the sped tests
+	int dec_cnt, same_cnt, inc_cnt, timeout, dupack; // values collected from the speed tests
 	//int ifspeed;
 
 	time_t stime;
@@ -1129,7 +1129,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 			c2sspd / 1000, s2cspd / 1000);
 
 	// Determine link speed
-	calc_linkspeed(spds, spd_index, &c2sdata, &c2sack, &s2cdata, &s2cack,
+	calc_linkspeed(spds, spd_index, &c2s_linkspeed_data, &c2s_linkspeed_ack, &s2c_linkspeed_data, &s2c_linkspeed_ack,
 			runave, &dec_cnt, &same_cnt, &inc_cnt, &timeout, &dupack,
 			testopt->c2sopt);
 	// Get web100 vars
@@ -1162,13 +1162,13 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	rttsec = calc_avg_rtt(SumRTT, CountRTT, &avgrtt);
 
 	// Calculate packet loss
-	packetloss_s2c = calc_packetloss(CongestionSignals, PktsOut, c2sdata);
+	packetloss_s2c = calc_packetloss(CongestionSignals, PktsOut, c2s_linkspeed_data);
 
 	// Calculate ratio of packets arriving out of order
 	oo_order = calc_packets_outoforder(DupAcksIn, AckPktsIn);
 
 	// calculate theoretical maximum goodput in bits
-	bw_theortcl = calc_max_theoretical_thruput(CurrentMSS, rttsec,
+	bw_theortcl = calc_max_theoretical_throughput(CurrentMSS, rttsec,
 			packetloss_s2c);
 
 	//get window sizes
@@ -1200,7 +1200,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	dackratio = (double) DupAcksIn / (double) AckPktsIn;
 
 	// get actual throughput in Mbps (totaltime is in microseconds)
-	realthruput = calc_real_thruput(DataBytesOut, totaltime);
+	realthruput = calc_real_throughput(DataBytesOut, totaltime);
 
 	// total time spent waiting
 	waitsec = cal_totalwaittime(CurrentRTO, Timeouts);
@@ -1209,7 +1209,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 			s2cspd);
 
 	// Is thruput measured with limited cwnd(midbox test) > as reported S->C test
-	if (is_limited_cwnd_thruput_better(s2c2spd, s2cspd)
+	if (is_limited_cwnd_throughput_better(s2c2spd, s2cspd)
 			&& isNotMultipleTestMode(multiple))
 		log_println(
 				2,
@@ -1226,7 +1226,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	if (old_mismatch == 1) {
 		if (detect_duplexmismatch(cwndtime, bw_theortcl, PktsRetrans, timesec,
 				MaxSsthresh, RTOidle, link, s2cspd, s2c2spd, multiple)) {
-			if (is_c2s_thruputbetter(c2sspd, s2cspd)) { // also, S->C throughput is lesser than C->S throughput
+			if (is_c2s_throughputbetter(c2sspd, s2cspd)) { // also, S->C throughput is lesser than C->S throughput
 				mismatch = DUPLEX_OLD_ALGO_INDICATOR;
 				// possible duplex, from Old Duplex-Mismatch logic
 			} else {
@@ -1292,8 +1292,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 		congestion = POSSIBLE_CONGESTION;
 
 	// Send results and variable values to clients
-	sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n", c2sdata,
-			c2sack, s2cdata, s2cack);
+	sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n", c2s_linkspeed_data,
+			c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
 	sprintf(
@@ -1355,8 +1355,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
 	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata,
-			s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
+	sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
+			s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
 	memset(tmpstr, 0, 255);
@@ -1392,8 +1392,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 				CurrentRwinRcvd);
 		fprintf(fp, "%d,%d,%d,%d,%d", link, mismatch, bad_cable, half_duplex,
 				congestion);
-		fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2sdata, c2sack, s2cdata,
-				s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
+		fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
+				s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
 				autotune);
 		fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid,
 				CongestionOverCount, MaxRTT, OtherReductions, CurTimeoutCount,
@@ -1409,8 +1409,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 			MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
 			SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
 			SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd, link,
-			mismatch, bad_cable, half_duplex, congestion, c2sdata, c2sack,
-			s2cdata, s2cack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
+			mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data, c2s_linkspeed_ack,
+			s2c_linkspeed_data, s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
 			autotune, CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
 			CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
 			SubsequentTimeouts, ThruBytesAcked, peaks.min, peaks.max,
@@ -1432,9 +1432,9 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 		strcat(logstr1, logstr2);
 		sprintf(
 				logstr2,
-				"link=%d,mismatch=%d,bad_cable=%d,half_duplex=%d,congestion=%d,c2sdata=%d,c2sack=%d,s2cdata=%d,s2cack=%d,CongestionSignals=%d,PktsOut=%d,MinRTT=%d,RcvWinScale=%d\n",
-				link, mismatch, bad_cable, half_duplex, congestion, c2sdata,
-				c2sack, s2cdata, s2cack, CongestionSignals, PktsOut, MinRTT,
+				"link=%d,mismatch=%d,bad_cable=%d,half_duplex=%d,congestion=%d,c2s_linkspeed_data=%d,c2sack=%d,s2cdata=%d,s2cack=%d,CongestionSignals=%d,PktsOut=%d,MinRTT=%d,RcvWinScale=%d\n",
+				link, mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
+				c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT,
 				RcvWinScale);
 		strcat(logstr1, logstr2);
 		syslog(LOG_FACILITY | LOG_INFO, "%s", logstr1);
@@ -1457,7 +1457,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 				DupAcksIn, AckPktsIn, CurrentMSS, SndLimTimeRwin,
 				SndLimTimeCwnd, SndLimTimeSender, MaxRwinRcvd, CurrentCwnd,
 				Sndbuf, DataBytesOut, mismatch, bad_cable, (int) c2sspd,
-				(int) s2cspd, c2sdata, s2cack, 1);
+				(int) s2cspd, c2s_linkspeed_data, s2c_linkspeed_ack, 1);
 		gen_html((int) c2sspd, (int) s2cspd, MinRTT, PktsRetrans, Timeouts,
 				Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
 				refresh);

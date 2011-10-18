@@ -59,12 +59,30 @@ void mysleep(double time);
 // SFW Test default message length
 #define SFW_TEST_DEFAULT_LEN 20
 
-// generic system wide retry counts
-#define RETRY_COUNT 5
+// generic system wide constants
+#define RETRY_COUNT 5		// retry counts
+//#define BUFFSIZE  8192		// Buffer size
 
 // middlebox test default MSS
 #define MIDDLEBOX_PREDEFINED_MSS 8192
 
-// MAX TCP window size in bytes
+// MAX TCP window size in kilo-bytes
 #define MAX_TCP_WIN_BYTES 64
+#define ETHERNET_MTU_SIZE 1456
+
+// link speed indicators
+#define DATA_RATE_INSUFFICIENT_DATA -2
+#define DATA_RATE_SYSTEM_FAULT -1
+#define DATA_RATE_RTT 0
+#define DATA_RATE_DIAL_UP 1
+#define DATA_RATE_T1 2
+#define DATA_RATE_ETHERNET 3
+#define DATA_RATE_T3 4
+#define DATA_RATE_FAST_ETHERNET 5
+#define DATA_RATE_OC_12 6
+#define DATA_RATE_GIGABIT_ETHERNET 7
+#define DATA_RATE_OC_48 8
+#define DATA_RATE_10G_ETHERNET 9
+#define DATA_RATE_RETRANSMISSIONS 10
+
 

@@ -64,7 +64,7 @@ char *name, ip_addr[64], ip_addr2[64];
 FILE *fp;
 int indx, links[4][16], max, total;
 float runave[4];
-int c2sdata, c2sack, s2cdata, s2cack;
+int c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack;
 int j;
 char spds[4][256], buff2[32];
 char *str, tmpstr[32];
@@ -121,21 +121,23 @@ void calculate() {
 			indx = -2;
 		switch (i) {
 		case 0:
-			c2sdata = indx;
+			c2s_linkspeed_data = indx;
 			log_print(1, "Client --> Server data detects link = ");
 			break;
 		case 1:
-			c2sack = indx;
+			c2s_linkspeed_ack = indx;
 			log_print(1, "Client <-- Server Ack's detect link = ");
 			break;
 		case 2:
-			s2cdata = indx;
+			s2c_linkspeed_data = indx;
 			log_print(1, "Server --> Client data detects link = ");
 			break;
 		case 3:
-			s2cack = indx;
+			s2c_linkspeed_ack = indx;
 			log_print(1, "Server <-- Client Ack's detect link = ");
 		}
+
+		/*
 		switch (indx) {
 		case -2:
 			log_println(1, "Insufficent Data");
@@ -177,8 +179,10 @@ void calculate() {
 			log_println(1, "Retransmissions");
 			break;
 		}
+		*/
+		log_linkspeed(indx);
 	}
-	switch (c2sdata) {
+	switch (c2s_linkspeed_data) {
 	case -2:
 		sprintf(btlneck, "Insufficent Data");
 		break;
@@ -196,7 +200,7 @@ void calculate() {
 				&& (c2sspd > 1000))
 			sprintf(btlneck, "a 'T1' subnet");
 		else {
-			if ((tail[3] > 1) || (s2cack == 3))
+			if ((tail[3] > 1) || (s2c_linkspeed_ack == 3))
 				sprintf(btlneck, "a 'Cable Modem' connection");
 			else
 				sprintf(btlneck, "a 'DSL' connection");
@@ -386,10 +390,10 @@ void calculate() {
 	}
 
 	printf("\tWeb100 says link = %d, speed-chk says link = %d\n", link,
-			c2sdata);
+			c2s_linkspeed_data);
 	printf(
 			"\tSpeed-chk says {%d, %d, %d, %d}, Running average = {%0.1f, %0.1f, %0.1f, %0.1f}\n",
-			c2sdata, c2sack, s2cdata, s2cack, runave[0], runave[1], runave[2],
+			c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack, runave[0], runave[1], runave[2],
 			runave[3]);
 	if (c2sspd > 1000)
 		printf(
@@ -730,22 +734,22 @@ int main(int argc, char** argv) {
 			str += 1;
 			if (sscanf(str, "%[^,]s", tmpstr) < 1)
 				goto display;
-			c2sdata = atoi(tmpstr);
+			c2s_linkspeed_data = atoi(tmpstr);
 
 			str = strchr(str, ',') + 1;
 			if (sscanf(str, "%[^,]s", tmpstr) < 1)
 				goto display;
-			c2sack = atoi(tmpstr);
+			c2s_linkspeed_ack = atoi(tmpstr);
 
 			str = strchr(str, ',') + 1;
 			if (sscanf(str, "%[^,]s", tmpstr) < 1)
 				goto display;
-			s2cdata = atoi(tmpstr);
+			s2c_linkspeed_data = atoi(tmpstr);
 
 			str = strchr(str, ',') + 1;
 			if (sscanf(str, "%[^,]s", tmpstr) < 1)
 				goto display;
-			s2cack = atoi(tmpstr);
+			s2c_linkspeed_ack = atoi(tmpstr);
 
 			str = strchr(str, ',');
 			if (str == NULL) {

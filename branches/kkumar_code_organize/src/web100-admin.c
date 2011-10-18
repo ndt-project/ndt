@@ -35,7 +35,7 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 		int PktsOut, int DupAcksIn, int AckPktsIn, int CurrentMSS,
 		int SndLimTimeRwin, int SndLimTimeCwnd, int SndLimTimeSender,
 		int MaxRwinRcvd, int CurrentCwnd, int Sndbuf, int DataBytesOut,
-		int mismatch, int bad_cable, int c2sspd, int s2cspd, int c2sdata,
+		int mismatch, int bad_cable, int c2sspd, int s2cspd, int c2s_linkspeed_data,
 		int s2cack, int view_flag) {
 
 	int congestion2 = 0, i;
@@ -163,7 +163,7 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 		fclose(fp);
 	}
 
-	switch (c2sdata) {
+	switch (c2s_linkspeed_data) {
 	case -2:
 		sprintf(btlneck, "Insufficent Data");
 		break;
@@ -275,7 +275,7 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 			"Initial counter Values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
 			totalcnt, totmismatch, totbad_cable);
 	totalcnt++;
-	count[c2sdata + 1]++;
+	count[c2s_linkspeed_data + 1]++;
 	if (mismatch > 0)
 		totmismatch++;
 	if (bad_cable == 1)
@@ -527,7 +527,7 @@ void view_init(int refresh) {
 	int c2sspd = 0, s2cspd = 0;
 	char ip_addr2[64], buff[512], *str, tmpstr[32];
 	int link = 0, mismatch = 0, bad_cable = 0, half_duplex = 0, congestion = 0;
-	int c2sdata = 0, c2sack, s2cdata, s2cack = 0;
+	int c2s_linkspeed_data = 0, c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack = 0;
 	int totalcnt = 0, view_flag = 0;
 
 	if ((fp = fopen(get_logfile(), "r")) == NULL)
@@ -671,19 +671,19 @@ void view_init(int refresh) {
 			}
 			str += 1;
 			sscanf(str, "%[^,]s", tmpstr);
-			c2sdata = atoi(tmpstr);
+			c2s_linkspeed_data = atoi(tmpstr);
 
 			str = strchr(str, ',') + 1;
 			sscanf(str, "%[^,]s", tmpstr);
-			c2sack = atoi(tmpstr);
+			c2s_linkspeed_ack = atoi(tmpstr);
 
 			str = strchr(str, ',') + 1;
 			sscanf(str, "%[^,]s", tmpstr);
-			s2cdata = atoi(tmpstr);
+			s2c_linkspeed_data = atoi(tmpstr);
 
 			str = strchr(str, ',') + 1;
 			sscanf(str, "%[^,]s", tmpstr);
-			s2cack = atoi(tmpstr);
+			s2c_linkspeed_ack = atoi(tmpstr);
 
 			str = strchr(str, ',');
 			if (str == NULL) {
@@ -712,7 +712,7 @@ void view_init(int refresh) {
 					PktsOut, DupAcksIn, AckPktsIn, CurrentMSS, SndLimTimeRwin,
 					SndLimTimeCwnd, SndLimTimeSender, MaxRwinRcvd, CurrentCwnd,
 					Sndbuf, DataBytesOut, mismatch, bad_cable, c2sspd, s2cspd,
-					c2sdata, s2cack, view_flag);
+					c2s_linkspeed_data, s2c_linkspeed_ack, view_flag);
 		}
 
 	}

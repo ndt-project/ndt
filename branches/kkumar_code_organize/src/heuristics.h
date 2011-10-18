@@ -24,7 +24,7 @@ double calc_packetloss(int congsnsignals, int pktsout, int c2sdatalinkspd);
 double calc_packets_outoforder(int dupackcount, int actualackcount);
 
 // calculate theoretical maximum goodput in bits
-double calc_max_theoretical_thruput(int currentMSS, double rttsec,
+double calc_max_theoretical_throughput(int currentMSS, double rttsec,
 		double packetloss);
 
 // finalize some window sizes
@@ -48,17 +48,17 @@ double calc_sendlimited_rcvrfault(int SndLimTimeRwin, int totaltime);
 double calc_sendlimited_sndrfault(int SndLimTimeSender, int totaltime);
 
 // Calculate actual throughput in Mbps
-double calc_real_thruput(int DataBytesOut, int totaltime);
+double calc_real_throughput(int DataBytesOut, int totaltime);
 
 // Calculate total time spent waiting for packets to arrive
 double cal_totalwaittime(int currentRTO, int timeoutcounters);
 
 // Is throughput measured greater in value during the C->S than S->C test?
-int is_c2s_thruputbetter(int c2stestresult, int s2ctestresult);
+int is_c2s_throughputbetter(int c2stestresult, int s2ctestresult);
 
 // Check if the S->C throughput computed with a limited
 // cwnd value throughput test is better than that calculated by the S->C test.
-int is_limited_cwnd_thruput_better(int midboxs2cspd, int s2cspd);
+int is_limited_cwnd_throughput_better(int midboxs2cspd, int s2cspd);
 
 // Is Multiple test mode enabled?
 int isNotMultipleTestMode(int multiple);

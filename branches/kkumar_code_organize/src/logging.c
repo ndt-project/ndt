@@ -22,6 +22,7 @@
 #include "logging.h"
 #include "testoptions.h"
 #include "strlutils.h"
+#include "utils.h"
 
 static int _debuglevel = 0;
 static char* _programname = "";
@@ -1013,4 +1014,51 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 
 	I2AddrFree(sockAddr);
 
+}
+
+/**
+ * Debug log link speed.
+ *
+ * @param index Integral link speed indicator
+ *
+ */
+void log_linkspeed(int index) {
+	switch (index) {
+	case DATA_RATE_SYSTEM_FAULT:
+		log_println(1, "System Fault");
+		break;
+	case DATA_RATE_RTT:
+		log_println(1, "RTT");
+		break;
+	case DATA_RATE_DIAL_UP:
+		log_println(1, "Dial-up");
+		break;
+	case DATA_RATE_T1:
+		log_println(1, "T1");
+		break;
+	case DATA_RATE_ETHERNET:
+		log_println(1, "Ethernet");
+		break;
+	case DATA_RATE_T3:
+		log_println(1, "T3");
+		break;
+	case DATA_RATE_FAST_ETHERNET:
+		log_println(1, "FastEthernet");
+		break;
+	case DATA_RATE_OC_12:
+		log_println(1, "OC-12");
+		break;
+	case DATA_RATE_GIGABIT_ETHERNET:
+		log_println(1, "Gigabit Ethernet");
+		break;
+	case DATA_RATE_OC_48:
+		log_println(1, "OC-48");
+		break;
+	case DATA_RATE_10G_ETHERNET:
+		log_println(1, "10 Gigabit Enet");
+		break;
+	case DATA_RATE_RETRANSMISSIONS:
+		log_println(1, "Retransmissions");
+		break;
+	}
 }

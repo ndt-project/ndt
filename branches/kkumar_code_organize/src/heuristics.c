@@ -38,10 +38,10 @@
  *
  * @param spds speed string array used ad speeb counter bins
  * @param spd_index speed index indicating indices of the speend bin array
- * @param c2sdata Data link speed as detected by server data
- * @param c2sack Data link speed(type) as detected by server acknowledgements
- * @param s2cdata Data link speed as detected by client data
- * @param s2cack Data link speed as detected by client acknowledgements
+ * @param c2s_linkspeed_data Data link speed as detected by server data
+ * @param c2s_linkspeed_ack Data link speed(type) as detected by server acknowledgements
+ * @param s2c_linkspeed_data Data link speed as detected by client data
+ * @param s2c_linkspeed_ack Data link speed as detected by client acknowledgements
  * @param runave average run time?
  * @param dec_cnt number of times window sizes have been decremented
  * @param same_cnt number of times window sizes remained the same
@@ -51,8 +51,8 @@
  * @param is_c2stest is this a C->S test?
  *
  * */
-void calc_linkspeed(char spds[4][256], int spd_index, int *c2sdata, int *c2sack,
-		int* s2cdata, int *s2cack, float runave[4], u_int32_t *dec_cnt,
+void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data, int *c2s_linkspeed_ack,
+		int* s2c_linkspeed_data, int *s2c_linkspeed_ack, float runave[4], u_int32_t *dec_cnt,
 		u_int32_t *same_cnt, u_int32_t *inc_cnt, int *timeout, int *dupack,
 		int is_c2stest) {
 
@@ -95,80 +95,33 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2sdata, int *c2sack,
 			index = -1;
 
 		// log
-		fp = fopen(get_logfile(), "a");
-		if (fp == NULL) {
-			log_println(
-					0,
-					"Unable to open log file '%s', continuing on without logging",
-					get_logfile());
-		} else {
-			// also print the percentage of the speed w.r.t total speed bin counter
-			fprintf(fp, "spds[%d] = '%s' max=%d [%0.2f%%]\n", n, spds[n], max,
+		log_println(0, "spds[%d] = '%s' max=%d [%0.2f%%]\n", n, spds[n], max,
 					(float) max * 100 / total);
-			fclose(fp);
-		}
 
 		// Assign values based on whether C2S or S2C test
 		// Note: spd[0] , [1] contains C->S test results
 		// spd[2] , spd [3] contains S->C test results
 		switch (n + (is_c2stest ? 0 : 2)) {
 		case 0:
-			*c2sdata = index;
+			*c2s_linkspeed_data = index;
 			log_print(log_lvl_heur, "Client --> Server data detects link = ");
 			break;
 		case 1:
-			*c2sack = index;
+			*c2s_linkspeed_ack = index;
 			log_print(log_lvl_heur, "Client <-- Server Ack's detect link = ");
 			break;
 		case 2:
-			*s2cdata = index;
+			*s2c_linkspeed_data = index;
 			log_print(log_lvl_heur, "Server --> Client data detects link = ");
 			break;
 		case 3:
-			*s2cack = index;
+			*s2c_linkspeed_ack = index;
 			log_print(1, "Server <-- Client Ack's detect link = ");
 			break;
 		}
 
 		// classify link speed based on the max ifspeed seen
-		switch (index) {
-		case -1:
-			log_println(1, "System Fault");
-			break;
-		case 0:
-			log_println(1, "RTT");
-			break;
-		case 1:
-			log_println(1, "Dial-up");
-			break;
-		case 2:
-			log_println(1, "T1");
-			break;
-		case 3:
-			log_println(1, "Ethernet");
-			break;
-		case 4:
-			log_println(1, "T3");
-			break;
-		case 5:
-			log_println(1, "FastEthernet");
-			break;
-		case 6:
-			log_println(1, "OC-12");
-			break;
-		case 7:
-			log_println(1, "Gigabit Ethernet");
-			break;
-		case 8:
-			log_println(1, "OC-48");
-			break;
-		case 9:
-			log_println(1, "10 Gigabit Enet");
-			break;
-		case 10:
-			log_println(1, "Retransmissions");
-			break;
-		}
+		log_linkspeed(index);
 	} //end section to determine speed.
 
 } //end method calc_linkspeed
@@ -203,7 +156,7 @@ double calc_avg_rtt(int sumRTT, int countRTT, double *avgRTT) {
  * 			downward congestion window adjustments due to all
  * 			forms of congestion signals
  * @param pktsout total number Txed segments
- * @param c2sdatalinkspd Integer indicative of link speed, ad collected in the C->S test
+ * @param c2sdatalinkspd Integer indicative of link speed, as collected in the C->S test
  * @return packet loss value
  * */
 double calc_packetloss(int congsnsignals, int pktsout, int c2sdatalinkspd) {
@@ -245,7 +198,7 @@ double calc_packets_outoforder(int dupackcount, int actualackcount) {
  * @param packetloss Packet loss
  * @return maximum theoretical bandwidth
  * */
-double calc_max_theoretical_thruput(int currentMSS, double rttsec,
+double calc_max_theoretical_throughput(int currentMSS, double rttsec,
 		double packetloss) {
 	double maxthruput;
 	maxthruput = (currentMSS / (rttsec * sqrt(packetloss))) * BITS_8 / KILO_BITS
@@ -367,7 +320,7 @@ double calc_sendlimited_cong(int SndLimTimeCwnd, int totaltime) {
  * @param totaltime Total test time in microseconds
  * @return Actual throughput
  */
-double calc_real_thruput(int DataBytesOut, int totaltime) {
+double calc_real_throughput(int DataBytesOut, int totaltime) {
 	double realthruput = ((double) DataBytesOut / (double) totaltime) * BITS_8;
 	log_println(log_lvl_heur, "--Actual observed throughput: %f ", realthruput);
 	return realthruput;
@@ -395,7 +348,7 @@ double cal_totalwaittime(int currentRTO, int timeoutcounters) {
  * @param s2ctestresult  throughput calculated by the s2c tests
  * @return 1 (true) if midboxs2cspd > s2cspd, else 0.
  */
-int is_limited_cwnd_thruput_better(int midboxs2cspd, int s2cspd) {
+int is_limited_cwnd_throughput_better(int midboxs2cspd, int s2cspd) {
 	int thruputmismatch = 0;
 	if (midboxs2cspd > s2cspd)
 		thruputmismatch = 1;
@@ -412,7 +365,7 @@ int is_limited_cwnd_thruput_better(int midboxs2cspd, int s2cspd) {
  * @param s2ctestresult  throughput calculated by the c2s tests
  * @return 1 (true) if c2stestresult > s2ctestresult, else 0.
  */
-int is_c2s_thruputbetter(int c2stestresult, int s2ctestresult) {
+int is_c2s_throughputbetter(int c2stestresult, int s2ctestresult) {
 	int c2sbetter_yes = 0;
 	if (c2stestresult > s2ctestresult)
 		c2sbetter_yes = 1;
@@ -462,7 +415,7 @@ int detect_duplexmismatch(double cwndtime, double bwtheoretcl, int pktsretxed,
 			&& (maxsstartthresh > 0) // max slow start threshold > 0
 	&& (idleRTO > .01) // cumulative RTO time > 1% test duration
 	&& (link > 2) // not wireless link
-	&& is_limited_cwnd_thruput_better(midboxspd, s2cspd) //S->C throughput calculated
+	&& is_limited_cwnd_throughput_better(midboxspd, s2cspd) //S->C throughput calculated
 	// by server < client value
 			&& isNotMultipleTestMode(multiple)) {
 
