@@ -784,7 +784,11 @@ get_ISOtime(char *isoTime, int isotimearrsize) {
 
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 	FILE * fp;
-	char tmpstr[256], dir[128], tmp2str[256];
+	char tmpstr[256], dir[128];
+	char dirpathstr[256]="";
+    char *tempptr;
+    int ptrdiff=0;
+
 	char isoTime[64], filename[256];
 	size_t tmpstrlen = sizeof(tmpstr);
 	socklen_t len;
@@ -828,25 +832,31 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
 	// If compression is enabled, compress files in the "log" directory
 	if (compress == 1) {
+		// Get directory/path
+		tempptr = strstr(tmpstr, metafilesuffix);
+		if (tempptr != NULL) {
+			ptrdiff = tempptr - tmpstr;
+			strlcpy(dirpathstr, tmpstr, ptrdiff);
+		} //obtained directory in "dirpathstr"
 		log_println(5,
 				"Compression is enabled, compress all files in '%s' basedir",
-				tmp2str);
+				dirpathstr);
 		if (snaplog) { // if snaplog is enabled, compress those into .gz formats
 
 			// Try compressing C->S test snaplogs
 			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", tmp2str, meta.c2s_snaplog);
+			sprintf(filename, "%s/%s", dirpathstr, meta.c2s_snaplog);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed for file:%s: %s.", filename,
-						tmp2str);
+				log_println(0, "compression failed for file:%s: %s.", filename,
+						dirpathstr);
 			else
 				strlcat(meta.c2s_snaplog, ".gz", sizeof(meta.c2s_snaplog));
 
 			// Try compressing S->C test snaplogs
 			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", tmp2str, meta.s2c_snaplog);
+			sprintf(filename, "%s/%s", dirpathstr, meta.s2c_snaplog);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed for file :%s", filename);
+				log_println(0, "compression failed for file :%s", filename);
 			else
 				strlcat(meta.s2c_snaplog, ".gz", sizeof(meta.s2c_snaplog));
 		}
@@ -857,18 +867,18 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 			// Try compressing C->S test tcpdump.
 			// The tcpdump file extension is as specified in the "meta" data-structure
 			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", tmp2str, meta.c2s_ndttrace);
+			sprintf(filename, "%s/%s", dirpathstr, meta.c2s_ndttrace);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed for tcpdump file %s =%s",
+				log_println(0, "compression failed for tcpdump file %s =%s",
 						filename, meta.c2s_ndttrace);
 			else
 				strlcat(meta.c2s_ndttrace, ".gz", sizeof(meta.c2s_ndttrace));
 
 			// Try compressing S->C test tcpdumps
 			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", tmp2str, meta.s2c_ndttrace);
+			sprintf(filename, "%s/%s", dirpathstr, meta.s2c_ndttrace);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed for tcpdump file %s =%s",
+				log_println(0, "compression failed for tcpdump file %s =%s",
 						filename, meta.s2c_ndttrace);
 			else
 				strlcat(meta.s2c_ndttrace, ".gz", sizeof(meta.s2c_ndttrace));
@@ -877,9 +887,9 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 		// If writing "cputime" file is enabled, compress those log files too
 		if (cputime) {
 			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", tmp2str, meta.CPU_time);
+			sprintf(filename, "%s/%s", dirpathstr, meta.CPU_time);
 			if (zlib_def(filename) != 0)
-				log_println(5, "compression failed");
+				log_println(0, "compression failed");
 			else
 				strlcat(meta.CPU_time, ".gz", sizeof(meta.CPU_time));
 		} else
