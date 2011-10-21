@@ -255,8 +255,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
  * @param web100_group group web100_group pointer
  */
 void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
-		//char snaplogenabled, int *workerlooparg, pthread_t *wrkrthreadidarg,
-		char snaplogenabled,  pthread_t *wrkrthreadidarg, // newfile change
+		char snaplogenabled,  pthread_t *wrkrthreadidarg,
 		char *metafilevariablename, char *metafilename, web100_connection* conn,
 		web100_group* group) {
 	FILE *fplocal;

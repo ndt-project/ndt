@@ -15,6 +15,7 @@
 #include "web100srv.h"
 #include "logging.h"
 #include "web100-admin.h"
+#include "utils.h"
 
 /* Initialize the Administrator view.  Process the data in the existing log file to
  * catch up on what's happened before.
@@ -27,16 +28,43 @@ float recvbwd, cwndbwd, sendbwd;
 char btlneck[64];
 char date[32], startdate[32], mindate[32], maxdate[32];
 double oo_order;
-double bw2, avgrtt, timesec, loss2;
+double bw_theortcl, avgrtt, timesec, loss2;
 double bwin, bwout;
 char *AdminFileName;
 
+/** Calculate some values for link speeds and make ready for printing
+ *
+ * @param now  current time/data details
+ * @param SumRTT    sum of all sampled round trip times
+ * @param CountRTT  number of round trip time samples
+ * @param CongestionSignals multiplicative downward congestion window adjustments, web100_var value
+ * @param PktsOut  The total number of segments sent
+ * @param DupAcksIn number of duplicate acks in
+ * @param AckPktsIn number of ack packets in
+ * @param CurrentMSS current maximum segment size (MSS), in octets
+ * @param SndLimTimeRwin cumulative time spent in 'Receiver Limited' state, web100_var value
+ * @param SndLimTimeCwnd cumulative time spent in
+ * 			 'Congestion Limited' state, web100_var value
+ * @param SndLimTimeSender total time spent in the 'sender limited' state, web100_var value
+ * @param MaxRwinRcvd The maximum window advertisement received, web100_var value
+ * @param CurrentCwnd current congestion window
+ * @param Sndbuf socket send buffer size
+ * @param DataBytesOut The number of octets of data contained in transmitted segments, web100_var value
+ * @param mismatch mismatch indicator as calculated during tests
+ * @param bad_cable bad hardware indicated as calculated during tests
+ * @param c2sspd bandwidth as calculated during the C->S test
+ * @param s2cspd bandwidth as calculated during the S->C test
+ * @param c2s_linkspeed_data Integral indicator of C->S speed range
+ * @param s2c_linkspeed_ack S->C Data link speed(type) as detected by server acknowledgments
+ * @param view_flag
+ * @return count of variable values read
+ */
 int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 		int PktsOut, int DupAcksIn, int AckPktsIn, int CurrentMSS,
 		int SndLimTimeRwin, int SndLimTimeCwnd, int SndLimTimeSender,
 		int MaxRwinRcvd, int CurrentCwnd, int Sndbuf, int DataBytesOut,
-		int mismatch, int bad_cable, int c2sspd, int s2cspd, int c2s_linkspeed_data,
-		int s2cack, int view_flag) {
+		int mismatch, int bad_cable, int c2sspd, int s2cspd,
+		int c2s_linkspeed_data, int s2c_linkspeed_ack, int view_flag) {
 
 	int congestion2 = 0, i;
 	static int totalcnt;
@@ -144,12 +172,10 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 
 		str = strchr(str, ',') + 1;
 		sscanf(str, "%[^,]s", tmpstr);
-		//strncpy(maxdate, tmpstr, strlen(tmpstr));
 		strlcpy(maxdate, tmpstr, sizeof(maxdate));
 
 		str = strchr(str, ',') + 1;
 		sscanf(str, "%[^,]s", tmpstr);
-		//strncpy(mindate, tmpstr, strlen(tmpstr));
 		strlcpy(mindate, tmpstr, sizeof(mindate));
 
 		for (i = 0; i < strlen(mindate); i++)
@@ -163,110 +189,117 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 		fclose(fp);
 	}
 
+	// print details about bottleneck link's speed
 	switch (c2s_linkspeed_data) {
-	case -2:
+	case DATA_RATE_INSUFFICIENT_DATA:
 		sprintf(btlneck, "Insufficent Data");
 		break;
-	case -1:
+	case DATA_RATE_SYSTEM_FAULT:
 		sprintf(btlneck, "System Fault");
 		break;
-	case 0:
+	case DATA_RATE_RTT:
 		sprintf(btlneck, "Round Trip Time");
 		break;
-	case 1:
+	case DATA_RATE_DIAL_UP:
 		sprintf(btlneck, "Dial-up modem");
 		break;
-	case 2:
+	case DATA_RATE_T1:
 		if (((float) c2sspd / (float) s2cspd > .8)
 				&& ((float) c2sspd / (float) s2cspd < 1.2) && (c2sspd > 1000))
 			sprintf(btlneck, "T1 subnet");
 		else {
-			if (s2cack == 3)
+			if (s2c_linkspeed_ack == 3)
 				sprintf(btlneck, "Cable Modem");
 			else
 				sprintf(btlneck, "DSL");
 		}
 		break;
-	case 3:
+	case DATA_RATE_ETHERNET:
 		sprintf(btlneck, "Ethernet");
 		break;
-	case 4:
+	case DATA_RATE_T3:
 		sprintf(btlneck, "T3/DS-3");
 		break;
-	case 5:
+	case DATA_RATE_FAST_ETHERNET:
 		sprintf(btlneck, "FastEthernet");
 		break;
-	case 6:
+	case DATA_RATE_OC_12:
 		sprintf(btlneck, "OC-12");
 		break;
-	case 7:
+	case DATA_RATE_GIGABIT_ETHERNET:
 		sprintf(btlneck, "Gigabit Ethernet");
 		break;
-	case 8:
+	case DATA_RATE_OC_48:
 		sprintf(btlneck, "OC-48");
 		break;
-	case 9:
+	case DATA_RATE_10G_ETHERNET:
 		sprintf(btlneck, "10 Gigabit Enet");
 		break;
-	case 10:
+	case DATA_RATE_RETRANSMISSIONS:
 		sprintf(btlneck, "Retransmissions");
 	}
 
 	/* Calculate some values */
-	//strncpy(date, now, strlen(now));
 	strlcpy(date, now, sizeof(date));
-	avgrtt = (double) SumRTT / CountRTT;
-	rttsec = avgrtt * .001;
+	// Calculate average round trip time and convert to seconds
+	rttsec = calc_avg_rtt(SumRTT, CountRTT, &avgrtt);
 	loss2 = (double) CongestionSignals / PktsOut;
 	if (loss2 == 0)
 		loss2 = .000001; /* set to 10^-6 for now */
 
-	oo_order = (double) DupAcksIn / AckPktsIn;
-	bw2 = (CurrentMSS / (rttsec * sqrt(loss2))) * 8 / 1024 / 1024;
-	totaltime = SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender;
-	rwintime = (double) SndLimTimeRwin / totaltime;
-	cwndtime = (double) SndLimTimeCwnd / totaltime;
-	sendtime = (double) SndLimTimeSender / totaltime;
-	timesec = totaltime / 1000000;
+	oo_order = calc_packets_outoforder(DupAcksIn, AckPktsIn);
 
+	bw_theortcl = calc_max_theoretical_throughput(CurrentMSS, rttsec, loss2);
+
+	totaltime = calc_totaltesttime(SndLimTimeRwin, SndLimTimeCwnd,
+			SndLimTimeSender);
+
+	// time spent being send-limited due to client's recv window
+	rwintime = calc_sendlimited_rcvrfault(SndLimTimeRwin, totaltime);
+
+	// time spent in being send-limited due to congestion window
+	cwndtime = calc_sendlimited_cong(SndLimTimeCwnd, totaltime);
+
+	// time spent in being send-limited due to own fault
+	sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
+	timesec = totaltime / MEGA; // total time in microsecs
+
+	// calculate receive buffer delay, send buffer delay and congestion window delays
 	recvbwd = ((MaxRwinRcvd * 8) / avgrtt) / 1000;
 	cwndbwd = ((CurrentCwnd * 8) / avgrtt) / 1000;
 	sendbwd = ((Sndbuf * 8) / avgrtt) / 1000;
 
+	// this is different from congestion window heuristic, but seems unused
 	if ((cwndtime > .02) && (mismatch == 0) && (cwndbwd < recvbwd))
 		congestion2 = 1;
 
+	// if no web100 variables were read from the file, then assign values
 	if (totalcnt == 0) {
 		minc2sspd = c2sspd;
 		mins2cspd = s2cspd;
 		maxc2sspd = c2sspd;
 		maxs2cspd = s2cspd;
-		/*strncpy(startdate, date, strlen(date));
-		 strncpy(maxdate, date, strlen(date));
-		 strncpy(mindate, date, strlen(date));*/
 		strlcpy(startdate, date, sizeof(startdate));
 		strlcpy(maxdate, date, sizeof(maxdate));
 		strlcpy(mindate, date, sizeof(mindate));
 	}
+
+	// assign max/min values of speeds based on real read values
 	if (c2sspd > maxc2sspd) {
 		maxc2sspd = c2sspd;
-		//strncpy(maxdate, date, strlen(date));
 		strlcpy(maxdate, date, sizeof(maxdate));
 	}
 	if (s2cspd > maxs2cspd) {
 		maxs2cspd = s2cspd;
-		//strncpy(maxdate, date, strlen(date));
 		strlcpy(maxdate, date, sizeof(maxdate));
 	}
 	if (c2sspd < minc2sspd) {
 		minc2sspd = c2sspd;
-		//strncpy(mindate, date, strlen(date));
 		strlcpy(mindate, date, sizeof(mindate));
 
 	}
 	if (s2cspd < mins2cspd) {
 		mins2cspd = s2cspd;
-		//strncpy(mindate, date, strlen(date));
 		strlcpy(mindate, date, sizeof(mindate));
 	}
 
@@ -293,6 +326,23 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 	return (totalcnt);
 }
 
+/**
+ *
+ * Build HTML page with current tests' results and sumamry data
+ * @param c2sspd C->S test speed
+ * @param s2cspd S->C test speed
+ * @param MinRTT minimum sampled round trip time, web_100 var value
+ * @param PktsRetrans number of segments transmitted containing at least some
+ *		retransmitted data, web_100 var value
+ * @param Timeouts # of times the retransmit timeout has expired
+ * @param Sndbuf socket send buffer size in octets, web_100 var value
+ * @param MaxRwinRcvd , web_100 var value
+ * @param CurrentCwnd , web_100 var value
+ * @param mismatch mismatch indicator as calculated during tests
+ * @param bad_cable bad hardware indicated as calculated during tests
+ * @param totalcnt total count of variables to be processed
+ * @param refresh time in seconds after which to refresh page
+ */
 void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 		int Sndbuf, int MaxRwinRcvd, int CurrentCwnd, int mismatch,
 		int bad_cable, int totalcnt, int refresh) {
@@ -337,10 +387,10 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 			fp,
 			"  <tr>\n    <td align=right>%s\n    <td align=right>%d\n    <td align=right>%s\n",
 			date, totalcnt, btlneck);
-	if (bw2 > 1)
-		fprintf(fp, "    <td align=right>%0.2f Mbps\n", bw2);
+	if (bw_theortcl > 1)
+		fprintf(fp, "    <td align=right>%0.2f Mbps\n", bw_theortcl);
 	else
-		fprintf(fp, "    <td align=right>%0.2f kbps\n", bw2 * 1000);
+		fprintf(fp, "    <td align=right>%0.2f kbps\n", bw_theortcl * 1000);
 	if (c2sspd > 1000)
 		fprintf(
 				fp,
@@ -514,6 +564,11 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 	fclose(fp);
 }
 
+/**
+ * Initialise admin results page with previous values from the log file.
+ * Not that these  valeus will be updated after completion of the tests.
+ * @param refresh time in seconds after which to refresh page
+ */
 void view_init(int refresh) {
 	int Timeouts = 0, SumRTT, CountRTT, MinRTT = 0, PktsRetrans = 0, FastRetran,
 			DataPktsOut;
@@ -527,7 +582,8 @@ void view_init(int refresh) {
 	int c2sspd = 0, s2cspd = 0;
 	char ip_addr2[64], buff[512], *str, tmpstr[32];
 	int link = 0, mismatch = 0, bad_cable = 0, half_duplex = 0, congestion = 0;
-	int c2s_linkspeed_data = 0, c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack = 0;
+	int c2s_linkspeed_data = 0, c2s_linkspeed_ack, s2c_linkspeed_data,
+			s2c_linkspeed_ack = 0;
 	int totalcnt = 0, view_flag = 0;
 
 	if ((fp = fopen(get_logfile(), "r")) == NULL)

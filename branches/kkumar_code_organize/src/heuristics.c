@@ -36,17 +36,17 @@
  * 10: bits cannot be determined - Retransmissions (this bin counts the duplicated or invalid packets and does not denote a real link type)
  *    otherwise - ?
  *
- * @param spds speed string array used ad speeb counter bins
- * @param spd_index speed index indicating indices of the speend bin array
+ * @param spds speed string array used as speed counter bins
+ * @param spd_index speed index indicating indices of the speed bin array
  * @param c2s_linkspeed_data Data link speed as detected by server data
- * @param c2s_linkspeed_ack Data link speed(type) as detected by server acknowledgements
+ * @param c2s_linkspeed_ack Data link speed(type) as detected by server acknowledgments
  * @param s2c_linkspeed_data Data link speed as detected by client data
- * @param s2c_linkspeed_ack Data link speed as detected by client acknowledgements
- * @param runave average run time?
+ * @param s2c_linkspeed_ack Data link speed as detected by client acknowledgments
+ * @param runave average run
  * @param dec_cnt number of times window sizes have been decremented
  * @param same_cnt number of times window sizes remained the same
  * @param inc_cnt number of times window sizes have been incremented
- * @param timeout number of times a timeout occured (based on network packet pair times)
+ * @param timeout number of times a timeout occurred (based on network packet pair times)
  * @param dupack  number of times duplicate acks were received
  * @param is_c2stest is this a C->S test?
  *
@@ -227,7 +227,7 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
 		*RcvWinScale = 0;
 
 	*rwin = (double) (MaxRwinRcvd * BITS_8 / KILO_BITS / KILO_BITS );
-	*swin = (double) SendBuf * 8 / 1024 / 1024;
+	*swin = (double) SendBuf * BITS_8 / KILO_BITS / KILO_BITS;
 	*cwin = (double) (MaxCwnd * BITS_8 / KILO_BITS / KILO_BITS );
 	log_println(
 			log_lvl_heur,
