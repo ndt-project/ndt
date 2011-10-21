@@ -29,6 +29,13 @@ int mon_pipe1[2], mon_pipe2[2];
 int sigj = 0, sigk = 0;
 int ifspeed;
 
+/** Scan through interface device list and get names/speeds of each interface.
+ *
+ * The speed data can be used to cap the search for the bottleneck link
+ * capacity.  The intent is to reduce the impact of interrupt coalescing on
+ * the bottleneck link detection algorithm  RAC 7/14/09
+ *
+ */
 void get_iflist(void) {
 	/* pcap_addr_t *ifaceAddr; */
 	pcap_if_t *alldevs, *dp;
@@ -37,18 +44,16 @@ void get_iflist(void) {
 	struct ifreq ifr;
 	char errbuf[256];
 
-	/* scan through the interface device list and get the names/speeds of each
-	 *    * if.  The speed data can be used to cap the search for the bottleneck link
-	 *       * capacity.  The intent is to reduce the impact of interrupt coalescing on 
-	 *          * the bottleneck link detection algorithm
-	 *             * RAC 7/14/09
-	 *                */
 	cnt = 0;
 	if (pcap_findalldevs(&alldevs, errbuf) == 0) {
 		for (dp = alldevs; dp != NULL; dp = dp->next) {
 			memcpy(iflist.name[cnt++], dp->name, strlen(dp->name));
 		}
 	}
+	// Ethernet related speeds alone "specifically" determined.
+	// Note that it appears that NDT assumes its an ethernet link. But, if ifspeed is not assigned,
+	// a value will be assigned to it in the "calc_linkspeed" method which will still
+	// cause all speed-bins to be looked into (i.e correct results expected).
 	for (i = 0; i < cnt; i++) {
 		if (strncmp((char *) iflist.name[i], "eth", 3) != 0)
 			continue;
@@ -62,26 +67,34 @@ void get_iflist(void) {
 		if (err == 0) {
 			switch (ecmd.speed) {
 			case SPEED_10:
-				iflist.speed[i] = 3;
+				iflist.speed[i] = DATA_RATE_ETHERNET;
 				break;
 			case SPEED_100:
-				iflist.speed[i] = 5;
+				iflist.speed[i] = DATA_RATE_FAST_ETHERNET;
 				break;
 			case SPEED_1000:
-				iflist.speed[i] = 7;
+				iflist.speed[i] = DATA_RATE_GIGABIT_ETHERNET;
 				break;
 			case SPEED_10000:
-				iflist.speed[i] = 9;
+				iflist.speed[i] = DATA_RATE_10G_ETHERNET;
 				break;
 			default:
-				iflist.speed[i] = 0;
+				iflist.speed[i] = DATA_RATE_RTT;
 			}
 		}
 	}
+	// free list allocated by pcap_findalldevs call
 	if (alldevs != NULL)
 		pcap_freealldevs(alldevs);
 }
 
+/** Check signal flags and process them accordingly.
+ *  If signal indicates request to terminate data collection for the speed bins,
+ * 	make packet-pair based speed bins available to the parent process.
+ *
+ * @return 1 if data was successfully written
+ * 		   0 if no relevant signals were actually received
+ */
 int check_signal_flags() {
 	if ((sig1 == 1) || (sig2 == 1)) {
 		log_println(
@@ -176,7 +189,10 @@ int check_signal_flags() {
 	return 0;
 }
 
-/* initialize variables before starting to accumlate data */
+/**
+ * Initialize variables before starting to accumulate data
+ * @param cur SpdPair struct instance
+ * */
 void init_vars(struct spdpair *cur) {
 
 	int i;
@@ -204,7 +220,12 @@ void init_vars(struct spdpair *cur) {
 		cur->links[i] = 0;
 }
 
-/* This routine prints results to the screen.  */
+/**
+ *  This routine prints details of data about speed bins. It also writes the
+ *  data into a pipe created to pass this speed bin data among processes
+ *  @param cur current speed pair
+ *  @param monitor_pipe array used to store file descriptors of pipes
+ *   */
 void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 
 	int i, total = 0, max = 0, s, index = -1;
@@ -222,6 +243,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 	log_print(1, "%02d:%02d:%02d.%06u   ", s / 3600, (s % 3600) / 60, s % 60,
 			cur->st_usec);
 
+	// Get the ifspeed bin with the biggest counter value.
+	//  NDT determines link speed using this
 	for (i = 0; i < 16; i++) {
 		total += cur->links[i];
 		if (cur->links[i] > max) {
@@ -278,6 +301,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 			}
 #endif
 		}
+	// If max speed is 0, then indicate that no data has been collected
 	if (max == 0) {
 		log_println(3, "No data Packets collected");
 		if (get_debuglvl() > 2) {
@@ -299,6 +323,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 			}
 		}
 	}
+
+	// print details of link speed found
 	if (fp) {
 		if (get_debuglvl() > 2) {
 			switch (index) {
@@ -343,6 +369,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 				break;
 			}
 
+			// now print values of speeds for various bins found
 			fprintf(fp, "packets=%d\n", total);
 			fprintf(fp, "Running Average = %0.2f Mbps  ", cur->totalspd2);
 			fprintf(fp, "Average speed = %0.2f Mbps\n",
@@ -371,6 +398,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 		fclose(fp);
 	}
 
+	// make speed bin available to other processes
 	sprintf(buff,
 			"  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d %d",
 			cur->links[0], cur->links[1], cur->links[2], cur->links[3],
@@ -392,6 +420,17 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 			cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
 }
 
+/**
+ * Calculate the values in speed bins data based on data from 2 packets (speed-pair) received.
+ * Each speed bin signifies a range of possible throughput values (for example: Faster than dial-up,
+ * but not T1). The throughput calculated based on data
+ * from the packets is classified into one such bins and the counter for that bin is incremented.
+ *
+ * @param cur First speed-pair received
+ * @param cur2 Second speed-pair received
+ * @param portA Expected destination port
+ * @param portB Expected source port
+ */
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 		int portB) {
 
@@ -402,6 +441,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 
 	time = (((cur->sec - cur2->sec) * 1000000) + (cur->usec - cur2->usec));
 	/* time = curt->time - cur2->time; */
+	// if ports are as anticipated, use sequence number to calculate no of bits exchanged
 	if ((cur->dport == portA) || (cur->sport == portB)) {
 		if (cur->seq >= cur2->seq)
 			bits = (cur->seq - cur2->seq) * 8;
@@ -410,7 +450,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 		if (time > 200000) {
 			cur2->timeout++;
 		}
-	} else {
+	} else { // use acknowledgement details to calculate number of bits exchanged
 		if (cur->ack > cur2->ack)
 			bits = (cur->ack - cur2->ack) * 8;
 		else if (cur->ack == cur2->ack)
@@ -424,7 +464,9 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 		if (cur->win < cur2->win)
 			cur2->dec_cnt++;
 	}
+	// get throughput
 	spd = (bits / time); /* convert to mbits/sec) */
+	// increment speed bin based on throughput range
 	if ((spd > 0) && (spd <= 0.01))
 		cur2->links[0]++;
 	if ((spd > 0.01) && (spd <= 0.064))
@@ -462,10 +504,15 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 	}
 }
 
-/* This routine does the main work of reading packets from the network
- * interface. It steps through the input file and calculates the link
- * speed between each packet pair.  It then increments the proper link
- * bin.
+/**
+ * Read packets received from the network interface. Step through the input file and calculate
+ * the link speed between each packet pair. Increment the proper link
+ * bin by calling function calculate_spd.
+ * "print_speed" seems to be a misnomer.
+ * For more information on the parameters, see the pcap library/ pcap manual pages
+ * @param user PortPair indicating source/destination ports
+ * @param h pcap_pkthdr type packet header information
+ * @param p u_char that could point to ethernet/TCP header data
  */
 
 void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
@@ -668,7 +715,7 @@ else { /*  IP header value is not = 4, so must be IPv6 */
 }
 #endif
 
-	/* a packet has been recieved, so it matched the filter, but the src/dst ports are backward for some reason.
+	/* a packet has been received, so it matched the filter, but the src/dst ports are backward for some reason.
 	 * Need to fix this by reversing the values.
 	 */
 
@@ -706,9 +753,18 @@ else { /*  IP header value is not = 4, so must be IPv6 */
 	}
 }
 
-/* This routine performs the open and initialization functions needed
+/**
+ * Perform opening and initialization functions needed
  * by the libpcap routines.  The print_speed function above, is passed
  * to the pcap_open_live() function as the pcap_handler.
+ * @param srcAddr 	Source address
+ * @param sock_addr socket address used to determine client address
+ * @param saddrlen  socket address length
+ * @param monitor_pipe socket file descriptors used to read/write data (for interprocess communication)
+ * @param device devive detail string
+ * @param pair PortPair strcuture
+ * @param direction string indicating C2S/S2c test
+ * @param compress Option indicating whether log files (here, ndttrace) needs to be compressed. Unused here.
  */
 
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
@@ -746,7 +802,6 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 
 	/* special check for localhost, set device accordingly */
 	if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
-		//strncpy(device, "lo", 3);
 		strlcpy(device, "lo", 100); //hardcoding device address to 100, as initialised in main()
 	if (device == NULL) {
 		if (pcap_findalldevs(&alldevs, errbuf) == 0) {
