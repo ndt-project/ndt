@@ -18,6 +18,7 @@
 #include "test_meta.h"
 #include "clt_tests.h"
 #include "strlutils.h"
+#include "test_results_clt.h"
 
 #ifndef VIEW_DIFF
 #define VIEW_DIFF 0.1
@@ -50,18 +51,24 @@ double mylink;
 
 static struct option long_options[] = { { "name", 1, 0, 'n' }, { "port", 1, 0,
 		'p' }, { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' }, { "msglvl", 0, 0,
-		'l' }, { "web100variables", 0, 0, 301 }, { "buffer", 1, 0, 'b' }, {
-		"disablemid", 0, 0, 302 }, { "disablec2s", 0, 0, 303 }, { "disables2c",
-		0, 0, 304 }, { "disablesfw", 0, 0, 305 },
+				'l' }, { "web100variables", 0, 0, 301 }, { "buffer", 1, 0, 'b' }, {
+						"disablemid", 0, 0, 302 }, { "disablec2s", 0, 0, 303 }, { "disables2c",
+								0, 0, 304 }, { "disablesfw", 0, 0, 305 },
 #ifdef AF_INET6
-		{	"ipv4", 0, 0, '4'},
-		{	"ipv6", 0, 0, '6'},
+								{	"ipv4", 0, 0, '4'},
+								{	"ipv6", 0, 0, '6'},
 #endif
-		{ 0, 0, 0, 0 } };
+								{ 0, 0, 0, 0 } };
 
 void save_int_values(char *sysvar, int sysval);
 void save_dbl_values(char *sysvar, float *sysval);
 
+/**
+ * Print variables from a string containing
+ * key-value pairs, where the key is separated from the value by
+ * a whitespace and each key-value pair is delimited by a newline.
+ * @param tmpstr Char array containing key-value pairs
+ * todo: can this go to some clt-utils file? */
 void printVariables(char *tmpstr) {
 	int i, j, k;
 	char sysvar[128], sysval[128];
@@ -82,6 +89,11 @@ void printVariables(char *tmpstr) {
 			return;
 	}
 }
+
+/** Print information about web 100 variables
+ *  from a pre-defined array.
+ *  todo :see if this can go to a file called "web100 utils"
+ */
 
 void printWeb100VarInfo() {
 	int i = 0;
@@ -137,105 +149,110 @@ void testResults(char tests, char *tmpstr, char* host) {
 		}
 	}
 
-	if (CountRTT > 0) {
+	if (CountRTT > 0) { //todo . Whats ic ountRTT > 0??
 
+		// Get the link speed as determined during the C2S test. if it was performed
 		if (tests & TEST_C2S) {
-			if (c2sData < 3) {
-				if (c2sData < 0) {
-					printf(
-							"Server unable to determine bottleneck link type.\n");
-				} else {
-					printf("Your host is connected to a ");
-					if (c2sData == 1) {
-						printf("Dial-up Modem\n");
-						mylink = .064;
-					} else {
-						printf("Cable/DSL modem\n");
-						mylink = 2;
-					}
-				}
-			} else {
-				printf("The slowest link in the end-to-end path is a ");
-				if (c2sData == 3) {
-					printf("10 Mbps Ethernet or WiFi 11b subnet\n");
-					mylink = 10;
-				} else if (c2sData == 4) {
-					printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
-					mylink = 45;
-				} else if (c2sData == 5) {
-					printf("100 Mbps ");
-					mylink = 100;
-					if (half_duplex == 0) {
-						printf("Full duplex Fast Ethernet subnet\n");
-					} else {
-						printf("Half duplex Fast Ethernet subnet\n");
-					}
-				} else if (c2sData == 6) {
-					printf("a 622 Mbps OC-12 subnet\n");
-					mylink = 622;
-				} else if (c2sData == 7) {
-					printf("1.0 Gbps Gigabit Ethernet subnet\n");
-					mylink = 1000;
-				} else if (c2sData == 8) {
-					printf("2.4 Gbps OC-48 subnet\n");
-					mylink = 2400;
-				} else if (c2sData == 9) {
-					printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
-					mylink = 10000;
-				}
-			}
+			mylink = get_linkspeed(c2sData, half_duplex);
+			/*
+			 //if (c2sData < 3) {
+			 if (c2sData < DATA_RATE_ETHERNET) {
+			 //if (c2sData < 0) {
+			 if (c2sData < DATA_RATE_RTT) {
+			 printf("Server unable to determine bottleneck link type.\n");
+			 } else {
+			 printf("Your host is connected to a ");
+			 //if (c2sData == 1) {
+			 if (c2sData == DATA_RATE_DIAL_UP) {
+			 printf("Dial-up Modem\n");
+			 mylink = .064;
+			 } else {
+			 printf("Cable/DSL modem\n");
+			 mylink = 2;
+			 }
+			 }
+			 } else {
+			 printf("The slowest link in the end-to-end path is a ");
+			 //if (c2sData == 3) {
+			 if (c2sData == DATA_RATE_ETHERNET) {
+			 printf("10 Mbps Ethernet or WiFi 11b subnet\n");
+			 mylink = 10;
+			 //} else if (c2sData == 4) {
+			 } else if (c2sData == DATA_RATE_T3) {
+			 printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
+			 mylink = 45;
+			 //} else if (c2sData == 5) {
+			 } else if (c2sData == DATA_RATE_FAST_ETHERNET) {
+			 printf("100 Mbps ");
+			 mylink = 100;
+			 if (half_duplex == 0) {
+			 printf("Full duplex Fast Ethernet subnet\n");
+			 } else {
+			 printf("Half duplex Fast Ethernet subnet\n");
+			 }
+			 //} else if (c2sData == 6) {
+			 } else if (c2sData == DATA_RATE_OC_12) {
+			 printf("a 622 Mbps OC-12 subnet\n");
+			 mylink = 622;
+			 //} else if (c2sData == 7) {
+			 } else if (c2sData == DATA_RATE_GIGABIT_ETHERNET) {
+			 printf("1.0 Gbps Gigabit Ethernet subnet\n");
+			 mylink = 1000;
+			 //} else if (c2sData == 8) {
+			 } else if (c2sData == DATA_RATE_OC_48) {
+			 printf("2.4 Gbps OC-48 subnet\n");
+			 mylink = 2400;
+			 //} else if (c2sData == 9) {
+			 } else if (c2sData == DATA_RATE_10G_ETHERNET) {
+			 printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
+			 mylink = 10000;
+			 }
+			 }*/
 		}
 
-		switch (mismatch) {
-		case 1:
-			printf("Warning: Old Duplex-Mismatch condition detected.\n");
-			break;
+		/*
+		 switch(mismatch) {
+		 case 1 : printf("Warning: Old Duplex-Mismatch condition detected.\n");
+		 break;
 
-		case 2:
-			printf(
-					"Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
-			break;
-		case 4:
-			printf(
-					"Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
-			break;
+		 case 2 : printf("Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+		 break;
+		 case 4 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+		 break;
 
-		case 3:
-			printf(
-					"Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-			break;
-		case 5:
-			printf(
-					"Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-			break;
-		case 7:
-			printf(
-					"Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-			break;
-		}
+		 case 3 : printf("Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+		 break;
+		 case 5 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+		 break;
+		 case 7 : printf("Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+		 break;
+		 }
+		 */
+		print_results_mismatchcheck(mismatch);
 
 		if (mismatch == 0) {
-			if (bad_cable == 1) {
-				printf("Alarm: Excessive errors, check network cable(s).\n");
-			}
-			if (congestion == 1) {
-				printf(
-						"Information: Other network traffic is congesting the link\n");
-			}
-			log_print(
-					3,
-					"Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ",
-					((rwin * 2) / rttsec), mylink);
-			log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)",
-					(float) ((mylink * avgrtt) * 1000) / 8, MaxRwinRcvd);
-			if (((rwin * 2) / rttsec) < mylink) {
-				j = (float) ((mylink * avgrtt) * 1000) / 8;
-				if ((int) j > MaxRwinRcvd) {
-					printf("Information: The receive buffer should be %0.0f ",
-							j / 1024);
-					printf("kbytes to maximize throughput\n");
-				}
-			}
+			/*
+			 if (bad_cable == 1) {
+			 printf("Alarm: Excessive errors, check network cable(s).\n");
+			 }
+			 if (congestion == 1) {
+			 printf("Information: Other network traffic is congesting the link\n");
+			 }
+
+			 log_print(3, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ", ((rwin*2)/rttsec), mylink);
+			 log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)", (float)((mylink * avgrtt)*1000)/8, MaxRwinRcvd);
+			 if (((rwin*2)/rttsec) < mylink) {
+			 j = (float)((mylink * avgrtt)*1000) / 8;
+			 if ((int)j > MaxRwinRcvd) {
+			 printf("Information: The receive buffer should be %0.0f ", j/1024);
+			 printf("kbytes to maximize throughput\n");
+			 }
+			 }
+			 */
+			check_congestion(congestion);
+			check_badcable(bad_cable);
+			print_recommend_buffersize(rwin, rttsec, avgrtt, mylink,
+					MaxRwinRcvd);
 		}
 
 		if (tests & TEST_C2S) {
@@ -465,7 +482,7 @@ void middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr) {
 
 void save_int_values(char *sysvar, int sysval) {
 	/*  Values saved for interpretation:
-	 *	SumRTT 
+	 *	SumRTT
 	 *	CountRTT
 	 *	CurrentMSS
 	 *	Timeouts
@@ -822,7 +839,7 @@ int main(int argc, char *argv[]) {
 			continue;
 		}
 
-		/* Each test should take less than 30 seconds, so tell them 45 sec * number of 
+		/* Each test should take less than 30 seconds, so tell them 45 sec * number of
 		 * tests in the queue.
 		 */
 		xwait = (xwait * 45);
