@@ -9,6 +9,8 @@
 #ifndef _JS_CLT_TESTS_H
 #define _JS_CLT_TESTS_H
 
+#define MIDBOX_TEST_LOG "Middlebox test"
+
 int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 		int buf_size, char* tmpstr2);
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,

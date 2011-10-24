@@ -159,7 +159,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 			return 1;
 		}
 		if (check_msg_type("C2S throughput test", TEST_MSG, msgType, buff, msgLen)) {
-			// other message types at this junctue indicate error
+			// other message types at this juncture indicate error
 			return 2;
 		}
 		if (msgLen <= 0) {	// message payload size cannot be negative! Error.
@@ -178,7 +178,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 			printf(" %0.2f Mb/s\n", c2sspd/KILO);
 
 		// Server should close test session with an empty TEST_FINALIZE message.
-		// Any other type of message is an error
+		// Any other type of message is an error.
 		msgLen = sizeof(buff);
 		if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
 			log_println(0, "Protocol error - missed finalize message!");

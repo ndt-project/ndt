@@ -141,11 +141,11 @@ void testResults(char tests, char *tmpstr, char* host) {
 		if (strchr(sysval, '.') == NULL) {
 			i = atoi(sysval);
 			save_int_values(sysvar, i);
-			log_println(7, "Stored %d [%s] in %s", i, sysval, sysvar);
+			log_println(6, "Stored %d [%s] in %s", i, sysval, sysvar); //todo change level
 		} else {
 			j = atof(sysval);
 			save_dbl_values(sysvar, &j);
-			log_println(7, "Stored %0.2f (%s) in %s", j, sysval, sysvar);
+			log_println(6, "Stored %0.2f (%s) in %s", j, sysval, sysvar); //todo change level
 		}
 	}
 
@@ -951,6 +951,7 @@ int main(int argc, char *argv[]) {
 	 */
 	for (;;) {
 		msgLen = sizeof(buff);
+		memset(buff, 0, msgLen); // reset buff and msgLen
 		if (ret = (recv_msg(ctlSocket, &msgType, buff, &msgLen))) {
 			if (errno == ECONNRESET)
 				log_println(0,
@@ -969,7 +970,6 @@ int main(int argc, char *argv[]) {
 				msgLen)) {
 			exit(2);
 		}
-		//strncat(tmpstr, buff, msgLen);
 		strlcat(tmpstr, buff, sizeof(tmpstr));
 		log_println(6, "tmpstr = '%s'", tmpstr);
 	}

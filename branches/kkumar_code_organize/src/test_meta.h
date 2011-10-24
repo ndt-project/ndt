@@ -13,6 +13,8 @@
 #define META_CLIENT_KERNEL_VERSION "client.kernel.version"
 #define META_CLIENT_VERSION "client.version"
 
+#define META_TEST_LOG "META test"
+
 int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options);
 
 #endif

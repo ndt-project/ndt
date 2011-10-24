@@ -1,5 +1,6 @@
 /**
  * This file defines the various test types and other constants that the NDT protocol currently supports/uses.
+ * This is used to define constants related to the test-suite, specifically.
  *
  * */
 
@@ -18,6 +19,13 @@
 #define TEST_STATUS_DESC_SIZE 18 /* test status < 18 chars */
 #define TEST_DIRN_DESC_SIZE 20   /* direction is either client_to_server or server_to_client */
 #define MSG_TYPE_DESC_SIZE 15    /* max size for now derived from "TEST_FINALIZE" */
+
+// port numbers
+#define PORT  "3001"
+#define PORT2 "3002"
+#define PORT3 "3003"
+#define PORT4 "3003"
+
 
 /* status of tests. Used mainly to log a "textual" explanation using below array */
 enum TEST_STATUS_INT {

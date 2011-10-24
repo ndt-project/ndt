@@ -62,10 +62,12 @@
 #define CONFIGFILE  "/etc/ndt.conf"
 
 /* hard-coded port values */
+/*
 #define PORT  "3001"
 #define PORT2 "3002"
 #define PORT3 "3003"
 #define PORT4 "3003"
+*/
 
 // Congestion window peak information
 typedef struct CwndPeaks {

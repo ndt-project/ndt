@@ -60,9 +60,6 @@ void mysleep(double time);
 #define NO_BAD_CABLE 0
 #define POSSIBLE_BAD_CABLE 1
 
-// SFW Test default message length
-#define SFW_TEST_DEFAULT_LEN 20
-
 // generic system wide constants
 #define RETRY_COUNT 5		// retry counts
 //#define BUFFSIZE  8192		// Buffer size

@@ -20,6 +20,7 @@
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
 #include "strlutils.h"
+#include "utils.h"
 
 int dumptrace;
 pcap_t *pd;
