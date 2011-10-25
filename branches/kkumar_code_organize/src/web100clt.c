@@ -20,10 +20,6 @@
 #include "strlutils.h"
 #include "test_results_clt.h"
 
-#ifndef VIEW_DIFF
-#define VIEW_DIFF 0.1
-#endif
-
 extern int h_errno;
 
 int Randomize, failed, cancopy;
@@ -67,8 +63,11 @@ void save_dbl_values(char *sysvar, float *sysval);
  * Print variables from a string containing
  * key-value pairs, where the key is separated from the value by
  * a whitespace and each key-value pair is delimited by a newline.
+ *
+ * This function is not currently used outside this file, and hence
+ * retaining this here.
  * @param tmpstr Char array containing key-value pairs
- * todo: can this go to some clt-utils file? */
+ *  */
 void printVariables(char *tmpstr) {
 	int i, j, k;
 	char sysvar[128], sysval[128];
@@ -90,9 +89,12 @@ void printVariables(char *tmpstr) {
 	}
 }
 
-/** Print information about web 100 variables
+/**
+ * Print information about web 100 variables
  *  from a pre-defined array.
- *  todo :see if this can go to a file called "web100 utils"
+ *
+ * This function is not currently used outside this file, and hence
+ * retaining this here.
  */
 
 void printWeb100VarInfo() {
@@ -105,30 +107,32 @@ void printWeb100VarInfo() {
 	}
 }
 
-void testResults(char tests, char *tmpstr, char* host) {
-	int i = 0, Zero = 0;
+/**
+ * Interpret test results based on values received from the S2C, C2S tests and
+ *  SFW tests. Print recommendations based on some calculations, or display
+ *  values of settings that have been detected.
+ *
+ * @param tests  test indicator character
+ * @param tmpstr Result string obtained at the end of tests from the server
+ * @param host   server host name string
+ */
+void testResults(char tests, char *testresult_str, char* host) {
+	int i = 0;
+
 	char *sysvar, *sysval;
 	float j;
 
+	// If the S2C test was not performed, just interpret the C2S and SFW test results
 	if (!(tests & TEST_S2C)) {
-		if (tests & TEST_C2S) {
-			if (c2sspd < (spdout * (1.0 - VIEW_DIFF))) {
-				printf("Information [C2S]: Packet queuing detected: %0.2f%% ",
-						100 * (spdout - c2sspd) / spdout);
-				if (sndqueue
-						> (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
-					printf("(local buffers)\n");
-				} else {
-					printf("(remote buffers)\n");
-				}
-			}
+		if (tests & TEST_C2S) { // Was C2S test performed?
+			check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
 		}
 
 		results_sfw(tests, host);
 		return;
 	}
 
-	sysvar = strtok(tmpstr, " ");
+	sysvar = strtok(testresult_str, " ");
 	sysval = strtok(NULL, "\n");
 	i = atoi(sysval);
 	save_int_values(sysvar, i);
@@ -141,114 +145,25 @@ void testResults(char tests, char *tmpstr, char* host) {
 		if (strchr(sysval, '.') == NULL) {
 			i = atoi(sysval);
 			save_int_values(sysvar, i);
-			log_println(6, "Stored %d [%s] in %s", i, sysval, sysvar); //todo change level
+			log_println(7, "Stored %d [%s] in %s", i, sysval, sysvar);
 		} else {
 			j = atof(sysval);
 			save_dbl_values(sysvar, &j);
-			log_println(6, "Stored %0.2f (%s) in %s", j, sysval, sysvar); //todo change level
+			log_println(7, "Stored %0.2f (%s) in %s", j, sysval, sysvar);
 		}
 	}
 
-	if (CountRTT > 0) { //todo . Whats ic ountRTT > 0??
+	//CountRTT = 615596;
+	if (CountRTT > 0) { // The number of round trip time samples is finite
 
 		// Get the link speed as determined during the C2S test. if it was performed
 		if (tests & TEST_C2S) {
 			mylink = get_linkspeed(c2sData, half_duplex);
-			/*
-			 //if (c2sData < 3) {
-			 if (c2sData < DATA_RATE_ETHERNET) {
-			 //if (c2sData < 0) {
-			 if (c2sData < DATA_RATE_RTT) {
-			 printf("Server unable to determine bottleneck link type.\n");
-			 } else {
-			 printf("Your host is connected to a ");
-			 //if (c2sData == 1) {
-			 if (c2sData == DATA_RATE_DIAL_UP) {
-			 printf("Dial-up Modem\n");
-			 mylink = .064;
-			 } else {
-			 printf("Cable/DSL modem\n");
-			 mylink = 2;
-			 }
-			 }
-			 } else {
-			 printf("The slowest link in the end-to-end path is a ");
-			 //if (c2sData == 3) {
-			 if (c2sData == DATA_RATE_ETHERNET) {
-			 printf("10 Mbps Ethernet or WiFi 11b subnet\n");
-			 mylink = 10;
-			 //} else if (c2sData == 4) {
-			 } else if (c2sData == DATA_RATE_T3) {
-			 printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
-			 mylink = 45;
-			 //} else if (c2sData == 5) {
-			 } else if (c2sData == DATA_RATE_FAST_ETHERNET) {
-			 printf("100 Mbps ");
-			 mylink = 100;
-			 if (half_duplex == 0) {
-			 printf("Full duplex Fast Ethernet subnet\n");
-			 } else {
-			 printf("Half duplex Fast Ethernet subnet\n");
-			 }
-			 //} else if (c2sData == 6) {
-			 } else if (c2sData == DATA_RATE_OC_12) {
-			 printf("a 622 Mbps OC-12 subnet\n");
-			 mylink = 622;
-			 //} else if (c2sData == 7) {
-			 } else if (c2sData == DATA_RATE_GIGABIT_ETHERNET) {
-			 printf("1.0 Gbps Gigabit Ethernet subnet\n");
-			 mylink = 1000;
-			 //} else if (c2sData == 8) {
-			 } else if (c2sData == DATA_RATE_OC_48) {
-			 printf("2.4 Gbps OC-48 subnet\n");
-			 mylink = 2400;
-			 //} else if (c2sData == 9) {
-			 } else if (c2sData == DATA_RATE_10G_ETHERNET) {
-			 printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
-			 mylink = 10000;
-			 }
-			 }*/
 		}
 
-		/*
-		 switch(mismatch) {
-		 case 1 : printf("Warning: Old Duplex-Mismatch condition detected.\n");
-		 break;
-
-		 case 2 : printf("Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
-		 break;
-		 case 4 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
-		 break;
-
-		 case 3 : printf("Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-		 break;
-		 case 5 : printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-		 break;
-		 case 7 : printf("Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-		 break;
-		 }
-		 */
 		print_results_mismatchcheck(mismatch);
 
 		if (mismatch == 0) {
-			/*
-			 if (bad_cable == 1) {
-			 printf("Alarm: Excessive errors, check network cable(s).\n");
-			 }
-			 if (congestion == 1) {
-			 printf("Information: Other network traffic is congesting the link\n");
-			 }
-
-			 log_print(3, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ", ((rwin*2)/rttsec), mylink);
-			 log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)", (float)((mylink * avgrtt)*1000)/8, MaxRwinRcvd);
-			 if (((rwin*2)/rttsec) < mylink) {
-			 j = (float)((mylink * avgrtt)*1000) / 8;
-			 if ((int)j > MaxRwinRcvd) {
-			 printf("Information: The receive buffer should be %0.0f ", j/1024);
-			 printf("kbytes to maximize throughput\n");
-			 }
-			 }
-			 */
 			check_congestion(congestion);
 			check_badcable(bad_cable);
 			print_recommend_buffersize(rwin, rttsec, avgrtt, mylink,
@@ -256,27 +171,10 @@ void testResults(char tests, char *tmpstr, char* host) {
 		}
 
 		if (tests & TEST_C2S) {
-			if (c2sspd < (spdout * (1.0 - VIEW_DIFF))) {
-				printf("Information [C2S]: Packet queuing detected: %0.2f%% ",
-						100 * (spdout - c2sspd) / spdout);
-				if (sndqueue
-						> (0.8 * pkts * lth * (spdout - c2sspd) / spdout)) {
-					printf("(local buffers)\n");
-				} else {
-					printf("(remote buffers)\n");
-				}
-			}
+			check_C2Spacketqueuing(c2sspd,spdout,sndqueue, pkts, lth);
 		}
 		if (tests & TEST_S2C) {
-			if (spdin < (s2cspd * (1.0 - VIEW_DIFF))) {
-				printf("Information [S2C]: Packet queuing detected: %0.2f%% ",
-						100 * (s2cspd - spdin) / s2cspd);
-				if (ssndqueue > (0.8 * sbytes * (s2cspd - spdin) / s2cspd)) {
-					printf("(local buffers)\n");
-				} else {
-					printf("(remote buffers)\n");
-				}
-			}
+			check_S2Cpacketqueuing(s2cspd,spdin,ssndqueue, sbytes);
 		}
 
 		results_sfw(tests, host);
@@ -288,124 +186,43 @@ void testResults(char tests, char *tmpstr, char* host) {
 					avgrtt);
 
 			printf("the Packet size = %d Bytes; and \n", CurrentMSS);
-			if (PktsRetrans > 0) {
-				printf("There were %d packets retransmitted", PktsRetrans);
-				printf(", %d duplicate acks received", DupAcksIn);
-				printf(", and %d SACK blocks received\n", SACKsRcvd);
-				if (order > 0)
-					printf(
-							"Packets arrived out-of-order %0.2f%% of the time.\n",
-							order * 100);
-				if (Timeouts > 0)
-					printf(
-							"The connection stalled %d times due to packet loss.\n",
-							Timeouts);
-				if (waitsec > 0)
-					printf(
-							"The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
-							waitsec, (100 * waitsec / timesec));
-			} else if (DupAcksIn > 0) {
-				printf("No packet loss - ");
-				if (order > 0)
-					printf(
-							"but packets arrived out-of-order %0.2f%% of the time.\n",
-							order * 100);
-				else
-					printf("\n");
-			} else {
-				printf("No packet loss was observed.\n");
-			}
 
-			if (rwintime > .015) {
-				printf(
-						"This connection is receiver limited %0.2f%% of the time.\n",
-						rwintime * 100);
-				if ((2 * (rwin / rttsec)) < mylink)
-					printf(
-							"  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
-							(float) MaxRwinRcvd / 1024);
-			}
-			if (sendtime > .015) {
-				printf(
-						"This connection is sender limited %0.2f%% of the time.\n",
-						sendtime * 100);
-				if ((2 * (swin / rttsec)) < mylink)
-					printf(
-							"  Increasing the current send buffer (%0.2f KB) will improve performance\n",
-							(float) Sndbuf / 1024);
-			}
-			if (cwndtime > .005) {
-				printf(
-						"This connection is network limited %0.2f%% of the time.\n",
-						cwndtime * 100);
-			}
-			if ((spd < 4) && (loss > .01)) {
-				printf(
-						"Excessive packet loss is impacting your performance, check the ");
-				printf(
-						"auto-negotiate function on your local PC and network switch\n");
-			}
+			// print packet loss statistics
+			print_packetloss_statistics (PktsRetrans, DupAcksIn, SACKsRcvd,
+				order,Timeouts,waitsec, timesec);
+
+			// print details of whether connection was send/receive/congestion limited
+			print_limitedtime_ratio( rwintime, rwin, sendtime, swin,  cwndtime,  rttsec,
+					 mylink,  Sndbuf, MaxRwinRcvd);
+
+			// check to see if excessive packet loss was reported
+			print_packetloss_excess(spd, loss);
+
+			// Now print details of optional Performance settings values like the following list:
 			printf(
 					"\n    Web100 reports TCP negotiated the optional Performance Settings to: \n");
-			printf("RFC 2018 Selective Acknowledgment: ");
-			if (SACKEnabled == Zero)
-				printf("OFF\n");
-			else
-				printf("ON\n");
 
-			printf("RFC 896 Nagle Algorithm: ");
-			if (NagleEnabled == Zero)
-				printf("OFF\n");
-			else
-				printf("ON\n");
+			// ..Selective ack options
+			print_SAck_RFC2018(SACKEnabled);
 
-			printf("RFC 3168 Explicit Congestion Notification: ");
-			if (ECNEnabled == Zero)
-				printf("OFF\n");
-			else
-				printf("ON\n");
+			// ..Nagle algo details
+			print_Nagle_RFC896(NagleEnabled);
 
-			printf("RFC 1323 Time Stamping: ");
-			if (TimestampsEnabled == 0)
-				printf("OFF\n");
-			else
-				printf("ON\n");
+			// ..Explicit Congestion Notification
+			print_congestion_RFC3168(ECNEnabled);
 
-			printf("RFC 1323 Window Scaling: ");
-			if (MaxRwinRcvd < 65535)
-				WinScaleRcvd = 0;
+			// ..RFC 1323 Time Stamping
+			print_timestamping_RFC1323(TimestampsEnabled);
 
-			if ((WinScaleRcvd == 0) || (WinScaleRcvd > 20))
-				printf("OFF\n");
-			else
-				printf("ON; Scaling Factors - Server=%d, Client=%d\n",
-						WinScaleRcvd, WinScaleSent);
+			// ..RFC 1323 Window Scaling
+			print_windowscaling(MaxRwinRcvd,WinScaleRcvd, WinScaleSent);
 
-			if ((RcvWinScale == 0) && (Sndbuf > 65535))
-				Sndbuf = 65535;
+			// ..throughput limiting factors details
+			print_throughputlimits(MaxRwinRcvd, RcvWinScale, &Sndbuf, swin, rwin, cwin, rttsec,estimate);
 
-			printf("The theoretical network limit is %0.2f Mbps\n", estimate);
-
-			printf(
-					"The NDT server has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
-					(float) Sndbuf / 1024, (float) swin / rttsec);
-
-			printf(
-					"Your PC/Workstation has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
-					(float) MaxRwinRcvd / 1024, (float) rwin / rttsec);
-
-			printf(
-					"The network based flow control limits the throughput to %0.2f Mbps\n",
-					(float) cwin / rttsec);
-
-			if (tests & TEST_C2S) {
-				printf(
-						"\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
-						c2sData, c2sAck);
-			}
-			printf(
-					"Server Data reports link is '%3d', Server Acks report link is '%3d'\n",
-					s2cData, s2cAck);
+			// client and server's views of link speed
+			print_linkspeed_dataacks((tests & TEST_C2S), c2sData,
+					c2sAck,s2cData, s2cAck) ;
 		}
 	} else {
 		printf(
@@ -416,28 +233,31 @@ void testResults(char tests, char *tmpstr, char* host) {
 	}
 }
 
-/* this routine decodes the middlebox test results.  The data is returned
+/**
+ * This routine decodes the middlebox test results.  The data is returned
  * from the server in a specific order.  This routine pulls the string apart
  * and puts the values into the proper variable.  It then compares the values
  * to known values and writes out the specific results.
  *
- * server data is first
+ * Server data is first.
  * order is Server IP; Client IP; CurrentMSS; WinScaleRcvd; WinScaleSent;
  * Client then adds
  * Server IP; Client IP.
+ * @param midresult_str  String containing test results
+ * @param local_addr Client IP address
+ * @param peer_addr  Server IP address
  */
 
-void middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr) {
+void middleboxResults(char *midresult_str, I2Addr local_addr, I2Addr peer_addr) {
 	char ssip[64], scip[64], *str;
 	char csip[64], ccip[64];
 	int mss;
 	size_t tmpLen;
 
-	str = strtok(tmpstr, ";");
-	//strcpy(ssip, str);
+	str = strtok(midresult_str, ";");
 	strlcpy(ssip, str, sizeof(ssip));
 	str = strtok(NULL, ";");
-	//strcpy(scip, str);
+
 	strlcpy(scip, str, sizeof(scip));
 
 	str = strtok(NULL, ";");
@@ -454,32 +274,20 @@ void middleboxResults(char *tmpstr, I2Addr local_addr, I2Addr peer_addr) {
 	tmpLen = 63;
 	I2AddrNodeName(peer_addr, csip, &tmpLen);
 
-	if (TimestampsEnabled == 1)
-		mss += 12;
-	if (mss == 1456)
-		printf("Packet size is preserved End-to-End\n");
-	else
-		printf(
-				"Information: Network Middlebox is modifying MSS variable (changed to %d)\n",
-				mss);
+	// Check if MSS modification is happening
+	check_MSS_modification(TimestampsEnabled, &mss);
 
-	if (strcmp(ssip, csip) == 0)
-		printf("Server IP addresses are preserved End-to-End\n");
-	else {
-		printf("Information: Network Address Translation (NAT) box is ");
-		printf("modifying the Server's IP address\n");
-		printf("\tServer says [%s] but Client says [ %s]\n", ssip, csip);
-	}
+	// detect Network Address translation box
+	check_NAT(ssip, csip, scip, ccip);
 
-	if (strcmp(scip, ccip) == 0)
-		printf("Client IP addresses are preserved End-to-End\n");
-	else {
-		printf("Information: Network Address Translation (NAT) box is ");
-		printf("modifying the Client's IP address\n");
-		printf("\tServer says [%s] but Client says [ %s]\n", scip, ccip);
-	}
 }
 
+/**
+ * Save integer values for web100 variables obtained
+ * 	into local variables.
+ * @param sysvar Variable's name string
+ * @param sysval value of this variable
+ */
 void save_int_values(char *sysvar, int sysval) {
 	/*  Values saved for interpretation:
 	 *	SumRTT
@@ -604,6 +412,12 @@ void save_int_values(char *sysvar, int sysval) {
 		peaks = sysval;
 }
 
+/**
+ * Save float values for web100 variables obtained
+ * 	into local variables.
+ * @param sysvar Variable's name
+ * @param sysval variable's value
+ */
 void save_dbl_values(char *sysvar, float *sysval) {
 	if (strcmp(sysvar, "bw:") == 0)
 		estimate = *sysval;
@@ -637,20 +451,33 @@ void save_dbl_values(char *sysvar, float *sysval) {
 		aspd = *sysval;
 }
 
+/**
+ * Main function of web command line tool
+ * @param argc	Number of command line arguments
+ * @param argv  Command line arguments
+ * @return > 0 if successful, < 0 if not
+ */
 int main(int argc, char *argv[]) {
-	int c, swait;
-	char tmpstr2[512], tmpstr[16384], varstr[16384];
+	int useroption;				// user options char
+	int swait;					// server wait status
+	char mid_resultstr[MIDBOX_TEST_RES_SIZE];	// MID test results
+	char resultstr[2*BUFFSIZE]; 		// S2C test results, 16384 = 2 * BUFFSIZE
+	char varstr[2*BUFFSIZE]; 		// temporary storage for S2C test results , 16384 = 2 * BUFFSIZE
 	unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW
-			| TEST_STATUS | TEST_META;
-	int ctlSocket;
-	int ctlport = 3001;
-	int ret, xwait;
-	char buff[8192];
-	char* strtokbuf;
-	char *host = NULL;
-	int buf_size = 0;
-	int msgLen, msgType;
-	int conn_options = 0, debug = 0, testId;
+			| TEST_STATUS | TEST_META; // which tests have been selectedto be performed?
+	int ctlSocket;				// socket fd
+	int ctlport = atoi(PORT);	// default port number
+	int retcode;				// return code from protocol operations, mostly
+	int xwait;					// wait flag
+	char buff[BUFFSIZE];		// buffer used to store protocol message payload
+	char* strtokbuf;			// buffer to store string tokens
+	char *host = NULL;			// server name to connect to
+	int buf_size = 0;			// TCP send/receive window size received from user
+	int msgLen, msgType;		// protocol message related variables
+	int conn_options = 0;		// connection options received from user
+	int debug = 0;				// debug flag
+	int testId;					// test ID received from server
+	// addresses..
 	I2Addr server_addr = NULL;
 	I2Addr local_addr = NULL, remote_addr = NULL;
 	char* ptr;
@@ -660,10 +487,10 @@ int main(int argc, char *argv[]) {
 #else
 #define GETOPT_LONG_INET6(x) x
 #endif
-
-	while ((c = getopt_long(argc, argv, GETOPT_LONG_INET6("n:p:dhlvb:"),
+	// Read and record various optional values used for the tests/process
+	while ((useroption = getopt_long(argc, argv, GETOPT_LONG_INET6("n:p:dhlvb:"),
 			long_options, 0)) != -1) {
-		switch (c) {
+		switch (useroption) {
 		case '4':
 			conn_options |= OPT_IPV4_ONLY;
 			break;
@@ -722,14 +549,17 @@ int main(int argc, char *argv[]) {
 
 	failed = 0;
 
+	// Check if user options do not include any test!
 	if (!(tests & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW))) {
 		short_usage(argv[0], "Cannot perform empty test suites");
 	}
 
+	// A server is needed to run the tests against
 	if (host == NULL) {
 		short_usage(argv[0], "Name of the server is required");
 	}
 
+	// Check for initial configuration and performance problems
 	printf(
 			"Testing network path for configuration and performance problems  --  ");
 	fflush(stdout);
@@ -740,12 +570,13 @@ int main(int argc, char *argv[]) {
 	}
 	I2AddrSetPort(server_addr, ctlport);
 
-	if ((ret = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options,
+	if ((retcode = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options,
 			0))) {
 		printf("Connect() for control socket failed\n");
 		exit(-4);
 	}
 
+	// check and print Address family being used
 	if (I2AddrSAddr(server_addr, 0)->sa_family == AF_INET) {
 		printf("Using IPv4 address\n");
 	} else {
@@ -779,7 +610,7 @@ int main(int argc, char *argv[]) {
 
 	/* The beginning of the protocol */
 
-	/* write our test suite request */
+	/* write our test suite request by sending a login message */
 	send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
 	/* read the specially crafted data that kicks off the old clients */
 	if (readn(ctlSocket, buff, 13) != 13) {
@@ -789,6 +620,11 @@ int main(int argc, char *argv[]) {
 		exit(0);
 	}
 
+	// The server now sends a SRV_QUEUE message to indicate whether/not to wait
+	// SRV_QUEUE messages are only sent to queued clients with a message
+	// body that indicates one of a few statuses, as will be handled individually
+	// below.
+
 	swait = 0;
 	for (;;) {
 		msgLen = sizeof(buff);
@@ -797,7 +633,7 @@ int main(int argc, char *argv[]) {
 			exit(1);
 		}
 		if (check_msg_type("Logging to server", SRV_QUEUE, msgType, buff,
-				msgLen)) {
+				msgLen)) { // Any other type of message at this stage is incorrect
 			exit(2);
 		}
 		if (msgLen <= 0) {
@@ -809,39 +645,51 @@ int main(int argc, char *argv[]) {
 			log_println(0, "Invalid queue indicator");
 			exit(4);
 		}
-		if (xwait == 0) /* signal from ver 3.0.x NDT servers */
+		// SRV_QUEUE message received indicating "ready to start tests" .
+		// ...proceed to running tests
+		if (xwait == SRV_QUEUE_TEST_STARTS_NOW) /* signal from ver 3.0.x NDT servers */
 			break;
-		if (xwait == 9977) {
+
+		if (xwait == SRV_QUEUE_SERVER_FAULT) {
 			fprintf(
 					stderr,
-					"Server Fault: Test terminated for unknown reason, plase try again later.\n");
+					"Server Fault: Test terminated for unknown reason, please try again later.\n");
 			exit(0);
 		}
-		if (xwait == 9988) {
-			if (swait == 0)
+		if (xwait == SRV_QUEUE_SERVER_BUSY) {
+			if (swait == 0) {
+				 // First message from server, indicating server is busy. Quit
 				fprintf(
 						stderr,
 						"Server Busy: Too many clients waiting in queue, plase try again later.\n");
-			else
+			}
+			else { // Server fault, quit
 				fprintf(
 						stderr,
 						"Server Fault: Test terminated for unknown reason, plase try again later.\n");
+			}
 			exit(0);
 		}
-		if (xwait == 9999) {
+		// server busy, wait 60 s for previous test to finish
+		if (xwait == SRV_QUEUE_SERVER_BUSY_60s) {
 			fprintf(
 					stderr,
 					"Server Busy: Please wait 60 seconds for the current test to finish.\n");
 			exit(0);
 		}
-		if (xwait == 9990) { /* Signal from the server to see if the client is still alive */
+		// Signal from the server to see if the client is still alive
+		if (xwait == SRV_QUEUE_HEARTBEAT) {
 			send_msg(ctlSocket, MSG_WAITING, &tests, 1);
 			continue;
 		}
 
-		/* Each test should take less than 30 seconds, so tell them 45 sec * number of
-		 * tests in the queue.
-		 */
+
+		/* Each test should take less than 30 s. So convey 45 sec *
+		  number of tests-suites waiting in the queue. Note that server sends a
+		  number equal to the number of clients ==
+		 number of minutes to wait before starting tests. In other words,
+		 wait = num of minutes to wait = number of queued clients */
+
 		xwait = (xwait * 45);
 		log_print(0,
 				"Another client is currently begin served, your test will ");
@@ -853,6 +701,10 @@ int main(int argc, char *argv[]) {
 	 * RAC 7/13/09
 	 */
 	alarm(90);
+
+	// Tests can be started. Read server response again.
+	// The server must send MSG_LOGIN  message to verify version.
+	// Any other type of message is unexpected at this point.
 
 	msgLen = sizeof(buff);
 	if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
@@ -867,8 +719,11 @@ int main(int argc, char *argv[]) {
 		log_println(0, "Improper message");
 		exit(3);
 	}
+
+	// Version compatibility between server-client must be verified
+
 	buff[msgLen] = 0;
-	if (buff[0] != 'v') {
+	if (buff[0] != 'v') { // payload does'nt start with a version indicator
 		log_println(0, "Incompatible version number");
 		exit(4);
 	}
@@ -878,6 +733,9 @@ int main(int argc, char *argv[]) {
 				&buff[1]);
 	}
 
+	// Server must send a message to negotiate the test suite, and this is
+    // a MSG_LOGIN type of message which indicates the same set of tests as
+    // requested by the client earlier
 	msgLen = sizeof(buff);
 	if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
 		log_println(0, "Protocol error - expected test suite message!");
@@ -891,6 +749,8 @@ int main(int argc, char *argv[]) {
 		log_println(0, "Improper message");
 		exit(3);
 	}
+
+	// get ids of tests to be run now
 	buff[msgLen] = 0;
 	log_println(5, "Received tests sequence: '%s'", buff);
 	if ((strtokbuf = malloc(1024)) == NULL) {
@@ -899,6 +759,7 @@ int main(int argc, char *argv[]) {
 	}
 	ptr = strtok_r(buff, " ", &strtokbuf);
 
+	// Run all tests requested, based on the ID.
 	while (ptr) {
 		if (check_int(ptr, &testId)) {
 			log_println(0, "Invalid test ID");
@@ -907,7 +768,7 @@ int main(int argc, char *argv[]) {
 		switch (testId) {
 		case TEST_MID:
 			if (test_mid_clt(ctlSocket, tests, host, conn_options, buf_size,
-					tmpstr2)) {
+					mid_resultstr)) {
 				log_println(0, "Middlebox test FAILED!");
 				tests &= (~TEST_MID);
 			}
@@ -920,7 +781,7 @@ int main(int argc, char *argv[]) {
 			break;
 		case TEST_S2C:
 			if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
-					tmpstr)) {
+					resultstr)) {
 				log_println(0, "S2C throughput test FAILED!");
 				tests &= (~TEST_S2C);
 			}
@@ -944,7 +805,7 @@ int main(int argc, char *argv[]) {
 		ptr = strtok_r(NULL, " ", &strtokbuf);
 	}
 
-	/* get the final results from server
+	/* get the final results from server.
 	 *
 	 * The results are encapsulated by the MSG_RESULTS messages. The last
 	 * message is MSG_LOGOUT.
@@ -952,7 +813,7 @@ int main(int argc, char *argv[]) {
 	for (;;) {
 		msgLen = sizeof(buff);
 		memset(buff, 0, msgLen); // reset buff and msgLen
-		if (ret = (recv_msg(ctlSocket, &msgType, buff, &msgLen))) {
+		if (retcode = (recv_msg(ctlSocket, &msgType, buff, &msgLen))) {
 			if (errno == ECONNRESET)
 				log_println(0,
 						"Connection closed by server, No test performed.");
@@ -970,19 +831,25 @@ int main(int argc, char *argv[]) {
 				msgLen)) {
 			exit(2);
 		}
-		strlcat(tmpstr, buff, sizeof(tmpstr));
-		log_println(6, "tmpstr = '%s'", tmpstr);
+
+		strlcat(resultstr, buff, sizeof(resultstr));
+		log_println(6, "resultstr = '%s'", resultstr);
 	}
 
 	local_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, False);
 	remote_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, False);
 	I2AddrFree(server_addr);
-	//strcpy(varstr, tmpstr);
-	strlcpy(varstr, tmpstr, sizeof(varstr));
-	testResults(tests, tmpstr, host);
+
+	strlcpy(varstr, resultstr, sizeof(varstr));
+	// print test results
+	testResults(tests, resultstr, host);
+
+	// print middlebox test results
 	if (tests & TEST_MID) {
-		middleboxResults(tmpstr2, local_addr, remote_addr);
+		middleboxResults(mid_resultstr, local_addr, remote_addr);
 	}
+
+	// print extra information collected from web100 variables
 	if ((tests & TEST_S2C) && (msglvl > 1))
 		printVariables(varstr);
 	return 0;

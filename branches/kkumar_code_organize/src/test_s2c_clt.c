@@ -42,7 +42,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 		int buf_size, char* result_srv) {
 	char buff[BUFFSIZE + 1];
 	int msgLen, msgType;
-	int s2cport = PORT3;
+	int s2cport = atoi(PORT3);
 	I2Addr sec_addr = NULL;
 	int inlth, retcode, one=1, set_size;
 	int inSocket;

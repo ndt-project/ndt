@@ -26,7 +26,7 @@
  * @param host hostname of the server
  * @param conn_options connection options
  * @param buf_size TCP send/receive buffer size
- * @param tmpstr2 result obtained from server (containing server ip,
+ * @param testresult_str result obtained from server (containing server ip,
  * 						client ip, currentMSS, WinSCaleSent, WinScaleRcvd)
  * @return  integer
  *     => 0 on success
@@ -45,10 +45,10 @@
  *
  */
 int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
-		int buf_size, char* tmpstr2) {
+		int buf_size, char* testresult_str) {
 	char buff[BUFFSIZE + 1];
 	int msgLen, msgType;
-	int midport = PORT3;
+	int midport = atoi(PORT3);
 	I2Addr sec_addr = NULL;
 	int retcode, one=1, i, inlth;
 	int in2Socket;
@@ -109,7 +109,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 		// start reading throughput test data from server using the connection created above
 		printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
 		fflush(stdout);
-		tmpstr2[0] = '\0';
+		testresult_str[0] = '\0';
 		i = 0;
 		bytes = 0;
 		t = secs() + 5.0;  // set timer for 5 seconds, and read for 5 seconds
@@ -137,13 +137,13 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 				break;
 			}
 		}
-		// get actual time for which
+		// get actual time for which test was run
 		t = secs() - t + 5.0;
 
 		// calculate throughput in Kbps
 		spdin = ((BITS_8 * bytes) / KILO) / t;
 
-		// Test is complete. Now, get throughput results from server.
+		// Test is complete. Now, get results from server (includes CurrentMSS, WinScaleSent, WinScaleRcvd..).
 		// The results are sent from server in the form of a TEST_MSG object
 		msgLen = sizeof(buff);
 		if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
@@ -154,10 +154,10 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 			return 2;
 		}
 
-		strlcat(tmpstr2, buff, 512);// hardcoded size as buffer size from main
+		strlcat(testresult_str, buff, MIDBOX_TEST_RES_SIZE);
 
-		memset(buff, 0, 128); // this should work since the throuput results from the server should
-		//  ...fit well within 128 chars
+		memset(buff, 0, 128); // this should work since the throughput results from the server should
+							 //  ...fit well within 128 chars
 		sprintf(buff, "%0.0f", spdin);
 		log_println(4, "CWND limited speed = %0.2f kbps", spdin);
 

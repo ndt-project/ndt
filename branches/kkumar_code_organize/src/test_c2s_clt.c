@@ -44,10 +44,13 @@ double spdout, c2sspd;
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 		int buf_size) {
 	/* char buff[BUFFSIZE+1]; */
-	char buff[64 * KILO_BITS]; // message payload. Todo size variations between server and CLT?
+	char buff[64 * KILO_BITS]; // message payload.
+		// note that there is a size variation between server and CLT - do not
+	    // know why this was changed from BUFFZISE, though
+	    // no specific problem is seen due to this
 
 	int msgLen, msgType; // message related data
-	int c2sport = 3002;  // default C2S port
+	int c2sport = atoi(PORT2); // default C2S port
 	I2Addr sec_addr = NULL;	// server address
 	int retcode;		// return code
 	int one=1;			// socket option store
@@ -117,9 +120,9 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 		// ....Fill buffer upto NDTConstants.PREDEFNED_BUFFER_SIZE packets
 		pkts = 0;
 		k = 0;
-		for (i=0; i<(64*KILO_BITS); i++) { //again todo- verify buffer sizes . seemed like 8192 a
-									// though, this may not be a problem since the actual
-									// byte tx is timed
+		for (i=0; i<(64*KILO_BITS); i++) { // again buffer sizes differ. Since the actual
+									// transmitted byte count is timed, it does'nt appear that it is
+									// causing specific problems.
 			while (!isprint(k&0x7f))
 				k++;
 			buff[i] = (k++ % 0x7f);
@@ -147,10 +150,11 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
 		// Calculate C2S throughput in kbps
 		spdout = ((BITS_8 * pkts * lth) / KILO) / t;
+		//log_println(6," ---C->S CLT speed=%0.0f, pkts= %d, lth=%d, time=%d", spdout, pkts, lth, t);
 
 
 		// The client has stopped streaming data, and the server is now
-		// expected to send a TEST_MSG message with the throughout it calculated.
+		// expected to send a TEST_MSG message with the throughput it calculated.
 		// So, its time now to receive this throughput (c2sspd).
 
 		msgLen = sizeof(buff);

@@ -65,6 +65,8 @@ void mysleep(double time);
 //#define BUFFSIZE  8192		// Buffer size
 
 // middlebox test default MSS
+// Cleaner to move this to clt_tests.h if not for the name of "clt_tests.h".
+// ..web100-util.c would need to import this header file.
 #define MIDDLEBOX_PREDEFINED_MSS 8192
 
 // MAX TCP window size in kilo-bytes

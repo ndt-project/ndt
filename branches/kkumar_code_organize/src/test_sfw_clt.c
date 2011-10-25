@@ -308,7 +308,7 @@ int results_sfw(char tests, char* host) {
 		switch (c2s_result) {
 		case SFW_NOFIREWALL:
 			printf(
-					"Server '%s' is not behind a firewall.",
+					"Server '%s' is not behind a firewall."
 					" [Connection to the ephemeral port was successful]\n",
 					host);
 			break;
@@ -326,12 +326,12 @@ int results_sfw(char tests, char* host) {
 		switch (s2c_result) {
 		case SFW_NOFIREWALL:
 			printf(
-					"Client is not behind a firewall.",
+					"Client is not behind a firewall."
 					" [Connection to the ephemeral port was successful]\n");
 			break;
 		case SFW_POSSIBLE:
 			printf(
-					"Client is probably behind a firewall.",
+					"Client is probably behind a firewall."
 					" [Connection to the ephemeral port failed]\n");
 			break;
 		case SFW_UNKNOWN:
