@@ -70,7 +70,7 @@ void setCurrentDirn(enum Tx_DIRECTION directionarg) {
 		break;
 	case C_S:
 		senddirnstr = get_testdirectiondesc(currentDirection, currenttestdirn);
-		recvdirnstr = get_testdirectiondesc(C_S, othertestdirn);
+		recvdirnstr = get_testdirectiondesc(S_C, othertestdirn);
 		break;
 	case NO_DIR:
 	default:
