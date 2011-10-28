@@ -42,8 +42,16 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
 	int msgLen, msgType;
 	FILE * fp;
 
+	//Protocol validation variables
+	enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+	enum TEST_ID testids = META;
+
 	if (tests & TEST_META) { // perform META tests
 		log_println(1, " <-- META test -->");
+		setCurrentTest(TEST_META);
+		//protocol logs
+		teststatuses = TEST_STARTED;
+		protolog_status(getpid(), testids, teststatuses, ctlSocket);
 		msgLen = sizeof(buff);
 		// Server starts with a TEST_PREPARE message. Any other
 		// .. type of message at this juncture is unexpected !
@@ -119,6 +127,10 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
 			return 2;
 		}
 		log_println(1, " <------------------------->");
+		// log protocol validation logs
+		teststatuses = TEST_ENDED;
+		protolog_status(getpid(), testids, teststatuses,ctlSocket);
+		setCurrentTest(TEST_NONE);
 	}
 	return 0;
 }
