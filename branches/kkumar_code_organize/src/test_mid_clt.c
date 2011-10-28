@@ -57,8 +57,16 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 	struct timeval sel_tv;
 	fd_set rfd;
 
+	enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+	enum TEST_ID testids = MIDDLEBOX;
+
 	if (tests & TEST_MID) { // middlebox test has to be performed
 		log_println(1, " <-- Middlebox test -->");
+		setCurrentTest(TEST_MID);
+		//protocol logs
+		teststatuses = TEST_STARTED;
+		protolog_status(getpid(), testids, teststatuses, ctlSocket);
+
 
 		//  Initially, expecting a TEST_PREPARE message. Any other message
 		// ..type is unexpected at this stage.
@@ -177,6 +185,10 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 			return 2;
 		}
 		log_println(1, " <-------------------->");
+		// log protocol test ending
+		teststatuses = TEST_ENDED;
+		protolog_status(getpid(), testids, teststatuses,ctlSocket);
+		setCurrentTest(TEST_NONE);
 	}
 	return 0;
 }

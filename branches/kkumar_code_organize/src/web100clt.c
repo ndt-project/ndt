@@ -50,6 +50,8 @@ static struct option long_options[] = { { "name", 1, 0, 'n' }, { "port", 1, 0,
 				'l' }, { "web100variables", 0, 0, 301 }, { "buffer", 1, 0, 'b' }, {
 						"disablemid", 0, 0, 302 }, { "disablec2s", 0, 0, 303 }, { "disables2c",
 								0, 0, 304 }, { "disablesfw", 0, 0, 305 },
+								{ "protocol_log", 1, 0, 'u' },
+								{ "enableprotolog", 0, 0, 'e' },
 #ifdef AF_INET6
 								{	"ipv4", 0, 0, '4'},
 								{	"ipv6", 0, 0, '6'},
@@ -488,9 +490,10 @@ int main(int argc, char *argv[]) {
 #define GETOPT_LONG_INET6(x) x
 #endif
 	// Read and record various optional values used for the tests/process
-	while ((useroption = getopt_long(argc, argv, GETOPT_LONG_INET6("n:p:dhlvb:"),
+	while ((useroption = getopt_long(argc, argv, GETOPT_LONG_INET6("n:u:e:p:dhlvb:"),
 			long_options, 0)) != -1) {
 		switch (useroption) {
+		printf("USER OPTION %c",useroption);
 		case '4':
 			conn_options |= OPT_IPV4_ONLY;
 			break;
@@ -519,6 +522,14 @@ int main(int argc, char *argv[]) {
 		case 'n':
 			host = optarg;
 			break;
+		case 'u':
+			printf("Calling set protolog from case-u");
+			set_protologdir(optarg);
+			break;
+		case 'e':
+			printf("Enabling protocol logging");
+			enableprotocollogging();
+			break;
 		case 301:
 			printWeb100VarInfo();
 			exit(0);
@@ -538,6 +549,7 @@ int main(int argc, char *argv[]) {
 		case '?':
 			short_usage(argv[0], "");
 			break;
+
 		}
 	}
 
@@ -582,6 +594,11 @@ int main(int argc, char *argv[]) {
 	} else {
 		printf("Using IPv6 address\n");
 	}
+
+	// set options for test direction
+	enum Tx_DIRECTION currentDirn = C_S;
+	setCurrentDirn(currentDirn);
+	// end protocol logging
 
 	/* set the TEST_STATUS flag so the server knows this client will respond to status requests.
 	 * this will let the server kill off zombie clients from the queue

@@ -227,10 +227,12 @@ char* get_protologdir() {
 }
 
 /**
+ * This method is no longer needed since the protocol log file name
+ * includes client+server name, and is constructed on the fly.
  * Sets the protocol log filename.
  * @param filename The new protocol log filename
- *
- */
+ * */
+/*
 void set_protologfile(char* client_ip, char* protologlocalarr) {
 	FILE * fp;
 
@@ -239,20 +241,50 @@ void set_protologfile(char* client_ip, char* protologlocalarr) {
 	}
 	sprintf(protologlocalarr, "%s/%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
 			client_ip, PROTOLOGSUFFIX, "\0");
+	//strlcpy(ProtocolLogFileName, protologlocalarr, sizeof(ProtocolLogFileName));
+	strlcpy(protologlocalarr,ProtocolLogDirName,sizeof(protologlocalarr));
+	strlcat(protologlocalarr,"/",sizeof(protologlocalarr));
+	strlcat(protologlocalarr,PROTOLOGPREFIX,sizeof(protologlocalarr));
+	strlcat(protologlocalarr,client_ip,sizeof(protologlocalarr));
+	strlcat(protologlocalarr,PROTOLOGSUFFIX,sizeof(protologlocalarr));
 
 	strlcpy(ProtocolLogFileName, protologlocalarr, sizeof(ProtocolLogFileName));
-	log_println(5, "Protocol filename: %s: %s\n", ProtocolLogFileName,
+
+	log_println(0, "Protocol filename: %s: %s\n", ProtocolLogFileName,
 			ProtocolLogDirName);
+
 }
+*/
 
 /**
  * Return the protocol validation log filename.
+ * The protocol log filename contains the local and remote address
+ * of the test, and is uniform across server and client.
  * @return The protocol log filename
  */
 
 char*
-get_protologfile() {
-	return ProtocolLogFileName;
+get_protologfile(int socketNum) {
+	char localAddr[64], remoteAddr[64], tmpstr[FILENAME_SIZE + 128];
+	size_t tmpstrlen = sizeof(localAddr);
+	memset(localAddr, 0, tmpstrlen);
+	memset(remoteAddr, 0, tmpstrlen);
+	memset(tmpstr, 0, 384);
+	// get remote address
+	I2Addr tmp_addr =
+			I2AddrBySockFD(get_errhandle(), socketNum, False);
+	I2AddrNodeName(tmp_addr, remoteAddr, &tmpstrlen); //client name
+
+	// get local address
+	tmp_addr = I2AddrByLocalSockFD(get_errhandle(), socketNum, False);
+
+	I2AddrNodeName(tmp_addr, localAddr, &tmpstrlen);
+
+	// copy address into tmpstr String
+	sprintf(tmpstr, "%s/%s%s%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
+				localAddr, "_",remoteAddr, PROTOLOGSUFFIX, "\0");
+	//log_print(0, "Log file name ---%s---", tmpstr);
+	return tmpstr;
 }
 
 /**
@@ -379,7 +411,7 @@ int quote_delimiters(char *line, int line_size, char *output_buf,
  * @param key string key
  * @param value string value associated with this key
  */
-void protolog_printgeneric(const char* key, const char* value) {
+void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 	FILE * fp;
 	char isotime[64];
 
@@ -394,12 +426,12 @@ void protolog_printgeneric(const char* key, const char* value) {
 	// make delimiters in message payload explicit
 	quote_delimiters(value, strlen(value), logmessage, sizeof(logmessage));
 
-	fp = fopen(get_protologfile(), "a");
+	fp = fopen(get_protologfile(socketnum), "a");
 	if (fp == NULL) {
 		printf(
 				"--Unable to open proto file while trying to record key-vale: %s:%s \n",
 				key, value);
-		log_println(0,
+		log_println(5,
 				"--Unable to open proto file while trying to record msg: %s \n",
 				key, value);
 	} else {
@@ -420,9 +452,9 @@ void protolog_printgeneric(const char* key, const char* value) {
  *
  */
 void protolog_status(int pid, enum TEST_ID testid,
-		enum TEST_STATUS_INT teststatus) {
+		enum TEST_STATUS_INT teststatus, int socketnum) {
 	FILE * fp;
-	va_list ap;
+	//va_list ap;
 	char protomessage[256];
 	char currenttestarr[TEST_NAME_DESC_SIZE];
 	char currentstatusarr[TEST_STATUS_DESC_SIZE];
@@ -439,13 +471,13 @@ void protolog_status(int pid, enum TEST_ID testid,
 		return;
 	}
 
-	fp = fopen(get_protologfile(), "a");
+	fp = fopen(get_protologfile(socketnum), "a");
 	if (fp == NULL) {
 		printf(
 				"--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
 				teststatusdesc, currenttestname);
 		log_println(
-				0,
+				5,
 				"--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
 				teststatusdesc, currenttestname);
 	} else {
@@ -471,7 +503,7 @@ void protolog_status(int pid, enum TEST_ID testid,
  *
  */
 void protolog_procstatus(int pid, enum TEST_ID testidarg,
-		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg) {
+		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum) {
 	FILE * fp;
 	char protomessage[256];
 	char isotime[64];
@@ -493,16 +525,18 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 		return;
 	}
 
-	fp = fopen(get_protologfile(), "a");
+	fp = fopen(get_protologfile(socketnum), "a");
+
 	if (fp == NULL) {
 		printf(
 				"--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
 				procstatusdesc, currentprocname);
 		log_println(
-				0,
+				3,
 				"--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
 				procstatusdesc, currentprocname);
 	} else {
+		log_println(0, " a0\n %s, %s, %s,%d", procstatusdesc,currentprocname,currenttestname,pid);
 		sprintf(
 				protomessage,
 				" event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",
@@ -549,12 +583,12 @@ void protolog_println(char *msgdirection, const int type, void* msg,
 	// make delimiters in message payload explicit
 	quote_delimiters(msg, len, logmessage, sizeof(logmessage));
 
-	fp = fopen(get_protologfile(), "a");
+	fp = fopen(get_protologfile(ctlSocket), "a");
 	if (fp == NULL) {
 		log_println(
 				5,
 				"Unable to open protocol log file '%s', continuing on without logging",
-				get_protologfile());
+				get_protologfile(ctlSocket));
 	} else {
 
 		fprintf(
@@ -784,15 +818,17 @@ get_ISOtime(char *isoTime, int isotimearrsize) {
 
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 	FILE * fp;
-	char tmpstr[256], dir[128];
+	char tmpstr[256];
+	//char dir[128];
 	char dirpathstr[256]="";
     char *tempptr;
     int ptrdiff=0;
 
-	char isoTime[64], filename[256];
+	//char isoTime[64];
+	char filename[256];
 	size_t tmpstrlen = sizeof(tmpstr);
 	socklen_t len;
-	DIR *dp;
+	//DIR *dp;
 	char metafilesuffix[256] = "meta";
 
 	/* Get the clients domain name and same in metadata file
@@ -895,7 +931,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 		} else
 			log_println(
 					5,
-					"Zlib compression disabled, log files will not be compressed");
+					"Zlib compression disabled, log files will not be compressed in %s", tmpstr);
 	}
 	/* #endif */
 
@@ -951,8 +987,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 		char *finalsuffix) {
 
-	char namebuf[256];
-	size_t namebuflen = 255;
+	//char namebuf[256];
+	//size_t namebuflen = 255;
 	char dir[128];
 	DIR *dp;
 

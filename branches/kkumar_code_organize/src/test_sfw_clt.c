@@ -59,6 +59,11 @@ test_osfw_clt(void* vptr) {
 	struct sockaddr_storage srv_addr;
 	socklen_t srvlen;
 
+	// protocol logging
+	enum PROCESS_TYPE_INT proctypeenum = PROCESS_TYPE;
+	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
+	enum TEST_ID testids = SFW;
+
 	// listen for a message from server for a preset time, testTime
 	FD_ZERO(&fds);
 	FD_SET(sfwsockfd, &fds);
@@ -70,7 +75,7 @@ test_osfw_clt(void* vptr) {
 		I2AddrFree(sfwcli_addr);
 		return NULL;
 		case 0: // timeout, indicates that firewall is a possibility
-		log_println(1, "Simple firewall test: no connection for %d seconds", testTime);
+		log_println(1, "Simple firewall test: CLT: no connection for %d seconds", testTime);
 		s2c_result = SFW_POSSIBLE;
 		I2AddrFree(sfwcli_addr);
 		return NULL;
@@ -80,6 +85,15 @@ test_osfw_clt(void* vptr) {
 	// .. cannot be determined
 	srvlen = sizeof(srv_addr);
 	sockfd = accept(sfwsockfd, (struct sockaddr *) &srv_addr, &srvlen);
+
+	// log protocol for connection accept
+	if (sockfd > 0) {
+		procstatusenum = PROCESS_STARTED;
+		proctypeenum = CONNECT_TYPE;
+		protolog_procstatus(getpid(), testids , proctypeenum,
+			procstatusenum, sockfd );
+	}
+
 	msgLen = sizeof(buff);
 	if (recv_msg(sockfd, &msgType, buff, &msgLen)) {
 		log_println(0, "Simple firewall test: unrecognized message");
@@ -159,8 +173,18 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 	char* ptr;
 	pthread_t threadId;
 
+	// variables used for protocol validation logs
+	enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+	enum TEST_ID testids = SFW;
+
 	if (tests & TEST_SFW) { // SFW test is to be performed
 		log_println(1, " <-- Simple firewall test -->");
+		setCurrentTest(TEST_SFW);
+		//protocol logs
+		teststatuses = TEST_STARTED;
+		protolog_status(getpid(), testids, teststatuses, ctlsockfd);
+
+
 		printf("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
 		fflush(stdout);
 		msgLen = sizeof(buff);
@@ -291,6 +315,10 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 			return 2;
 		}
 		log_println(1, " <-------------------------->");
+		// log protocol validation test ending
+		teststatuses = TEST_ENDED;
+		protolog_status(getpid(), testids, teststatuses,ctlsockfd);
+		setCurrentTest(TEST_NONE);
 	}
 	return 0;
 }

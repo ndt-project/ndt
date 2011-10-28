@@ -57,10 +57,19 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 	int i, k;			// temporary iterator
 	int outSocket;		// socket descriptor for the outgoing connection
 	double t, stop_time;// test-time indicators
+	// variables used for protocol validation logs
+	enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+	enum TEST_ID testids = C2S;
+
 
 	if (tests & TEST_C2S) {	// C2S test has to be performed
 		struct sigaction new, old;
 		log_println(1, " <-- C2S throughput test -->");
+		setCurrentTest(TEST_C2S);
+		//protocol logs
+		teststatuses = TEST_STARTED;
+		protolog_status(getpid(), testids, teststatuses, ctlSocket);
+
 		msgLen = sizeof(buff);
 
 		// Initially, the server sends a TEST_PREPARE message. Any other message
@@ -192,6 +201,10 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 			return 2;
 		}
 		log_println(1, " <------------------------->");
+		//log protocol validation logs
+		teststatuses = TEST_ENDED;
+		protolog_status(getpid(), testids, teststatuses,ctlSocket);
+		setCurrentTest(TEST_NONE);
 	}
 	return 0;
 }

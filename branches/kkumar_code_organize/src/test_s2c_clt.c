@@ -53,7 +53,18 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 	fd_set rfd;
 	char* ptr;
 
+	// variables used for protocol validation logs
+	enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+	enum TEST_ID testids = S2C;
+	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
+	enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
+
 	if (tests & TEST_S2C) {
+		setCurrentTest(TEST_S2C);
+		//protocol logs
+		teststatuses = TEST_STARTED;
+		protolog_status(getpid(), testids, teststatuses, ctlSocket);
+
         // First message expected from the server is a TEST_PREPARE. Any other message
 		// ...type is unexpected at this point.
 		log_println(1, " <-- S2C throughput test -->");
@@ -232,6 +243,11 @@ log_println(0,"S->C received throughput: %f",s2cspd);
 		}
 		log_println(6, "result_srv = '%s', of len %d", result_srv, msgLen);
 		log_println(1, " <------------------------->");
+
+		//log protocol validation logs
+		teststatuses = TEST_ENDED;
+		protolog_status(getpid(), testids, teststatuses,ctlSocket);
+		setCurrentTest(TEST_NONE);
 	}
 
 	return 0;
