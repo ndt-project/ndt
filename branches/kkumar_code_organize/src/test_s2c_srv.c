@@ -135,7 +135,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
 		//protocol logs
 		teststatuses = TEST_STARTED;
-		protolog_status(testOptions->child0, testids, teststatuses);
+		protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
 		strlcpy(listens2cport, PORT4, sizeof(listens2cport));
 
@@ -241,7 +241,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 				procstatusenum = PROCESS_STARTED;
 				proctypeenum = CONNECT_TYPE;
 				protolog_procstatus(testOptions->child0, testids, proctypeenum,
-						procstatusenum);
+						procstatusenum, xmitsfd);
 				break;
 			}
 			if ((xmitsfd == -1) && (errno == EINTR)) { // socket interrupted, wait some more
@@ -547,7 +547,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		log_println(0, " <------------ %d ------------->", testOptions->child0);
 		//log protocol validation logs
 		teststatuses = TEST_ENDED;
-		protolog_status(testOptions->child0, testids, teststatuses);
+		protolog_status(testOptions->child0, testids, teststatuses,ctlsockfd);
 
 		setCurrentTest(TEST_NONE);
 

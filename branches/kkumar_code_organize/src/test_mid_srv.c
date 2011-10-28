@@ -91,7 +91,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 		printf(" <--- %d - Middlebox test --->", options->child0);
 		thistestId = MIDDLEBOX;
 		teststatusnow = TEST_STARTED;
-		protolog_status(options->child0, thistestId, teststatusnow);
+		protolog_status(options->child0, thistestId, teststatusnow, ctlsockfd);
 
 		// determine port to be used. Compute based on options set earlier
 		// by reading from config file, or use default port3 (3003),
@@ -205,7 +205,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 				procstatusenum = PROCESS_STARTED;
 				proctypeenum = CONNECT_TYPE;
 				protolog_procstatus(options->child0, thistestId, proctypeenum,
-						procstatusenum);
+						procstatusenum, midsfd);
 				break;
 			}
 
@@ -291,7 +291,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 		// log end of test into protocol doc, just to delimit.
 		teststatusnow = TEST_ENDED;
 		//protolog_status(1, options->child0, thistestId, teststatusnow);
-		protolog_status(options->child0, thistestId, teststatusnow);
+		protolog_status(options->child0, thistestId, teststatusnow,ctlsockfd);
 
 		setCurrentTest(TEST_NONE);
 		/* I2AddrFree(midsrv_addr); */

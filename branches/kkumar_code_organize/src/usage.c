@@ -146,6 +146,8 @@ void clt_long_usage(char* info) {
 	printf("  --disablec2s           - disable the C2S throughput test\n");
 	printf("  --disables2c           - disable the S2C throughput test\n");
 	printf("  --disablesfw           - disable the Simple firewall test\n\n");
+	printf("  -u, --protolog_dir DIR - specify the base directory for protocol validation logs \n");
+	printf("  --enableprotolog        - enable protocol logging \n");
 #ifdef AF_INET6
 	printf(" IP family:\n\n");
 	printf("  -4, --ipv4             - use IPv4 addresses only\n");

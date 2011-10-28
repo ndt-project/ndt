@@ -100,6 +100,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
 	enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 	char namesuffix[256] = "c2s_snaplog";
+	char currenttestdesc[TEST_NAME_DESC_SIZE] = "c2s" ; // todo hardcoded coz of pcap
 
 	if (testOptions->c2sopt) {
 		setCurrentTest(TEST_C2S);
@@ -109,7 +110,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
 		//log protocol validation logs
 		teststatuses = TEST_STARTED;
-		protolog_status(testOptions->child0, testids, teststatuses);
+		protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
 		// Determine port to be used. Compute based on options set earlier
 		// by reading from config file, or use default port2 (3002).
@@ -210,7 +211,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 				procstatusenum = PROCESS_STARTED;
 				proctypeenum = CONNECT_TYPE;
 				protolog_procstatus(testOptions->child0, testids, proctypeenum,
-						procstatusenum);
+						procstatusenum, recvsfd);
 				break;
 			}
 			if ((recvsfd == -1) && (errno == EINTR)) { // socket interrupted, wait some more
@@ -241,7 +242,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 				testOptions->child0, recvsfd);
 
 		// commenting out below to move to init_pkttrace function
-		// src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
+		I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
 
 		// Get web100 connection. Used to collect web100 variable statistics
 		conn = web100_connection_from_socket(agent, recvsfd);
@@ -250,11 +251,15 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		if (getuid() == 0) {
 
 			pipe(mon_pipe1);
-			log_println(0, "C2S test calling pkt_trace_start() with pd=%d",
-					clilen);
-			start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
+			log_println(0, "%s test calling pkt_trace_start() with pd=%d for device %s, addr %s",
+					currenttestdesc, clilen, device , src_addr);
+			/*start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
 					mon_pipe1, (struct sockaddr *) &cli_addr, clilen, device,
 					&pair, "c2s", options->compress, meta.c2s_ndttrace);
+					*/
+			start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
+								mon_pipe1, (struct sockaddr *) &cli_addr, clilen, device,
+								&pair, currenttestdesc, options->compress, meta.c2s_ndttrace);
 			log_println(3, "--tracefile after packet_trace %s",
 					meta.c2s_ndttrace);
 		}
@@ -266,11 +271,13 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		setCwndlimit(conn, group, agent, options);
 
 		// Create C->S snaplog directories, and perform some initialization based on options
+//todo remove logs
+		log_println(0,"***Before create client, C2s");
 
 		create_client_logdir((struct sockaddr *) &cli_addr, clilen,
 				options->c2s_logname, sizeof(options->c2s_logname), namesuffix,
 				sizeof(namesuffix));
-
+		log_println(0,"***AFTER create client, C2s"); //todo remove log
 		sleep(2);
 
 		// send empty TEST_START indicating start of the test
@@ -406,7 +413,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		log_println(1, " <----------- %d -------------->", testOptions->child0);
 		//protocol logs
 		teststatuses = TEST_ENDED;
-		protolog_status(testOptions->child0, testids, teststatuses);
+		protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
 		//set current test status and free address
 		setCurrentTest(TEST_NONE);

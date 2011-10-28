@@ -56,7 +56,7 @@ metaentry	*new_entry = NULL;
 
 		// log protocol validation details
 		teststatuses = TEST_STARTED;
-		protolog_status(testOptions->child0, testids, teststatuses);
+		protolog_status(testOptions->child0, testids, teststatuses,ctlsockfd);
 
 		// first message exchanged is am empty TEST_PREPARE message
 		j = send_msg(ctlsockfd, TEST_PREPARE, "", 0);
@@ -149,7 +149,7 @@ metaentry	*new_entry = NULL;
 		log_println(1, " <-------------------------->");
 
 		teststatuses = TEST_ENDED; // protocol log section
-		protolog_status(testOptions->child0, testids, teststatuses);
+		protolog_status(testOptions->child0, testids, teststatuses,ctlsockfd);
 
 		setCurrentTest(TEST_NONE);
 	}

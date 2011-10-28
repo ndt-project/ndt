@@ -79,7 +79,7 @@ struct metadata {
 
 void set_protologdir(char* dirname);
 void set_protologfile(char* client_ip, char *protologfileparam);
-char* get_protologfile();
+char* get_protologfile(int socketnum);
 char* get_protologdir();
 void enableprotocollogging();
 char *createprotologfilename(char* client_ip, char* textappendarg);
@@ -90,17 +90,17 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 		int finalsuffixsize);
 void log_linkspeed(int index);
 
-void protolog_printgeneric(const char* key, const char* val);
+void protolog_printgeneric(const char* key, const char* val,int socketnum);
 void protolog_status(int pid, enum TEST_ID testid,
-		enum TEST_STATUS_INT teststatus);
+		enum TEST_STATUS_INT teststatus,int socketnum);
 void protolog_sendprintln(const int type, void* msg, const int len,
 		const int processid, const int ctlSocket);
 void protolog_rcvprintln(const int type, void* msg, const int len,
 		const int processid, const int ctlSocket);
 void protolog_procstatus(int pid, enum TEST_ID testidarg,
-		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg);
+		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum);
 void protolog_procstatuslog(int pid, enum TEST_ID testidarg,
-		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg);
+		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum);
 
 struct metadata meta;
 #endif

@@ -99,7 +99,7 @@ void finalize_sfw(int ctlsockfd) {
 
 	// log
 	teststatusnow = TEST_ENDED;
-	protolog_status(getpid(), thistestId, teststatusnow);
+	protolog_status(getpid(), thistestId, teststatusnow, ctlsockfd);
 	log_println(1, " <-------------------------->");
 	// unset test name
 	setCurrentTest(TEST_NONE);
@@ -150,7 +150,7 @@ int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
 		log_println(1, " <-- %d - Simple firewall test -->", options->child0);
 		thistestId = SFW;
 		teststatusnow = TEST_STARTED;
-		protolog_status(options->child0, thistestId, teststatusnow);
+		protolog_status(options->child0, thistestId, teststatusnow,ctlsockfd);
 
 		// bind to a new port and obtain address structure with details of port etc
 		sfwsrv_addr = CreateListenSocket(NULL, "0", conn_options, 0);
@@ -252,7 +252,7 @@ int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
 
 			// log end
 			teststatusnow = TEST_ENDED;
-			protolog_status(options->child0, thistestId, teststatusnow);
+			protolog_status(options->child0, thistestId, teststatusnow, ctlsockfd);
 			log_println(1, " <-------------------------->");
 			I2AddrFree(sfwsrv_addr);
 			return 5;
@@ -301,7 +301,7 @@ int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
 		sockfd = accept(sfwsockfd, (struct sockaddr *) &cli_addr, &clilen);
 		// protocol validation log to indicate client tried connecting
 		procstatusenum = PROCESS_STARTED;
-		protolog_procstatus(options->child0, thistestId, proctypeenum, procstatusenum);
+		protolog_procstatus(options->child0, thistestId, proctypeenum, procstatusenum, sockfd);
 
 		msgLen = sizeof(buff);
 		if (recv_msg(sockfd, &msgType, buff, &msgLen)) { // message received in error

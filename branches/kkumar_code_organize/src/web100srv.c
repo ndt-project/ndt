@@ -1188,7 +1188,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	// time spent in being send-limited due to own fault
 	sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
 
-	timesec = totaltime / MEGA; // total time in get microsecs
+	timesec = totaltime / MEGA; // total time in microsecs
 
 	// get fraction of total test time waiting for packets to arrive
 	RTOidle = calc_RTOIdle(Timeouts, CurrentRTO, timesec);
@@ -1507,10 +1507,10 @@ int main(int argc, char** argv) {
 	char *name;
 
 	// variables used for protocol validation logs
-	char startsrvmsg[256]; // used to log start of server process
-	char *srvstatusdesc;
-	enum PROCESS_STATUS_INT srvstatusenum = UNKNOWN;
-	char statustemparr[PROCESS_STATUS_DESC_SIZE]; // temp storage for process name
+	//char startsrvmsg[256]; // used to log start of server process
+	//char *srvstatusdesc;
+	//enum PROCESS_STATUS_INT srvstatusenum = UNKNOWN;
+	//char statustemparr[PROCESS_STATUS_DESC_SIZE]; // temp storage for process name
 	enum PROCESS_TYPE_INT proctypeenum = PROCESS_TYPE;
 	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
 
@@ -1896,11 +1896,14 @@ int main(int argc, char** argv) {
 				VERSION);
 
 	// create protocol validation entry every time a process starts up
+	// This whole block is not needed since there are protocol log files per client
+	// and server start is not a protocol process
+	/*
 	sprintf(startsrvmsg, "Web100srv (ver %s)", VERSION);
 	srvstatusenum = PROCESS_STARTED;
 	srvstatusdesc = get_procstatusdesc(srvstatusenum, statustemparr);
-	//protolog_printgeneric(0, srvstatusdesc, startsrvmsg);
 	protolog_printgeneric(srvstatusdesc, startsrvmsg);
+	*/
 
 	// scan through the interface device list and get the names/speeds of each
 	//  if.  The speed data can be used to cap the search for the bottleneck link
@@ -2201,7 +2204,7 @@ int main(int argc, char** argv) {
 				procstatusenum = PROCESS_STARTED;
 				proctypeenum = CONNECT_TYPE;
 				protolog_procstatus(getpid(), getCurrentTest(), proctypeenum,
-						procstatusenum);
+						procstatusenum, ctlsockfd );
 			}
 
 			// the specially crafted data that kicks off the old clients
