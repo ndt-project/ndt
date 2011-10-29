@@ -16,6 +16,8 @@ double secs();
 void err_sys(char* s);
 int sndq_len(int fd);
 void mysleep(double time);
+int trim(char *line, int line_size,
+		char * output_buf, int output_buf_size);
 
 #endif
 

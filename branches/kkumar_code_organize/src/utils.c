@@ -162,3 +162,38 @@ void mysleep(double time) {
 			return;
 	}
 }
+
+/**
+ * Utility function to trim unwanted characters from a string.
+ * @param line	String to trim
+ * @param line_size	Size of line to be trimmed
+ * @param output_buf Location to store trimmed line in
+ * @param output_buf_size output buffer size
+ * @return strlen of output string
+ */
+int trim(char *line, int line_size,
+		char * output_buf, int output_buf_size) {
+	static char whitespacearr[4]= {  '\n', ' ', '\t', '\r' };
+
+	int i, j, k;
+
+	for (i = j = 0; i < line_size && j < output_buf_size - 1; i++) {
+		// find any matching characters among the quoted
+		int is_whitespace = 0;
+		for (k = 0; k < 4; k++) {
+			if (line[i] == whitespacearr[k]) {
+				is_whitespace = 1;
+				break;
+			}
+		}
+		if (!is_whitespace) {
+			output_buf[j] = line[i];
+			j++ ;
+		}
+	}
+	output_buf[j] = '\0'; // null terminate
+	printf("****Received=%s; len=%d; dest=%d; MSG=%s", line, line_size,
+			strlen(output_buf), output_buf);
+	return j - 1;
+}
+

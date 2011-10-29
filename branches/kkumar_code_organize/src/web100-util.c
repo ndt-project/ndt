@@ -27,7 +27,7 @@
 int web100_init(char *VarFileName) {
 
 	FILE * fp;
-	char line[256];
+	char line[256], trimmedline[256];
 	int count_vars = 0;
 
 	assert(VarFileName);
@@ -42,8 +42,10 @@ int web100_init(char *VarFileName) {
 		if ((line[0] == '#') || (line[0] == '\n')) // if newline or comment, ignore
 			continue;
 		// copy web100 variable into our array and increment count of read variables
-		//strncpy(web_vars[count_vars].name, line, (strlen(line)-1));
-		strlcpy(web_vars[count_vars].name, line,
+
+		trim(line, strlen(line), trimmedline, sizeof(trimmedline)); // remove unwanted
+				//	chars (right now, trailing/preceding chars from wb100 var names)
+		strlcpy(web_vars[count_vars].name, trimmedline,
 				sizeof(web_vars[count_vars].name));
 		count_vars++;
 	}
@@ -330,11 +332,10 @@ int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
 	assert(snap);
 	assert(agent);
 
-	// Read values for number of variables intended
 	for (i = 0; i < count_vars; i++) {
 		if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
 				&var)) != WEB100_ERR_SUCCESS) {
-			log_println(9, "Variable %d (%s) not found in KIS", i,
+			log_println(9, "Variable %d (%s) not found in KIS: ", i,
 					web_vars[i].name);
 			continue;
 		}
