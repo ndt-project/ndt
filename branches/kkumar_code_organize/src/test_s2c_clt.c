@@ -167,7 +167,9 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
 		// get actual time for which data was received, and calculate throughput based on it.
 		t = secs() - t + 15.0;
-		spdin = ((BITS_8 * bytes) / KILO) / t; //kbps
+		spdin = ((BITS_8_FLOAT * bytes) / KILO) / t; //kbps
+
+		//log_println(0,"S->C: Received %d bytes in %0.2f secs: Spdin= %f", bytes, t, spdin);
 
 		// Server sends calculated throughput value, unsent data amount in the socket queue
 		// and overall number of sent bytes in a TEST_MSG
@@ -203,7 +205,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 			return 4;
 		}
 		sbytes = atoi(ptr);	// finally get total-sent-byte-count
-log_println(0,"S->C received throughput: %f",s2cspd);
+		//log_println(0,"S->C received throughput: %f",s2cspd);
 		// log results in a convenient units format
 		if (spdin < 1000)
 		printf("%0.2f kb/s\n", spdin);

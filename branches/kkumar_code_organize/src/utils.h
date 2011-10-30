@@ -30,6 +30,7 @@ int trim(char *line, int line_size,
 #define MAX_TCP_PORT_STR "65535"
 #define KILO_BITS 1024
 #define BITS_8 8
+#define BITS_8_FLOAT 8.0
 #define WINDOW_SCALE_THRESH 15
 #define MEGA 1000000
 #define KILO 1000

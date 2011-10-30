@@ -149,7 +149,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 		t = secs() - t + 5.0;
 
 		// calculate throughput in Kbps
-		spdin = ((BITS_8 * bytes) / KILO) / t;
+		spdin = ((BITS_8_FLOAT * bytes) / KILO) / t;
 
 		// Test is complete. Now, get results from server (includes CurrentMSS, WinScaleSent, WinScaleRcvd..).
 		// The results are sent from server in the form of a TEST_MSG object

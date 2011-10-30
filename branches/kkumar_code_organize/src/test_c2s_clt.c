@@ -158,7 +158,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 		I2AddrFree(sec_addr);
 
 		// Calculate C2S throughput in kbps
-		spdout = ((BITS_8 * pkts * lth) / KILO) / t;
+		spdout = ((BITS_8_FLOAT * pkts * lth) / KILO) / t;
 		//log_println(6," ---C->S CLT speed=%0.0f, pkts= %d, lth=%d, time=%d", spdout, pkts, lth, t);
 
 
