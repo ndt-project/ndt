@@ -93,6 +93,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	int i; // temporary var used for iterators etc
 	PortPair pair; // socket ports
 	I2Addr s2csrv_addr = NULL;
+	I2Addr src_addr = NULL;
 	char listens2cport[10];
 	int msgType;
 	int msgLen;
@@ -265,7 +266,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 				return -102;
 			}
 		}
-		//src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
+		src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
 		conn = web100_connection_from_socket(agent, xmitsfd);
 
 		// set up packet capture. The data collected is used for bottleneck link calculations
@@ -273,11 +274,41 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 			log_println(6, "S2C child %d, ready to fork()",
 					testOptions->child0);
 			if (getuid() == 0) {
+				/*
 				pipe(mon_pipe2);
 				start_packet_trace(xmitsfd, testOptions->s2csockfd,
 						&s2c_childpid, mon_pipe2, (struct sockaddr *) &cli_addr,
 						clilen, device, &pair, "s2c", options->compress,
 						meta.s2c_ndttrace);
+				*/
+				pipe(mon_pipe2);
+				if ((s2c_childpid = fork()) == 0) {
+					/* close(ctlsockfd); */
+					close(testOptions->s2csockfd);
+					close(xmitsfd);
+					log_println(
+							5,
+							"S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
+							mon_pipe2[0], mon_pipe2[1]);
+					/* log_println(2, "S2C test calling init_pkttrace() with pd=0x%x", (int) &cli_addr); */
+					init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
+							clilen, mon_pipe2, device, &pair, "s2c",
+							options->compress);
+					log_println(6,
+							"S2C test ended, why is timer still running?");
+					exit(0); /* Packet trace finished, terminate gracefully */
+				}
+				memset(tmpstr, 0, 256);
+				for (i = 0; i < 5; i++) { // read nettrace file name into "tmpstr"
+					ret = read(mon_pipe2[0], tmpstr, 128);
+					if ((ret == -1) && (errno == EINTR)) // socket interrupted, try reading again
+						continue;
+					break;
+				}
+
+				if (strlen(tmpstr) > 5)
+					memcpy(meta.s2c_ndttrace, tmpstr, strlen(tmpstr));
+				// name of nettrace file passed back from pcap child copied into meta structure
 
 			}
 

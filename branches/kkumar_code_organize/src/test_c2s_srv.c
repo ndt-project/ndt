@@ -100,7 +100,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
 	enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 	char namesuffix[256] = "c2s_snaplog";
-	char currenttestdesc[TEST_NAME_DESC_SIZE] = "c2s" ; // todo hardcoded coz of pcap
+	char currenttestdesc[TEST_NAME_DESC_SIZE] = "c2s" ;
 
 	if (testOptions->c2sopt) {
 		setCurrentTest(TEST_C2S);
@@ -249,17 +249,43 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
 		// set up packet tracing. Collected data is used for bottleneck link calculations
 		if (getuid() == 0) {
-
+			/*
 			pipe(mon_pipe1);
 			log_println(0, "%s test calling pkt_trace_start() with pd=%d for device %s, addr %s",
 					currenttestdesc, clilen, device , src_addr);
-			/*start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
-					mon_pipe1, (struct sockaddr *) &cli_addr, clilen, device,
-					&pair, "c2s", options->compress, meta.c2s_ndttrace);
-					*/
+
 			start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
 								mon_pipe1, (struct sockaddr *) &cli_addr, clilen, device,
 								&pair, currenttestdesc, options->compress, meta.c2s_ndttrace);
+			*/
+
+			pipe(mon_pipe1);
+			if ((c2s_childpid = fork()) == 0) {
+				/* close(ctlsockfd); */
+				close(testOptions->c2ssockfd);
+				close(recvsfd);
+				log_println(
+						5,
+						"C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
+						testOptions->child0, mon_pipe1[0], mon_pipe1[1]);
+			    log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
+				init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
+						mon_pipe1, device, &pair, "c2s", options->compress);
+				exit(0); /* Packet trace finished, terminate gracefully */
+			}
+
+			// Get data collected from packet tracing into the C2S "ndttrace" file
+			memset(tmpstr, 0, 256);
+			for (i = 0; i < 5; i++) {
+				msgretvalue = read(mon_pipe1[0], tmpstr, 128);
+				if ((msgretvalue == -1) && (errno == EINTR))
+					continue;
+				break;
+			}
+			if (strlen(tmpstr) > 5)
+				memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
+			//name of nettrace file passed back from pcap child
+
 			log_println(3, "--tracefile after packet_trace %s",
 					meta.c2s_ndttrace);
 		}
@@ -271,13 +297,10 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		setCwndlimit(conn, group, agent, options);
 
 		// Create C->S snaplog directories, and perform some initialization based on options
-//todo remove logs
-		log_println(0,"***Before create client, C2s");
 
 		create_client_logdir((struct sockaddr *) &cli_addr, clilen,
 				options->c2s_logname, sizeof(options->c2s_logname), namesuffix,
 				sizeof(namesuffix));
-		log_println(0,"***AFTER create client, C2s"); //todo remove log
 		sleep(2);
 
 		// send empty TEST_START indicating start of the test
