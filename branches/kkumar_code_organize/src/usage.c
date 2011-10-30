@@ -1,4 +1,4 @@
-/*
+/**
  * This file contains the functions to print usage screens.
  *
  * Jakub S³awiñski 2006-06-02
@@ -13,7 +13,7 @@
 #include <assert.h>
 
 /**
- * Prints the short usage of the application.
+ * Print the short usage of the application.
  * @param prog The name of the application
  * @param info Text printed in the first line
  */
@@ -27,10 +27,9 @@ void short_usage(char* prog, char* info) {
 	exit(1);
 }
 
-/*
- * Function name: srv_long_usage
- * Description: Prints the long usage of the web100srv.
- * Arguments: info - the text printed in the first line
+/**
+ * Print the long usage of the web100srv.
+ * @param info text printed in the first line
  */
 
 void srv_long_usage(char* info) {
@@ -120,10 +119,9 @@ void srv_long_usage(char* info) {
 	exit(0);
 }
 
-/*
- * Function name: clt_long_usage
- * Description: Prints the long usage of the web100clt.
- * Arguments: info - the text printed in the first line
+/**
+ * Print the long usage of the web100clt.
+ * @param info text printed in the first line
  */
 
 void clt_long_usage(char* info) {
@@ -157,10 +155,9 @@ void clt_long_usage(char* info) {
 	exit(0);
 }
 
-/*
- * Function name: www_long_usage
- * Description: Prints the long usage of the fakewww.
- * Arguments: info - the text printed in the first line
+/**
+ * Print the long usage of the fakewww.
+ * @param info text printed in the first line
  */
 
 void www_long_usage(char* info) {
@@ -200,10 +197,9 @@ void www_long_usage(char* info) {
 	exit(0);
 }
 
-/*
- * Function name: analyze_long_usage
- * Description: Prints the long usage of the analyze.
- * Arguments: info - the text printed in the first line
+/**
+ * Print the long usage of the analyze.
+ * @param info text printed in the first line
  */
 
 void analyze_long_usage(char* info) {
@@ -221,10 +217,9 @@ void analyze_long_usage(char* info) {
 	exit(0);
 }
 
-/*
- * Function name: mkmap_long_usage
- * Description: Prints the long usage of the tr-mkmap.
- * Arguments: info - the text printed in the first line
+/**
+ * Print the long usage of the tr-mkmap.
+ * @arg info text printed in the first line
  */
 
 void mkmap_long_usage(char* info) {
@@ -258,10 +253,9 @@ void mkmap_long_usage(char* info) {
 	exit(0);
 }
 
-/*
- * Function name: vt_long_usage
- * Description: Prints the long usage of the viewtrace.
- * Arguments: info - the text printed in the first line
+/**
+ * Print long usage of the viewtrace.
+ * @param info text printed in the first line
  */
 
 void vt_long_usage(char* info) {
@@ -287,10 +281,10 @@ void vt_long_usage(char* info) {
 	exit(0);
 }
 
-/*
- * Function name: genplot_long_usage
- * Description: Prints the long usage of the genplot.
- * Arguments: info - the text printed in the first line
+/**
+ * Print the long usage of the genplot.
+ * @param info text printed in the first line
+ * @param argv0 Process name
  */
 
 void genplot_long_usage(char* info, char* argv0) {

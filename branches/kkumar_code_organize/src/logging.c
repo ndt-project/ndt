@@ -410,6 +410,7 @@ int quote_delimiters(char *line, int line_size, char *output_buf,
  * in a list of key-value pairs
  * @param key string key
  * @param value string value associated with this key
+ * @param socketnum Socket fd
  */
 void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 	FILE * fp;
@@ -428,16 +429,12 @@ void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 
 	fp = fopen(get_protologfile(socketnum), "a");
 	if (fp == NULL) {
-		printf(
-				"--Unable to open proto file while trying to record key-vale: %s:%s \n",
-				key, value);
 		log_println(5,
 				"--Unable to open proto file while trying to record msg: %s \n",
 				key, value);
 	} else {
 		fprintf(fp, " event=\"%s\", name=\"%s\", time=\"%s\"\n", key, value,
 				get_ISOtime(isotime, sizeof(isotime)));
-		printf("%s = \"%s\" \n", key, logmessage);
 		fclose(fp);
 	}
 }
@@ -449,6 +446,7 @@ void protolog_printgeneric(const char* key, const char* value, int socketnum) {
  * @param testid enumerator indicating name of the test @see TEST_ID
  * @param pid PID of process
  * @param teststatus enumerator indicating test status. @see TEST_STATUS_INT
+ * @param socketnum Socket fd
  *
  */
 void protolog_status(int pid, enum TEST_ID testid,
@@ -473,9 +471,6 @@ void protolog_status(int pid, enum TEST_ID testid,
 
 	fp = fopen(get_protologfile(socketnum), "a");
 	if (fp == NULL) {
-		printf(
-				"--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
-				teststatusdesc, currenttestname);
 		log_println(
 				5,
 				"--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
@@ -485,8 +480,6 @@ void protolog_status(int pid, enum TEST_ID testid,
 				" event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",
 				teststatusdesc, currenttestname, pid,
 				get_ISOtime(isotime, sizeof(isotime)));
-		printf("%s: <-- %d - %s - %s --> \n ", protomessage, pid,
-				teststatusdesc, currenttestname);
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
 	}
@@ -500,7 +493,7 @@ void protolog_status(int pid, enum TEST_ID testid,
  * @param testidarg enumerator indicating name of the test @see TEST_ID
  * @param procidarg enumerator indicating name of the test @see PROCESS_TYPE_INT
  * @param teststatusarg enumerator indicating test status. @see TEST_STATUS_INT
- *
+ * @param socketnum Socket fd
  */
 void protolog_procstatus(int pid, enum TEST_ID testidarg,
 		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum) {
@@ -536,14 +529,12 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 				"--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
 				procstatusdesc, currentprocname);
 	} else {
-		log_println(0, " a0\n %s, %s, %s,%d", procstatusdesc,currentprocname,currenttestname,pid);
+		log_println(8, " a0\n %s, %s, %s,%d", procstatusdesc,currentprocname,currenttestname,pid);
 		sprintf(
 				protomessage,
 				" event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",
 				procstatusdesc, currentprocname, currenttestname, pid,
 				get_ISOtime(isotime, sizeof(isotime)));
-		printf("%s: -- %d - %s - %s - %s -- \n ", protomessage, pid,
-				currenttestname, procstatusdesc, currentprocname);
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
 	}
@@ -596,10 +587,6 @@ void protolog_println(char *msgdirection, const int type, void* msg,
 				" event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
 				msgdirection, currenttestname, currentmsgtype, len, logmessage,
 				processid, ctlSocket, get_ISOtime(isotime, sizeof(isotime)));
-		printf(
-				"direction = %s, test= %s, type=%s, len=%d, msg=%s, pid=%d, socket=%d, time=%s\n",
-				msgdirection, currenttestname, currentmsgtype, len, logmessage,
-				processid, ctlSocket, get_ISOtime(isotime, sizeof(isotime)));
 		fclose(fp);
 	}
 }
@@ -619,7 +606,7 @@ void protolog_sendprintln(const int type, void* msg, const int len,
 	char *currentDir;
 
 	if (!enableprotologging) {
-		log_println(0, "Protocol logging is not enabled");
+		log_println(3, "Protocol logging is not enabled");
 		return;
 	}
 	currentDir = get_currentdirndesc();
@@ -645,7 +632,6 @@ void protolog_rcvprintln(const int type, void* msg, const int len,
 		return;
 	}
 	otherDir = get_otherdirndesc();
-	//protolog_println(lvl, otherDir, type, msg, len, processid, ctlSocket);
 	protolog_println(otherDir, type, msg, len, processid, ctlSocket);
 }
 

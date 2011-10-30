@@ -192,7 +192,7 @@ int trim(char *line, int line_size,
 		}
 	}
 	output_buf[j] = '\0'; // null terminate
-	printf("****Received=%s; len=%d; dest=%d; MSG=%s", line, line_size,
+	log_println(8,"Received=%s; len=%d; dest=%d; MSG=%s\n", line, line_size,
 			strlen(output_buf), output_buf);
 	return j - 1;
 }

@@ -115,7 +115,7 @@ void printWeb100VarInfo() {
  *  values of settings that have been detected.
  *
  * @param tests  test indicator character
- * @param tmpstr Result string obtained at the end of tests from the server
+ * @param testresult_str Result string obtained at the end of tests from the server
  * @param host   server host name string
  */
 void testResults(char tests, char *testresult_str, char* host) {
@@ -523,11 +523,9 @@ int main(int argc, char *argv[]) {
 			host = optarg;
 			break;
 		case 'u':
-			printf("Calling set protolog from case-u");
 			set_protologdir(optarg);
 			break;
 		case 'e':
-			printf("Enabling protocol logging");
 			enableprotocollogging();
 			break;
 		case 301:

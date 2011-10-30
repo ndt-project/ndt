@@ -186,8 +186,8 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
 	int msgType;
 	int msgLen = 1;
 	int first = 1;
-	char remhostarr[256], protologlocalarr[256];
-	char *remhost_ptr = get_remotehost();
+	//char remhostarr[256], protologlocalarr[256];
+	//char *remhost_ptr = get_remotehost();
 
 	assert(ctlsockfd != -1);
 	assert(options);
@@ -214,7 +214,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
 			"Client connect received from :IP %s to some server on socket %d",
 			get_remotehost(), ctlsockfd);
 
-	set_protologfile(get_remotehost(), protologlocalarr);
+	//set_protologfile(get_remotehost(), protologlocalarr);
 
 	if (!(useropt
 			& (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
