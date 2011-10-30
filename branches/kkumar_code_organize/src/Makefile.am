@@ -34,7 +34,8 @@ bin_PROGRAMS = web100clt
 endif
 
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
-                    test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c
+                    test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c \
+			test_results_clt.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
