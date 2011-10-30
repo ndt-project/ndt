@@ -1172,8 +1172,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 			packetloss_s2c);
 
 	//get window sizes
-	calc_window_sizes(&SndWinScale, &RcvWinScale, &Sndbuf, &MaxRwinRcvd,
-			&MaxCwnd, &rwin, &swin, &cwin);
+	calc_window_sizes(&SndWinScale, &RcvWinScale, Sndbuf, MaxRwinRcvd,
+			MaxCwnd, &rwin, &swin, &cwin);
 
 	// Total test time
 	totaltime = calc_totaltesttime(SndLimTimeRwin, SndLimTimeCwnd,

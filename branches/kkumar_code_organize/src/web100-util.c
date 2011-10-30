@@ -149,11 +149,12 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 		if (strcmp(line, "4294967295;") == 0)
 			sprintf(line, "%d;", -1);
 
-		strlcat(results, line, sizeof(results));
+		//strlcat(results, line, sizeof(results));
+		strlcat(results, line, (BUFFSIZE + 1));
 		log_print(3, "%s", line);
 	}
 	log_println(3, "");
-	log_println(0, "Sending %d Byte packets over the network", currentMSSval);
+	log_println(0, "Sending %d Byte packets over the network, and data=%s", currentMSSval, line);
 
 	/* The initial check has been completed, now stream data to the remote client
 	 * for 5 seconds with very limited buffer space.  The idea is to see if there

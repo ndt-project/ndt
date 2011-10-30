@@ -226,9 +226,9 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
 	if ((*RcvWinScale > WINDOW_SCALE_THRESH) || (MaxRwinRcvd < MAX_TCP_PORT))
 		*RcvWinScale = 0;
 
-	*rwin = (double) (MaxRwinRcvd * BITS_8 / KILO_BITS / KILO_BITS );
+	*rwin = (double) MaxRwinRcvd * BITS_8 / KILO_BITS / KILO_BITS;
 	*swin = (double) SendBuf * BITS_8 / KILO_BITS / KILO_BITS;
-	*cwin = (double) (MaxCwnd * BITS_8 / KILO_BITS / KILO_BITS );
+	*cwin = (double) MaxCwnd * BITS_8 / KILO_BITS / KILO_BITS;
 	log_println(
 			log_lvl_heur,
 			"--window sizes: SndWinScale= %d, RcvwinScale=%d, rwin=%f, swin=%f, cwin=%f",
