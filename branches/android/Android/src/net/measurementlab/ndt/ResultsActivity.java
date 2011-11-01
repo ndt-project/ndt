@@ -184,8 +184,9 @@ public class ResultsActivity extends Activity {
 				.get("pub_MaxRwinRcvd") * 1024));
 		results.append(formatDetailedLine(R.string.results_detailed_optimal_rcvr_buffer,
 				variables, "pub_OptimalRcvrBuffer"));
-		results.append(formatDetailedLine(R.string.results_detailed_bottleneck_link,
-				variables, "pub_AccessTech"));
+		// TODO re-enable when link detection is more reliable
+//		results.append(formatDetailedLine(R.string.results_detailed_bottleneck_link,
+//				variables, "pub_AccessTech"));
 		// haven't been able to deduce where this var is set
 //		results.append(formatDetailedLine(R.string.results_detailed_dupe_acks, variables,
 //				"pub_DupAcksIn"));
