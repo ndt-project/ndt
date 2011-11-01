@@ -562,8 +562,9 @@ void enableprotocollogging() {
 void printbinary(char *charbinary, int inarray_size, char *binout_arr, int outarr_size) {
 	int j = 7, i = 0;
 
-	if (inarray_size < 8 || outarr_size < 8 ) {
+	if ( outarr_size < 8 ) {
 		log_println(8, "Invalid array sizes while formatting protocol binary data. Quitting");
+		return;
 	}
 
 	for (j = 7 ; j >= 0 && i < BITS_8; j--) {
@@ -646,7 +647,7 @@ void protolog_println(char *msgdirection, const int type, void* msg,
 	fp = fopen(get_protologfile(ctlSocket, protologfile), "a");
 	if (fp == NULL) {
 		log_println(
-				0,
+				5,
 				"Unable to open protocol log file '%s', continuing on without logging",
 				protologfile);
 	} else {
@@ -668,7 +669,6 @@ void protolog_println(char *msgdirection, const int type, void* msg,
  * @param processid PID of process
  * @param ctlSocket socket over which message has been exchanged
  * */
-//void protolog_sendprintln (int lvl, const int type, void* msg, const int len, const int processid, const int ctlSocket) {
 void protolog_sendprintln(const int type, void* msg, const int len,
 		const int processid, const int ctlSocket) {
 	char *currentDir;
@@ -679,7 +679,6 @@ void protolog_sendprintln(const int type, void* msg, const int len,
 	}
 	currentDir = get_currentdirndesc();
 
-	//printf("--sendprintln=%s;\n", (char *)msg); //to remove
 	protolog_println(currentDir, type, msg, len, processid, ctlSocket);
 }
 
@@ -871,9 +870,6 @@ char *get_currenttime(char *isoTime, int isotimearrsize) {
 	if(rc==0) {
 		timenow = now.tv_sec;
 		result = gmtime(&now);
-		//printf("gettimeofday() successful.\n");
-		//printf("time = %u.%06u\n",
-		//         now.tv_sec, now.tv_usec);
 		return (fill_ISOtime(result, isoTime, isotimearrsize));
 	}
 	return NULL;

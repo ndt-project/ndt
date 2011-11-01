@@ -80,7 +80,6 @@ struct metadata {
 
 void set_protologdir(char* dirname);
 void set_protologfile(char* client_ip, char *protologfileparam);
-//char* get_protologfile(int socketnum);
 char*
 get_protologfile(int socketNum, char *protologfilename) ;
 char* get_protologdir();
