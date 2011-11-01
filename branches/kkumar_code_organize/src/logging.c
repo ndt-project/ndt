@@ -23,6 +23,7 @@
 #include "testoptions.h"
 #include "strlutils.h"
 #include "utils.h"
+#include "protocol.h"
 
 static int _debuglevel = 0;
 static char* _programname = "";
@@ -254,7 +255,7 @@ void set_protologfile(char* client_ip, char* protologlocalarr) {
 			ProtocolLogDirName);
 
 }
-*/
+ */
 
 /**
  * Return the protocol validation log filename.
@@ -264,12 +265,12 @@ void set_protologfile(char* client_ip, char* protologlocalarr) {
  */
 
 char*
-get_protologfile(int socketNum) {
-	char localAddr[64], remoteAddr[64], tmpstr[FILENAME_SIZE + 128];
+get_protologfile(int socketNum, char *protologfilename) {
+	char localAddr[64]="", remoteAddr[64]="";
 	size_t tmpstrlen = sizeof(localAddr);
 	memset(localAddr, 0, tmpstrlen);
 	memset(remoteAddr, 0, tmpstrlen);
-	memset(tmpstr, 0, 384);
+
 	// get remote address
 	I2Addr tmp_addr =
 			I2AddrBySockFD(get_errhandle(), socketNum, False);
@@ -280,11 +281,12 @@ get_protologfile(int socketNum) {
 
 	I2AddrNodeName(tmp_addr, localAddr, &tmpstrlen);
 
-	// copy address into tmpstr String
-	sprintf(tmpstr, "%s/%s%s%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
-				localAddr, "_",remoteAddr, PROTOLOGSUFFIX, "\0");
-	//log_print(0, "Log file name ---%s---", tmpstr);
-	return tmpstr;
+	// copy address into filename String
+	sprintf(protologfilename, "%s/%s%s%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
+			localAddr, "_",remoteAddr, PROTOLOGSUFFIX, "\0");
+	//log_print(0, "Log file name ---%s---", protologfilename);
+
+	return protologfilename;
 }
 
 /**
@@ -418,6 +420,7 @@ void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 
 	char logmessage[4096]; /* 4096 is just a random default buffer size for the protocol message
 	 Ideally, twice the messsage size will suffice */
+	char tmplogname[FILENAME_SIZE];
 
 	if (!enableprotologging) {
 		log_println(5, "Protocol logging is not enabled");
@@ -427,14 +430,14 @@ void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 	// make delimiters in message payload explicit
 	quote_delimiters(value, strlen(value), logmessage, sizeof(logmessage));
 
-	fp = fopen(get_protologfile(socketnum), "a");
+	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
 	if (fp == NULL) {
 		log_println(5,
 				"--Unable to open proto file while trying to record msg: %s \n",
 				key, value);
 	} else {
 		fprintf(fp, " event=\"%s\", name=\"%s\", time=\"%s\"\n", key, value,
-				get_ISOtime(isotime, sizeof(isotime)));
+				get_currenttime(isotime, sizeof(isotime)));
 		fclose(fp);
 	}
 }
@@ -459,6 +462,7 @@ void protolog_status(int pid, enum TEST_ID testid,
 	char isotime[64];
 	char *currenttestname = "";
 	char *teststatusdesc = "";
+	char tmplogname[FILENAME_SIZE]="";
 
 	//get descriptive strings for test name and status
 	currenttestname = get_testnamedesc(testid, currenttestarr);
@@ -469,7 +473,7 @@ void protolog_status(int pid, enum TEST_ID testid,
 		return;
 	}
 
-	fp = fopen(get_protologfile(socketnum), "a");
+	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
 	if (fp == NULL) {
 		log_println(
 				5,
@@ -479,7 +483,7 @@ void protolog_status(int pid, enum TEST_ID testid,
 		sprintf(protomessage,
 				" event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",
 				teststatusdesc, currenttestname, pid,
-				get_ISOtime(isotime, sizeof(isotime)));
+				get_currenttime(isotime, sizeof(isotime)));
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
 	}
@@ -508,6 +512,8 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 	char *procstatusdesc = "";
 	char *currenttestname = "";
 
+	char tmplogname[FILENAME_SIZE];
+
 	//get descriptive strings for test name and status
 	currenttestname = get_testnamedesc(testidarg, currenttestarr);
 	currentprocname = get_processtypedesc(procidarg, currentprocarr);
@@ -518,7 +524,7 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 		return;
 	}
 
-	fp = fopen(get_protologfile(socketnum), "a");
+	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
 
 	if (fp == NULL) {
 		printf(
@@ -534,7 +540,7 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 				protomessage,
 				" event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",
 				procstatusdesc, currentprocname, currenttestname, pid,
-				get_ISOtime(isotime, sizeof(isotime)));
+				get_currenttime(isotime, sizeof(isotime)));
 		fprintf(fp, "%s", protomessage);
 		fclose(fp);
 	}
@@ -545,6 +551,67 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
  */
 void enableprotocollogging() {
 	enableprotologging = 1;
+}
+
+/**
+ * Utility method to print binary value format of character data.
+ *
+ * @param charbinary 8 digit character that contains binary information
+ * @param binout_arr output array containing binary bits
+ */
+void printbinary(char *charbinary, int inarray_size, char *binout_arr, int outarr_size) {
+	int j = 7, i = 0;
+
+	if (inarray_size < 8 || outarr_size < 8 ) {
+		log_println(8, "Invalid array sizes while formatting protocol binary data. Quitting");
+	}
+
+	for (j = 7 ; j >= 0 && i < BITS_8; j--) {
+		if ((*charbinary & (1 << j)))
+			binout_arr[i] = '1';
+		else
+			binout_arr[i] = '0';
+		i++;
+	}
+	binout_arr[i] = '\0';
+}
+
+
+
+/**
+ * Utility method to get the message body type.
+ * Currently, messages are either composed of one character, holding unsigned data
+ * in the form of bits indicating the chosen tests, or in the form of strings.
+ * Also, currently, there is just one MSG_LOGIN message that carries bit data.
+ * Hence, message body type is based on these factors.
+ *
+ * @param type ProtocolMessage type
+ * @param len  Length of message body
+ * @param msgbodytype Storage for Message body type description
+ * @param msgpayload  message payload
+ * @param msgbits 	 message payload altered per its format type (output buffer)
+ * @param sizemsgbits Output buffer size
+ * @return isbitfield
+ */
+int getMessageBodyFormat(int type, int len, char* msgbodytype, char* msgpayload, char* msgbits, int sizemsgbits) {
+	int isbitfielddata = 0;
+	enum MSG_BODY_TYPE msgbodyformat = NOT_KNOWN;
+
+	if (type == MSG_LOGIN && len ==1 ) {
+		msgbodyformat = BITFIELD;
+		strlcpy(msgbodytype, (char *)getmessageformattype(msgbodyformat,msgbodytype), MSG_BODY_FMT_SIZE );
+		printbinary (msgpayload, len, msgbits, sizemsgbits);
+		isbitfielddata = 1;
+	}
+	else {
+		msgbodyformat = STRING;
+		strlcpy(msgbodytype , (char *)getmessageformattype(msgbodyformat,msgbodytype), MSG_BODY_FMT_SIZE);
+		// make delimiters in message payload explicit
+		quote_delimiters(msgpayload, len, msgbits, sizemsgbits);
+
+	}
+	return isbitfielddata;
+
 }
 
 /** Log all send/receive protocol messages.
@@ -561,32 +628,33 @@ void enableprotocollogging() {
 void protolog_println(char *msgdirection, const int type, void* msg,
 		const int len, const int processid, const int ctlSocket) {
 	FILE * fp;
-	//char currentdrcnarr[TEST_DIRN_DESC_SIZE];
+
 	char msgtypedescarr[MSG_TYPE_DESC_SIZE];
-	char *currenttestname, *currentmsgtype;
+	char *currenttestname, *currentmsgtype, *currentbodyfmt;
 	char isotime[64];
 	char logmessage[4096]; // message after replacing delimiter characters
+	char protologfile[FILENAME_SIZE];
+	char msgbodytype[MSG_BODY_FMT_SIZE];
+	int is_bitmessage = 0;
 
 	// get descriptive strings for test name and direction
 	currenttestname = get_currenttestdesc();
 	currentmsgtype = get_msgtypedesc(type, msgtypedescarr);
 
-	// make delimiters in message payload explicit
-	quote_delimiters(msg, len, logmessage, sizeof(logmessage));
+	is_bitmessage = getMessageBodyFormat(type, len, msgbodytype, (char *) msg, logmessage, sizeof(logmessage));
 
-	fp = fopen(get_protologfile(ctlSocket), "a");
+	fp = fopen(get_protologfile(ctlSocket, protologfile), "a");
 	if (fp == NULL) {
 		log_println(
-				5,
+				0,
 				"Unable to open protocol log file '%s', continuing on without logging",
-				get_protologfile(ctlSocket));
+				protologfile);
 	} else {
-
 		fprintf(
 				fp,
-				" event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
-				msgdirection, currenttestname, currentmsgtype, len, logmessage,
-				processid, ctlSocket, get_ISOtime(isotime, sizeof(isotime)));
+				" event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg_body_format=\"%s\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
+				msgdirection, currenttestname, currentmsgtype, len, msgbodytype, logmessage,
+				processid, ctlSocket, get_currenttime(isotime, sizeof(isotime)));
 		fclose(fp);
 	}
 }
@@ -611,6 +679,7 @@ void protolog_sendprintln(const int type, void* msg, const int len,
 	}
 	currentDir = get_currentdirndesc();
 
+	//printf("--sendprintln=%s;\n", (char *)msg); //to remove
 	protolog_println(currentDir, type, msg, len, processid, ctlSocket);
 }
 
@@ -729,24 +798,17 @@ void get_DD(char *day) {
 		sprintf(day, "%d", result->tm_mday);
 }
 
-/** Return a character string in the ISO8601 time foramt
- * 		used to create snaplog and trace file names
- *
- * Author: Rich Carlson - 5/6/09
- * @param Pointer to the string indicating ISO time
- * @param character string with ISO time string.
+
+/**
+ * Fill in ISOTime standard data
+ * @param result tm structure
+ * @param isoTime Char array to save ISO time in
+ * @param isotimearrsize array size of time output
+ * @return
  */
 
-char *
-get_ISOtime(char *isoTime, int isotimearrsize) {
-
-	struct tm *result;
-	time_t now;
+char *fill_ISOtime(struct tm *result, char *isoTime, int isotimearrsize) {
 	char tmpstr[16];
-
-	setenv("TZ", "UTC", 0);
-	now = get_timestamp();
-	result = gmtime(&now);
 
 	sprintf(isoTime, "%d", 1900 + result->tm_year);
 	if (1 + result->tm_mon < 10)
@@ -791,6 +853,54 @@ get_ISOtime(char *isoTime, int isotimearrsize) {
 }
 
 /**
+ * Method to get current time
+ * @param isoTime array to store current time in
+ * @param isotimearrsize ISO time array size
+ * @return current time string
+ */
+char *get_currenttime(char *isoTime, int isotimearrsize) {
+	struct timeval now;
+	time_t timenow;
+	struct tm *result;
+	int rc;
+
+	struct timeval tv;
+
+	rc = gettimeofday(&now, NULL);
+
+	if(rc==0) {
+		timenow = now.tv_sec;
+		result = gmtime(&now);
+		//printf("gettimeofday() successful.\n");
+		//printf("time = %u.%06u\n",
+		//         now.tv_sec, now.tv_usec);
+		return (fill_ISOtime(result, isoTime, isotimearrsize));
+	}
+	return NULL;
+}
+
+
+/** Return a character string in the ISO8601 time foramt
+ * 		used to create snaplog and trace file names
+ *
+ * Author: Rich Carlson - 5/6/09
+ * @param Pointer to the string indicating ISO time
+ * @param character string with ISO time string.
+ */
+char *
+get_ISOtime(char *isoTime, int isotimearrsize) {
+
+	struct tm *result;
+	time_t now;
+	char tmpstr[16];
+
+	setenv("TZ", "UTC", 0);
+	now = get_timestamp();
+	result = gmtime(&now);
+
+	return (fill_ISOtime(result, isoTime, isotimearrsize));
+}
+/**
  * Write meta data out to log file.  This file contains details and
  * names of the other log files.
  * @param compress integer flag indicating whether log file compression
@@ -807,8 +917,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 	char tmpstr[256];
 	//char dir[128];
 	char dirpathstr[256]="";
-    char *tempptr;
-    int ptrdiff=0;
+	char *tempptr;
+	int ptrdiff=0;
 
 	//char isoTime[64];
 	char filename[256];
@@ -825,7 +935,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 	// get socketaddr size based on whether IPv6/IPV4 address was used
 #ifdef AF_INET6
 	if (meta.family == AF_INET6)
-	len = sizeof(struct sockaddr_in6);
+		len = sizeof(struct sockaddr_in6);
 #endif
 	if (meta.family == AF_INET)
 		len = sizeof(struct sockaddr_in);

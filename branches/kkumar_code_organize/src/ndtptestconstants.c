@@ -8,7 +8,7 @@
  */
 
 #include <string.h>
-#include "ndtptests.h"
+#include "ndtptestconstants.h"
 
 // The arrays below rely on the ordering of corresponding enum in the .h file.
 // test names
@@ -27,6 +27,8 @@ static char * _testmsgtypesarray[] = { "COMM_FAILURE", "SRV_QUEUE", "MSG_LOGIN",
 // names of protocol message transmission directions
 static char *_txdirectionsarray[] = { "none", "client_to_server",
 		"server_to_client" };
+
+static char *_msgbodyformattype[] = { "bitfield", "string", "none" };
 
 /**
  * Get descriptive string for test name
@@ -76,4 +78,15 @@ char *get_msgtypedesc(int msgtype, char *smsgtypearg) {
 	smsgtypearg = _testmsgtypesarray[msgtype];
 	//printf ("--current test type = %s , for %d\n", smsgtypearg, msgtype);
 	return smsgtypearg;
+}
+
+/**
+ * Get descriptive name for message body format type
+ * @param bodymsgformat Message body format type
+ * @param smsgformattypearg descriptive string for message body format type
+ * @return
+ */
+char * getmessageformattype(enum MSG_BODY_TYPE bodymsgformat, char *smsgformattypearg)  {
+	smsgformattypearg = _msgbodyformattype[bodymsgformat];
+	return smsgformattypearg;
 }

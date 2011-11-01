@@ -19,6 +19,7 @@
 #define TEST_STATUS_DESC_SIZE 18 /* test status < 18 chars */
 #define TEST_DIRN_DESC_SIZE 20   /* direction is either client_to_server or server_to_client */
 #define MSG_TYPE_DESC_SIZE 15    /* max size for now derived from "TEST_FINALIZE" */
+#define MSG_BODY_FMT_SIZE 10 /* max size for desc "NOT_KNOWN" */
 
 // port numbers
 #define PORT  "3001"
@@ -42,10 +43,15 @@ enum Tx_DIRECTION {
 	NO_DIR, C_S, S_C
 } txdirection;
 
+enum MSG_BODY_TYPE {
+	BITFIELD, STRING, NOT_KNOWN
+} bodyformattype;
+
 char *get_testnamedesc(enum TEST_ID testid, char *stestnamearg);
 char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *steststatusarg);
 char *get_testdirectiondesc(enum Tx_DIRECTION testdirection,
 		char *stestdirectionarg);
 char *get_msgtypedesc(int msgtypearg, char *smsgtypearg);
+char * getmessageformattype(enum MSG_BODY_TYPE bodymsgformat, char *smsgformattypearg) ;
 
 #endif

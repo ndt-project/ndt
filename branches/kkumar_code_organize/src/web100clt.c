@@ -523,7 +523,7 @@ int main(int argc, char *argv[]) {
 			host = optarg;
 			break;
 		case 'u':
-			set_protologdir(optarg);
+			set_protologdir(strdup(optarg));
 			break;
 		case 'e':
 			enableprotocollogging();
