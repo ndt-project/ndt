@@ -410,10 +410,10 @@ function testDetails() {
   }
 
   if (a.get_natStatus() == "yes") {
-    d += "A network addess translation appliance was detected.<br>";
+    d += "A network address translation appliance was detected.<br>";
   }
   else {
-    d += "No network addess translation appliance was detected.<br>";
+    d += "No network address translation appliance was detected.<br>";
   }
 
   d += "<br>";
