@@ -421,7 +421,7 @@ function testDetails() {
   d += a.get_cwndtime() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
   d += a.get_rcvrLimiting() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
   d += "Optimal receive buffer: " + a.get_optimalRcvrBuffer() + " bytes<br>";
-  d += "Bottleneck link: " + a.get_AccessTech() + "<br>";
+  //d += "Bottleneck link: " + a.get_AccessTech() + "<br>";
   d += a.get_DupAcksOut() + " duplicate ACKs set<br>";
 
   return d;
