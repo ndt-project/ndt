@@ -6,7 +6,7 @@
 
 == Nodes ==
 
-The following is a list of MLab Nodes (Updated <font color="red">June 27, 2010</font>)
+The following is a list of MLab Nodes (Updated <font color="red">November 17, 2011</font>)
 
  * MLab 1 Nodes
    * mlab1.sea01.measurement-lab.org
@@ -25,6 +25,9 @@ The following is a list of MLab Nodes (Updated <font color="red">June 27, 2010</
    * mlab1.ath01.measurement-lab.org 
    * mlab1.ham01.measurement-lab.org
    * mlab1.syd01.measurement-lab.org 
+   * mlab1.wlg01.measurement-lab.org 
+   * mlab1.iad01.measurement-lab.org 
+   * mlab1.hnd01.measurement-lab.org 
  * MLab 2 Nodes
    * mlab2.sea01.measurement-lab.org
    * mlab2.nuq01.measurement-lab.org 
@@ -42,6 +45,9 @@ The following is a list of MLab Nodes (Updated <font color="red">June 27, 2010</
    * mlab2.ath01.measurement-lab.org 
    * mlab2.ham01.measurement-lab.org
    * mlab2.syd01.measurement-lab.org 
+   * mlab2.wlg01.measurement-lab.org 
+   * mlab2.iad01.measurement-lab.org 
+   * mlab2.hnd01.measurement-lab.org 
  * MLab 3 Nodes
    * mlab3.sea01.measurement-lab.org
    * mlab3.nuq01.measurement-lab.org 
@@ -59,6 +65,9 @@ The following is a list of MLab Nodes (Updated <font color="red">June 27, 2010</
    * mlab3.ath01.measurement-lab.org 
    * mlab3.ham01.measurement-lab.org
    * mlab3.syd01.measurement-lab.org 
+   * mlab3.wlg01.measurement-lab.org 
+   * mlab3.iad01.measurement-lab.org 
+   * mlab3.hnd01.measurement-lab.org 
  * MLab 4 Nodes
    * mlab4.nuq01.measurement-lab.org 
 
@@ -185,7 +194,7 @@ DONAR is installed in _*/home/iupui_ndt/donar*_ and has several moving parts:
 To check the status of DONAR on all MLAB hosts either run the following one line shell script:
 
 {{{
-for i in sea01 nuq01 lax01 dfw01 ord01 lga01 lga02 atl01 mia01 lhr01 ams01 ams02 par01 ath01 ham01 syd01; do echo "Testing \"$i\"";host ndt.iupui.$i.donar.measurement-lab.org;echo;done
+for i in sea01 nuq01 lax01 dfw01 ord01 lga01 lga02 atl01 mia01 lhr01 ams01 ams02 par01 ath01 ham01 syd01 wlg01 iad01 hnd01; do echo "Testing \"$i\"";host ndt.iupui.$i.donar.measurement-lab.org;echo;done
 }}}
 
 Or consult one of the DONAR status pages:
@@ -246,13 +255,23 @@ rm -f ~/.ssh/environment
 
  * check GB free via CoMon MLab Status (sort key: GB Free) - http://comon.cs.princeton.edu/status/tabulator.cgi?sort=28&limit=50&account=mlab 
  * ssh to the machine 
- * $ ./get_safe_delete_date.py rsync://ndt.iupui.mlabX.XXX0#.measurement-lab.org:7999/ndt-data (will return a date such as 2010-04-03)
+ * $ ./get_safe_delete_date.py rsync://ndt.iupui.``hostname``:7999/ndt-data (will return a date such as 2010-04-03)
  * $ cd /usr/local/ndt/serverdata/2010/04 (will change to the April 2010 directory)
  * $ ls (displays the log directories, one for each day of the month, example 02 03 04 05)
  * $ sudo rm -frd 02 03 (deletes specific directories and all of its contents)
 
 
 == Miscellaneous Notes ==
+
+=== Common Problems ===
+
+ * A full disk is one of the more common reasons that ndtd will fail to start. This will show up in one of two ways.
+   * The nagios ndt check will fail, this only tests the permanent listening ports. netstat -ln on logging in will show nothing on port 3001. Restarting ndt and re-checking netstat -ln will continue to show nothing listening on port 3001. Be sure to try df -h and clean up as needed, a full disk will often cause ndtd to crash immediately or soon after a restart.
+   * The nagios mlab_ndt check will fail, this uses the web100clt program and will detect time outs and problems with the actual test if the permanent listening ports are up. netstat -ln is not useful in this instance as a crash or hang of this sort may still show port 3001 as listening. Running the web100ctl bin with the -n parameter, using the affected host as the argument, will confirm this crash/hang if the test gets to c2s and/or s2c but reports a failure of either or both of those stages. Be sure to check disk usage (df -h) clearing up stale test data files as needed. Usually restarting ntdt, using the init system, will restore the server process to operation; confirm with web100clt.
+ * If stopping and manually killing any left over ntdt processes revealed by ps doesn't work, try restarting the vserver. This is less disruptive than restarting the entire server node. These instructions assume root access, the Planet Lab tools may also support those with site_admin access to perform a similar set of oeprations.
+   * Log into the root partition of the server node.
+   * vserver iupui_ndt stop
+   * vserver iupui_ndt start
 
 === SSH ===
 
