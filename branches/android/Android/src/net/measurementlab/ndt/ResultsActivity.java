@@ -1,6 +1,7 @@
 package net.measurementlab.ndt;
 
 import java.text.DecimalFormat;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,16 @@ public class ResultsActivity extends Activity {
 		aboutView.setOnClickListener(aboutListener);
 		aboutView = findViewById(R.id.MLabLogo);
 		aboutView.setOnClickListener(aboutListener);
+		
+
+		Button emailButton = (Button) findViewById(R.id.ButtonEmail);
+		emailButton.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				emailResults();
+			}
+		});
 
 		Button startButton = (Button) findViewById(R.id.ButtonStart);
 		startButton.setOnClickListener(new OnClickListener() {
@@ -211,6 +222,16 @@ public class ResultsActivity extends Activity {
 		String message = getString(templateId, params.toArray(new Object[params
 				.size()]));
 		return message.concat("\n");
+	}
+	
+	private void emailResults() {
+	    Intent intentMail = new Intent(Intent.ACTION_SEND);
+		TextView textView = (TextView) findViewById(R.id.AdvancedResultsInfo);
+	    intentMail.putExtra(Intent.EXTRA_TEXT, textView.getText());
+	    String emailTitle = getString(R.string.email_title, new Date().toString());
+	    intentMail.putExtra(Intent.EXTRA_SUBJECT, emailTitle);
+	    intentMail.setType("plain/text");
+	    startActivity(Intent.createChooser(intentMail, "Choose Email Client"));
 	}
 	
 	private boolean isVarSet(Map<String,Object> variables, String key) {

@@ -61,5 +61,6 @@
     <string name="results_advanced">Advanced Results</string>
     <string name="results_advanced_web100">WEB100 Kernel Variables:\n%s</string>
     <string name="results_more_about">More information about M-Lab</string>
+    <string name="results_email">Email Results</string>
     <string name="results_test_again">Test Again</string>
 </resources>
