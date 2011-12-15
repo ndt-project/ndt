@@ -1,5 +1,3 @@
-// Copyright 2009 Google Inc. All Rights Reserved.
-
 package net.measurementlab.ndt;
 
 import android.app.Activity;

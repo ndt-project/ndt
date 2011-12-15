@@ -3,7 +3,7 @@
     <string name="app_name">NDT Mobile Client (beta 2)</string>
     <string name="about">About</string>
     <string name="start">Start</string>
-    <string name="label_about_description">Copyright 2009 Google Inc.\n\nThis software is based in part on NDT: Copyright (c) 2003 University of Chicago.</string>
+    <string name="label_about_description">This software is based in part on NDT: Copyright (c) 2003 University of Chicago.</string>
     <string name="label_about_title">About NDT Mobile Client for Android</string>
     <string name="serverlist_corrupted_tip">Server list corrupted, please contact the publisher.</string>
     <string name="from_header">From:</string>
