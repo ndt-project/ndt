@@ -10,9 +10,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -60,27 +62,6 @@ public class ResultsActivity extends Activity {
 		aboutView.setOnClickListener(aboutListener);
 		aboutView = findViewById(R.id.MLabLogo);
 		aboutView.setOnClickListener(aboutListener);
-		
-
-		Button emailButton = (Button) findViewById(R.id.ButtonEmail);
-		emailButton.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				emailResults();
-			}
-		});
-
-		Button startButton = (Button) findViewById(R.id.ButtonStart);
-		startButton.setOnClickListener(new OnClickListener() {
-
-			@Override
-			public void onClick(View v) {
-				Intent intent = new Intent(getApplicationContext(),
-						TestsActivity.class);
-				startActivity(intent);
-			}
-		});
 	}
 
 	/**
@@ -102,6 +83,34 @@ public class ResultsActivity extends Activity {
 		Toast resultsHint = Toast.makeText(getApplicationContext(),
 				getString(R.string.results_swipe_hint), 10);
 		resultsHint.show();
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+		inflater.inflate(R.menu.results, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle item selection
+		switch (item.getItemId()) {
+		case R.id.MenuEmail: {
+			emailResults();
+
+			return true;
+		}
+		case R.id.MenuStartAgain: {
+			Intent intent = new Intent(getApplicationContext(),
+					TestsActivity.class);
+			startActivity(intent);
+
+			return true;
+		}
+		default:
+			return super.onOptionsItemSelected(item);
+		}
 	}
 
 	private void formatSummaryResults(Map<String, Object> variables) {

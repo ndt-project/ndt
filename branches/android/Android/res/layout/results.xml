@@ -129,10 +129,6 @@
 			<LinearLayout android:orientation="horizontal"
 				android:layout_alignParentRight="true" android:layout_width="wrap_content"
 				android:layout_height="wrap_content">
-				<Button android:text="@string/results_email" android:id="@+id/ButtonEmail"
-					style="@style/NdtButton" />
-				<Button android:text="@string/results_test_again" android:id="@+id/ButtonStart"
-					style="@style/NdtButton" />
 			</LinearLayout>
 		</RelativeLayout>
 	</RelativeLayout>

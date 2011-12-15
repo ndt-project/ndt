@@ -55,14 +55,14 @@ public class InitialActivity extends Activity {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		// Handle item selection
 		switch (item.getItemId()) {
-		case R.id.SelectServers: {
+		case R.id.MenuSelectServers: {
 			Intent intent = new Intent(InitialActivity.this, SelectServerActivity.class);
 			intent.putExtra(SelectServerActivity.EXTRA_SERVER_NUMBER, serverNumber);
 			startActivityForResult(intent, SelectServerActivity.ACTIVITY_SELECT_SERVER);
 
 			return true;
 		}
-		case R.id.About: {
+		case R.id.MenuAbout: {
 			Intent intent = new Intent(Intent.ACTION_VIEW, Uri
 					.parse("http://measurementlab.net"));
 			startActivity(intent);
