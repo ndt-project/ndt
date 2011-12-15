@@ -5,7 +5,6 @@
     <string name="start">Start</string>
     <string name="label_about_description">This software is based in part on NDT: Copyright (c) 2003 University of Chicago.</string>
     <string name="label_about_title">About NDT Mobile Client for Android</string>
-    <string name="serverlist_corrupted_tip">Server list corrupted, please contact the publisher.</string>
     <string name="from_header">From:</string>
     <string name="to_header">To:</string>
     <string name="server_indicator">Server: %1$s</string>
@@ -20,6 +19,8 @@
     
     <string name="mlab">M-Lab</string>
     <string name="mlabdesc">Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds — it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network administrator.</string>
+    <string name="initial_select_server">Select Server</string>
+    <string name="servers_save">Save Selected Server</string>
     <string name="tests_preparing_header">PREPARING YOUR TESTS...</string>
     <string name="tests_both_header">NOW TESTING</string>
     <string name="tests_complete_header">Tests Complete</string>

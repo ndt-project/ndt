@@ -78,6 +78,11 @@ public class NdtService extends Service {
 	static final String EXTRA_DIAG_STATUS = "diagnosticStatus";
 
 	/**
+	 * Server against which to perform the test.
+	 */
+	static final String EXTRA_SERVER_HOST = "serverHost";
+
+	/**
 	 * Label for variables captured during testing and used in presentation of
 	 * results in {@link ResultsActivity}.
 	 */
@@ -126,10 +131,15 @@ public class NdtService extends Service {
 		// this interface is how the service is able to observe the
 		// tests as run by the core Java client code
 		uiServices = new CaptiveUiServices();
+
+		String serverHost = intent.getStringExtra(EXTRA_SERVER_HOST);
+		if (null == serverHost) {
+			serverHost = Constants.SERVER_LIST[Constants.DEFAULT_SERVER][1];
+		}
+
 		try {
-			new Thread(new NdtTests(
-					Constants.SERVER_HOST[Constants.DEFAULT_SERVER],
-					uiServices, networkType)).start();
+			new Thread(new NdtTests(serverHost, uiServices, networkType))
+					.start();
 		} catch (Throwable tr) {
 			Log.e(LOG_TAG, "Problem running tests.", tr);
 			intent.putExtra(EXTRA_STATUS, STATUS_ERROR);
@@ -181,8 +191,8 @@ public class NdtService extends Service {
 
 		CaptiveUiServices() {
 			// not needed now but may be useful in the future
-//			statusBuffers.put(UiServices.MAIN_VIEW, new StringBuilder());
-//			statusBuffers.put(UiServices.STAT_VIEW, new StringBuilder());
+			// statusBuffers.put(UiServices.MAIN_VIEW, new StringBuilder());
+			// statusBuffers.put(UiServices.STAT_VIEW, new StringBuilder());
 			statusBuffers.put(UiServices.DIAG_VIEW, new StringBuilder());
 		}
 

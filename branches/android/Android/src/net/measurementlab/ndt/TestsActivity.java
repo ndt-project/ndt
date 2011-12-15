@@ -70,7 +70,8 @@ public class TestsActivity extends Activity {
 				NdtService.INTENT_UPDATE_STATUS));
 		
 		Intent intent = new Intent(getApplicationContext(), NdtService.class);
-		intent.putExtra("networkType", getNetworkType());
+		intent.putExtra(NdtService.EXTRA_NETWORK_TYPE, getNetworkType());
+		intent.putExtra(NdtService.EXTRA_SERVER_HOST, getIntent().getStringExtra(NdtService.EXTRA_SERVER_HOST));
 		startService(intent);
 		
 		Log.i(LOG_TAG, "Tests activity resumed.");
@@ -219,7 +220,7 @@ public class TestsActivity extends Activity {
 	
 	private String getServerAddress() {
 		try {
-			InetAddress server = InetAddress.getByName(Constants.SERVER_HOST[Constants.DEFAULT_SERVER]);
+			InetAddress server = InetAddress.getByName(Constants.SERVER_LIST[Constants.DEFAULT_SERVER][1]);
 			return server.getHostAddress();
 		} catch (UnknownHostException e) {
 			Log.e(LOG_TAG, "Error resolving server hosts.", e);

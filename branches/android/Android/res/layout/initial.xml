@@ -29,8 +29,5 @@
 		<Button android:text="@string/start"
 			android:id="@+id/ButtonStart"
 			style="@style/NdtButton" />
-		<Button android:text="@string/about"
-			android:id="@+id/ButtonAbout"
-			style="@style/NdtButton" />
 	</LinearLayout>
 </RelativeLayout>
