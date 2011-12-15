@@ -18,7 +18,7 @@ import android.widget.Toast;
  */
 public class InitialActivity extends Activity {
 
-	private int serverNumber = Constants.DEFAULT_SERVER;
+	private int serverNumber = SelectServerActivity.DEFAULT_SERVER;
 
 	/**
 	 * Initializes the activity.
@@ -38,7 +38,7 @@ public class InitialActivity extends Activity {
 				Intent intent = new Intent(getApplicationContext(),
 						TestsActivity.class);
 				intent.putExtra(NdtService.EXTRA_SERVER_HOST,
-						Constants.SERVER_LIST[serverNumber][1]);
+						SelectServerActivity.SERVER_LIST[serverNumber][1]);
 				startActivity(intent);
 			}
 		});
@@ -84,7 +84,7 @@ public class InitialActivity extends Activity {
 				serverNumber = data.getExtras().getInt(
 						SelectServerActivity.EXTRA_SERVER_NUMBER);
 				Toast serverSelected = Toast.makeText(getApplicationContext(),
-						"Selected " + Constants.SERVER_LIST[serverNumber][0],
+						"Selected " + SelectServerActivity.SERVER_LIST[serverNumber][0],
 						10);
 				serverSelected.show();
 			}

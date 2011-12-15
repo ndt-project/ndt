@@ -1,7 +1,5 @@
 package net.measurementlab.ndt;
 
-import static net.measurementlab.ndt.Constants.LOG_TAG;
-
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -104,13 +102,13 @@ public class NdtService extends Service {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		Log.i(LOG_TAG, "Service created.");
+		Log.i(NdtSupport.LOG_TAG, "Service created.");
 		intent = new Intent(INTENT_UPDATE_STATUS);
 	}
 
 	@Override
 	public void onStart(Intent intent, int startId) {
-		Log.i(LOG_TAG, "Starting NDT service.");
+		Log.i(NdtSupport.LOG_TAG, "Starting NDT service.");
 		super.onStart(intent, startId);
 
 		// this means the service is already started
@@ -134,14 +132,14 @@ public class NdtService extends Service {
 
 		String serverHost = intent.getStringExtra(EXTRA_SERVER_HOST);
 		if (null == serverHost) {
-			serverHost = Constants.SERVER_LIST[Constants.DEFAULT_SERVER][1];
+			serverHost = SelectServerActivity.SERVER_LIST[SelectServerActivity.DEFAULT_SERVER][1];
 		}
 
 		try {
 			new Thread(new NdtTests(serverHost, uiServices, networkType))
 					.start();
 		} catch (Throwable tr) {
-			Log.e(LOG_TAG, "Problem running tests.", tr);
+			Log.e(NdtSupport.LOG_TAG, "Problem running tests.", tr);
 			intent.putExtra(EXTRA_STATUS, STATUS_ERROR);
 		}
 	}
@@ -155,7 +153,7 @@ public class NdtService extends Service {
 		}
 		uiServices = null;
 		unregisterReceiver(stopReceiver);
-		Log.i(LOG_TAG, "Finishing NDT service.");
+		Log.i(NdtSupport.LOG_TAG, "Finishing NDT service.");
 	}
 
 	private BroadcastReceiver createReceiver() {
@@ -163,7 +161,7 @@ public class NdtService extends Service {
 
 			@Override
 			public void onReceive(Context context, Intent intent) {
-				Log.i(LOG_TAG, "Stop request received.");
+				Log.i(NdtSupport.LOG_TAG, "Stop request received.");
 				uiServices.requestStop();
 			}
 		};
@@ -201,7 +199,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void appendString(String message, int viewId) {
-			Log.d(LOG_TAG, String.format("Appended: (%1$d) %2$s.", viewId,
+			Log.d(NdtSupport.LOG_TAG, String.format("Appended: (%1$d) %2$s.", viewId,
 					message.trim()));
 
 			if (statusBuffers.containsKey(viewId)) {
@@ -213,20 +211,20 @@ public class NdtService extends Service {
 
 			if (message.contains(C2S_MSG_FRAGMENT)
 					&& UiServices.MAIN_VIEW == viewId) {
-				Log.i(LOG_TAG, "Starting upload test.");
+				Log.i(NdtSupport.LOG_TAG, "Starting upload test.");
 				intent.putExtra(EXTRA_STATUS, STATUS_UPLOADING);
 				sendBroadcast(intent);
 				status = STATUS_UPLOADING;
-				Log.i(LOG_TAG, "Broadcast status change.");
+				Log.i(NdtSupport.LOG_TAG, "Broadcast status change.");
 			}
 
 			if (message.contains(S2C_MSG_FRAGMENT)
 					&& UiServices.MAIN_VIEW == viewId) {
-				Log.i(LOG_TAG, "Starting download test.");
+				Log.i(NdtSupport.LOG_TAG, "Starting download test.");
 				intent.putExtra(EXTRA_STATUS, STATUS_DOWNLOADING);
 				sendBroadcast(intent);
 				status = STATUS_DOWNLOADING;
-				Log.i(LOG_TAG, "Broadcast status change.");
+				Log.i(NdtSupport.LOG_TAG, "Broadcast status change.");
 			}
 		}
 
@@ -235,7 +233,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void incrementProgress() {
-			Log.d(LOG_TAG, "Incremented progress.");
+			Log.d(NdtSupport.LOG_TAG, "Incremented progress.");
 		}
 
 		/**
@@ -243,7 +241,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void logError(String str) {
-			Log.e(LOG_TAG, String.format("Error: %1$s.", str.trim()));
+			Log.e(NdtSupport.LOG_TAG, String.format("Error: %1$s.", str.trim()));
 		}
 
 		/**
@@ -251,7 +249,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void onBeginTest() {
-			Log.d(LOG_TAG, "Test begun.");
+			Log.d(NdtSupport.LOG_TAG, "Test begun.");
 			wantToStop = false;
 		}
 
@@ -260,7 +258,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void onEndTest() {
-			Log.d(LOG_TAG, "Test ended.");
+			Log.d(NdtSupport.LOG_TAG, "Test ended.");
 			intent.putExtra(EXTRA_STATUS, STATUS_COMPLETE);
 			intent.putExtra(EXTRA_DIAG_STATUS, statusBuffers.get(
 					UiServices.DIAG_VIEW).toString());
@@ -268,7 +266,7 @@ public class NdtService extends Service {
 			sendBroadcast(intent);
 			status = STATUS_COMPLETE;
 			wantToStop = false;
-			Log.i(LOG_TAG, "Broadcast status change.");
+			Log.i(NdtSupport.LOG_TAG, "Broadcast status change.");
 		}
 
 		/**
@@ -276,7 +274,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void onFailure(String errorMessage) {
-			Log.d(LOG_TAG, String.format("Failed: %1$s.", errorMessage));
+			Log.d(NdtSupport.LOG_TAG, String.format("Failed: %1$s.", errorMessage));
 			intent.putExtra(EXTRA_STATUS, STATUS_ERROR);
 			sendBroadcast(intent);
 			status = STATUS_ERROR;
@@ -288,7 +286,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void onLoginSent() {
-			Log.d(LOG_TAG, "Login sent.");
+			Log.d(NdtSupport.LOG_TAG, "Login sent.");
 		}
 
 		/**
@@ -296,7 +294,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void onPacketQueuingDetected() {
-			Log.d(LOG_TAG, "Packet queuing detected.");
+			Log.d(NdtSupport.LOG_TAG, "Packet queuing detected.");
 		}
 
 		/**
@@ -335,7 +333,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void updateStatus(String status) {
-			Log.d(LOG_TAG, String.format("Updating status: %1$s.", status));
+			Log.d(NdtSupport.LOG_TAG, String.format("Updating status: %1$s.", status));
 		}
 
 		/**
@@ -343,7 +341,7 @@ public class NdtService extends Service {
 		 */
 		@Override
 		public void updateStatusPanel(String status) {
-			Log.d(LOG_TAG, String
+			Log.d(NdtSupport.LOG_TAG, String
 					.format("Updating status panel: %1$s.", status));
 		}
 

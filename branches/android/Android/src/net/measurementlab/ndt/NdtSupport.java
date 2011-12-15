@@ -55,4 +55,9 @@ class NdtSupport {
 			textView.setTypeface(typeface);
 		}
 	}
+
+	/**
+	 * TAG constant for logging.
+	 */
+	static final String LOG_TAG = "NDT";
 }

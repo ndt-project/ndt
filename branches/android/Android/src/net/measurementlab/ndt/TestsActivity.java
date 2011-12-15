@@ -21,8 +21,6 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import static net.measurementlab.ndt.Constants.LOG_TAG;
-
 /**
  * Animated progress while selecting server location.
  */
@@ -36,7 +34,7 @@ public class TestsActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.tests);
-		Log.i(LOG_TAG, "Loaded!");
+		Log.i(NdtSupport.LOG_TAG, "Loaded!");
 		Typeface typeFace = Typeface.createFromAsset(getAssets(),
 				"fonts/League_Gothic.otf");
 		TextView textView = (TextView) findViewById(R.id.NdtTestsHeader);
@@ -56,7 +54,7 @@ public class TestsActivity extends Activity {
 	@Override
 	protected void onStart() {
 		super.onStart();
-		Log.i(LOG_TAG, "Tests activity started.");
+		Log.i(NdtSupport.LOG_TAG, "Tests activity started.");
 	}
 
 	@Override
@@ -74,7 +72,7 @@ public class TestsActivity extends Activity {
 		intent.putExtra(NdtService.EXTRA_SERVER_HOST, getIntent().getStringExtra(NdtService.EXTRA_SERVER_HOST));
 		startService(intent);
 		
-		Log.i(LOG_TAG, "Tests activity resumed.");
+		Log.i(NdtSupport.LOG_TAG, "Tests activity resumed.");
 	}
 
 	@Override
@@ -93,7 +91,7 @@ public class TestsActivity extends Activity {
 	}
 
 	private void preparing() {
-		Log.i(LOG_TAG, "Preparing Your Tests...");
+		Log.i(NdtSupport.LOG_TAG, "Preparing Your Tests...");
 		updateHeader(R.string.tests_preparing_header);
 		
 		String localAddress = getLocalAddress();
@@ -113,7 +111,7 @@ public class TestsActivity extends Activity {
 	}
 	
 	private void uploading() {
-		Log.i(LOG_TAG, "Testing Upload...");
+		Log.i(NdtSupport.LOG_TAG, "Testing Upload...");
 		updateHeader(R.string.tests_both_header, R.string.tests_upload_info);
 		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
 		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar_left));
@@ -122,7 +120,7 @@ public class TestsActivity extends Activity {
 	}
 	
 	private void downloading() {
-		Log.i(LOG_TAG, "Testing Download...");
+		Log.i(NdtSupport.LOG_TAG, "Testing Download...");
 		updateHeader(R.string.tests_both_header, R.string.tests_download_info);
 		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
 		imageView.setImageDrawable(getResources().getDrawable(R.drawable.progress_bar_right));
@@ -131,7 +129,7 @@ public class TestsActivity extends Activity {
 	}
 	
 	private void complete(Intent status) {
-		Log.i(LOG_TAG, "Testing Complete.");
+		Log.i(NdtSupport.LOG_TAG, "Testing Complete.");
 		updateHeader(R.string.tests_complete_header);
 		ImageView imageView = (ImageView) findViewById(R.id.NdtTestsProgress);
 		imageView.setImageDrawable(null);
@@ -146,7 +144,7 @@ public class TestsActivity extends Activity {
 
 			@Override
 			public void onReceive(Context context, Intent intent) {
-				Log.i(LOG_TAG, "Status change received.");
+				Log.i(NdtSupport.LOG_TAG, "Status change received.");
 				int status = intent.getIntExtra(NdtService.EXTRA_STATUS, NdtService.STATUS_PREPARING);
 				switch (status) {
 				case NdtService.STATUS_PREPARING:
@@ -162,12 +160,12 @@ public class TestsActivity extends Activity {
 					complete(intent);
 					break;
 				default:
-					Log.i(LOG_TAG, "Test reporter not initialized.");
+					Log.i(NdtSupport.LOG_TAG, "Test reporter not initialized.");
 					break;
 				}
 			}
 		};
-		Log.i(LOG_TAG, "Status receiver created.");
+		Log.i(NdtSupport.LOG_TAG, "Status receiver created.");
 		return receiver;
 
 	}
@@ -213,17 +211,17 @@ public class TestsActivity extends Activity {
 	            }
 	        }
 	    } catch (SocketException ex) {
-	        Log.e(LOG_TAG, ex.toString());
+	        Log.e(NdtSupport.LOG_TAG, ex.toString());
 	    }
 	    return null;
 	}
 	
 	private String getServerAddress() {
 		try {
-			InetAddress server = InetAddress.getByName(Constants.SERVER_LIST[Constants.DEFAULT_SERVER][1]);
+			InetAddress server = InetAddress.getByName(SelectServerActivity.SERVER_LIST[SelectServerActivity.DEFAULT_SERVER][1]);
 			return server.getHostAddress();
 		} catch (UnknownHostException e) {
-			Log.e(LOG_TAG, "Error resolving server hosts.", e);
+			Log.e(NdtSupport.LOG_TAG, "Error resolving server hosts.", e);
 		}
 		return null;
 	}
