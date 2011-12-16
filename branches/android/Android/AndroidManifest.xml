@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="net.measurementlab.ndt" android:versionCode="1"
-  android:versionName="1.0b1">
+  package="net.measurementlab.ndt" android:versionCode="2"
+  android:versionName="1.0b2">
   <application android:icon="@drawable/ndt" android:label="@string/app_name" android:theme="@style/NdtTheme">
     <activity android:name=".InitialActivity" android:label="@string/app_name" android:theme="@style/NdtTheme.Blue">
       <intent-filter>
