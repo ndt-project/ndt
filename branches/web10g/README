@@ -1,0 +1,89 @@
+The Computing and Instrumentation Solutions  (CIS) Division has
+developed a Network Diagnostic Tool (NDT) to help diagnose network
+performance and configuration problems. This tool can determine the
+speed (Dial-up to OC-192) and duplex (full or half) settings of your
+slowest link on the end-to-end path between a desktop client computer
+and a server running the NDT. It can determine if your performance
+is being limited by network congestion (e.g., competing traffic over
+the shared portions of the end-to-end path).  It can also determine
+if the throughput is limited by the client's network configuration
+parameters.  Finally, the tool looks for, and reports, two serious
+error conditions, duplex mismatch and faulty hardware.
+
+The NDT distribution (web100-tools.tar) contains the programs and
+instructions needed to deploy an NDT server on your network or home
+institution.
+
+Publicly accessible NDT servers are located at various points on
+the global Internet.  The main HTML page contains links to these
+public servers.  Please contact Rich Carlson racarlson@anl.gov to
+modify this list.  There servers are provided as a service to the
+Internet community and this list may change as new servers are
+installed and old servers are decommissioned.
+
+    Argonne National Laboratory - Chicago IL (USA)
+    Swiss Education and Research Network (Switzerland)
+    University of Michigan - Flint MI (USA)
+    University of California - Santa Cruz (USA)
+
+As noted above the tool will analyze the entire end-to-end path
+between the desktop client computer and the NDT server. The results
+are organized into three levels, allowing you to drill down to the
+level that you or your system administrator needs to identify the
+configuration problems. In addition, an email button is provided to
+make it easy to report problems to the local administrator.  The
+user may also manually cut and pasting the results into an email
+if the automatic method fails. The ANL NDT may contain new functions
+or features under development.
+                                  
+Levels of Results Reported
+
+Level 1 - Main Page
+The main page reports the high level results of each test. These
+results include the measured throughput to and from your desktop
+client computer, a summary of the kind of link you have (Dial-up
+to OC-192), if other traffic is using a shared network link(s),
+or if serious problems exist. This one sentence overview is intended
+to provide the user with a concise picture of the state of the
+network (i.e., something is seriously wrong or everything is
+working properly).
+                                  
+Level 2 - Statistics
+By clicking the "Statistics" button you will learn what is limiting
+the throughput and what, if anything, can be done to improve
+performance. The summary information on the Main Page is expanded
+here to show the results of the five configuration tests. This is
+followed by an analysis of what is limiting the throughput of this
+test. Throughput may be limited due to your desktop computer's
+configuration, the NDT server's configuration, or the network path
+connecting these two computers. The percentage of time spent in
+each state (i.e., receiver limited, sender limited, or network
+limited) is given. Suggestions for improving throughput may also
+be given. Lastly, the results of the several TCP performance
+enhancement options are reported.  The NDT reports the results
+enhancement negotiation between the client and server (i.e., what
+enhancements are being used), unlike other tools which report what
+enhancements could be used.
+                                  
+Level 3 - More Details
+By clicking the "More Details" button you will see the detailed
+parameters and values that were used to perform this analysis.
+Near the bottom of this page you will find the detailed conditional
+tests that were used to analyze the five configuration tests. You
+will also find the theoretical network limits for this connection. 
+These limits can help identify the major throughput limiting factors.
+
+Email Results
+By clicking the "Report Trouble" button you will automatically
+generate an email message that can be sent to your network and/or
+system administrator.  The NDT administrator can configure the proper
+email addresses for your site.  This simplifies the steps a user
+needs to take to report a problem and ensures that the administrator
+received sufficient information to aid in troubleshooting the
+reported problem.
+                                  
+For more information and details on bringing up your own server
+contact Rich Carlson 
+Email: RCarlson@internet2.edu
+Phone: (734) 352-7043
+
