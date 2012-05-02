@@ -23,7 +23,7 @@ public class NDTConstants {
 	 * TODO for a later release: Version could be moved to some "configurable"
 	 * or "property" area instead of being in code that needs compilation.
 	 */
-	public static final String VERSION = "3.6.4";
+	public static final String VERSION = "3.6.5";
 
 	public static final String NDT_TITLE_STR = "TCP/Web100 Network Diagnostic Tool v";
 
