@@ -3554,8 +3554,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * and puts the values into the proper variable. It then compares the values
 	 * to known values and writes out the specific results.
 	 * 
-	 * server data is first order is Server IP; Client IP; CurrentMSS;
-	 * WinScaleRcvd; WinScaleSent; Client then adds Server IP; Client IP.
+	 * server data is ordered as: Server IP; Client IP; CurrentMSS;
+	 * WinScaleSent; WinScaleRcvd; Client then adds Server IP; Client IP.
 	 * 
 	 * @param sMidBoxTestResParam
 	 *            String Middlebox results
@@ -3575,10 +3575,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		pub_clientIP = sClientIp;
 
 		int iMss = Integer.parseInt(tokens.nextToken());
-		int iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but
-																// retaining
-		int iWinsSent = Integer.parseInt(tokens.nextToken()); // unused, but
-																// retaining
+		// changing order for issue 61
+		int iWinsSent = Integer.parseInt(tokens.nextToken()); 
+		int iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but retaining
 
 		// Get Client reported server IP
 		String sClientSideServerIp = tokens.nextToken();
