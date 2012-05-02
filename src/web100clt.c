@@ -265,9 +265,9 @@ void middleboxResults(char *midresult_str, I2Addr local_addr, I2Addr peer_addr) 
 	str = strtok(NULL, ";");
 	mss = atoi(str);
 	str = strtok(NULL, ";");
-	winsrecv = atoi(str);
+	winssent = atoi(str); // changing order to read winsent before winsrecv for issue 61
 	str = strtok(NULL, ";");
-	winssent = atoi(str);
+	winsrecv = atoi(str);
 
 	memset(ccip, 0, 64);
 	tmpLen = 63;
