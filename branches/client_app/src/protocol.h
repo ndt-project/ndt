@@ -9,6 +9,9 @@
 #ifndef _JS_PROTOCOL_H
 #define _JS_PROTOCOL_H
 
+//new addition after separating out ndtptests header
+#include "ndtptestconstants.h" //protocol validation
+// Todo could be made into enumeration
 #define COMM_FAILURE 0
 #define SRV_QUEUE 1
 #define MSG_LOGIN 2
@@ -21,13 +24,21 @@
 #define MSG_LOGOUT 9
 #define MSG_WAITING 10
 
-#define TEST_NONE 0
-#define TEST_MID (1L << 0)
-#define TEST_C2S (1L << 1)
-#define TEST_S2C (1L << 2)
-#define TEST_SFW (1L << 3)
-#define TEST_STATUS (1L << 4)
-#define TEST_META (1L << 5)
+#define SRV_QUEUE_TEST_STARTS_NOW  0
+#define SRV_QUEUE_SERVER_FAULT 9977
+#define SRV_QUEUE_SERVER_BUSY 9988
+#define SRV_QUEUE_HEARTBEAT 9990
+#define SRV_QUEUE_SERVER_BUSY_60s 9999
+
+/*
+ #define TEST_NONE 0
+ #define TEST_MID (1L << 0)
+ #define TEST_C2S (1L << 1)
+ #define TEST_S2C (1L << 2)
+ #define TEST_SFW (1L << 3)
+ #define TEST_STATUS (1L << 4)
+ #define TEST_META (1L << 5)
+ */
 
 #define TOPT_DISABLED 0
 #define TOPT_ENABLED 1
@@ -37,6 +48,7 @@
  */
 #define VIEW_DIFF 0.1
 
-int check_msg_type(char* prefix, int expected, int received, char* buff, int len);
+int check_msg_type(char* prefix, int expected, int received, char* buff,
+		int len);
 
 #endif
