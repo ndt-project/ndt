@@ -1,0 +1,90 @@
+#summary Information about the protocol validation logging mechanism introduced in NDT 3.6.5
+
+=Protocol validation logging=
+== Table of Contents ==
+
+<wiki:toc max_depth="3" />
+
+
+==Features of the protocol log file==
+
+The protocol log file contains key value pairs containing protocol information in the sequence in which they were received/sent. A sample is:
+||event="message", direction="client_to_server", test="None", type="MSG_LOGIN", len="1", msg_body_format="bitfield", msg="00111111", pid="8253", socket="3", time="20111101T20:18:45.0Z"||
+
+==Enabling protocol logging==
+The web100srv and web100clt process can be run with 2 additional options:
+ # --enableprotolog: Enables protocol logging. This is turned off by default.
+ # --u _dirname_:  Directory name to place protocol logs in. If this option is not specified, the logs are placed in the default BASEDIR/LOGDIR (Ex: /usr/local/ndt/serverdata)
+  
+If case of an RPM installation, you may edit the NDT configuration options file _/etc/sysconfig/ndt_ and change WEB100SRV_OPTIONS to include protocol logging. For example: WEB100SRV_OPTIONS="-a -s -l /var/log/ndt/web100srv.log --enableprotolog -u /home/kkumar/ndtlogs --tcpdump"
+
+Else, you can always specify these as command line options:
+||web100srv -ddddddddd  -a -s -l /var/log/ndt/web100srv.log  -t –snaplog --enableprotolog ||
+
+||web100clt -ddddd -n lab234 --enableprotolog -u /home/kkumar/ndtlogs/ ||
+
+===Names of log files ===
+Logs are created for every endpoint the tests are run from/to. The name of the logfile includes the local and remote endpoint IP addresses. 
+Say you executed a test using the command line tool (CLT) installed at IP-A to the NDT server at IP-B. The name of the log file at the client end will be web100srvprotocol_IP-A_IP-B.log
+(viz. web100srvprotocol_207.75.164.174_207.75.165.234.log). The corresponding server-side log file for this client’s test will be web100srvprotocol_IP-B_IP-A.log.
+
+
+==What is logged?==
+ ===Start/End of tests===
+ ====Examples====
+ ||event="test_started", name="Middlebox", pid="14008", time="20111009T21:53:53.669305000Z"||
+
+ ||event="test_complete", name="SFW", pid="14008", time="20111009T21:53:53.669305000Z"||
+
+  ====Data pairs logged====
+     *	event name  
+       **Possible values: "test_started", "test_complete"
+     *	test name
+     *	pid
+     *	time
+
+ ===All protocol message exchanges===
+ ====Examples====
+ ||event="message", direction="server_to_client", test="None", type="SRV_QUEUE", len="1", msg_body_format="string", msg="0", pid="8253", socket="3", time="20111101T20:18:45.0Z||
+
+ ||event="message", direction="server_to_client", test="C2S", type="TEST_MSG", len="6", msg_body_format="string", msg="849847", pid="8253", socket="3", time="20111101T20:19:05.0Z||
+  
+ ====Data pairs logged====
+     *	event="message"
+     * direction     
+        ** Possible values: client_to_server, server_to_client
+     *	Test name    
+       ** Possible values: "None","Middlebox","SFW","C2S", "S2C","Meta"
+     * NDTP message type
+     * Protocol message payload length
+     *	Protocol message payload type
+       ** Possible values: bitfield, string
+       **Note: If message payload type=bitfield, then 
+          * the value is a string of length 8 chars, which is the bit representation of the character.
+          * The “len” field will indicate “1” (not 8), since it is still 1 character being passed from server toclient.
+          * Example:  “MSG_LOGIN” message from client to server consists of data indicating which tests were scheduled to be run
+          ||event="message", direction="client_to_server", test="None", type="MSG_LOGIN", len="1", msg_body_format="bitfield", msg="00111111", pid="4191", socket="5", time="20111101T20:18:45.0Z" ||
+     * protocol message payload
+     * pid
+     * socket file descriptor
+     * time: This is the precise time at which the protocol messages were exchanged.
+
+ ===Incoming "connections" received===
+ These indicate the start of socket connections from client. They help indicate protocol exchanges that do not use a standard NDTP message type (like TEST_MSG, TEST_RESULTS etc). Such a case is seen during the C2S test when the throughput data is sent over a socket.
+
+  ====Examples====
+  ||event="started", name="connect", test="C2S", pid="14008", time="20111009T21:53:53.669305000Z"||
+
+  ||event="started", name="connect", test="SFW", pid="14008", time="20111009T21:53:53.669305000Z"||
+  ====Data pairs logged====
+    * event="started"
+    * name="connect" (currently always indicates incoming)
+    * test name
+    * pid
+    * time  
+
+==Changes in code==
+This section is included to point the developer community to the areas in the codebase that were changed to include the protocol logging functionality. 
+
+Code is common across server and command line tool. All of the protocol message logging was done with simple additions to src/network.c. Process status (like reception of "connections" from the server ) have been specifically added in code at the locations where they occur. All such code is aggregated in src/logging.c, src/ndtpconstants.c, src/runningtest.c.
+
