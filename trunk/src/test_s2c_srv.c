@@ -363,7 +363,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 			/*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
 			 &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
 			 conn, group);*///new file changes
-			start_snap_worker(&snapArgs, agent, options->snaplog,
+			start_snap_worker(&snapArgs, agent, peaks, options->snaplog,
 					&workerThreadId, meta.s2c_snaplog, options->s2c_logname,
 					conn, group);
 
@@ -534,6 +534,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		}
 
 		// Wait for message from client. Client sends its calculated throughput value
+		log_println(6,"S2CSPD reception starts");
 		msgLen = sizeof(buff);
 		if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
 			log_println(0, "Protocol error!");
@@ -561,7 +562,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		}
 		buff[msgLen] = 0;
 		*s2cspd = atoi(buff); // save Throughput value as seen by client
-
+		log_println(6, "S2CSPD from client %f", *s2cspd);
 		// Final activities of ending tests. Close sockets, file descriptors,
 		//    send finalise message to client
 		close(xmitsfd);

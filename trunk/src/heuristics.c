@@ -231,8 +231,8 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
 	*cwin = (double) MaxCwnd * BITS_8 / KILO_BITS / KILO_BITS;
 	log_println(
 			log_lvl_heur,
-			"--window sizes: SndWinScale= %d, RcvwinScale=%d, rwin=%f, swin=%f, cwin=%f",
-			SndWinScale, RcvWinScale, rwin, swin, cwin);
+			"--window sizes: SndWinScale= %d, RcvwinScale=%d, MaxRwinRcvd=%d, maxCwnd=%d,rwin=%f, swin=%f, cwin=%f",
+			*SndWinScale, *RcvWinScale, MaxRwinRcvd, MaxCwnd ,*rwin, *swin, *cwin);
 }
 
 /**
@@ -278,7 +278,7 @@ int calc_totaltesttime(int SndLimTimeRwin, int SndLimTimeCwnd,
  *
  */
 double calc_sendlimited_sndrfault(int SndLimTimeSender, int totaltime) {
-	double sendlimitedtime = (double) SndLimTimeSender / totaltime;
+	double sendlimitedtime = ((double) SndLimTimeSender) / totaltime;
 	log_println(log_lvl_heur, "--Send limited time: %d over %d=%f ",
 			SndLimTimeSender, totaltime, sendlimitedtime);
 	return sendlimitedtime;
@@ -293,7 +293,7 @@ double calc_sendlimited_sndrfault(int SndLimTimeSender, int totaltime) {
  *
  */
 double calc_sendlimited_rcvrfault(int SndLimTimeRwin, int totaltime) {
-	double sendlimitedtime = (double) SndLimTimeRwin / totaltime;
+	double sendlimitedtime = ((double) SndLimTimeRwin) / totaltime;
 	log_println(log_lvl_heur, "--Send limited time: %d over %d=%f ",
 			SndLimTimeRwin, totaltime, sendlimitedtime);
 	return sendlimitedtime;
@@ -306,7 +306,7 @@ double calc_sendlimited_rcvrfault(int SndLimTimeRwin, int totaltime) {
  * @return sender limited time ratio
  */
 double calc_sendlimited_cong(int SndLimTimeCwnd, int totaltime) {
-	double sendlimitedtime = (double) SndLimTimeCwnd / totaltime;
+	double sendlimitedtime = ((double) SndLimTimeCwnd) / totaltime;
 	log_println(log_lvl_heur, "--Send limited time: %d over %d=%f ",
 			SndLimTimeCwnd, totaltime, sendlimitedtime);
 	return sendlimitedtime;

@@ -254,7 +254,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
  * @param web100_connection connection pointer
  * @param web100_group group web100_group pointer
  */
-void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
+void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* peaks,
 		char snaplogenabled,  pthread_t *wrkrthreadidarg,
 		char *metafilevariablename, char *metafilename, web100_connection* conn,
 		web100_group* group) {
@@ -263,7 +263,7 @@ void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
 	WorkerArgs workerArgs;
 	workerArgs.snapArgs = snaparg;
 	workerArgs.agent = agentarg;
-	workerArgs.peaks = NULL;
+	workerArgs.peaks = peaks;
 	workerArgs.writeSnap = snaplogenabled;
 
 	group = web100_group_find(agentarg, "read");
