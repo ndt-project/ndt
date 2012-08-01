@@ -493,7 +493,6 @@ int main(int argc, char *argv[]) {
 	while ((useroption = getopt_long(argc, argv, GETOPT_LONG_INET6("n:u:e:p:dhlvb:"),
 			long_options, 0)) != -1) {
 		switch (useroption) {
-		printf("USER OPTION %c",useroption);
 		case '4':
 			conn_options |= OPT_IPV4_ONLY;
 			break;
