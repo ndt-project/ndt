@@ -88,7 +88,6 @@ I2Addr 	midsrv_addr = NULL; // server address
 		log_println(1, " <-- %d - Middlebox test -->", options->child0);
 
 		// protocol validation logs indicating start of tests
-		printf(" <--- %d - Middlebox test --->", options->child0);
 		thistestId = MIDDLEBOX;
 		teststatusnow = TEST_STARTED;
 		protolog_status(options->child0, thistestId, teststatusnow, ctlsockfd);
@@ -285,8 +284,6 @@ I2Addr 	midsrv_addr = NULL; // server address
 		close(options->midsockfd);
 		send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
 		log_println(1, " <--------- %d ----------->", options->child0);
-
-		printf(" <--- %d - Middlebox test --->", options->child0);
 
 		// log end of test into protocol doc, just to delimit.
 		teststatusnow = TEST_ENDED;

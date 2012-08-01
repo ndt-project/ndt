@@ -136,7 +136,7 @@ char *get_otherdirndesc() {
  *  */
 char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) {
 	sprocarg = _procstatusarray[procstatusarg];
-	printf("--current process status = %s for %d\n", sprocarg, procstatusarg);
+	log_println(7,"--current process status = %s for %d\n", sprocarg, procstatusarg);
 	return sprocarg;
 }
 
@@ -148,7 +148,7 @@ char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) 
  * */
 char *get_processtypedesc(enum PROCESS_TYPE_INT procidarg, char *snamearg) {
 	snamearg = _proctypesarray[procidarg];
-	printf("--current process name = %s for %d\n", snamearg, procidarg);
+	log_println(7,"--current process name = %s for %d\n", snamearg, procidarg);
 	return snamearg;
 }
 

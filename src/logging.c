@@ -223,7 +223,7 @@ void set_protologdir(char* dirname) {
  * @return directory where protocol logs are placed
  */
 char* get_protologdir() {
-	printf("PV34: proto location=%s;\n", ProtocolLogDirName);
+	log_println(5," Protocol file location=%s;\n", ProtocolLogDirName);
 	return ProtocolLogDirName;
 }
 
@@ -527,11 +527,8 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
 
 	if (fp == NULL) {
-		printf(
-				"--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
-				procstatusdesc, currentprocname);
 		log_println(
-				3,
+				5,
 				"--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
 				procstatusdesc, currentprocname);
 	} else {

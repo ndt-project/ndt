@@ -971,7 +971,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	int CurrentRTO, CurrentRwinRcvd, MaxCwnd, CongestionSignals, PktsOut,
 			MinRTT;
 	int CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
-			CurTimeoutCount;
+			CurTimeoutCount=0;
 	int AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts,
 			ThruBytesAcked;
 	int RcvWinScale, SndWinScale;
@@ -1027,7 +1027,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
 	// start with a clean slate of currently running test and direction
 	setCurrentTest(TEST_NONE);
-	printf("Remote host= %s", get_remotehost());
+	log_println(7,"Remote host= %s", get_remotehost());
 
 	stime = time(0);
 	log_println(4, "Child process %d started", getpid());
@@ -1160,7 +1160,6 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	// section to calculate duplex mismatch
 	// Calculate average round trip time and convert to seconds
 	rttsec = calc_avg_rtt(SumRTT, CountRTT, &avgrtt);
-
 	// Calculate packet loss
 	packetloss_s2c = calc_packetloss(CongestionSignals, PktsOut, c2s_linkspeed_data);
 
@@ -1652,11 +1651,10 @@ int main(int argc, char** argv) {
 			set_logfile(optarg);
 			break;
 		case 'u':
-			printf("Calling set protolog from case-u");
 			set_protologdir(optarg);
 			break;
 		case 'e':
-			printf("Enabling protocol logging");
+			log_println(7,"Enabling protocol logging");
 			enableprotocollogging();
 			break;
 		case 'o':
