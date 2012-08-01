@@ -318,7 +318,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 					&workerThreadId, meta.c2s_snaplog, options->c2s_logname,
 					conn, group); */
 		}
-		start_snap_worker(&snapArgs, agent, options->snaplog, &workerThreadId,
+		start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
 					meta.c2s_snaplog, options->c2s_logname,	conn, group); 
 		// Wait on listening socket and read data once ready.
 		tmptime = secs();
