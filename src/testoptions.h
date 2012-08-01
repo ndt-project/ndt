@@ -68,7 +68,8 @@ int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
 int getCurrentTest();
 void setCurrentTest(int testId);
 
-void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
+//void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
+void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* peaks,
                 char snaplogenabled,  pthread_t *wrkrthreadidarg,
                 char *metafilevariablename, char *metafilename, web100_connection* conn,
                 web100_group* group);
