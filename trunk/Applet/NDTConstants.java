@@ -23,7 +23,7 @@ public class NDTConstants {
 	 * TODO for a later release: Version could be moved to some "configurable"
 	 * or "property" area instead of being in code that needs compilation.
 	 */
-	public static final String VERSION = "3.6.5";
+	public static final String VERSION = "3.6.5.1";
 
 	public static final String NDT_TITLE_STR = "TCP/Web100 Network Diagnostic Tool v";
 
@@ -112,7 +112,7 @@ public class NDTConstants {
 											// seconds->mS,
 	public static final int KILO_BITS = 1024;// Used in kilobits->bits
 												// conversions
-	public static final int EIGHT = 8; // Used in octal number, conversions from
+	public static final double EIGHT = 8.0; // Used in octal number, conversions from
 										// Bytes-> bits etc
 
 	// Section: Duplex mismatch conditions
