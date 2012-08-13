@@ -977,7 +977,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 		sprintf(dir, "%s_%s:%d.%s_ndttrace",
 				get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
 				I2AddrPort(sockAddr), direction);
-		create_named_logdir(logdir, sizeof(logdir), dir);
+		create_named_logdir(logdir, sizeof(logdir), dir, 0);
 		pdump = pcap_dump_open(pd, logdir);
 		fprintf(stderr, "Opening '%s' log fine\n", logdir);
 		if (pdump == NULL) {

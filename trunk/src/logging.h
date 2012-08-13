@@ -15,11 +15,14 @@
 #include <sys/types.h>
 #include "ndtptestconstants.h"
 #include "runningtest.h" // protocol validation
+#define LOG_FACILITY LOG_LOCAL0         /* Syslog facility to log at */
+#define LOGDIR "serverdata"             /* directory for detailed snaplog and tcpdump files */
 #define LOGFILE "web100srv.log"   /* Name of log file */
 #define PROTOLOGFILE "web100srvprotocol.log"   /* Name of protocol validation log file */
 #define PROTOLOGPREFIX "web100srvprotocol_" /* prefix for protocol validation log file */
 #define PROTOLOGSUFFIX ".log" /* suffix for protocol validation log file */
-#define FILENAME_SIZE 256	// This could have been in utils.h, but will be used immediately here
+#define FILENAME_SIZE 256	/* This could have been in utils.h, but will be used immediately here */
+/* #define PROTOLOGDIR "protocollog"     Protocol log dir */
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
 void set_logfile(char* filename);
@@ -86,7 +89,7 @@ char* get_protologdir();
 void enableprotocollogging();
 char *createprotologfilename(char* client_ip, char* textappendarg);
 void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
-		char *finalsuffix);
+		char *finalsuffix, char isProtoLog);
 void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 		char *dirnamedestarg, int destnamearrsize, char *finalsuffix,
 		int finalsuffixsize);
@@ -103,6 +106,8 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum);
 void protolog_procstatuslog(int pid, enum TEST_ID testidarg,
 		enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum);
+char get_protocolloggingenabled();
+void create_protolog_dir();
 
 struct metadata meta;
 #endif

@@ -20,7 +20,7 @@
 /* #endif */
 
 #include "logging.h"
-#include "testoptions.h"
+/* #include "testoptions.h" */
 #include "strlutils.h"
 #include "utils.h"
 #include "protocol.h"
@@ -227,6 +227,32 @@ char* get_protologdir() {
 	return ProtocolLogDirName;
 }
 
+/**             
+ * Check if protocol logging is enabled
+ * @return is protocol logging enabled? 
+ */
+char get_protocolloggingenabled() {
+        return enableprotologging;
+}
+
+/** 
+ * Create protocol log directory.
+ * The directory is specified by using option --protocollogdir.
+ * If not specified, this is the same directory as the 
+ * one in which the snap/TCPTrace files are saved 
+ * @param none
+ */
+void create_protolog_dir() {
+	 if ( get_protocolloggingenabled() ) {
+		set_timestamp();
+                sprintf(protocollogfilestore, "%s/", get_protologdir());
+                log_println(5,"Creating protocol log directory=%s", protocollogfilestore);
+                create_named_logdir(protocollogfilestore, sizeof(protocollogfilestore), "", get_protocolloggingenabled());
+                set_protologdir(protocollogfilestore);
+		log_println(9,"DataDir remains=%s", DataDirName);
+	}
+}
+
 /**
  * This method is no longer needed since the protocol log file name
  * includes client+server name, and is constructed on the fly.
@@ -251,7 +277,7 @@ void set_protologfile(char* client_ip, char* protologlocalarr) {
 
 	strlcpy(ProtocolLogFileName, protologlocalarr, sizeof(ProtocolLogFileName));
 
-	log_println(0, "Protocol filename: %s: %s\n", ProtocolLogFileName,
+	log_println(5, "Protocol filename: %s: %s\n", ProtocolLogFileName,
 			ProtocolLogDirName);
 
 }
@@ -783,7 +809,6 @@ void get_DD(char *day) {
 
 	struct tm *result;
 	time_t now;
-
 	setenv("TZ", "UTC", 0);
 	now = get_timestamp();
 	result = gmtime(&now);
@@ -1070,18 +1095,21 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
  * @param direnamedestarg        location to store final directory name
  * @param destnamearrsize        Size of dest name string
  * @param finalsuffix            string constant suffix (C2S/S2C IP:port.ndttrace etc)
- *
+ * @param isProtoLog		 Is this the protocol log directory?
  *
  */
 void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
-		char *finalsuffix) {
+		char *finalsuffix, char isProtoLog) {
 
 	//char namebuf[256];
 	//size_t namebuflen = 255;
 	char dir[128];
 	DIR *dp;
-
-	strlcpy(dirnamedestarg, DataDirName, destnamearrsize);
+	if ( !isProtoLog ) {
+		strlcpy(dirnamedestarg, DataDirName, destnamearrsize);
+		strlcat(dirnamedestarg, "/", destnamearrsize);
+		log_println(5, "DirNAME=%s", DataDirName);
+	}
 	if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
 		mkdir(dirnamedestarg, 0755);
 	closedir(dp);
@@ -1111,7 +1139,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 	strlcat(dirnamedestarg, "/", destnamearrsize);
 	sprintf(dir, "%s", finalsuffix);
 	strlcat(dirnamedestarg, dir, destnamearrsize);
-	log_println(0, "end named_log_create %s", dirnamedestarg);
+	log_println(5, "end named_log_create %s", dirnamedestarg);
 }
 
 /** Create directories for snap/tcp trace log files, and meta files.
@@ -1145,7 +1173,7 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 			socketaddrport, finalsuffix);
 	strlcpy(finalsuffix, dir, finalsuffixsize);
 
-	create_named_logdir(dirnamedestarg, destnamearrsize, finalsuffix);
+	create_named_logdir(dirnamedestarg, destnamearrsize, finalsuffix, 0);
 
 	I2AddrFree(sockAddr);
 

@@ -1782,6 +1782,9 @@ int main(int argc, char** argv) {
 		sprintf(logd, "%s/%s/", BASEDIR, DataDirName);
 		DataDirName = logd;
 	}
+log_println(0,"----DataDirName=%s", DataDirName);
+
+	create_protolog_dir();
 
 	if (SysLogFacility != NULL) {
 		i = 0;
@@ -2630,7 +2633,7 @@ int main(int argc, char** argv) {
 					if (cputime) {
 						sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
 						log_println(8, "CPUTIME:suffix=%s",dir);
-						create_named_logdir(cputimelog, sizeof(cputimelog),dir);
+						create_named_logdir(cputimelog, sizeof(cputimelog),dir, 0);
 						memcpy(meta.CPU_time, dir, strlen(dir));
 						if (pthread_create(&workerThreadId, NULL, cputimeWorker, (void*) cputimelog)) {
 							log_println(0, "Cannot create worker thread for writing cpu usage!");
