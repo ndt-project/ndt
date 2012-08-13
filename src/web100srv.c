@@ -1782,7 +1782,6 @@ int main(int argc, char** argv) {
 		sprintf(logd, "%s/%s/", BASEDIR, DataDirName);
 		DataDirName = logd;
 	}
-log_println(0,"----DataDirName=%s", DataDirName);
 
 	create_protolog_dir();
 
