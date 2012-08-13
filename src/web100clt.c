@@ -44,7 +44,6 @@ int half_duplex, congestion, bad_cable, mismatch;
 double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
-
 static struct option long_options[] = { { "name", 1, 0, 'n' }, { "port", 1, 0,
 		'p' }, { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' }, { "msglvl", 0, 0,
 				'l' }, { "web100variables", 0, 0, 301 }, { "buffer", 1, 0, 'b' }, {
@@ -483,7 +482,6 @@ int main(int argc, char *argv[]) {
 	I2Addr server_addr = NULL;
 	I2Addr local_addr = NULL, remote_addr = NULL;
 	char* ptr;
-
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
 #else
@@ -554,6 +552,9 @@ int main(int argc, char *argv[]) {
 		short_usage(argv[0], "Unrecognized non-option elements");
 	}
 
+	// If protocol log is enabled, create log dir
+	create_protolog_dir();
+        
 	log_init(argv[0], debug);
 
 	failed = 0;
