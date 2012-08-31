@@ -139,6 +139,7 @@ metaentry	*new_entry = NULL;
 			snprintf(new_entry->key, sizeof(new_entry->key), "%s", buff);
 			snprintf(new_entry->value, sizeof(new_entry->value), "%s", value);
 		}
+		new_entry->next = NULL; // ensure meta list ends here 
 
 		// Finalize test by sending appropriate message, and setting status
 		if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0) {
