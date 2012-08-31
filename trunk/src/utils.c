@@ -120,7 +120,7 @@ double secs() {
 
 void err_sys(char* s) {
 	perror(s);
-	return -1;
+	/* return -1; */
 }
 
 /**
