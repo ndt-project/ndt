@@ -9,7 +9,7 @@
 #define HEURISTICS_H_
 
 // link speed algorithms
-void calc_linkspeed(char *spds, int spd_index, int *c2sdata, int *c2sack,
+void calc_linkspeed(char spds[4][256], int spd_index, int *c2sdata, int *c2sack,
 		int* s2cdata, int *s2cack, float runave[4], u_int32_t *dec_cnt,
 		u_int32_t *same_cnt, u_int32_t *inc_cnt, int *timeout, int *dupack,
 		int isc2stest);
@@ -92,4 +92,8 @@ int detect_halfduplex(double rwintime, int sndlim_transrwin,
 // Is congestion detected?
 int detect_congestionwindow(double cwndtime, int mismatch, double cwin,
 		double rwin, double rttsec);
+
+// Is internal network link duplex mismatch detected?
+int detect_internal_duplexmismatch(double s2cspd, double realthruput,
+                double rwintime, double packetloss);
 #endif /* HEURISTICS_H_ */

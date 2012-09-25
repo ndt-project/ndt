@@ -198,7 +198,7 @@ void set_logfile(char* filename) {
  *
  */
 void set_protologdir(char* dirname) {
-	char * localstr[256];
+	char localstr[256];
 
 	// Protocol log location being set
 	if (dirname == NULL) {
@@ -293,12 +293,13 @@ void set_protologfile(char* client_ip, char* protologlocalarr) {
 char*
 get_protologfile(int socketNum, char *protologfilename) {
 	char localAddr[64]="", remoteAddr[64]="";
+	I2Addr tmp_addr = NULL;
 	size_t tmpstrlen = sizeof(localAddr);
 	memset(localAddr, 0, tmpstrlen);
 	memset(remoteAddr, 0, tmpstrlen);
 
 	// get remote address
-	I2Addr tmp_addr =
+	tmp_addr =
 			I2AddrBySockFD(get_errhandle(), socketNum, False);
 	I2AddrNodeName(tmp_addr, remoteAddr, &tmpstrlen); //client name
 

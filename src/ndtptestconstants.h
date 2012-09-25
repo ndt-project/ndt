@@ -28,17 +28,17 @@
 #define PORT4 "3003"
 
 
-/* status of tests. Used mainly to log a "textual" explanation using below array */
+// status of tests. Used mainly to log a "textual" explanation using below array 
 enum TEST_STATUS_INT {
 	TEST_NOT_STARTED, TEST_STARTED, TEST_INPROGRESS, TEST_INCOMPLETE, TEST_ENDED
 } teststatusint;
 
-/* Test IDs */
+// Test IDs 
 enum TEST_ID {
 	NONE, MIDDLEBOX, SFW, C2S, S2C, META
 } testid;
 
-/* Transmission direction */
+// Transmission direction
 enum Tx_DIRECTION {
 	NO_DIR, C_S, S_C
 } txdirection;

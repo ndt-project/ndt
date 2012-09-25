@@ -60,9 +60,9 @@ int getCurrentDirn() {
  */
 
 void setCurrentDirn(enum Tx_DIRECTION directionarg) {
-	currentDirection = directionarg;
 	char currenttestdirn[TEST_DIRN_DESC_SIZE];
 	char othertestdirn[TEST_DIRN_DESC_SIZE];
+	currentDirection = directionarg;
 	switch (currentDirection) {
 	case S_C:
 		senddirnstr = get_testdirectiondesc(currentDirection, currenttestdirn);
@@ -136,7 +136,7 @@ char *get_otherdirndesc() {
  *  */
 char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) {
 	sprocarg = _procstatusarray[procstatusarg];
-	log_println(7,"--current process status = %s for %d\n", sprocarg, procstatusarg);
+	//log_println(7,"--current process status = %s for %d\n", sprocarg, procstatusarg);
 	return sprocarg;
 }
 
@@ -148,7 +148,7 @@ char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) 
  * */
 char *get_processtypedesc(enum PROCESS_TYPE_INT procidarg, char *snamearg) {
 	snamearg = _proctypesarray[procidarg];
-	log_println(7,"--current process name = %s for %d\n", snamearg, procidarg);
+	//log_println(7,"--current process name = %s for %d\n", snamearg, procidarg);
 	return snamearg;
 }
 

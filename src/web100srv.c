@@ -84,6 +84,7 @@
 #include "runningtest.h"
 #include "strlutils.h"
 #include "heuristics.h"
+#include "tests_srv.h"
 
 static char lgfn[FILENAME_SIZE]; // log file name
 static char wvfn[FILENAME_SIZE]; // file name of web100-variables list
@@ -173,7 +174,7 @@ static struct option long_options[] = { { "adminview", 0, 0, 'a' }, { "debug",
 		{ "file", 1, 0, 'f' },
 		{ "interface", 1, 0, 'i' },
 		{ "log", 1, 0, 'l' },
-		{ "protocol_log", 1, 0, 'u' },
+		{ "protolog_dir", 1, 0, 'u' },
 		{ "enableprotolog", 0, 0, 'e' },
 		{ "port", 1, 0, 'p' },
 		{ "midport", 1, 0, 302 },
@@ -645,7 +646,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
 			set_logfile(lgfn);
 			sprintf(lgfn, "%s", val);
 			continue;
-		} else if (strncasecmp(key, "protocol_log", 12) == 0) {
+		} else if (strncasecmp(key, "protolog_dir", 12) == 0) {
 			sprintf(lgfn, "%s", val);
 			set_protologdir(lgfn);
 			continue;

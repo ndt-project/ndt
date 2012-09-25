@@ -19,6 +19,7 @@
 #include "logging.h"
 #include "protocol.h"
 #include "network.h"
+#include "mrange.h"
 
 int mon_pipe1[2]; // used to store file descriptors of pipes created for ndttrace for C2S tests
 

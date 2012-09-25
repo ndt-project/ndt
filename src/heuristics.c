@@ -10,8 +10,9 @@
 
 #include "utils.h"
 #include "logging.h"
+#include "heuristics.h"
 
-#define log_lvl_heur 0
+#define log_lvl_heur 2
 /**
  * Compute link speed.
  *
@@ -70,7 +71,7 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data, i
 				&links[0], &links[1], &links[2], &links[3], &links[4],
 				&links[5], &links[6], &links[7], &links[8], &links[9],
 				&links[10], &links[11], runave + n, &inc_cnt, &dec_cnt,
-				&same_cnt, &timeout, &dupack, &ifspeedlocal);
+				&same_cnt, timeout, dupack, &ifspeedlocal);
 		log_println(log_lvl_heur, " **First ele: spd=%s, runave=%f", spds[n],
 				runave[n]);
 		max = 0;

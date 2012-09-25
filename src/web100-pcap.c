@@ -435,7 +435,7 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 		int portB) {
 
-	float bits = 0, spd, time;
+	float bits = 0, spd = 0, time = 0;
 
 	assert(cur);
 	assert(cur2);
@@ -466,7 +466,9 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 			cur2->dec_cnt++;
 	}
 	// get throughput
+log_println(8, "0BITS=%f, time=%f, SPD=%f", bits, time, spd);
 	spd = (bits / time); /* convert to mbits/sec) */
+log_println(8, "1BITS=%f, time=%f, SPD=%f", bits, time, spd);
 	// increment speed bin based on throughput range
 	if ((spd > 0) && (spd <= 0.01))
 		cur2->links[0]++;
@@ -498,11 +500,20 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 	cur2->time = cur->time;
 	cur2->sec = cur->sec;
 	cur2->usec = cur->usec;
+log_println(8, "BITS=%f, time=%f, SPD=%f", bits, time, spd);
 	if ((time > 10) && (spd > 0)) {
+log_println(8, ">10 : totalcount=%f, spd=%f, cur2->totalcount=%d",  cur2->totalspd2, spd, cur2->totalcount);
 		cur2->totalspd += spd;
 		cur2->totalcount++;
 		cur2->totalspd2 = (cur2->totalspd2 + spd) / 2;
 	}
+	// debug 
+//
+//else {
+//	log_println(0, "ELSE totalspd2=%f, spd=%f, cur2->totalcount=%d",  cur2->totalspd2, spd, cur2->totalcount);
+//} 
+
+log_println(8, "totalspd2 in the end=%f, spd=%f",  cur2->totalspd2,spd);
 }
 
 /**

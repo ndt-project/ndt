@@ -15,6 +15,7 @@
 #include "network.h"
 #include "protocol.h"
 #include "utils.h"
+#include "strlutils.h"
 
 int ssndqueue, sbytes;
 double spdin, s2cspd;

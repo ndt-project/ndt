@@ -16,6 +16,8 @@
 #include "logging.h"
 #include "web100-admin.h"
 #include "utils.h"
+#include "strlutils.h"
+#include "heuristics.h"
 
 /* Initialize the Administrator view.  Process the data in the existing log file to
  * catch up on what's happened before.
@@ -69,15 +71,15 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 	int congestion2 = 0, i;
 	static int totalcnt;
 	double rttsec;
-	double rwintime, cwndtime, sendtime;
-	int totaltime;
+	double rwintime=0, cwndtime=0, sendtime=0;
+	int totaltime=0;
 	char view_string[256], *str, tmpstr[32];
 	FILE * fp;
 
 	if (view_flag == 1) {
 		fp = fopen("/tmp/view.string", "r");
 		fgets(view_string, 256, fp);
-
+		log_println(3, "View_string=%s", view_string);
 		str = view_string;
 		sscanf(str, "%[^,]s", tmpstr);
 		maxc2sspd = atoi(tmpstr);
@@ -253,13 +255,15 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 
 	totaltime = calc_totaltesttime(SndLimTimeRwin, SndLimTimeCwnd,
 			SndLimTimeSender);
-
+	log_println(3, "totaltime=%d, sndLim %d", totaltime, SndLimTimeRwin);
 	// time spent being send-limited due to client's recv window
 	rwintime = calc_sendlimited_rcvrfault(SndLimTimeRwin, totaltime);
+	log_println(3, "rwintime=%f", rwintime);
 
+	log_println(3, "before calling cwndtime cal. %d,%d", SndLimTimeCwnd, totaltime);
 	// time spent in being send-limited due to congestion window
 	cwndtime = calc_sendlimited_cong(SndLimTimeCwnd, totaltime);
-
+	log_println(3, "cwndtime=%f", cwndtime);
 	// time spent in being send-limited due to own fault
 	sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
 	timesec = totaltime / MEGA; // total time in microsecs
@@ -574,8 +578,12 @@ void view_init(int refresh) {
 			DataPktsOut;
 	int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd = 0, Sndbuf =
 			0;
-	int CurrentCwnd = 0, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
-			DataBytesOut;
+	//int CurrentCwnd = 0, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
+ 	//			DataBytesOut;
+	// commenting out lines above to assign values
+	int CurrentCwnd = 0, SndLimTimeRwin=0, SndLimTimeCwnd=0, SndLimTimeSender=0,
+ 				DataBytesOut=0;
+
 	int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
 	int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut = 0;
 	FILE * fp;
@@ -590,6 +598,7 @@ void view_init(int refresh) {
 		return;
 
 	while ((fgets(buff, 512, fp)) != NULL) {
+		log_println(3,"Reading line: %s",buff);
 		if ((str = strchr(buff, ',')) != NULL) {
 			sscanf(buff, "%[^,]s", date);
 			str++;

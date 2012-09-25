@@ -10,6 +10,7 @@
 #include  <syslog.h>
 #include <pthread.h>
 #include <sys/times.h>
+#include <ctype.h>
 #include "tests_srv.h"
 #include "strlutils.h"
 #include "ndtptestconstants.h"

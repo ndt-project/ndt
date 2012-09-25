@@ -81,4 +81,5 @@ void setCwndlimit(web100_connection* connarg, web100_group* grouparg,
 		web100_agent* agentarg, Options* optionsarg);
 
 int is_buffer_clogged(int nextseqtosend, int lastunackedseq);
+void stop_packet_trace(int *monpipe_arr);
 #endif
