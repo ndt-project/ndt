@@ -15,6 +15,7 @@
 #include "network.h"
 #include "protocol.h"
 #include "utils.h"
+#include "strlutils.h"
 
 /**
  * Perform the client part of the middleBox testing. The middlebox test

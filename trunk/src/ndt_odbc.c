@@ -157,9 +157,9 @@ int initialize_db(int options, char* dsn, char* uid, char* pwd) {
 		memset(loginstring, 0, 1024);
 		snprintf(loginstring, 256, "DSN=%s;", dsn);
 		if (uid) {
-			/*strcat(loginstring, "UID=");
-			 strncat(loginstring, uid, 256);
-			 strcat(loginstring, ";");*/
+			//strcat(loginstring, "UID=");
+			// strncat(loginstring, uid, 256);
+			// strcat(loginstring, ";");
 			strlcat(loginstring, "UID=", sizeof(loginstring));
 			strlcat(loginstring, uid, sizeof(loginstring));
 			strlcat(loginstring, ";", sizeof(loginstring));
@@ -200,7 +200,7 @@ int initialize_db(int options, char* dsn, char* uid, char* pwd) {
 		}
 		// How many columns are there?
 		SQLNumResultCols(stmt, &columns);
-
+		log_println(3,"Fetched SQLNumResults:%d", columns);
 		// Loop through the rows in the result-set
 		while (SQL_SUCCEEDED(ret = SQLFetch(stmt))) {
 			SQLUSMALLINT i;
@@ -268,8 +268,15 @@ int db_insert(char spds[4][256], float runave[], char* cputimelog,
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
 	SQLRETURN ret;
 	char insertStmt[2048];
+	int i_iter = 0, arr_len = 4; // 4 runspeed-averages are obtained
 	if (!stmt) {
 		return 1;
+	}
+	// Check if any of the run averages are nan numbers 
+	for (i_iter = 0; i_iter < arr_len; i_iter++) {
+		log_println(3,"Odbc:Padding %f?", runave[i_iter]);
+		pad_NaN(&runave[i_iter]);
+		log_println(3,"Odbc:After Padding %f", runave[i_iter]);
 	}
 	snprintf(insertStmt, 2040, "INSERT INTO ndt_test_results VALUES ("
 			"'%s','%s','%s','%s',%f,%f,%f,%f,"
@@ -301,6 +308,7 @@ int db_insert(char spds[4][256], float runave[], char* cputimelog,
 			SubsequentTimeouts, ThruBytesAcked, minPeak, maxPeak, peaks
 	);
 	ret = SQLExecDirect(stmt, (unsigned char*) insertStmt, strlen(insertStmt));
+	log_println(3, "Trying to insert data using the statement:%s", insertStmt); 
 	if (!SQL_SUCCEEDED(ret)) {
 		log_println(0, "  Failed to insert test results into the table\n Continuing without DB logging");
 		extract_error("SQLExecDirect", dbc, SQL_HANDLE_DBC);
@@ -313,3 +321,16 @@ int db_insert(char spds[4][256], float runave[], char* cputimelog,
 	return 1;
 #endif
 }
+
+/***
+* Check if the value is a NaN by comparing it with itself.
+* @args float_val value of the float variable which has to be checked for Nan
+* 
+**/
+void pad_NaN(float *float_val) {
+        if (*float_val != *float_val) {
+                *float_val = -1;
+                log_println(0," A float value you tried to insert into the DB was NaN");
+        }
+}
+

@@ -27,4 +27,6 @@ int db_insert(char spds[4][256], float runave[], char* cputimelog,
 		int SubsequentTimeouts, int ThruBytesAcked, int minPeaks, int maxPeaks,
 		int peaks);
 
+void pad_NaN(float *float_val);
+
 #endif

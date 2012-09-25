@@ -1,6 +1,6 @@
 /*
  * This file contains the definitions and function declarations to
- * handle the C2S test.
+ * handle the server-side tests.
  *
  * kkumar@internet2.edu
  * Oct 2011

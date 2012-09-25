@@ -7,7 +7,7 @@
 
 #include <assert.h>
 #include <string.h>
-#include <ctype.h>
+//#include <ctype.h>
 #include <pthread.h>
 
 #include "testoptions.h"
