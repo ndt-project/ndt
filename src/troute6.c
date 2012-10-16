@@ -303,19 +303,19 @@ char copyright[] =
 
 struct ipv6hdr {
 #if defined(__LITTLE_ENDIAN_BITFIELD)
-	__u8 priority:4,
+__extension__	__u8 priority:4,
 	version:4;
 #elif defined(__BIG_ENDIAN_BITFIELD)
-	__u8 version:4,
+__extension__	__u8 version:4,
 	priority:4;
 #else
 #error  "Please fix <asm/byteorder.h>"
 #endif
-	__u8 flow_lbl[3];
+__extension__	__u8 flow_lbl[3];
 
-	__u16 payload_len;
-	__u8 nexthdr;
-	__u8 hop_limit;
+__extension__	__u16 payload_len;
+__extension__	__u8 nexthdr;
+__extension__	__u8 hop_limit;
 
 	struct in6_addr saddr;
 	struct in6_addr daddr;
@@ -644,9 +644,10 @@ char * pr_type(unsigned char t)
 		return (ttab1[t]);
 	}
 
-	if (t >= 128 && t <= 131)
+        unsigned char newt = t - 128;
+	if (newt < 5)
 	{
-		return (ttab2[t]);
+		return (ttab2[newt]);
 	}
 
 	return("OUT-OF-RANGE");

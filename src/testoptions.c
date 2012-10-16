@@ -312,8 +312,7 @@ void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* pea
  * @param snaplogenabled boolean indication whether snap logging is enabled
  * @param snapArgs_ptr  pointer to a snapArgs object
  * */
-void stop_snap_worker(int *workerThreadId, char snaplogenabled,
-		SnapArgs* snapArgs_ptr) {
+void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled, SnapArgs* snapArgs_ptr) {
 	if (*workerThreadId) {
 		pthread_mutex_lock(&mainmutex);
 		workerLoop = 0;
@@ -362,7 +361,7 @@ void start_packet_trace(int socketfdarg, int socketfdarg2, pid_t *childpid,
 				testindicatorarg, imonarg[0], imonarg[1]);
 
 		init_pkttrace(src_addr, cliaddrarg, clilenarg, imonarg, device,
-				&pairarg, testindicatorarg, iscompressionenabled);
+			      pairarg, testindicatorarg, iscompressionenabled);
 
 		exit(0); // Packet trace finished, terminate gracefully
 	}

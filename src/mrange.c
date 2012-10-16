@@ -34,7 +34,7 @@ static Range* mrange_root;
 int mrange_parse(char* text) {
 	char tmp[300];
 	char* ptr, *sptr;
-	Range* mr_ptr;
+	Range* mr_ptr = NULL;
 
 	assert(text);
 

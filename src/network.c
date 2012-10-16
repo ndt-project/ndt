@@ -6,9 +6,10 @@
  * jeremian@poczta.fm
  */
 
-#include <unistd.h>
 #include <assert.h>
+#include <netdb.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "network.h"
 #include "logging.h"
@@ -81,8 +82,7 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
 			if (!I2AddrSetSAddr(addr, ai->ai_addr, ai->ai_addrlen)
 					|| !I2AddrSetProtocol(addr, ai->ai_protocol)
 					|| !I2AddrSetSocktype(addr, ai->ai_socktype)) {
-				log_println(1,
-						"OpenSocket: Unable to set saddr in address record");
+				log_println(1, "OpenSocket: Unable to set saddr in address record");
 				return -1;
 			}
 			// set port if not already done, else return -1
@@ -101,9 +101,7 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
 			}
 			// save socket file descriptor
 			if (!I2AddrSetFD(addr, fd, True)) {
-				log_println(
-						1,
-						"OpenSocket: Unable to set file descriptor in address record");
+				log_println(1, "OpenSocket: Unable to set file descriptor in address record");
 				return -1;
 			}
 			// end setting values in "addr" structure
@@ -116,10 +114,9 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
 			/* RAC debug statemement 10/11/06 */
 			onSize = sizeof(on);
 			getsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, &onSize);
-			log_println(
-					1,
-					"bind(%d) failed: Address already in use given as the reason, getsockopt() returned %d",
-					fd, on);
+			log_println(1,
+                                    "bind(%d) failed: Address already in use given as the reason, getsockopt() returned %d",
+                                    fd, on);
 			return -2;
 		}
 
@@ -158,8 +155,7 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
 		goto error;
 	}
 
-	if ((!addr)
-			&& !(addr = I2AddrByWildcard(get_errhandle(), SOCK_STREAM, serv))) {
+	if ((!addr) && !(addr = I2AddrByWildcard(get_errhandle(), SOCK_STREAM, serv))) {
 		log_println(1, "Unable to create I2Addr record by wildcard.");
 		goto error;
 	}
@@ -352,8 +348,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 				return 0;
 			}
 			// unable to save
-			log_println(1,
-					"I2Addr functions failed after successful connection");
+			log_println(1, "I2Addr functions failed after successful connection");
 			while ((close(*sockfd) < 0) && (errno == EINTR))
 				;
 			return 1;
@@ -381,7 +376,6 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 int send_msg(int ctlSocket, int type, void* msg, int len) {
 	unsigned char buff[3];
 	int rc, i;
-	FILE * fp;
 
 	assert(msg);
 	assert(len >= 0);
@@ -446,7 +440,6 @@ int send_msg(int ctlSocket, int type, void* msg, int len) {
 int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
 	unsigned char buff[3];
 	int length;
-	FILE * fp;
 
 	char *msgtemp = (char*) msg;
 
@@ -500,10 +493,9 @@ int writen(int fd, void* buf, int amount) {
 			if (errno == EINTR) // interrupted, retry writing again
 				continue;
 			if (errno != EAGAIN) { // some genuine socket write error
-				log_println(
-						6,
-						"writen() Error! write(%d) failed with err='%s(%d) pic=%d'",
-						fd, strerror(errno), errno, getpid());
+				log_println(6,
+                                            "writen() Error! write(%d) failed with err='%s(%d) pic=%d'",
+                                            fd, strerror(errno), errno, getpid());
 				return -1;
 			}
 		}
@@ -547,9 +539,7 @@ int readn(int fd, void* buf, int amount) {
 		// check if fd+1 socket is ready to be read
 		rc = select(fd + 1, &rfd, NULL, NULL, &sel_tv);
 		if (rc == 0) { /* A timeout occurred, nothing to read from socket after 3 seconds */
-			log_println(
-					6,
-					"readn() routine timeout occurred, return error signal and kill off child");
+			log_println(6, "readn() routine timeout occurred, return error signal and kill off child");
 			return received;
 		}
 		if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */

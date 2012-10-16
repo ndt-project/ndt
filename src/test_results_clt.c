@@ -87,20 +87,16 @@ void print_results_mismatchcheck(int mismatch) {
 		printf("Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
 		break;
 	case DUPLEX_SWITCH_FULL_HOST_HALF_POSS:
-		printf(
-				"Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+		printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
 		break;
 	case DUPLEX_SWITCH_HALF_HOST_FULL:
-		printf(
-				"Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+		printf("Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
 		break;
 	case DUPLEX_SWITCH_HALF_HOST_FULL_POSS:
-		printf(
-				"Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+		printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
 		break;
 	case DUPLEX_SWITCH_HALF_HOST_FULL_WARN:
-		printf(
-				"Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+		printf("Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
 		break;
 	}
 }
@@ -126,7 +122,7 @@ void print_recommend_buffersize(double rwin, double rttsec, double avgrtt,
 	if (((rwin*2)/rttsec) < mylink) {
 		j = (float)((mylink * avgrtt)*1000) / 8;
 		if ((int)j > max_RwinRcvd) {
-			printf("Information: The receive buffer should be %0.0f ", j/1024);
+			printf("Information: The receive buffer should be %0.0f ", j/1024.0f);
 			printf("kbytes to maximize throughput\n");
 		}
 	}
@@ -148,7 +144,7 @@ void check_badcable(int is_bad_cable) {
  * */
 void check_congestion(int is_congested) {
 	if (is_congested == POSSIBLE_CONGESTION) {
-        printf("Information: Other network traffic is congesting the link\n");
+                printf("Information: Other network traffic is congesting the link\n");
 	}
 }
 
@@ -225,8 +221,7 @@ void print_packetloss_statistics(int PktsRetrans, int DupAcksIn, int SACKsRcvd,
 			printf("The connection stalled %d times due to packet loss.\n",
 					Timeouts);
 		if (waitsec > 0)
-			printf(
-					"The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
+			printf("The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
 					waitsec, (100 * waitsec / totaltesttime));
 	} else if (DupAcksIn > 0) {
 		printf("No packet loss - ");
@@ -263,16 +258,14 @@ void print_limitedtime_ratio(double rwintime, double rwin, double sendtime, doub
 		printf("This connection is receiver limited %0.2f%% of the time.\n",
 				rwintime * 100);
 		if ((2 * (rwin / rttsec)) < mylinkspeed)
-			printf(
-					"  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
+			printf("  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
 					(float) max_rwinrcvd / KILO_BITS);
 	}
 	if (sendtime > .015) {
 		printf("This connection is sender limited %0.2f%% of the time.\n",
 				sendtime * 100);
 		if ((2 * (swin / rttsec)) < mylinkspeed)
-			printf(
-					"  Increasing the current send buffer (%0.2f KB) will improve performance\n",
+			printf("  Increasing the current send buffer (%0.2f KB) will improve performance\n",
 					(float) sndbuf / KILO_BITS);
 	}
 	if (cwndtime > .005) {
@@ -289,8 +282,7 @@ void print_limitedtime_ratio(double rwintime, double rwin, double sendtime, doub
  */
 void print_packetloss_excess(double spd, double loss) {
 	if ((spd < 4) && (loss > .01)) {
-		printf(
-				"Excessive packet loss is impacting your performance, check the ");
+		printf("Excessive packet loss is impacting your performance, check the ");
 		printf("auto-negotiate function on your local PC and network switch\n");
 	}
 }
@@ -388,16 +380,13 @@ void print_throughputlimits(int max_rwinrcvd, int rcvwinscale, int *sndbuf,
 
 	printf("The theoretical network limit is %0.2f Mbps\n", estimate);
 
-	printf(
-			"The NDT server has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
+	printf("The NDT server has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
 			(float) tempsendbuf / KILO_BITS, (float) s_win / rttsec);
 
-	printf(
-			"Your PC/Workstation has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
+	printf("Your PC/Workstation has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
 			(float) max_rwinrcvd / KILO_BITS, (float) r_win / rttsec);
 
-	printf(
-			"The network based flow control limits the throughput to %0.2f Mbps\n",
+	printf("The network based flow control limits the throughput to %0.2f Mbps\n",
 			(float) c_win / rttsec);
 
 }
@@ -415,12 +404,10 @@ void print_throughputlimits(int max_rwinrcvd, int rcvwinscale, int *sndbuf,
 void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
 		int c2s_linkspeed_ack, int s2c_linkspeed_data, int s2c_linkspeed_ack) {
 	if (isC2S_enabled) {
-		printf(
-				"\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
+		printf("\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
 				c2s_linkspeed_data, c2s_linkspeed_ack);
 	}
-	printf(
-			"Server Data reports link is '%3d', Server Acks report link is '%3d'\n",
+	printf("Server Data reports link is '%3d', Server Acks report link is '%3d'\n",
 			s2c_linkspeed_data, s2c_linkspeed_ack);
 
 }
@@ -473,8 +460,7 @@ void check_MSS_modification(int is_timestampenabled, int *mssvalue) {
 		if (*mssvalue == 1456)
 			printf("Packet size is preserved End-to-End\n");
 		else
-			printf(
-					"Information: Network Middlebox is modifying MSS variable (changed to %d)\n",
+			printf("Information: Network Middlebox is modifying MSS variable (changed to %d)\n",
 					*mssvalue);
 
 }

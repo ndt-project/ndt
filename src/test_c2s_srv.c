@@ -85,8 +85,8 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	pthread_t workerThreadId;
 
 	// web_100 related variables
-	web100_group* group;
-	web100_connection* conn;
+	web100_group* group = NULL;
+	web100_connection* conn = NULL;
 
 	// snap related variables
 	SnapArgs snapArgs;
@@ -101,7 +101,6 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
 	enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 	char namesuffix[256] = "c2s_snaplog";
-	char currenttestdesc[TEST_NAME_DESC_SIZE] = "c2s" ;
 
 	if (testOptions->c2sopt) {
 		setCurrentTest(TEST_C2S);
@@ -269,7 +268,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 						5,
 						"C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
 						testOptions->child0, mon_pipe1[0], mon_pipe1[1]);
-			    log_println(2, "C2S test calling init_pkttrace() with pd=0x%x", (int) &cli_addr);
+			    log_println(2, "C2S test calling init_pkttrace() with pd=%p", &cli_addr);
 				init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
 						mon_pipe1, device, &pair, "c2s", options->compress);
 				exit(0); /* Packet trace finished, terminate gracefully */

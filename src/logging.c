@@ -28,7 +28,6 @@
 static int _debuglevel = 0;
 static char* _programname = "";
 static char* LogFileName = BASEDIR"/"LOGFILE;
-static char ProtocolLogFileName[FILENAME_SIZE] = BASEDIR"/"PROTOLOGFILE;
 static char* ProtocolLogDirName = BASEDIR"/"LOGDIR;
 static char protocollogfilestore[FILENAME_SIZE];
 static char enableprotologging = 0;
@@ -397,14 +396,16 @@ void log_println(int lvl, const char* format, ...)
  * @return number or characters written to the output buffer
  * */
 
-int quote_delimiters(char *line, int line_size, char *output_buf,
-		int output_buf_size) {
-	static quoted[4][2] = { { '\n', 'n' }, { '"', '"' }, { '\0', '0' }, { '\\',
-			'\\' }, };
+int quote_delimiters(const char *line, int line_size, char *output_buf, int output_buf_size) {
+	static char quoted[4][2] = {
+          { '\n', 'n' },
+          { '"', '"' },
+          { '\0', '0' },
+          { '\\', '\\' },
+        };
 	char quote_char = '\\';
 
 	int i, j, k;
-	int match;
 
 	for (i = j = 0; i < line_size && j < output_buf_size - 1; i++) {
 		// find any matching characters among the quoted
@@ -655,18 +656,17 @@ void protolog_println(char *msgdirection, const int type, void* msg,
 	FILE * fp;
 
 	char msgtypedescarr[MSG_TYPE_DESC_SIZE];
-	char *currenttestname, *currentmsgtype, *currentbodyfmt;
+	char *currenttestname, *currentmsgtype;
 	char isotime[64];
 	char logmessage[4096]; // message after replacing delimiter characters
 	char protologfile[FILENAME_SIZE];
 	char msgbodytype[MSG_BODY_FMT_SIZE];
-	int is_bitmessage = 0;
 
 	// get descriptive strings for test name and direction
 	currenttestname = get_currenttestdesc();
 	currentmsgtype = get_msgtypedesc(type, msgtypedescarr);
 
-	is_bitmessage = getMessageBodyFormat(type, len, msgbodytype, (char *) msg, logmessage, sizeof(logmessage));
+	getMessageBodyFormat(type, len, msgbodytype, (char *) msg, logmessage, sizeof(logmessage));
 
 	fp = fopen(get_protologfile(ctlSocket, protologfile), "a");
 	if (fp == NULL) {
@@ -881,18 +881,12 @@ char *fill_ISOtime(struct tm *result, char *isoTime, int isotimearrsize) {
  * @return current time string
  */
 char *get_currenttime(char *isoTime, int isotimearrsize) {
-	struct timeval now;
-	time_t timenow;
+	time_t rawtime;
 	struct tm *result;
-	int rc;
-
-	struct timeval tv;
-
-	rc = gettimeofday(&now, NULL);
-
-	if(rc==0) {
-		timenow = now.tv_sec;
-		result = gmtime(&now);
+	time_t rc;
+	rc = time(&rawtime);
+	if(rc!=-1) {
+		result = gmtime(&rawtime);
 		return (fill_ISOtime(result, isoTime, isotimearrsize));
 	}
 	return NULL;
@@ -911,7 +905,6 @@ get_ISOtime(char *isoTime, int isotimearrsize) {
 
 	struct tm *result;
 	time_t now;
-	char tmpstr[16];
 
 	setenv("TZ", "UTC", 0);
 	now = get_timestamp();
@@ -1160,9 +1153,8 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 	char namebuf[256];
 	size_t namebuflen = 255;
 	char dir[128];
-	DIR *dp;
 	char isoTime[64];
-	char *socketaddrport;
+	int socketaddrport;
 
 	I2Addr sockAddr = I2AddrBySAddr(get_errhandle(), cliaddrarg, clilenarg, 0,
 			0);

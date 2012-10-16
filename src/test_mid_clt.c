@@ -51,7 +51,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 	int msgLen, msgType;
 	int midport = atoi(PORT3);
 	I2Addr sec_addr = NULL;
-	int retcode, one=1, i, inlth;
+	int retcode, inlth;
 	int in2Socket;
 	double t, spdin;
 	uint32_t bytes;
@@ -119,7 +119,6 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 		printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
 		fflush(stdout);
 		testresult_str[0] = '\0';
-		i = 0;
 		bytes = 0;
 		t = secs() + 5.0;  // set timer for 5 seconds, and read for 5 seconds
 		sel_tv.tv_sec = 6; // Time out the socket after 6.5 seconds

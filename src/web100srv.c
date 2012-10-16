@@ -64,10 +64,11 @@
 
 #include <time.h>
 #include <ctype.h>
+#include <getopt.h>
 #include <math.h>
 #define SYSLOG_NAMES
-#include  <syslog.h>
 #include <pthread.h>
+#include <syslog.h>
 #include <sys/times.h>
 
 #include "web100srv.h"
@@ -993,7 +994,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	//int j;        // commented out -> calc_linkspeed
 	int totalcnt;
 	int autotune;
-	int dec_cnt, same_cnt, inc_cnt, timeout, dupack; // values collected from the speed tests
+	u_int32_t dec_cnt, same_cnt, inc_cnt; // values collected from the speed tests
+        int timeout, dupack;
 	//int ifspeed;
 
 	time_t stime;
@@ -1476,7 +1478,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
  * @param argv string command line arguments
  * */
 int main(int argc, char** argv) {
-	pid_t chld_pid;
+	pid_t chld_pid = -1;
 	int retcode;
 	int tpid, mwaiting = 0;
 	int ctlsockfd = -1;
@@ -1502,7 +1504,6 @@ int main(int argc, char** argv) {
 	char isoTime[64], dir[256];
 	int debug = 0;
 
-	DIR *dp;
 	int j;
 	char *name;
 
@@ -2722,4 +2723,3 @@ int main(int argc, char** argv) {
 char *get_remotehost() {
 	return rmt_host;
 }
-
