@@ -551,7 +551,7 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 		return;
 	}
 	lock.l_type = F_WRLCK;
-	i = fcntl((int) fp, F_SETLKW, lock);
+	i = fcntl(fileno(fp), F_SETLKW, lock);
 	log_println(1, "successfully locked '/tmp/view.string' for updating");
 	sprintf(
 			view_string,
@@ -564,7 +564,7 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 	log_println(1, "sending '%s' to tmp file", view_string);
 	fprintf(fp, "%s\n", view_string);
 	lock.l_type = F_UNLCK;
-	fcntl((int) fp, F_SETLK, lock);
+	fcntl(fileno(fp), F_SETLK, lock);
 	fclose(fp);
 }
 

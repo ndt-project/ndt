@@ -74,8 +74,7 @@ void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* pea
                 char *metafilevariablename, char *metafilename, web100_connection* conn,
                 web100_group* group);
 
-void stop_snap_worker(int *workerThreadId, char snaplogenabled,
-                SnapArgs* snapArgs_ptr);
+void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled, SnapArgs* snapArgs_ptr);
 
 void setCwndlimit(web100_connection* connarg, web100_group* grouparg,
 		web100_agent* agentarg, Options* optionsarg);

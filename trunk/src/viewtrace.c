@@ -23,6 +23,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/errno.h>
+#include <getopt.h>
 
 #include <netinet/ip.h>
 #include <netinet/tcp.h>

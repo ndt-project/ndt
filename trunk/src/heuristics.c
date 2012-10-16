@@ -63,15 +63,14 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data, i
 	int max; // max speed bin counter value
 	int total; // total of the bin counts, used to calculate percentage
 	int ifspeedlocal; // local if-speed indicator
-	FILE * fp; // log file pointer
 
 	for (n = 0; n < spd_index; n++) {
-		sscanf(spds + n,
-				"%d %d %d %d %d %d %d %d %d %d %d %d %f %d %d %d %d %d %d",
+		sscanf(spds[n],
+				"%d %d %d %d %d %d %d %d %d %d %d %d %f %u %u %u %d %d %d",
 				&links[0], &links[1], &links[2], &links[3], &links[4],
 				&links[5], &links[6], &links[7], &links[8], &links[9],
-				&links[10], &links[11], runave + n, &inc_cnt, &dec_cnt,
-				&same_cnt, timeout, dupack, &ifspeedlocal);
+				&links[10], &links[11], &runave[n], inc_cnt, dec_cnt,
+				same_cnt, timeout, dupack, &ifspeedlocal);
 		log_println(log_lvl_heur, " **First ele: spd=%s, runave=%f", spds[n],
 				runave[n]);
 		max = 0;

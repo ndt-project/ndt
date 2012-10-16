@@ -398,7 +398,7 @@ int packet_ok(buf, cc, from, seq)
 	 * Subtract 2 timeval structs:  out = out - in.
 	 * Out is assumed to be >= in.
 	 */
-voidtvsub (out, in)
+void tvsub (out, in)
 	register struct timeval *out, *in; {
 	if ((out->tv_usec -= in->tv_usec) < 0) {
 		out->tv_sec--;
@@ -406,4 +406,3 @@ voidtvsub (out, in)
 	}
 	out->tv_sec -= in->tv_sec;
 }
-

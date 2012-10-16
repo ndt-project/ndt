@@ -36,7 +36,7 @@
 #include "logging.h"
 #include "web100-admin.h"
 
-#define PORT            "7123"
+#define LISTEN_PORT            "7123"
 #define AC_TIME_FORMAT  "%d/%b/%Y:%H:%M:%S %z"
 #define ER_TIME_FORMAT  "%a %b %d %H:%M:%S %Y"
 #define ACLOGFILE       "access_log"
@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 	time_t tt;
 	socklen_t clilen;
 	char* srcname = NULL;
-	char* listenport = PORT;
+	char* listenport = LISTEN_PORT;
 	int conn_options = 0;
 
 	char *ErLogFileName = BASEDIR

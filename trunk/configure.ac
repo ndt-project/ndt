@@ -39,17 +39,20 @@ AC_CONFIG_HEADER([config.h])
 
 TOP_BUILD_DIRS=""
 
-CFLAGS="-pedantic -Wall -O2"
+# Note: -Werror is useful for debugging but a little strict.
+# Note: -Wno-unused-result is not supported on all platforms.
+# CFLAGS="-pedantic -Wall -Werror -Wno-unused-result -fno-strict-aliasing -std=gnu99"
+CFLAGS="-pedantic -Wall -fno-strict-aliasing -std=gnu99"
 
 # Enabling/disabling asserts and debugging
 AC_MSG_CHECKING(whether to enable debugging)
 AC_ARG_ENABLE(debug, [  --enable-debug=[no/yes] turn on debugging
               [default=no]],, enable_debug=no)
 if test "x$enable_debug" = "xyes"; then
-  CFLAGS="$CFLAGS -g"
+  CFLAGS="$CFLAGS -g -O0"
   AC_MSG_RESULT(yes)
 else
-  CFLAGS="$CFLAGS -DNDEBUG"
+  CFLAGS="$CFLAGS -DNDEBUG -O2"
   AC_MSG_RESULT(no)
 fi
 

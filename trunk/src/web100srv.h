@@ -24,9 +24,8 @@
 #endif
 #include  <stdlib.h>
 #include  <string.h>
-#include  <unistd.h>
 #include  <fcntl.h>
-#include  <getopt.h>
+#include  <unistd.h>
 
 #include  <sys/types.h>
 #include  <sys/socket.h>
@@ -207,7 +206,8 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char
 int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotune);
 void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int count_vars);
 int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars);
-int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt, int *same_cnt, int *inc_cnt);
+int CwndDecrease(web100_agent* agent, char* logname,
+                 u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
 int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
 		int *PktsRetrans, int *FastRetran, int *DataPktsOut, int *AckPktsOut,
 		int *CurrentMSS, int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd,

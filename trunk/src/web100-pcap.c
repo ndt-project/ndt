@@ -795,11 +795,9 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 	struct sockaddr *src_addr;
 	pcap_if_t *alldevs, *dp;
 	pcap_addr_t *curAddr;
-	DIR *dip;
 	int rc;
 
 	char logdir[256];
-	char logfilesuffix[256] = "ndttrace"; // logfile suffix
 
 	cnt = -1; /* read forever, or until end of file */
 	sig1 = 0;
@@ -963,7 +961,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 		fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
 	}
 
-	log_println(2, "pcap_open_live() returned pointer 0x%x", (int) pd);
+	log_println(2, "pcap_open_live() returned pointer %p", pd);
 
 	memset(namebuf, 0, 200);
 	I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
@@ -971,7 +969,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 	sprintf(cmdbuf, "host %s and port %d", namebuf, I2AddrPort(sockAddr));
 
 	log_println(1, "installing pkt filter for '%s'", cmdbuf);
-	log_println(1, "Initial pkt src data = %x", (int) fwd.saddr);
+	log_println(1, "Initial pkt src data = %p", fwd.saddr);
 
 	if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
 		fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));

@@ -1,12 +1,12 @@
 #include "../config.h"
 
+#include <ctype.h>
 #include <errno.h>
-#include <string.h>
 #include <getopt.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 #include <time.h>
-#include <ctype.h>
+#include <unistd.h>
 
 #include "network.h"
 #include "usage.h"
@@ -828,7 +828,7 @@ int main(int argc, char *argv[]) {
 	for (;;) {
 		msgLen = sizeof(buff);
 		memset(buff, 0, msgLen); // reset buff and msgLen
-		if (retcode = (recv_msg(ctlSocket, &msgType, buff, &msgLen))) {
+		if ((retcode = (recv_msg(ctlSocket, &msgType, buff, &msgLen)))) {
 			if (errno == ECONNRESET)
 				log_println(0,
 						"Connection closed by server, No test performed.");

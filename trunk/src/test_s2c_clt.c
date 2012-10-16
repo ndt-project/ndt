@@ -57,8 +57,6 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 	// variables used for protocol validation logs
 	enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
 	enum TEST_ID testids = S2C;
-	enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
-	enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 
 	if (tests & TEST_S2C) {
 		setCurrentTest(TEST_S2C);

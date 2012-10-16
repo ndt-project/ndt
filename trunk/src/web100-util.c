@@ -682,8 +682,8 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
  * @return Integer, 0 on success, -1 on failure
  */
 
-int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt,
-		int *same_cnt, int *inc_cnt) {
+int CwndDecrease(web100_agent* agent, char* logname, u_int32_t *dec_cnt,
+		u_int32_t *same_cnt, u_int32_t *inc_cnt) {
 
 	web100_var* var;
 	char buff[256];
@@ -719,8 +719,7 @@ int CwndDecrease(web100_agent* agent, char* logname, int *dec_cnt,
 		rt = web100_snap_read(var, snap, buff);
 		s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
 		if (cnt < 20) {
-			log_println(7, "Reading snaplog 0x%x (%d), var = %s", (int) snap,
-					cnt, (char*) var);
+			log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt, (char*) var);
 			log_println(
 					7,
 					"Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
