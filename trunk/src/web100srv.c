@@ -425,12 +425,14 @@ void child_sig(pid_t chld_pid) {
 void cleanup(int signo) {
 	FILE * fp;
 
-	log_println(1, "Signal %d received by process %d", signo, getpid());
-	if (get_debuglvl() > 0) {
-		fp = fopen(get_logfile(), "a");
-		if (fp != NULL) {
-			fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
-			fclose(fp);
+        if (signo != SIGINT) {
+		log_println(1, "Signal %d received by process %d", signo, getpid());
+		if (get_debuglvl() > 0) {
+			fp = fopen(get_logfile(), "a");
+			if (fp != NULL) {
+				fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
+				fclose(fp);
+			}
 		}
 	}
 	switch (signo) {
