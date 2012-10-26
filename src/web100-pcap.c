@@ -135,8 +135,9 @@ int check_signal_flags() {
 			usleep(30000); /* wait here 30 msec, for parent to read this data */
 			print_bins(&rev, mon_pipe1);
 			usleep(30000); /* wait here 30 msec, for parent to read this data */
-			if (pd != NULL)
-				pcap_close(pd);
+			if (pd != NULL) {
+                                pcap_breakloop(pd);
+			}
 			if (dumptrace == 1)
 				pcap_dump_close(pdump);
 			sig1 = 2;
@@ -175,8 +176,9 @@ int check_signal_flags() {
 			usleep(30000); /* wait here 30 msec, for parent to read this data */
 			print_bins(&rev, mon_pipe2);
 			usleep(30000); /* wait here 30 msec, for parent to read this data */
-			if (pd != NULL)
-				pcap_close(pd);
+			if (pd != NULL) {
+                                pcap_breakloop(pd);
+			}
 			if (dumptrace == 1)
 				pcap_dump_close(pdump);
 			sig2 = 2;
@@ -1020,6 +1022,9 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 	if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
 		log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
 	}
+
+	pcap_close(pd);
+
 	log_println(
 			5,
 			"Pkt-Pair data collection ended, waiting for signal to terminate process");
