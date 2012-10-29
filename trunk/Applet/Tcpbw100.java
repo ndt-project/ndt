@@ -192,6 +192,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	private ResourceBundle _resBundDisplayMsgs;
 	private String _sLang = "en";
 	private String _sCountry = "US";
+	private String _sClient = "applet";
 	// private static String lang="nb";
 	// private static String country="NO";
 	/***/
@@ -275,8 +276,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * */
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("ANL/Internet2 NDT (applet)");
-		if (args.length != 1) {
-			System.out.println("Usage: java -jar Tcpbw100.jar " + "HOST");
+		if (args.length < 1 || args.length > 2) {
+			System.out.println("Usage: java -jar Tcpbw100.jar <hostname> [client-id]");
 			System.exit(0);
 		}
 		final Tcpbw100 applet = new Tcpbw100();
@@ -288,6 +289,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		});
 		applet._bIsApplication = true;
 		applet.sHostName = args[0];
+                if (args.length > 1) {
+                        applet._sClient = args[1];
+                }
 		frame.getContentPane().add(applet);
 		frame.setSize(700, 320);
 		applet.init();
@@ -742,6 +746,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		if (getParameter("language") != null) {
 			_sLang = getParameter("language");
+		}
+		if (getParameter("client") != null) {
+			_sClient = getParameter("client");
 		}
 
 		try {
@@ -2142,7 +2149,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab) These methods
 	 *      indicate more information about IOException
 	 * */
-	public boolean test_meta(Protocol paramProtoObj) throws IOException {
+	public boolean test_meta(Protocol paramProtoObj, String application) throws IOException {
 		Message msg = new Message();
 		// Start META tests
 		if ((_yTests & NDTConstants.TEST_META) == NDTConstants.TEST_META) {
@@ -2220,11 +2227,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			paramProtoObj.send_msg(MessageType.TEST_MSG,
 					(NDTConstants.META_CLIENT_KERNEL_VERSION + ":" + System
 							.getProperty("os.version")).getBytes());
-			paramProtoObj
-					.send_msg(
-							MessageType.TEST_MSG,
-							(NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION)
-									.getBytes());
+			paramProtoObj.send_msg(MessageType.TEST_MSG,
+                                               (NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
+			paramProtoObj.send_msg(MessageType.TEST_MSG,
+                                               (NDTConstants.META_CLIENT_APPLICATION + ":" + application) .getBytes());
 
 			// Client can send any number of such meta data in a TEST_MSG
 			// format, and signal
@@ -2592,7 +2598,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				break;
 			case NDTConstants.TEST_META:
 				sPanel.setText(_resBundDisplayMsgs.getString("meta"));
-				if (test_meta(protocolObj)) {
+				if (test_meta(protocolObj, _sClient)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("metaFailed") + "\n");
@@ -3861,4 +3867,3 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	}
 
 } // class: Tcpbw100
-

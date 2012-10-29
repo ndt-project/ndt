@@ -119,6 +119,11 @@ metaentry	*new_entry = NULL;
 				snprintf(meta.client_os, sizeof(meta.client_os), "%s", value);
 				/*continue;*/
 			}
+			
+			if (strcmp(META_CLIENT_APPLICATION, buff) == 0) {
+				snprintf(meta.client_application, sizeof(meta.client_application), "%s", value);
+				/*continue;*/
+			}
 
 			if (strcmp(META_BROWSER_OS, buff) == 0) {
 				snprintf(meta.client_browser, sizeof(meta.client_browser), "%s",

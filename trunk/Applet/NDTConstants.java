@@ -18,6 +18,7 @@ public class NDTConstants {
 	public static final String META_BROWSER_OS = "client.browser.name";
 	public static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
 	public static final String META_CLIENT_VERSION = "client.version";
+        public static final String META_CLIENT_APPLICATION = "client.application";
 
 	/*
 	 * TODO for a later release: Version could be moved to some "configurable"
@@ -108,12 +109,10 @@ public class NDTConstants {
 	public static final int TCP_MAX_RECV_WIN_SIZE = 65535;
 	 
 	// Section: Data units
-	public static final int KILO = 1000; // Used in conversions from
-											// seconds->mS,
-	public static final int KILO_BITS = 1024;// Used in kilobits->bits
-												// conversions
-	public static final double EIGHT = 8.0; // Used in octal number, conversions from
-										// Bytes-> bits etc
+	public static final int KILO = 1000; // Used in conversions from seconds->mS,
+	public static final int KILO_BITS = 1024;// Used in kilobits->bits conversions
+	public static final double EIGHT = 8.0; // Used in octal number, conversions from Bytes-> bits etc
+        // EIGHT is a double to minimize overflow when converting.
 
 	// Section: Duplex mismatch conditions
 	public static final int DUPLEX_OK_INDICATOR = 0;
