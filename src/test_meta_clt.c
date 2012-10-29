@@ -82,6 +82,8 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
 		printf("sending meta information to server . . . . . ");
 		fflush(stdout);
 
+		sprintf(buff, "%s:%s", META_CLIENT_APPLICATION, "cli");
+		send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 		// send client os name details
 		if ((fp = fopen("/proc/sys/kernel/ostype", "r")) == NULL) {
 			log_println(0, "Unable to determine client os type.");

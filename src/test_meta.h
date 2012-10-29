@@ -12,6 +12,7 @@
 #define META_BROWSER_OS "client.browser.name"
 #define META_CLIENT_KERNEL_VERSION "client.kernel.version"
 #define META_CLIENT_VERSION "client.version"
+#define META_CLIENT_APPLICATION "client.application"
 
 #define META_TEST_LOG "META test"
 

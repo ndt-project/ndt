@@ -73,6 +73,7 @@ struct metadata {
 	char client_name[64]; // client's host-name
 	char client_os[32]; // client OS name
 	char client_browser[32]; // client's browser name
+        char client_application[32]; // client application name
 	int ctl_port; // ctl port
 	char server_ip[64]; // server IP address
 	char server_name[64]; // server's host-name
