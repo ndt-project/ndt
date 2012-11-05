@@ -144,7 +144,7 @@ int initialize_db(int options, char* dsn, char* uid, char* pwd) {
 		char loginstring[1024];
 
 		log_println(1, "Initializing DB with DSN='%s', UID='%s', PWD=%s", dsn, uid, pwd ? "yes" : "no");
-		sprintf(createTableStmt, "%s%s%s%s", ctStmt_1, ctStmt_2, ctStmt_3, ctStmt_4);
+		snprintf(createTableStmt, sizeof(createTableStmt), "%s%s%s%s", ctStmt_1, ctStmt_2, ctStmt_3, ctStmt_4);
 
 		// Allocate an environment handle
 		SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &env);
@@ -333,4 +333,3 @@ void pad_NaN(float *float_val) {
                 log_println(0," A float value you tried to insert into the DB was NaN");
         }
 }
-

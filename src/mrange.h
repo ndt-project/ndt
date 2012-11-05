@@ -10,6 +10,6 @@
 #define _JS_MRANGE_H
 
 int mrange_parse(char* text);
-char* mrange_next(char* port);
+char* mrange_next(char* port, size_t port_strlen);
 
 #endif

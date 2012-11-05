@@ -78,7 +78,7 @@ int zlib_def(char *src_fn) {
 		return ret;
 	}
 
-	sprintf(dest_fn, "%s.gz", src_fn);
+	snprintf(dest_fn, sizeof(dest_fn), "%s.gz", src_fn);
 	if ((source = fopen(src_fn, "r")) == NULL) {
 		log_println(6, "zlib_def(): failed to open src file '%s' for reading",
 				src_fn);
@@ -205,12 +205,12 @@ void set_protologdir(char* dirname) {
 		log_println(5, "PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
 		return;
 	} else if (dirname[0] != '/') {
-		sprintf(localstr, "%s/%s/", BASEDIR, dirname);
+		snprintf(localstr, sizeof(localstr), "%s/%s/", BASEDIR, dirname);
 		ProtocolLogDirName = localstr;
 		log_println(5, "PV: 2: non-dir proto location. So=%s;\n", dirname);
 	} //end protocol dir name
 	else {
-		sprintf(localstr, "%s", dirname);
+		snprintf(localstr, sizeof(localstr), "%s", dirname);
 		ProtocolLogDirName = dirname;
 		log_println(5, "PV33: proto location=%s;\n", ProtocolLogDirName);
 	}
@@ -244,7 +244,7 @@ char get_protocolloggingenabled() {
 void create_protolog_dir() {
 	 if ( get_protocolloggingenabled() ) {
 		set_timestamp();
-                sprintf(protocollogfilestore, "%s/", get_protologdir());
+                snprintf(protocollogfilestore, sizeof(protocollogfilestore), "%s/", get_protologdir());
                 log_println(5,"Creating protocol log directory=%s", protocollogfilestore);
                 create_named_logdir(protocollogfilestore, sizeof(protocollogfilestore), "", get_protocolloggingenabled());
                 set_protologdir(protocollogfilestore);
@@ -289,8 +289,7 @@ void set_protologfile(char* client_ip, char* protologlocalarr) {
  * @return The protocol log filename
  */
 
-char*
-get_protologfile(int socketNum, char *protologfilename) {
+char* get_protologfile(int socketNum, char *protologfilename, size_t filename_size) {
 	char localAddr[64]="", remoteAddr[64]="";
 	I2Addr tmp_addr = NULL;
 	size_t tmpstrlen = sizeof(localAddr);
@@ -308,7 +307,7 @@ get_protologfile(int socketNum, char *protologfilename) {
 	I2AddrNodeName(tmp_addr, localAddr, &tmpstrlen);
 
 	// copy address into filename String
-	sprintf(protologfilename, "%s/%s%s%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
+	snprintf(protologfilename, filename_size, "%s/%s%s%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
 			localAddr, "_",remoteAddr, PROTOLOGSUFFIX, "\0");
 	//log_print(0, "Log file name ---%s---", protologfilename);
 
@@ -458,7 +457,7 @@ void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 	// make delimiters in message payload explicit
 	quote_delimiters(value, strlen(value), logmessage, sizeof(logmessage));
 
-	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
+	fp = fopen(get_protologfile(socketnum, tmplogname, sizeof(tmplogname)), "a");
 	if (fp == NULL) {
 		log_println(5,
 				"--Unable to open proto file while trying to record msg: %s \n",
@@ -501,14 +500,14 @@ void protolog_status(int pid, enum TEST_ID testid,
 		return;
 	}
 
-	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
+	fp = fopen(get_protologfile(socketnum, tmplogname, sizeof(tmplogname)), "a");
 	if (fp == NULL) {
 		log_println(
 				5,
 				"--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
 				teststatusdesc, currenttestname);
 	} else {
-		sprintf(protomessage,
+		snprintf(protomessage, sizeof(protomessage),
 				" event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",
 				teststatusdesc, currenttestname, pid,
 				get_currenttime(isotime, sizeof(isotime)));
@@ -552,7 +551,7 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 		return;
 	}
 
-	fp = fopen(get_protologfile(socketnum, tmplogname), "a");
+	fp = fopen(get_protologfile(socketnum, tmplogname, sizeof(tmplogname)), "a");
 
 	if (fp == NULL) {
 		log_println(
@@ -561,8 +560,7 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 				procstatusdesc, currentprocname);
 	} else {
 		log_println(8, " a0\n %s, %s, %s,%d", procstatusdesc,currentprocname,currenttestname,pid);
-		sprintf(
-				protomessage,
+		snprintf(protomessage, sizeof(protomessage),
 				" event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",
 				procstatusdesc, currentprocname, currenttestname, pid,
 				get_currenttime(isotime, sizeof(isotime)));
@@ -668,7 +666,7 @@ void protolog_println(char *msgdirection, const int type, void* msg,
 
 	getMessageBodyFormat(type, len, msgbodytype, (char *) msg, logmessage, sizeof(logmessage));
 
-	fp = fopen(get_protologfile(ctlSocket, protologfile), "a");
+	fp = fopen(get_protologfile(ctlSocket, protologfile, sizeof(protologfile)), "a");
 	if (fp == NULL) {
 		log_println(
 				5,
@@ -766,7 +764,7 @@ long int get_utimestamp() {
  * @param Pointer to the string indicating the year
  */
 
-void get_YYYY(char *year) {
+void get_YYYY(char *year, size_t year_strlen) {
 
 	struct tm *result;
 	time_t now;
@@ -775,7 +773,7 @@ void get_YYYY(char *year) {
 	now = get_timestamp();
 	result = gmtime(&now);
 
-	sprintf(year, "%d", 1900 + result->tm_year);
+	snprintf(year, year_strlen, "%d", 1900 + result->tm_year);
 }
 
 /**
@@ -784,7 +782,7 @@ void get_YYYY(char *year) {
  * @param Pointer to the string indicating month
  */
 
-void get_MM(char *month) {
+void get_MM(char *month, size_t month_strlen) {
 
 	struct tm *result;
 	time_t now;
@@ -795,9 +793,9 @@ void get_MM(char *month) {
 	result = gmtime(&now);
 
 	if (1 + result->tm_mon < 10)
-		sprintf(month, "0%d", 1 + result->tm_mon);
+		snprintf(month, month_strlen, "0%d", 1 + result->tm_mon);
 	else
-		sprintf(month, "%d", 1 + result->tm_mon);
+		snprintf(month, month_strlen, "%d", 1 + result->tm_mon);
 }
 
 /**
@@ -806,7 +804,7 @@ void get_MM(char *month) {
  * @param Pointer to the string indicating day
  */
 
-void get_DD(char *day) {
+void get_DD(char *day, size_t day_strlen) {
 
 	struct tm *result;
 	time_t now;
@@ -815,9 +813,9 @@ void get_DD(char *day) {
 	result = gmtime(&now);
 
 	if (result->tm_mday < 10)
-		sprintf(day, "0%d", result->tm_mday);
+		snprintf(day, day_strlen, "0%d", result->tm_mday);
 	else
-		sprintf(day, "%d", result->tm_mday);
+		snprintf(day, day_strlen, "%d", result->tm_mday);
 }
 
 
@@ -832,43 +830,43 @@ void get_DD(char *day) {
 char *fill_ISOtime(struct tm *result, char *isoTime, int isotimearrsize) {
 	char tmpstr[16];
 
-	sprintf(isoTime, "%d", 1900 + result->tm_year);
+	snprintf(isoTime, isotimearrsize, "%d", 1900 + result->tm_year);
 	if (1 + result->tm_mon < 10)
-		sprintf(tmpstr, "0%d", 1 + result->tm_mon);
+		snprintf(tmpstr, sizeof(tmpstr), "0%d", 1 + result->tm_mon);
 	else
-		sprintf(tmpstr, "%d", 1 + result->tm_mon);
+		snprintf(tmpstr, sizeof(tmpstr), "%d", 1 + result->tm_mon);
 
 	strlcat(isoTime, tmpstr, isotimearrsize);
 
 	if (result->tm_mday < 10)
-		sprintf(tmpstr, "0%d", result->tm_mday);
+		snprintf(tmpstr, sizeof(tmpstr), "0%d", result->tm_mday);
 	else
-		sprintf(tmpstr, "%d", result->tm_mday);
+		snprintf(tmpstr, sizeof(tmpstr), "%d", result->tm_mday);
 
 	strlcat(isoTime, tmpstr, isotimearrsize);
 
 	if (result->tm_hour < 10)
-		sprintf(tmpstr, "T0%d", result->tm_hour);
+		snprintf(tmpstr, sizeof(tmpstr), "T0%d", result->tm_hour);
 	else
-		sprintf(tmpstr, "T%d", result->tm_hour);
+		snprintf(tmpstr, sizeof(tmpstr), "T%d", result->tm_hour);
 
 	strlcat(isoTime, tmpstr, isotimearrsize);
 
 	if (result->tm_min < 10)
-		sprintf(tmpstr, ":0%d", result->tm_min);
+		snprintf(tmpstr, sizeof(tmpstr), ":0%d", result->tm_min);
 	else
-		sprintf(tmpstr, ":%d", result->tm_min);
+		snprintf(tmpstr, sizeof(tmpstr), ":%d", result->tm_min);
 
 	strlcat(isoTime, tmpstr, isotimearrsize);
 
 	if (result->tm_sec < 10)
-		sprintf(tmpstr, ":0%d", result->tm_sec);
+		snprintf(tmpstr, sizeof(tmpstr), ":0%d", result->tm_sec);
 	else
-		sprintf(tmpstr, ":%d", result->tm_sec);
+		snprintf(tmpstr, sizeof(tmpstr), ":%d", result->tm_sec);
 
 	strlcat(isoTime, tmpstr, isotimearrsize);
 
-	sprintf(tmpstr, ".%ldZ", get_utimestamp() * 1000);
+	snprintf(tmpstr, sizeof(tmpstr), ".%ldZ", get_utimestamp() * 1000);
 
 	strlcat(isoTime, tmpstr, isotimearrsize);
 	return isoTime;
@@ -988,8 +986,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 		if (snaplog) { // if snaplog is enabled, compress those into .gz formats
 
 			// Try compressing C->S test snaplogs
-			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", dirpathstr, meta.c2s_snaplog);
+			memset(filename, 0, sizeof(filename));
+			snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.c2s_snaplog);
 			if (zlib_def(filename) != 0)
 				log_println(0, "compression failed for file:%s: %s.", filename,
 						dirpathstr);
@@ -997,8 +995,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 				strlcat(meta.c2s_snaplog, ".gz", sizeof(meta.c2s_snaplog));
 
 			// Try compressing S->C test snaplogs
-			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", dirpathstr, meta.s2c_snaplog);
+			memset(filename, 0, sizeof(filename));
+			snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.s2c_snaplog);
 			if (zlib_def(filename) != 0)
 				log_println(0, "compression failed for file :%s", filename);
 			else
@@ -1010,8 +1008,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
 			// Try compressing C->S test tcpdump.
 			// The tcpdump file extension is as specified in the "meta" data-structure
-			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", dirpathstr, meta.c2s_ndttrace);
+			memset(filename, 0, sizeof(filename));
+			snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.c2s_ndttrace);
 			if (zlib_def(filename) != 0)
 				log_println(0, "compression failed for tcpdump file %s =%s",
 						filename, meta.c2s_ndttrace);
@@ -1019,8 +1017,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 				strlcat(meta.c2s_ndttrace, ".gz", sizeof(meta.c2s_ndttrace));
 
 			// Try compressing S->C test tcpdumps
-			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", dirpathstr, meta.s2c_ndttrace);
+			memset(filename, 0, sizeof(filename));
+			snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.s2c_ndttrace);
 			if (zlib_def(filename) != 0)
 				log_println(0, "compression failed for tcpdump file %s =%s",
 						filename, meta.s2c_ndttrace);
@@ -1030,8 +1028,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
 		// If writing "cputime" file is enabled, compress those log files too
 		if (cputime) {
-			memset(filename, 0, 256);
-			sprintf(filename, "%s/%s", dirpathstr, meta.CPU_time);
+			memset(filename, 0, sizeof(filename));
+			snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.CPU_time);
 			if (zlib_def(filename) != 0)
 				log_println(0, "compression failed");
 			else
@@ -1108,7 +1106,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 	if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
 		mkdir(dirnamedestarg, 0755);
 	closedir(dp);
-	get_YYYY(dir);
+	get_YYYY(dir, sizeof(dir));
 
 	strlcat(dirnamedestarg, dir, destnamearrsize);
 	if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
@@ -1116,7 +1114,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 	closedir(dp);
 
 	strlcat(dirnamedestarg, "/", destnamearrsize);
-	get_MM(dir);
+	get_MM(dir, sizeof(dir));
 
 	strlcat(dirnamedestarg, dir, destnamearrsize);
 	if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
@@ -1124,7 +1122,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 	closedir(dp);
 
 	strlcat(dirnamedestarg, "/", destnamearrsize);
-	get_DD(dir);
+	get_DD(dir, sizeof(dir));
 
 	strlcat(dirnamedestarg, dir, destnamearrsize);
 	if ((dp = opendir(dirnamedestarg)) == NULL && errno == ENOENT)
@@ -1132,7 +1130,7 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
 	closedir(dp);
 
 	strlcat(dirnamedestarg, "/", destnamearrsize);
-	sprintf(dir, "%s", finalsuffix);
+	snprintf(dir, sizeof(dir), "%s", finalsuffix);
 	strlcat(dirnamedestarg, dir, destnamearrsize);
 	log_println(5, "end named_log_create %s", dirnamedestarg);
 }
@@ -1163,7 +1161,7 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 	I2AddrNodeName(sockAddr, namebuf, &namebuflen);
 	socketaddrport = I2AddrPort(sockAddr);
 
-	sprintf(dir, "%s_%s:%d.%s", get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
+	snprintf(dir, sizeof(dir), "%s_%s:%d.%s", get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
 			socketaddrport, finalsuffix);
 	strlcpy(finalsuffix, dir, finalsuffixsize);
 

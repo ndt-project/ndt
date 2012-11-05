@@ -142,9 +142,9 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		strlcpy(listens2cport, PORT4, sizeof(listens2cport));
 
 		if (testOptions->s2csockport) {
-			sprintf(listens2cport, "%d", testOptions->s2csockport);
+			snprintf(listens2cport, sizeof(listens2cport), "%d", testOptions->s2csockport);
 		} else if (testOptions->mainport) {
-			sprintf(listens2cport, "%d", testOptions->mainport + 2);
+			snprintf(listens2cport, sizeof(listens2cport), "%d", testOptions->mainport + 2);
 		}
 
 		if (testOptions->multiple) {
@@ -153,12 +153,11 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
 		// attempt to bind to a new port and obtain address structure with details of listening port
 		while (s2csrv_addr == NULL) {
-			s2csrv_addr =
-					CreateListenSocket(
-							NULL,
+			s2csrv_addr = CreateListenSocket(NULL,
 							(testOptions->multiple ?
-									mrange_next(listens2cport) : listens2cport), conn_options, 0)
-									;
+								mrange_next(listens2cport, sizeof(listens2cport)) :
+								listens2cport),
+							conn_options, 0);
 			if (s2csrv_addr == NULL) {
 				/*
 				 log_println(1, " Calling KillHung() because s2csrv_address failed to bind");
@@ -179,8 +178,9 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 					0,
 					"Server (S2C throughput test): CreateListenSocket failed: %s",
 					strerror(errno));
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (S2C throughput test): CreateListenSocket failed: %s",
 					strerror(errno));
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -196,7 +196,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		pair.port2 = testOptions->s2csockport;
 
 		// Data received from speed-chk. Send TEST_PREPARE "GO" signal with port number
-		sprintf(buff, "%d", testOptions->s2csockport);
+		snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
 		j = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
 		if (j == -1) {
 			log_println(6, "S2C %d Error!, Test start message not sent!",
@@ -438,7 +438,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 			memset(buff, 0, sizeof(buff));
 
 			// Send throughput, unsent byte count, total sent byte count to client
-			sprintf(buff, "%0.0f %d %0.0f", x2cspd, sndqueue, bytes_written);
+			snprintf(buff, sizeof(buff), "%0.0f %d %0.0f", x2cspd, sndqueue, bytes_written);
 			if (send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff)) < 0)
 				log_println(6,
 						"S2C test - failed to send test message to pid=%d",
@@ -482,11 +482,13 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 								4,
 								"Failed to read pkt-pair data from S2C flow, retcode=%d, reason=%d, EINTR=%d",
 								ret, errno, EINTR);
-						sprintf(
+						snprintf(
 								spds[(*spd_index)++],
+								sizeof(spds[*spd_index]),
 								" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-						sprintf(
+						snprintf(
 								spds[(*spd_index)++],
+								sizeof(spds[*spd_index]),
 								" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
 						break;
 					}
@@ -497,8 +499,9 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 					if (ret > 0) {
 						if ((ret = read(mon_pipe2[0], spds[*spd_index], 128))
 								< 0)
-							sprintf(
+							snprintf(
 									spds[*spd_index],
+									sizeof(spds[*spd_index]),
 									" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
 						log_println(1,
 								"%d bytes read '%s' from S2C monitor pipe", ret,
@@ -530,7 +533,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		if (ret < 0) {
 			log_println(6, "S2C - No web100 data received for pid=%d",
 					s2c_childpid);
-			sprintf(buff, "No Data Collected: 000000");
+			snprintf(buff, sizeof(buff), "No Data Collected: 000000");
 			send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
 		}
 
@@ -539,24 +542,27 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		msgLen = sizeof(buff);
 		if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
 			log_println(0, "Protocol error!");
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (S2C throughput test): Invalid S2C throughput received");
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return -1;
 		}
 		if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff,
 				msgLen)) {
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (S2C throughput test): Invalid S2C throughput received");
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return -2;
 		}
 		if (msgLen <= 0) {
 			log_println(0, "Improper message");
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (S2C throughput test): Invalid S2C throughput received");
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return -3;
@@ -587,4 +593,3 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 	}
 	return 0;
 }
-

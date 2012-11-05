@@ -431,7 +431,7 @@ void build(char* inputfile) {
 		}
 		memset(&*new, 0, sizeof(struct tr_tree));
 		new->ip_addr = ip_addr;
-		sprintf(new->hostname, "%u.%u.%u.%u",
+		snprintf(new->hostname, sizeof(new->hostname), "%u.%u.%u.%u",
 				(ip_addr & 0xff), ((ip_addr >> 8) & 0xff),
 				((ip_addr >> 16) & 0xff), (ip_addr >> 24));
 		/* resolve host name and store for later use */
@@ -513,7 +513,7 @@ build6(char* inputfile)
 		memset(&*new, 0, sizeof(struct tr_tree6));
 		memcpy(new->ip_addr, ip_addr, sizeof(new->ip_addr));
 		inet_ntop(AF_INET6, new->ip_addr, nodename, nnlen);
-		sprintf(new->hostname, "%s", nodename);
+		snprintf(new->hostname, sizeof(new->hostname), "%s", nodename);
 		/* resolve host name and store for later use */
 
 		if (root == NULL) {
@@ -876,13 +876,13 @@ int main(int argc, char *argv[]) {
 	log_init(argv[0], debug);
 
 	if (DefaultTree == NULL) {
-		sprintf(dtfn, "%s/%s", BASEDIR, DFLT_TREE);
+		snprintf(dtfn, sizeof(dtfn), "%s/%s", BASEDIR, DFLT_TREE);
 		DefaultTree = dtfn;
 	}
 
 #ifdef AF_INET6
 	if (DefaultTree6 == NULL) {
-		sprintf(dt6fn, "%s/%s", BASEDIR, DFLT_TREE6);
+		snprintf(dt6fn, sizeof(dt6fn), "%s/%s", BASEDIR, DFLT_TREE6);
 		DefaultTree6 = dt6fn;
 	}
 #endif

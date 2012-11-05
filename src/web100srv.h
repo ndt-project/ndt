@@ -202,7 +202,7 @@ int check_signal_flags();
 void get_iflist(void);
 int web100_init(char *VarFileName);
 int web100_autotune(int sock, web100_agent* agent, web100_connection* cn);
-void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *results);
+void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn, char *results, size_t results_strlen);
 int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn, int autotune);
 void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn, int count_vars);
 int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent, int count_vars);

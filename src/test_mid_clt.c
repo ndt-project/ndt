@@ -164,9 +164,10 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
 
 		strlcat(testresult_str, buff, MIDBOX_TEST_RES_SIZE);
 
-		memset(buff, 0, 128); // this should work since the throughput results from the server should
-							 //  ...fit well within 128 chars
-		sprintf(buff, "%0.0f", spdin);
+		memset(buff, 0, sizeof(buff));
+		// this should work since the throughput results from the server should
+							 //  ...fit well within BUFFSIZE
+		snprintf(buff, sizeof(buff), "%0.0f", spdin);
 		log_println(4, "CWND limited speed = %0.2f kbps", spdin);
 
 		// client now sends throughput it calculated above to server, as a TEST_MSG

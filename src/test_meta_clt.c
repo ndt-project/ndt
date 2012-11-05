@@ -82,7 +82,7 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
 		printf("sending meta information to server . . . . . ");
 		fflush(stdout);
 
-		sprintf(buff, "%s:%s", META_CLIENT_APPLICATION, "cli");
+		snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_APPLICATION, "cli");
 		send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 		// send client os name details
 		if ((fp = fopen("/proc/sys/kernel/ostype", "r")) == NULL) {
@@ -90,12 +90,12 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
 		} else {
 			fscanf(fp, "%s", tmpBuff);
 			fclose(fp);
-			sprintf(buff, "%s:%s", META_CLIENT_OS, tmpBuff);
+			snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_OS, tmpBuff);
 			send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 		}
 
 		// send client browser name
-		sprintf(buff, "%s:%s", META_BROWSER_OS, "- (web100clt)");
+		snprintf(buff, sizeof(buff), "%s:%s", META_BROWSER_OS, "- (web100clt)");
 		send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 
 		// send client kernel version
@@ -104,12 +104,12 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
 		} else {
 			fscanf(fp, "%s", tmpBuff);
 			fclose(fp);
-			sprintf(buff, "%s:%s", META_CLIENT_KERNEL_VERSION, tmpBuff);
+			snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_KERNEL_VERSION, tmpBuff);
 			send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 		}
 
 		// send NDT client version
-		sprintf(buff, "%s:%s", META_CLIENT_VERSION, VERSION);
+		snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_VERSION, VERSION);
 		send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 
 		// Client can send any number of such meta data in a TEST_MSG

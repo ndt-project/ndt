@@ -56,7 +56,7 @@ typedef struct snapArgs {
 int wait_sig;
 
 int initialize_tests(int ctlsockfd, TestOptions* testOptions,
-		char * test_suite);
+		char * test_suite, size_t test_suite_strlen);
 
 void catch_s2c_alrm(int signo);
 

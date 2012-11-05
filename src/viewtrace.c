@@ -229,7 +229,7 @@ void vt_print_bins(struct spdpair *cur) {
 			cur->totalspd / cur->totalcount);
 
 	if (cur->totalcount > 0) {
-		sprintf(buff, "%d %d %d %d %d %d %d %d %d %d %d %d %0.2f",
+		snprintf(buff, sizeof(buff), "%d %d %d %d %d %d %d %d %d %d %d %d %0.2f",
 				cur->links[0], cur->links[1], cur->links[2], cur->links[3],
 				cur->links[4], cur->links[5], cur->links[6], cur->links[7],
 				cur->links[8], cur->links[9], cur->links[10], cur->links[11],

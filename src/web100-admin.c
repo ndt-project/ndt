@@ -194,51 +194,51 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 	// print details about bottleneck link's speed
 	switch (c2s_linkspeed_data) {
 	case DATA_RATE_INSUFFICIENT_DATA:
-		sprintf(btlneck, "Insufficent Data");
+		snprintf(btlneck, sizeof(btlneck), "Insufficent Data");
 		break;
 	case DATA_RATE_SYSTEM_FAULT:
-		sprintf(btlneck, "System Fault");
+		snprintf(btlneck, sizeof(btlneck), "System Fault");
 		break;
 	case DATA_RATE_RTT:
-		sprintf(btlneck, "Round Trip Time");
+		snprintf(btlneck, sizeof(btlneck), "Round Trip Time");
 		break;
 	case DATA_RATE_DIAL_UP:
-		sprintf(btlneck, "Dial-up modem");
+		snprintf(btlneck, sizeof(btlneck), "Dial-up modem");
 		break;
 	case DATA_RATE_T1:
 		if (((float) c2sspd / (float) s2cspd > .8)
 				&& ((float) c2sspd / (float) s2cspd < 1.2) && (c2sspd > 1000))
-			sprintf(btlneck, "T1 subnet");
+			snprintf(btlneck, sizeof(btlneck), "T1 subnet");
 		else {
 			if (s2c_linkspeed_ack == 3)
-				sprintf(btlneck, "Cable Modem");
+				snprintf(btlneck, sizeof(btlneck), "Cable Modem");
 			else
-				sprintf(btlneck, "DSL");
+				snprintf(btlneck, sizeof(btlneck), "DSL");
 		}
 		break;
 	case DATA_RATE_ETHERNET:
-		sprintf(btlneck, "Ethernet");
+		snprintf(btlneck, sizeof(btlneck), "Ethernet");
 		break;
 	case DATA_RATE_T3:
-		sprintf(btlneck, "T3/DS-3");
+		snprintf(btlneck, sizeof(btlneck), "T3/DS-3");
 		break;
 	case DATA_RATE_FAST_ETHERNET:
-		sprintf(btlneck, "FastEthernet");
+		snprintf(btlneck, sizeof(btlneck), "FastEthernet");
 		break;
 	case DATA_RATE_OC_12:
-		sprintf(btlneck, "OC-12");
+		snprintf(btlneck, sizeof(btlneck), "OC-12");
 		break;
 	case DATA_RATE_GIGABIT_ETHERNET:
-		sprintf(btlneck, "Gigabit Ethernet");
+		snprintf(btlneck, sizeof(btlneck), "Gigabit Ethernet");
 		break;
 	case DATA_RATE_OC_48:
-		sprintf(btlneck, "OC-48");
+		snprintf(btlneck, sizeof(btlneck), "OC-48");
 		break;
 	case DATA_RATE_10G_ETHERNET:
-		sprintf(btlneck, "10 Gigabit Enet");
+		snprintf(btlneck, sizeof(btlneck), "10 Gigabit Enet");
 		break;
 	case DATA_RATE_RETRANSMISSIONS:
-		sprintf(btlneck, "Retransmissions");
+		snprintf(btlneck, sizeof(btlneck), "Retransmissions");
 	}
 
 	/* Calculate some values */
@@ -536,7 +536,7 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 	 * file.  For now, use the system command to append the text to the just created file.
 	 */
 	fclose(fp);
-	sprintf(tmpstr, "/bin/cat %s/admin_description.html >> %s", BASEDIR,
+	snprintf(tmpstr, sizeof(tmpstr), "/bin/cat %s/admin_description.html >> %s", BASEDIR,
 			AdminFileName);
 	system(tmpstr);
 
@@ -553,8 +553,8 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
 	lock.l_type = F_WRLCK;
 	i = fcntl(fileno(fp), F_SETLKW, lock);
 	log_println(1, "successfully locked '/tmp/view.string' for updating");
-	sprintf(
-			view_string,
+	snprintf(
+			view_string, sizeof(view_string),
 			"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
 			maxc2sspd, minc2sspd, maxs2cspd, mins2cspd, totalcnt, totmismatch,
 			totbad_cable, count[0], count[1], count[2], count[3], count[4],

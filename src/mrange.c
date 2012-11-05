@@ -101,7 +101,7 @@ int mrange_parse(char* text) {
  */
 
 char*
-mrange_next(char* port) {
+mrange_next(char* port, size_t port_strlen) {
 	int val;
 	Range* ptr;
 
@@ -109,7 +109,7 @@ mrange_next(char* port) {
 
 	if (check_rint(port, &val, 0, MAX_TCP_PORT)) { // check if valid
 		log_println(0, "WARNING: invalid port number");
-		sprintf(port, RESERVED_PORT);
+		snprintf(port, port_strlen, RESERVED_PORT);
 		return port;
 	}
 	val++;
@@ -118,13 +118,13 @@ mrange_next(char* port) {
 		while (ptr != NULL) { // While there is some data
 			if ((val >= ptr->min) && (val <= ptr->max)) { // check range
 														  // and return port if valid
-				sprintf(port, "%d", val);
+				snprintf(port, port_strlen, "%d", val);
 				return port;
 			}
 			ptr = ptr->next;
 		}
 		val++;
 	}
-	sprintf(port, RESERVED_PORT);
+	snprintf(port, port_strlen, RESERVED_PORT);
 	return port;
 }

@@ -42,8 +42,8 @@ int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		int conn_options) {
 	int j;
 	int msgLen, msgType;
-	char buff[BUFFSIZE + 1];struct
-metaentry	*new_entry = NULL;
+	char buff[BUFFSIZE + 1];
+	struct metaentry *new_entry = NULL;
 	char* value;
 
 	// protocol validation logs
@@ -77,21 +77,21 @@ metaentry	*new_entry = NULL;
 			if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
 				// message reading error
 				log_println(0, "Protocol error!");
-				sprintf(buff, "Server (META test): Invalid meta data received");
+				snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
 				send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 				return 1;
 			}
 			if (check_msg_type("META test", TEST_MSG, msgType, buff, msgLen)) {
 				// expected a TEST_MSG only
 				log_println(0, "Fault, unexpected message received!");
-				sprintf(buff, "Server (META test): Invalid meta data received");
+				snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
 				send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 				return 2;
 			}
 			if (msgLen < 0) {
 				//  meta data should be present at this stage
 				log_println(0, "Improper message");
-				sprintf(buff, "Server (META test): Invalid meta data received");
+				snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
 				send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 				return 3;
 			}
@@ -106,7 +106,7 @@ metaentry	*new_entry = NULL;
 			value = index(buff, ':');
 			if (value == NULL) { // key-value separates by ":"
 				log_println(0, "Improper message");
-				sprintf(buff, "Server (META test): Invalid meta data received");
+				snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
 				send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 				return 4;
 			}

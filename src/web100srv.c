@@ -639,31 +639,31 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
 		}
 
 		else if (strncasecmp(key, "variable_file", 6) == 0) {
-			sprintf(wvfn, "%s", val);
+			snprintf(wvfn, sizeof(wvfn), "%s", val);
 			VarFileName = wvfn;
 			continue;
 		}
 
 		else if (strncasecmp(key, "log_file", 3) == 0) {
-			sprintf(lgfn, "%s", val);
+			snprintf(lgfn, sizeof(lgfn), "%s", val);
 			set_logfile(lgfn);
-			sprintf(lgfn, "%s", val);
+			snprintf(lgfn, sizeof(lgfn), "%s", val);
 			continue;
 		} else if (strncasecmp(key, "protolog_dir", 12) == 0) {
-			sprintf(lgfn, "%s", val);
+			snprintf(lgfn, sizeof(lgfn), "%s", val);
 			set_protologdir(lgfn);
 			continue;
 		} else if (strncasecmp(key, "enableprotolog", 11) == 0) {
 			enableprotocollogging();
 			continue;
 		} else if (strncasecmp(key, "admin_file", 10) == 0) {
-			sprintf(apfn, "%s", val);
+			snprintf(apfn, sizeof(apfn), "%s", val);
 			AdminFileName = apfn;
 			continue;
 		}
 
 		else if (strncasecmp(key, "logfacility", 11) == 0) {
-			sprintf(slfa, "%s", val);
+			snprintf(slfa, sizeof(slfa), "%s", val);
 			SysLogFacility = slfa;
 			continue;
 		}
@@ -835,7 +835,7 @@ zombieWorker(void *head_ptr) {
 			pre_ptr = tmp_ptr;
 		tmp_ptr = tmp_ptr->next;
 	}
-	sprintf(tmpstr, "9990");
+	snprintf(tmpstr, sizeof(tmpstr), "9990");
 	i = 0;
 	while (tmp_ptr != NULL) {
 		if (tmp_ptr->oldclient == 0) {
@@ -1049,7 +1049,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 	autotune = web100_autotune(ctlsockfd, agent, conn);
 
 	// client needs to be version compatible. Send current version
-	sprintf(buff, "v%s", VERSION);
+	snprintf(buff, sizeof(buff), "v%s", VERSION);
 	send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
 
 	// initiate test with MSG_LOGIN message.
@@ -1296,35 +1296,35 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 		congestion = POSSIBLE_CONGESTION;
 
 	// Send results and variable values to clients
-	sprintf(buff, "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n", c2s_linkspeed_data,
+	snprintf(buff, sizeof(buff), "c2sData: %d\nc2sAck: %d\ns2cData: %d\ns2cAck: %d\n", c2s_linkspeed_data,
 			c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
-	sprintf(
-			buff,
+	snprintf(
+			buff,sizeof(buff),
 			"half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\nmismatch: %d\nspd: %0.2f\n",
 			half_duplex, link, congestion, bad_cable, mismatch, realthruput);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
-	sprintf(
-			buff,
+	snprintf(
+			buff,sizeof(buff),
 			"bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\ntimesec: %0.2f\norder: %0.4f\n",
 			bw_theortcl, packetloss_s2c, avgrtt, waitsec, timesec, oo_order);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
-	sprintf(
-			buff,
+	snprintf(
+			buff,sizeof(buff),
 			"rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\nrwin: %0.4f\nswin: %0.4f\n",
 			rwintime, sendtime, cwndtime, rwin, swin);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
-	sprintf(
-			buff,
+	snprintf(
+			buff,sizeof(buff),
 			"cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\nCWND-Limited: %0.2f\n",
 			cwin, rttsec, Sndbuf, aspd, s2c2spd);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
-	sprintf(buff, "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n",
+	snprintf(buff, sizeof(buff), "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n",
 			peaks.min, peaks.max, peaks.amount);
 	send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
@@ -1333,45 +1333,45 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
 	// Copy collected values into the meta data structures. This section
 	// seems most readable, easy to debug here.
-	sprintf(meta.date, "%s", get_ISOtime(isoTime, sizeof(isoTime)));
+	snprintf(meta.date, sizeof(meta.date), "%s", get_ISOtime(isoTime, sizeof(isoTime)));
 
 	log_println(9, "meta.date=%s, meta.clientip =%s:%s:%d", meta.date,
 			meta.client_ip, rmt_host, strlen(rmt_host));
 	memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
 	log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
 
-	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", (int) s2c2spd,
+	memset(tmpstr, 0, sizeof(tmpstr));
+	snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", (int) s2c2spd,
 			(int) s2cspd, (int) c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans,
 			FastRetran, DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn,
 			AckPktsIn);
 	memcpy(meta.summary, tmpstr, strlen(tmpstr));
-	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", MaxRwinRcvd,
+	memset(tmpstr, 0, sizeof(tmpstr));
+	snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", MaxRwinRcvd,
 			Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
 			DataBytesOut, SndLimTransRwin, SndLimTransCwnd, SndLimTransSender,
 			MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, "%d,%d,%d,%d,%d", link, mismatch, bad_cable, half_duplex,
+	memset(tmpstr, 0, sizeof(tmpstr));
+	snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d", link, mismatch, bad_cable, half_duplex,
 			congestion);
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
+	memset(tmpstr, 0, sizeof(tmpstr));
+	snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
 			s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid,
+	memset(tmpstr, 0, sizeof(tmpstr));
+	snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid,
 			CongestionOverCount, MaxRTT, OtherReductions, CurTimeoutCount,
 			AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts,
 			ThruBytesAcked);
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-	memset(tmpstr, 0, 255);
-	sprintf(tmpstr, ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
+	memset(tmpstr, 0, sizeof(tmpstr));
+	snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d", peaks.min, peaks.max, peaks.amount);
 
 	strlcat(meta.summary, tmpstr, sizeof(meta.summary));
 	writeMeta(options.compress, cputime, options.snaplog, dumptrace);
@@ -1383,7 +1383,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 				"Unable to open log file '%s', continuing on without logging",
 				get_logfile());
 	} else {
-		sprintf(date, "%15.15s", ctime(&stime) + 4);
+		snprintf(date, sizeof(date), "%15.15s", ctime(&stime) + 4);
 		fprintf(fp, "%s,", date);
 		fprintf(fp, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", rmt_host,
 				(int) s2c2spd, (int) s2cspd, (int) c2sspd, Timeouts, SumRTT,
@@ -1420,27 +1420,27 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 			SubsequentTimeouts, ThruBytesAcked, peaks.min, peaks.max,
 			peaks.amount);
 	if (usesyslog == 1) {
-		sprintf(
-				logstr1,
+		snprintf(
+				logstr1, sizeof(logstr1),
 				"client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
 				rmt_host, c2sspd, s2cspd, Timeouts, SumRTT, CountRTT,
 				PktsRetrans, FastRetran, DataPktsOut, AckPktsOut, CurrentMSS,
 				DupAcksIn, AckPktsIn);
-		sprintf(
-				logstr2,
+		snprintf(
+				logstr2, sizeof(logstr2),
 				"MaxRwinRcvd=%d,Sndbuf=%d,MaxCwnd=%d,SndLimTimeRwin=%d,SndLimTimeCwnd=%d,SndLimTimeSender=%d,DataBytesOut=%d,SndLimTransRwin=%d,SndLimTransCwnd=%d,SndLimTransSender=%d,MaxSsthresh=%d,CurrentRTO=%d,CurrentRwinRcvd=%d,",
 				MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
 				SndLimTimeSender, DataBytesOut, SndLimTransRwin,
 				SndLimTransCwnd, SndLimTransSender, MaxSsthresh, CurrentRTO,
 				CurrentRwinRcvd);
-		strcat(logstr1, logstr2);
-		sprintf(
-				logstr2,
+		strlcat(logstr1, logstr2, sizeof(logstr1));
+		snprintf(
+				logstr2, sizeof(logstr2),
 				"link=%d,mismatch=%d,bad_cable=%d,half_duplex=%d,congestion=%d,c2s_linkspeed_data=%d,c2sack=%d,s2cdata=%d,s2cack=%d,CongestionSignals=%d,PktsOut=%d,MinRTT=%d,RcvWinScale=%d\n",
 				link, mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
 				c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT,
 				RcvWinScale);
-		strcat(logstr1, logstr2);
+		strncat(logstr1, logstr2, sizeof(logstr1));
 		syslog(LOG_FACILITY | LOG_INFO, "%s", logstr1);
 		closelog();
 		log_println(4, "%s", logstr1);
@@ -1770,20 +1770,20 @@ int main(int argc, char** argv) {
 	}
 
 	if (VarFileName == NULL) {
-		sprintf(wvfn, "%s/%s", BASEDIR, WEB100_FILE);
+		snprintf(wvfn, sizeof(wvfn), "%s/%s", BASEDIR, WEB100_FILE);
 		VarFileName = wvfn;
 	}
 
 	if (AdminFileName == NULL) {
-		sprintf(apfn, "%s/%s", BASEDIR, ADMINFILE);
+		snprintf(apfn, sizeof(apfn), "%s/%s", BASEDIR, ADMINFILE);
 		AdminFileName = apfn;
 	}
 
 	if (DataDirName == NULL) {
-		sprintf(logd, "%s/%s/", BASEDIR, LOGDIR);
+		snprintf(logd, sizeof(logd), "%s/%s/", BASEDIR, LOGDIR);
 		DataDirName = logd;
 	} else if (DataDirName[0] != '/') {
-		sprintf(logd, "%s/%s/", BASEDIR, DataDirName);
+		snprintf(logd, sizeof(logd), "%s/%s/", BASEDIR, DataDirName);
 		DataDirName = logd;
 	}
 
@@ -2230,7 +2230,7 @@ int main(int argc, char** argv) {
 				}
 
 				log_println(6, "xxx, calling initialize_tests()");
-				t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
+				t_opts = initialize_tests(ctlsockfd, &testopt, test_suite, sizeof(test_suite));
 
 				if (t_opts < 1) {
 					log_println(
@@ -2291,7 +2291,7 @@ int main(int argc, char** argv) {
 						0,
 						"Too many clients/mclients (%d) waiting to be served, Please try again later.",
 						chld_pid);
-				sprintf(tmpstr, "9988"); // 9988 = server_BUSY_OR_ERROR
+				snprintf(tmpstr, sizeof(tmpstr), "9988"); // 9988 = server_BUSY_OR_ERROR
 				send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 				close(chld_pipe[0]);
 				close(chld_pipe[1]);
@@ -2306,7 +2306,7 @@ int main(int argc, char** argv) {
 				continue;
 			}
 
-			t_opts = initialize_tests(ctlsockfd, &testopt, test_suite);
+			t_opts = initialize_tests(ctlsockfd, &testopt, test_suite, sizeof(test_suite));
 			if (t_opts < 1) { // some error in initialization routines
 				log_println(
 						3,
@@ -2429,7 +2429,7 @@ int main(int argc, char** argv) {
 						3,
 						"%d clients waiting, telling client (%d) testing will begin within %d minutes",
 						(waiting - 1), tmp_ptr->pid, (waiting-1));
-						sprintf(tmpstr, "%d", (waiting-1));
+						snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-1));
 						send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 	  continue;
         }
@@ -2438,7 +2438,7 @@ int main(int argc, char** argv) {
 					int xx = waiting/max_clients;
 					log_println(3, "%d mclients waiting, tell client (%d) test will begin within %d minutes",
 							(waiting-max_clients), mchild->pid, xx);
-					sprintf(tmpstr, "%d", xx);
+					snprintf(tmpstr, sizeof(tmpstr), "%d", xx);
 					send_msg(mchild->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 					continue;
 				}
@@ -2471,7 +2471,7 @@ int main(int argc, char** argv) {
 						log_println(3, "%d clients waiting, updating client %d testing will begin within %d minutes",
 								(waiting-1), tmp_ptr->pid, (waiting-j));
 
-						sprintf(tmpstr, "%d", (waiting-j));
+						snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-j));
 						send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
 						tmp_ptr = tmp_ptr->next;
 						j--;
@@ -2524,7 +2524,7 @@ int main(int argc, char** argv) {
 					mchild->stime = time(0);
 					mchild->running = 1;
 					mclients++;
-					sprintf(tmpstr, "go %d %s", t_opts, mchild->tests);
+					snprintf(tmpstr, sizeof(tmpstr), "go %d %s", t_opts, mchild->tests);
 					log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
 					send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1); // test session starts now
 					for (i=0; i<5; i++) {
@@ -2551,7 +2551,7 @@ int main(int argc, char** argv) {
 				else {
 					head_ptr->stime = time(0);
 					head_ptr->running = 1;
-					sprintf(tmpstr, "go %d %s", t_opts, head_ptr->tests);
+					snprintf(tmpstr, sizeof(tmpstr), "go %d %s", t_opts, head_ptr->tests);
 					log_println(5, "sending 'GO' signal to client msg='%s'", tmpstr);
 					send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
 					for (i=0; i<5; i++) {
@@ -2634,7 +2634,8 @@ int main(int argc, char** argv) {
 					I2AddrFree(tmp_addr);
 					memset(cputimelog, 0, 256);
 					if (cputime) {
-						sprintf(dir, "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
+						snprintf(dir, sizeof(dir), "%s_%s:%d.cputime",
+								get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
 						log_println(8, "CPUTIME:suffix=%s",dir);
 						create_named_logdir(cputimelog, sizeof(cputimelog),dir, 0);
 						memcpy(meta.CPU_time, dir, strlen(dir));
