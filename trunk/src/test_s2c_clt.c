@@ -214,7 +214,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 		I2AddrFree(sec_addr);
 
 		// send TEST_MSG to server with the client-calculated throughput
-		sprintf(buff, "%0.0f", spdin);
+		snprintf(buff, sizeof(buff), "%0.0f", spdin);
 		send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
 
 		// client now expected to receive web100 variables collected by server

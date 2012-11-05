@@ -74,7 +74,7 @@ int web100_init(char *VarFileName) {
  *
  */
 void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
-		char *results) {
+		char *results, size_t results_strlen) {
 
 	web100_var* var;
 	web100_group* group;
@@ -107,7 +107,7 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 	// copy address into tmpstr String
 	I2AddrNodeName(addr, tmpstr, &tmpstrlen);
 	// now copy tmpstr containing address into "line"
-	sprintf(line, "%s;", tmpstr);
+	snprintf(line, sizeof(line), "%s;", tmpstr);
 	memset(tmpstr, 0, 200);
 	// service name into tmpstr
 	I2AddrServName(addr, tmpstr, &tmpstrlen);
@@ -117,7 +117,7 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 	// terminate the IP address string
 	meta.server_ip[(strlen(line) - 1)] = 0;
 	// Add this address to results
-	strlcat(results, line, (BUFFSIZE + 1)); // using a "known" hardcoded value for size of results
+	strlcat(results, line, results_strlen);
 	I2AddrFree(addr); // free memory
 
 	// Now perform the above set of functions for client address/service name
@@ -126,10 +126,10 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 	addr = I2AddrBySockFD(get_errhandle(), sock, False);
 	memset(tmpstr, 0, 200);
 	I2AddrNodeName(addr, tmpstr, &tmpstrlen);
-	sprintf(line, "%s;", tmpstr);
+	snprintf(line, sizeof(line), "%s;", tmpstr);
 	I2AddrServName(addr, tmpstr, &tmpstrlen);
 	log_print(3, "Client: %s%s ", line, tmpstr);
-	strlcat(results, line, (BUFFSIZE + 1));
+	strlcat(results, line, results_strlen);
 	I2AddrFree(addr);
 
 	// get web100 values for the middlebox test result group
@@ -144,13 +144,13 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 		if (strcmp(vars[i], "CurMSS") == 0)
 			currentMSSval = atoi(
 					web100_value_to_text(web100_get_var_type(var), buff));
-		sprintf(line, "%s;",
+		snprintf(line, sizeof(line), "%s;",
 				web100_value_to_text(web100_get_var_type(var), buff));
 		if (strcmp(line, "4294967295;") == 0)
-			sprintf(line, "%d;", -1);
+			snprintf(line, sizeof(line), "%d;", -1);
 
 		//strlcat(results, line, sizeof(results));
-		strlcat(results, line, (BUFFSIZE + 1));
+		strlcat(results, line, results_strlen);
 		log_print(3, "%s", line);
 	}
 	log_println(3, "");
@@ -263,7 +263,7 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
 	// get values for group, var of IP Address of the Remote host's side of connection
 	web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
 	web100_raw_read(var, cn, buf);
-	sprintf(line, "%s;", web100_value_to_text(web100_get_var_type(var), buf));
+	snprintf(line, sizeof(line), "%s;", web100_value_to_text(web100_get_var_type(var), buf));
 	// write remote address to log file
 	if (fp)
 		fprintf(fp, "%s", line);
@@ -294,7 +294,7 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
 			continue;
 		}
 		if (ok == 1) {
-			sprintf(web_vars[i].value, "%s",
+			snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
 					web100_value_to_text(web100_get_var_type(var), buf));
 			if (fp)
 				fprintf(fp, "%d;", (int32_t) atoi(web_vars[i].value));
@@ -360,9 +360,9 @@ int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
 		}
 
 		// assign values and transmit message with all web100 variables to socket receiver end
-		sprintf(web_vars[i].value, "%s",
+		snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
 				web100_value_to_text(web100_get_var_type(var), buf));
-		sprintf(line, "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
+		snprintf(line, sizeof(line), "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
 		send_msg(ctlsock, TEST_MSG, line, strlen(line));
 		log_print(9, "%s", line);
 	}

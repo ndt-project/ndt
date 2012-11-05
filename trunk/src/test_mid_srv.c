@@ -61,7 +61,7 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
 	/* socklen_t optlen, clilen; */
 	socklen_t clilen;
 	char buff[BUFFSIZE + 1]; // buf used for message payload
-I2Addr 	midsrv_addr = NULL; // server address
+	I2Addr 	midsrv_addr = NULL; // server address
 	char listenmidport[10]; // listener socket for middlebox tests
 	int msgType;
 	int msgLen;
@@ -98,9 +98,9 @@ I2Addr 	midsrv_addr = NULL; // server address
 		strlcpy(listenmidport, PORT3, sizeof(listenmidport));
 
 		if (options->midsockport) {
-			sprintf(listenmidport, "%d", options->midsockport);
+			snprintf(listenmidport, sizeof(listenmidport), "%d", options->midsockport);
 		} else if (options->mainport) {
-			sprintf(listenmidport, "%d", options->mainport + 2);
+			snprintf(listenmidport, sizeof(listenmidport), "%d", options->mainport + 2);
 		}
 
 		if (options->multiple) {
@@ -124,7 +124,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 					CreateListenSocket(
 							NULL,
 							(options->multiple ?
-									mrange_next(listenmidport) : listenmidport), conn_options, 0)
+									mrange_next(listenmidport, sizeof(listenmidport)) : listenmidport), conn_options, 0)
 							;
 			if (midsrv_addr == NULL) {
 				/*
@@ -146,7 +146,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 			log_println(0,
 					"Server (Middlebox test): CreateListenSocket failed: %s",
 					strerror(errno));
-			sprintf(buff,
+			snprintf(buff, sizeof(buff),
 					"Server (Middlebox test): CreateListenSocket failed: %s",
 					strerror(errno));
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
@@ -159,7 +159,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 		log_println(1, "  -- port: %d", options->midsockport);
 
 		// send this port number to client
-		sprintf(buff, "%d", options->midsockport);
+		snprintf(buff, sizeof(buff), "%d", options->midsockport);
 		if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff)))
 				< 0)
 			return msgretvalue;
@@ -211,10 +211,10 @@ I2Addr 	midsrv_addr = NULL; // server address
 			if ((midsfd == -1) && (errno == EINTR)) // socket interrupted, wait some more
 				goto midfd;
 
-			sprintf(
-					tmpstr,
-					"-------     middlebox connection setup returned because (%d)",
-					errno);
+			snprintf(tmpstr,
+				sizeof(tmpstr),
+				"-------     middlebox connection setup returned because (%d)",
+				errno);
 			if (get_debuglvl() > 1)
 				perror(tmpstr);
 			if (midsfd < 0)
@@ -240,7 +240,7 @@ I2Addr 	midsrv_addr = NULL; // server address
 		}
 
 		// Perform S->C throughput test. Obtained results in "buff"
-		web100_middlebox(midsfd, agent, conn, buff);
+		web100_middlebox(midsfd, agent, conn, buff, sizeof(buff));
 
 		// Transmit results in the form of a TEST_MSG message
 		send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
@@ -250,23 +250,26 @@ I2Addr 	midsrv_addr = NULL; // server address
 		msgLen = sizeof(buff);
 		if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) { // message reception error
 			log_println(0, "Protocol error!");
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (Middlebox test): Invalid CWND limited throughput received");
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return 1;
 		}
 		if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff, msgLen)) { // only TEST_MSG type valid
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (Middlebox test): Invalid CWND limited throughput received");
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return 2;
 		}
 		if (msgLen <= 0) { // received message's length has to be a valid one
 			log_println(0, "Improper message");
-			sprintf(
+			snprintf(
 					buff,
+					sizeof(buff),
 					"Server (Middlebox test): Invalid CWND limited throughput received");
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return 3;

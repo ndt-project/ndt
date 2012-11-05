@@ -402,7 +402,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 	}
 
 	// make speed bin available to other processes
-	sprintf(buff,
+	snprintf(buff,
+			sizeof(buff),
 			"  %d %d %d %d %d %d %d %d %d %d %d %d %0.2f %d %d %d %d %d %d",
 			cur->links[0], cur->links[1], cur->links[2], cur->links[3],
 			cur->links[4], cur->links[5], cur->links[6], cur->links[7],
@@ -967,8 +968,8 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 
 	memset(namebuf, 0, 200);
 	I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-	memset(cmdbuf, 0, 256);
-	sprintf(cmdbuf, "host %s and port %d", namebuf, I2AddrPort(sockAddr));
+	memset(cmdbuf, 0, sizeof(cmdbuf));
+	snprintf(cmdbuf, sizeof(cmdbuf), "host %s and port %d", namebuf, I2AddrPort(sockAddr));
 
 	log_println(1, "installing pkt filter for '%s'", cmdbuf);
 	log_println(1, "Initial pkt src data = %p", fwd.saddr);
@@ -985,7 +986,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 
 	if (dumptrace == 1) {
 		// Create log file
-		sprintf(dir, "%s_%s:%d.%s_ndttrace",
+		snprintf(dir, sizeof(dir), "%s_%s:%d.%s_ndttrace",
 				get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
 				I2AddrPort(sockAddr), direction);
 		create_named_logdir(logdir, sizeof(logdir), dir, 0);

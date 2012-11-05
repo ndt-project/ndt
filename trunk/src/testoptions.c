@@ -154,15 +154,15 @@ snapWorker(void* arg) {
  * @param buff test suite description
  * @param test_id id of the test
  */
-void add_test_to_suite(int* first, char * buff, int test_id) {
+void add_test_to_suite(int* first, char * buff, size_t buff_strlen, int test_id) {
 	char tmpbuff[16];
 	if (*first) {
 		*first = 0;
-		sprintf(buff, "%d", test_id);
+		snprintf(buff, buff_strlen, "%d", test_id);
 	} else {
-		memset(tmpbuff, 0, 16);
-		sprintf(tmpbuff, " %d", test_id);
-		strlcat(buff, tmpbuff, 16); //setting buffsize= 16 as is initialized in main()
+		memset(tmpbuff, 0, sizeof(tmpbuff));
+		snprintf(tmpbuff, sizeof(tmpbuff), " %d", test_id);
+		strlcat(buff, tmpbuff, buff_strlen);
 	}
 }
 
@@ -181,7 +181,7 @@ void add_test_to_suite(int* first, char * buff, int test_id) {
  *
  */
 
-int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
+int initialize_tests(int ctlsockfd, TestOptions* options, char * buff, size_t buff_strlen) {
 	unsigned char useropt = 0;
 	int msgType;
 	int msgLen = 1;
@@ -194,17 +194,17 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
 
 	// read the test suite request
 	if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
-		sprintf(buff, "Invalid test suite request");
+		snprintf(buff, buff_strlen, "Invalid test suite request");
 		send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 		return (-1);
 	}
 	if (msgLen == -1) {
-		sprintf(buff, "Client timeout");
+		snprintf(buff, buff_strlen, "Client timeout");
 		return (-4);
 	}
 	// Expecting a MSG_LOGIN with payload byte indicating tests to be run
 	if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
-		sprintf(buff, "Invalid test request");
+		snprintf(buff, buff_strlen, "Invalid test request");
 		send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 		return (-2);
 	}
@@ -220,25 +220,25 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff) {
 			& (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
 					| TEST_META))) {
 		// message received does not indicate a valid test!
-		sprintf(buff, "Invalid test suite request");
+		snprintf(buff, buff_strlen, "Invalid test suite request");
 		send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 		return (-3);
 	}
 	// construct test suite request based on user options received
 	if (useropt & TEST_MID) {
-		add_test_to_suite(&first, buff, TEST_MID);
+		add_test_to_suite(&first, buff, buff_strlen, TEST_MID);
 	}
 	if (useropt & TEST_SFW) {
-		add_test_to_suite(&first, buff, TEST_SFW);
+		add_test_to_suite(&first, buff, buff_strlen, TEST_SFW);
 	}
 	if (useropt & TEST_C2S) {
-		add_test_to_suite(&first, buff, TEST_C2S);
+		add_test_to_suite(&first, buff, buff_strlen, TEST_C2S);
 	}
 	if (useropt & TEST_S2C) {
-		add_test_to_suite(&first, buff, TEST_S2C);
+		add_test_to_suite(&first, buff, buff_strlen, TEST_S2C);
 	}
 	if (useropt & TEST_META) {
-		add_test_to_suite(&first, buff, TEST_META);
+		add_test_to_suite(&first, buff, buff_strlen, TEST_META);
 	}
 	return useropt;
 }

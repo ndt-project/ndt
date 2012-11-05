@@ -184,83 +184,83 @@ void calculate() {
 	}
 	switch (c2s_linkspeed_data) {
 	case -2:
-		sprintf(btlneck, "Insufficent Data");
+		snprintf(btlneck, sizeof(btlneck), "Insufficent Data");
 		break;
 	case -1:
-		sprintf(btlneck, "a System Fault");
+		snprintf(btlneck, sizeof(btlneck), "a System Fault");
 		break;
 	case 0:
-		sprintf(btlneck, "the Round Trip Time");
+		snprintf(btlneck, sizeof(btlneck), "the Round Trip Time");
 		break;
 	case 1:
-		sprintf(btlneck, "a 'Dial-up modem' connection");
+		snprintf(btlneck, sizeof(btlneck), "a 'Dial-up modem' connection");
 		break;
 	case 2:
 		if ((c2sspd / s2cspd > .8) && (c2sspd / s2cspd < 1.2)
 				&& (c2sspd > 1000))
-			sprintf(btlneck, "a 'T1' subnet");
+			snprintf(btlneck, sizeof(btlneck), "a 'T1' subnet");
 		else {
 			if ((tail[3] > 1) || (s2c_linkspeed_ack == 3))
-				sprintf(btlneck, "a 'Cable Modem' connection");
+				snprintf(btlneck, sizeof(btlneck), "a 'Cable Modem' connection");
 			else
-				sprintf(btlneck, "a 'DSL' connection");
+				snprintf(btlneck, sizeof(btlneck), "a 'DSL' connection");
 		}
 		break;
 	case 3:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a T1 + subnet");
+			snprintf(btlneck, sizeof(btlneck), "a T1 + subnet");
 		else
-			sprintf(btlneck, "an 'Ethernet' subnet");
+			snprintf(btlneck, sizeof(btlneck), "an 'Ethernet' subnet");
 		break;
 	case 4:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a IEEE 802.11b Wifi subnet");
+			snprintf(btlneck, sizeof(btlneck), "a IEEE 802.11b Wifi subnet");
 		else
-			sprintf(btlneck, "a 'T3/DS-3' subnet");
+			snprintf(btlneck, sizeof(btlneck), "a 'T3/DS-3' subnet");
 		break;
 	case 5:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a Wifi + subnet");
+			snprintf(btlneck, sizeof(btlneck), "a Wifi + subnet");
 		else
-			sprintf(btlneck, "a 'FastEthernet' subnet");
+			snprintf(btlneck, sizeof(btlneck), "a 'FastEthernet' subnet");
 		break;
 	case 6:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a Ethernet subnet");
+			snprintf(btlneck, sizeof(btlneck), "a Ethernet subnet");
 		else
-			sprintf(btlneck, "an 'OC-12' subnet");
+			snprintf(btlneck, sizeof(btlneck), "an 'OC-12' subnet");
 		break;
 	case 7:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a T3/DS3 subnet");
+			snprintf(btlneck, sizeof(btlneck), "a T3/DS3 subnet");
 		else
-			sprintf(btlneck, "a 'Gigabit Ethernet' subnet");
+			snprintf(btlneck, sizeof(btlneck), "a 'Gigabit Ethernet' subnet");
 		break;
 	case 8:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a FastEthernet subnet");
+			snprintf(btlneck, sizeof(btlneck), "a FastEthernet subnet");
 		else
-			sprintf(btlneck, "an 'OC-48' subnet");
+			snprintf(btlneck, sizeof(btlneck), "an 'OC-48' subnet");
 		break;
 	case 9:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a OC-12 subnet");
+			snprintf(btlneck, sizeof(btlneck), "a OC-12 subnet");
 		else
-			sprintf(btlneck, "a '10 Gigabit Enet' subnet");
+			snprintf(btlneck, sizeof(btlneck), "a '10 Gigabit Enet' subnet");
 		break;
 	case 10:
 		if (linkcnt == 16)
-			sprintf(btlneck, "a Gigabit Ethernet subnet");
+			snprintf(btlneck, sizeof(btlneck), "a Gigabit Ethernet subnet");
 		else
-			sprintf(btlneck, "Retransmissions");
+			snprintf(btlneck, sizeof(btlneck), "Retransmissions");
 	case 11:
-		sprintf(btlneck, "an 'OC-48' subnet");
+		snprintf(btlneck, sizeof(btlneck), "an 'OC-48' subnet");
 		break;
 	case 12:
-		sprintf(btlneck, "a '10 Gigabit Enet' subnet");
+		snprintf(btlneck, sizeof(btlneck), "a '10 Gigabit Enet' subnet");
 		break;
 	case 13:
-		sprintf(btlneck, "Retransmissions");
+		snprintf(btlneck, sizeof(btlneck), "Retransmissions");
 		break;
 	}
 	/* Calculate some values */
@@ -498,14 +498,14 @@ int main(int argc, char** argv) {
 	log_init(argv[0], debug);
 
 	if (LogFileName == NULL) {
-		sprintf(tmpstr, "%s/%s", BASEDIR, LOGFILE);
+		snprintf(tmpstr, sizeof(tmpstr), "%s/%s", BASEDIR, LOGFILE);
 		LogFileName = tmpstr;
 	}
 	log_println(1, "log file = %s", LogFileName);
 
 	//TODO do we need protocol log file in analyze????
 	if (ProtoLogFileName == NULL) {
-		sprintf(tmpstr, "%s/%s", BASEDIR, PROTOLOGFILE);
+		snprintf(tmpstr, 256, "%s/%s", BASEDIR, PROTOLOGFILE);
 		ProtoLogFileName = tmpstr;
 	}
 	log_println(1, "log file = %s", ProtoLogFileName);

@@ -244,7 +244,7 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 		log_println(1, "  -- oport: %d", sfwsockport);
 
 		// Send a TEST_MSG to server with the client's port number
-		sprintf(buff, "%d", sfwsockport);
+		snprintf(buff, sizeof(buff), "%d", sfwsockport);
 		send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
 
 		// The server responds to the TEST_MSG messages with a TEST_START message.

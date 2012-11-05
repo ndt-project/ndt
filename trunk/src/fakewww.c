@@ -85,10 +85,11 @@ Allowed* a_root = NULL;
 char* basedir = BASEDIR;
 
 char* DefaultTree = NULL;
-static char dtfn[256];
+#define DTFN_STRLEN 256
+static char dtfn[DTFN_STRLEN];
 #ifdef AF_INET6
 char* DefaultTree6 = NULL;
-static char dt6fn[256];
+static char dt6fn[DTFN_STRLEN];
 #endif
 
 int usesyslog = 0;
@@ -232,13 +233,13 @@ int main(int argc, char** argv) {
 	}
 
 	if (DefaultTree == NULL) {
-		sprintf(dtfn, "%s/%s", BASEDIR, DFLT_TREE);
+		snprintf(dtfn, sizeof(dtfn), "%s/%s", BASEDIR, DFLT_TREE);
 		DefaultTree = dtfn;
 	}
 
 #ifdef AF_INET6
 	if (DefaultTree6 == NULL) {
-		sprintf(dt6fn, "%s/%s", BASEDIR, DFLT_TREE6);
+		snprintf(dt6fn, sizeof(dtfn), "%s/%s", BASEDIR, DFLT_TREE6);
 		DefaultTree6 = dt6fn;
 	}
 #endif
@@ -432,24 +433,28 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 				struct sockaddr* csaddr;
 				csaddr = I2AddrSAddr(addr, NULL);
 				if (csaddr->sa_family == AF_INET) { /* make the IPv4 find */
+					char ip_str[16];
 					struct sockaddr_in* cli_addr = (struct sockaddr_in*) csaddr;
 					find_route(cli_addr->sin_addr.s_addr, IPlist, max_ttl);
 					for (i = 0; IPlist[i] != cli_addr->sin_addr.s_addr; i++) {
-						sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff,
-								(IPlist[i] >> 8) & 0xff,
-								(IPlist[i] >> 16) & 0xff,
-								(IPlist[i] >> 24) & 0xff);
-						log_println(4, "loop IPlist[%d] = %s", i, p);
+						snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u",
+							 IPlist[i] & 0xff,
+							 (IPlist[i] >> 8) & 0xff,
+							 (IPlist[i] >> 16) & 0xff,
+							 (IPlist[i] >> 24) & 0xff);
+						log_println(4, "loop IPlist[%d] = %s", i, ip_str);
 						if (i == max_ttl) {
 							log_println(4, "Oops, destination not found!");
 							break;
 						}
 					}
 					/* print out last item on list */
-					sprintf(p, "%u.%u.%u.%u", IPlist[i] & 0xff,
-							(IPlist[i] >> 8) & 0xff, (IPlist[i] >> 16) & 0xff,
-							(IPlist[i] >> 24) & 0xff);
-					log_println(4, "IPlist[%d] = %s", i, p);
+					snprintf(ip_str, sizeof(ip_str), "%u.%u.%u.%u",
+						 IPlist[i] & 0xff,
+						 (IPlist[i] >> 8) & 0xff,
+						 (IPlist[i] >> 16) & 0xff,
+						 (IPlist[i] >> 24) & 0xff);
+					log_println(4, "IPlist[%d] = %s", i, ip_str);
 
 					srv_addr = find_compare(IPlist, i);
 
@@ -489,7 +494,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 
 					writen(sd, MsgRedir1, strlen(MsgRedir1));
 					writen(sd, MsgRedir2, strlen(MsgRedir2));
-					sprintf(line, "http://%u.%u.%u.%u:%s/tcpbw100.html",
+					snprintf(line, sizeof(line), "http://%u.%u.%u.%u:%s/tcpbw100.html",
 							srv_addr & 0xff, (srv_addr >> 8) & 0xff,
 							(srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
 							port);
@@ -497,7 +502,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 					writen(sd, MsgRedir3, strlen(MsgRedir3));
 					writen(sd, MsgRedir4, strlen(MsgRedir4));
 					answerSize = strlen(MsgRedir4);
-					sprintf(line, "url=http://%u.%u.%u.%u:%s/tcpbw100.html",
+					snprintf(line, sizeof(line), "url=http://%u.%u.%u.%u:%s/tcpbw100.html",
 							srv_addr & 0xff, (srv_addr >> 8) & 0xff,
 							(srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
 							port);
@@ -505,8 +510,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 					answerSize += strlen(line);
 					writen(sd, MsgRedir5, strlen(MsgRedir5));
 					answerSize += strlen(MsgRedir5);
-					sprintf(line,
-							"href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"",
+					snprintf(line, sizeof(line), "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"",
 							srv_addr & 0xff, (srv_addr >> 8) & 0xff,
 							(srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
 							port);
@@ -572,17 +576,17 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 
 					writen(sd, MsgRedir1, strlen(MsgRedir1));
 					writen(sd, MsgRedir2, strlen(MsgRedir2));
-					sprintf(line, "http://[%s]:%s/tcpbw100.html", onenodename, port);
+					snprintf(line, sizeof(line), "http://[%s]:%s/tcpbw100.html", onenodename, port);
 					writen(sd, line, strlen(line));
 					writen(sd, MsgRedir3, strlen(MsgRedir3));
 					writen(sd, MsgRedir4, strlen(MsgRedir4));
 					answerSize = strlen(MsgRedir4);
-					sprintf(line, "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
+					snprintf(line, sizeof(line), "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
 					writen(sd, line, strlen(line));
 					answerSize += strlen(line);
 					writen(sd, MsgRedir5, strlen(MsgRedir5));
 					answerSize += strlen(MsgRedir5);
-					sprintf(line, "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
+					snprintf(line, sizeof(line), "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
 					writen(sd, line, strlen(line));
 					answerSize += strlen(line);
 					writen(sd, MsgRedir6, strlen(MsgRedir6));
@@ -639,7 +643,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 						nodename, filename);
 			break;
 		}
-		sprintf(htmlfile, "%s/%s", basedir, filename + 1);
+		snprintf(htmlfile, sizeof(htmlfile), "%s/%s", basedir, filename + 1);
 		fd = open(htmlfile, 0); /* open file for read */
 		if (fd < 0) {
 			close(fd);
@@ -678,8 +682,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 			setenv("SERVER_NAME", onenodename, 1);
 			setenv("REMOTE_HOST", nodename, 1);
 			setenv("REMOTE_ADDR", "207.75.164.153", 1);
-			system(
-					"/usr/bin/perl /usr/local/ndt/traceroute.pl > /tmp/rac-traceroute.pl");
+			system("/usr/bin/perl /usr/local/ndt/traceroute.pl > /tmp/rac-traceroute.pl");
 			close(fd);
 			fd = open("/tmp/rac-traceroute.pl", 0);
 		}

@@ -587,7 +587,7 @@ short_usage	(argv[0], "ANL/Internet2 NDT version " VERSION " (genplot)");
 }
 
 	for (j = optind; j < argc; j++) {
-		sprintf(fn, "%s", argv[j]);
+		snprintf(fn, sizeof(fn), "%s", argv[j]);
 		if ((log = web100_log_open_read(fn)) == NULL) {
 			web100_perror("web100_log_open_read");
 			exit(EXIT_FAILURE);
@@ -681,4 +681,3 @@ short_usage	(argv[0], "ANL/Internet2 NDT version " VERSION " (genplot)");
 
 	exit(0);
 }
-

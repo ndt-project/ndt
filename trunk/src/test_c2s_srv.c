@@ -115,9 +115,9 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		// Determine port to be used. Compute based on options set earlier
 		// by reading from config file, or use default port2 (3002).
 		if (testOptions->c2ssockport) {
-			sprintf(listenc2sport, "%d", testOptions->c2ssockport);
+			snprintf(listenc2sport, sizeof(listenc2sport), "%d", testOptions->c2ssockport);
 		} else if (testOptions->mainport) {
-			sprintf(listenc2sport, "%d", testOptions->mainport + 1);
+			snprintf(listenc2sport, sizeof(listenc2sport), "%d", testOptions->mainport + 1);
 		}
 
 		if (testOptions->multiple) {
@@ -126,11 +126,11 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
 		// attempt to bind to a new port and obtain address structure with details of listening port
 		while (c2ssrv_addr == NULL) {
-			c2ssrv_addr =
-					CreateListenSocket(
-							NULL,
-							(testOptions->multiple ?
-									mrange_next(listenc2sport) : listenc2sport), conn_options, 0)
+			c2ssrv_addr = CreateListenSocket(
+				NULL,
+				(testOptions->multiple ?
+				 	mrange_next(listenc2sport, sizeof(listenc2sport)) : listenc2sport),
+				conn_options, 0)
 							;
 			if (strcmp(listenc2sport, "0") == 0) {
 				log_println(0, "WARNING: ephemeral port number was bound");
@@ -145,10 +145,10 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 					0,
 					"Server (C2S throughput test): CreateListenSocket failed: %s",
 					strerror(errno));
-			sprintf(
-					buff,
-					"Server (C2S throughput test): CreateListenSocket failed: %s",
-					strerror(errno));
+			snprintf(buff,
+				sizeof(buff),
+				"Server (C2S throughput test): CreateListenSocket failed: %s",
+				strerror(errno));
 			send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
 			return -1;
 		}
@@ -169,11 +169,10 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 				1,
 				"Sending 'GO' signal, to tell client %d to head for the next test",
 				testOptions->child0);
-		sprintf(buff, "%d", testOptions->c2ssockport);
+		snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
 
 		// send TEST_PREPARE message with ephemeral port detail, indicating start of tests
-		if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff)))
-				< 0)
+		if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
 			return msgretvalue;
 
 		// Wait on listening socket and read data once ready.
@@ -352,10 +351,10 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 		stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
 
 		// send the server calculated value of C->S throughput as result to client
-		sprintf(buff, "%6.0f kbps outbound for child %d", *c2sspd,
+		snprintf(buff, sizeof(buff), "%6.0f kbps outbound for child %d", *c2sspd,
 				testOptions->child0);
 		log_println(1, "%s", buff);
-		sprintf(buff, "%0.0f", *c2sspd);
+		snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
 		send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
 
 		// get receiver side Web100 stats and write them to the log file. close sockets
@@ -386,16 +385,15 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 					continue;
 				if (((msgretvalue == -1) && (errno != EINTR))
 						|| (msgretvalue == 0)) {
-					log_println(
-							4,
-							"Failed to read pkt-pair data from C2S flow, retcode=%d, reason=%d",
-							msgretvalue, errno);
-					sprintf(
-							spds[(*spd_index)++],
-							" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
-					sprintf(
-							spds[(*spd_index)++],
-							" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+					log_println(4,
+						"Failed to read pkt-pair data from C2S flow, retcode=%d, reason=%d",
+						msgretvalue, errno);
+					snprintf(spds[(*spd_index)++],
+						sizeof(spds[*spd_index]),
+						" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+					snprintf(spds[(*spd_index)++],
+						sizeof(spds[*spd_index]),
+						" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
 					break;
 				}
 				/* There is something to read, so get it from the pktpair child.  If an interrupt occurs,
@@ -403,10 +401,11 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 				 * RAC 2/8/10
 				 */
 				if (msgretvalue > 0) {
-					if ((msgretvalue = read(mon_pipe1[0], spds[*spd_index], 128))
+					if ((msgretvalue = read(mon_pipe1[0], spds[*spd_index], sizeof(spds[*spd_index])))
 							< 0)
-						sprintf(
+						snprintf(
 								spds[*spd_index],
+								sizeof(spds[*spd_index]),
 								" -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
 					log_println(1, "%d bytes read '%s' from C2S monitor pipe",
 							msgretvalue, spds[*spd_index]);

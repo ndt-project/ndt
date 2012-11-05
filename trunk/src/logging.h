@@ -38,9 +38,9 @@ time_t get_timestamp();
 long int get_utimestamp();
 char * get_ISOtime(char * isoTime, int isoTimeArrSize);
 char *get_currenttime(char *isoTime, int isotimearrsize);
-void get_YYYY(char * year);
-void get_MM(char * month);
-void get_DD(char * day);
+void get_YYYY(char * year, size_t year_strlen);
+void get_MM(char * month, size_t month_strlen);
+void get_DD(char * day, size_t day_strlen);
 char * DataDirName;
 
 int zlib_def(char *src_fn);
@@ -85,7 +85,7 @@ struct metadata {
 void set_protologdir(char* dirname);
 void set_protologfile(char* client_ip, char *protologfileparam);
 char*
-get_protologfile(int socketNum, char *protologfilename) ;
+get_protologfile(int socketNum, char *protologfilename, size_t filename_size) ;
 char* get_protologdir();
 void enableprotocollogging();
 char *createprotologfilename(char* client_ip, char* textappendarg);
