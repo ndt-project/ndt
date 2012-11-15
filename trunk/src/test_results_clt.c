@@ -9,10 +9,10 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "./logging.h"
-#include "./utils.h"
-#include "./clt_tests.h"
-#include "./test_results_clt.h"
+#include "logging.h"
+#include "utils.h"
+#include "clt_tests.h"
+#include "test_results_clt.h"
 
 #ifndef VIEW_DIFF
 #define VIEW_DIFF 0.1

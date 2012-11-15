@@ -10,16 +10,16 @@
 #include <syslog.h>
 #include <pthread.h>
 #include <sys/times.h>
-#include "./tests_srv.h"
-#include "./strlutils.h"
-#include "./ndtptestconstants.h"
-#include "./utils.h"
-#include "./testoptions.h"
-#include "./runningtest.h"
-#include "./logging.h"
-#include "./protocol.h"
-#include "./network.h"
-#include "./mrange.h"
+#include "tests_srv.h"
+#include "strlutils.h"
+#include "ndtptestconstants.h"
+#include "utils.h"
+#include "testoptions.h"
+#include "runningtest.h"
+#include "logging.h"
+#include "protocol.h"
+#include "network.h"
+#include "mrange.h"
 
 // used to store file descriptors of pipes created for ndttrace for C2S tests
 int mon_pipe1[2];

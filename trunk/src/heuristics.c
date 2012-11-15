@@ -8,9 +8,9 @@
 #include <string.h>
 #include <math.h>
 
-#include "./utils.h"
-#include "./logging.h"
-#include "./heuristics.h"
+#include "utils.h"
+#include "logging.h"
+#include "heuristics.h"
 
 #define log_lvl_heur 2
 /**

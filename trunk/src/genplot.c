@@ -32,7 +32,7 @@
 #include  <web100.h>
 #endif
 
-#include "./usage.h"
+#include "usage.h"
 
 char *color[16] = { "green", "blue", "orange", "red", "yellow", "magenta",
   "pink", "white", "black" };

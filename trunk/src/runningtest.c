@@ -5,8 +5,8 @@
  *  Created on: Sep 28, 2011
  *      Author: kkumar
  */
-#include "./ndtptestconstants.h"
-#include "./runningtest.h"
+#include "ndtptestconstants.h"
+#include "runningtest.h"
 
 static int currentTest = TEST_NONE;
 static enum Tx_DIRECTION currentDirection = NONE;

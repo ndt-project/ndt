@@ -5,8 +5,8 @@
  * jeremian@poczta.fm
  */
 
-#include "./protocol.h"
-#include "./logging.h"
+#include "protocol.h"
+#include "logging.h"
 
 /**
  * Check if the received msg type is compatible

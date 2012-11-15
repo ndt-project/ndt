@@ -31,10 +31,10 @@
 #include <net/ethernet.h>
 #endif
 
-#include "./web100srv.h"
-#include "./usage.h"
-#include "./logging.h"
-#include "./utils.h"
+#include "web100srv.h"
+#include "usage.h"
+#include "logging.h"
+#include "utils.h"
 
 struct spdpair fwd, rev;
 int start, finish, fini;

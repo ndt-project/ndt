@@ -8,17 +8,17 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "./network.h"
-#include "./usage.h"
-#include "./logging.h"
-#include "./varinfo.h"
-#include "./utils.h"
-#include "./protocol.h"
-#include "./test_sfw.h"
-#include "./test_meta.h"
-#include "./clt_tests.h"
-#include "./strlutils.h"
-#include "./test_results_clt.h"
+#include "network.h"
+#include "usage.h"
+#include "logging.h"
+#include "varinfo.h"
+#include "utils.h"
+#include "protocol.h"
+#include "test_sfw.h"
+#include "test_meta.h"
+#include "clt_tests.h"
+#include "strlutils.h"
+#include "test_results_clt.h"
 
 extern int h_errno;
 

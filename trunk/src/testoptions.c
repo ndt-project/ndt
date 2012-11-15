@@ -10,15 +10,15 @@
 // #include <ctype.h>
 #include <pthread.h>
 
-#include "./testoptions.h"
-#include "./network.h"
-#include "./mrange.h"
-#include "./logging.h"
-#include "./utils.h"
-#include "./protocol.h"
-#include "./I2util/util.h"
-#include "./runningtest.h"
-#include "./strlutils.h"
+#include "testoptions.h"
+#include "network.h"
+#include "mrange.h"
+#include "logging.h"
+#include "utils.h"
+#include "protocol.h"
+#include "I2util/util.h"
+#include "runningtest.h"
+#include "strlutils.h"
 
 
 // Worker thread characteristics used to record snaplog and Cwnd peaks

@@ -12,12 +12,12 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "./test_meta.h"
-#include "./logging.h"
-#include "./network.h"
-#include "./protocol.h"
-#include "./utils.h"
-#include "./testoptions.h"
+#include "test_meta.h"
+#include "logging.h"
+#include "network.h"
+#include "protocol.h"
+#include "utils.h"
+#include "testoptions.h"
 
 /**
  * Performs the META test.
