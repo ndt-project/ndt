@@ -12,11 +12,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "./clt_tests.h"
-#include "./logging.h"
-#include "./network.h"
-#include "./protocol.h"
-#include "./utils.h"
+#include "clt_tests.h"
+#include "logging.h"
+#include "network.h"
+#include "protocol.h"
+#include "utils.h"
 
 int pkts, lth;
 int sndqueue;

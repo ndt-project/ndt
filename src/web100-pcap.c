@@ -13,14 +13,14 @@
 #include <assert.h>
 
 /* local include file contains needed structures */
-#include "./web100srv.h"
-#include "./network.h"
-#include "./logging.h"
+#include "web100srv.h"
+#include "network.h"
+#include "logging.h"
 #include <net/if.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
-#include "./strlutils.h"
-#include "./utils.h"
+#include "strlutils.h"
+#include "utils.h"
 
 int dumptrace;
 pcap_t *pd;

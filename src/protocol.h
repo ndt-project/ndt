@@ -10,7 +10,7 @@
 #define SRC_PROTOCOL_H_
 
 // new addition after separating out ndtptests header
-#include "./ndtptestconstants.h"  // protocol validation
+#include "ndtptestconstants.h"  // protocol validation
 // Todo could be made into enumeration
 #define COMM_FAILURE 0
 #define SRV_QUEUE 1

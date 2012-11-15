@@ -10,12 +10,12 @@
 #include <time.h>
 #include <assert.h>
 
-#include "./web100srv.h"
-#include "./network.h"
-#include "./logging.h"
-#include "./utils.h"
-#include "./protocol.h"
-#include "./strlutils.h"
+#include "web100srv.h"
+#include "network.h"
+#include "logging.h"
+#include "utils.h"
+#include "protocol.h"
+#include "strlutils.h"
 
 /**
  * set up the necessary structures for monitoring connections at the

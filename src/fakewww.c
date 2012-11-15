@@ -28,12 +28,12 @@
 #define SYSLOG_NAMES
 #include  <syslog.h>
 
-#include "./usage.h"
-#include "./troute.h"
-#include "./tr-tree.h"
-#include "./network.h"
-#include "./logging.h"
-#include "./web100-admin.h"
+#include "usage.h"
+#include "troute.h"
+#include "tr-tree.h"
+#include "network.h"
+#include "logging.h"
+#include "web100-admin.h"
 
 #define LISTEN_PORT            "7123"
 #define AC_TIME_FORMAT  "%d/%b/%Y:%H:%M:%S %z"

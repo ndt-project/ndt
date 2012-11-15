@@ -32,8 +32,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#include "./tr-tree.h"
-#include "./logging.h"
+#include "tr-tree.h"
+#include "logging.h"
 
 struct tr_tree *tr_root, *tr_cur;
 int found_node;

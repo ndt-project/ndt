@@ -10,12 +10,12 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "./clt_tests.h"
-#include "./logging.h"
-#include "./network.h"
-#include "./protocol.h"
-#include "./utils.h"
-#include "./strlutils.h"
+#include "clt_tests.h"
+#include "logging.h"
+#include "network.h"
+#include "protocol.h"
+#include "utils.h"
+#include "strlutils.h"
 
 /**
  * Perform the client part of the middleBox testing. The middlebox test

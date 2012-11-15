@@ -12,11 +12,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "./web100srv.h"
-#include "./logging.h"
-#include "./web100-admin.h"
-#include "./utils.h"
-#include "./strlutils.h"
+#include "web100srv.h"
+#include "logging.h"
+#include "web100-admin.h"
+#include "utils.h"
+#include "strlutils.h"
 
 /* Initialize the Administrator view.  Process the data in the existing log file to
  * catch up on what's happened before.

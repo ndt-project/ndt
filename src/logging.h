@@ -13,8 +13,8 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "./ndtptestconstants.h"
-#include "./runningtest.h"  // protocol validation
+#include "ndtptestconstants.h"
+#include "runningtest.h"  // protocol validation
 #define LOG_FACILITY LOG_LOCAL0  /* Syslog facility to log at */
 #define LOGDIR "serverdata"  // directory for detailed snaplog and tcpdump files
 #define LOGFILE "web100srv.log"  /* Name of log file */

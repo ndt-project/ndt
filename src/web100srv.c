@@ -71,21 +71,21 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include <syslog.h>
 #include <sys/times.h>
 
-#include "./web100srv.h"
-#include "./network.h"
-#include "./usage.h"
-#include "./utils.h"
-#include "./mrange.h"
-#include "./logging.h"
-#include "./testoptions.h"
-#include "./protocol.h"
-#include "./web100-admin.h"
-#include "./test_sfw.h"
-#include "./ndt_odbc.h"
-#include "./runningtest.h"
-#include "./strlutils.h"
-#include "./heuristics.h"
-#include "./tests_srv.h"
+#include "web100srv.h"
+#include "network.h"
+#include "usage.h"
+#include "utils.h"
+#include "mrange.h"
+#include "logging.h"
+#include "testoptions.h"
+#include "protocol.h"
+#include "web100-admin.h"
+#include "test_sfw.h"
+#include "ndt_odbc.h"
+#include "runningtest.h"
+#include "strlutils.h"
+#include "heuristics.h"
+#include "tests_srv.h"
 
 static char lgfn[FILENAME_SIZE];  // log file name
 static char wvfn[FILENAME_SIZE];  // file name of web100-variables list

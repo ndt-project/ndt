@@ -37,10 +37,10 @@
 #include <netdb.h>
 #include <getopt.h>
 
-#include "./tr-tree.h"
-#include "./usage.h"
-#include "./logging.h"
-#include "./strlutils.h"
+#include "tr-tree.h"
+#include "usage.h"
+#include "logging.h"
+#include "strlutils.h"
 
 struct tr_tree *tr_root, *tr_cur;
 char* DefaultTree = NULL;

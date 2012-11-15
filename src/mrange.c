@@ -10,9 +10,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include "./utils.h"
-#include "./logging.h"
-#include "./strlutils.h"
+#include "utils.h"
+#include "logging.h"
+#include "strlutils.h"
 
 typedef struct range {
   int min; /**< lower end of the range */

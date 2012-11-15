@@ -30,8 +30,8 @@
 #include <sys/select.h>
 #include <math.h>
 
-#include "./usage.h"
-#include "./logging.h"
+#include "usage.h"
+#include "logging.h"
 
 #define LOGFILE "web100srv.log"
 #define PROTOLOGFILE "web100srvprotocol.log" /* protocol validation log */

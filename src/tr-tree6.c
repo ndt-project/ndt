@@ -35,8 +35,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#include "./tr-tree.h"
-#include "./logging.h"
+#include "tr-tree.h"
+#include "logging.h"
 
 #ifdef AF_INET6
 

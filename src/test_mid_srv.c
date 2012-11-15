@@ -14,16 +14,16 @@
 #include <sys/times.h>
 #include <assert.h>
 
-#include "./tests_srv.h"
-#include "./strlutils.h"
-#include "./ndtptestconstants.h"
-#include "./utils.h"
-#include "./testoptions.h"
-#include "./runningtest.h"
-#include "./logging.h"
-#include "./protocol.h"
-#include "./network.h"
-#include "./mrange.h"
+#include "tests_srv.h"
+#include "strlutils.h"
+#include "ndtptestconstants.h"
+#include "utils.h"
+#include "testoptions.h"
+#include "runningtest.h"
+#include "logging.h"
+#include "protocol.h"
+#include "network.h"
+#include "mrange.h"
 
 /**
  * Perform the Middlebox test.

@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "./clt_tests.h"
-#include "./logging.h"
-#include "./network.h"
-#include "./protocol.h"
-#include "./utils.h"
-#include "./strlutils.h"
+#include "clt_tests.h"
+#include "logging.h"
+#include "network.h"
+#include "protocol.h"
+#include "utils.h"
+#include "strlutils.h"
 
 int ssndqueue, sbytes;
 double spdin, s2cspd;

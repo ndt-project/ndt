@@ -11,8 +11,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "./network.h"
-#include "./logging.h"
+#include "network.h"
+#include "logging.h"
 
 /**
  * Create and bind socket.

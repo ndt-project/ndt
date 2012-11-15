@@ -9,14 +9,14 @@
 #include <assert.h>
 #include <pthread.h>
 
-#include "./test_sfw.h"
-#include "./logging.h"
-#include "./protocol.h"
-#include "./network.h"
-#include "./utils.h"
-#include "./testoptions.h"
-#include "./runningtest.h"
-#include "./strlutils.h"
+#include "test_sfw.h"
+#include "logging.h"
+#include "protocol.h"
+#include "network.h"
+#include "utils.h"
+#include "testoptions.h"
+#include "runningtest.h"
+#include "strlutils.h"
 
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;

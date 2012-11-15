@@ -9,7 +9,7 @@
 #ifndef SRC_TESTOPTIONS_H_
 #define SRC_TESTOPTIONS_H_
 
-#include "./web100srv.h"
+#include "web100srv.h"
 
 #define LISTENER_SOCKET_CREATE_FAILED  -1
 #define SOCKET_CONNECT_TIMEOUT  -100

@@ -14,9 +14,9 @@
 #include <sqlext.h>
 #endif
 
-#include "./ndt_odbc.h"
-#include "./logging.h"
-#include "./strlutils.h"
+#include "ndt_odbc.h"
+#include "logging.h"
+#include "strlutils.h"
 
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
 SQLHENV env;

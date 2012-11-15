@@ -20,8 +20,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
-#include "./utils.h"
-#include "./strlutils.h"
+#include "utils.h"
+#include "strlutils.h"
 
 /**
  * Check if the string is a valid int number.

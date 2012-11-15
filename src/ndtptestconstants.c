@@ -8,7 +8,7 @@
  */
 
 #include <string.h>
-#include "./ndtptestconstants.h"
+#include "ndtptestconstants.h"
 
 // The arrays below rely on the ordering of corresponding enum in the .h file.
 // test names

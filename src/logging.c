@@ -19,11 +19,11 @@
 #include <zlib.h>
 /* #endif */
 
-#include "./logging.h"
+#include "logging.h"
 /* #include "testoptions.h" */
-#include "./strlutils.h"
-#include "./utils.h"
-#include "./protocol.h"
+#include "strlutils.h"
+#include "utils.h"
+#include "protocol.h"
 
 static int _debuglevel = 0;
 static char* _programname = "";

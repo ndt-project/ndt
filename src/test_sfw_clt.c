@@ -13,11 +13,11 @@
 #include <string.h>
 #include <signal.h>
 
-#include "./test_sfw.h"
-#include "./logging.h"
-#include "./protocol.h"
-#include "./network.h"
-#include "./utils.h"
+#include "test_sfw.h"
+#include "logging.h"
+#include "protocol.h"
+#include "network.h"
+#include "utils.h"
 
 static int c2s_result = SFW_NOTTESTED;
 static int s2c_result = SFW_NOTTESTED;
