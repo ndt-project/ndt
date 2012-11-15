@@ -14,11 +14,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "test_meta.h"
-#include "logging.h"
-#include "network.h"
-#include "protocol.h"
-#include "utils.h"
+#include "./test_meta.h"
+#include "./logging.h"
+#include "./network.h"
+#include "./protocol.h"
+#include "./utils.h"
 
 int pkts, lth;
 int sndqueue;
@@ -42,14 +42,14 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
   int msgLen, msgType;
   FILE * fp;
 
-  //Protocol validation variables
+  // Protocol validation variables
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = META;
 
-  if (tests & TEST_META) { // perform META tests
+  if (tests & TEST_META) {  // perform META tests
     log_println(1, " <-- META test -->");
     setCurrentTest(TEST_META);
-    //protocol logs
+    // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
     msgLen = sizeof(buff);
@@ -75,9 +75,9 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
     }
 
     // As a response to the Server's TEST_START message, client responds
-    // ..with TEST_MSG. These messages may be used, as below, to send configuration data
-    // ...name-value pairs. Note that there are length constraints to keys- values: 64/256
-    // ....characters respectively
+    // with TEST_MSG. These messages may be used, as below, to send
+    // configuration data name-value pairs. Note that there are length
+    // constraints to keys- values: 64/256 characters respectively
 
     printf("sending meta information to server . . . . . ");
     fflush(stdout);
@@ -104,7 +104,8 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
     } else {
       fscanf(fp, "%s", tmpBuff);
       fclose(fp);
-      snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_KERNEL_VERSION, tmpBuff);
+      snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_KERNEL_VERSION,
+               tmpBuff);
       send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
     }
 
@@ -131,7 +132,7 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
     log_println(1, " <------------------------->");
     // log protocol validation logs
     teststatuses = TEST_ENDED;
-    protolog_status(getpid(), testids, teststatuses,ctlSocket);
+    protolog_status(getpid(), testids, teststatuses, ctlSocket);
     setCurrentTest(TEST_NONE);
   }
   return 0;

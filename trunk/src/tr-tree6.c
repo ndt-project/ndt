@@ -35,8 +35,8 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#include "tr-tree.h"
-#include "logging.h"
+#include "./tr-tree.h"
+#include "./logging.h"
 
 #ifdef AF_INET6
 
@@ -47,33 +47,28 @@ char* DefaultTree6;
 /* Restore the default tree, stored by the save tree routine above.
  * Once restored, the comparison can take place.
  */
-  void
-restore_tree6(struct tr_tree6 *tmp, FILE *fp)
-{
+void restore_tree6(struct tr_tree6 *tmp, FILE *fp) {
   struct tr_tree6 *new;
   int i, j;
 
-  for (i=0; i<tmp->branches; i++) {
+  for (i = 0; i < tmp->branches; i++) {
     new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
     memset(&*new, 0, sizeof(struct tr_tree6));
-    if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0)
+    if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0) {
       return;
-    else {
-      for (j=0; j<25; j++)
+    } else {
+      for (j = 0; j < 25; j++)
         new->branch[j] = NULL;
     }
     tmp->branch[i] = new;
     if (new->branches == 0) {
       continue;
     }
-    restore_tree6( &*tmp->branch[i], fp);
+    restore_tree6(&*tmp->branch[i], fp);
   }
 }
 
-  int
-find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
-{
-
+int find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt) {
   struct tr_tree6 *root, *current, *new;
   int i, j, k, fnode = 0;
   char h_name[256], c_name[256];
@@ -92,10 +87,10 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
   }
   new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
   memset(&*new, 0, sizeof(struct tr_tree6));
-  if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0)
+  if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0) {
     return 0;
-  else {
-    for (i=0; i<25; i++)
+  } else {
+    for (i = 0; i < 25; i++)
       new->branch[i] = NULL;
   }
   if (root == NULL) {
@@ -106,7 +101,7 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
   found_node = 0;
   current = root;
   log_println(6, "route to client contains %d hops", cnt);
-  for (i=0; i<=cnt; i++) {
+  for (i = 0; i <= cnt; i++) {
     if (get_debuglvl() > 5) {
       memset(nodename, 0, 200);
       nnlen = 199;
@@ -120,11 +115,12 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
     if (memcmp(IP6list[i], current->ip_addr, sizeof(current->ip_addr)) == 0) {
       continue;
     }
-    for (j=0; j<current->branches; j++) {
+    for (j = 0; j < current->branches; j++) {
       if (get_debuglvl() > 4) {
         memset(nodename, 0, 200);
         nnlen = 199;
-        inet_ntop(AF_INET6, (void *) current->branch[j]->ip_addr, nodename, nnlen);
+        inet_ntop(AF_INET6, (void *) current->branch[j]->ip_addr, nodename,
+                  nnlen);
         log_print(5, "Comparing map node [%s] ", nodename);
         memset(nodename, 0, 200);
         nnlen = 199;
@@ -132,10 +128,11 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
         log_println(5, "to client node [%s], cnt = %d", nodename, i);
       }
 
-      if (memcmp(current->branch[j]->ip_addr, IP6list[i], sizeof(IP6list[i])) == 0) {
+      if (memcmp(current->branch[j]->ip_addr, IP6list[i],
+                 sizeof(IP6list[i])) == 0) {
         current = current->branch[j];
         found_node = 0;
-        for (k=0; k<current->branches; k++) {
+        for (k = 0; k < current->branches; k++) {
           if (current->branch[k]->branches == 0) {
             memcpy(IPnode, current->branch[k]->ip_addr, 16);
             if (get_debuglvl() > 4) {
@@ -169,14 +166,13 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
     log_println(6, "Broke out of compare loop, setting current pointer");
     if (current->branches == 1) {
       current = current->branch[0];
-      if (current->branches == 0)
+      if (current->branches == 0) {
         found_node = 2;
-      else {
+      } else {
         found_node = 4;
         current = root;
       }
-    }
-    else {
+    } else {
       found_node = 3;
       current = root;
     }
@@ -193,7 +189,8 @@ find_compare6(u_int32_t IPnode[4], u_int32_t IP6list[][4], int cnt)
       memset(nodename, 0, 200);
       nnlen = 199;
       inet_ntop(AF_INET6, (void *) IP6list[i], nodename, nnlen);
-      log_println(5, "Router %s [%s] is last common router in the path!", c_name, nodename);
+      log_println(5, "Router %s [%s] is last common router in the path!",
+                  c_name, nodename);
     }
     return 1;
   }

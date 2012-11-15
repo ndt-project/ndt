@@ -14,16 +14,16 @@
 #include <sys/times.h>
 #include <assert.h>
 
-#include "tests_srv.h"
-#include "strlutils.h"
-#include "ndtptestconstants.h"
-#include "utils.h"
-#include "testoptions.h"
-#include "runningtest.h"
-#include "logging.h"
-#include "protocol.h"
-#include "network.h"
-#include "mrange.h"
+#include "./tests_srv.h"
+#include "./strlutils.h"
+#include "./ndtptestconstants.h"
+#include "./utils.h"
+#include "./testoptions.h"
+#include "./runningtest.h"
+#include "./logging.h"
+#include "./protocol.h"
+#include "./network.h"
+#include "./mrange.h"
 
 /**
  * Perform the Middlebox test.
@@ -54,21 +54,22 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
   int maxseg = ETHERNET_MTU_SIZE;
   /* int maxseg=1456, largewin=16*1024*1024; */
   /* int seg_size, win_size; */
-  int midsfd; // socket file-descriptor, used in mid-box throughput test from S->C
-  int j; // temporary integer store
-  int msgretvalue; // return value from socket read/writes
+  int midsfd;  // socket file-descriptor, used in mid-box throughput test from
+               // S->C
+  int j;  // temporary integer store
+  int msgretvalue;  // return value from socket read/writes
   struct sockaddr_storage cli_addr;
   /* socklen_t optlen, clilen; */
   socklen_t clilen;
-  char buff[BUFFSIZE + 1]; // buf used for message payload
-  I2Addr 	midsrv_addr = NULL; // server address
-  char listenmidport[10]; // listener socket for middlebox tests
+  char buff[BUFFSIZE + 1];  // buf used for message payload
+  I2Addr midsrv_addr = NULL;  // server address
+  char listenmidport[10];  // listener socket for middlebox tests
   int msgType;
   int msgLen;
   web100_connection* conn;
-  char tmpstr[256]; // temporary string storage
-  struct timeval sel_tv; // time
-  fd_set rfd; // receiver file descriptor
+  char tmpstr[256];  // temporary string storage
+  struct timeval sel_tv;  // time
+  fd_set rfd;  // receiver file descriptor
 
   // variables used for protocol validation logging
   enum TEST_ID thistestId = NONE;
@@ -81,8 +82,7 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
   assert(options);
   assert(s2c_throughput_mid);
 
-  if (options->midopt) { // middlebox tests need to be run.
-
+  if (options->midopt) {  // middlebox tests need to be run.
     // Start with readying up (initializing)
     setCurrentTest(TEST_MID);
     log_println(1, " <-- %d - Middlebox test -->", options->child0);
@@ -94,17 +94,19 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
 
     // determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port3 (3003),
-    //strcpy(listenmidport, PORT3);
+    // strcpy(listenmidport, PORT3);
     strlcpy(listenmidport, PORT3, sizeof(listenmidport));
 
     if (options->midsockport) {
-      snprintf(listenmidport, sizeof(listenmidport), "%d", options->midsockport);
+      snprintf(listenmidport, sizeof(listenmidport), "%d",
+               options->midsockport);
     } else if (options->mainport) {
-      snprintf(listenmidport, sizeof(listenmidport), "%d", options->mainport + 2);
+      snprintf(listenmidport, sizeof(listenmidport), "%d",
+               options->mainport + 2);
     }
 
     if (options->multiple) {
-      //strcpy(listenmidport, "0");
+      // strcpy(listenmidport, "0");
       strlcpy(listenmidport, "0", sizeof(listenmidport));
     }
 
@@ -117,15 +119,16 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
        */
 
     while (midsrv_addr == NULL) {
-
-      // attempt to bind to a new port and obtain address structure with details of listening port
+      // attempt to bind to a new port and obtain address structure with
+      // details of listening port
 
       midsrv_addr =
           CreateListenSocket(
               NULL,
-              (options->multiple ?
-               mrange_next(listenmidport, sizeof(listenmidport)) : listenmidport), conn_options, 0)
-          ;
+              options->multiple ?
+                  mrange_next(listenmidport, sizeof(listenmidport)) :
+                  listenmidport,
+              conn_options, 0);
       if (midsrv_addr == NULL) {
         /*
            log_println(5, " Calling KillHung() because midsrv_address failed to bind");
@@ -137,7 +140,8 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
         log_println(0, "WARNING: ephemeral port number was bound");
         break;
       }
-      if (options->multiple == 0) { // simultaneous tests from multiple clients not allowed, quit now
+      if (options->multiple == 0) {
+        // simultaneous tests from multiple clients not allowed, quit now
         break;
       }
     }
@@ -186,17 +190,19 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
     for (j = 0; j < RETRY_COUNT; j++) {
       msgretvalue = select((options->midsockfd) + 1, &rfd, NULL, NULL,
                            &sel_tv);
-      if ((msgretvalue == -1) && (errno == EINTR)) // socket interruption. continue waiting for activity on socket
+      // socket interruption. continue waiting for activity on socket
+      if ((msgretvalue == -1) && (errno == EINTR))
         continue;
-      if (msgretvalue == 0) // timeout
+      if (msgretvalue == 0)  // timeout
         return SOCKET_CONNECT_TIMEOUT;
-      if (msgretvalue < 0) // other socket errors, exit
+      if (msgretvalue < 0)  // other socket errors, exit
         return -errno;
-      if (j == 4) // retry exceeded. Quit
+      if (j == 4)  // retry exceeded. Quit
         return RETRY_EXCEEDED_WAITING_CONNECT;
 
-midfd:
-      // if a valid connection request is received, client has connected. Proceed.
+ midfd:
+      // if a valid connection request is received, client has connected.
+      // Proceed.
       // Note the new socket fd used in the throughput test is this (midsfd)
       if ((midsfd = accept(options->midsockfd,
                            (struct sockaddr *) &cli_addr, &clilen)) > 0) {
@@ -207,8 +213,8 @@ midfd:
                             procstatusenum, midsfd);
         break;
       }
-
-      if ((midsfd == -1) && (errno == EINTR)) // socket interrupted, wait some more
+      // socket interrupted, wait some more
+      if ((midsfd == -1) && (errno == EINTR))
         goto midfd;
 
       snprintf(tmpstr,
@@ -248,7 +254,8 @@ midfd:
     // Expect client to send throughput as calculated at its end
 
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) { // message reception error
+    // message reception error
+    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
       snprintf(
           buff,
@@ -257,7 +264,8 @@ midfd:
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return 1;
     }
-    if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff, msgLen)) { // only TEST_MSG type valid
+    if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff,
+                       msgLen)) {  // only TEST_MSG type valid
       snprintf(
           buff,
           sizeof(buff),
@@ -265,7 +273,7 @@ midfd:
       send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
       return 2;
     }
-    if (msgLen <= 0) { // received message's length has to be a valid one
+    if (msgLen <= 0) {  // received message's length has to be a valid one
       log_println(0, "Improper message");
       snprintf(
           buff,
@@ -281,7 +289,8 @@ midfd:
     log_println(4, "CWND limited throughput = %0.0f kbps (%s)",
                 *s2c_throughput_mid, buff);
 
-    // finalize the midbox test ; disabling socket used for throughput test and closing out both sockets
+    // finalize the midbox test ; disabling socket used for throughput test and
+    // closing out both sockets
     shutdown(midsfd, SHUT_WR);
     close(midsfd);
     close(options->midsockfd);
@@ -290,8 +299,8 @@ midfd:
 
     // log end of test into protocol doc, just to delimit.
     teststatusnow = TEST_ENDED;
-    //protolog_status(1, options->child0, thistestId, teststatusnow);
-    protolog_status(options->child0, thistestId, teststatusnow,ctlsockfd);
+    // protolog_status(1, options->child0, thistestId, teststatusnow);
+    protolog_status(options->child0, thistestId, teststatusnow, ctlsockfd);
 
     setCurrentTest(TEST_NONE);
     /* I2AddrFree(midsrv_addr); */

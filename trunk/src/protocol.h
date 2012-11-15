@@ -6,11 +6,11 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_PROTOCOL_H
-#define _JS_PROTOCOL_H
+#ifndef SRC_PROTOCOL_H_
+#define SRC_PROTOCOL_H_
 
-//new addition after separating out ndtptests header
-#include "ndtptestconstants.h" //protocol validation
+// new addition after separating out ndtptests header
+#include "./ndtptestconstants.h"  // protocol validation
 // Todo could be made into enumeration
 #define COMM_FAILURE 0
 #define SRV_QUEUE 1
@@ -49,6 +49,6 @@
 #define VIEW_DIFF 0.1
 
 int check_msg_type(char* prefix, int expected, int received, char* buff,
-		int len);
+                   int len);
 
-#endif
+#endif  // SRC_PROTOCOL_H_

@@ -8,9 +8,9 @@
 #include <string.h>
 #include <math.h>
 
-#include "utils.h"
-#include "logging.h"
-#include "heuristics.h"
+#include "./utils.h"
+#include "./logging.h"
+#include "./heuristics.h"
 
 #define log_lvl_heur 2
 /**
@@ -52,17 +52,17 @@
  * @param is_c2stest is this a C->S test?
  *
  * */
-void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data, int *c2s_linkspeed_ack,
-                    int* s2c_linkspeed_data, int *s2c_linkspeed_ack, float runave[4], u_int32_t *dec_cnt,
-                    u_int32_t *same_cnt, u_int32_t *inc_cnt, int *timeout, int *dupack,
-                    int is_c2stest) {
-
-  int index = 0; // speed array indices
-  int links[16]; // link speed bin values
-  int n = 0, j = 0; // temporary iterator variables
-  int max; // max speed bin counter value
-  int total; // total of the bin counts, used to calculate percentage
-  int ifspeedlocal; // local if-speed indicator
+void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data,
+                    int *c2s_linkspeed_ack, int* s2c_linkspeed_data,
+                    int *s2c_linkspeed_ack, float runave[4], u_int32_t *dec_cnt,
+                    u_int32_t *same_cnt, u_int32_t *inc_cnt, int *timeout,
+                    int *dupack, int is_c2stest) {
+  int index = 0;  // speed array indices
+  int links[16];  // link speed bin values
+  int n = 0, j = 0;  // temporary iterator variables
+  int max;  // max speed bin counter value
+  int total;  // total of the bin counts, used to calculate percentage
+  int ifspeedlocal;  // local if-speed indicator
 
   for (n = 0; n < spd_index; n++) {
     sscanf(spds[n],
@@ -78,7 +78,7 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data, i
     total = 0;
 
     if ((ifspeedlocal == -1) || (ifspeedlocal == 0) || (ifspeedlocal > 10))
-      ifspeedlocal = 10; // ifspeed was probably not collected in these cases
+      ifspeedlocal = 10;  // ifspeed was probably not collected in these cases
 
     // get the ifspeed bin with the biggest counter value.
     //  NDT determines link speed using this
@@ -122,9 +122,8 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data, i
 
     // classify link speed based on the max ifspeed seen
     log_linkspeed(index);
-  } //end section to determine speed.
-
-} //end method calc_linkspeed
+  }  // end section to determine speed.
+}  // end method calc_linkspeed
 
 /**
  * Calculate average round-trip-time in milliseconds.
@@ -163,9 +162,9 @@ double calc_packetloss(int congsnsignals, int pktsout, int c2sdatalinkspd) {
   double packetloss = (double) congsnsignals / pktsout;
   if (packetloss == 0) {
     if (c2sdatalinkspd > 5)
-      packetloss = .0000000001; // set to 10^-10 for links faster than FastE
+      packetloss = .0000000001;  // set to 10^-10 for links faster than FastE
     else
-      packetloss = .000001; // set to 10^-6 otherwise
+      packetloss = .000001;  // set to 10^-6 otherwise
   }
   log_println(log_lvl_heur, "--packetloss=%d over %d=%f. Link spd=%d",
               congsnsignals, pktsout, packetloss, c2sdatalinkspd);
@@ -220,7 +219,8 @@ double calc_max_theoretical_throughput(int currentMSS, double rttsec,
  *
  * */
 void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
-                       int MaxRwinRcvd, int MaxCwnd, double *rwin, double *swin, double *cwin) {
+                       int MaxRwinRcvd, int MaxCwnd, double *rwin, double *swin,
+                       double *cwin) {
   if ((*SndWinScale > WINDOW_SCALE_THRESH) || (SendBuf < MAX_TCP_PORT))
     *SndWinScale = 0;
   if ((*RcvWinScale > WINDOW_SCALE_THRESH) || (MaxRwinRcvd < MAX_TCP_PORT))
@@ -231,8 +231,9 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
   *cwin = (double) MaxCwnd * BITS_8 / KILO_BITS / KILO_BITS;
   log_println(
       log_lvl_heur,
-      "--window sizes: SndWinScale= %d, RcvwinScale=%d, MaxRwinRcvd=%d, maxCwnd=%d,rwin=%f, swin=%f, cwin=%f",
-      *SndWinScale, *RcvWinScale, MaxRwinRcvd, MaxCwnd ,*rwin, *swin, *cwin);
+      "--window sizes: SndWinScale= %d, RcvwinScale=%d, MaxRwinRcvd=%d, "
+      "maxCwnd=%d,rwin=%f, swin=%f, cwin=%f",
+      *SndWinScale, *RcvWinScale, MaxRwinRcvd, MaxCwnd, *rwin, *swin, *cwin);
 }
 
 /**
@@ -353,7 +354,6 @@ int is_limited_cwnd_throughput_better(int midboxs2cspd, int s2cspd) {
   if (midboxs2cspd > s2cspd)
     thruputmismatch = 1;
   return thruputmismatch;
-
 }
 
 /**
@@ -405,22 +405,22 @@ int isNotMultipleTestMode(int multiple) {
  * @return int 1 if duplex mismatch is found, 0 if not.
  * */
 int detect_duplexmismatch(double cwndtime, double bwtheoretcl, int pktsretxed,
-                          double timesec, int maxsstartthresh, double idleRTO, int link,
-                          int s2cspd, int midboxspd, int multiple) {
+                          double timesec, int maxsstartthresh, double idleRTO,
+                          int link, int s2cspd, int midboxspd, int multiple) {
   int duplex_mismatch_yes = 0;
-  if ((cwndtime > .9) // more than 90% time spent being receiver window limited
-      && (bwtheoretcl > 2) // theoretical max goodput > 2mbps
+  if ((cwndtime > .9)  // more than 90% time spent being receiver window limited
+      && (bwtheoretcl > 2)  // theoretical max goodput > 2mbps
       && (pktsretxed / timesec > 2)
       // #of segments with pkt-retransmissions> 2
-      && (maxsstartthresh > 0) // max slow start threshold > 0
-      && (idleRTO > .01) // cumulative RTO time > 1% test duration
-      && (link > 2) // not wireless link
-      && is_limited_cwnd_throughput_better(midboxspd, s2cspd) //S->C throughput calculated
+      && (maxsstartthresh > 0)  // max slow start threshold > 0
+      && (idleRTO > .01)  // cumulative RTO time > 1% test duration
+      && (link > 2)  // not wireless link
+      // S->C throughput calculated
+      && is_limited_cwnd_throughput_better(midboxspd, s2cspd)
       // by server < client value
       && isNotMultipleTestMode(multiple)) {
-
     duplex_mismatch_yes = 1;
-  } //end if
+  }  // end if
   log_println(log_lvl_heur, "--duplexmismatch?: %d ", duplex_mismatch_yes);
   return duplex_mismatch_yes;
 }
@@ -435,9 +435,9 @@ int detect_duplexmismatch(double cwndtime, double bwtheoretcl, int pktsretxed,
 int detect_internal_duplexmismatch(double s2cspd, double realthruput,
                                    double rwintime, double packetloss) {
   int duplex_mismatch_yes = 0;
-  if ((s2cspd > 50) // S->C goodput > 50 Mbps
-      && (realthruput < 5) // actual send throughput < 5 Mbps
-      && (rwintime > .9) // receive window limited for >90% of the time
+  if ((s2cspd > 50)  // S->C goodput > 50 Mbps
+      && (realthruput < 5)  // actual send throughput < 5 Mbps
+      && (rwintime > .9)  // receive window limited for >90% of the time
       && (packetloss < .01)) {
     duplex_mismatch_yes = 1;
   }
@@ -476,7 +476,6 @@ int detect_faultyhardwarelink(double packetloss, double cwndtime,
   }
   log_println(log_lvl_heur, "--faulty hardware?: %d ", faultyhw_found);
   return faultyhw_found;
-
 }
 
 /**
@@ -533,8 +532,8 @@ int detect_ethernetlink(double realthruput, double s2cspd, double packetloss,
  * @return 1 if wireless link, 0 otherwise
  * */
 int detect_wirelesslink(double sendtime, double realthruput, double bw_theortcl,
-                        int sndlimtrans_rwin, int sndlimtrans_cwnd, double rwindowtime,
-                        int link) {
+                        int sndlimtrans_rwin, int sndlimtrans_cwnd,
+                        double rwindowtime, int link) {
   int is_wireless = 0;
   if ((sendtime == 0) && (realthruput < 5) && (bw_theortcl > 50)
       && ((sndlimtrans_rwin / sndlimtrans_cwnd) == 1)
@@ -574,7 +573,6 @@ int detect_DSLCablelink(int sndlim_timesender, int sndlim_transsender,
   }
   log_println(log_lvl_heur, "--Is DSL/Cable?: %d ", is_dslorcable);
   return is_dslorcable;
-
 }
 
 /**

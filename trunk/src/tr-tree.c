@@ -32,8 +32,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#include "tr-tree.h"
-#include "logging.h"
+#include "./tr-tree.h"
+#include "./logging.h"
 
 struct tr_tree *tr_root, *tr_cur;
 int found_node;
@@ -49,9 +49,9 @@ void restore_tree(struct tr_tree *tmp, FILE *fp) {
   for (i = 0; i < tmp->branches; i++) {
     new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
     memset(&*new, 0, sizeof(struct tr_tree));
-    if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0)
+    if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0) {
       return;
-    else {
+    } else {
       for (j = 0; j < 25; j++)
         new->branch[j] = NULL;
     }
@@ -64,7 +64,6 @@ void restore_tree(struct tr_tree *tmp, FILE *fp) {
 }
 
 u_int32_t find_compare(u_int32_t IPlist[], int cnt) {
-
   struct tr_tree *root, *current, *new;
   int i, j, k;
   uint32_t srv_addr;
@@ -83,9 +82,9 @@ u_int32_t find_compare(u_int32_t IPlist[], int cnt) {
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
   memset(&*new, 0, sizeof(struct tr_tree));
-  if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0)
+  if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0) {
     return 0;
-  else {
+  } else {
     for (i = 0; i < 25; i++)
       new->branch[i] = NULL;
   }
@@ -107,11 +106,11 @@ u_int32_t find_compare(u_int32_t IPlist[], int cnt) {
                 ((current->ip_addr >> 16) & 0xff),  (current->ip_addr >> 24));
     if (current->ip_addr == IPlist[i])
       continue;
-    for (j=0; j<current->branches; j++) {
+    for (j = 0; j < current->branches; j++) {
       log_print(5, "Comparing map node [%u.%u.%u.%u] ",
                 (current->branch[j]->ip_addr & 0xff),
                 ((current->branch[j]->ip_addr >> 8) & 0xff),
-                ((current->branch[j]->ip_addr >> 16) & 0xff), 
+                ((current->branch[j]->ip_addr >> 16) & 0xff),
                 (current->branch[j]->ip_addr >> 24));
       log_println(5, "to client node [%u.%u.%u.%u], cnt = %d",
                   (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
@@ -120,7 +119,7 @@ u_int32_t find_compare(u_int32_t IPlist[], int cnt) {
       if (current->branch[j]->ip_addr == IPlist[i]) {
         current = current->branch[j];
         found_node = 0;
-        for (k=0; k<current->branches; k++) {
+        for (k = 0; k <current->branches; k++) {
           if (current->branch[k]->branches == 0) {
             srv_addr = current->branch[k]->ip_addr;
             log_println(5, "srv_addr set to [%u.%u.%u.%u]",
@@ -135,7 +134,7 @@ u_int32_t find_compare(u_int32_t IPlist[], int cnt) {
     }
     if (found_node == -1)
       break;
-  } 
+  }
 
   if (current->ip_addr == IPlist[cnt]) {
     srv_addr = IPlist[cnt];
@@ -148,9 +147,9 @@ u_int32_t find_compare(u_int32_t IPlist[], int cnt) {
     log_println(6, "Broke out of compare loop, setting current pointer");
     if (current->branches == 1) {
       current = current->branch[0];
-      if (current->branches == 0)
+      if (current->branches == 0) {
         found_node = 2;
-      else {
+      } else {
         found_node = 4;
         current = root;
       }

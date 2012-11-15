@@ -47,18 +47,6 @@
  * SUCH DAMAGE.
  */
 
-#if 0
-#ifndef lint
-static char copyright[] =
-"@(#) Copyright (c) 1990, 1993\n\
-        The Regents of the University of California.  All rights reserved.\n";
-#endif /* not lint */
-
-#ifndef lint
-static char sccsid[] = "@(#)troute.c  8.1 (Berkeley) 6/6/93";
-#endif /* not lint */
-#endif
-
 #include <sys/param.h>
 #include <sys/time.h>
 #include <sys/file.h>
@@ -79,7 +67,7 @@ static char sccsid[] = "@(#)troute.c  8.1 (Berkeley) 6/6/93";
 #include <netdb.h>
 #include <stdio.h>
 
-#include "logging.h"
+#include "./logging.h"
 
 #define  MAXPACKET  65535  /* max ip packet size */
 #ifndef MAXHOSTNAMELEN
@@ -249,7 +237,8 @@ void find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl) {
 }
 
 int wait_for_reply(sock, from)
-  int sock;struct sockaddr_in *from; {
+  int sock;
+  struct sockaddr_in *from; {
     fd_set fds;
     struct timeval wait;
     int cc = 0;
@@ -316,7 +305,10 @@ double deltaT(t1p, t2p)
   }
 
 int packet_ok(buf, cc, from, seq)
-  u_char *buf;int cc;struct sockaddr_in *from;int seq; {
+  u_char *buf;
+  int cc;
+  struct sockaddr_in *from;
+  int seq; {
     register struct icmp *icp;
     u_char type, code;
     int hlen;
@@ -334,7 +326,8 @@ int packet_ok(buf, cc, from, seq)
 #else
     icp = (struct icmp *)buf;
 #endif /* ARCHAIC */
-    type = icp->icmp_type; code = icp->icmp_code;
+    type = icp->icmp_type;
+    code = icp->icmp_code;
     if ((type == ICMP_TIMXCEED && code == ICMP_TIMXCEED_INTRANS) ||
         type == ICMP_UNREACH) {
       struct ip *hip;
@@ -398,7 +391,7 @@ in_cksum(addr, len)
  * Subtract 2 timeval structs:  out = out - in.
  * Out is assumed to be >= in.
  */
-void tvsub (out, in)
+void tvsub(out, in)
   register struct timeval *out, *in; {
     if ((out->tv_usec -= in->tv_usec) < 0) {
       out->tv_sec--;

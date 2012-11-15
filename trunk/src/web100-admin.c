@@ -12,12 +12,11 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "web100srv.h"
-#include "logging.h"
-#include "web100-admin.h"
-#include "utils.h"
-#include "strlutils.h"
-#include "heuristics.h"
+#include "./web100srv.h"
+#include "./logging.h"
+#include "./web100-admin.h"
+#include "./utils.h"
+#include "./strlutils.h"
 
 /* Initialize the Administrator view.  Process the data in the existing log file to
  * catch up on what's happened before.
@@ -67,12 +66,11 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
               int MaxRwinRcvd, int CurrentCwnd, int Sndbuf, int DataBytesOut,
               int mismatch, int bad_cable, int c2sspd, int s2cspd,
               int c2s_linkspeed_data, int s2c_linkspeed_ack, int view_flag) {
-
   int congestion2 = 0, i;
   static int totalcnt;
   double rttsec;
-  double rwintime=0, cwndtime=0, sendtime=0;
-  int totaltime=0;
+  double rwintime = 0, cwndtime = 0, sendtime = 0;
+  int totaltime = 0;
   char view_string[256], *str, tmpstr[32];
   FILE * fp;
 
@@ -206,10 +204,10 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
       snprintf(btlneck, sizeof(btlneck), "Dial-up modem");
       break;
     case DATA_RATE_T1:
-      if (((float) c2sspd / (float) s2cspd > .8)
-          && ((float) c2sspd / (float) s2cspd < 1.2) && (c2sspd > 1000))
+      if (((float) c2sspd / (float) s2cspd > .8) &&
+          ((float) c2sspd / (float) s2cspd < 1.2) && (c2sspd > 1000)) {
         snprintf(btlneck, sizeof(btlneck), "T1 subnet");
-      else {
+      } else {
         if (s2c_linkspeed_ack == 3)
           snprintf(btlneck, sizeof(btlneck), "Cable Modem");
         else
@@ -260,15 +258,17 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
   rwintime = calc_sendlimited_rcvrfault(SndLimTimeRwin, totaltime);
   log_println(3, "rwintime=%f", rwintime);
 
-  log_println(3, "before calling cwndtime cal. %d,%d", SndLimTimeCwnd, totaltime);
+  log_println(3, "before calling cwndtime cal. %d,%d", SndLimTimeCwnd,
+              totaltime);
   // time spent in being send-limited due to congestion window
   cwndtime = calc_sendlimited_cong(SndLimTimeCwnd, totaltime);
   log_println(3, "cwndtime=%f", cwndtime);
   // time spent in being send-limited due to own fault
   sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
-  timesec = totaltime / MEGA; // total time in microsecs
+  timesec = totaltime / MEGA;  // total time in microsecs
 
-  // calculate receive buffer delay, send buffer delay and congestion window delays
+  // calculate receive buffer delay, send buffer delay and congestion window
+  // delays
   recvbwd = ((MaxRwinRcvd * 8) / avgrtt) / 1000;
   cwndbwd = ((CurrentCwnd * 8) / avgrtt) / 1000;
   sendbwd = ((Sndbuf * 8) / avgrtt) / 1000;
@@ -300,7 +300,6 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
   if (c2sspd < minc2sspd) {
     minc2sspd = c2sspd;
     strlcpy(mindate, date, sizeof(mindate));
-
   }
   if (s2cspd < mins2cspd) {
     mins2cspd = s2cspd;
@@ -309,8 +308,8 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
 
   log_println(
       1,
-      "Initial counter Values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
-      totalcnt, totmismatch, totbad_cable);
+      "Initial counter Values Totalcnt = %d, Total Mismatch = %d, "
+      "Total Bad Cables = %d", totalcnt, totmismatch, totbad_cable);
   totalcnt++;
   count[c2s_linkspeed_data + 1]++;
   if (mismatch > 0)
@@ -319,11 +318,10 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
     totbad_cable++;
   log_println(
       1,
-      "Updated counter values Totalcnt = %d, Total Mismatch = %d, Total Bad Cables = %d",
-      totalcnt, totmismatch, totbad_cable);
-  log_println(
-      1,
-      "Individual counts = [%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d]",
+      "Updated counter values Totalcnt = %d, Total Mismatch = %d, "
+      "Total Bad Cables = %d", totalcnt, totmismatch, totbad_cable);
+  log_println(1, "Individual counts = "
+      "[%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d]",
       count[0], count[1], count[2], count[3], count[4], count[5],
       count[6], count[7], count[8], count[9], count[10], count[11],
       count[12], count[13], count[14], count[15]);
@@ -369,27 +367,23 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
           "<meta http-equiv=\"refresh\" content=\"%d; url="ADMINFILE"\">\n",
           refresh);
   fprintf(fp, "<meta http-equiv=\"Content-Language\" content=\"en\">\n");
-  fprintf(
-      fp,
-      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=iso-8859-1\">\n");
+  fprintf(fp, "<meta http-equiv=\"Content-Type\" content=\"text/html; "
+          "charset=iso-8859-1\">\n");
   fprintf(fp, "</head>\n");
 
   /* First build current results table */
   fprintf(fp, "<table border>\n  <tr>\n ");
-  fprintf(
-      fp,
-      "    <th colspan=8><font size=\"+1\">NDT Usage Statistics -- Current Test Results\n");
+  fprintf(fp, "    <th colspan=8><font size=\"+1\">NDT Usage Statistics -- "
+          "Current Test Results\n");
   fprintf(fp, "    </font></tr>\n");
   fprintf(
       fp,
       "  <tr>\n    <th>Date/Time\n    <th>Total Tests\n    <th rowspan=6>\n");
-  fprintf(
-      fp,
-      "    <th>Bottleneck Link\n    <th>Theoritical Limit\n    <th rowspan=6>\n");
+  fprintf(fp, "    <th>Bottleneck Link\n    <th>Theoritical Limit\n    "
+          "<th rowspan=6>\n");
   fprintf(fp, "    <th>C2S Speed\n    <th>S2C Speed\n  </tr>\n");
-  fprintf(
-      fp,
-      "  <tr>\n    <td align=right>%s\n    <td align=right>%d\n    <td align=right>%s\n",
+  fprintf(fp, "  <tr>\n    <td align=right>%s\n    <td align=right>%d\n    "
+          "<td align=right>%s\n",
       date, totalcnt, btlneck);
   if (bw_theortcl > 1)
     fprintf(fp, "    <td align=right>%0.2f Mbps\n", bw_theortcl);
@@ -409,18 +403,14 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
           "    <th>Mininum RTT\n    <th>Retrans/sec\n    <th>Timeouts/sec\n");
   fprintf(fp, "    <th>%% Out-of-Order\n  </tr>\n  <tr>\n");
   if (loss2 == .000001)
-    fprintf(
-        fp,
-        "    <td align=right>None\n    <td align=right>%0.2f msec\n    <td align=right>%d msec\n",
-        avgrtt, MinRTT);
+    fprintf(fp, "    <td align=right>None\n    <td align=right>%0.2f msec\n    "
+            "<td align=right>%d msec\n", avgrtt, MinRTT);
   else
-    fprintf(
-        fp,
-        "    <td align=right>%0.4f%%\n    <td align=right>%0.2f msec\n    <td align=right>%d msec\n",
+    fprintf(fp, "    <td align=right>%0.4f%%\n    <td align=right>%0.2f msec\n"
+            "    <td align=right>%d msec\n",
         loss2 * 100, avgrtt, MinRTT);
-  fprintf(
-      fp,
-      "    <td align=right>%0.2f\n    <td align=right>%0.2f\n    <td align=right>%0.2f\n  </tr>\n",
+  fprintf(fp, "    <td align=right>%0.2f\n    <td align=right>%0.2f\n    "
+          "<td align=right>%0.2f\n  </tr>\n",
       (float) PktsRetrans / timesec, (float) Timeouts / timesec,
       oo_order * 100);
   fprintf(fp, "  <tr>\n    <th>Send Buffer\n    <th>BW*Delay\n");
@@ -459,9 +449,8 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
   fprintf(fp, "    <th colspan=2>Throughput Summary\n    <th rowspan=5>\n");
   fprintf(fp,
           "    <th colspan=2>Configuration Fault Summary\n  </tr>\n  <tr>\n");
-  fprintf(
-      fp,
-      "    <td><b>Log Starts</b>\n    <td align=right>%s\n    <th>Client-to-Server\n",
+  fprintf(fp, "    <td><b>Log Starts</b>\n    <td align=right>%s\n    "
+          "<th>Client-to-Server\n",
       startdate);
   fprintf(fp, "    <th>Server-to-Client\n    <th>Duplex Mismatch\n");
   fprintf(fp, "    <th>Excessive Errors\n  </tr>\n");
@@ -536,8 +525,8 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
    * file.  For now, use the system command to append the text to the just created file.
    */
   fclose(fp);
-  snprintf(tmpstr, sizeof(tmpstr), "/bin/cat %s/admin_description.html >> %s", BASEDIR,
-           AdminFileName);
+  snprintf(tmpstr, sizeof(tmpstr), "/bin/cat %s/admin_description.html >> %s",
+           BASEDIR, AdminFileName);
   system(tmpstr);
 
   /* Save the current variables into a file for later use.  These
@@ -553,9 +542,9 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
   lock.l_type = F_WRLCK;
   i = fcntl(fileno(fp), F_SETLKW, lock);
   log_println(1, "successfully locked '/tmp/view.string' for updating");
-  snprintf(
-      view_string, sizeof(view_string),
-      "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s",
+  snprintf(view_string, sizeof(view_string),
+      "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
+      "%s,%s",
       maxc2sspd, minc2sspd, maxs2cspd, mins2cspd, totalcnt, totmismatch,
       totbad_cable, count[0], count[1], count[2], count[3], count[4],
       count[5], count[6], count[7], count[8], count[9], count[10],
@@ -578,11 +567,11 @@ void view_init(int refresh) {
       DataPktsOut;
   int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd = 0, Sndbuf =
       0;
-  //int CurrentCwnd = 0, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
-  //			DataBytesOut;
+  // int CurrentCwnd = 0, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
+  //                   DataBytesOut;
   // commenting out lines above to assign values
-  int CurrentCwnd = 0, SndLimTimeRwin=0, SndLimTimeCwnd=0, SndLimTimeSender=0,
-      DataBytesOut=0;
+  int CurrentCwnd = 0, SndLimTimeRwin = 0, SndLimTimeCwnd = 0,
+      SndLimTimeSender = 0, DataBytesOut = 0;
 
   int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
   int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut = 0;
@@ -598,7 +587,7 @@ void view_init(int refresh) {
     return;
 
   while ((fgets(buff, 512, fp)) != NULL) {
-    log_println(3,"Reading line: %s",buff);
+    log_println(3, "Reading line: %s", buff);
     if ((str = strchr(buff, ',')) != NULL) {
       sscanf(buff, "%[^,]s", date);
       str++;
@@ -764,9 +753,9 @@ void view_init(int refresh) {
       PktsOut = atoi(tmpstr);
 
       str = strchr(str, ',');
-      if (str == NULL)
+      if (str == NULL) {
         MinRTT = -1;
-      else {
+      } else {
         str += 1;
         sscanf(str, "%[^,]s", tmpstr);
         MinRTT = atoi(tmpstr);
@@ -774,12 +763,12 @@ void view_init(int refresh) {
 
 display: log_println(4, "Web100 variables line received\n");
          totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals,
-                              PktsOut, DupAcksIn, AckPktsIn, CurrentMSS, SndLimTimeRwin,
-                              SndLimTimeCwnd, SndLimTimeSender, MaxRwinRcvd, CurrentCwnd,
-                              Sndbuf, DataBytesOut, mismatch, bad_cable, c2sspd, s2cspd,
+                              PktsOut, DupAcksIn, AckPktsIn, CurrentMSS,
+                              SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
+                              MaxRwinRcvd, CurrentCwnd, Sndbuf, DataBytesOut,
+                              mismatch, bad_cable, c2sspd, s2cspd,
                               c2s_linkspeed_data, s2c_linkspeed_ack, view_flag);
     }
-
   }
   fclose(fp);
   view_flag = 1;

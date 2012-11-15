@@ -7,26 +7,26 @@
 
 #include <assert.h>
 #include <string.h>
-//#include <ctype.h>
+// #include <ctype.h>
 #include <pthread.h>
 
-#include "testoptions.h"
-#include "network.h"
-#include "mrange.h"
-#include "logging.h"
-#include "utils.h"
-#include "protocol.h"
-#include "I2util/util.h"
-#include "runningtest.h"
-#include "strlutils.h"
+#include "./testoptions.h"
+#include "./network.h"
+#include "./mrange.h"
+#include "./logging.h"
+#include "./utils.h"
+#include "./protocol.h"
+#include "./I2util/util.h"
+#include "./runningtest.h"
+#include "./strlutils.h"
 
 
 // Worker thread characteristics used to record snaplog and Cwnd peaks
 typedef struct workerArgs {
-  SnapArgs* snapArgs; // snapArgs struct pointer
-  web100_agent* agent; // web_100 agent pointer
-  CwndPeaks* peaks; // data indicating Cwnd values
-  int writeSnap; // enable writing snaplog
+  SnapArgs* snapArgs;  // snapArgs struct pointer
+  web100_agent* agent;  // web_100 agent pointer
+  CwndPeaks* peaks;  // data indicating Cwnd values
+  int writeSnap;  // enable writing snaplog
 } WorkerArgs;
 
 int workerLoop = 0;
@@ -45,7 +45,8 @@ static int decreasing = 0;
  * @param snap Web100 snapshot structure
  */
 
-void findCwndPeaks(web100_agent* agent, CwndPeaks* peaks, web100_snapshot* snap) {
+void findCwndPeaks(web100_agent* agent, CwndPeaks* peaks,
+                   web100_snapshot* snap) {
   web100_group* group;
   web100_var* var;
   int CurCwnd;
@@ -73,7 +74,8 @@ void findCwndPeaks(web100_agent* agent, CwndPeaks* peaks, web100_snapshot* snap)
         peaks->amount += 1;
       }
       decreasing = 1;
-    } else if (CurCwnd > prevCWNDval) { // current congestion window size > previous value,
+      // current congestion window size > previous value,
+    } else if (CurCwnd > prevCWNDval) {
       // not decreasing.
       if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
         peaks->min = prevCWNDval;
@@ -154,7 +156,8 @@ snapWorker(void* arg) {
  * @param buff test suite description
  * @param test_id id of the test
  */
-void add_test_to_suite(int* first, char * buff, size_t buff_strlen, int test_id) {
+void add_test_to_suite(int* first, char * buff, size_t buff_strlen,
+                       int test_id) {
   char tmpbuff[16];
   if (*first) {
     *first = 0;
@@ -181,13 +184,14 @@ void add_test_to_suite(int* first, char * buff, size_t buff_strlen, int test_id)
  *
  */
 
-int initialize_tests(int ctlsockfd, TestOptions* options, char * buff, size_t buff_strlen) {
+int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
+                     size_t buff_strlen) {
   unsigned char useropt = 0;
   int msgType;
   int msgLen = 1;
   int first = 1;
-  //char remhostarr[256], protologlocalarr[256];
-  //char *remhost_ptr = get_remotehost();
+  // char remhostarr[256], protologlocalarr[256];
+  // char *remhost_ptr = get_remotehost();
 
   assert(ctlsockfd != -1);
   assert(options);
@@ -214,7 +218,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff, size_t bu
               "Client connect received from :IP %s to some server on socket %d",
               get_remotehost(), ctlsockfd);
 
-  //set_protologfile(get_remotehost(), protologlocalarr);
+  // set_protologfile(get_remotehost(), protologlocalarr);
 
   if (!(useropt
         & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
@@ -254,9 +258,10 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff, size_t bu
  * @param web100_connection connection pointer
  * @param web100_group group web100_group pointer
  */
-void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* peaks,
-                       char snaplogenabled,  pthread_t *wrkrthreadidarg,
-                       char *metafilevariablename, char *metafilename, web100_connection* conn,
+void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
+                       CwndPeaks* peaks, char snaplogenabled,
+                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
+                       char *metafilename, web100_connection* conn,
                        web100_group* group) {
   FILE *fplocal;
 
@@ -270,8 +275,7 @@ void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* pea
   snaparg->snap = web100_snapshot_alloc(group, conn);
 
   if (snaplogenabled) {
-
-    //memcpy(metafilevariablename, metafilename, strlen(metafilename));
+    // memcpy(metafilevariablename, metafilename, strlen(metafilename));
     // The above could have been here, except for a caveat: metafile stores
     // just the file name, but full filename is needed to open the log file
 
@@ -312,7 +316,8 @@ void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg, CwndPeaks* pea
  * @param snaplogenabled boolean indication whether snap logging is enabled
  * @param snapArgs_ptr  pointer to a snapArgs object
  * */
-void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled, SnapArgs* snapArgs_ptr) {
+void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
+                      SnapArgs* snapArgs_ptr) {
   if (*workerThreadId) {
     pthread_mutex_lock(&mainmutex);
     workerLoop = 0;
@@ -325,7 +330,6 @@ void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled, SnapArgs* 
   }
 
   web100_snapshot_free(snapArgs_ptr->snap);
-
 }
 
 /**
@@ -344,17 +348,16 @@ void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled, SnapArgs* 
  * */
 
 void start_packet_trace(int socketfdarg, int socketfdarg2, pid_t *childpid,
-                        int *imonarg, struct sockaddr *cliaddrarg, socklen_t clilenarg,
-                        char* device, PortPair* pairarg, const char* testindicatorarg,
-                        int iscompressionenabled, char *copylocationarg) {
-
+                        int *imonarg, struct sockaddr *cliaddrarg,
+                        socklen_t clilenarg, char* device, PortPair* pairarg,
+                        const char* testindicatorarg, int iscompressionenabled,
+                        char *copylocationarg) {
   char tmpstr[256];
   int i, readretval;
 
   I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), socketfdarg, 0);
 
   if ((*childpid = fork()) == 0) {
-
     close(socketfdarg2);
     close(socketfdarg);
     log_println(0, "%s test Child thinks pipe() returned fd0=%d, fd1=%d",
@@ -363,17 +366,19 @@ void start_packet_trace(int socketfdarg, int socketfdarg2, pid_t *childpid,
     init_pkttrace(src_addr, cliaddrarg, clilenarg, imonarg, device,
                   pairarg, testindicatorarg, iscompressionenabled);
 
-    exit(0); // Packet trace finished, terminate gracefully
+    exit(0);  // Packet trace finished, terminate gracefully
   }
   memset(tmpstr, 0, 256);
-  for (i = 0; i < 5; i++) { // read nettrace file name into "tmpstr"
+  for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
     readretval = read(imonarg[0], tmpstr, 128);
-    if ((readretval == -1) && (errno == EINTR)) // socket interrupted, try reading again
+    if ((readretval == -1) && (errno == EINTR))
+      // socket interrupted, try reading again
       continue;
     break;
   }
 
-  // name of nettrace file passed back from pcap child copied into meta structure
+  // name of nettrace file passed back from pcap child copied into meta
+  // structure
   if (strlen(tmpstr) > 5) {
     memcpy(copylocationarg, tmpstr, strlen(tmpstr));
     log_println(8, "**start pkt trace, memcopied dir name %s", tmpstr);
@@ -381,7 +386,6 @@ void start_packet_trace(int socketfdarg, int socketfdarg2, pid_t *childpid,
 
   // free this address now.
   I2AddrFree(src_addr);
-
 }
 
 /**
@@ -394,7 +398,7 @@ void stop_packet_trace(int *monpipe_arr) {
   int i;
 
   for (i = 0; i < RETRY_COUNT; i++) {
-    //retval = write(mon_pipe1[1], "c", 1);
+    // retval = write(mon_pipe1[1], "c", 1);
     retval = write(monpipe_arr[1], "c", 1);
     if (retval == 1)
       break;
@@ -403,7 +407,6 @@ void stop_packet_trace(int *monpipe_arr) {
   }
   close(monpipe_arr[0]);
   close(monpipe_arr[1]);
-
 }
 
 /**
@@ -414,7 +417,6 @@ void stop_packet_trace(int *monpipe_arr) {
  * */
 void setCwndlimit(web100_connection* connarg, web100_group* grouparg,
                   web100_agent* agentarg, Options* optionsarg) {
-
   web100_var *LimRwin, *yar;
   u_int32_t limrwin_val;
   char yuff[32];
@@ -442,7 +444,6 @@ void setCwndlimit(web100_connection* connarg, web100_group* grouparg,
       web100_raw_write(LimRwin, connarg, &limrwin_val);
       log_println(1, "  ---  Done");
     }
-
   }
 }
 

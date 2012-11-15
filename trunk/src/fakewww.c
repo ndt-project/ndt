@@ -21,7 +21,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <signal.h>
-#include <unistd.h>
 #include <time.h>
 #include <string.h>
 #include <errno.h>
@@ -29,12 +28,12 @@
 #define SYSLOG_NAMES
 #include  <syslog.h>
 
-#include "usage.h"
-#include "troute.h"
-#include "tr-tree.h"
-#include "network.h"
-#include "logging.h"
-#include "web100-admin.h"
+#include "./usage.h"
+#include "./troute.h"
+#include "./tr-tree.h"
+#include "./network.h"
+#include "./logging.h"
+#include "./web100-admin.h"
 
 #define LISTEN_PORT            "7123"
 #define AC_TIME_FORMAT  "%d/%b/%Y:%H:%M:%S %z"
@@ -59,8 +58,8 @@ char *MsgRedir4 = "<HTML><TITLE>FLM server Redirect Page</TITLE>\n"
 "  <BODY>\n    <meta http-equiv=\"refresh\" content=\"2; ";
 char *MsgRedir5 =
 "\">\n\n<h2>FLM server re-direction page</h2>\n"
-"<p><font size=\"+2\">Your client is being redirected to the 'closest' FLM server "
-"for configuration testing.\n <a ";
+"<p><font size=\"+2\">Your client is being redirected to the 'closest' FLM "
+"server for configuration testing.\n <a ";
 char *MsgRedir6 = ">Click Here  </a> if you are not "
 "automatically redirected in the next 2 seconds.\n  "
 "</font></BODY>\n</HTML>";
@@ -97,18 +96,18 @@ char *SysLogFacility = NULL;
 int syslogfacility = LOG_FACILITY;
 char *ProcessName = { "fakewww" };
 
-static struct option long_options[] = { { "debug", 0, 0, 'd' }, { "help", 0, 0,
-  'h' }, { "alog", 1, 0, 'l' }, { "elog", 1, 0, 'e' },
-                     { "port", 1, 0, 'p' }, { "ttl", 1, 0, 't' }, { "federated", 0, 0, 'F' },
-                     { "file", 1, 0, 'f' }, { "basedir", 1, 0, 'b' },
-                     { "syslog", 0, 0, 's' }, { "logfacility", 1, 0, 'S' }, { "version", 0,
-                                                                              0, 'v' }, { "dflttree", 1, 0, 301 },
+static struct option long_options[] = {
+  { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' }, { "alog", 1, 0, 'l' },
+  { "elog", 1, 0, 'e' }, { "port", 1, 0, 'p' }, { "ttl", 1, 0, 't' },
+  { "federated", 0, 0, 'F' }, { "file", 1, 0, 'f' }, { "basedir", 1, 0, 'b' },
+  { "syslog", 0, 0, 's' }, { "logfacility", 1, 0, 'S' },
+  { "version", 0, 0, 'v' }, { "dflttree", 1, 0, 301 },
 #ifdef AF_INET6
-                     {	"dflttree6", 1, 0, 302},
-                     {	"ipv4", 0, 0, '4'},
-                     {	"ipv6", 0, 0, '6'},
+  { "dflttree6", 1, 0, 302},
+  { "ipv4", 0, 0, '4'},
+  { "ipv6", 0, 0, '6'},
 #endif
-                     { 0, 0, 0, 0 } };
+  { 0, 0, 0, 0 } };
 
 void dowww(int, I2Addr, char*, char*, char*, int, int);
 void reap();
@@ -145,8 +144,8 @@ int main(int argc, char** argv) {
 #define GETOPT_LONG_INET6(x) x
 #endif
 
-  while ((c = getopt_long(argc, argv,
-                          GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:sS:v"), long_options, 0)) != -1) {
+  while ((c = getopt_long(argc, argv, GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:sS:v"),
+                          long_options, 0)) != -1) {
     switch (c) {
       case '4':
         conn_options |= OPT_IPV4_ONLY;
@@ -315,7 +314,6 @@ int main(int argc, char** argv) {
     }
     close(newsockfd);
   }
-
 }
 
 #include        <sys/wait.h>
@@ -327,8 +325,8 @@ void reap(int signo) {
   int pid;
   union wait status;
 
-  while ((pid = wait3(&status, WNOHANG, (struct rusage *) 0)) > 0)
-    ;
+  while ((pid = wait3(&status, WNOHANG, (struct rusage *) 0)) > 0) {
+  }
 }
 
 /*
@@ -340,7 +338,9 @@ void reap(int signo) {
  */
 
 int readline(fd, ptr, maxlen)
-  register int fd;register char *ptr;register int maxlen; {
+  register int fd;
+  register char *ptr;
+  register int maxlen; {
     int n, rc;
     char c;
 
@@ -354,8 +354,9 @@ int readline(fd, ptr, maxlen)
           return (0); /* EOF, no data read */
         else
           break; /* EOF, some data was read */
-      } else
+      } else {
         return (-1); /* error */
+      }
     }
 
     *ptr = 0;
@@ -472,16 +473,16 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
             log_println(4,
                         "find_compare() returned 0, reset to [%s]",
                         onenodename);
-            srv_addr = ((struct sockaddr_in*) I2AddrSAddr(serv_addr,
-                                                          NULL))->sin_addr.s_addr;
+            srv_addr =
+                ((struct sockaddr_in*) I2AddrSAddr(serv_addr, NULL))->
+                    sin_addr.s_addr;
           }
 
-          log_println(
-              4,
-              "Client host [%s] should be redirected to FLM server [%u.%u.%u.%u]",
-              inet_ntoa(cli_addr->sin_addr), srv_addr & 0xff,
-              (srv_addr >> 8) & 0xff, (srv_addr >> 16) & 0xff,
-              (srv_addr >> 24) & 0xff);
+          log_println(4,
+                      "Client host [%s] should be redirected to FLM server "
+                      "[%u.%u.%u.%u]", inet_ntoa(cli_addr->sin_addr),
+                      srv_addr & 0xff, (srv_addr >> 8) & 0xff,
+                      (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff);
 
           /* At this point, the srv_addr variable contains the IP address of the
            * server we want to re-direct the connect to.  So we should generate a
@@ -502,7 +503,8 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
           writen(sd, MsgRedir3, strlen(MsgRedir3));
           writen(sd, MsgRedir4, strlen(MsgRedir4));
           answerSize = strlen(MsgRedir4);
-          snprintf(line, sizeof(line), "url=http://%u.%u.%u.%u:%s/tcpbw100.html",
+          snprintf(line, sizeof(line),
+                   "url=http://%u.%u.%u.%u:%s/tcpbw100.html",
                    srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
                    port);
@@ -510,7 +512,8 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
           answerSize += strlen(line);
           writen(sd, MsgRedir5, strlen(MsgRedir5));
           answerSize += strlen(MsgRedir5);
-          snprintf(line, sizeof(line), "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"",
+          snprintf(line, sizeof(line),
+                   "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"",
                    srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
                    port);
@@ -538,7 +541,10 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
           struct sockaddr_in6* cli_addr = (struct sockaddr_in6*) csaddr;
           socklen_t onenode_len;
           find_route6(nodename, IP6list, max_ttl);
-          for (i = 0; memcmp(IP6list[i], &cli_addr->sin6_addr, sizeof(cli_addr->sin6_addr)); i++) {
+          for (i = 0;
+               memcmp(IP6list[i], &cli_addr->sin6_addr,
+                      sizeof(cli_addr->sin6_addr));
+               i++) {
             memset(onenodename, 0, 200);
             onenode_len = 199;
             inet_ntop(AF_INET6, (void *) IP6list[i], onenodename, onenode_len);
@@ -563,37 +569,46 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
             memset(onenodename, 0, 200);
             nlen = 199;
             I2AddrNodeName(serv_addr, onenodename, &nlen);
-            log_println(4, "find_compare6() returned 0, reset to [%s]", onenodename);
-            memcpy(srv_addr6, &((struct sockaddr_in6*)I2AddrSAddr(serv_addr, NULL))->sin6_addr, 16);
+            log_println(4, "find_compare6() returned 0, reset to [%s]",
+                        onenodename);
+	    struct sockaddr* sock_addr = I2AddrSAddr(serv_addr, NULL);
+            memcpy(srv_addr6,
+                   &((struct sockaddr_in6*)sock_addr)->sin6_addr,
+                   16);
           }
 
           nlen = 199;
           memset(onenodename, 0, 200);
           inet_ntop(AF_INET6, (void *) srv_addr6, onenodename, nlen);
 
-          log_println(4, "Client host [%s] should be redirected to FLM server [%s]",
-                      nodename, onenodename);
+          log_println(4, "Client host [%s] should be redirected to FLM server "
+                      "[%s]", nodename, onenodename);
 
           writen(sd, MsgRedir1, strlen(MsgRedir1));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          snprintf(line, sizeof(line), "http://[%s]:%s/tcpbw100.html", onenodename, port);
+          snprintf(line, sizeof(line), "http://[%s]:%s/tcpbw100.html",
+                   onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
           writen(sd, MsgRedir4, strlen(MsgRedir4));
           answerSize = strlen(MsgRedir4);
-          snprintf(line, sizeof(line), "url=http://[%s]:%s/tcpbw100.html", onenodename, port);
+          snprintf(line, sizeof(line), "url=http://[%s]:%s/tcpbw100.html",
+                   onenodename, port);
           writen(sd, line, strlen(line));
           answerSize += strlen(line);
           writen(sd, MsgRedir5, strlen(MsgRedir5));
           answerSize += strlen(MsgRedir5);
-          snprintf(line, sizeof(line), "href=\"http://[%s]:%s/tcpbw100.html\"", onenodename, port);
+          snprintf(line, sizeof(line), "href=\"http://[%s]:%s/tcpbw100.html\"",
+                   onenodename, port);
           writen(sd, line, strlen(line));
           answerSize += strlen(line);
           writen(sd, MsgRedir6, strlen(MsgRedir6));
           answerSize += strlen(MsgRedir6);
-          log_println(3, "%s redirected to remote server [[%s]:%s]", nodename, onenodename, port);
+          log_println(3, "%s redirected to remote server [[%s]:%s]", nodename,
+                      onenodename, port);
           tt = time(0);
-          logErLog(ErLogFileName, &tt, "notice", "[%s] redirected to remote server [[%s]:%s]",
+          logErLog(ErLogFileName, &tt, "notice",
+                   "[%s] redirected to remote server [[%s]:%s]",
                    nodename, onenodename, port);
           logAcLog(AcLogFileName, &tt, nodename, lineBuf, 307, answerSize,
                    useragentBuf, refererBuf);
@@ -682,7 +697,8 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
       setenv("SERVER_NAME", onenodename, 1);
       setenv("REMOTE_HOST", nodename, 1);
       setenv("REMOTE_ADDR", "207.75.164.153", 1);
-      system("/usr/bin/perl /usr/local/ndt/traceroute.pl > /tmp/rac-traceroute.pl");
+      system("/usr/bin/perl /usr/local/ndt/traceroute.pl > "
+             "/tmp/rac-traceroute.pl");
       close(fd);
       fd = open("/tmp/rac-traceroute.pl", 0);
     }
@@ -712,8 +728,8 @@ getTime(time_t* tt, char* format) {
   }
 }
 
-void logErLog(char* LogFileName, time_t* tt, char* severity, char* format, ...)
-{
+void logErLog(char* LogFileName, time_t* tt, char* severity,
+              char* format, ...) {
   FILE *fp;
   va_list ap;
   if (LogFileName != NULL) {

@@ -19,11 +19,11 @@
 #include <zlib.h>
 /* #endif */
 
-#include "logging.h"
+#include "./logging.h"
 /* #include "testoptions.h" */
-#include "strlutils.h"
-#include "utils.h"
-#include "protocol.h"
+#include "./strlutils.h"
+#include "./utils.h"
+#include "./protocol.h"
 
 static int _debuglevel = 0;
 static char* _programname = "";
@@ -36,7 +36,7 @@ static I2ErrHandle _errorhandler = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
 static time_t timestamp;
-static long int utimestamp;
+static int64_t utimestamp;
 
 /**
  * Compress snaplog, tcpdump, and cputime files to save disk space.
@@ -59,7 +59,6 @@ static long int utimestamp;
  */
 
 int zlib_def(char *src_fn) {
-
   int ret, flush, level = Z_DEFAULT_COMPRESSION;
   char dest_fn[256];
   FILE *dest, *source;
@@ -112,7 +111,6 @@ int zlib_def(char *src_fn) {
         (void) deflateEnd(&strm);
         return Z_ERRNO;
       }
-
     } while (strm.avail_out == 0);
     assert(strm.avail_in == 0); /* all input will be used */
 
@@ -123,7 +121,8 @@ int zlib_def(char *src_fn) {
   /* clean up and return */
   (void) deflateEnd(&strm);
 
-  /* compressed version of file is now created, remove the original uncompressed version */
+  // compressed version of file is now created, remove the original uncompressed
+  // version
   remove(src_fn);
 
   return Z_OK;
@@ -201,20 +200,18 @@ void set_protologdir(char* dirname) {
 
   // Protocol log location being set
   if (dirname == NULL) {
-    //use default of BASEDIR/LOGDIR
+    // use default of BASEDIR/LOGDIR
     log_println(5, "PV: 1: NULL proto location =%s;\n", ProtocolLogDirName);
     return;
   } else if (dirname[0] != '/') {
     snprintf(localstr, sizeof(localstr), "%s/%s/", BASEDIR, dirname);
     ProtocolLogDirName = localstr;
     log_println(5, "PV: 2: non-dir proto location. So=%s;\n", dirname);
-  } //end protocol dir name
-  else {
+  } else {  // end protocol dir name
     snprintf(localstr, sizeof(localstr), "%s", dirname);
     ProtocolLogDirName = dirname;
     log_println(5, "PV33: proto location=%s;\n", ProtocolLogDirName);
   }
-
 }
 
 /**
@@ -222,7 +219,7 @@ void set_protologdir(char* dirname) {
  * @return directory where protocol logs are placed
  */
 char* get_protologdir() {
-  log_println(5," Protocol file location=%s;\n", ProtocolLogDirName);
+  log_println(5, " Protocol file location=%s;\n", ProtocolLogDirName);
   return ProtocolLogDirName;
 }
 
@@ -244,11 +241,13 @@ char get_protocolloggingenabled() {
 void create_protolog_dir() {
   if ( get_protocolloggingenabled() ) {
     set_timestamp();
-    snprintf(protocollogfilestore, sizeof(protocollogfilestore), "%s/", get_protologdir());
-    log_println(5,"Creating protocol log directory=%s", protocollogfilestore);
-    create_named_logdir(protocollogfilestore, sizeof(protocollogfilestore), "", get_protocolloggingenabled());
+    snprintf(protocollogfilestore, sizeof(protocollogfilestore), "%s/",
+             get_protologdir());
+    log_println(5, "Creating protocol log directory=%s", protocollogfilestore);
+    create_named_logdir(protocollogfilestore, sizeof(protocollogfilestore), "",
+                        get_protocolloggingenabled());
     set_protologdir(protocollogfilestore);
-    log_println(9,"DataDir remains=%s", DataDirName);
+    log_println(9, "DataDir remains=%s", DataDirName);
   }
 }
 
@@ -289,7 +288,8 @@ ProtocolLogDirName);
  * @return The protocol log filename
  */
 
-char* get_protologfile(int socketNum, char *protologfilename, size_t filename_size) {
+char* get_protologfile(int socketNum, char *protologfilename,
+                       size_t filename_size) {
   char localAddr[64]="", remoteAddr[64]="";
   I2Addr tmp_addr = NULL;
   size_t tmpstrlen = sizeof(localAddr);
@@ -299,7 +299,7 @@ char* get_protologfile(int socketNum, char *protologfilename, size_t filename_si
   // get remote address
   tmp_addr =
       I2AddrBySockFD(get_errhandle(), socketNum, False);
-  I2AddrNodeName(tmp_addr, remoteAddr, &tmpstrlen); //client name
+  I2AddrNodeName(tmp_addr, remoteAddr, &tmpstrlen);  // client name
 
   // get local address
   tmp_addr = I2AddrByLocalSockFD(get_errhandle(), socketNum, False);
@@ -307,9 +307,10 @@ char* get_protologfile(int socketNum, char *protologfilename, size_t filename_si
   I2AddrNodeName(tmp_addr, localAddr, &tmpstrlen);
 
   // copy address into filename String
-  snprintf(protologfilename, filename_size, "%s/%s%s%s%s%s%s", ProtocolLogDirName, PROTOLOGPREFIX,
-           localAddr, "_",remoteAddr, PROTOLOGSUFFIX, "\0");
-  //log_print(0, "Log file name ---%s---", protologfilename);
+  snprintf(protologfilename, filename_size, "%s/%s%s%s%s%s%s",
+           ProtocolLogDirName, PROTOLOGPREFIX, localAddr, "_", remoteAddr,
+           PROTOLOGSUFFIX, "\0");
+  // log_print(0, "Log file name ---%s---", protologfilename);
 
   return protologfilename;
 }
@@ -350,8 +351,7 @@ I2ErrHandle get_errhandle() {
  *            ... - the additional arguments
  */
 
-void log_print(int lvl, const char* format, ...)
-{
+void log_print(int lvl, const char* format, ...) {
   va_list ap;
 
   if (lvl > _debuglevel) {
@@ -359,7 +359,7 @@ void log_print(int lvl, const char* format, ...)
   }
 
   va_start(ap, format);
-  I2ErrLogVT(_errorhandler,-1,0,format,ap);
+  I2ErrLogVT(_errorhandler, -1, 0, format, ap);
   va_end(ap);
 }
 
@@ -371,8 +371,7 @@ void log_print(int lvl, const char* format, ...)
  *            ... - the additional arguments
  */
 
-void log_println(int lvl, const char* format, ...)
-{
+void log_println(int lvl, const char* format, ...) {
   va_list ap;
 
   if (lvl > _debuglevel) {
@@ -380,7 +379,7 @@ void log_println(int lvl, const char* format, ...)
   }
 
   va_start(ap, format);
-  I2ErrLogVT(_errorhandler_nl,-1,0,format,ap);
+  I2ErrLogVT(_errorhandler_nl, -1, 0, format, ap);
   va_end(ap);
 }
 
@@ -395,7 +394,8 @@ void log_println(int lvl, const char* format, ...)
  * @return number or characters written to the output buffer
  * */
 
-int quote_delimiters(const char *line, int line_size, char *output_buf, int output_buf_size) {
+int quote_delimiters(const char *line, int line_size, char *output_buf,
+                     int output_buf_size) {
   static char quoted[4][2] = {
     { '\n', 'n' },
     { '"', '"' },
@@ -425,7 +425,7 @@ int quote_delimiters(const char *line, int line_size, char *output_buf, int outp
     }
   }
 
-  output_buf[j] = '\0'; // make sure it's null-terminated
+  output_buf[j] = '\0';  // make sure it's null-terminated
   log_println(8, "****Received=%s; len=%d; dest=%d; MSG=%s", line, line_size,
               output_buf_size, output_buf);
 
@@ -444,9 +444,9 @@ int quote_delimiters(const char *line, int line_size, char *output_buf, int outp
 void protolog_printgeneric(const char* key, const char* value, int socketnum) {
   FILE * fp;
   char isotime[64];
-
-  char logmessage[4096]; /* 4096 is just a random default buffer size for the protocol message
-                            Ideally, twice the messsage size will suffice */
+  // 4096 is just a random default buffer size for the protocol message.
+  // Ideally, twice the messsage size will suffice
+  char logmessage[4096];
   char tmplogname[FILENAME_SIZE];
 
   if (!enableprotologging) {
@@ -482,7 +482,7 @@ void protolog_printgeneric(const char* key, const char* value, int socketnum) {
 void protolog_status(int pid, enum TEST_ID testid,
                      enum TEST_STATUS_INT teststatus, int socketnum) {
   FILE * fp;
-  //va_list ap;
+  // va_list ap;
   char protomessage[256];
   char currenttestarr[TEST_NAME_DESC_SIZE];
   char currentstatusarr[TEST_STATUS_DESC_SIZE];
@@ -491,7 +491,7 @@ void protolog_status(int pid, enum TEST_ID testid,
   char *teststatusdesc = "";
   char tmplogname[FILENAME_SIZE]="";
 
-  //get descriptive strings for test name and status
+  // get descriptive strings for test name and status
   currenttestname = get_testnamedesc(testid, currenttestarr);
   teststatusdesc = get_teststatusdesc(teststatus, currentstatusarr);
 
@@ -502,10 +502,10 @@ void protolog_status(int pid, enum TEST_ID testid,
 
   fp = fopen(get_protologfile(socketnum, tmplogname, sizeof(tmplogname)), "a");
   if (fp == NULL) {
-    log_println(
-        5,
-        "--Unable to open protocol log file while trying to record test status message: %s for the %s test \n",
-        teststatusdesc, currenttestname);
+    log_println(5,
+                "--Unable to open protocol log file while trying to record "
+                "test status message: %s for the %s test \n", teststatusdesc,
+                currenttestname);
   } else {
     snprintf(protomessage, sizeof(protomessage),
              " event=\"%s\", name=\"%s\", pid=\"%d\", time=\"%s\"\n",
@@ -527,11 +527,13 @@ void protolog_status(int pid, enum TEST_ID testid,
  * @param socketnum Socket fd
  */
 void protolog_procstatus(int pid, enum TEST_ID testidarg,
-                         enum PROCESS_TYPE_INT procidarg, enum PROCESS_STATUS_INT teststatusarg, int socketnum) {
+                         enum PROCESS_TYPE_INT procidarg,
+                         enum PROCESS_STATUS_INT teststatusarg, int socketnum) {
   FILE * fp;
   char protomessage[256];
   char isotime[64];
-  char currentprocarr[TEST_NAME_DESC_SIZE]; // size suffices to describe process name name too
+  // size suffices to describe process name name too
+  char currentprocarr[TEST_NAME_DESC_SIZE];
   char currentstatusarr[PROCESS_STATUS_DESC_SIZE];
   char currenttestarr[TEST_NAME_DESC_SIZE];
 
@@ -541,7 +543,7 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
 
   char tmplogname[FILENAME_SIZE];
 
-  //get descriptive strings for test name and status
+  // get descriptive strings for test name and status
   currenttestname = get_testnamedesc(testidarg, currenttestarr);
   currentprocname = get_processtypedesc(procidarg, currentprocarr);
   procstatusdesc = get_procstatusdesc(teststatusarg, currentstatusarr);
@@ -554,15 +556,16 @@ void protolog_procstatus(int pid, enum TEST_ID testidarg,
   fp = fopen(get_protologfile(socketnum, tmplogname, sizeof(tmplogname)), "a");
 
   if (fp == NULL) {
-    log_println(
-        5,
-        "--Unable to open protocol log file while trying to record process status message: %s for the %s test \n",
-        procstatusdesc, currentprocname);
+    log_println(5,
+                "--Unable to open protocol log file while trying to record "
+                "process status message: %s for the %s test \n", procstatusdesc,
+                currentprocname);
   } else {
-    log_println(8, " a0\n %s, %s, %s,%d", procstatusdesc,currentprocname,currenttestname,pid);
-    snprintf(protomessage, sizeof(protomessage),
-             " event=\"%s\", name=\"%s\", test=\"%s\", pid=\"%d\", time=\"%s\"\n",
-             procstatusdesc, currentprocname, currenttestname, pid,
+    log_println(8, " a0\n %s, %s, %s,%d", procstatusdesc, currentprocname,
+                currenttestname, pid);
+    snprintf(protomessage, sizeof(protomessage), " event=\"%s\", name=\"%s\", "
+             "test=\"%s\", pid=\"%d\", time=\"%s\"\n", procstatusdesc,
+             currentprocname, currenttestname, pid,
              get_currenttime(isotime, sizeof(isotime)));
     fprintf(fp, "%s", protomessage);
     fclose(fp);
@@ -582,11 +585,13 @@ void enableprotocollogging() {
  * @param charbinary 8 digit character that contains binary information
  * @param binout_arr output array containing binary bits
  */
-void printbinary(char *charbinary, int inarray_size, char *binout_arr, int outarr_size) {
+void printbinary(char *charbinary, int inarray_size, char *binout_arr,
+                 int outarr_size) {
   int j = 7, i = 0;
 
   if ( outarr_size < 8 ) {
-    log_println(8, "Invalid array sizes while formatting protocol binary data. Quitting");
+    log_println(8, "Invalid array sizes while formatting protocol binary data. "
+                "Quitting");
     return;
   }
 
@@ -617,25 +622,27 @@ void printbinary(char *charbinary, int inarray_size, char *binout_arr, int outar
  * @param sizemsgbits Output buffer size
  * @return isbitfield
  */
-int getMessageBodyFormat(int type, int len, char* msgbodytype, char* msgpayload, char* msgbits, int sizemsgbits) {
+int getMessageBodyFormat(int type, int len, char* msgbodytype,
+                         char* msgpayload, char* msgbits, int sizemsgbits) {
   int isbitfielddata = 0;
   enum MSG_BODY_TYPE msgbodyformat = NOT_KNOWN;
 
-  if (type == MSG_LOGIN && len ==1 ) {
+  if (type == MSG_LOGIN && len ==1) {
     msgbodyformat = BITFIELD;
-    strlcpy(msgbodytype, (char *)getmessageformattype(msgbodyformat,msgbodytype), MSG_BODY_FMT_SIZE );
-    printbinary (msgpayload, len, msgbits, sizemsgbits);
+    strlcpy(msgbodytype,
+            (char *)getmessageformattype(msgbodyformat, msgbodytype),
+            MSG_BODY_FMT_SIZE);
+    printbinary(msgpayload, len, msgbits, sizemsgbits);
     isbitfielddata = 1;
-  }
-  else {
+  } else {
     msgbodyformat = STRING;
-    strlcpy(msgbodytype , (char *)getmessageformattype(msgbodyformat,msgbodytype), MSG_BODY_FMT_SIZE);
+    strlcpy(msgbodytype,
+            (char *)getmessageformattype(msgbodyformat, msgbodytype),
+            MSG_BODY_FMT_SIZE);
     // make delimiters in message payload explicit
     quote_delimiters(msgpayload, len, msgbits, sizemsgbits);
-
   }
   return isbitfielddata;
-
 }
 
 /** Log all send/receive protocol messages.
@@ -656,7 +663,7 @@ void protolog_println(char *msgdirection, const int type, void* msg,
   char msgtypedescarr[MSG_TYPE_DESC_SIZE];
   char *currenttestname, *currentmsgtype;
   char isotime[64];
-  char logmessage[4096]; // message after replacing delimiter characters
+  char logmessage[4096];  // message after replacing delimiter characters
   char protologfile[FILENAME_SIZE];
   char msgbodytype[MSG_BODY_FMT_SIZE];
 
@@ -664,20 +671,23 @@ void protolog_println(char *msgdirection, const int type, void* msg,
   currenttestname = get_currenttestdesc();
   currentmsgtype = get_msgtypedesc(type, msgtypedescarr);
 
-  getMessageBodyFormat(type, len, msgbodytype, (char *) msg, logmessage, sizeof(logmessage));
+  getMessageBodyFormat(type, len, msgbodytype, (char *) msg, logmessage,
+                       sizeof(logmessage));
 
-  fp = fopen(get_protologfile(ctlSocket, protologfile, sizeof(protologfile)), "a");
+  fp = fopen(get_protologfile(ctlSocket, protologfile, sizeof(protologfile)),
+             "a");
   if (fp == NULL) {
     log_println(
         5,
         "Unable to open protocol log file '%s', continuing on without logging",
         protologfile);
   } else {
-    fprintf(
-        fp,
-        " event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", len=\"%d\", msg_body_format=\"%s\", msg=\"%s\", pid=\"%d\", socket=\"%d\", time=\"%s\"\n",
-        msgdirection, currenttestname, currentmsgtype, len, msgbodytype, logmessage,
-        processid, ctlSocket, get_currenttime(isotime, sizeof(isotime)));
+    fprintf(fp,
+            " event=\"message\", direction=\"%s\", test=\"%s\", type=\"%s\", "
+            "len=\"%d\", msg_body_format=\"%s\", msg=\"%s\", pid=\"%d\", "
+            "socket=\"%d\", time=\"%s\"\n", msgdirection, currenttestname,
+            currentmsgtype, len, msgbodytype, logmessage, processid, ctlSocket,
+            get_currenttime(isotime, sizeof(isotime)));
     fclose(fp);
   }
 }
@@ -739,7 +749,6 @@ void set_timestamp() {
    *  RAC 5/6/09
    *  timestamp = time(NULL);
    */
-
 }
 
 /**
@@ -754,7 +763,7 @@ time_t get_timestamp() {
  * Return the previously recorded utimestamp.
  * @return The utimestamp
  */
-long int get_utimestamp() {
+int64_t get_utimestamp() {
   return utimestamp;
 }
 
@@ -765,7 +774,6 @@ long int get_utimestamp() {
  */
 
 void get_YYYY(char *year, size_t year_strlen) {
-
   struct tm *result;
   time_t now;
 
@@ -783,7 +791,6 @@ void get_YYYY(char *year, size_t year_strlen) {
  */
 
 void get_MM(char *month, size_t month_strlen) {
-
   struct tm *result;
   time_t now;
 
@@ -805,7 +812,6 @@ void get_MM(char *month, size_t month_strlen) {
  */
 
 void get_DD(char *day, size_t day_strlen) {
-
   struct tm *result;
   time_t now;
   setenv("TZ", "UTC", 0);
@@ -883,7 +889,7 @@ char *get_currenttime(char *isoTime, int isotimearrsize) {
   struct tm *result;
   time_t rc;
   rc = time(&rawtime);
-  if(rc!=-1) {
+  if (rc != -1) {
     result = gmtime(&rawtime);
     return (fill_ISOtime(result, isoTime, isotimearrsize));
   }
@@ -898,9 +904,7 @@ char *get_currenttime(char *isoTime, int isotimearrsize) {
  * @param Pointer to the string indicating ISO time
  * @param character string with ISO time string.
  */
-char *
-get_ISOtime(char *isoTime, int isotimearrsize) {
-
+char * get_ISOtime(char *isoTime, int isotimearrsize) {
   struct tm *result;
   time_t now;
 
@@ -925,16 +929,16 @@ get_ISOtime(char *isoTime, int isotimearrsize) {
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
   FILE * fp;
   char tmpstr[256];
-  //char dir[128];
+  // char dir[128];
   char dirpathstr[256]="";
   char *tempptr;
-  int ptrdiff=0;
+  int ptrdiff = 0;
 
-  //char isoTime[64];
+  // char isoTime[64];
   char filename[256];
   size_t tmpstrlen = sizeof(tmpstr);
   socklen_t len;
-  //DIR *dp;
+  // DIR *dp;
   char metafilesuffix[256] = "meta";
 
   /* Get the clients domain name and same in metadata file
@@ -950,7 +954,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
   if (meta.family == AF_INET)
     len = sizeof(struct sockaddr_in);
 
-  // Look up the host name and service name information for given struct sockaddress and length
+  // Look up the host name and service name information for given struct
+  // sockaddress and length
   if (getnameinfo((struct sockaddr *) &meta.c_addr, len, tmpstr, tmpstrlen,
                   NULL, 0, NI_NAMEREQD)) {
     // No fully qualified domain name
@@ -979,15 +984,15 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
     if (tempptr != NULL) {
       ptrdiff = tempptr - tmpstr;
       strlcpy(dirpathstr, tmpstr, ptrdiff);
-    } //obtained directory in "dirpathstr"
+    }  // obtained directory in "dirpathstr"
     log_println(5,
                 "Compression is enabled, compress all files in '%s' basedir",
                 dirpathstr);
-    if (snaplog) { // if snaplog is enabled, compress those into .gz formats
-
+    if (snaplog) {  // if snaplog is enabled, compress those into .gz formats
       // Try compressing C->S test snaplogs
       memset(filename, 0, sizeof(filename));
-      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.c2s_snaplog);
+      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
+               meta.c2s_snaplog);
       if (zlib_def(filename) != 0)
         log_println(0, "compression failed for file:%s: %s.", filename,
                     dirpathstr);
@@ -996,7 +1001,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
       // Try compressing S->C test snaplogs
       memset(filename, 0, sizeof(filename));
-      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.s2c_snaplog);
+      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
+               meta.s2c_snaplog);
       if (zlib_def(filename) != 0)
         log_println(0, "compression failed for file :%s", filename);
       else
@@ -1005,11 +1011,11 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
     // If tcpdump file writing is enabled, compress those
     if (tcpdump) {
-
       // Try compressing C->S test tcpdump.
       // The tcpdump file extension is as specified in the "meta" data-structure
       memset(filename, 0, sizeof(filename));
-      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.c2s_ndttrace);
+      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
+               meta.c2s_ndttrace);
       if (zlib_def(filename) != 0)
         log_println(0, "compression failed for tcpdump file %s =%s",
                     filename, meta.c2s_ndttrace);
@@ -1018,7 +1024,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
       // Try compressing S->C test tcpdumps
       memset(filename, 0, sizeof(filename));
-      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.s2c_ndttrace);
+      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
+               meta.s2c_ndttrace);
       if (zlib_def(filename) != 0)
         log_println(0, "compression failed for tcpdump file %s =%s",
                     filename, meta.s2c_ndttrace);
@@ -1034,16 +1041,16 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
         log_println(0, "compression failed");
       else
         strlcat(meta.CPU_time, ".gz", sizeof(meta.CPU_time));
-    } else
-      log_println(
-          5,
-          "Zlib compression disabled, log files will not be compressed in %s", tmpstr);
+    } else {
+      log_println(5, "Zlib compression disabled, log files will not be "
+                  "compressed in %s", tmpstr);
+    }
   }
   /* #endif */
 
   // Try logging metadata into the metadata logfile
   fp = fopen(tmpstr, "w");
-  if (fp == NULL) { // error, unable to open file in write mode
+  if (fp == NULL) {  // error, unable to open file in write mode
     log_println(
         1,
         "Unable to open metadata log file, continuing on without logging");
@@ -1093,9 +1100,8 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
  */
 void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
                          char *finalsuffix, char isProtoLog) {
-
-  //char namebuf[256];
-  //size_t namebuflen = 255;
+  // char namebuf[256];
+  // size_t namebuflen = 255;
   char dir[128];
   DIR *dp;
   if ( !isProtoLog ) {
@@ -1147,8 +1153,8 @@ void create_named_logdir(char *dirnamedestarg, int destnamearrsize,
  * @param finalsuffixsize        string constant suffix indicating C2S/S2c etc
  */
 void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
-                          char *dirnamedestarg, int destnamearrsize, char *finalsuffix,
-                          int finalsuffixsize) {
+                          char *dirnamedestarg, int destnamearrsize,
+                          char *finalsuffix, int finalsuffixsize) {
   char namebuf[256];
   size_t namebuflen = 255;
   char dir[128];
@@ -1161,14 +1167,14 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
   I2AddrNodeName(sockAddr, namebuf, &namebuflen);
   socketaddrport = I2AddrPort(sockAddr);
 
-  snprintf(dir, sizeof(dir), "%s_%s:%d.%s", get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
+  snprintf(dir, sizeof(dir), "%s_%s:%d.%s",
+           get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
            socketaddrport, finalsuffix);
   strlcpy(finalsuffix, dir, finalsuffixsize);
 
   create_named_logdir(dirnamedestarg, destnamearrsize, finalsuffix, 0);
 
   I2AddrFree(sockAddr);
-
 }
 
 /**

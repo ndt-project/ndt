@@ -6,8 +6,8 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_NETWORK_H
-#define _JS_NETWORK_H
+#ifndef SRC_NETWORK_H_
+#define SRC_NETWORK_H_
 
 #include <I2util/util.h>
 
@@ -19,7 +19,7 @@
 
 I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size);
 int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
-		int option, int buf_sizes);
+                        int option, int buf_sizes);
 int send_msg(int ctlSocket, int type, void* msg, int len);
 int recv_msg(int ctlSocket, int* type, void* msg, int* len);
 int writen(int fd, void* buf, int amount);
@@ -28,4 +28,4 @@ int readn(int fd, void* buf, int amount);
 /* web100-util.c routine used in network. */
 int KillHung(void);
 
-#endif
+#endif  // SRC_NETWORK_H_
