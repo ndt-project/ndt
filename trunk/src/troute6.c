@@ -69,7 +69,7 @@
 #ifndef lint
 char copyright[] =
 "@(#) Copyright (c) 1990, 1993\n\
-  The Regents of the University of California.  All rights reserved.\n";
+        The Regents of the University of California.  All rights reserved.\n";
 #endif /* not lint */
 #endif
 
@@ -144,105 +144,105 @@ char copyright[] =
  * either don't send ICMP "time exceeded" messages or send them
  * with a ttl too small to reach us.  14 - 17 are running the
  * MIT C Gateway code that doesn't send "time exceeded"s.  God
- * only knows what's going on with 12.
- *
- * The silent gateway 12 in the above may be the result of a bug in
- * the 4.[23]BSD network code (and its derivatives):  4.x (x <= 3)
- * sends an unreachable message using whatever ttl remains in the
- * original datagram.  Since, for gateways, the remaining ttl is
- * zero, the icmp "time exceeded" is guaranteed to not make it back
- * to us.  The behavior of this bug is slightly more interesting
- * when it appears on the destination system:
- *
- *      1  helios.ee.lbl.gov (128.3.112.1)  0 ms  0 ms  0 ms
- *      2  lilac-dmc.Berkeley.EDU (128.32.216.1)  39 ms  19 ms  39 ms
- *      3  lilac-dmc.Berkeley.EDU (128.32.216.1)  19 ms  39 ms  19 ms
- *      4  ccngw-ner-cc.Berkeley.EDU (128.32.136.23)  39 ms  40 ms  19 ms
- *      5  ccn-nerif35.Berkeley.EDU (128.32.168.35)  39 ms  39 ms  39 ms
- *      6  csgw.Berkeley.EDU (128.32.133.254)  39 ms  59 ms  39 ms
- *      7  * * *
- *      8  * * *
- *      9  * * *
- *     10  * * *
- *     11  * * *
- *     12  * * *
- *     13  rip.Berkeley.EDU (128.32.131.22)  59 ms !  39 ms !  39 ms !
- *
- * Notice that there are 12 "gateways" (13 is the final
- * destination) and exactly the last half of them are "missing".
- * What's really happening is that rip (a Sun-3 running Sun OS3.5)
- * is using the ttl from our arriving datagram as the ttl in its
- * icmp reply.  So, the reply will time out on the return path
- * (with no notice sent to anyone since icmp's aren't sent for
- * icmp's) until we probe with a ttl that's at least twice the path
- * length.  I.e., rip is really only 7 hops away.  A reply that
- * returns with a ttl of 1 is a clue this problem exists.
- * Traceroute prints a "!" after the time if the ttl is <= 1.
- * Since vendors ship a lot of obsolete (DEC's Ultrix, Sun 3.x) or
- * non-standard (HPUX) software, expect to see this problem
- * frequently and/or take care picking the target host of your
- * probes.
- *
- * Other possible annotations after the time are !H, !N, !P (got a host,
- * network or protocol unreachable, respectively), !S or !F (source
- * route failed or fragmentation needed -- neither of these should
- * ever occur and the associated gateway is busted if you see one).  If
- * almost all the probes result in some kind of unreachable, traceroute
- * will give up and exit.
- *
- * Notes
- * -----
- * This program must be run by root or be setuid.  (I suggest that
- * you *don't* make it setuid -- casual use could result in a lot
- * of unnecessary traffic on our poor, congested nets.)
- *
- * This program requires a kernel mod that does not appear in any
- * system available from Berkeley:  A raw ip socket using proto
- * IPPROTO_RAW must interpret the data sent as an ip datagram (as
- * opposed to data to be wrapped in a ip datagram).  See the README
- * file that came with the source to this program for a description
- * of the mods I made to /sys/netinet/raw_ip.c.  Your mileage may
- * vary.  But, again, ANY 4.x (x < 4) BSD KERNEL WILL HAVE TO BE
- * MODIFIED TO RUN THIS PROGRAM.
- *
- * The udp port usage may appear bizarre (well, ok, it is bizarre).
- * The problem is that an icmp message only contains 8 bytes of
- * data from the original datagram.  8 bytes is the size of a udp
- * header so, if we want to associate replies with the original
- * datagram, the necessary information must be encoded into the
- * udp header (the ip id could be used but there's no way to
- * interlock with the kernel's assignment of ip id's and, anyway,
- * it would have taken a lot more kernel hacking to allow this
- * code to set the ip id).  So, to allow two or more users to
- * use traceroute simultaneously, we use this task's pid as the
- * source port (the high bit is set to move the port number out
- * of the "likely" range).  To keep track of which probe is being
- * replied to (so times and/or hop counts don't get confused by a
- * reply that was delayed in transit), we increment the destination
- * port number before each probe.
- *
- * Don't use this as a coding example.  I was trying to find a
- * routing problem and this code sort-of popped out after 48 hours
- * without sleep.  I was amazed it ever compiled, much less ran.
- *
- * I stole the idea for this program from Steve Deering.  Since
- * the first release, I've learned that had I attended the right
- * IETF working group meetings, I also could have stolen it from Guy
- * Almes or Matt Mathis.  I don't know (or care) who came up with
- * the idea first.  I envy the originators' perspicacity and I'm
- * glad they didn't keep the idea a secret.
- *
- * Tim Seaver, Ken Adelman and C. Philip Wood provided bug fixes and/or
- * enhancements to the original distribution.
- *
- * I've hacked up a round-trip-route version of this that works by
- * sending a loose-source-routed udp datagram through the destination
- * back to yourself.  Unfortunately, SO many gateways botch source
- * routing, the thing is almost worthless.  Maybe one day...
- *
- *  -- Van Jacobson (van@helios.ee.lbl.gov)
- *     Tue Dec 20 03:50:13 PST 1988
- */
+* only knows what's going on with 12.
+*
+  * The silent gateway 12 in the above may be the result of a bug in
+* the 4.[23]BSD network code (and its derivatives):  4.x (x <= 3)
+                                                     * sends an unreachable message using whatever ttl remains in the
+                                                     * original datagram.  Since, for gateways, the remaining ttl is
+                                                     * zero, the icmp "time exceeded" is guaranteed to not make it back
+                                                     * to us.  The behavior of this bug is slightly more interesting
+                                                     * when it appears on the destination system:
+                                                     *
+                                                     *      1  helios.ee.lbl.gov (128.3.112.1)  0 ms  0 ms  0 ms
+                                                     *      2  lilac-dmc.Berkeley.EDU (128.32.216.1)  39 ms  19 ms  39 ms
+                                                     *      3  lilac-dmc.Berkeley.EDU (128.32.216.1)  19 ms  39 ms  19 ms
+                                                     *      4  ccngw-ner-cc.Berkeley.EDU (128.32.136.23)  39 ms  40 ms  19 ms
+                                                     *      5  ccn-nerif35.Berkeley.EDU (128.32.168.35)  39 ms  39 ms  39 ms
+                                                     *      6  csgw.Berkeley.EDU (128.32.133.254)  39 ms  59 ms  39 ms
+                                                     *      7  * * *
+                                                     *      8  * * *
+                                                     *      9  * * *
+                                                     *     10  * * *
+                                                     *     11  * * *
+                                                     *     12  * * *
+                                                     *     13  rip.Berkeley.EDU (128.32.131.22)  59 ms !  39 ms !  39 ms !
+                                                     *
+                                                     * Notice that there are 12 "gateways" (13 is the final
+                                                                                            * destination) and exactly the last half of them are "missing".
+                                                     * What's really happening is that rip (a Sun-3 running Sun OS3.5)
+                                                     * is using the ttl from our arriving datagram as the ttl in its
+                                                     * icmp reply.  So, the reply will time out on the return path
+                                                     * (with no notice sent to anyone since icmp's aren't sent for
+                                                        * icmp's) until we probe with a ttl that's at least twice the path
+                                                     * length.  I.e., rip is really only 7 hops away.  A reply that
+                                                     * returns with a ttl of 1 is a clue this problem exists.
+                                                     * Traceroute prints a "!" after the time if the ttl is <= 1.
+                                                     * Since vendors ship a lot of obsolete (DEC's Ultrix, Sun 3.x) or
+                                                     * non-standard (HPUX) software, expect to see this problem
+                                                     * frequently and/or take care picking the target host of your
+                                                     * probes.
+                                                     *
+                                                     * Other possible annotations after the time are !H, !N, !P (got a host,
+                                                                                                                 * network or protocol unreachable, respectively), !S or !F (source
+                                                                                                                                                                             * route failed or fragmentation needed -- neither of these should
+                                                                                                                                                                             * ever occur and the associated gateway is busted if you see one).  If
+                                                     * almost all the probes result in some kind of unreachable, traceroute
+                                                     * will give up and exit.
+                                                     *
+                                                     * Notes
+                                                     * -----
+                                                     * This program must be run by root or be setuid.  (I suggest that
+                                                                                                        * you *don't* make it setuid -- casual use could result in a lot
+                                                                                                        * of unnecessary traffic on our poor, congested nets.)
+                                                     *
+                                                     * This program requires a kernel mod that does not appear in any
+                                                     * system available from Berkeley:  A raw ip socket using proto
+                                                     * IPPROTO_RAW must interpret the data sent as an ip datagram (as
+                                                                                                                   * opposed to data to be wrapped in a ip datagram).  See the README
+                                                     * file that came with the source to this program for a description
+                                                     * of the mods I made to /sys/netinet/raw_ip.c.  Your mileage may
+                                                     * vary.  But, again, ANY 4.x (x < 4) BSD KERNEL WILL HAVE TO BE
+                                                     * MODIFIED TO RUN THIS PROGRAM.
+                                                     *
+                                                     * The udp port usage may appear bizarre (well, ok, it is bizarre).
+                                                     * The problem is that an icmp message only contains 8 bytes of
+                                                     * data from the original datagram.  8 bytes is the size of a udp
+                                                     * header so, if we want to associate replies with the original
+                                                     * datagram, the necessary information must be encoded into the
+                                                     * udp header (the ip id could be used but there's no way to
+                                                                   * interlock with the kernel's assignment of ip id's and, anyway,
+                                                                   * it would have taken a lot more kernel hacking to allow this
+                                                                   * code to set the ip id).  So, to allow two or more users to
+                                                     * use traceroute simultaneously, we use this task's pid as the
+                                                     * source port (the high bit is set to move the port number out
+                                                                    * of the "likely" range).  To keep track of which probe is being
+                                                     * replied to (so times and/or hop counts don't get confused by a
+                                                                   * reply that was delayed in transit), we increment the destination
+                                                     * port number before each probe.
+                                                     *
+                                                     * Don't use this as a coding example.  I was trying to find a
+                                                     * routing problem and this code sort-of popped out after 48 hours
+                                                     * without sleep.  I was amazed it ever compiled, much less ran.
+                                                     *
+                                                     * I stole the idea for this program from Steve Deering.  Since
+                                                     * the first release, I've learned that had I attended the right
+                                                     * IETF working group meetings, I also could have stolen it from Guy
+                                                     * Almes or Matt Mathis.  I don't know (or care) who came up with
+                                                     * the idea first.  I envy the originators' perspicacity and I'm
+                                                     * glad they didn't keep the idea a secret.
+                                                     *
+                                                     * Tim Seaver, Ken Adelman and C. Philip Wood provided bug fixes and/or
+                                                     * enhancements to the original distribution.
+                                                     *
+                                                     * I've hacked up a round-trip-route version of this that works by
+                                                     * sending a loose-source-routed udp datagram through the destination
+                                                     * back to yourself.  Unfortunately, SO many gateways botch source
+                                                     * routing, the thing is almost worthless.  Maybe one day...
+  *
+   *  -- Van Jacobson (van@helios.ee.lbl.gov)
+                                             *     Tue Dec 20 03:50:13 PST 1988
+                                                     */
 
 #include <sys/param.h>
 #include <sys/time.h>
@@ -292,34 +292,34 @@ char copyright[] =
 #define Fprintf (void)fprintf
 #define Printf (void)printf
 
-/* taken from linux/ipv6.h */
+                                                     /* taken from linux/ipv6.h */
 
-/*
- *  IPv6 fixed header
- *
- *  BEWARE, it is incorrect. The first 4 bits of flow_lbl
- *  are glued to priority now, forming "class".
- */
+                                                     /*
+                                                      *  IPv6 fixed header
+                                                      *
+                                                      *  BEWARE, it is incorrect. The first 4 bits of flow_lbl
+                                                      *  are glued to priority now, forming "class".
+                                                      */
 
-struct ipv6hdr {
+                                                     struct ipv6hdr {
 #if defined(__LITTLE_ENDIAN_BITFIELD)
-__extension__	__u8 priority:4,
-	version:4;
+                                                       __extension__	__u8 priority:4,
+                                                                        version:4;
 #elif defined(__BIG_ENDIAN_BITFIELD)
-__extension__	__u8 version:4,
-	priority:4;
+                                                       __extension__	__u8 version:4,
+                                                                        priority:4;
 #else
 #error  "Please fix <asm/byteorder.h>"
 #endif
-__extension__	__u8 flow_lbl[3];
+                                                       __extension__	__u8 flow_lbl[3];
 
-__extension__	__u16 payload_len;
-__extension__	__u8 nexthdr;
-__extension__	__u8 hop_limit;
+                                                       __extension__	__u16 payload_len;
+                                                       __extension__	__u8 nexthdr;
+                                                       __extension__	__u8 hop_limit;
 
-	struct in6_addr saddr;
-	struct in6_addr daddr;
-};
+                                                       struct in6_addr saddr;
+                                                       struct in6_addr daddr;
+                                                     };
 
 /* --- */
 
@@ -327,7 +327,7 @@ u_char packet[512]; /* last inbound (icmp) packet */
 
 int wait_for_reply6(int, struct sockaddr_in6 *, int);
 int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
-		struct timeval *);
+               struct timeval *);
 void send_probe6(int seq, int ttl);
 double deltaT (struct timeval *, struct timeval *);
 void tvsub (struct timeval *, struct timeval *);
@@ -355,267 +355,267 @@ int nflag; /* print addresses numerically */
 
 struct pkt_format
 {
-	__u32 ident;
-	__u32 seq;
-	struct timeval tv;
+  __u32 ident;
+  __u32 seq;
+  struct timeval tv;
 };
 
 char *sendbuff;
 int datalen = sizeof(struct pkt_format);
 
-void
+  void
 find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
 {
-	extern char *optarg;
-	extern int optind;
-	struct hostent *hp;
-	struct sockaddr_in6 from, *to;
-	int i, on, probe, seq, tos, ttl;
-	int socket_errno;
+  extern char *optarg;
+  extern int optind;
+  struct hostent *hp;
+  struct sockaddr_in6 from, *to;
+  int i, on, probe, seq, tos, ttl;
+  int socket_errno;
 
-	icmp_sock = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
-	socket_errno = errno;
+  icmp_sock = socket(AF_INET6, SOCK_RAW, IPPROTO_ICMPV6);
+  socket_errno = errno;
 
-	setuid(getuid());
+  setuid(getuid());
 
-	on = 1;
-	seq = tos = 0;
-	to = (struct sockaddr_in6 *)&whereto;
-	(void) bzero((char *)&whereto, sizeof(whereto));
+  on = 1;
+  seq = tos = 0;
+  to = (struct sockaddr_in6 *)&whereto;
+  (void) bzero((char *)&whereto, sizeof(whereto));
 
-	to->sin6_family = AF_INET6;
-	to->sin6_port = htons(port6);
+  to->sin6_family = AF_INET6;
+  to->sin6_port = htons(port6);
 
-	if (inet_pton(AF_INET6, dst, &to->sin6_addr) > 0) {
-		hostname = dst;
-	} else {
-		hp = gethostbyname2(dst, AF_INET6);
-		if (hp) {
-			memmove((caddr_t)&to->sin6_addr, hp->h_addr, sizeof(to->sin6_addr));
-			hostname = (char *)hp->h_name;
-		} else {
-			(void)fprintf(stderr,
-					"traceroute: unknown host %s\n", dst);
-			return;
-		}
-	}
-	firsthop = *to;
+  if (inet_pton(AF_INET6, dst, &to->sin6_addr) > 0) {
+    hostname = dst;
+  } else {
+    hp = gethostbyname2(dst, AF_INET6);
+    if (hp) {
+      memmove((caddr_t)&to->sin6_addr, hp->h_addr, sizeof(to->sin6_addr));
+      hostname = (char *)hp->h_name;
+    } else {
+      (void)fprintf(stderr,
+                    "traceroute: unknown host %s\n", dst);
+      return;
+    }
+  }
+  firsthop = *to;
 
-	ident = (getpid() & 0xffff) | 0x8000;
+  ident = (getpid() & 0xffff) | 0x8000;
 
-	sendbuff = malloc(datalen);
-	if (sendbuff == NULL) {
-		fprintf(stderr, "malloc failed\n");
-		return;
-	}
+  sendbuff = malloc(datalen);
+  if (sendbuff == NULL) {
+    fprintf(stderr, "malloc failed\n");
+    return;
+  }
 
-	if (icmp_sock < 0) {
-		errno = socket_errno;
-		perror("traceroute6: icmp socket");
-		return;
-	}
+  if (icmp_sock < 0) {
+    errno = socket_errno;
+    perror("traceroute6: icmp socket");
+    return;
+  }
 
-	if (options & SO_DEBUG)
-	setsockopt(icmp_sock, SOL_SOCKET, SO_DEBUG,
-			(char *)&on, sizeof(on));
-	if (options & SO_DONTROUTE)
-	setsockopt(icmp_sock, SOL_SOCKET, SO_DONTROUTE,
-			(char *)&on, sizeof(on));
-	on = 2;
-	if (setsockopt(icmp_sock, SOL_RAW, IPV6_CHECKSUM, &on, sizeof(on)) < 0) {
-		perror("setsockopt(RAW_CHECKSUM)");
-		return;
-	}
+  if (options & SO_DEBUG)
+    setsockopt(icmp_sock, SOL_SOCKET, SO_DEBUG,
+               (char *)&on, sizeof(on));
+  if (options & SO_DONTROUTE)
+    setsockopt(icmp_sock, SOL_SOCKET, SO_DONTROUTE,
+               (char *)&on, sizeof(on));
+  on = 2;
+  if (setsockopt(icmp_sock, SOL_RAW, IPV6_CHECKSUM, &on, sizeof(on)) < 0) {
+    perror("setsockopt(RAW_CHECKSUM)");
+    return;
+  }
 
-	if ((sndsock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-		perror("traceroute: UDP socket");
-		return;
-	}
+  if ((sndsock = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+    perror("traceroute: UDP socket");
+    return;
+  }
 #ifdef SO_SNDBUF
-	if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&datalen,
-					sizeof(datalen)) < 0) {
-		perror("traceroute: SO_SNDBUF");
-		return;
-	}
+  if (setsockopt(sndsock, SOL_SOCKET, SO_SNDBUF, (char *)&datalen,
+                 sizeof(datalen)) < 0) {
+    perror("traceroute: SO_SNDBUF");
+    return;
+  }
 #endif /* SO_SNDBUF */
 
-	if (options & SO_DEBUG)
-	(void) setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
-			(char *)&on, sizeof(on));
-	if (options & SO_DONTROUTE)
-	(void) setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
-			(char *)&on, sizeof(on));
+  if (options & SO_DEBUG)
+    (void) setsockopt(sndsock, SOL_SOCKET, SO_DEBUG,
+                      (char *)&on, sizeof(on));
+  if (options & SO_DONTROUTE)
+    (void) setsockopt(sndsock, SOL_SOCKET, SO_DONTROUTE,
+                      (char *)&on, sizeof(on));
 
-	if (source6 == NULL) {
-		socklen_t alen;
-		int probe_fd = socket(AF_INET6, SOCK_DGRAM, 0);
+  if (source6 == NULL) {
+    socklen_t alen;
+    int probe_fd = socket(AF_INET6, SOCK_DGRAM, 0);
 
-		if (probe_fd < 0) {
-			perror("socket");
-			return;
-		}
-		if (device) {
-			if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1) == -1)
-			perror("WARNING: interface is ignored");
-		}
-		firsthop.sin6_port = htons(1025);
-		if (connect(probe_fd, (struct sockaddr*)&firsthop, sizeof(firsthop)) == -1) {
-			perror("connect");
-			return;
-		}
-		alen = sizeof(saddr);
-		if (getsockname(probe_fd, (struct sockaddr*)&saddr, &alen) == -1) {
-			perror("getsockname");
-			return;
-		}
-		saddr.sin6_port = 0;
-		close(probe_fd);
-	} else {
-		(void) bzero((char *)&saddr, sizeof(saddr));
-		saddr.sin6_family = AF_INET6;
-		if (inet_pton(AF_INET6, source6, &saddr.sin6_addr) < 0)
-		{
-			Printf("traceroute: unknown addr %s\n", source6);
-			return;
-		}
-	}
+    if (probe_fd < 0) {
+      perror("socket");
+      return;
+    }
+    if (device) {
+      if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1) == -1)
+        perror("WARNING: interface is ignored");
+    }
+    firsthop.sin6_port = htons(1025);
+    if (connect(probe_fd, (struct sockaddr*)&firsthop, sizeof(firsthop)) == -1) {
+      perror("connect");
+      return;
+    }
+    alen = sizeof(saddr);
+    if (getsockname(probe_fd, (struct sockaddr*)&saddr, &alen) == -1) {
+      perror("getsockname");
+      return;
+    }
+    saddr.sin6_port = 0;
+    close(probe_fd);
+  } else {
+    (void) bzero((char *)&saddr, sizeof(saddr));
+    saddr.sin6_family = AF_INET6;
+    if (inet_pton(AF_INET6, source6, &saddr.sin6_addr) < 0)
+    {
+      Printf("traceroute: unknown addr %s\n", source6);
+      return;
+    }
+  }
 
-	if (bind(sndsock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-		perror ("traceroute: bind sending socket");
-		return;
-	}
-	if (bind(icmp_sock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-		perror ("traceroute: bind icmp6 socket");
-		return;
-	}
+  if (bind(sndsock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    perror ("traceroute: bind sending socket");
+    return;
+  }
+  if (bind(icmp_sock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    perror ("traceroute: bind icmp6 socket");
+    return;
+  }
 
-	for (ttl = 1; ttl <= max_ttl; ++ttl) {
-		struct in6_addr lastaddr = { { {0,}}};
-		int got_there = 0;
-		int unreachable = 0;
+  for (ttl = 1; ttl <= max_ttl; ++ttl) {
+    struct in6_addr lastaddr = { { {0,}}};
+    int got_there = 0;
+    int unreachable = 0;
 
-		/* Printf("%2d ", ttl); */
-		for (probe = 0; probe < nprobes6; ++probe) {
-			int cc, reset_timer;
-			struct timeval t1, t2;
-			struct timezone tz;
+    /* Printf("%2d ", ttl); */
+    for (probe = 0; probe < nprobes6; ++probe) {
+      int cc, reset_timer;
+      struct timeval t1, t2;
+      struct timezone tz;
 
-			gettimeofday(&t1, &tz);
-			send_probe6(++seq, ttl);
-			reset_timer = 1;
+      gettimeofday(&t1, &tz);
+      send_probe6(++seq, ttl);
+      reset_timer = 1;
 
-			while ((cc = wait_for_reply6(icmp_sock, &from, reset_timer)) != 0) {
-				gettimeofday(&t2, &tz);
-				if (cc > 0 && (i = packet_ok6(packet, cc, &from, seq, &t1))) {
-					reset_timer = 1;
-					if (memcmp(&from.sin6_addr, &lastaddr, sizeof(from.sin6_addr))) {
-						memcpy(IPlist[ttl-1],
-								&from.sin6_addr,
-								sizeof(IPlist[ttl-1]));
-						memcpy(&lastaddr,
-								&from.sin6_addr,
-								sizeof(lastaddr));
-					}
-					if (get_debuglvl() > 4) {
-						char tmp[MAXHOSTNAMELEN];
-						inet_ntop(AF_INET6, &from.sin6_addr, tmp, sizeof(tmp));
-						log_println(5, "Probe %d resulted in reply from [%s]", probe, tmp);
-					}
-					switch(i - 1) {
-						case ICMPV6_PORT_UNREACH:
-						++got_there;
-						break;
+      while ((cc = wait_for_reply6(icmp_sock, &from, reset_timer)) != 0) {
+        gettimeofday(&t2, &tz);
+        if (cc > 0 && (i = packet_ok6(packet, cc, &from, seq, &t1))) {
+          reset_timer = 1;
+          if (memcmp(&from.sin6_addr, &lastaddr, sizeof(from.sin6_addr))) {
+            memcpy(IPlist[ttl-1],
+                   &from.sin6_addr,
+                   sizeof(IPlist[ttl-1]));
+            memcpy(&lastaddr,
+                   &from.sin6_addr,
+                   sizeof(lastaddr));
+          }
+          if (get_debuglvl() > 4) {
+            char tmp[MAXHOSTNAMELEN];
+            inet_ntop(AF_INET6, &from.sin6_addr, tmp, sizeof(tmp));
+            log_println(5, "Probe %d resulted in reply from [%s]", probe, tmp);
+          }
+          switch(i - 1) {
+            case ICMPV6_PORT_UNREACH:
+              ++got_there;
+              break;
 
-						case ICMPV6_NOROUTE:
-						++unreachable;
-						Printf(" !N");
-						break;
-						case ICMPV6_ADDR_UNREACH:
-						++unreachable;
-						Printf(" !H");
-						break;
+            case ICMPV6_NOROUTE:
+              ++unreachable;
+              Printf(" !N");
+              break;
+            case ICMPV6_ADDR_UNREACH:
+              ++unreachable;
+              Printf(" !H");
+              break;
 
-						case ICMPV6_ADM_PROHIBITED:
-						++unreachable;
-						Printf(" !S");
-						break;
-					}
-					break;
-				} else
-				reset_timer = 0;
-			}
-			if (cc <= 0)
-			Printf(" *");
-			(void) fflush(stdout);
-		}
-		if (got_there || (unreachable > 0 && unreachable >= nprobes6-1))
-		return;
-	}
+            case ICMPV6_ADM_PROHIBITED:
+              ++unreachable;
+              Printf(" !S");
+              break;
+          }
+          break;
+        } else
+          reset_timer = 0;
+      }
+      if (cc <= 0)
+        Printf(" *");
+      (void) fflush(stdout);
+    }
+    if (got_there || (unreachable > 0 && unreachable >= nprobes6-1))
+      return;
+  }
 }
 
-int
+  int
 wait_for_reply6(sock, from, reset_timer)
-int sock;
-struct sockaddr_in6 *from;
-int reset_timer;
+  int sock;
+  struct sockaddr_in6 *from;
+  int reset_timer;
 {
-	fd_set fds;
-	static struct timeval wait;
-	int cc = 0;
-	socklen_t fromlen = sizeof (*from);
+  fd_set fds;
+  static struct timeval wait;
+  int cc = 0;
+  socklen_t fromlen = sizeof (*from);
 
-	FD_ZERO(&fds);
-	FD_SET(sock, &fds);
-	if (reset_timer) {
-		/*
-		 * traceroute could hang if someone else has a ping
-		 * running and our ICMP reply gets dropped but we don't
-		 * realize it because we keep waking up to handle those
-		 * other ICMP packets that keep coming in.  To fix this,
-		 * "reset_timer" will only be true if the last packet that
-		 * came in was for us or if this is the first time we're
-		 * waiting for a reply since sending out a probe.  Note
-		 * that this takes advantage of the select() feature on
-		 * Linux where the remaining timeout is written to the
-		 * struct timeval area.
-		 */
-		wait.tv_sec = waittime6;
-		wait.tv_usec = 0;
-	}
+  FD_ZERO(&fds);
+  FD_SET(sock, &fds);
+  if (reset_timer) {
+    /*
+     * traceroute could hang if someone else has a ping
+     * running and our ICMP reply gets dropped but we don't
+     * realize it because we keep waking up to handle those
+     * other ICMP packets that keep coming in.  To fix this,
+     * "reset_timer" will only be true if the last packet that
+     * came in was for us or if this is the first time we're
+     * waiting for a reply since sending out a probe.  Note
+     * that this takes advantage of the select() feature on
+     * Linux where the remaining timeout is written to the
+     * struct timeval area.
+     */
+    wait.tv_sec = waittime6;
+    wait.tv_usec = 0;
+  }
 
-	if (select(sock+1, &fds, (fd_set *)0, (fd_set *)0, &wait) > 0) {
-		cc=recvfrom(icmp_sock, (char *)packet, sizeof(packet), 0,
-				(struct sockaddr *)from, &fromlen);
-	}
+  if (select(sock+1, &fds, (fd_set *)0, (fd_set *)0, &wait) > 0) {
+    cc=recvfrom(icmp_sock, (char *)packet, sizeof(packet), 0,
+                (struct sockaddr *)from, &fromlen);
+  }
 
-	return(cc);
+  return(cc);
 }
 
 void send_probe6(int seq, int ttl)
 {
-	struct pkt_format *pkt = (struct pkt_format *) sendbuff;
-	int i;
+  struct pkt_format *pkt = (struct pkt_format *) sendbuff;
+  int i;
 
-	pkt->ident = htonl(ident);
-	pkt->seq = htonl(seq);
-	gettimeofday(&pkt->tv, &tz);
+  pkt->ident = htonl(ident);
+  pkt->seq = htonl(seq);
+  gettimeofday(&pkt->tv, &tz);
 
-	i = setsockopt(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, &ttl, sizeof(ttl));
-	if (i < 0)
-	{
-		perror("setsockopt");
-		return;
-	}
+  i = setsockopt(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, &ttl, sizeof(ttl));
+  if (i < 0)
+  {
+    perror("setsockopt");
+    return;
+  }
 
-	do {
-		i = sendto(sndsock, sendbuff, datalen, 0,
-				(struct sockaddr *)&whereto, sizeof(whereto));
-	}while (i<0 && errno == ECONNREFUSED);
+  do {
+    i = sendto(sndsock, sendbuff, datalen, 0,
+               (struct sockaddr *)&whereto, sizeof(whereto));
+  }while (i<0 && errno == ECONNREFUSED);
 
-	if (i < 0 || i != datalen) {
-		if (i<0)
-		perror("sendto");
-	}
+  if (i < 0 || i != datalen) {
+    if (i<0)
+      perror("sendto");
+  }
 }
 
 /*
@@ -623,99 +623,99 @@ void send_probe6(int seq, int ttl)
  */
 char * pr_type(unsigned char t)
 {
-	static char *ttab1[] = {
-		"Error",
-		"Destination Unreachable",
-		"Packet Too Big",
-		"Time Exceeded in Transit",
-		"Parameter Problem"
-	};
+  static char *ttab1[] = {
+    "Error",
+    "Destination Unreachable",
+    "Packet Too Big",
+    "Time Exceeded in Transit",
+    "Parameter Problem"
+  };
 
-	static char *ttab2[] = {
-		"Echo Reply",
-		"Echo Request",
-		"Membership Query",
-		"Membership Report",
-		"Membership Reduction",
-	};
+  static char *ttab2[] = {
+    "Echo Reply",
+    "Echo Request",
+    "Membership Query",
+    "Membership Report",
+    "Membership Reduction",
+  };
 
-	if (t < 5)
-	{
-		return (ttab1[t]);
-	}
+  if (t < 5)
+  {
+    return (ttab1[t]);
+  }
 
-        unsigned char newt = t - 128;
-	if (newt < 5)
-	{
-		return (ttab2[newt]);
-	}
+  unsigned char newt = t - 128;
+  if (newt < 5)
+  {
+    return (ttab2[newt]);
+  }
 
-	return("OUT-OF-RANGE");
+  return("OUT-OF-RANGE");
 }
 
 int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
-		struct timeval *tv)
+               struct timeval *tv)
 {
-	struct icmp6hdr *icp;
-	u_char type, code;
+  struct icmp6hdr *icp;
+  u_char type, code;
 
-	icp = (struct icmp6hdr *) buf;
+  icp = (struct icmp6hdr *) buf;
 
-	type = icp->icmp6_type;
-	code = icp->icmp6_code;
+  type = icp->icmp6_type;
+  code = icp->icmp6_code;
 
-	if ((type == ICMPV6_TIME_EXCEED && code == ICMPV6_EXC_HOPLIMIT) ||
-			type == ICMPV6_DEST_UNREACH)
-	{
-		struct ipv6hdr *hip;
-		struct udphdr *up;
-		int nexthdr;
+  if ((type == ICMPV6_TIME_EXCEED && code == ICMPV6_EXC_HOPLIMIT) ||
+      type == ICMPV6_DEST_UNREACH)
+  {
+    struct ipv6hdr *hip;
+    struct udphdr *up;
+    int nexthdr;
 
-		hip = (struct ipv6hdr *) (icp + 1);
-		up = (struct udphdr *)(hip+1);
-		nexthdr = hip->nexthdr;
+    hip = (struct ipv6hdr *) (icp + 1);
+    up = (struct udphdr *)(hip+1);
+    nexthdr = hip->nexthdr;
 
-		if (nexthdr == 44) {
-			nexthdr = *(unsigned char*)up;
-			up++;
-		}
-		if (nexthdr == IPPROTO_UDP)
-		{
-			struct pkt_format *pkt;
+    if (nexthdr == 44) {
+      nexthdr = *(unsigned char*)up;
+      up++;
+    }
+    if (nexthdr == IPPROTO_UDP)
+    {
+      struct pkt_format *pkt;
 
-			pkt = (struct pkt_format *) (up + 1);
+      pkt = (struct pkt_format *) (up + 1);
 
-			if (ntohl(pkt->ident) == ident &&
-					ntohl(pkt->seq) == seq)
-			{
-				*tv = pkt->tv;
-				return (type == ICMPV6_TIME_EXCEED? -1 : code+1);
-			}
-		}
+      if (ntohl(pkt->ident) == ident &&
+          ntohl(pkt->seq) == seq)
+      {
+        *tv = pkt->tv;
+        return (type == ICMPV6_TIME_EXCEED? -1 : code+1);
+      }
+    }
 
-	}
+  }
 
-	if (verbose) {
-		struct ipv6hdr *hip;
-		__u32 *lp;
-		char pa1[MAXHOSTNAMELEN];
-		char pa2[MAXHOSTNAMELEN];
-		int i;
-		hip = (struct ipv6hdr *) (icp + 1);
-		lp = (__u32 *) (icp + 1);
+  if (verbose) {
+    struct ipv6hdr *hip;
+    __u32 *lp;
+    char pa1[MAXHOSTNAMELEN];
+    char pa2[MAXHOSTNAMELEN];
+    int i;
+    hip = (struct ipv6hdr *) (icp + 1);
+    lp = (__u32 *) (icp + 1);
 
-		Printf("\n%d bytes from %s to %s", cc,
-				inet_ntop(AF_INET6, &hip->saddr, pa1, sizeof(pa1)),
-				inet_ntop(AF_INET6, &hip->daddr, pa2, sizeof(pa2)));
+    Printf("\n%d bytes from %s to %s", cc,
+           inet_ntop(AF_INET6, &hip->saddr, pa1, sizeof(pa1)),
+           inet_ntop(AF_INET6, &hip->daddr, pa2, sizeof(pa2)));
 
-		Printf(": icmp type %d (%s) code %d\n", type, pr_type(type),
-				icp->icmp6_code);
+    Printf(": icmp type %d (%s) code %d\n", type, pr_type(type),
+           icp->icmp6_code);
 
-		for (i = sizeof(struct ipv6hdr); i < cc; i += 4)
-		Printf("%2d: x%8.8x\n", i, *lp++);
-	}
+    for (i = sizeof(struct ipv6hdr); i < cc; i += 4)
+      Printf("%2d: x%8.8x\n", i, *lp++);
+  }
 
-	return(0);
+  return(0);
 }
 
 #endif

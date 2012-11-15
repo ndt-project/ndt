@@ -13,20 +13,20 @@
 // The arrays below rely on the ordering of corresponding enum in the .h file.
 // test names
 static char *_teststatusdescarray[] = { "test_not_started", "test_started",
-		"test_in_progress", "test_incomplete", "test_complete" };
+  "test_in_progress", "test_incomplete", "test_complete" };
 
 // names of tests.
 static char *_testnamesarray[] = { "None", "Middlebox", "SFW", "C2S", "S2C",
-		"Meta" };
+  "Meta" };
 
 // names of test messages to log in descriptive names instead of numbers
 static char * _testmsgtypesarray[] = { "COMM_FAILURE", "SRV_QUEUE", "MSG_LOGIN",
-		"TEST_PREPARE", "TEST_START", "TEST_MSG", "TEST_FINALIZE", "MSG_ERROR",
-		"MSG_RESULTS", "MSG_LOGOUT", "MSG_WAITING", };
+  "TEST_PREPARE", "TEST_START", "TEST_MSG", "TEST_FINALIZE", "MSG_ERROR",
+  "MSG_RESULTS", "MSG_LOGOUT", "MSG_WAITING", };
 
 // names of protocol message transmission directions
 static char *_txdirectionsarray[] = { "none", "client_to_server",
-		"server_to_client" };
+  "server_to_client" };
 
 static char *_msgbodyformattype[] = { "bitfield", "string", "none" };
 
@@ -37,9 +37,9 @@ static char *_msgbodyformattype[] = { "bitfield", "string", "none" };
  * @return char*  Descriptive string for test name
  * */
 char *get_testnamedesc(enum TEST_ID testid, char *snamearg) {
-	snamearg = _testnamesarray[testid];
-	//printf ("--current test name = %s for %d\n", snamearg ,testid);
-	return snamearg;
+  snamearg = _testnamesarray[testid];
+  //printf ("--current test name = %s for %d\n", snamearg ,testid);
+  return snamearg;
 }
 
 /**
@@ -49,9 +49,9 @@ char *get_testnamedesc(enum TEST_ID testid, char *snamearg) {
  * @return char*  Descriptive string for test status
  * */
 char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *sstatusarg) {
-	sstatusarg = _teststatusdescarray[teststatus];
-	//printf ("--current test status = %s, for %d \n", sstatusarg, teststatus);
-	return sstatusarg;
+  sstatusarg = _teststatusdescarray[teststatus];
+  //printf ("--current test status = %s, for %d \n", sstatusarg, teststatus);
+  return sstatusarg;
 }
 
 /**
@@ -62,9 +62,9 @@ char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *sstatusarg) {
  * @return char*  Descriptive string fr Test direction
  * */
 char *get_testdirectiondesc(enum Tx_DIRECTION testdirection, char *sdirnarg) {
-	sdirnarg = _txdirectionsarray[testdirection];
-	//printf ("--current test direction = %s , for %d\n", sdirnarg, testdirection);
-	return sdirnarg;
+  sdirnarg = _txdirectionsarray[testdirection];
+  //printf ("--current test direction = %s , for %d\n", sdirnarg, testdirection);
+  return sdirnarg;
 }
 
 /**
@@ -75,9 +75,9 @@ char *get_testdirectiondesc(enum Tx_DIRECTION testdirection, char *sdirnarg) {
  * @return char* Descriptive string for Message type
  * */
 char *get_msgtypedesc(int msgtype, char *smsgtypearg) {
-	smsgtypearg = _testmsgtypesarray[msgtype];
-	//printf ("--current test type = %s , for %d\n", smsgtypearg, msgtype);
-	return smsgtypearg;
+  smsgtypearg = _testmsgtypesarray[msgtype];
+  //printf ("--current test type = %s , for %d\n", smsgtypearg, msgtype);
+  return smsgtypearg;
 }
 
 /**
@@ -87,6 +87,6 @@ char *get_msgtypedesc(int msgtype, char *smsgtypearg) {
  * @return
  */
 char * getmessageformattype(enum MSG_BODY_TYPE bodymsgformat, char *smsgformattypearg)  {
-	smsgformattypearg = _msgbodyformattype[bodymsgformat];
-	return smsgformattypearg;
+  smsgformattypearg = _msgbodyformattype[bodymsgformat];
+  return smsgformattypearg;
 }

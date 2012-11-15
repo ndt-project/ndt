@@ -24,53 +24,53 @@
  * @return Current link's speed
  */
 double get_linkspeed(int c2s_linkspeed_ind, int half_duplex_ind) {
-	double mylinkspeed = 0;
-	if (c2s_linkspeed_ind < DATA_RATE_ETHERNET) {
-		if (c2s_linkspeed_ind < DATA_RATE_RTT) {
-			printf("Server unable to determine bottleneck link type.\n");
-		} else {
-			printf("Your host is connected to a ");
+  double mylinkspeed = 0;
+  if (c2s_linkspeed_ind < DATA_RATE_ETHERNET) {
+    if (c2s_linkspeed_ind < DATA_RATE_RTT) {
+      printf("Server unable to determine bottleneck link type.\n");
+    } else {
+      printf("Your host is connected to a ");
 
-			if (c2s_linkspeed_ind == DATA_RATE_DIAL_UP) {
-				printf("Dial-up Modem\n");
-				mylinkspeed = .064;
-			} else {
-				printf("Cable/DSL modem\n");
-				mylinkspeed = 2;
-			}
-		}
-	} else {
-		printf("The slowest link in the end-to-end path is a ");
+      if (c2s_linkspeed_ind == DATA_RATE_DIAL_UP) {
+        printf("Dial-up Modem\n");
+        mylinkspeed = .064;
+      } else {
+        printf("Cable/DSL modem\n");
+        mylinkspeed = 2;
+      }
+    }
+  } else {
+    printf("The slowest link in the end-to-end path is a ");
 
-		if (c2s_linkspeed_ind == DATA_RATE_ETHERNET) {
-			printf("10 Mbps Ethernet or WiFi 11b subnet\n");
-			mylinkspeed = 10;
-		} else if (c2s_linkspeed_ind == DATA_RATE_T3) {
-			printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
-			mylinkspeed = 45;
-		} else if (c2s_linkspeed_ind == DATA_RATE_FAST_ETHERNET) {
-			printf("100 Mbps ");
-			mylinkspeed = 100;
-			if (half_duplex_ind == NO_HALF_DUPLEX) {
-				printf("Full duplex Fast Ethernet subnet\n");
-			} else {
-				printf("Half duplex Fast Ethernet subnet\n");
-			}
-		} else if (c2s_linkspeed_ind == DATA_RATE_OC_12) {
-			printf("a 622 Mbps OC-12 subnet\n");
-			mylinkspeed = 622;
-		} else if (c2s_linkspeed_ind == DATA_RATE_GIGABIT_ETHERNET) {
-			printf("1.0 Gbps Gigabit Ethernet subnet\n");
-			mylinkspeed = 1000;
-		} else if (c2s_linkspeed_ind == DATA_RATE_OC_48) {
-			printf("2.4 Gbps OC-48 subnet\n");
-			mylinkspeed = 2400;
-		} else if (c2s_linkspeed_ind == DATA_RATE_10G_ETHERNET) {
-			printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
-			mylinkspeed = 10000;
-		}
-	}
-	return mylinkspeed;
+    if (c2s_linkspeed_ind == DATA_RATE_ETHERNET) {
+      printf("10 Mbps Ethernet or WiFi 11b subnet\n");
+      mylinkspeed = 10;
+    } else if (c2s_linkspeed_ind == DATA_RATE_T3) {
+      printf("45 Mbps T3/DS3 or WiFi 11 a/g  subnet\n");
+      mylinkspeed = 45;
+    } else if (c2s_linkspeed_ind == DATA_RATE_FAST_ETHERNET) {
+      printf("100 Mbps ");
+      mylinkspeed = 100;
+      if (half_duplex_ind == NO_HALF_DUPLEX) {
+        printf("Full duplex Fast Ethernet subnet\n");
+      } else {
+        printf("Half duplex Fast Ethernet subnet\n");
+      }
+    } else if (c2s_linkspeed_ind == DATA_RATE_OC_12) {
+      printf("a 622 Mbps OC-12 subnet\n");
+      mylinkspeed = 622;
+    } else if (c2s_linkspeed_ind == DATA_RATE_GIGABIT_ETHERNET) {
+      printf("1.0 Gbps Gigabit Ethernet subnet\n");
+      mylinkspeed = 1000;
+    } else if (c2s_linkspeed_ind == DATA_RATE_OC_48) {
+      printf("2.4 Gbps OC-48 subnet\n");
+      mylinkspeed = 2400;
+    } else if (c2s_linkspeed_ind == DATA_RATE_10G_ETHERNET) {
+      printf("10 Gbps 10 Gigabit Ethernet/OC-192 subnet\n");
+      mylinkspeed = 10000;
+    }
+  }
+  return mylinkspeed;
 }
 
 /**
@@ -78,27 +78,27 @@ double get_linkspeed(int c2s_linkspeed_ind, int half_duplex_ind) {
  * @param mismatch Integer indicating results
  */
 void print_results_mismatchcheck(int mismatch) {
-	switch (mismatch) {
-	case DUPLEX_OLD_ALGO_INDICATOR :
-		printf("Warning: Old Duplex-Mismatch condition detected.\n");
-		break;
+  switch (mismatch) {
+    case DUPLEX_OLD_ALGO_INDICATOR :
+      printf("Warning: Old Duplex-Mismatch condition detected.\n");
+      break;
 
-	case DUPLEX_SWITCH_FULL_HOST_HALF :
-		printf("Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
-		break;
-	case DUPLEX_SWITCH_FULL_HOST_HALF_POSS:
-		printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
-		break;
-	case DUPLEX_SWITCH_HALF_HOST_FULL:
-		printf("Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-		break;
-	case DUPLEX_SWITCH_HALF_HOST_FULL_POSS:
-		printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-		break;
-	case DUPLEX_SWITCH_HALF_HOST_FULL_WARN:
-		printf("Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
-		break;
-	}
+    case DUPLEX_SWITCH_FULL_HOST_HALF :
+      printf("Alarm: Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+      break;
+    case DUPLEX_SWITCH_FULL_HOST_HALF_POSS:
+      printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Full and Host=Half\n");
+      break;
+    case DUPLEX_SWITCH_HALF_HOST_FULL:
+      printf("Alarm: Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+      break;
+    case DUPLEX_SWITCH_HALF_HOST_FULL_POSS:
+      printf("Alarm: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+      break;
+    case DUPLEX_SWITCH_HALF_HOST_FULL_WARN:
+      printf("Warning: Possible Duplex Mismatch condition detected. Switch=Half and Host=Full\n");
+      break;
+  }
 }
 
 
@@ -113,19 +113,19 @@ void print_results_mismatchcheck(int mismatch) {
  * @param max_RwinRcvd
  */
 void print_recommend_buffersize(double rwin, double rttsec, double avgrtt,
-		double mylink, int max_RwinRcvd){
-	int j = 0;
-	log_print(3, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ",
-			((rwin*2)/rttsec), mylink);
-	log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)",
-			(float)((mylink * avgrtt)*1000)/8, max_RwinRcvd);
-	if (((rwin*2)/rttsec) < mylink) {
-		j = (float)((mylink * avgrtt)*1000) / 8;
-		if ((int)j > max_RwinRcvd) {
-			printf("Information: The receive buffer should be %0.0f ", j/1024.0f);
-			printf("kbytes to maximize throughput\n");
-		}
-	}
+                                double mylink, int max_RwinRcvd){
+  int j = 0;
+  log_print(3, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink (%0.4f) ",
+            ((rwin*2)/rttsec), mylink);
+  log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)",
+              (float)((mylink * avgrtt)*1000)/8, max_RwinRcvd);
+  if (((rwin*2)/rttsec) < mylink) {
+    j = (float)((mylink * avgrtt)*1000) / 8;
+    if ((int)j > max_RwinRcvd) {
+      printf("Information: The receive buffer should be %0.0f ", j/1024.0f);
+      printf("kbytes to maximize throughput\n");
+    }
+  }
 }
 
 /**
@@ -133,9 +133,9 @@ void print_recommend_buffersize(double rwin, double rttsec, double avgrtt,
  * @param is_badcable
  * */
 void check_badcable(int is_bad_cable) {
-	if (is_bad_cable == POSSIBLE_BAD_CABLE) {
-		printf("Alarm: Excessive errors, check network cable(s).\n");
-	}
+  if (is_bad_cable == POSSIBLE_BAD_CABLE) {
+    printf("Alarm: Excessive errors, check network cable(s).\n");
+  }
 }
 
 /**
@@ -143,9 +143,9 @@ void check_badcable(int is_bad_cable) {
  * @param is_congested
  * */
 void check_congestion(int is_congested) {
-	if (is_congested == POSSIBLE_CONGESTION) {
-                printf("Information: Other network traffic is congesting the link\n");
-	}
+  if (is_congested == POSSIBLE_CONGESTION) {
+    printf("Information: Other network traffic is congesting the link\n");
+  }
 }
 
 /**
@@ -155,15 +155,15 @@ void check_congestion(int is_congested) {
  * @param sndqueue length of send queue of the C->S throughput test
  */
 void check_C2Spacketqueuing(double c2sthruput, double spdout, int sndqueue, int pktcount, int buflength) {
-	if (c2sthruput < (spdout * (1.0 - VIEW_DIFF))) {
-		printf("Information [C2S]: Packet queuing detected: %0.2f%% ",
-				100 * (spdout - c2sthruput) / spdout);
-		if (sndqueue > (0.8 * pktcount * buflength * (spdout - c2sthruput) / spdout)) {
-			printf("(local buffers)\n");
-		} else {
-			printf("(remote buffers)\n");
-		}
-	}
+  if (c2sthruput < (spdout * (1.0 - VIEW_DIFF))) {
+    printf("Information [C2S]: Packet queuing detected: %0.2f%% ",
+           100 * (spdout - c2sthruput) / spdout);
+    if (sndqueue > (0.8 * pktcount * buflength * (spdout - c2sthruput) / spdout)) {
+      printf("(local buffers)\n");
+    } else {
+      printf("(remote buffers)\n");
+    }
+  }
 }
 
 
@@ -176,15 +176,15 @@ void check_C2Spacketqueuing(double c2sthruput, double spdout, int sndqueue, int 
  * @param sbytecount total-sent-byte-count in the S->C throughput test
  */
 void check_S2Cpacketqueuing(double s2cthroughput, double spdin, int srvsndqueue, int sbytecount) {
-	if (spdin < (s2cthroughput * (1.0 - VIEW_DIFF))) {
-		printf("Information [S2C]: Packet queuing detected: %0.2f%% ",
-				100 * (s2cthroughput - spdin) / s2cthroughput);
-		if (srvsndqueue > (0.8 * sbytecount * (s2cthroughput - spdin) / s2cthroughput)) {
-			printf("(local buffers)\n");
-		} else {
-			printf("(remote buffers)\n");
-		}
-	}
+  if (spdin < (s2cthroughput * (1.0 - VIEW_DIFF))) {
+    printf("Information [S2C]: Packet queuing detected: %0.2f%% ",
+           100 * (s2cthroughput - spdin) / s2cthroughput);
+    if (srvsndqueue > (0.8 * sbytecount * (s2cthroughput - spdin) / s2cthroughput)) {
+      printf("(local buffers)\n");
+    } else {
+      printf("(remote buffers)\n");
+    }
+  }
 }
 
 /**
@@ -208,31 +208,31 @@ void check_S2Cpacketqueuing(double s2cthroughput, double spdin, int srvsndqueue,
  * @param totaltesttime     Total test time
  */
 void print_packetloss_statistics(int PktsRetrans, int DupAcksIn, int SACKsRcvd,
-		double ooorder, int Timeouts, double waitsec , double totaltesttime) {
+                                 double ooorder, int Timeouts, double waitsec , double totaltesttime) {
 
-	if (PktsRetrans > 0) {
-		printf("There were %d packets retransmitted", PktsRetrans);
-		printf(", %d duplicate acks received", DupAcksIn);
-		printf(", and %d SACK blocks received\n", SACKsRcvd);
-		if (ooorder > 0)
-			printf("Packets arrived out-of-order %0.2f%% of the time.\n",
-					ooorder * 100);
-		if (Timeouts > 0)
-			printf("The connection stalled %d times due to packet loss.\n",
-					Timeouts);
-		if (waitsec > 0)
-			printf("The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
-					waitsec, (100 * waitsec / totaltesttime));
-	} else if (DupAcksIn > 0) {
-		printf("No packet loss - ");
-		if (ooorder > 0)
-			printf("but packets arrived out-of-order %0.2f%% of the time.\n",
-					ooorder * 100);
-		else
-			printf("\n");
-	} else {
-		printf("No packet loss was observed.\n");
-	}
+  if (PktsRetrans > 0) {
+    printf("There were %d packets retransmitted", PktsRetrans);
+    printf(", %d duplicate acks received", DupAcksIn);
+    printf(", and %d SACK blocks received\n", SACKsRcvd);
+    if (ooorder > 0)
+      printf("Packets arrived out-of-order %0.2f%% of the time.\n",
+             ooorder * 100);
+    if (Timeouts > 0)
+      printf("The connection stalled %d times due to packet loss.\n",
+             Timeouts);
+    if (waitsec > 0)
+      printf("The connection was idle %0.2f seconds (%0.2f%%) of the time.\n",
+             waitsec, (100 * waitsec / totaltesttime));
+  } else if (DupAcksIn > 0) {
+    printf("No packet loss - ");
+    if (ooorder > 0)
+      printf("but packets arrived out-of-order %0.2f%% of the time.\n",
+             ooorder * 100);
+    else
+      printf("\n");
+  } else {
+    printf("No packet loss was observed.\n");
+  }
 
 }
 
@@ -252,26 +252,26 @@ void print_packetloss_statistics(int PktsRetrans, int DupAcksIn, int SACKsRcvd,
  */
 
 void print_limitedtime_ratio(double rwintime, double rwin, double sendtime, double swin, double cwndtime,
-		double rttsec, double mylinkspeed, int sndbuf, int max_rwinrcvd) {
+                             double rttsec, double mylinkspeed, int sndbuf, int max_rwinrcvd) {
 
-	if (rwintime > .015) {
-		printf("This connection is receiver limited %0.2f%% of the time.\n",
-				rwintime * 100);
-		if ((2 * (rwin / rttsec)) < mylinkspeed)
-			printf("  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
-					(float) max_rwinrcvd / KILO_BITS);
-	}
-	if (sendtime > .015) {
-		printf("This connection is sender limited %0.2f%% of the time.\n",
-				sendtime * 100);
-		if ((2 * (swin / rttsec)) < mylinkspeed)
-			printf("  Increasing the current send buffer (%0.2f KB) will improve performance\n",
-					(float) sndbuf / KILO_BITS);
-	}
-	if (cwndtime > .005) {
-		printf("This connection is network limited %0.2f%% of the time.\n",
-				cwndtime * 100);
-	}
+  if (rwintime > .015) {
+    printf("This connection is receiver limited %0.2f%% of the time.\n",
+           rwintime * 100);
+    if ((2 * (rwin / rttsec)) < mylinkspeed)
+      printf("  Increasing the current receive buffer (%0.2f KB) will improve performance\n",
+             (float) max_rwinrcvd / KILO_BITS);
+  }
+  if (sendtime > .015) {
+    printf("This connection is sender limited %0.2f%% of the time.\n",
+           sendtime * 100);
+    if ((2 * (swin / rttsec)) < mylinkspeed)
+      printf("  Increasing the current send buffer (%0.2f KB) will improve performance\n",
+             (float) sndbuf / KILO_BITS);
+  }
+  if (cwndtime > .005) {
+    printf("This connection is network limited %0.2f%% of the time.\n",
+           cwndtime * 100);
+  }
 
 }
 
@@ -281,10 +281,10 @@ void print_limitedtime_ratio(double rwintime, double rwin, double sendtime, doub
  * @param loss packet loss
  */
 void print_packetloss_excess(double spd, double loss) {
-	if ((spd < 4) && (loss > .01)) {
-		printf("Excessive packet loss is impacting your performance, check the ");
-		printf("auto-negotiate function on your local PC and network switch\n");
-	}
+  if ((spd < 4) && (loss > .01)) {
+    printf("Excessive packet loss is impacting your performance, check the ");
+    printf("auto-negotiate function on your local PC and network switch\n");
+  }
 }
 
 /**
@@ -293,11 +293,11 @@ void print_packetloss_excess(double spd, double loss) {
  * @param SACKEnabled
  */
 void print_SAck_RFC2018(int SACKEnabled) {
-	printf("RFC 2018 Selective Acknowledgment: ");
-	if (SACKEnabled == 0)
-		printf("OFF\n");
-	else
-		printf("ON\n");
+  printf("RFC 2018 Selective Acknowledgment: ");
+  if (SACKEnabled == 0)
+    printf("OFF\n");
+  else
+    printf("ON\n");
 }
 
 /**
@@ -307,11 +307,11 @@ void print_SAck_RFC2018(int SACKEnabled) {
 
 void print_Nagle_RFC896(int is_nagleenabled)
 {
-	printf("RFC 896 Nagle Algorithm: ");
-	if (is_nagleenabled == 0)
-		printf("OFF\n");
-	else
-		printf("ON\n");
+  printf("RFC 896 Nagle Algorithm: ");
+  if (is_nagleenabled == 0)
+    printf("OFF\n");
+  else
+    printf("ON\n");
 }
 
 /**
@@ -320,11 +320,11 @@ void print_Nagle_RFC896(int is_nagleenabled)
  */
 void print_congestion_RFC3168(int is_ECNenabled)
 {
-	printf("RFC 3168 Explicit Congestion Notification: ");
-				if (is_ECNenabled == 0)
-					printf("OFF\n");
-				else
-					printf("ON\n");
+  printf("RFC 3168 Explicit Congestion Notification: ");
+  if (is_ECNenabled == 0)
+    printf("OFF\n");
+  else
+    printf("ON\n");
 
 }
 
@@ -335,11 +335,11 @@ void print_congestion_RFC3168(int is_ECNenabled)
  */
 void print_timestamping_RFC1323(int is_timestampenabled)
 {
-	printf("RFC 1323 Time Stamping: ");
-	if (is_timestampenabled == 0)
-		printf("OFF\n");
-	else
-		printf("ON\n");
+  printf("RFC 1323 Time Stamping: ");
+  if (is_timestampenabled == 0)
+    printf("OFF\n");
+  else
+    printf("ON\n");
 }
 
 /**
@@ -349,15 +349,15 @@ void print_timestamping_RFC1323(int is_timestampenabled)
  * @param winscale_sent value of the transmitted window scale option
  */
 void print_windowscaling(int max_rwinrcvd, int winscale_rcvd, int winscale_sent) {
-	printf("RFC 1323 Window Scaling: ");
-	if (max_rwinrcvd < 65535)
-		winscale_rcvd = 0;
+  printf("RFC 1323 Window Scaling: ");
+  if (max_rwinrcvd < 65535)
+    winscale_rcvd = 0;
 
-	if ((winscale_rcvd == 0) || (winscale_rcvd > 20))
-		printf("OFF\n");
-	else
-		printf("ON; Scaling Factors - Server=%d, Client=%d\n",
-				winscale_rcvd, winscale_sent);
+  if ((winscale_rcvd == 0) || (winscale_rcvd > 20))
+    printf("OFF\n");
+  else
+    printf("ON; Scaling Factors - Server=%d, Client=%d\n",
+           winscale_rcvd, winscale_sent);
 }
 
 /**
@@ -373,21 +373,21 @@ void print_windowscaling(int max_rwinrcvd, int winscale_rcvd, int winscale_sent)
  * @param estimate Estimated theoretical throughput
  */
 void print_throughputlimits(int max_rwinrcvd, int rcvwinscale, int *sndbuf,
-		double s_win, double r_win, double c_win, double rttsec, double estimate) {
-	int tempsendbuf = *sndbuf;
-	if ((rcvwinscale == 0) && (tempsendbuf > 65535))
-		tempsendbuf = 65535;
+                            double s_win, double r_win, double c_win, double rttsec, double estimate) {
+  int tempsendbuf = *sndbuf;
+  if ((rcvwinscale == 0) && (tempsendbuf > 65535))
+    tempsendbuf = 65535;
 
-	printf("The theoretical network limit is %0.2f Mbps\n", estimate);
+  printf("The theoretical network limit is %0.2f Mbps\n", estimate);
 
-	printf("The NDT server has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
-			(float) tempsendbuf / KILO_BITS, (float) s_win / rttsec);
+  printf("The NDT server has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
+         (float) tempsendbuf / KILO_BITS, (float) s_win / rttsec);
 
-	printf("Your PC/Workstation has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
-			(float) max_rwinrcvd / KILO_BITS, (float) r_win / rttsec);
+  printf("Your PC/Workstation has a %0.0f KByte buffer which limits the throughput to %0.2f Mbps\n",
+         (float) max_rwinrcvd / KILO_BITS, (float) r_win / rttsec);
 
-	printf("The network based flow control limits the throughput to %0.2f Mbps\n",
-			(float) c_win / rttsec);
+  printf("The network based flow control limits the throughput to %0.2f Mbps\n",
+         (float) c_win / rttsec);
 
 }
 
@@ -402,13 +402,13 @@ void print_throughputlimits(int max_rwinrcvd, int rcvwinscale, int *sndbuf,
  * @param s2c_linkspeed_ack Data link speed as detected by client acknowledgments
  */
 void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
-		int c2s_linkspeed_ack, int s2c_linkspeed_data, int s2c_linkspeed_ack) {
-	if (isC2S_enabled) {
-		printf("\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
-				c2s_linkspeed_data, c2s_linkspeed_ack);
-	}
-	printf("Server Data reports link is '%3d', Server Acks report link is '%3d'\n",
-			s2c_linkspeed_data, s2c_linkspeed_ack);
+                              int c2s_linkspeed_ack, int s2c_linkspeed_data, int s2c_linkspeed_ack) {
+  if (isC2S_enabled) {
+    printf("\nClient Data reports link is '%3d', Client Acks report link is '%3d'\n",
+           c2s_linkspeed_data, c2s_linkspeed_ack);
+  }
+  printf("Server Data reports link is '%3d', Server Acks report link is '%3d'\n",
+         s2c_linkspeed_data, s2c_linkspeed_ack);
 
 }
 
@@ -422,25 +422,25 @@ void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
  */
 void check_NAT(char *ssip, char *csip, char *scip, char *ccip) {
 
-	// If server and client both see similar server IP addresses,
-	// no NAT happening
-	if (strcmp(ssip, csip) == 0)
-		printf("Server IP addresses are preserved End-to-End\n");
-	else {
-		printf("Information: Network Address Translation (NAT) box is ");
-		printf("modifying the Server's IP address\n");
-		printf("\tServer says [%s] but Client says [ %s]\n", ssip, csip);
-	}
+  // If server and client both see similar server IP addresses,
+  // no NAT happening
+  if (strcmp(ssip, csip) == 0)
+    printf("Server IP addresses are preserved End-to-End\n");
+  else {
+    printf("Information: Network Address Translation (NAT) box is ");
+    printf("modifying the Server's IP address\n");
+    printf("\tServer says [%s] but Client says [ %s]\n", ssip, csip);
+  }
 
-	// If server and client both see similar client IP addresses,
-	// no NAT happening
-	if (strcmp(scip, ccip) == 0)
-		printf("Client IP addresses are preserved End-to-End\n");
-	else {
-		printf("Information: Network Address Translation (NAT) box is ");
-		printf("modifying the Client's IP address\n");
-		printf("\tServer says [%s] but Client says [ %s]\n", scip, ccip);
-	}
+  // If server and client both see similar client IP addresses,
+  // no NAT happening
+  if (strcmp(scip, ccip) == 0)
+    printf("Client IP addresses are preserved End-to-End\n");
+  else {
+    printf("Information: Network Address Translation (NAT) box is ");
+    printf("modifying the Client's IP address\n");
+    printf("\tServer says [%s] but Client says [ %s]\n", scip, ccip);
+  }
 
 }
 
@@ -455,12 +455,12 @@ void check_NAT(char *ssip, char *csip, char *scip, char *ccip) {
  * @param mssvalue
  */
 void check_MSS_modification(int is_timestampenabled, int *mssvalue) {
-	if (is_timestampenabled == 1)
-		*mssvalue += 12;
-		if (*mssvalue == 1456)
-			printf("Packet size is preserved End-to-End\n");
-		else
-			printf("Information: Network Middlebox is modifying MSS variable (changed to %d)\n",
-					*mssvalue);
+  if (is_timestampenabled == 1)
+    *mssvalue += 12;
+  if (*mssvalue == 1456)
+    printf("Packet size is preserved End-to-End\n");
+  else
+    printf("Information: Network Middlebox is modifying MSS variable (changed to %d)\n",
+           *mssvalue);
 
 }
