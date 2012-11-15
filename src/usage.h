@@ -6,8 +6,8 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_USAGE_H
-#define _JS_USAGE_H
+#ifndef SRC_USAGE_H_
+#define SRC_USAGE_H_
 
 void short_usage(char* prog, char* info);
 void srv_long_usage(char* info);
@@ -18,4 +18,4 @@ void mkmap_long_usage(char* info);
 void vt_long_usage(char* info);
 void genplot_long_usage(char* info, char* argv0);
 
-#endif
+#endif  // SRC_USAGE_H_

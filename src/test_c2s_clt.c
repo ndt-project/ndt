@@ -12,11 +12,11 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "clt_tests.h"
-#include "logging.h"
-#include "network.h"
-#include "protocol.h"
-#include "utils.h"
+#include "./clt_tests.h"
+#include "./logging.h"
+#include "./network.h"
+#include "./protocol.h"
+#include "./utils.h"
 
 int pkts, lth;
 int sndqueue;
@@ -44,29 +44,29 @@ double spdout, c2sspd;
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
                  int buf_size) {
   /* char buff[BUFFSIZE+1]; */
-  char buff[64 * KILO_BITS]; // message payload.
+  char buff[64 * KILO_BITS];  // message payload.
   // note that there is a size variation between server and CLT - do not
   // know why this was changed from BUFFZISE, though
   // no specific problem is seen due to this
 
-  int msgLen, msgType; // message related data
-  int c2sport = atoi(PORT2); // default C2S port
-  I2Addr sec_addr = NULL;	// server address
-  int retcode;		// return code
-  int one=1;			// socket option store
-  int i, k;			// temporary iterator
-  int outSocket;		// socket descriptor for the outgoing connection
-  double t, stop_time;// test-time indicators
+  int msgLen, msgType;  // message related data
+  int c2sport = atoi(PORT2);  // default C2S port
+  I2Addr sec_addr = NULL;  // server address
+  int retcode;  // return code
+  int one = 1;  // socket option store
+  int i, k;  // temporary iterator
+  int outSocket;  // socket descriptor for the outgoing connection
+  double t, stop_time;  // test-time indicators
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = C2S;
 
 
-  if (tests & TEST_C2S) {	// C2S test has to be performed
+  if (tests & TEST_C2S) {  // C2S test has to be performed
     struct sigaction new, old;
     log_println(1, " <-- C2S throughput test -->");
     setCurrentTest(TEST_C2S);
-    //protocol logs
+    // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
 
@@ -79,7 +79,8 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Protocol error - missed prepare message!");
       return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_PREPARE, msgType, buff, msgLen)) {
+    if (check_msg_type("C2S throughput test", TEST_PREPARE, msgType, buff,
+                       msgLen)) {
       return 2;
     }
     if (msgLen <= 0) {
@@ -101,10 +102,11 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Unable to resolve server address: %s", strerror(errno));
       return -3;
     }
-    I2AddrSetPort(sec_addr, c2sport); //set port value
+    I2AddrSetPort(sec_addr, c2sport);  // set port value
 
     // connect to server  and set socket options
-    if ((retcode = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options, buf_size))) {
+    if ((retcode = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options,
+                                       buf_size))) {
       log_println(0, "Connect() for client to server failed", strerror(errno));
       return -11;
     }
@@ -118,7 +120,8 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Protocol error - missed start message!");
       return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_START, msgType, buff, msgLen)) {
+    if (check_msg_type("C2S throughput test", TEST_START, msgType, buff,
+                       msgLen)) {
       return 2;
     }
 
@@ -129,10 +132,10 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     // ....Fill buffer upto NDTConstants.PREDEFNED_BUFFER_SIZE packets
     pkts = 0;
     k = 0;
-    for (i=0; i<(64*KILO_BITS); i++) { // again buffer sizes differ. Since the actual
-      // transmitted byte count is timed, it does'nt appear that it is
-      // causing specific problems.
-      while (!isprint(k&0x7f))
+    for (i = 0; i < (64*KILO_BITS); i++) {  // again buffer sizes differ.
+      // Since the actual transmitted byte count is timed, it doesn't appear
+      // that it is causing specific problems.
+      while (!isprint(k & 0x7f))
         k++;
       buff[i] = (k++ % 0x7f);
     }
@@ -151,7 +154,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       pkts++;
     }while (secs() < stop_time);
     sigaction(SIGPIPE, &old, NULL);
-    sndqueue = sndq_len(outSocket); //get send-queue length
+    sndqueue = sndq_len(outSocket);  // get send-queue length
 
     // get actual duration for which data was sent to the server
     t = secs() - t;
@@ -159,7 +162,8 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Calculate C2S throughput in kbps
     spdout = ((BITS_8_FLOAT * pkts * lth) / KILO) / t;
-    //log_println(6," ---C->S CLT speed=%0.0f, pkts= %d, lth=%d, time=%d", spdout, pkts, lth, t);
+    // log_println(6," ---C->S CLT speed=%0.0f, pkts= %d, lth=%d, time=%d",
+    //             spdout, pkts, lth, t);
 
 
     // The client has stopped streaming data, and the server is now
@@ -171,11 +175,12 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Protocol error - missed text message!");
       return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_MSG, msgType, buff, msgLen)) {
+    if (check_msg_type("C2S throughput test", TEST_MSG, msgType, buff,
+                       msgLen)) {
       // other message types at this juncture indicate error
       return 2;
     }
-    if (msgLen <= 0) {	// message payload size cannot be negative! Error.
+    if (msgLen <= 0) {  // message payload size cannot be negative! Error.
       log_println(0, "Improper message");
       return 3;
     }
@@ -197,13 +202,14 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Protocol error - missed finalize message!");
       return 1;
     }
-    if (check_msg_type("C2S throughput test", TEST_FINALIZE, msgType, buff, msgLen)) {
+    if (check_msg_type("C2S throughput test", TEST_FINALIZE, msgType, buff,
+                       msgLen)) {
       return 2;
     }
     log_println(1, " <------------------------->");
-    //log protocol validation logs
+    // log protocol validation logs
     teststatuses = TEST_ENDED;
-    protolog_status(getpid(), testids, teststatuses,ctlSocket);
+    protolog_status(getpid(), testids, teststatuses, ctlSocket);
     setCurrentTest(TEST_NONE);
   }
   return 0;

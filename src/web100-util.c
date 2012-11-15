@@ -10,12 +10,12 @@
 #include <time.h>
 #include <assert.h>
 
-#include "web100srv.h"
-#include "network.h"
-#include "logging.h"
-#include "utils.h"
-#include "protocol.h"
-#include "strlutils.h"
+#include "./web100srv.h"
+#include "./network.h"
+#include "./logging.h"
+#include "./utils.h"
+#include "./protocol.h"
+#include "./strlutils.h"
 
 /**
  * set up the necessary structures for monitoring connections at the
@@ -25,26 +25,27 @@
  * 		or indicating failure of initialization
  */
 int web100_init(char *VarFileName) {
-
   FILE * fp;
   char line[256], trimmedline[256];
   int count_vars = 0;
 
   assert(VarFileName);
 
-  if ((fp = fopen(VarFileName, "r")) == NULL) { // unable to open web100 variable file
-    err_sys(
-        "Required Web100 variables file missing, use -f option to specify file location\n");
+  // unable to open web100 variable file
+  if ((fp = fopen(VarFileName, "r")) == NULL) {
+    err_sys("Required Web100 variables file missing, use -f option to specify "
+            "file location\n");
     exit(5);
   }
 
-  while (fgets(line, 255, fp) != NULL) { // read file linewise
-    if ((line[0] == '#') || (line[0] == '\n')) // if newline or comment, ignore
+  while (fgets(line, 255, fp) != NULL) {  // read file linewise
+    if ((line[0] == '#') || (line[0] == '\n'))  // if newline or comment, ignore
       continue;
     // copy web100 variable into our array and increment count of read variables
 
-    trim(line, strlen(line), trimmedline, sizeof(trimmedline)); // remove unwanted
-    //	chars (right now, trailing/preceding chars from wb100 var names)
+    // remove unwanted chars (right now, trailing/preceding chars from wb100
+    // var names)
+    trim(line, strlen(line), trimmedline, sizeof(trimmedline));
     strlcpy(web_vars[count_vars].name, trimmedline,
             sizeof(web_vars[count_vars].name));
     count_vars++;
@@ -75,7 +76,6 @@ int web100_init(char *VarFileName) {
  */
 void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
                       char *results, size_t results_strlen) {
-
   web100_var* var;
   web100_group* group;
   web100_snapshot* snap;
@@ -118,7 +118,7 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   meta.server_ip[(strlen(line) - 1)] = 0;
   // Add this address to results
   strlcat(results, line, results_strlen);
-  I2AddrFree(addr); // free memory
+  I2AddrFree(addr);  // free memory
 
   // Now perform the above set of functions for client address/service name
   // and copy into results
@@ -136,11 +136,12 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   for (i = 0; i < 3; i++) {
     // read web100_group and web100_var of vars[i] into group and var
     web100_agent_find_var_and_group(agent, vars[i], &group, &var);
-    web100_raw_read(var, cn, buff); // read variable value from web100 connection
+    // read variable value from web100 connection
+    web100_raw_read(var, cn, buff);
 
     // get current MSS in textual format and append to results
 
-    //get current MSS value and append to "results"
+    // get current MSS value and append to "results"
     if (strcmp(vars[i], "CurMSS") == 0)
       currentMSSval = atoi(
           web100_value_to_text(web100_get_var_type(var), buff));
@@ -149,12 +150,13 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
     if (strcmp(line, "4294967295;") == 0)
       snprintf(line, sizeof(line), "%d;", -1);
 
-    //strlcat(results, line, sizeof(results));
+    // strlcat(results, line, sizeof(results));
     strlcat(results, line, results_strlen);
     log_print(3, "%s", line);
   }
   log_println(3, "");
-  log_println(0, "Sending %d Byte packets over the network, and data=%s", currentMSSval, line);
+  log_println(0, "Sending %d Byte packets over the network, and data=%s",
+              currentMSSval, line);
 
   /* The initial check has been completed, now stream data to the remote client
    * for 5 seconds with very limited buffer space.  The idea is to see if there
@@ -173,7 +175,7 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 
   // try to allocate memory of the size of current MSS Value
   sndbuff = malloc(currentMSSval);
-  if (sndbuff == NULL) { // not possible, use MIDDLEBOX_PREDEFINED_MSS bytes
+  if (sndbuff == NULL) {  // not possible, use MIDDLEBOX_PREDEFINED_MSS bytes
     log_println(0,
                 "Failed to allocate memory --> switching to 8192 Byte packets");
     sndbuff = buff;
@@ -187,7 +189,7 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 
   k = 0;
   for (j = 0; j < currentMSSval; j++) {
-    while (!isprint(k & 0x7f)) // Is character printable?
+    while (!isprint(k & 0x7f))  // Is character printable?
       k++;
     sndbuff[j] = (k++ & 0x7f);
   }
@@ -198,8 +200,8 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 
   FD_ZERO(&wfd);
   FD_SET(sock, &wfd);
-  sel_tv.tv_sec = 5; // 5 seconds maximum for select call below to complete
-  sel_tv.tv_usec = 0; // 5s + 0ms
+  sel_tv.tv_sec = 5;  // 5 seconds maximum for select call below to complete
+  sel_tv.tv_usec = 0;  // 5s + 0ms
   while ((ret = select(sock + 1, NULL, &wfd, NULL, &sel_tv)) > 0) {
     if ((ret == -1) && (errno == EINTR)) /* a signal arrived, ignore it */
       continue;
@@ -215,23 +217,22 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
     web100_snap_read(var, snap, line);
     SndUna = atoi(web100_value_to_text(web100_get_var_type(var), line));
 
-    // stop sending data if (buf size * 16) < 
-    //  	[ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
+    // stop sending data if (buf size * 16) <
+    // [ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
     if ((currentMSSval << 4) < (SndMax - SndUna - 1)) {
       continue;
     }
 
     // write currentMSSval number of bytes from send-buffer data into socket
     k = write(sock, sndbuff, currentMSSval);
-    if ((k == -1) && (errno == EINTR)) // error writing into socket due
-      // to interruption, try again
+    if ((k == -1) && (errno == EINTR))  // error writing into socket due
+                                        // to interruption, try again
       continue;
-    if (k < 0) // general error writing to socket. quit
+    if (k < 0)  // general error writing to socket. quit
       break;
   }
-  log_println(5,
-              "Finished with web100_middlebox() routine snap-0x%x, sndbuff=%x0x",
-              snap, sndbuff);
+  log_println(5, "Finished with web100_middlebox() routine snap-0x%x, "
+              "sndbuff=%x0x", snap, sndbuff);
   web100_snapshot_free(snap);
   /* free(sndbuff); */
 }
@@ -260,10 +261,12 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
   fp = fopen(get_logfile(), "a");
   if (fp)
     fprintf(fp, "%15.15s;", ctime(&tt) + 4);
-  // get values for group, var of IP Address of the Remote host's side of connection
+  // get values for group, var of IP Address of the Remote host's side of
+  // connection
   web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
   web100_raw_read(var, cn, buf);
-  snprintf(line, sizeof(line), "%s;", web100_value_to_text(web100_get_var_type(var), buf));
+  snprintf(line, sizeof(line), "%s;",
+           web100_value_to_text(web100_get_var_type(var), buf));
   // write remote address to log file
   if (fp)
     fprintf(fp, "%s", line);
@@ -308,7 +311,6 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
     fprintf(fp, "\n");
     fclose(fp);
   }
-
 }
 
 /**
@@ -324,7 +326,6 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
  */
 int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
                     int count_vars) {
-
   int i;
   web100_var* var;
   char buf[32], line[256];
@@ -359,16 +360,17 @@ int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
       continue;
     }
 
-    // assign values and transmit message with all web100 variables to socket receiver end
+    // assign values and transmit message with all web100 variables to socket
+    // receiver end
     snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
              web100_value_to_text(web100_get_var_type(var), buf));
-    snprintf(line, sizeof(line), "%s: %d\n", web_vars[i].name, atoi(web_vars[i].value));
+    snprintf(line, sizeof(line), "%s: %d\n", web_vars[i].name,
+             atoi(web_vars[i].value));
     send_msg(ctlsock, TEST_MSG, line, strlen(line));
     log_print(9, "%s", line);
   }
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return (0);
-
 }
 
 /**
@@ -518,7 +520,7 @@ int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
     return (25);
   }
   sScale = atoi(web100_value_to_text(web100_get_var_type(var), buf));
-  if (sScale > 15) // define constant for 15
+  if (sScale > 15)  // define constant for 15
     sScale = 0;
 
   // get Window scale used by the sender to decode seg.wnd
@@ -533,8 +535,9 @@ int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
     rScale = 0;
 
   if ((sScale > 0) && (rScale > 0)) {
-    buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << sScale; // 64k( max TCP rcv window)
-    if (autotune & 0x01) { // autotune send buffer is not enabled
+    // 64k( max TCP rcv window)
+    buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << sScale;
+    if (autotune & 0x01) {  // autotune send buffer is not enabled
       if ((web100_agent_find_var_and_group(agent, "LimCwnd", &group, &var))
           != WEB100_ERR_SUCCESS)
         return (22);
@@ -548,7 +551,7 @@ int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
     }
     buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << rScale;
 
-    if (autotune & 0x02) { // autotune receive buffer is not enabled
+    if (autotune & 0x02) {  // autotune receive buffer is not enabled
       if ((web100_agent_find_var_and_group(agent, "LimRwin", &group, &var))
           != WEB100_ERR_SUCCESS)
         return (22);
@@ -572,17 +575,19 @@ int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
  *
  */
 int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
-                   int *FastRetran, int *DataPktsOut, int *AckPktsOut, int *CurrentMSS,
-                   int *DupAcksIn, int *AckPktsIn, int *MaxRwinRcvd, int *Sndbuf,
-                   int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd,
-                   int *SndLimTimeSender, int *DataBytesOut, int *SndLimTransRwin,
-                   int *SndLimTransCwnd, int *SndLimTransSender, int *MaxSsthresh,
-                   int *CurrentRTO, int *CurrentRwinRcvd, int *MaxCwnd,
-                   int *CongestionSignals, int *PktsOut, int *MinRTT, int count_vars,
-                   int *RcvWinScale, int *SndWinScale, int *CongAvoid,
-                   int *CongestionOverCount, int *MaxRTT, int *OtherReductions,
-                   int *CurTimeoutCount, int *AbruptTimeouts, int *SendStall,
-                   int *SlowStart, int *SubsequentTimeouts, int *ThruBytesAcked) {
+                   int *FastRetran, int *DataPktsOut, int *AckPktsOut,
+                   int *CurrentMSS, int *DupAcksIn, int *AckPktsIn,
+                   int *MaxRwinRcvd, int *Sndbuf, int *CurrentCwnd,
+                   int *SndLimTimeRwin, int *SndLimTimeCwnd,
+                   int *SndLimTimeSender, int *DataBytesOut,
+                   int *SndLimTransRwin, int *SndLimTransCwnd,
+                   int *SndLimTransSender, int *MaxSsthresh, int *CurrentRTO,
+                   int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
+                   int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale,
+                   int *SndWinScale, int *CongAvoid, int *CongestionOverCount,
+                   int *MaxRTT, int *OtherReductions, int *CurTimeoutCount,
+                   int *AbruptTimeouts, int *SendStall, int *SlowStart,
+                   int *SubsequentTimeouts, int *ThruBytesAcked) {
   int i;
 
   for (i = 0; i <= count_vars; i++) {
@@ -684,7 +689,6 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
 
 int CwndDecrease(web100_agent* agent, char* logname, u_int32_t *dec_cnt,
                  u_int32_t *same_cnt, u_int32_t *inc_cnt) {
-
   web100_var* var;
   char buff[256];
   web100_snapshot* snap;
@@ -719,7 +723,8 @@ int CwndDecrease(web100_agent* agent, char* logname, u_int32_t *dec_cnt,
     rt = web100_snap_read(var, snap, buff);
     s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
     if (cnt < 20) {
-      log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt, (char*) var);
+      log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt,
+                  (char*) var);
       log_println(
           7,
           "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
@@ -741,7 +746,8 @@ int CwndDecrease(web100_agent* agent, char* logname, u_int32_t *dec_cnt,
   web100_log_close_read(log);
   log_println(
       2,
-      "-=-=-=- CWND window report: increases = %d, decreases = %d, no change = %d",
+      "-=-=-=- CWND window report: increases = %d, decreases = %d, "
+      "no change = %d",
       *inc_cnt, *dec_cnt, *same_cnt);
   return (0);
 }
@@ -754,7 +760,6 @@ int CwndDecrease(web100_agent* agent, char* logname, u_int32_t *dec_cnt,
  * @return unsigned short checksum
  */
 unsigned short csum(unsigned short *buff, int nwords) {
-
   /* generate a TCP/IP checksum for our packet */
 
   register int sum = 0;
@@ -792,9 +797,7 @@ unsigned short csum(unsigned short *buff, int nwords) {
  * @return integer, 0 if kill succeeded, and
  * 	  -1 if kill failed or there was nothing to kill
  */
-int KillHung(void)
-
-{
+int KillHung(void) {
   web100_agent *agent;
   web100_group *group;
   web100_var *state, *var;
@@ -924,7 +927,6 @@ int KillHung(void)
              sizeof(sin));
 
       hung = 1;
-
     }
     // returns the next connection in the sequence
     conn = web100_connection_next(conn);

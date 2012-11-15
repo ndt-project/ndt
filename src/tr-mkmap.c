@@ -37,10 +37,10 @@
 #include <netdb.h>
 #include <getopt.h>
 
-#include "tr-tree.h"
-#include "usage.h"
-#include "logging.h"
-#include "strlutils.h"
+#include "./tr-tree.h"
+#include "./usage.h"
+#include "./logging.h"
+#include "./strlutils.h"
 
 struct tr_tree *tr_root, *tr_cur;
 char* DefaultTree = NULL;
@@ -57,9 +57,9 @@ static struct option long_options[] = { { "build", 0, 0, 'b' }, { "compare", 1,
     'p' }, { "debug", 0, 0, 'd' }, { "version", 0, 0, 'v' }, { "dflttree",
       1, 0, 301 },
 #ifdef AF_INET6
-    {	"dflttree6", 1, 0, 302},
-    {	"ipv4", 0, 0, '4'},
-    {	"ipv6", 0, 0, '6'},
+    { "dflttree6", 1, 0, 302},
+    { "ipv4", 0, 0, '4'},
+    { "ipv6", 0, 0, '6'},
 #endif
     { 0, 0, 0, 0 } };
 
@@ -90,9 +90,7 @@ void build_tree(struct tr_tree *tmp, struct tr_tree *new) {
   }
 }
 #ifdef AF_INET6
-  void
-build_tree6(struct tr_tree6 *tmp, struct tr_tree6 *new)
-{
+void build_tree6(struct tr_tree6 *tmp, struct tr_tree6 *new) {
   if (memcmp(new->ip_addr, tmp->ip_addr, sizeof(tmp->ip_addr)) == 0) {
     return;
   }
@@ -100,8 +98,7 @@ build_tree6(struct tr_tree6 *tmp, struct tr_tree6 *new)
     if (tmp->left == NULL) {
       tmp->left = new;
       return;
-    }
-    else {
+    } else {
       build_tree6(tmp->left, new);
       return;
     }
@@ -110,8 +107,7 @@ build_tree6(struct tr_tree6 *tmp, struct tr_tree6 *new)
     if (tmp->right == NULL) {
       tmp->right = new;
       return;
-    }
-    else {
+    } else {
       build_tree6(tmp->right, new);
       return;
     }
@@ -166,9 +162,7 @@ uint32_t get_addr(char *tmpbuff) {
   return (ip_addr);
 }
 #ifdef AF_INET6
-  int
-get_addr6(uint32_t dst_addr[4], char *tmpbuff)
-{
+int get_addr6(uint32_t dst_addr[4], char *tmpbuff) {
   char *tmpstr;
   int i;
   struct sockaddr_in6 address;
@@ -203,8 +197,7 @@ get_addr6(uint32_t dst_addr[4], char *tmpbuff)
     tmpstr = strchr(tmpbuff, '(');
     tmpstr++;
     tmpbuff = strtok(tmpstr, ")");
-  }
-  else {
+  } else {
     tmpstr = strchr(tmpbuff, ':');
     while (tmpstr[0] != ' ') {
       if (tmpstr == tmpbuff)
@@ -242,9 +235,7 @@ void compare_tree(struct tr_tree *tmp, uint32_t ip_addr) {
     compare_tree(tmp->right, ip_addr);
 }
 #ifdef AF_INET6
-  void
-compare_tree6(struct tr_tree6 *tmp, uint32_t ip_addr[4])
-{
+void compare_tree6(struct tr_tree6 *tmp, uint32_t ip_addr[4]) {
   if (memcmp(ip_addr, tmp->ip_addr, sizeof(tmp->ip_addr)) == 0) {
     found_node = 1;
     tr_cur6 = tmp;
@@ -255,10 +246,12 @@ compare_tree6(struct tr_tree6 *tmp, uint32_t ip_addr[4])
     tr_cur6 = tmp;
     return;
   }
-  if ((memcmp(ip_addr, tmp->ip_addr, sizeof(tmp->ip_addr)) > 0) && (found_node == 0)) {
+  if ((memcmp(ip_addr, tmp->ip_addr, sizeof(tmp->ip_addr)) > 0) &&
+      (found_node == 0)) {
     compare_tree6(tmp->left, ip_addr);
   }
-  if ((memcmp(ip_addr, tmp->ip_addr, sizeof(tmp->ip_addr)) < 0) && (found_node == 0)) {
+  if ((memcmp(ip_addr, tmp->ip_addr, sizeof(tmp->ip_addr)) < 0) &&
+      (found_node == 0)) {
     compare_tree6(tmp->right, ip_addr);
   }
 }
@@ -283,12 +276,10 @@ void save_tree(struct tr_tree *cur, FILE *fp) {
   }
 }
 #ifdef AF_INET6
-  void
-save_tree6(struct tr_tree6 *cur, FILE *fp)
-{
+void save_tree6(struct tr_tree6 *cur, FILE *fp) {
   int i;
 
-  for (i=0; i<cur->branches; i++) {
+  for (i = 0; i < cur->branches; i++) {
     if (i == 0)
       fwrite(cur, sizeof(struct tr_tree6), 1, fp);
     save_tree6(&*cur->branch[i], fp);
@@ -310,9 +301,9 @@ void restore_tree2(struct tr_tree *tmp, FILE *fp) {
   for (i = 0; i < tmp->branches; i++) {
     new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
     memset(&*new, 0, sizeof(struct tr_tree));
-    if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0)
+    if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0) {
       return;
-    else {
+    } else {
       for (j = 0; j < 25; j++)
         new->branch[j] = NULL;
     }
@@ -324,26 +315,24 @@ void restore_tree2(struct tr_tree *tmp, FILE *fp) {
   }
 }
 #ifdef AF_INET6
-  void
-restore_tree26(struct tr_tree6 *tmp, FILE *fp)
-{
+void restore_tree26(struct tr_tree6 *tmp, FILE *fp) {
   struct tr_tree6 *new;
   int i, j;
 
-  for (i=0; i<tmp->branches; i++) {
+  for (i = 0; i < tmp->branches; i++) {
     new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
     memset(&*new, 0, sizeof(struct tr_tree6));
-    if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0)
+    if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0) {
       return;
-    else {
-      for (j=0; j<25; j++)
+    } else {
+      for (j = 0; j < 25; j++)
         new->branch[j] = NULL;
     }
     tmp->branch[i] = new;
     if (new->branches == 0) {
       continue;
     }
-    restore_tree6( &*tmp->branch[i], fp);
+    restore_tree6(&*tmp->branch[i], fp);
   }
 }
 #endif
@@ -355,12 +344,12 @@ void print_tree(struct tr_tree *cur) {
   static int i;
   int j;
 
-  if (i == 0)
+  if (i == 0) {
     printf(
         "Root node is [%u.%u.%u.%u]\n",
         (cur->ip_addr & 0xff), ((cur->ip_addr >> 8) & 0xff),
         ((cur->ip_addr >> 16) & 0xff), (cur->ip_addr >> 24));
-  else {
+  } else {
     printf("Leaf %d node [%u.%u.%u.%u]\n", i,
            (cur->ip_addr & 0xff), ((cur->ip_addr >> 8) &0xff),
            ((cur->ip_addr >> 16) & 0xff),  ((cur->ip_addr >> 24) & 0xff));
@@ -372,9 +361,7 @@ void print_tree(struct tr_tree *cur) {
   }
 }
 #ifdef AF_INET6
-  void
-print_tree6(struct tr_tree6 *cur)
-{
+void print_tree6(struct tr_tree6 *cur) {
   static int i;
   int j;
   char nodename[200];
@@ -383,12 +370,11 @@ print_tree6(struct tr_tree6 *cur)
   if (i == 0) {
     inet_ntop(AF_INET6, cur->ip_addr, nodename, nnlen);
     printf("Root node is [%s]\n", nodename);
-  }
-  else {
+  } else {
     inet_ntop(AF_INET6, cur->ip_addr, nodename, nnlen);
     printf("Leaf %d node [%s]\n", i, nodename);
   }
-  for (j=0; j<cur->branches; j++) {
+  for (j = 0; j < cur->branches; j++) {
     i++;
     print_tree6(&*cur->branch[j]);
     i--;
@@ -475,9 +461,7 @@ void build(char* inputfile) {
   fclose(fp);
 }
 #ifdef AF_INET6
-  void
-build6(char* inputfile)
-{
+void build6(char* inputfile) {
   struct tr_tree6 *root, *current, *new;
   int i;
   uint32_t ip_addr[4];
@@ -496,7 +480,7 @@ build6(char* inputfile)
 
   if (fp == NULL) {
     printf("Error: Default tree6 input file '%s' missing!\n", inputfile);
-    exit (-5);
+    exit(-5);
   }
   while ((fgets(buff, 256, fp)) != NULL) {
     tmpbuff = strtok(buff, "\n");
@@ -508,7 +492,7 @@ build6(char* inputfile)
     new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
     if (new == NULL) {
       printf("Error: malloc failed, out of memory\n");
-      exit (-10);
+      exit(-10);
     }
     memset(&*new, 0, sizeof(struct tr_tree6));
     memcpy(new->ip_addr, ip_addr, sizeof(new->ip_addr));
@@ -518,14 +502,15 @@ build6(char* inputfile)
 
     if (root == NULL) {
       root = new;
-    }
-    else {
-      if ((current == root) && (memcmp(current->ip_addr, new->ip_addr, sizeof(new->ip_addr)) == 0)) {
+    } else {
+      if ((current == root) && (memcmp(current->ip_addr, new->ip_addr,
+                                       sizeof(new->ip_addr)) == 0)) {
         free(new);
         continue;
       }
-      for (i=0; i<current->branches; i++) {
-        if (memcmp(current->branch[i]->ip_addr, new->ip_addr, sizeof(new->ip_addr)) == 0) {
+      for (i = 0; i < current->branches; i++) {
+        if (memcmp(current->branch[i]->ip_addr, new->ip_addr,
+                   sizeof(new->ip_addr)) == 0) {
           current = current->branch[i];
           free(new);
           new = NULL;
@@ -546,8 +531,9 @@ build6(char* inputfile)
   }
   fp = fopen(DefaultTree6, "wb");
   if (fp == NULL) {
-    printf("Error: Can't write default tree6 '%s', exiting save_tree()\n", DefaultTree6);
-    exit (-15);
+    printf("Error: Can't write default tree6 '%s', exiting save_tree()\n",
+           DefaultTree6);
+    exit(-15);
   }
   print_tree6(&*root);
   printf("Finished printing default tree6 '%s'\n", DefaultTree6);
@@ -578,9 +564,9 @@ void compare(char* cmp_ip) {
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
   memset(&*new, 0, sizeof(struct tr_tree));
-  if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0)
+  if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0) {
     return;
-  else {
+  } else {
     for (i = 0; i < 25; i++)
       new->branch[i] = NULL;
   }
@@ -605,17 +591,16 @@ void compare(char* cmp_ip) {
                 (IPlist[i] & 0xff), ((IPlist[i] >> 8) & 0xff),
                 ((IPlist[i] >> 16) & 0xff), (IPlist[i] >> 24));
     i++;
-
   }
 
   ip_addr = find_compare(IPlist, --i);
 
   hp = gethostbyaddr((char *) &ip_addr, 4, AF_INET);
   if (hp == NULL)
-    //strncpy(c_name, "Unknown Host", 13);
+    // strncpy(c_name, "Unknown Host", 13);
     strlcpy(c_name, "Unknown Host", sizeof(c_name));
   else
-    //strncpy(c_name, hp->h_name, strlen(hp->h_name));
+    // strncpy(c_name, hp->h_name, strlen(hp->h_name));
     strlcpy(c_name, hp->h_name, sizeof(c_name));
 
   if (found_node == 1) {
@@ -634,24 +619,20 @@ void compare(char* cmp_ip) {
   hp = (struct hostent *) gethostbyaddr((char *) &current->ip_addr, 4,
                                         AF_INET);
   if (hp == NULL)
-    //strncpy(h_name, "Unknown Host", 13);
+    // strncpy(h_name, "Unknown Host", 13);
     strlcpy(h_name, "Unknown Host", sizeof(h_name));
   else
-    //strncpy(h_name, hp->h_name, strlen(hp->h_name));
+    // strncpy(h_name, hp->h_name, strlen(hp->h_name));
     strlcpy(h_name, hp->h_name, sizeof(h_name));
 
-  printf(
-      "\tThe eNDT server %s [%u.%u.%u.%u] is closest to host %s [%u.%u.%u.%u]\n",
-      h_name,
-      (current->ip_addr & 0xff), ((current->ip_addr >> 8) & 0xff),
-      ((current->ip_addr >> 16) & 0xff), (current->ip_addr >> 24),
-      c_name, (ip_addr & 0xff), ((ip_addr >> 8) & 0xff),
-      ((ip_addr >> 16) & 0xff), (ip_addr >> 24));
+  printf("\tThe eNDT server %s [%u.%u.%u.%u] is closest to host %s "
+         "[%u.%u.%u.%u]\n", h_name, (current->ip_addr & 0xff),
+         ((current->ip_addr >> 8) & 0xff), ((current->ip_addr >> 16) & 0xff),
+         (current->ip_addr >> 24), c_name, (ip_addr & 0xff),
+         ((ip_addr >> 8) & 0xff), ((ip_addr >> 16) & 0xff), (ip_addr >> 24));
 }
 #ifdef AF_INET6
-  void
-compare6(char* cmp_ip)
-{
+void compare6(char* cmp_ip) {
   struct tr_tree6 *root, *current, *new;
   int i;
   uint32_t ip_addr[4], IPlist[64][4];
@@ -667,15 +648,16 @@ compare6(char* cmp_ip)
   printf("\nComparing traceroute (IPv6)\n\n");
   fp = fopen(DefaultTree6, "rb");
   if (fp == NULL) {
-    printf("Error: Can't read default tree6 '%s', exiting restore_tree()\n", DefaultTree6);
-    exit (-15);
+    printf("Error: Can't read default tree6 '%s', exiting restore_tree()\n",
+           DefaultTree6);
+    exit(-15);
   }
   new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
   memset(&*new, 0, sizeof(struct tr_tree6));
-  if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0)
+  if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0) {
     return;
-  else {
-    for (i=0; i<25; i++)
+  } else {
+    for (i = 0; i < 25; i++)
       new->branch[i] = NULL;
   }
   if (root == NULL) {
@@ -686,7 +668,7 @@ compare6(char* cmp_ip)
   fp = fopen(cmp_ip, "r");
   if (fp == NULL) {
     printf("Error: Can't read comparison file '%s', exiting main()\n", cmp_ip);
-    exit (-17);
+    exit(-17);
   }
   found_node = 0;
   current = root;
@@ -718,7 +700,7 @@ compare6(char* cmp_ip)
     return;
   }
   printf("Leaf Node found!\n");
-  for (i=0; i<current->branches; i++) {
+  for (i = 0; i < current->branches; i++) {
     if (current->branch[i]->branches == 0) {
       current = current->branch[i];
       break;
@@ -757,9 +739,9 @@ void print() {
   }
   new = (struct tr_tree *) malloc(sizeof(struct tr_tree));
   memset(&*new, 0, sizeof(struct tr_tree));
-  if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0)
+  if (fread(&*new, sizeof(struct tr_tree), 1, fp) == 0) {
     return;
-  else {
+  } else {
     for (i = 0; i < 25; i++)
       new->branch[i] = NULL;
   }
@@ -771,9 +753,7 @@ void print() {
   print_tree(&*root);
 }
 #ifdef AF_INET6
-  void
-print6()
-{
+void print6() {
   struct tr_tree6 *root = NULL, *new;
   int i;
   FILE *fp;
@@ -781,15 +761,16 @@ print6()
   printf("\nPrinting Default Tree (IPv6)\n\n");
   fp = fopen(DefaultTree6, "rb");
   if (fp == NULL) {
-    printf("Error: No default tree6 '%s' found, exiting compare6\n", DefaultTree6);
+    printf("Error: No default tree6 '%s' found, exiting compare6\n",
+           DefaultTree6);
     return;
   }
   new = (struct tr_tree6 *) malloc(sizeof(struct tr_tree6));
   memset(&*new, 0, sizeof(struct tr_tree6));
-  if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0)
+  if (fread(&*new, sizeof(struct tr_tree6), 1, fp) == 0) {
     return;
-  else {
-    for (i=0; i<25; i++)
+  } else {
+    for (i = 0; i < 25; i++)
       new->branch[i] = NULL;
   }
   if (root == NULL) {

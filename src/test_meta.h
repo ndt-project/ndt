@@ -5,8 +5,8 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_TEST_META_H
-#define _JS_TEST_META_H
+#ifndef SRC_TEST_META_H_
+#define SRC_TEST_META_H_
 
 #define META_CLIENT_OS "client.os.name"
 #define META_BROWSER_OS "client.browser.name"
@@ -18,4 +18,4 @@
 
 int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options);
 
-#endif
+#endif  // SRC_TEST_META_H_

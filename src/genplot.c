@@ -32,7 +32,7 @@
 #include  <web100.h>
 #endif
 
-#include "usage.h"
+#include "./usage.h"
 
 char *color[16] = { "green", "blue", "orange", "red", "yellow", "magenta",
   "pink", "white", "black" };
@@ -51,7 +51,6 @@ int checkmz(int x) {
 
 void get_title(web100_snapshot* snap, web100_log* log, web100_agent* agent,
                web100_group* group, char* title, char* remport) {
-
   web100_var* var;
   char buf[128];
 
@@ -108,7 +107,6 @@ void get_title(web100_snapshot* snap, web100_log* log, web100_agent* agent,
 void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
               web100_log* log, web100_agent* agent, web100_group* group,
               int(*func)(const int arg, const int value)) {
-
   char *varg;
   char buf[256];
   web100_var* var;
@@ -132,10 +130,7 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
     fn = stdout;
     strncpy(name, "Unknown", 7);
   } else {
-    strncpy(lname, name, strlen(name));
-    strcat(lname, ".");
-    strcat(lname, remport);
-    strcat(lname, ".xpl");
+    snprintf(lname, sizeof(lname), "%s.%s.xpl", name, remport);
     fn = fopen(lname, "w");
   }
 
@@ -272,7 +267,6 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
     }
   }
   fprintf(fn, "go\n");
-
 }
 
 void plot_cwndtime(char *name, web100_snapshot* snap, web100_log* log,
@@ -296,10 +290,7 @@ void plot_cwndtime(char *name, web100_snapshot* snap, web100_log* log,
     fn = stdout;
     strncpy(name, "Unknown", 7);
   } else {
-    strncpy(lname, name, strlen(name));
-    strcat(lname, ".");
-    strcat(lname, remport);
-    strcat(lname, ".xpl");
+    snprintf(lname, sizeof(lname), "%s.%s.xpl", name, remport);
     fn = fopen(lname, "w");
   }
 
@@ -391,13 +382,11 @@ void plot_cwndtime(char *name, web100_snapshot* snap, web100_log* log,
     }
   }
   fprintf(fn, "go\n");
-
 }
 
 void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
                web100_agent* agent, web100_group* group,
                void(*func)(const int arg, const int value)) {
-
   char *varg, savelist[256], *text;
   char buf[256], title[256], remport[8];
   int i, j;
@@ -463,7 +452,6 @@ void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
     }
     printf("\n");
   }
-
 }
 
 /* workers */
@@ -550,7 +538,8 @@ int main(int argc, char** argv) {
         plotboth = 1;
         break;
       case 'h':
-        genplot_long_usage("ANL/Internet2 NDT version " VERSION " (genplot)", argv[0]);
+        genplot_long_usage("ANL/Internet2 NDT version " VERSION " (genplot)",
+                           argv[0]);
         break;
       case 'v':
         printf("ANL/Internet2 NDT version %s (genplot)\n", VERSION);
@@ -583,7 +572,7 @@ int main(int argc, char** argv) {
   }
 
   if (argc == 1) {
-    short_usage	(argv[0], "ANL/Internet2 NDT version " VERSION " (genplot)");
+    short_usage(argv[0], "ANL/Internet2 NDT version " VERSION " (genplot)");
   }
 
   for (j = optind; j < argc; j++) {

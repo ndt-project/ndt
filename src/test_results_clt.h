@@ -5,8 +5,8 @@
  *      Author: kkumar
  */
 
-#ifndef TEST_RESULTS_CLT_H_
-#define TEST_RESULTS_CLT_H_
+#ifndef SRC_TEST_RESULTS_CLT_H_
+#define SRC_TEST_RESULTS_CLT_H_
 
 // determine linkspeed based on link speed indicator
 double get_linkspeed(int c2s_linkspeed_ind, int half_duplex_ind);
@@ -22,7 +22,7 @@ void print_results_mismatchcheck(int mismatch);
 
 // Calculate and display recommended buffer sizes
 void print_recommend_buffersize(double rwin, double rttsec, double avgrtt,
- double mylink, int max_RwinRcvd);
+                                double mylink, int max_RwinRcvd);
 
 // Check if faulty hardware was detected, and print results
 void check_badcable(int is_bad_cable);
@@ -31,19 +31,23 @@ void check_badcable(int is_bad_cable);
 void check_congestion(int is_congested);
 
 // Check if packet queuing is a problem at the C->S end.
-void check_C2Spacketqueuing(double c2sthruput, double spdout, int sndqueue, int pktcount, int buflength);
+void check_C2Spacketqueuing(double c2sthruput, double spdout, int sndqueue,
+                            int pktcount, int buflength);
 
 //  Deduce if packet queuing is a problem at the S->C end from values collected
 //  .. during the S2C tests.
-void check_S2Cpacketqueuing(double s2cthroughput, double spdin, int srvsndqueue, int sbytecount);
+void check_S2Cpacketqueuing(double s2cthroughput, double spdin, int srvsndqueue,
+                            int sbytecount);
 
 // Print suggestions based on packet loss/retransmissions details obtained
 void print_packetloss_statistics(int PktsRetrans, int DupAcksIn, int SACKsRcvd,
-		double ooorder, int Timeouts, double waitsec , double totaltesttime);
+                                 double ooorder, int Timeouts, double waitsec,
+                                 double totaltesttime);
 
 // Print details about being receiver, sender or congestion window limited.
-void print_limitedtime_ratio(double rwintime, double rwin, double sendtime, double swin, double cwndtime,
-		double rttsec, double mylinkspeed, int sndbuf, int max_rwinrcvd) ;
+void print_limitedtime_ratio(double rwintime, double rwin, double sendtime,
+                             double swin, double cwndtime, double rttsec,
+                             double mylinkspeed, int sndbuf, int max_rwinrcvd);
 
 // Check if excessive packet loss is affecting performance
 void print_packetloss_excess(double spd, double loss);
@@ -63,15 +67,16 @@ void print_timestamping_RFC1323(int is_timestampenabled);
 // Print window scaling based data
 void print_windowscaling(int MaxRwinRcvd, int WinScaleRcvd, int WinScaleSent);
 
-//Print details of throughput limits(thresholds) imposed by
-// 		the send, receive or congestion window values
-void print_throughputlimits(int max_rwinrcvd, int RcvWinScale,
-		int *sndbuf, double s_win, double r_win, double c_win, double rttsec,
-		double estimate);
+// Print details of throughput limits(thresholds) imposed by the send, receive
+// or congestion window values
+void print_throughputlimits(int max_rwinrcvd, int RcvWinScale, int *sndbuf,
+                            double s_win, double r_win, double c_win,
+                            double rttsec, double estimate);
 
 // Print details of link speed as seen by data and ack speed indicators
 void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
-		int c2s_linkspeed_ack, int s2c_linkspeed_data, int s2c_linkspeed_ack) ;
+                              int c2s_linkspeed_ack, int s2c_linkspeed_data,
+                              int s2c_linkspeed_ack);
 
 // Check if a Network Address translation box is modifying IP addresses
 // of server or client
@@ -79,4 +84,4 @@ void check_NAT(char *ssip, char *csip, char *scip, char *ccip);
 
 // Check packet size preservation
 void check_MSS_modification(int is_timestampenabled, int *mssvalue);
-#endif /* TEST_RESULTS_CLT_H_ */
+#endif  // SRC_TEST_RESULTS_CLT_H_

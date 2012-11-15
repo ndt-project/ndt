@@ -68,8 +68,8 @@
 #if 0
 #ifndef lint
 char copyright[] =
-"@(#) Copyright (c) 1990, 1993\n\
-        The Regents of the University of California.  All rights reserved.\n";
+"@(#) Copyright (c) 1990, 1993\n"
+        "The Regents of the University of California.  All rights reserved.\n";
 #endif /* not lint */
 #endif
 
@@ -273,7 +273,7 @@ char copyright[] =
 #include <string.h>
 #include <unistd.h>
 
-#include "logging.h"
+#include "./logging.h"
 
 #define  MAXPACKET  65535
 #ifndef MAXHOSTNAMELEN
@@ -292,34 +292,34 @@ char copyright[] =
 #define Fprintf (void)fprintf
 #define Printf (void)printf
 
-                                                     /* taken from linux/ipv6.h */
+/* taken from linux/ipv6.h */
 
-                                                     /*
-                                                      *  IPv6 fixed header
-                                                      *
-                                                      *  BEWARE, it is incorrect. The first 4 bits of flow_lbl
-                                                      *  are glued to priority now, forming "class".
-                                                      */
+/*
+*  IPv6 fixed header
+*
+*  BEWARE, it is incorrect. The first 4 bits of flow_lbl
+*  are glued to priority now, forming "class".
+*/
 
-                                                     struct ipv6hdr {
+struct ipv6hdr {
 #if defined(__LITTLE_ENDIAN_BITFIELD)
-                                                       __extension__	__u8 priority:4,
-                                                                        version:4;
+  __extension__   __u8 priority:4,
+                  version:4;
 #elif defined(__BIG_ENDIAN_BITFIELD)
-                                                       __extension__	__u8 version:4,
-                                                                        priority:4;
+  __extension__   __u8 version:4,
+                  priority:4;
 #else
 #error  "Please fix <asm/byteorder.h>"
 #endif
-                                                       __extension__	__u8 flow_lbl[3];
+  __extension__ __u8 flow_lbl[3];
 
-                                                       __extension__	__u16 payload_len;
-                                                       __extension__	__u8 nexthdr;
-                                                       __extension__	__u8 hop_limit;
+  __extension__ __u16 payload_len;
+  __extension__ __u8 nexthdr;
+  __extension__ __u8 hop_limit;
 
-                                                       struct in6_addr saddr;
-                                                       struct in6_addr daddr;
-                                                     };
+  struct in6_addr saddr;
+  struct in6_addr daddr;
+};
 
 /* --- */
 
@@ -329,8 +329,8 @@ int wait_for_reply6(int, struct sockaddr_in6 *, int);
 int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
                struct timeval *);
 void send_probe6(int seq, int ttl);
-double deltaT (struct timeval *, struct timeval *);
-void tvsub (struct timeval *, struct timeval *);
+double deltaT(struct timeval *, struct timeval *);
+void tvsub(struct timeval *, struct timeval *);
 void usage(void);
 
 int icmp_sock; /* receive (icmp) socket file descriptor */
@@ -353,8 +353,7 @@ int verbose;
 int waittime6 = 5; /* time to wait for response (in seconds) */
 int nflag; /* print addresses numerically */
 
-struct pkt_format
-{
+struct pkt_format {
   __u32 ident;
   __u32 seq;
   struct timeval tv;
@@ -363,9 +362,7 @@ struct pkt_format
 char *sendbuff;
 int datalen = sizeof(struct pkt_format);
 
-  void
-find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
-{
+void find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl) {
   extern char *optarg;
   extern int optind;
   struct hostent *hp;
@@ -455,11 +452,14 @@ find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
       return;
     }
     if (device) {
-      if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device, strlen(device)+1) == -1)
+      if (setsockopt(probe_fd, SOL_SOCKET, SO_BINDTODEVICE, device,
+                     strlen(device)+1) == -1) {
         perror("WARNING: interface is ignored");
+      }
     }
     firsthop.sin6_port = htons(1025);
-    if (connect(probe_fd, (struct sockaddr*)&firsthop, sizeof(firsthop)) == -1) {
+    if (connect(probe_fd, (struct sockaddr*)&firsthop,
+                sizeof(firsthop)) == -1) {
       perror("connect");
       return;
     }
@@ -473,24 +473,23 @@ find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
   } else {
     (void) bzero((char *)&saddr, sizeof(saddr));
     saddr.sin6_family = AF_INET6;
-    if (inet_pton(AF_INET6, source6, &saddr.sin6_addr) < 0)
-    {
+    if (inet_pton(AF_INET6, source6, &saddr.sin6_addr) < 0) {
       Printf("traceroute: unknown addr %s\n", source6);
       return;
     }
   }
 
   if (bind(sndsock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-    perror ("traceroute: bind sending socket");
+    perror("traceroute: bind sending socket");
     return;
   }
   if (bind(icmp_sock, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-    perror ("traceroute: bind icmp6 socket");
+    perror("traceroute: bind icmp6 socket");
     return;
   }
 
   for (ttl = 1; ttl <= max_ttl; ++ttl) {
-    struct in6_addr lastaddr = { { {0,}}};
+    struct in6_addr lastaddr = { { {0, }}};
     int got_there = 0;
     int unreachable = 0;
 
@@ -521,7 +520,7 @@ find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
             inet_ntop(AF_INET6, &from.sin6_addr, tmp, sizeof(tmp));
             log_println(5, "Probe %d resulted in reply from [%s]", probe, tmp);
           }
-          switch(i - 1) {
+          switch (i - 1) {
             case ICMPV6_PORT_UNREACH:
               ++got_there;
               break;
@@ -541,8 +540,9 @@ find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl)
               break;
           }
           break;
-        } else
+        } else {
           reset_timer = 0;
+        }
       }
       if (cc <= 0)
         Printf(" *");
@@ -562,7 +562,7 @@ wait_for_reply6(sock, from, reset_timer)
   fd_set fds;
   static struct timeval wait;
   int cc = 0;
-  socklen_t fromlen = sizeof (*from);
+  socklen_t fromlen = sizeof(*from);
 
   FD_ZERO(&fds);
   FD_SET(sock, &fds);
@@ -584,15 +584,14 @@ wait_for_reply6(sock, from, reset_timer)
   }
 
   if (select(sock+1, &fds, (fd_set *)0, (fd_set *)0, &wait) > 0) {
-    cc=recvfrom(icmp_sock, (char *)packet, sizeof(packet), 0,
-                (struct sockaddr *)from, &fromlen);
+    cc = recvfrom(icmp_sock, (char *)packet, sizeof(packet), 0,
+                  (struct sockaddr *)from, &fromlen);
   }
 
   return(cc);
 }
 
-void send_probe6(int seq, int ttl)
-{
+void send_probe6(int seq, int ttl) {
   struct pkt_format *pkt = (struct pkt_format *) sendbuff;
   int i;
 
@@ -601,8 +600,7 @@ void send_probe6(int seq, int ttl)
   gettimeofday(&pkt->tv, &tz);
 
   i = setsockopt(sndsock, SOL_IPV6, IPV6_UNICAST_HOPS, &ttl, sizeof(ttl));
-  if (i < 0)
-  {
+  if (i < 0) {
     perror("setsockopt");
     return;
   }
@@ -610,10 +608,10 @@ void send_probe6(int seq, int ttl)
   do {
     i = sendto(sndsock, sendbuff, datalen, 0,
                (struct sockaddr *)&whereto, sizeof(whereto));
-  }while (i<0 && errno == ECONNREFUSED);
+  } while (i < 0 && errno == ECONNREFUSED);
 
   if (i < 0 || i != datalen) {
-    if (i<0)
+    if (i < 0)
       perror("sendto");
   }
 }
@@ -621,8 +619,7 @@ void send_probe6(int seq, int ttl)
 /*
  * Convert an ICMP "type" field to a printable string.
  */
-char * pr_type(unsigned char t)
-{
+char * pr_type(unsigned char t) {
   static char *ttab1[] = {
     "Error",
     "Destination Unreachable",
@@ -639,14 +636,12 @@ char * pr_type(unsigned char t)
     "Membership Reduction",
   };
 
-  if (t < 5)
-  {
+  if (t < 5) {
     return (ttab1[t]);
   }
 
   unsigned char newt = t - 128;
-  if (newt < 5)
-  {
+  if (newt < 5) {
     return (ttab2[newt]);
   }
 
@@ -654,8 +649,7 @@ char * pr_type(unsigned char t)
 }
 
 int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
-               struct timeval *tv)
-{
+               struct timeval *tv) {
   struct icmp6hdr *icp;
   u_char type, code;
 
@@ -665,8 +659,7 @@ int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
   code = icp->icmp6_code;
 
   if ((type == ICMPV6_TIME_EXCEED && code == ICMPV6_EXC_HOPLIMIT) ||
-      type == ICMPV6_DEST_UNREACH)
-  {
+      type == ICMPV6_DEST_UNREACH) {
     struct ipv6hdr *hip;
     struct udphdr *up;
     int nexthdr;
@@ -679,20 +672,17 @@ int packet_ok6(u_char *buf, int cc, struct sockaddr_in6 *from, int seq,
       nexthdr = *(unsigned char*)up;
       up++;
     }
-    if (nexthdr == IPPROTO_UDP)
-    {
+    if (nexthdr == IPPROTO_UDP) {
       struct pkt_format *pkt;
 
       pkt = (struct pkt_format *) (up + 1);
 
       if (ntohl(pkt->ident) == ident &&
-          ntohl(pkt->seq) == seq)
-      {
+          ntohl(pkt->seq) == seq) {
         *tv = pkt->tv;
         return (type == ICMPV6_TIME_EXCEED? -1 : code+1);
       }
     }
-
   }
 
   if (verbose) {

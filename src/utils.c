@@ -20,8 +20,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
-#include "utils.h"
-#include "strlutils.h"
+#include "./utils.h"
+#include "./strlutils.h"
 
 /**
  * Check if the string is a valid int number.
@@ -188,11 +188,11 @@ int trim(char *line, int line_size,
     }
     if (!is_whitespace) {
       output_buf[j] = line[i];
-      j++ ;
+      j++;
     }
   }
-  output_buf[j] = '\0'; // null terminate
-  //log_println(8,"Received=%s; len=%d; dest=%d; MSG=%s\n", line, line_size,
-  //		strlen(output_buf), output_buf);
+  output_buf[j] = '\0';  // null terminate
+  // log_println(8,"Received=%s; len=%d; dest=%d; MSG=%s\n", line, line_size,
+  //             strlen(output_buf), output_buf);
   return j - 1;
 }

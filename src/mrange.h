@@ -6,10 +6,10 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_MRANGE_H
-#define _JS_MRANGE_H
+#ifndef SRC_MRANGE_H_
+#define SRC_MRANGE_H_
 
 int mrange_parse(char* text);
 char* mrange_next(char* port, size_t port_strlen);
 
-#endif
+#endif  // SRC_MRANGE_H_

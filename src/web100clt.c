@@ -8,17 +8,17 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "network.h"
-#include "usage.h"
-#include "logging.h"
-#include "varinfo.h"
-#include "utils.h"
-#include "protocol.h"
-#include "test_sfw.h"
-#include "test_meta.h"
-#include "clt_tests.h"
-#include "strlutils.h"
-#include "test_results_clt.h"
+#include "./network.h"
+#include "./usage.h"
+#include "./logging.h"
+#include "./varinfo.h"
+#include "./utils.h"
+#include "./protocol.h"
+#include "./test_sfw.h"
+#include "./test_meta.h"
+#include "./clt_tests.h"
+#include "./strlutils.h"
+#include "./test_results_clt.h"
 
 extern int h_errno;
 
@@ -44,18 +44,20 @@ int half_duplex, congestion, bad_cable, mismatch;
 double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
-static struct option long_options[] = { { "name", 1, 0, 'n' }, { "port", 1, 0,
-  'p' }, { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' }, { "msglvl", 0, 0,
-    'l' }, { "web100variables", 0, 0, 301 }, { "buffer", 1, 0, 'b' }, {
-      "disablemid", 0, 0, 302 }, { "disablec2s", 0, 0, 303 }, { "disables2c",
-        0, 0, 304 }, { "disablesfw", 0, 0, 305 },
-    { "protocol_log", 1, 0, 'u' },
-    { "enableprotolog", 0, 0, 'e' },
+static struct option long_options[] = {
+  { "name", 1, 0, 'n' }, { "port", 1, 0, 'p' },
+  { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' },
+  { "msglvl", 0, 0, 'l' }, { "web100variables", 0, 0, 301 },
+  { "buffer", 1, 0, 'b' }, { "disablemid", 0, 0, 302 },
+  { "disablec2s", 0, 0, 303 }, { "disables2c", 0, 0, 304 },
+  { "disablesfw", 0, 0, 305 }, { "protocol_log", 1, 0, 'u' },
+  { "enableprotolog", 0, 0, 'e' },
 #ifdef AF_INET6
-    {	"ipv4", 0, 0, '4'},
-    {	"ipv6", 0, 0, '6'},
+  { "ipv4", 0, 0, '4'},
+  { "ipv6", 0, 0, '6'},
 #endif
-    { 0, 0, 0, 0 } };
+  { 0, 0, 0, 0 }
+};
 
 void save_int_values(char *sysvar, int sysval);
 void save_dbl_values(char *sysvar, float *sysval);
@@ -123,9 +125,10 @@ void testResults(char tests, char *testresult_str, char* host) {
   char *sysvar, *sysval;
   float j;
 
-  // If the S2C test was not performed, just interpret the C2S and SFW test results
+  // If the S2C test was not performed, just interpret the C2S and SFW test
+  // results
   if (!(tests & TEST_S2C)) {
-    if (tests & TEST_C2S) { // Was C2S test performed?
+    if (tests & TEST_C2S) {  // Was C2S test performed?
       check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
     }
 
@@ -154,9 +157,8 @@ void testResults(char tests, char *testresult_str, char* host) {
     }
   }
 
-  //CountRTT = 615596;
-  if (CountRTT > 0) { // The number of round trip time samples is finite
-
+  // CountRTT = 615596;
+  if (CountRTT > 0) {  // The number of round trip time samples is finite
     // Get the link speed as determined during the C2S test. if it was performed
     if (tests & TEST_C2S) {
       mylink = get_linkspeed(c2sData, half_duplex);
@@ -172,10 +174,10 @@ void testResults(char tests, char *testresult_str, char* host) {
     }
 
     if (tests & TEST_C2S) {
-      check_C2Spacketqueuing(c2sspd,spdout,sndqueue, pkts, lth);
+      check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
     }
     if (tests & TEST_S2C) {
-      check_S2Cpacketqueuing(s2cspd,spdin,ssndqueue, sbytes);
+      check_S2Cpacketqueuing(s2cspd, spdin, ssndqueue, sbytes);
     }
 
     results_sfw(tests, host);
@@ -189,19 +191,20 @@ void testResults(char tests, char *testresult_str, char* host) {
       printf("the Packet size = %d Bytes; and \n", CurrentMSS);
 
       // print packet loss statistics
-      print_packetloss_statistics (PktsRetrans, DupAcksIn, SACKsRcvd,
-                                   order,Timeouts,waitsec, timesec);
+      print_packetloss_statistics(PktsRetrans, DupAcksIn, SACKsRcvd,
+                                  order, Timeouts, waitsec, timesec);
 
       // print details of whether connection was send/receive/congestion limited
-      print_limitedtime_ratio( rwintime, rwin, sendtime, swin,  cwndtime,  rttsec,
-                               mylink,  Sndbuf, MaxRwinRcvd);
+      print_limitedtime_ratio(rwintime, rwin, sendtime, swin, cwndtime, rttsec,
+                              mylink, Sndbuf, MaxRwinRcvd);
 
       // check to see if excessive packet loss was reported
       print_packetloss_excess(spd, loss);
 
-      // Now print details of optional Performance settings values like the following list:
-      printf(
-          "\n    Web100 reports TCP negotiated the optional Performance Settings to: \n");
+      // Now print details of optional Performance settings values like the
+      // following list:
+      printf("\n    Web100 reports TCP negotiated the optional Performance "
+             "Settings to: \n");
 
       // ..Selective ack options
       print_SAck_RFC2018(SACKEnabled);
@@ -216,21 +219,20 @@ void testResults(char tests, char *testresult_str, char* host) {
       print_timestamping_RFC1323(TimestampsEnabled);
 
       // ..RFC 1323 Window Scaling
-      print_windowscaling(MaxRwinRcvd,WinScaleRcvd, WinScaleSent);
+      print_windowscaling(MaxRwinRcvd, WinScaleRcvd, WinScaleSent);
 
       // ..throughput limiting factors details
-      print_throughputlimits(MaxRwinRcvd, RcvWinScale, &Sndbuf, swin, rwin, cwin, rttsec,estimate);
+      print_throughputlimits(MaxRwinRcvd, RcvWinScale, &Sndbuf, swin, rwin,
+                             cwin, rttsec, estimate);
 
       // client and server's views of link speed
       print_linkspeed_dataacks((tests & TEST_C2S), c2sData,
-                               c2sAck,s2cData, s2cAck) ;
+                               c2sAck, s2cData, s2cAck);
     }
   } else {
-    printf(
-        "No Web100 data collected!  Possible Duplex Mismatch condition caused ");
-    printf(
-        "Server to client test to run long.\nCheck for host=Full and switch=Half ");
-    printf("mismatch condition\n");
+    printf("No Web100 data collected!  Possible Duplex Mismatch condition "
+           "caused Server to client test to run long.\nCheck for host=Full "
+           "and switch=Half mismatch condition\n");
   }
 }
 
@@ -249,7 +251,8 @@ void testResults(char tests, char *testresult_str, char* host) {
  * @param peer_addr  Server IP address
  */
 
-void middleboxResults(char *midresult_str, I2Addr local_addr, I2Addr peer_addr) {
+void middleboxResults(char *midresult_str, I2Addr local_addr,
+                      I2Addr peer_addr) {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
   int mss;
@@ -264,7 +267,8 @@ void middleboxResults(char *midresult_str, I2Addr local_addr, I2Addr peer_addr) 
   str = strtok(NULL, ";");
   mss = atoi(str);
   str = strtok(NULL, ";");
-  winssent = atoi(str); // changing order to read winsent before winsrecv for issue 61
+  // changing order to read winsent before winsrecv for issue 61
+  winssent = atoi(str);
   str = strtok(NULL, ";");
   winsrecv = atoi(str);
 
@@ -280,7 +284,6 @@ void middleboxResults(char *midresult_str, I2Addr local_addr, I2Addr peer_addr) 
 
   // detect Network Address translation box
   check_NAT(ssip, csip, scip, ccip);
-
 }
 
 /**
@@ -405,12 +408,13 @@ void save_int_values(char *sysvar, int sysval) {
       RcvWinScale = 0;
     else
       RcvWinScale = sysval;
-  } else if (strcmp("minCWNDpeak:", sysvar) == 0)
+  } else if (strcmp("minCWNDpeak:", sysvar) == 0) {
     minPeak = sysval;
-  else if (strcmp("maxCWNDpeak:", sysvar) == 0)
+  } else if (strcmp("maxCWNDpeak:", sysvar) == 0) {
     maxPeak = sysval;
-  else if (strcmp("CWNDpeaks:", sysvar) == 0)
+  } else if (strcmp("CWNDpeaks:", sysvar) == 0) {
     peaks = sysval;
+  }
 }
 
 /**
@@ -459,25 +463,27 @@ void save_dbl_values(char *sysvar, float *sysval) {
  * @return > 0 if successful, < 0 if not
  */
 int main(int argc, char *argv[]) {
-  int useroption;				// user options char
-  int swait;					// server wait status
-  char mid_resultstr[MIDBOX_TEST_RES_SIZE];	// MID test results
-  char resultstr[2*BUFFSIZE]; 		// S2C test results, 16384 = 2 * BUFFSIZE
-  char varstr[2*BUFFSIZE]; 		// temporary storage for S2C test results , 16384 = 2 * BUFFSIZE
-  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW
-      | TEST_STATUS | TEST_META; // which tests have been selectedto be performed?
-  int ctlSocket;				// socket fd
-  int ctlport = atoi(PORT);	// default port number
-  int retcode;				// return code from protocol operations, mostly
-  int xwait;					// wait flag
-  char buff[BUFFSIZE];		// buffer used to store protocol message payload
-  char* strtokbuf;			// buffer to store string tokens
-  char *host = NULL;			// server name to connect to
-  int buf_size = 0;			// TCP send/receive window size received from user
-  int msgLen, msgType;		// protocol message related variables
-  int conn_options = 0;		// connection options received from user
-  int debug = 0;				// debug flag
-  int testId;					// test ID received from server
+  int useroption;  // user options char
+  int swait;  // server wait status
+  char mid_resultstr[MIDBOX_TEST_RES_SIZE];  // MID test results
+  char resultstr[2*BUFFSIZE];  // S2C test results, 16384 = 2 * BUFFSIZE
+  char varstr[2*BUFFSIZE];  // temporary storage for S2C test results,
+                            // 16384 = 2 * BUFFSIZE
+  // which tests have been selectedto be performed?
+  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW |
+      TEST_STATUS | TEST_META;
+  int ctlSocket;  // socket fd
+  int ctlport = atoi(PORT);  // default port number
+  int retcode;  // return code from protocol operations, mostly
+  int xwait;  // wait flag
+  char buff[BUFFSIZE];  // buffer used to store protocol message payload
+  char* strtokbuf;  // buffer to store string tokens
+  char *host = NULL;  // server name to connect to
+  int buf_size = 0;  // TCP send/receive window size received from user
+  int msgLen, msgType;  // protocol message related variables
+  int conn_options = 0;  // connection options received from user
+  int debug = 0;  // debug flag
+  int testId;  // test ID received from server
   // addresses..
   I2Addr server_addr = NULL;
   I2Addr local_addr = NULL, remote_addr = NULL;
@@ -488,7 +494,8 @@ int main(int argc, char *argv[]) {
 #define GETOPT_LONG_INET6(x) x
 #endif
   // Read and record various optional values used for the tests/process
-  while ((useroption = getopt_long(argc, argv, GETOPT_LONG_INET6("n:u:e:p:dhlvb:"),
+  while ((useroption = getopt_long(argc, argv,
+                                   GETOPT_LONG_INET6("n:u:e:p:dhlvb:"),
                                    long_options, 0)) != -1) {
     switch (useroption) {
       case '4':
@@ -544,7 +551,6 @@ int main(int argc, char *argv[]) {
       case '?':
         short_usage(argv[0], "");
         break;
-
     }
   }
 
@@ -580,8 +586,8 @@ int main(int argc, char *argv[]) {
   }
   I2AddrSetPort(server_addr, ctlport);
 
-  if ((retcode = CreateConnectSocket(&ctlSocket, NULL, server_addr, conn_options,
-                                     0))) {
+  if ((retcode = CreateConnectSocket(&ctlSocket, NULL, server_addr,
+                                     conn_options, 0))) {
     printf("Connect() for control socket failed\n");
     exit(-4);
   }
@@ -629,9 +635,8 @@ int main(int argc, char *argv[]) {
   send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
   /* read the specially crafted data that kicks off the old clients */
   if (readn(ctlSocket, buff, 13) != 13) {
-    printf(
-        "Information: The server '%s' does not support this command line client\n",
-        host);
+    printf("Information: The server '%s' does not support this command line "
+           "client\n", host);
     exit(0);
   }
 
@@ -648,7 +653,8 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     if (check_msg_type("Logging to server", SRV_QUEUE, msgType, buff,
-                       msgLen)) { // Any other type of message at this stage is incorrect
+                       msgLen)) {
+      // Any other type of message at this stage is incorrect
       exit(2);
     }
     if (msgLen <= 0) {
@@ -662,34 +668,31 @@ int main(int argc, char *argv[]) {
     }
     // SRV_QUEUE message received indicating "ready to start tests" .
     // ...proceed to running tests
-    if (xwait == SRV_QUEUE_TEST_STARTS_NOW) /* signal from ver 3.0.x NDT servers */
+    if (xwait == SRV_QUEUE_TEST_STARTS_NOW)
+      /* signal from ver 3.0.x NDT servers */
       break;
 
     if (xwait == SRV_QUEUE_SERVER_FAULT) {
-      fprintf(
-          stderr,
-          "Server Fault: Test terminated for unknown reason, please try again later.\n");
+      fprintf(stderr,
+              "Server Fault: Test terminated for unknown reason, please try "
+              "again later.\n");
       exit(0);
     }
     if (xwait == SRV_QUEUE_SERVER_BUSY) {
       if (swait == 0) {
         // First message from server, indicating server is busy. Quit
-        fprintf(
-            stderr,
-            "Server Busy: Too many clients waiting in queue, plase try again later.\n");
-      }
-      else { // Server fault, quit
-        fprintf(
-            stderr,
-            "Server Fault: Test terminated for unknown reason, plase try again later.\n");
+        fprintf(stderr, "Server Busy: Too many clients waiting in queue, plase "
+                "try again later.\n");
+      } else {  // Server fault, quit
+        fprintf(stderr, "Server Fault: Test terminated for unknown reason, "
+                "please try again later.\n");
       }
       exit(0);
     }
     // server busy, wait 60 s for previous test to finish
     if (xwait == SRV_QUEUE_SERVER_BUSY_60s) {
-      fprintf(
-          stderr,
-          "Server Busy: Please wait 60 seconds for the current test to finish.\n");
+      fprintf(stderr, "Server Busy: Please wait 60 seconds for the current "
+              "test to finish.\n");
       exit(0);
     }
     // Signal from the server to see if the client is still alive
@@ -738,7 +741,7 @@ int main(int argc, char *argv[]) {
   // Version compatibility between server-client must be verified
 
   buff[msgLen] = 0;
-  if (buff[0] != 'v') { // payload does'nt start with a version indicator
+  if (buff[0] != 'v') {  // payload does'nt start with a version indicator
     log_println(0, "Incompatible version number");
     exit(4);
   }
@@ -827,7 +830,7 @@ int main(int argc, char *argv[]) {
    */
   for (;;) {
     msgLen = sizeof(buff);
-    memset(buff, 0, msgLen); // reset buff and msgLen
+    memset(buff, 0, msgLen);  // reset buff and msgLen
     if ((retcode = (recv_msg(ctlSocket, &msgType, buff, &msgLen)))) {
       if (errno == ECONNRESET)
         log_println(0,

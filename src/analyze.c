@@ -30,8 +30,8 @@
 #include <sys/select.h>
 #include <math.h>
 
-#include "usage.h"
-#include "logging.h"
+#include "./usage.h"
+#include "./logging.h"
 
 #define LOGFILE "web100srv.log"
 #define PROTOLOGFILE "web100srvprotocol.log" /* protocol validation log */
@@ -39,12 +39,13 @@
 #define WEB100_FILE "web100_variables"  /*names of the variables to access*/
 #define BUFFSIZE 512
 
-char buff[BUFFSIZE + 1];int window = 64000;
+char buff[BUFFSIZE + 1];
+int window = 64000;
 int randomize = 0;
 char *rmt_host;
 char *VarFileName = NULL;
 char *LogFileName = NULL;
-char *ProtoLogFileName = NULL; // Log file used to log protocol validation logs
+char *ProtoLogFileName = NULL;  // Log file used to log protocol validation logs
 double avgrtt, loss, loss2, rttsec, bw, bw2, rwin, swin, cwin, speed;
 double rwintime, cwndtime, sendtime, timesec;
 int n, m, one = 1;
@@ -64,7 +65,8 @@ char *name, ip_addr[64], ip_addr2[64];
 FILE *fp;
 int indx, links[4][16], max, total;
 float runave[4];
-int c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack;
+int c2s_linkspeed_data, c2s_linkspeed_ack,
+    s2c_linkspeed_data, s2c_linkspeed_ack;
 int j;
 char spds[4][256], buff2[32];
 char *str, tmpstr[32];
@@ -196,10 +198,10 @@ void calculate() {
       snprintf(btlneck, sizeof(btlneck), "a 'Dial-up modem' connection");
       break;
     case 2:
-      if ((c2sspd / s2cspd > .8) && (c2sspd / s2cspd < 1.2)
-          && (c2sspd > 1000))
+      if ((c2sspd / s2cspd > .8) && (c2sspd / s2cspd < 1.2) &&
+          (c2sspd > 1000)) {
         snprintf(btlneck, sizeof(btlneck), "a 'T1' subnet");
-      else {
+      } else {
         if ((tail[3] > 1) || (s2c_linkspeed_ack == 3))
           snprintf(btlneck, sizeof(btlneck), "a 'Cable Modem' connection");
         else
@@ -313,8 +315,8 @@ void calculate() {
       "Acks = %0.4f,  async speed = %0.4f, mismatch3 = %0.4f, CongOver = %d\n",
       acks, aspeed, cong, CongestionOverCount);
   printf(
-      "idle = %0.4f, timeout/pkts = %0.4f, %%retranmissions = %0.2f, %%increase = %0.2f\n",
-      idle, touts, retrn * 100, increase * 100);
+      "idle = %0.4f, timeout/pkts = %0.4f, %%retranmissions = %0.2f, "
+      "%%increase = %0.2f\n", idle, touts, retrn * 100, increase * 100);
   printf(
       "FastRetrans/Total = %0.4f, Fast/Retrans = %0.4f, Retrans/sec = %0.4f\n",
       retrn, fr_ratio, retransec);
@@ -392,18 +394,18 @@ void calculate() {
   printf("\tWeb100 says link = %d, speed-chk says link = %d\n", link,
          c2s_linkspeed_data);
   printf(
-      "\tSpeed-chk says {%d, %d, %d, %d}, Running average = {%0.1f, %0.1f, %0.1f, %0.1f}\n",
-      c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack, runave[0], runave[1], runave[2],
+      "\tSpeed-chk says {%d, %d, %d, %d}, Running average = {"
+      "%0.1f, %0.1f, %0.1f, %0.1f}\n", c2s_linkspeed_data, c2s_linkspeed_ack,
+      s2c_linkspeed_data, s2c_linkspeed_ack, runave[0], runave[1], runave[2],
       runave[3]);
-  if (c2sspd > 1000)
-    printf(
-        "\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, CWND-Limited = %0.2f Mbps, ",
-        (float) c2sspd / 1000, (float) s2cspd / 1000,
-        (float) s2c2spd / 1000);
-  else
-    printf(
-        "\tC2Sspeed = %d kbps, S2Cspeed = %d kbps, CWND-Limited: %d kbps, ",
-        c2sspd, s2cspd, s2c2spd);
+  if (c2sspd > 1000) {
+    printf("\tC2Sspeed = %0.2f Mbps, S2Cspeed = %0.2f Mbps, CWND-Limited = "
+           "%0.2f Mbps, ", (float) c2sspd / 1000, (float) s2cspd / 1000,
+           (float) s2c2spd / 1000);
+  } else {
+    printf("\tC2Sspeed = %d kbps, S2Cspeed = %d kbps, CWND-Limited: %d kbps, ",
+           c2sspd, s2cspd, s2c2spd);
+  }
   if (bw > 1)
     printf("Estimate = %0.2f Mbps (%0.2f Mbps)\n", bw, bw2);
   else
@@ -414,9 +416,9 @@ void calculate() {
   else
     printf("\tOld estimate is less than measured; ");
 
-  if (CongestionSignals == -1)
+  if (CongestionSignals == -1) {
     printf("No data collected to calculage new estimate\n");
-  else {
+  } else {
     if ((bw2 * 1000) > s2cspd)
       printf("New estimate is greater than measured\n");
     else
@@ -424,19 +426,19 @@ void calculate() {
   }
 
   printf(
-      "\tLoss = %0.2f%% (%0.2f%%), Out-of-Order = %0.2f%%, Long tail = {%d, %d, %d, %d}\n",
-      loss * 100, loss2 * 100, order * 100, tail[0], tail[1], tail[2],
-      tail[3]);
-  printf(
-      "\tDistribution = {%d, %d, %d, %d}, time spent {r=%0.1f%% c=%0.1f%% s=%0.1f%%}\n",
-      head[0], head[1], head[2], head[3], rwintime * 100, cwndtime * 100,
-      sendtime * 100);
+      "\tLoss = %0.2f%% (%0.2f%%), Out-of-Order = %0.2f%%, "
+      "Long tail = {%d, %d, %d, %d}\n", loss * 100, loss2 * 100, order * 100,
+      tail[0], tail[1], tail[2], tail[3]);
+  printf("\tDistribution = {%d, %d, %d, %d}, "
+         "time spent {r=%0.1f%% c=%0.1f%% s=%0.1f%%}\n",
+         head[0], head[1], head[2], head[3], rwintime * 100, cwndtime * 100,
+         sendtime * 100);
   printf("\tAve(min) RTT = %0.2f (%d) msec, Buffers = {r=%d, c=%d, s=%d}\n",
          avgrtt, MinRTT, MaxRwinRcvd, CurrentCwnd, Sndbuf / 2);
-  printf(
-      "\tbw*delay = {r=%0.2f, c=%0.2f, s=%0.2f}, Transitions/sec = {r=%0.1f, c=%0.1f, s=%0.1f}\n",
-      recvbwd, cwndbwd, sendbwd, SndLimTransRwin / timesec,
-      SndLimTransCwnd / timesec, SndLimTransSender / timesec);
+  printf("\tbw*delay = {r=%0.2f, c=%0.2f, s=%0.2f}, Transitions/sec = "
+         "{r=%0.1f, c=%0.1f, s=%0.1f}\n", recvbwd, cwndbwd, sendbwd,
+         SndLimTransRwin / timesec, SndLimTransCwnd / timesec,
+         SndLimTransSender / timesec);
   printf(
       "\tRetransmissions/sec = %0.1f, Timeouts/sec = %0.1f, SSThreshold = %d\n",
       (float) PktsRetrans / timesec, (float) Timeouts / timesec,
@@ -457,7 +459,7 @@ int main(int argc, char** argv) {
   int debug = 0;
 
   iponly = 0;
-  //while ((c = getopt_long(argc, argv, "dnhl:v", long_options, 0)) != -1) {
+  // while ((c = getopt_long(argc, argv, "dnhl:v", long_options, 0)) != -1) {
   while ((c = getopt_long(argc, argv, "udnhl:v", long_options, 0)) != -1) {
     switch (c) {
       case 'h':
@@ -503,9 +505,9 @@ int main(int argc, char** argv) {
   }
   log_println(1, "log file = %s", LogFileName);
 
-  //TODO do we need protocol log file in analyze????
+  // TODO do we need protocol log file in analyze????
   if (ProtoLogFileName == NULL) {
-    snprintf(tmpstr, 256, "%s/%s", BASEDIR, PROTOLOGFILE);
+    snprintf(tmpstr, sizeof(tmpstr), "%s/%s", BASEDIR, PROTOLOGFILE);
     ProtoLogFileName = tmpstr;
   }
   log_println(1, "log file = %s", ProtoLogFileName);
@@ -934,7 +936,6 @@ skip1: if ((str = strchr(buff, ',')) != NULL) {
 display: log_println(1, "Web100 variables line received\n");
          calculate();
        }
-
   }
   return 0;
 }

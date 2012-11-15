@@ -16,8 +16,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef strlcpy_H
-#define strlcpy_H
+#ifndef SRC_STRLUTILS_H_
+#define SRC_STRLUTILS_H_
 
 #include <sys/types.h>
 #include <string.h>
@@ -31,5 +31,4 @@ extern size_t
 strlcpy(char *dst, const char *src, size_t siz);
 size_t strlcat(char *dst, const char *src, size_t siz);
 
-#endif
-
+#endif  // SRC_STRLUTILS_H_

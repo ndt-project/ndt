@@ -5,10 +5,10 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_TROUTE_H
-#define _JS_TROUTE_H
+#ifndef SRC_TROUTE_H_
+#define SRC_TROUTE_H_
 
 void find_route(u_int32_t destIP, u_int32_t IPlist[], int max_ttl);
 void find_route6(char* dst, u_int32_t IPlist[][4], int max_ttl);
 
-#endif
+#endif  // SRC_TROUTE_H_

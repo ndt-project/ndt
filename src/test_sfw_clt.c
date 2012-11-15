@@ -13,18 +13,17 @@
 #include <string.h>
 #include <signal.h>
 
-#include "test_sfw.h"
-#include "logging.h"
-#include "protocol.h"
-#include "network.h"
-#include "utils.h"
+#include "./test_sfw.h"
+#include "./logging.h"
+#include "./protocol.h"
+#include "./network.h"
+#include "./utils.h"
 
 static int c2s_result = SFW_NOTTESTED;
 static int s2c_result = SFW_NOTTESTED;
 static int testTime;
 static int sfwsockfd;
 static I2Addr sfwcli_addr = NULL;
-
 
 /**
  * Print the appropriate message when the SIGALRM is caught.
@@ -70,19 +69,20 @@ test_osfw_clt(void* vptr) {
   sel_tv.tv_sec = testTime;
   sel_tv.tv_usec = 0;
   switch (select(sfwsockfd+1, &fds, NULL, NULL, &sel_tv)) {
-    case -1: // If Socket error, status of firewall is unknown
+    case -1:  // If Socket error, status of firewall is unknown
       log_println(0, "Simple firewall test: select exited with error");
       I2AddrFree(sfwcli_addr);
       return NULL;
-    case 0: // timeout, indicates that firewall is a possibility
-      log_println(1, "Simple firewall test: CLT: no connection for %d seconds", testTime);
+    case 0:  // timeout, indicates that firewall is a possibility
+      log_println(1, "Simple firewall test: CLT: no connection for %d seconds",
+                  testTime);
       s2c_result = SFW_POSSIBLE;
       I2AddrFree(sfwcli_addr);
       return NULL;
   }
 
-  // Get message sent by server. If message reception is erroneous, firewall status
-  // .. cannot be determined
+  // Get message sent by server. If message reception is erroneous, firewall
+  // status cannot be determined
   srvlen = sizeof(srv_addr);
   sockfd = accept(sfwsockfd, (struct sockaddr *) &srv_addr, &srvlen);
 
@@ -90,8 +90,8 @@ test_osfw_clt(void* vptr) {
   if (sockfd > 0) {
     procstatusenum = PROCESS_STARTED;
     proctypeenum = CONNECT_TYPE;
-    protolog_procstatus(getpid(), testids , proctypeenum,
-                        procstatusenum, sockfd );
+    protolog_procstatus(getpid(), testids , proctypeenum, procstatusenum,
+                        sockfd);
   }
 
   msgLen = sizeof(buff);
@@ -104,7 +104,7 @@ test_osfw_clt(void* vptr) {
   }
 
   // The server is expected to send a TEST_MSG type of packet. Any other message
-  // .. type is unexpected at this point and leaves firewall status indeterminate.
+  // type is unexpected at this point and leaves firewall status indeterminate.
   if (check_msg_type(SFW_TEST_LOG, TEST_MSG, msgType, buff, msgLen)) {
     s2c_result = SFW_UNKNOWN;
     close(sockfd);
@@ -166,7 +166,8 @@ test_osfw_clt(void* vptr) {
  *
  */
 int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
-  char buff[BUFFSIZE + 1];int msgLen, msgType;
+  char buff[BUFFSIZE + 1];
+  int msgLen, msgType;
   int sfwport, sfwsock, sfwsockport;
   I2Addr sfwsrv_addr = NULL;
   struct sigaction new, old;
@@ -177,10 +178,10 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = SFW;
 
-  if (tests & TEST_SFW) { // SFW test is to be performed
+  if (tests & TEST_SFW) {  // SFW test is to be performed
     log_println(1, " <-- Simple firewall test -->");
     setCurrentTest(TEST_SFW);
-    //protocol logs
+    // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlsockfd);
 
@@ -221,7 +222,7 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
       log_println(0, "SFW: Improper message");
       return 5;
     }
-    if (check_int(ptr, &testTime)) { // get test time
+    if (check_int(ptr, &testTime)) {  // get test time
       log_println(0, "Invalid waiting time");
       return 4;
     }
@@ -233,10 +234,12 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
     }
     I2AddrSetPort(sfwsrv_addr, sfwport);
 
-    // create a listening socket, and if successful, send this socket number to server
+    // create a listening socket, and if successful, send this socket number to
+    // server
     sfwcli_addr = CreateListenSocket(NULL, "0", conn_options, 0);
     if (sfwcli_addr == NULL) {
-      log_println(0, "Client (Simple firewall test): CreateListenSocket failed: %s", strerror(errno));
+      log_println(0, "Client (Simple firewall test): "
+                  "CreateListenSocket failed: %s", strerror(errno));
       return -1;
     }
     sfwsockfd = I2AddrFD(sfwcli_addr);
@@ -270,7 +273,8 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
     // Now, run Test from client for the C->S direction SFW test
     // ..trying to connect to ephemeral port number sent by server
 
-    if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr, conn_options, 0) == 0) {
+    if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr,
+                            conn_options, 0) == 0) {
       send_msg(sfwsock, TEST_MSG, SFW_PREDEFINED_TEST_MSG, 20);
     }
     alarm(0);
@@ -290,12 +294,13 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 
     // The test results are sent as a numeric encoding the test results.
 
-    if (msgLen <= 0) { // test results have valid length
+    if (msgLen <= 0) {  // test results have valid length
       log_println(0, "Improper message");
       return 3;
     }
     buff[msgLen] = 0;
-    if (check_int(buff, &c2s_result)) { // test result has to be a valid integer
+    if (check_int(buff, &c2s_result)) {
+      // test result has to be a valid integer
       log_println(0, "Invalid test result");
       return 4;
     }
@@ -305,7 +310,8 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 
     printf("Done\n");
 
-    // The last message expected from the server is an empty TEST_FINALIZE message.
+    // The last message expected from the server is an empty TEST_FINALIZE
+    // message.
     msgLen = sizeof(buff);
     if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error - missed finalize message!");
@@ -317,7 +323,7 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
     log_println(1, " <-------------------------->");
     // log protocol validation test ending
     teststatuses = TEST_ENDED;
-    protolog_status(getpid(), testids, teststatuses,ctlsockfd);
+    protolog_status(getpid(), testids, teststatuses, ctlsockfd);
     setCurrentTest(TEST_NONE);
   }
   return 0;
@@ -331,7 +337,7 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
  */
 
 int results_sfw(char tests, char* host) {
-  if (tests & TEST_SFW) { // SFW test has been selected to be run
+  if (tests & TEST_SFW) {  // SFW test has been selected to be run
     // Print C->S direction's results
     switch (c2s_result) {
       case SFW_NOFIREWALL:

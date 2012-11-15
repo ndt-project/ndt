@@ -10,9 +10,9 @@
 #include <assert.h>
 #include <string.h>
 
-#include "utils.h"
-#include "logging.h"
-#include "strlutils.h"
+#include "./utils.h"
+#include "./logging.h"
+#include "./strlutils.h"
 
 typedef struct range {
   int min; /**< lower end of the range */
@@ -42,16 +42,16 @@ int mrange_parse(char* text) {
   if (strlen(text) > 299) {
     return 1;
   }
-  //strcpy(tmp, text);
+  // strcpy(tmp, text);
   strlcpy(tmp, text, sizeof(tmp));
   // tokenize based on a "," character.
   // An example of the string : 2003:3000,4000:5000
   ptr = strtok(tmp, ",");
-  while (ptr != NULL) { // tokens found
-    if ((sptr = strchr(ptr, ':')) != NULL) { // also found a ":" character,
+  while (ptr != NULL) {  // tokens found
+    if ((sptr = strchr(ptr, ':')) != NULL) {  // also found a ":" character,
       // with sptr pointing to its location
       *sptr++ = 0;
-      if (strchr(sptr, ':') != NULL) { // should not find any more range
+      if (strchr(sptr, ':') != NULL) {  // should not find any more range
         return 1;
       }
     } else {
@@ -79,10 +79,10 @@ int mrange_parse(char* text) {
     // result as "maximum"
     if (check_rint(sptr, &mr_ptr->max, 1, MAX_TCP_PORT)) {
       free(mr_ptr);
-      return 1; // if invalid range, free allocated memory and return
+      return 1;  // if invalid range, free allocated memory and return
     }
     mr_ptr->next = mrange_root;
-    mrange_root = mr_ptr; // ready to point to next member
+    mrange_root = mr_ptr;  // ready to point to next member
     ptr = strtok(NULL, ",");
   }
   free(mr_ptr);
@@ -107,16 +107,16 @@ mrange_next(char* port, size_t port_strlen) {
 
   assert(port);
 
-  if (check_rint(port, &val, 0, MAX_TCP_PORT)) { // check if valid
+  if (check_rint(port, &val, 0, MAX_TCP_PORT)) {  // check if valid
     log_println(0, "WARNING: invalid port number");
     snprintf(port, port_strlen, RESERVED_PORT);
     return port;
   }
   val++;
-  while (val <= MAX_TCP_PORT) { // Maximum port number not exceeded
+  while (val <= MAX_TCP_PORT) {  // Maximum port number not exceeded
     ptr = mrange_root;
-    while (ptr != NULL) { // While there is some data
-      if ((val >= ptr->min) && (val <= ptr->max)) { // check range
+    while (ptr != NULL) {  // While there is some data
+      if ((val >= ptr->min) && (val <= ptr->max)) {  // check range
         // and return port if valid
         snprintf(port, port_strlen, "%d", val);
         return port;

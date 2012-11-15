@@ -7,21 +7,22 @@
  *      Author: kkumar@internet2.edu
  */
 
-#include  <syslog.h>
+#include <syslog.h>
 #include <pthread.h>
 #include <sys/times.h>
-#include "tests_srv.h"
-#include "strlutils.h"
-#include "ndtptestconstants.h"
-#include "utils.h"
-#include "testoptions.h"
-#include "runningtest.h"
-#include "logging.h"
-#include "protocol.h"
-#include "network.h"
-#include "mrange.h"
+#include "./tests_srv.h"
+#include "./strlutils.h"
+#include "./ndtptestconstants.h"
+#include "./utils.h"
+#include "./testoptions.h"
+#include "./runningtest.h"
+#include "./logging.h"
+#include "./protocol.h"
+#include "./network.h"
+#include "./mrange.h"
 
-int mon_pipe1[2]; // used to store file descriptors of pipes created for ndttrace for C2S tests
+// used to store file descriptors of pipes created for ndttrace for C2S tests
+int mon_pipe1[2];
 
 
 /**
@@ -64,24 +65,24 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
              int count_vars, char spds[4][256], int* spd_index) {
-  int recvsfd; // receiver socket file descriptor
-  pid_t c2s_childpid = 0; // child process pids
-  int msgretvalue, tmpbytecount; // used during the "read"/"write" process
-  int i, j; // used as loop iterators
+  int recvsfd;  // receiver socket file descriptor
+  pid_t c2s_childpid = 0;  // child process pids
+  int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
+  int i, j;  // used as loop iterators
 
   struct sockaddr_storage cli_addr;
 
   socklen_t clilen;
-  char tmpstr[256]; // string array used for all sorts of temp storage purposes
-  double tmptime; // time indicator
-  double bytes_read = 0; // number of bytes read during the throughput tests
-  struct timeval sel_tv; // time
-  fd_set rfd; // receive file descriptor
-  char buff[BUFFSIZE + 1]; // message "payload" buffer
-  PortPair 	pair; // socket ports
-  I2Addr c2ssrv_addr = NULL; // c2s test's server address
-  //I2Addr src_addr=NULL;			// c2s test source address
-  char listenc2sport[10]; // listening port
+  char tmpstr[256];  // string array used for all sorts of temp storage purposes
+  double tmptime;  // time indicator
+  double bytes_read = 0;  // number of bytes read during the throughput tests
+  struct timeval sel_tv;  // time
+  fd_set rfd;  // receive file descriptor
+  char buff[BUFFSIZE + 1];  // message "payload" buffer
+  PortPair pair;  // socket ports
+  I2Addr c2ssrv_addr = NULL;  // c2s test's server address
+  // I2Addr src_addr=NULL;  // c2s test source address
+  char listenc2sport[10];  // listening port
   pthread_t workerThreadId;
 
   // web_100 related variables
@@ -108,30 +109,32 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
                 testOptions->child0);
     strlcpy(listenc2sport, PORT2, sizeof(listenc2sport));
 
-    //log protocol validation logs
+    // log protocol validation logs
     teststatuses = TEST_STARTED;
     protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     // Determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port2 (3002).
     if (testOptions->c2ssockport) {
-      snprintf(listenc2sport, sizeof(listenc2sport), "%d", testOptions->c2ssockport);
+      snprintf(listenc2sport, sizeof(listenc2sport), "%d",
+               testOptions->c2ssockport);
     } else if (testOptions->mainport) {
-      snprintf(listenc2sport, sizeof(listenc2sport), "%d", testOptions->mainport + 1);
+      snprintf(listenc2sport, sizeof(listenc2sport), "%d",
+               testOptions->mainport + 1);
     }
 
     if (testOptions->multiple) {
       strlcpy(listenc2sport, "0", sizeof(listenc2sport));
     }
 
-    // attempt to bind to a new port and obtain address structure with details of listening port
+    // attempt to bind to a new port and obtain address structure with details
+    // of listening port
     while (c2ssrv_addr == NULL) {
       c2ssrv_addr = CreateListenSocket(
           NULL,
           (testOptions->multiple ?
            mrange_next(listenc2sport, sizeof(listenc2sport)) : listenc2sport),
-          conn_options, 0)
-          ;
+          conn_options, 0);
       if (strcmp(listenc2sport, "0") == 0) {
         log_println(0, "WARNING: ephemeral port number was bound");
         break;
@@ -153,7 +156,8 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
       return -1;
     }
 
-    // get socket FD and the ephemeral port number that client will connect to run tests
+    // get socket FD and the ephemeral port number that client will connect to
+    // run tests
     testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
     log_println(1, "  -- port: %d", testOptions->c2ssockport);
@@ -171,9 +175,12 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
         testOptions->child0);
     snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
 
-    // send TEST_PREPARE message with ephemeral port detail, indicating start of tests
-    if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
+    // send TEST_PREPARE message with ephemeral port detail, indicating start
+    // of tests
+    if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff,
+                                strlen(buff))) < 0) {
       return msgretvalue;
+    }
 
     // Wait on listening socket and read data once ready.
     // Retry 5 times,  waiting for activity on the socket
@@ -188,18 +195,19 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
     for (j = 0; j < RETRY_COUNT; j++) {
       msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL,
                            &sel_tv);
-      if ((msgretvalue == -1) && (errno == EINTR)) // socket interrupted. continue waiting for activity on socket
+      // socket interrupted. continue waiting for activity on socket
+      if ((msgretvalue == -1) && (errno == EINTR))
         continue;
-      if (msgretvalue == 0) // timeout
+      if (msgretvalue == 0)  // timeout
         return -SOCKET_CONNECT_TIMEOUT;
-      if (msgretvalue < 0) // other socket errors. exit
+      if (msgretvalue < 0)  // other socket errors. exit
         return -errno;
-      if (j == (RETRY_COUNT - 1)) // retry exceeded. exit
+      if (j == (RETRY_COUNT - 1))  // retry exceeded. exit
         return -RETRY_EXCEEDED_WAITING_CONNECT;
-recfd:
+ recfd:
 
-      // If a valid connection request is received, client has connected. Proceed.
-      // Note the new socket fd - recvsfd- used in the throughput test
+      // If a valid connection request is received, client has connected.
+      // Proceed.  Note the new socket fd - recvsfd- used in the throughput test
       recvsfd = accept(testOptions->c2ssockfd,
                        (struct sockaddr *) &cli_addr, &clilen);
       if (recvsfd > 0) {
@@ -213,7 +221,8 @@ recfd:
                             procstatusenum, recvsfd);
         break;
       }
-      if ((recvsfd == -1) && (errno == EINTR)) { // socket interrupted, wait some more
+      // socket interrupted, wait some more
+      if ((recvsfd == -1) && (errno == EINTR)) {
         log_println(
             6,
             "Child %d interrupted while waiting for accept() to complete",
@@ -224,10 +233,10 @@ recfd:
           6,
           "-------     C2S connection setup for %d returned because (%d)",
           testOptions->child0, errno);
-      if (recvsfd < 0) { // other socket errors, 	quit
+      if (recvsfd < 0) {  // other socket errors, quit
         return -errno;
       }
-      if (j == (RETRY_COUNT - 1)) { // retry exceeded, quit
+      if (j == (RETRY_COUNT - 1)) {  // retry exceeded, quit
         log_println(
             6,
             "c2s child %d, uable to open connection, return from test",
@@ -246,7 +255,8 @@ recfd:
     // Get web100 connection. Used to collect web100 variable statistics
     conn = web100_connection_from_socket(agent, recvsfd);
 
-    // set up packet tracing. Collected data is used for bottleneck link calculations
+    // set up packet tracing. Collected data is used for bottleneck link
+    // calculations
     if (getuid() == 0) {
       /*
          pipe(mon_pipe1);
@@ -267,7 +277,8 @@ recfd:
             5,
             "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
             testOptions->child0, mon_pipe1[0], mon_pipe1[1]);
-        log_println(2, "C2S test calling init_pkttrace() with pd=%p", &cli_addr);
+        log_println(2, "C2S test calling init_pkttrace() with pd=%p",
+                    &cli_addr);
         init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
                       mon_pipe1, device, &pair, "c2s", options->compress);
         exit(0); /* Packet trace finished, terminate gracefully */
@@ -283,8 +294,7 @@ recfd:
       }
       if (strlen(tmpstr) > 5)
         memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
-      //name of nettrace file passed back from pcap child
-
+      // name of nettrace file passed back from pcap child
       log_println(3, "--tracefile after packet_trace %s",
                   meta.c2s_ndttrace);
     }
@@ -295,22 +305,24 @@ recfd:
     // experimental code, delete when finished
     setCwndlimit(conn, group, agent, options);
 
-    // Create C->S snaplog directories, and perform some initialization based on options
-
+    // Create C->S snaplog directories, and perform some initialization based on
+    // options
     create_client_logdir((struct sockaddr *) &cli_addr, clilen,
-                         options->c2s_logname, sizeof(options->c2s_logname), namesuffix,
+                         options->c2s_logname, sizeof(options->c2s_logname),
+                         namesuffix,
                          sizeof(namesuffix));
     sleep(2);
 
     // send empty TEST_START indicating start of the test
     send_msg(ctlsockfd, TEST_START, "", 0);
-    /* alarm(30); *//* reset alarm() again, this 10 sec test should finish before this signal
-     * is generated.  */
+    /* alarm(30); */  // reset alarm() again, this 10 sec test should finish
+                      // before this signal is generated.
 
     // If snaplog recording is enabled, update meta file to indicate the same
-    //  and proceed to get snapshot and log it. 
-    // This block is needed here since the meta file stores names without the full directory
-    // but fopen needs full path. Else, it could have gone into the "start_snap_worker" method 
+    // and proceed to get snapshot and log it.
+    // This block is needed here since the meta file stores names without the
+    // full directory but fopen needs full path. Else, it could have gone into
+    // the "start_snap_worker" method
     if (options->snaplog) {
       memcpy(meta.c2s_snaplog, namesuffix, strlen(namesuffix));
       /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
@@ -318,10 +330,10 @@ recfd:
         conn, group); */
     }
     start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
-                      meta.c2s_snaplog, options->c2s_logname,	conn, group); 
+                      meta.c2s_snaplog, options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
-    sel_tv.tv_sec = 11; // time out after 11 seconds
+    sel_tv.tv_sec = 11;  // time out after 11 seconds
     sel_tv.tv_usec = 0;
     FD_ZERO(&rfd);
     FD_SET(recvsfd, &rfd);
@@ -331,23 +343,26 @@ recfd:
         // socket interrupted. Continue waiting for activity on socket
         continue;
       }
-      if (msgretvalue > 0) { // read from socket
+      if (msgretvalue > 0) {  // read from socket
         tmpbytecount = read(recvsfd, buff, sizeof(buff));
-        if ((tmpbytecount == -1) && (errno == EINTR)) // read interrupted,continue waiting
+        // read interrupted, continue waiting
+        if ((tmpbytecount == -1) && (errno == EINTR))
           continue;
-        if (tmpbytecount == 0) // all data has been read
+        if (tmpbytecount == 0)  // all data has been read
           break;
-        bytes_read += tmpbytecount; // data byte count has to be increased
+        bytes_read += tmpbytecount;  // data byte count has to be increased
         continue;
       }
       break;
     }
 
     tmptime = secs() - tmptime;
-    //  throughput in kilo bits per sec = (transmitted_byte_count * 8) / (time_duration)*(1000)
+    //  throughput in kilo bits per sec =
+    //  (transmitted_byte_count * 8) / (time_duration)*(1000)
     *c2sspd = (8.e-3 * bytes_read) / tmptime;
 
-    // c->s throuput value calculated and assigned ! Release resources, conclude snap writing.
+    // c->s throuput value calculated and assigned ! Release resources, conclude
+    // snap writing.
     stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
 
     // send the server calculated value of C->S throughput as result to client
@@ -357,7 +372,8 @@ recfd:
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
 
-    // get receiver side Web100 stats and write them to the log file. close sockets
+    // get receiver side Web100 stats and write them to the log file. close
+    // sockets
     if (record_reverse == 1)
       web100_get_data_recv(recvsfd, agent, conn, count_vars);
 
@@ -385,9 +401,8 @@ recfd:
           continue;
         if (((msgretvalue == -1) && (errno != EINTR))
             || (msgretvalue == 0)) {
-          log_println(4,
-                      "Failed to read pkt-pair data from C2S flow, retcode=%d, reason=%d",
-                      msgretvalue, errno);
+          log_println(4, "Failed to read pkt-pair data from C2S flow, "
+                      "retcode=%d, reason=%d", msgretvalue, errno);
           snprintf(spds[(*spd_index)++],
                    sizeof(spds[*spd_index]),
                    " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
@@ -401,12 +416,13 @@ recfd:
          * RAC 2/8/10
          */
         if (msgretvalue > 0) {
-          if ((msgretvalue = read(mon_pipe1[0], spds[*spd_index], sizeof(spds[*spd_index])))
-              < 0)
+          if ((msgretvalue = read(mon_pipe1[0], spds[*spd_index],
+                                  sizeof(spds[*spd_index]))) < 0) {
             snprintf(
                 spds[*spd_index],
                 sizeof(spds[*spd_index]),
                 " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
+          }
           log_println(1, "%d bytes read '%s' from C2S monitor pipe",
                       msgretvalue, spds[*spd_index]);
           (*spd_index)++;
@@ -416,7 +432,6 @@ recfd:
           sel_tv.tv_usec = 100000;
           continue;
         }
-
       }
     }
 
@@ -430,13 +445,12 @@ recfd:
 
     // log end of C->S test
     log_println(1, " <----------- %d -------------->", testOptions->child0);
-    //protocol logs
+    // protocol logs
     teststatuses = TEST_ENDED;
     protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
-    //set current test status and free address
+    // set current test status and free address
     setCurrentTest(TEST_NONE);
-
   }
 
   return 0;

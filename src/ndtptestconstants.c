@@ -8,7 +8,7 @@
  */
 
 #include <string.h>
-#include "ndtptestconstants.h"
+#include "./ndtptestconstants.h"
 
 // The arrays below rely on the ordering of corresponding enum in the .h file.
 // test names
@@ -38,7 +38,7 @@ static char *_msgbodyformattype[] = { "bitfield", "string", "none" };
  * */
 char *get_testnamedesc(enum TEST_ID testid, char *snamearg) {
   snamearg = _testnamesarray[testid];
-  //printf ("--current test name = %s for %d\n", snamearg ,testid);
+  // printf ("--current test name = %s for %d\n", snamearg ,testid);
   return snamearg;
 }
 
@@ -50,7 +50,7 @@ char *get_testnamedesc(enum TEST_ID testid, char *snamearg) {
  * */
 char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *sstatusarg) {
   sstatusarg = _teststatusdescarray[teststatus];
-  //printf ("--current test status = %s, for %d \n", sstatusarg, teststatus);
+  // printf ("--current test status = %s, for %d \n", sstatusarg, teststatus);
   return sstatusarg;
 }
 
@@ -63,7 +63,8 @@ char *get_teststatusdesc(enum TEST_STATUS_INT teststatus, char *sstatusarg) {
  * */
 char *get_testdirectiondesc(enum Tx_DIRECTION testdirection, char *sdirnarg) {
   sdirnarg = _txdirectionsarray[testdirection];
-  //printf ("--current test direction = %s , for %d\n", sdirnarg, testdirection);
+  // printf ("--current test direction = %s , for %d\n", sdirnarg,
+  // testdirection);
   return sdirnarg;
 }
 
@@ -76,7 +77,7 @@ char *get_testdirectiondesc(enum Tx_DIRECTION testdirection, char *sdirnarg) {
  * */
 char *get_msgtypedesc(int msgtype, char *smsgtypearg) {
   smsgtypearg = _testmsgtypesarray[msgtype];
-  //printf ("--current test type = %s , for %d\n", smsgtypearg, msgtype);
+  // printf ("--current test type = %s , for %d\n", smsgtypearg, msgtype);
   return smsgtypearg;
 }
 
@@ -86,7 +87,8 @@ char *get_msgtypedesc(int msgtype, char *smsgtypearg) {
  * @param smsgformattypearg descriptive string for message body format type
  * @return
  */
-char * getmessageformattype(enum MSG_BODY_TYPE bodymsgformat, char *smsgformattypearg)  {
+char * getmessageformattype(enum MSG_BODY_TYPE bodymsgformat,
+                            char *smsgformattypearg) {
   smsgformattypearg = _msgbodyformattype[bodymsgformat];
   return smsgformattypearg;
 }

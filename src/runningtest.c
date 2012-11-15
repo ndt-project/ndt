@@ -5,8 +5,8 @@
  *  Created on: Sep 28, 2011
  *      Author: kkumar
  */
-#include "ndtptestconstants.h"
-#include "runningtest.h"
+#include "./ndtptestconstants.h"
+#include "./runningtest.h"
 
 static int currentTest = TEST_NONE;
 static enum Tx_DIRECTION currentDirection = NONE;
@@ -76,7 +76,6 @@ void setCurrentDirn(enum Tx_DIRECTION directionarg) {
     default:
       senddirnstr = get_testdirectiondesc(NO_DIR, currenttestdirn);
       recvdirnstr = get_testdirectiondesc(NO_DIR, othertestdirn);
-      ;
       break;
   }
 }
@@ -134,9 +133,11 @@ char *get_otherdirndesc() {
  * get descriptive test for status of process
  *  @return char* descriptive text of the process status
  *  */
-char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) {
+char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg,
+                         char *sprocarg) {
   sprocarg = _procstatusarray[procstatusarg];
-  //log_println(7,"--current process status = %s for %d\n", sprocarg, procstatusarg);
+  // log_println(7,"--current process status = %s for %d\n", sprocarg,
+  //  procstatusarg);
   return sprocarg;
 }
 
@@ -148,6 +149,6 @@ char *get_procstatusdesc(enum PROCESS_STATUS_INT procstatusarg, char *sprocarg) 
  * */
 char *get_processtypedesc(enum PROCESS_TYPE_INT procidarg, char *snamearg) {
   snamearg = _proctypesarray[procidarg];
-  //log_println(7,"--current process name = %s for %d\n", snamearg, procidarg);
+  // log_println(7,"--current process name = %s for %d\n", snamearg, procidarg);
   return snamearg;
 }

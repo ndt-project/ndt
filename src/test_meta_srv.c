@@ -12,12 +12,12 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "test_meta.h"
-#include "logging.h"
-#include "network.h"
-#include "protocol.h"
-#include "utils.h"
-#include "testoptions.h"
+#include "./test_meta.h"
+#include "./logging.h"
+#include "./network.h"
+#include "./protocol.h"
+#include "./utils.h"
+#include "./testoptions.h"
 
 /**
  * Performs the META test.
@@ -56,11 +56,11 @@ int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
     // log protocol validation details
     teststatuses = TEST_STARTED;
-    protolog_status(testOptions->child0, testids, teststatuses,ctlsockfd);
+    protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     // first message exchanged is am empty TEST_PREPARE message
     j = send_msg(ctlsockfd, TEST_PREPARE, "", 0);
-    if (j == -1 || j == -2) { // Cannot write message headers/data
+    if (j == -1 || j == -2) {  // Cannot write message headers/data
       log_println(6, "META Error!, Test start message not sent!");
       return j;
     }
@@ -77,21 +77,24 @@ int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
       if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
         // message reading error
         log_println(0, "Protocol error!");
-        snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
+        snprintf(buff, sizeof(buff),
+                 "Server (META test): Invalid meta data received");
         send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
         return 1;
       }
       if (check_msg_type("META test", TEST_MSG, msgType, buff, msgLen)) {
         // expected a TEST_MSG only
         log_println(0, "Fault, unexpected message received!");
-        snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
+        snprintf(buff, sizeof(buff),
+                 "Server (META test): Invalid meta data received");
         send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
         return 2;
       }
       if (msgLen < 0) {
         //  meta data should be present at this stage
         log_println(0, "Improper message");
-        snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
+        snprintf(buff, sizeof(buff),
+                 "Server (META test): Invalid meta data received");
         send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
         return 3;
       }
@@ -104,24 +107,27 @@ int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
       buff[msgLen] = 0;
       value = index(buff, ':');
-      if (value == NULL) { // key-value separates by ":"
+      if (value == NULL) {  // key-value separates by ":"
         log_println(0, "Improper message");
-        snprintf(buff, sizeof(buff), "Server (META test): Invalid meta data received");
+        snprintf(buff, sizeof(buff), "Server (META test): "
+                 "Invalid meta data received");
         send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
         return 4;
       }
       *value = 0;
       value++;
 
-      // get the recommended set of data expected: client os name , client browser name,
-      //why not if else-if for the whole set? TODO
+      // get the recommended set of data expected: client os name,
+      // client browser name,
+      // why not if else-if for the whole set? TODO
       if (strcmp(META_CLIENT_OS, buff) == 0) {
         snprintf(meta.client_os, sizeof(meta.client_os), "%s", value);
         /*continue;*/
       }
 
       if (strcmp(META_CLIENT_APPLICATION, buff) == 0) {
-        snprintf(meta.client_application, sizeof(meta.client_application), "%s", value);
+        snprintf(meta.client_application, sizeof(meta.client_application),
+                 "%s", value);
         /*continue;*/
       }
 
@@ -144,18 +150,18 @@ int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
       snprintf(new_entry->key, sizeof(new_entry->key), "%s", buff);
       snprintf(new_entry->value, sizeof(new_entry->value), "%s", value);
     }
-    new_entry->next = NULL; // ensure meta list ends here 
+    new_entry->next = NULL;  // ensure meta list ends here
 
     // Finalize test by sending appropriate message, and setting status
     if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0) {
       log_println(6, "META test - failed to send finalize message");
     }
 
-    //log end of test and conclude
+    // log end of test and conclude
     log_println(1, " <-------------------------->");
 
-    teststatuses = TEST_ENDED; // protocol log section
-    protolog_status(testOptions->child0, testids, teststatuses,ctlsockfd);
+    teststatuses = TEST_ENDED;  // protocol log section
+    protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     setCurrentTest(TEST_NONE);
   }

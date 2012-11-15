@@ -13,14 +13,14 @@
 #include <assert.h>
 
 /* local include file contains needed structures */
-#include "web100srv.h"
-#include "network.h"
-#include "logging.h"
+#include "./web100srv.h"
+#include "./network.h"
+#include "./logging.h"
 #include <net/if.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
-#include "strlutils.h"
-#include "utils.h"
+#include "./strlutils.h"
+#include "./utils.h"
 
 int dumptrace;
 pcap_t *pd;
@@ -52,9 +52,10 @@ void get_iflist(void) {
     }
   }
   // Ethernet related speeds alone "specifically" determined.
-  // Note that it appears that NDT assumes its an ethernet link. But, if ifspeed is not assigned,
-  // a value will be assigned to it in the "calc_linkspeed" method which will still
-  // cause all speed-bins to be looked into (i.e correct results expected).
+  // Note that it appears that NDT assumes its an ethernet link. But, if
+  // ifspeed is not assigned, a value will be assigned to it in the
+  // "calc_linkspeed" method which will still cause all speed-bins to be
+  // looked into (i.e correct results expected).
   for (i = 0; i < cnt; i++) {
     if (strncmp((char *) iflist.name[i], "eth", 3) != 0)
       continue;
@@ -116,8 +117,7 @@ int check_signal_flags() {
                   fwd.saddr, fwd.sport, rev.saddr, rev.sport);
 #endif
 #ifdef AF_INET6
-        }
-        else if (fwd.family == 6) {
+        } else if (fwd.family == 6) {
           char str[136];
           memset(str, 0, 136);
           inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
@@ -125,9 +125,9 @@ int check_signal_flags() {
           memset(str, 0, 136);
           inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
           fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
-        }
-        else {
-          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n", fwd.family);
+        } else {
+          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
+                  fwd.family);
         }
 #endif
       }
@@ -157,8 +157,7 @@ int check_signal_flags() {
                   fwd.saddr, fwd.sport, rev.saddr, rev.sport);
 #endif
 #ifdef AF_INET6
-        }
-        else if (fwd.family == 6) {
+        } else if (fwd.family == 6) {
           char str[136];
           memset(str, 0, 136);
           inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
@@ -166,9 +165,9 @@ int check_signal_flags() {
           memset(str, 0, 136);
           inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
           fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
-        }
-        else {
-          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n", fwd.family);
+        } else {
+          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
+                  fwd.family);
         }
 #endif
       }
@@ -183,10 +182,8 @@ int check_signal_flags() {
         pcap_dump_close(pdump);
       sig2 = 2;
     }
-    log_println(
-        6,
-        "Finished reading pkt-pair data from network, process %d should terminate now",
-        getpid());
+    log_println(6, "Finished reading pkt-pair data from network, process %d "
+                "should terminate now", getpid());
     return 1;
   }
   return 0;
@@ -197,7 +194,6 @@ int check_signal_flags() {
  * @param cur SpdPair struct instance
  * */
 void init_vars(struct spdpair *cur) {
-
   int i;
 
   assert(cur);
@@ -230,7 +226,6 @@ void init_vars(struct spdpair *cur) {
  *  @param monitor_pipe array used to store file descriptors of pipes
  *   */
 void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
-
   int i, total = 0, max = 0, s, index = -1;
   char buff[256];
   int tzoffset = 6;
@@ -258,15 +253,19 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
 #ifdef AF_INET6
     if (cur->family == 4) {
       if (fp) {
-        fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
-                ((cur->saddr[0] >> 16) & 0xff), (cur->saddr[0] >> 24), cur->sport);
-        fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
-                ((cur->daddr[0] >> 16) & 0xff), (cur->daddr[0] >> 24), cur->dport);
+        fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF),
+                ((cur->saddr[0] >> 8) & 0xff), ((cur->saddr[0] >> 16) & 0xff),
+                (cur->saddr[0] >> 24), cur->sport);
+        fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr[0] & 0xFF),
+                ((cur->daddr[0] >> 8) & 0xff), ((cur->daddr[0] >> 16) & 0xff),
+                (cur->daddr[0] >> 24), cur->dport);
       }
-      log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF), ((cur->saddr[0] >> 8) & 0xff),
-                ((cur->saddr[0] >> 16) & 0xff), (cur->saddr[0] >> 24), cur->sport);
-      log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr[0] & 0xFF), ((cur->daddr[0] >> 8) & 0xff),
-                ((cur->daddr[0] >> 16) & 0xff), (cur->daddr[0] >> 24), cur->dport);
+      log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF),
+                ((cur->saddr[0] >> 8) & 0xff), ((cur->saddr[0] >> 16) & 0xff),
+                (cur->saddr[0] >> 24), cur->sport);
+      log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr[0] & 0xFF),
+                ((cur->daddr[0] >> 8) & 0xff), ((cur->daddr[0] >> 16) & 0xff),
+                (cur->daddr[0] >> 24), cur->dport);
     }
 #else
     if (fp) {
@@ -275,13 +274,16 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
           "%u.%u.%u.%u:%d --> ",
           (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
           ((cur->saddr >> 16) & 0xff), (cur->saddr >> 24), cur->sport);
-      fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
-              ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
+      fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF),
+              ((cur->daddr >> 8) & 0xff), ((cur->daddr >> 16) & 0xff),
+              (cur->daddr >> 24), cur->dport);
     }
-    log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
-              ((cur->saddr >> 16) & 0xff), (cur->saddr >> 24), cur->sport);
-    log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
-              ((cur->daddr >> 16) & 0xff), (cur->daddr >> 24), cur->dport);
+    log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF),
+              ((cur->saddr >> 8) & 0xff), ((cur->saddr >> 16) & 0xff),
+              (cur->saddr >> 24), cur->sport);
+    log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF),
+              ((cur->daddr >> 8) & 0xff), ((cur->daddr >> 16) & 0xff),
+              (cur->daddr >> 24), cur->dport);
 #endif
 #ifdef AF_INET6
     else {
@@ -420,7 +422,8 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
   log_println(6, "wrote %d bytes: link counters are '%s'", i, buff);
   log_println(
       6,
-      "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, no change = %d",
+      "#$#$#$#$ pcap routine says window increases = %d, decreases = %d, "
+      "no change = %d",
       cur->inc_cnt, cur->dec_cnt, cur->same_cnt);
 }
 
@@ -437,7 +440,6 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
  */
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
                    int portB) {
-
   float bits = 0, spd = 0, time = 0;
 
   assert(cur);
@@ -445,7 +447,8 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
 
   time = (((cur->sec - cur2->sec) * 1000000) + (cur->usec - cur2->usec));
   /* time = curt->time - cur2->time; */
-  // if ports are as anticipated, use sequence number to calculate no of bits exchanged
+  // if ports are as anticipated, use sequence number to calculate no of bits
+  // exchanged
   if ((cur->dport == portA) || (cur->sport == portB)) {
     if (cur->seq >= cur2->seq)
       bits = (cur->seq - cur2->seq) * 8;
@@ -454,7 +457,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
     if (time > 200000) {
       cur2->timeout++;
     }
-  } else { // use acknowledgement details to calculate number of bits exchanged
+  } else {  // use acknowledgement details to calculate number of bits exchanged
     if (cur->ack > cur2->ack)
       bits = (cur->ack - cur2->ack) * 8;
     else if (cur->ack == cur2->ack)
@@ -505,18 +508,20 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
   cur2->usec = cur->usec;
   log_println(8, "BITS=%f, time=%f, SPD=%f", bits, time, spd);
   if ((time > 10) && (spd > 0)) {
-    log_println(8, ">10 : totalcount=%f, spd=%f, cur2->totalcount=%d",  cur2->totalspd2, spd, cur2->totalcount);
+    log_println(8, ">10 : totalcount=%f, spd=%f, cur2->totalcount=%d",
+                cur2->totalspd2, spd, cur2->totalcount);
     cur2->totalspd += spd;
     cur2->totalcount++;
     cur2->totalspd2 = (cur2->totalspd2 + spd) / 2;
   }
-  // debug 
+  // debug
   //
-  //else {
-  //	log_println(0, "ELSE totalspd2=%f, spd=%f, cur2->totalcount=%d",  cur2->totalspd2, spd, cur2->totalcount);
-  //} 
+  // else {
+  //    log_println(0, "ELSE totalspd2=%f, spd=%f, cur2->totalcount=%d",
+  //                cur2->totalspd2, spd, cur2->totalcount);
+  // }
 
-  log_println(8, "totalspd2 in the end=%f, spd=%f",  cur2->totalspd2,spd);
+  log_println(8, "totalspd2 in the end=%f, spd=%f",  cur2->totalspd2, spd);
 }
 
 /**
@@ -531,7 +536,6 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
  */
 
 void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
-
   struct ether_header *enet;
   const struct ip *ip = NULL;
   PortPair* pair = (PortPair*) user;
@@ -564,7 +568,7 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
   current.time = (current.sec * 1000000) + current.usec;
 
   enet = (struct ether_header *) p;
-  p += sizeof(struct ether_header); /* move packet pointer past ethernet fields */
+  p += sizeof(struct ether_header);  // move packet pointer past ethernet fields
 
   ip = (const struct ip *) p;
 #if defined(AF_INET6)
@@ -652,11 +656,9 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
           }
         }
 #if defined(AF_INET6)
-      }
-      else { /*  IP header value is not = 4, so must be IPv6 */
-
-        /* This is an IPv6 packet, grab the IP & TCP header values for further use.
-        */
+      } else { /*  IP header value is not = 4, so must be IPv6 */
+        // This is an IPv6 packet, grab the IP & TCP header values for further
+        // use.
 
         ip6 = (const struct ip6_hdr *)p;
 
@@ -671,12 +673,14 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
         current.ack = ntohl(tcp->ack_seq);
         current.win = ntohs(tcp->window);
 
-        /* The 1st packet has been received, finish the initialization process and return.
-        */
+        // The 1st packet has been received, finish the initialization process
+        // and return.
 
-        /* if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) && (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) { */
+        // if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) &&
+        //     (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
         if (fwd.seq == 0) {
-          log_println(1, "New IPv6 packet trace started -- initializing counters");
+          log_println(1, "New IPv6 packet trace started -- "
+                      "initializing counters");
           fwd.seq = current.seq;
           fwd.st_sec = current.sec;
           fwd.st_usec = current.usec;
@@ -746,7 +750,6 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
         int tport = pair->port1;
         pair->port1 = pair->port2;
         pair->port2 = tport;
-        ;
         fwd.st_sec = current.sec;
         fwd.st_usec = current.usec;
         rev.st_sec = current.sec;
@@ -783,8 +786,8 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
        */
 
       void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
-                         socklen_t saddrlen, int monitor_pipe[2], char *device, PortPair* pair,
-                         char *direction, int compress) {
+                         socklen_t saddrlen, int monitor_pipe[2], char *device,
+                         PortPair* pair, char *direction, int compress) {
         char cmdbuf[256], dir[256];
         pcap_handler printer;
         u_char * pcap_userdata = (u_char*) pair;
@@ -815,7 +818,8 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
 
         /* special check for localhost, set device accordingly */
         if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
-          strlcpy(device, "lo", 100); //hardcoding device address to 100, as initialised in main()
+          // hardcoding device address to 100, as initialised in main()
+          strlcpy(device, "lo", 100);
         if (device == NULL) {
           if (pcap_findalldevs(&alldevs, errbuf) == 0) {
             for (dp = alldevs; dp != NULL; dp = dp->next) {
@@ -848,10 +852,14 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
 
                       if (direction[0] == 's') {
 #if defined(AF_INET6)
-                        fwd.saddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
-                        fwd.daddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        rev.saddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        rev.daddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+                        fwd.saddr[0] =
+                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+                        fwd.daddr[0] =
+                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                        rev.saddr[0] =
+                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                        rev.daddr[0] =
+                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
 #else
                         fwd.saddr =
                             ((struct sockaddr_in *) src_addr)->sin_addr.s_addr;
@@ -876,10 +884,14 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
                                 ((struct sockaddr_in *) src_addr)->sin_port);
                       } else {
 #if defined(AF_INET6)
-                        rev.saddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
-                        rev.daddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        fwd.saddr[0] = ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        fwd.daddr[0] = ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+                        rev.saddr[0] =
+                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+                        rev.daddr[0] =
+                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                        fwd.saddr[0] =
+                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                        fwd.daddr[0] =
+                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
 #else
                         rev.saddr =
                             ((struct sockaddr_in *) src_addr)->sin_addr.s_addr;
@@ -909,34 +921,43 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
 #if defined(AF_INET6)
                   case AF_INET6:
                     memset(namebuf, 0, 200);
-                    inet_ntop(AF_INET6, &((struct sockaddr_in6 *)curAddr->addr)->sin6_addr,
+                    inet_ntop(AF_INET6,
+                              &((struct sockaddr_in6*)(curAddr->addr))->sin6_addr,
                               namebuf, INET6_ADDRSTRLEN);
                     /* I2AddrNodeName(srcAddr, namebuf, &nameBufLen); */
                     log_println(3, "IPv6 interface found address=%s", namebuf);
-                    if (memcmp(((struct sockaddr_in6 *)curAddr->addr)->sin6_addr.s6_addr,
-                               ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr,
+                    if (memcmp(((struct sockaddr_in6 *)curAddr->addr)->
+                                  sin6_addr.s6_addr,
+                               ((struct sockaddr_in6 *)src_addr)->
+                                  sin6_addr.s6_addr,
                                16) == 0) {
-                      log_println(4, "IPv6 address match, setting device to '%s'", dp->name);
+                      log_println(4, "IPv6 address match, setting device to "
+                                  "'%s'", dp->name);
                       device = dp->name;
 
+                      struct sockaddr_in6* src_addr6 =
+                          (struct sockaddr_in6*)src_addr;
+                      struct sockaddr_in6* sock_addr6 =
+                          (struct sockaddr_in6*)sock_addr;
+
                       if (direction[0] == 's') {
-                        memcpy(fwd.saddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
-                        memcpy(fwd.daddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
-                        memcpy(rev.saddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
-                        memcpy(rev.daddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
-                        fwd.sport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
-                        fwd.dport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
-                        rev.sport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
-                        rev.dport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
+                        memcpy(fwd.saddr, src_addr6->sin6_addr.s6_addr, 16);
+                        memcpy(fwd.daddr, sock_addr6->sin6_addr.s6_addr, 16);
+                        memcpy(rev.saddr, sock_addr6->sin6_addr.s6_addr, 16);
+                        memcpy(rev.daddr, src_addr6->sin6_addr.s6_addr, 16);
+                        fwd.sport = ntohs(src_addr6->sin6_port);
+                        fwd.dport = ntohs(sock_addr6->sin6_port);
+                        rev.sport = ntohs(sock_addr6->sin6_port);
+                        rev.dport = ntohs(src_addr6->sin6_port);
                       } else {
-                        memcpy(rev.saddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
-                        memcpy(rev.daddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
-                        memcpy(fwd.saddr, ((struct sockaddr_in6 *)sock_addr)->sin6_addr.s6_addr, 16);
-                        memcpy(fwd.daddr, ((struct sockaddr_in6 *)src_addr)->sin6_addr.s6_addr, 16);
-                        rev.sport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
-                        rev.dport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
-                        fwd.sport = ntohs(((struct sockaddr_in6 *)sock_addr)->sin6_port);
-                        fwd.dport = ntohs(((struct sockaddr_in6 *)src_addr)->sin6_port);
+                        memcpy(rev.saddr, src_addr6->sin6_addr.s6_addr, 16);
+                        memcpy(rev.daddr, sock_addr6->sin6_addr.s6_addr, 16);
+                        memcpy(fwd.saddr, sock_addr6->sin6_addr.s6_addr, 16);
+                        memcpy(fwd.daddr, src_addr6->sin6_addr.s6_addr, 16);
+                        rev.sport = ntohs(src_addr6->sin6_port);
+                        rev.dport = ntohs(sock_addr6->sin6_port);
+                        fwd.sport = ntohs(sock_addr6->sin6_port);
+                        fwd.dport = ntohs(src_addr6->sin6_port);
                       }
                       goto endLoop;
                     }
@@ -950,7 +971,7 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
             }
           }
         }
-endLoop:
+ endLoop:
 
         /*  device = pcap_lookupdev(errbuf); */
         if (device == NULL) {
@@ -969,7 +990,8 @@ endLoop:
         memset(namebuf, 0, 200);
         I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
         memset(cmdbuf, 0, sizeof(cmdbuf));
-        snprintf(cmdbuf, sizeof(cmdbuf), "host %s and port %d", namebuf, I2AddrPort(sockAddr));
+        snprintf(cmdbuf, sizeof(cmdbuf), "host %s and port %d", namebuf,
+                 I2AddrPort(sockAddr));
 
         log_println(1, "installing pkt filter for '%s'", cmdbuf);
         log_println(1, "Initial pkt src data = %p", fwd.saddr);
@@ -1028,7 +1050,8 @@ endLoop:
 
         log_println(
             5,
-            "Pkt-Pair data collection ended, waiting for signal to terminate process");
+            "Pkt-Pair data collection ended, waiting for signal to terminate "
+            "process");
         /*    Temporarily remove these free statements, The memory should be free'd when
          *      the child process terminates, so we don't have a leak.  There might be a bug in
          *      the pcap lib (on-line reference found from 2003) and on 10/14/09 I was seeing
@@ -1043,15 +1066,13 @@ endLoop:
         free(sockAddr);
 
         if (sig1 == 2) {
-          while ((read(mon_pipe1[0], &c, 1)) < 0)
-            ;
+          while ((read(mon_pipe1[0], &c, 1)) < 0) { }
           close(mon_pipe1[0]);
           close(mon_pipe1[1]);
           sig1 = 0;
         }
         if (sig2 == 2) {
-          while ((read(mon_pipe2[0], &c, 1)) < 0)
-            ;
+          while ((read(mon_pipe2[0], &c, 1)) < 0) { }
           sleep(2);
           close(mon_pipe2[0]);
           close(mon_pipe2[1]);
@@ -1060,6 +1081,6 @@ endLoop:
 
         log_println(
             8,
-            "Finally Finished reading data from network, process %d should terminate now",
-            getpid());
+            "Finally Finished reading data from network, process %d should "
+            "terminate now", getpid());
       }

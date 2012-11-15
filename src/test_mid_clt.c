@@ -10,12 +10,12 @@
 #include <unistd.h>
 #include <string.h>
 
-#include "clt_tests.h"
-#include "logging.h"
-#include "network.h"
-#include "protocol.h"
-#include "utils.h"
-#include "strlutils.h"
+#include "./clt_tests.h"
+#include "./logging.h"
+#include "./network.h"
+#include "./protocol.h"
+#include "./utils.h"
+#include "./strlutils.h"
 
 /**
  * Perform the client part of the middleBox testing. The middlebox test
@@ -61,10 +61,10 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = MIDDLEBOX;
 
-  if (tests & TEST_MID) { // middlebox test has to be performed
+  if (tests & TEST_MID) {  // middlebox test has to be performed
     log_println(1, " <-- Middlebox test -->");
     setCurrentTest(TEST_MID);
-    //protocol logs
+    // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
 
@@ -81,14 +81,16 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
       return 2;
     }
 
-    // The server is expected to send a message with a valid payload that contains
-    // .. the port number that server wants client to bind to for this test
+    // The server is expected to send a message with a valid payload that
+    // contains the port number that server wants client to bind to for this
+    // test
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
     }
     buff[msgLen] = 0;
-    if (check_int(buff, &midport)) {  // obtained message does not contain integer port#
+    if (check_int(buff, &midport)) {  // obtained message does not contain
+                                      // integer port#
       log_println(0, "Invalid port number");
       return 4;
     }
@@ -101,7 +103,8 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
     }
     I2AddrSetPort(sec_addr, midport);
 
-    if (get_debuglvl() > 4) { //debug to check if correct port was set in addr struct
+    // debug to check if correct port was set in addr struct
+    if (get_debuglvl() > 4) {
       char tmpbuff[200];
       size_t tmpBufLen = 199;
       memset(tmpbuff, 0, 200);
@@ -110,19 +113,21 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
     }
 
     // connect to server using port obtained above
-    if ((retcode = CreateConnectSocket(&in2Socket, NULL, sec_addr, conn_options, buf_size))) {
+    if ((retcode = CreateConnectSocket(&in2Socket, NULL, sec_addr,
+                                       conn_options, buf_size))) {
       log_println(0, "Connect() for middlebox failed: %s", strerror(errno));
       return -10;
     }
 
-    // start reading throughput test data from server using the connection created above
+    // start reading throughput test data from server using the connection
+    // created above
     printf("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
     fflush(stdout);
     testresult_str[0] = '\0';
     bytes = 0;
     t = secs() + 5.0;  // set timer for 5 seconds, and read for 5 seconds
-    sel_tv.tv_sec = 6; // Time out the socket after 6.5 seconds
-    sel_tv.tv_usec = 5; // 500?
+    sel_tv.tv_sec = 6;  // Time out the socket after 6.5 seconds
+    sel_tv.tv_usec = 5;  // 500?
     FD_ZERO(&rfd);
     FD_SET(in2Socket, &rfd);
     for (;;) {
@@ -151,14 +156,16 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
     // calculate throughput in Kbps
     spdin = ((BITS_8_FLOAT * bytes) / KILO) / t;
 
-    // Test is complete. Now, get results from server (includes CurrentMSS, WinScaleSent, WinScaleRcvd..).
+    // Test is complete. Now, get results from server (includes CurrentMSS,
+    // WinScaleSent, WinScaleRcvd..).
     // The results are sent from server in the form of a TEST_MSG object
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error - missed text message!");
       return 1;
     }
-    if (check_msg_type(MIDBOX_TEST_LOG " results", TEST_MSG, msgType, buff, msgLen)) {
+    if (check_msg_type(MIDBOX_TEST_LOG " results", TEST_MSG, msgType, buff,
+                       msgLen)) {
       return 2;
     }
 
@@ -188,7 +195,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
     log_println(1, " <-------------------->");
     // log protocol test ending
     teststatuses = TEST_ENDED;
-    protolog_status(getpid(), testids, teststatuses,ctlSocket);
+    protolog_status(getpid(), testids, teststatuses, ctlSocket);
     setCurrentTest(TEST_NONE);
   }
   return 0;

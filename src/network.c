@@ -11,8 +11,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "network.h"
-#include "logging.h"
+#include "./network.h"
+#include "./logging.h"
 
 /**
  * Create and bind socket.
@@ -39,14 +39,14 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
   for (ai = fai; ai; ai = ai->ai_next) {
     // options provided by user indicate V6
 #ifdef AF_INET6
-    if (options & OPT_IPV6_ONLY) { // If not an INET6 address, move on
-      if(ai->ai_family != AF_INET6)
+    if (options & OPT_IPV6_ONLY) {  // If not an INET6 address, move on
+      if (ai->ai_family != AF_INET6)
         continue;
     }
 #endif
 
-    if (options & OPT_IPV4_ONLY) { // options provided by user indicate V4
-      if (ai->ai_family != AF_INET) // Not valid Inet address family. move on
+    if (options & OPT_IPV4_ONLY) {  // options provided by user indicate V4
+      if (ai->ai_family != AF_INET)  // Not valid Inet address family. move on
         continue;
     }
 
@@ -69,15 +69,14 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     // the IPv6 version socket option setup
 #if defined(AF_INET6) && defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
     if ((ai->ai_family == AF_INET6) && (options & OPT_IPV6_ONLY) &&
-        setsockopt(fd,IPPROTO_IPV6,IPV6_V6ONLY,&on,sizeof(on)) != 0) {
+        setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
       goto failsock;
     }
 #endif
     // end trying to set socket option to reuse local address
 
     // try to bind to address
-    if (bind(fd, ai->ai_addr, ai->ai_addrlen) == 0) { // successful
-
+    if (bind(fd, ai->ai_addr, ai->ai_addrlen) == 0) {  // successful
       // set values in "addr" structure
       if (!I2AddrSetSAddr(addr, ai->ai_addr, ai->ai_addrlen)
           || !I2AddrSetProtocol(addr, ai->ai_protocol)
@@ -94,14 +93,15 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
                         &tmp_addr_len)) {
           return -1;
         }
-        tmpAddr = I2AddrBySAddr(get_errhandle(),
-                                (struct sockaddr*) &tmp_addr, tmp_addr_len, 0, 0);
+        tmpAddr = I2AddrBySAddr(
+            get_errhandle(), (struct sockaddr*) &tmp_addr, tmp_addr_len, 0, 0);
         I2AddrSetPort(addr, I2AddrPort(tmpAddr));
         I2AddrFree(tmpAddr);
       }
       // save socket file descriptor
       if (!I2AddrSetFD(addr, fd, True)) {
-        log_println(1, "OpenSocket: Unable to set file descriptor in address record");
+        log_println(1, "OpenSocket: Unable to set file descriptor in address "
+                    "record");
         return -1;
       }
       // end setting values in "addr" structure
@@ -109,23 +109,23 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
       break;
     }
 
-    // Address is indicated as being in use. Display actual socket options to user and return
+    // Address is indicated as being in use. Display actual socket options to
+    // user and return
     if (errno == EADDRINUSE) {
       /* RAC debug statemement 10/11/06 */
       onSize = sizeof(on);
       getsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, &onSize);
-      log_println(1,
-                  "bind(%d) failed: Address already in use given as the reason, getsockopt() returned %d",
-                  fd, on);
+      log_println(1, "bind(%d) failed: Address already in use given as the "
+                  "reason, getsockopt() returned %d", fd, on);
       return -2;
     }
 
-    // If setting socket option failed, print error, and try to close socket file-descriptor
-failsock:
+    // If setting socket option failed, print error, and try to close socket
+    // file-descriptor
+ failsock:
     /* RAC debug statemement 10/11/06 */
     log_println(1, "failsock: Unable to set socket options for fd=%d", fd);
-    while ((close(fd) < 0) && (errno == EINTR))
-      ;
+    while ((close(fd) < 0) && (errno == EINTR)) { }
   }
 
   // set meta test's address domain family to the one used to create socket
@@ -155,7 +155,8 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
     goto error;
   }
 
-  if ((!addr) && !(addr = I2AddrByWildcard(get_errhandle(), SOCK_STREAM, serv))) {
+  if ((!addr) &&
+      !(addr = I2AddrByWildcard(get_errhandle(), SOCK_STREAM, serv))) {
     log_println(1, "Unable to create I2Addr record by wildcard.");
     goto error;
   }
@@ -190,8 +191,8 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
 
   // now assign buffer sizes passed as arguments
   if (buf_size > 0) {
-    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size)); // send buffer
-    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size)); // receive buffer
+    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &buf_size, sizeof(buf_size));
+    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &buf_size, sizeof(buf_size));
     // print values set to help user verify
     getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
     log_print(5, "Changed buffer sizes: Send buffer set to %d(%d), ",
@@ -200,8 +201,8 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
     log_println(5, "Receive buffer set to %d(%d)", set_size, buf_size);
   }
 
-  // now listen on socket for connections, with backlog queue length = NDT_BACKLOG
-  if (listen(fd, NDT_BACKLOG) < 0) { // if listen returns value <0, then error
+  // listen on socket for connections, with backlog queue length = NDT_BACKLOG
+  if (listen(fd, NDT_BACKLOG) < 0) {  // if listen returns value <0, then error
     log_println(1, "listen(%d,%d):%s", fd, NDT_BACKLOG, strerror(errno));
     goto error;
   }
@@ -253,24 +254,24 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
   }
 
   for (ai = fai; ai; ai = ai->ai_next) {
-
     // options provided by user indicate V6
 #ifdef AF_INET6
-    if (options & OPT_IPV6_ONLY) { // If not an INET6 address, move on
-      if(ai->ai_family != AF_INET6)
+    if (options & OPT_IPV6_ONLY) {  // If not an INET6 address, move on
+      if (ai->ai_family != AF_INET6)
         continue;
     }
 #endif
 
     // options provided by user indicate V4
     if (options & OPT_IPV4_ONLY) {
-      if (ai->ai_family != AF_INET) // NOT valid inet address family. Move on.
+      if (ai->ai_family != AF_INET)  // NOT valid inet address family. Move on.
         continue;
     }
 
     // create socket with obtained address domain, socket type and protocol
     *sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
-    if (*sockfd < 0) { // socket create failed. Abandon further activities using this socket
+    if (*sockfd < 0) {
+      // socket create failed. Abandon further activities using this socket
       continue;
     }
 
@@ -285,7 +286,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
       for (lai = lfai; lai; lai = lai->ai_next) {
 #ifdef AF_INET6
         if (options & OPT_IPV6_ONLY) {
-          if(lai->ai_family != AF_INET6)
+          if (lai->ai_family != AF_INET6)
             continue;
         }
 #endif
@@ -297,7 +298,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 
         // bind to local address
         if (bind((*sockfd), lai->ai_addr, lai->ai_addrlen) == 0) {
-          bindFailed = 0; // bind successful
+          bindFailed = 0;  // bind successful
           break; /* success */
         }
       }
@@ -307,7 +308,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
         close((*sockfd)); /* ignore this one */
         continue;
       }
-    } // end local address
+    }  // end local address
 
     /* Set sock opt code from Marion Nakanson <hakansom@ohsu.edu
      *  OHSU Advanced Computing Center
@@ -339,7 +340,6 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 
     // Connect to target socket
     if (connect(*sockfd, ai->ai_addr, ai->ai_addrlen) == 0) {
-
       // save server address values
       if (I2AddrSetSAddr(server_addr, ai->ai_addr, ai->ai_addrlen)
           && I2AddrSetSocktype(server_addr, ai->ai_socktype)
@@ -349,8 +349,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
       }
       // unable to save
       log_println(1, "I2Addr functions failed after successful connection");
-      while ((close(*sockfd) < 0) && (errno == EINTR))
-        ;
+      while ((close(*sockfd) < 0) && (errno == EINTR)) { }
       return 1;
     }
   }
@@ -390,11 +389,11 @@ int send_msg(int ctlSocket, int type, void* msg, int len) {
   for (i = 0; i < 5; i++) {
     // Write initial data about length and type to socket
     rc = writen(ctlSocket, buff, 3);
-    if (rc == 3) // write completed
+    if (rc == 3)  // write completed
       break;
-    if (rc == 0) // nothing written yet,
+    if (rc == 0)  // nothing written yet,
       continue;
-    if (rc == -1) // error writing to socket..cannot continue
+    if (rc == -1)  // error writing to socket..cannot continue
       return -1;
   }
 
@@ -411,7 +410,7 @@ int send_msg(int ctlSocket, int type, void* msg, int len) {
     // data writing not complete, continue
     if (rc == 0)
       continue;
-    if (rc == -1) //error writing to socket, cannot continue writing data
+    if (rc == -1)  // error writing to socket, cannot continue writing data
       return -2;
   }
   if (i == 5)
@@ -490,9 +489,9 @@ int writen(int fd, void* buf, int amount) {
   while (sent < amount) {
     n = write(fd, ptr + sent, amount - sent);
     if (n == -1) {
-      if (errno == EINTR) // interrupted, retry writing again
+      if (errno == EINTR)  // interrupted, retry writing again
         continue;
-      if (errno != EAGAIN) { // some genuine socket write error
+      if (errno != EAGAIN) {  // some genuine socket write error
         log_println(6,
                     "writen() Error! write(%d) failed with err='%s(%d) pic=%d'",
                     fd, strerror(errno), errno, getpid());
@@ -500,7 +499,7 @@ int writen(int fd, void* buf, int amount) {
       }
     }
     assert(n != 0);
-    if (n != -1) { // success writing "n" bytes. Increment total bytes written
+    if (n != -1) {  // success writing "n" bytes. Increment total bytes written
       sent += n;
     }
   }
@@ -523,8 +522,8 @@ int readn(int fd, void* buf, int amount) {
 
   assert(amount >= 0);
 
-  FD_ZERO(&rfd); // initialize with zeroes
-  FD_SET(fd, &rfd); //
+  FD_ZERO(&rfd);  // initialize with zeroes
+  FD_SET(fd, &rfd);
   sel_tv.tv_sec = 600;
   sel_tv.tv_usec = 0;
 
@@ -535,23 +534,24 @@ int readn(int fd, void* buf, int amount) {
    * if not, and the 3 second timer goes off, exit out and clean up.
    */
   while (received < amount) {
-
     // check if fd+1 socket is ready to be read
     rc = select(fd + 1, &rfd, NULL, NULL, &sel_tv);
-    if (rc == 0) { /* A timeout occurred, nothing to read from socket after 3 seconds */
-      log_println(6, "readn() routine timeout occurred, return error signal and kill off child");
+    if (rc == 0) {
+      /* A timeout occurred, nothing to read from socket after 3 seconds */
+      log_println(6, "readn() routine timeout occurred, return error signal "
+                  "and kill off child");
       return received;
     }
     if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
       continue;
     n = read(fd, ptr + received, amount - received);
-    if (n == -1) { // error
-      if (errno == EINTR) // interrupted , try reading again
+    if (n == -1) {  // error
+      if (errno == EINTR)  // interrupted , try reading again
         continue;
-      if (errno != EAGAIN) // genuine socket read error, return
+      if (errno != EAGAIN)  // genuine socket read error, return
         return -errno;
     }
-    if (n != -1) { // if no errors reading, increment data byte count
+    if (n != -1) {  // if no errors reading, increment data byte count
       received += n;
     }
     if (n == 0)

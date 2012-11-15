@@ -10,12 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "clt_tests.h"
-#include "logging.h"
-#include "network.h"
-#include "protocol.h"
-#include "utils.h"
-#include "strlutils.h"
+#include "./clt_tests.h"
+#include "./logging.h"
+#include "./network.h"
+#include "./protocol.h"
+#include "./utils.h"
+#include "./strlutils.h"
 
 int ssndqueue, sbytes;
 double spdin, s2cspd;
@@ -45,7 +45,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
   I2Addr sec_addr = NULL;
-  int inlth, retcode, one=1, set_size;
+  int inlth, retcode, one = 1, set_size;
   int inSocket;
   socklen_t optlen;
   uint32_t bytes;
@@ -60,12 +60,12 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
   if (tests & TEST_S2C) {
     setCurrentTest(TEST_S2C);
-    //protocol logs
+    // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
 
-    // First message expected from the server is a TEST_PREPARE. Any other message
-    // ...type is unexpected at this point.
+    // First message expected from the server is a TEST_PREPARE. Any other
+    // message type is unexpected at this point.
     log_println(1, " <-- S2C throughput test -->");
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
@@ -75,8 +75,8 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     if (check_msg_type(S2C_TEST_LOG, TEST_PREPARE, msgType, buff, msgLen)) {
       return 2;
     }
-    // This TEST_PREPARE message is expected to have the port number as message body.
-    // Check if this is a valid integral port.
+    // This TEST_PREPARE message is expected to have the port number as message
+    // body. Check if this is a valid integral port.
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
@@ -100,10 +100,11 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Unable to resolve server address: %s", strerror(errno));
       return -3;
     }
-    I2AddrSetPort(sec_addr, s2cport); //set port to value obtained from server
+    I2AddrSetPort(sec_addr, s2cport);  // set port to value obtained from server
 
     // Connect to the server; set socket options
-    if ((retcode = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options, buf_size))) {
+    if ((retcode = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options,
+                                       buf_size))) {
       log_println(0, "Connect() for Server to Client failed", strerror(errno));
       return -15;
     }
@@ -164,21 +165,23 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       break;
     }
 
-    // get actual time for which data was received, and calculate throughput based on it.
+    // get actual time for which data was received, and calculate throughput
+    // based on it.
     t = secs() - t + 15.0;
-    spdin = ((BITS_8_FLOAT * bytes) / KILO) / t; //kbps
+    spdin = ((BITS_8_FLOAT * bytes) / KILO) / t;  // kbps
 
-    //log_println(0,"S->C: Received %d bytes in %0.2f secs: Spdin= %f", bytes, t, spdin);
+    // log_println(0,"S->C: Received %d bytes in %0.2f secs: Spdin= %f", bytes,
+    //             t, spdin);
 
-    // Server sends calculated throughput value, unsent data amount in the socket queue
-    // and overall number of sent bytes in a TEST_MSG
+    // Server sends calculated throughput value, unsent data amount in the
+    // socket queue and overall number of sent bytes in a TEST_MSG
     msgLen = sizeof(buff);
     if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error - missed text message!");
       return 1;
     }
     if (check_msg_type(S2C_TEST_LOG, TEST_MSG, msgType, buff, msgLen)) {
-      return 2; // no other message type expected
+      return 2;  // no other message type expected
     }
     // Is message of valid length, and does it have all the data expected?
     if (msgLen <= 0) {
@@ -197,14 +200,14 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "S2C: Improper message");
       return 4;
     }
-    ssndqueue = atoi(ptr); // get amount of unsent data in queue
+    ssndqueue = atoi(ptr);  // get amount of unsent data in queue
     ptr = strtok(NULL, " ");
     if (ptr == NULL) {
       log_println(0, "S2C: Improper message");
       return 4;
     }
-    sbytes = atoi(ptr);	// finally get total-sent-byte-count
-    //log_println(0,"S->C received throughput: %f",s2cspd);
+    sbytes = atoi(ptr);  // finally get total-sent-byte-count
+    // log_println(0,"S->C received throughput: %f",s2cspd);
     // log results in a convenient units format
     if (spdin < 1000)
       printf("%0.2f kb/s\n", spdin);
@@ -222,7 +225,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     result_srv[0] = '\0';
     for (;;) {
       msgLen = sizeof(buff);
-      memset(buff,0,msgLen); // reset buff and msgLen
+      memset(buff, 0, msgLen);  // reset buff and msgLen
 
       // get web100 variables
       if (recv_msg(ctlSocket, &msgType, buff, &msgLen)) {
@@ -240,14 +243,15 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         return 2;
       }
 
-      strlcat(result_srv, buff, 2 * BUFFSIZE); // hardcoded size of array from main tests
+      // hardcoded size of array from main tests
+      strlcat(result_srv, buff, 2 * BUFFSIZE);
     }
     log_println(6, "result_srv = '%s', of len %d", result_srv, msgLen);
     log_println(1, " <------------------------->");
 
-    //log protocol validation logs
+    // log protocol validation logs
     teststatuses = TEST_ENDED;
-    protolog_status(getpid(), testids, teststatuses,ctlSocket);
+    protolog_status(getpid(), testids, teststatuses, ctlSocket);
     setCurrentTest(TEST_NONE);
   }
 

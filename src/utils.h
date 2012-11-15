@@ -6,8 +6,8 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_UTILS_H
-#define _JS_UTILS_H
+#ifndef SRC_UTILS_H_
+#define SRC_UTILS_H_
 
 int check_int(char* text, int* number);
 int check_rint(char* text, int* number, int minVal, int maxVal);
@@ -17,9 +17,7 @@ void err_sys(char* s);
 int sndq_len(int fd);
 void mysleep(double time);
 int trim(char *line, int line_size,
-		char * output_buf, int output_buf_size);
-
-#endif
+         char * output_buf, int output_buf_size);
 
 // Numbers 1 and 65535 are used in mrange.c for determining "valid" ranges
 // While the methods could be used for any "range" comparison,
@@ -64,8 +62,8 @@ int trim(char *line, int line_size,
 #define POSSIBLE_BAD_CABLE 1
 
 // generic system wide constants
-#define RETRY_COUNT 5		// retry counts
-//#define BUFFSIZE  8192		// Buffer size
+#define RETRY_COUNT 5  // retry counts
+// #define BUFFSIZE  8192  // Buffer size
 
 // middlebox test default MSS
 // Cleaner to move this to clt_tests.h if not for the name of "clt_tests.h".
@@ -91,4 +89,4 @@ int trim(char *line, int line_size,
 #define DATA_RATE_10G_ETHERNET 9
 #define DATA_RATE_RETRANSMISSIONS 10
 
-
+#endif  // SRC_UTILS_H_

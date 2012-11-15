@@ -6,8 +6,8 @@
  * jeremian@poczta.fm
  */
 
-#ifndef _JS_TEST_SFW_H
-#define _JS_TEST_SFW_H
+#ifndef SRC_TEST_SFW_H_
+#define SRC_TEST_SFW_H_
 
 #define SFW_NOTTESTED  0
 #define SFW_NOFIREWALL 1
@@ -21,4 +21,4 @@
 int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options);
 int results_sfw(char tests, char* host);
 
-#endif
+#endif  // SRC_TEST_SFW_H_
