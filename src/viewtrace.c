@@ -51,9 +51,9 @@ FILE *fp;
 int c2sport = 3002, s2cport = 3003;
 
 static struct option long_options[] = { { "count", 1, 0, 'c' }, { "debug", 0, 0,
-		'd' }, { "file", 1, 0, 'f' }, { "help", 0, 0, 'h' }, { "interface", 1,
+	'd' }, { "file", 1, 0, 'f' }, { "help", 0, 0, 'h' }, { "interface", 1,
 		0, 'i' }, { "log", 1, 0, 'l' }, { "c2sport", 1, 0, 303 }, { "s2cport",
-		1, 0, 304 }, { "version", 0, 0, 'v' }, { 0, 0, 0, 0 } };
+			1, 0, 304 }, { "version", 0, 0, 'v' }, { 0, 0, 0, 0 } };
 
 /*
  * Copy arg vector into a new buffer, concatenating arguments with spaces.
@@ -160,68 +160,68 @@ void vt_print_bins(struct spdpair *cur) {
 				"%u.%u.%u.%u:%d --> ",
 				(cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
 				((cur->saddr >> 16) & 0xff), (cur->saddr >> 24), cur->sport);
-				fprintf(stderr, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
-        ((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
+		fprintf(stderr, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
+				((cur->daddr >> 16) & 0xff),  (cur->daddr >> 24), cur->dport);
 #endif
-  } else {
+	} else {
 #if defined(AF_INET6)
-			char str[136];
-			memset(str, 0, 136);
-			inet_ntop(AF_INET6, (void *) cur->daddr, str, sizeof(str));
-			fprintf(stderr, "%s.%d --> ", str, cur->dport);
-			memset(str, 0, 136);
-			inet_ntop(AF_INET6, (void *) cur->saddr, str, sizeof(str));
-			fprintf(stderr, "%s.%d  ", str, cur->sport);
+		char str[136];
+		memset(str, 0, 136);
+		inet_ntop(AF_INET6, (void *) cur->daddr, str, sizeof(str));
+		fprintf(stderr, "%s.%d --> ", str, cur->dport);
+		memset(str, 0, 136);
+		inet_ntop(AF_INET6, (void *) cur->saddr, str, sizeof(str));
+		fprintf(stderr, "%s.%d  ", str, cur->sport);
 #else
-			fprintf(stderr, "%u.%u.%u.%u:%d --> ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
-					((cur->daddr >> 16) & 0xff), (cur->daddr >> 24), cur->dport);
-			fprintf(stderr, "%u.%u.%u.%u:%d  ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
-					((cur->saddr >> 16) & 0xff), (cur->saddr >> 24), cur->sport);
+		fprintf(stderr, "%u.%u.%u.%u:%d --> ", (cur->daddr & 0xFF), ((cur->daddr >> 8) & 0xff),
+				((cur->daddr >> 16) & 0xff), (cur->daddr >> 24), cur->dport);
+		fprintf(stderr, "%u.%u.%u.%u:%d  ", (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
+				((cur->saddr >> 16) & 0xff), (cur->saddr >> 24), cur->sport);
 #endif
-		}
+	}
 	if (max == 0)
 		fprintf(stderr, "\n\tNo packets collected\n");
 
 	switch (index) {
-	case -1:
-		fprintf(stderr, "link=%d (Fault); ", index);
-		break;
-	case 0:
-		fprintf(stderr, "link=%d (RTT); ", index);
-		break;
-	case 1:
-		fprintf(stderr, "link=%d (dial-up); ", index);
-		break;
-	case 2:
-		fprintf(stderr, "link=%d (T1); ", index);
-		break;
-	case 3:
-		fprintf(stderr, "link=%d (Enet); ", index);
-		break;
-	case 4:
-		fprintf(stderr, "link=%d (T3); ", index);
-		break;
-	case 5:
-		fprintf(stderr, "link=%d (FastE); ", index);
-		break;
-	case 6:
-		fprintf(stderr, "link=%d (OC-12); ", index);
-		break;
-	case 7:
-		fprintf(stderr, "link=%d (GigE); ", index);
-		break;
-	case 8:
-		fprintf(stderr, "link=%d (OC-48); ", index);
-		break;
-	case 9:
-		fprintf(stderr, "link=%d (10 GigE); ", index);
-		break;
-	case 10:
-		fprintf(stderr, "retransmission; ");
-		break;
-	case 11:
-		fprintf(stderr, "link=%d (unknown); ", index);
-		break;
+		case -1:
+			fprintf(stderr, "link=%d (Fault); ", index);
+			break;
+		case 0:
+			fprintf(stderr, "link=%d (RTT); ", index);
+			break;
+		case 1:
+			fprintf(stderr, "link=%d (dial-up); ", index);
+			break;
+		case 2:
+			fprintf(stderr, "link=%d (T1); ", index);
+			break;
+		case 3:
+			fprintf(stderr, "link=%d (Enet); ", index);
+			break;
+		case 4:
+			fprintf(stderr, "link=%d (T3); ", index);
+			break;
+		case 5:
+			fprintf(stderr, "link=%d (FastE); ", index);
+			break;
+		case 6:
+			fprintf(stderr, "link=%d (OC-12); ", index);
+			break;
+		case 7:
+			fprintf(stderr, "link=%d (GigE); ", index);
+			break;
+		case 8:
+			fprintf(stderr, "link=%d (OC-48); ", index);
+			break;
+		case 9:
+			fprintf(stderr, "link=%d (10 GigE); ", index);
+			break;
+		case 10:
+			fprintf(stderr, "retransmission; ");
+			break;
+		case 11:
+			fprintf(stderr, "link=%d (unknown); ", index);
+			break;
 	}
 	fprintf(stderr, "packets=%d\n", total);
 	fprintf(stderr, "Running Average = %0.2f Mbps  ", cur->totalspd2);
@@ -313,7 +313,7 @@ void cleanup(int signo) {
  * and calculates the link speed between each packet pair.  It then
  * increments the proper link bin.
  */
-void
+	void
 print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 {
 	struct ether_header *enet;
@@ -394,9 +394,9 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 				if (fwd.saddr == current.saddr) {
 #endif
 					if (current.dport == c2sport)
-					vt_calculate_spd(&current, &fwd);
+						vt_calculate_spd(&current, &fwd);
 					else if (current.sport == s2cport)
-					vt_calculate_spd(&current, &fwd);
+						vt_calculate_spd(&current, &fwd);
 				}
 #if defined(AF_INET6)
 				if (rev.saddr[0] == current.saddr[0]) {
@@ -404,9 +404,9 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 					if (rev.saddr == current.saddr) {
 #endif
 						if (current.sport == c2sport)
-						vt_calculate_spd(&current, &rev);
+							vt_calculate_spd(&current, &rev);
 						else if (current.dport == s2cport)
-						vt_calculate_spd(&current, &rev);
+							vt_calculate_spd(&current, &rev);
 					}
 #if defined(AF_INET6)
 				}
@@ -463,157 +463,157 @@ print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p)
 							(fwd.saddr[2] == current.saddr[2]) &&
 							(fwd.saddr[3] == current.saddr[3])) {
 						if (current.dport == c2sport)
-						vt_calculate_spd(&current, &fwd);
+							vt_calculate_spd(&current, &fwd);
 						else if (current.sport == s2cport)
-						vt_calculate_spd(&current, &fwd);
+							vt_calculate_spd(&current, &fwd);
 					}
 					if ((rev.saddr[0] == current.saddr[0]) &&
 							(rev.saddr[1] == current.saddr[1]) &&
 							(rev.saddr[2] == current.saddr[2]) &&
 							(rev.saddr[3] == current.saddr[3])) {
 						if (current.sport == c2sport)
-						vt_calculate_spd(&current, &rev);
+							vt_calculate_spd(&current, &rev);
 						else if (current.dport == s2cport)
-						vt_calculate_spd(&current, &rev);
+							vt_calculate_spd(&current, &rev);
 					}
 				}
 #endif
 			}
 #endif
 
-int main(int argc, char **argv) {
+			int main(int argc, char **argv) {
 
-	char *read_file, *cmdbuf, *device;
+				char *read_file, *cmdbuf, *device;
 #ifdef HAVE_LIBPCAP
-	pcap_handler printer;
-	u_char * pcap_userdata = NULL;
-	struct bpf_program fcode;
-	char errbuf[PCAP_ERRBUF_SIZE];
+				pcap_handler printer;
+				u_char * pcap_userdata = NULL;
+				struct bpf_program fcode;
+				char errbuf[PCAP_ERRBUF_SIZE];
 #endif
-	int cnt, pflag = 0, debug = 0, c;
-	struct sigaction new;
+				int cnt, pflag = 0, debug = 0, c;
+				struct sigaction new;
 
-	read_file = NULL;
-	device = NULL;
-	cnt = -1; /* read forever, or until end of file */
-	while ((c = getopt_long(argc, argv, "c:df:hi:l:v", long_options, 0)) != -1) {
-		switch (c) {
-		case 'c':
-			cnt = atoi(optarg);
-			break;
-		case 'd':
-			debug++;
-			break;
-		case 'f':
-			read_file = optarg;
-			break;
-		case 'i':
-			device = optarg;
-			break;
-		case 'h':
+				read_file = NULL;
+				device = NULL;
+				cnt = -1; /* read forever, or until end of file */
+				while ((c = getopt_long(argc, argv, "c:df:hi:l:v", long_options, 0)) != -1) {
+					switch (c) {
+						case 'c':
+							cnt = atoi(optarg);
+							break;
+						case 'd':
+							debug++;
+							break;
+						case 'f':
+							read_file = optarg;
+							break;
+						case 'i':
+							device = optarg;
+							break;
+						case 'h':
 #ifdef HAVE_LIBPCAP
-			vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace)");
+							vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace)");
 #else
-			vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace) [missing pcap library]");
+							vt_long_usage("ANL/Internet2 NDT version " VERSION " (viewtrace) [missing pcap library]");
 #endif
-			break;
-		case 'v':
+							break;
+						case 'v':
 #ifdef HAVE_LIBPCAP
-			printf("ANL/Internet2 NDT version %s (viewtrace)\n", VERSION);
+							printf("ANL/Internet2 NDT version %s (viewtrace)\n", VERSION);
 #else
-			printf(
-					"ANL/Internet2 NDT version %s (viewtrace) [missing pcap library]\n",
-					VERSION);
+							printf(
+									"ANL/Internet2 NDT version %s (viewtrace) [missing pcap library]\n",
+									VERSION);
 #endif
-			exit(0);
-			break;
-		case 303:
-			if (check_int(optarg, &c2sport)) {
-				char tmpText[200];
-				snprintf(tmpText, 200,
-						"Invalid C2S throughput test port number: %s", optarg);
-				short_usage(argv[0], tmpText);
-			}
-			break;
-		case 304:
-			if (check_int(optarg, &s2cport)) {
-				char tmpText[200];
-				snprintf(tmpText, 200,
-						"Invalid S2C throughput test port number: %s", optarg);
-				short_usage(argv[0], tmpText);
-			}
-			break;
-		case '?':
-			short_usage(argv[0], "");
-			break;
-		}
-	}
+							exit(0);
+							break;
+						case 303:
+							if (check_int(optarg, &c2sport)) {
+								char tmpText[200];
+								snprintf(tmpText, 200,
+										"Invalid C2S throughput test port number: %s", optarg);
+								short_usage(argv[0], tmpText);
+							}
+							break;
+						case 304:
+							if (check_int(optarg, &s2cport)) {
+								char tmpText[200];
+								snprintf(tmpText, 200,
+										"Invalid S2C throughput test port number: %s", optarg);
+								short_usage(argv[0], tmpText);
+							}
+							break;
+						case '?':
+							short_usage(argv[0], "");
+							break;
+					}
+				}
 
-	if (optind < argc) {
-		short_usage(argv[0], "Unrecognized non-option elements");
-	}
+				if (optind < argc) {
+					short_usage(argv[0], "Unrecognized non-option elements");
+				}
 
-	log_init(argv[0], debug);
+				log_init(argv[0], debug);
 
 #ifdef HAVE_LIBPCAP
-	init_vars(&fwd);
-	init_vars(&rev);
+				init_vars(&fwd);
+				init_vars(&rev);
 
-	if (read_file == NULL) {
-		if (device == NULL) {
-			device = pcap_lookupdev(errbuf);
-			if (device == NULL) {
-				fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
-				exit (-1);
-			}
-		}
-		if ((pd = pcap_open_live(device, 68, !pflag, 1000, errbuf)) == NULL) {
-			fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
-			exit (-9);
-		}
-		memset(&new, 0, sizeof(new));
-		new.sa_handler = cleanup;
-		sigaction(SIGTERM, &new, NULL);
-		sigaction(SIGINT, &new, NULL);
-		sigaction(SIGALRM, &new, NULL);
+				if (read_file == NULL) {
+					if (device == NULL) {
+						device = pcap_lookupdev(errbuf);
+						if (device == NULL) {
+							fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
+							exit (-1);
+						}
+					}
+					if ((pd = pcap_open_live(device, 68, !pflag, 1000, errbuf)) == NULL) {
+						fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
+						exit (-9);
+					}
+					memset(&new, 0, sizeof(new));
+					new.sa_handler = cleanup;
+					sigaction(SIGTERM, &new, NULL);
+					sigaction(SIGINT, &new, NULL);
+					sigaction(SIGALRM, &new, NULL);
 
-	}
-	else {
-		if ((pd = pcap_open_offline(read_file, errbuf)) == NULL) {
-			fprintf(stderr, "pcap_open_offline failed: %s\n", errbuf);
-			exit (-2);
-		}
-	}
+				}
+				else {
+					if ((pd = pcap_open_offline(read_file, errbuf)) == NULL) {
+						fprintf(stderr, "pcap_open_offline failed: %s\n", errbuf);
+						exit (-2);
+					}
+				}
 
-	cmdbuf = copy_argv(&argv[optind]);
+				cmdbuf = copy_argv(&argv[optind]);
 
-	if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
-		fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
-		exit(-2);
-	}
+				if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
+					fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
+					exit(-2);
+				}
 
-	if (pcap_setfilter(pd, &fcode) < 0) {
-		fprintf(stderr, "pcap_setfiler failed %s\n", pcap_geterr(pd));
-		exit (-2);
-	}
+				if (pcap_setfilter(pd, &fcode) < 0) {
+					fprintf(stderr, "pcap_setfiler failed %s\n", pcap_geterr(pd));
+					exit (-2);
+				}
 
-	printer = (pcap_handler) print_speed;
-	if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
-		fprintf(stderr, "pcap_loop failed %s\n", pcap_geterr(pd));
-		exit(-2);
-	}
-	if (fwd.sport == s2cport) {
-		vt_print_bins(&rev);
-		vt_print_bins(&fwd);
-	} else {
-		vt_print_bins(&fwd);
-		vt_print_bins(&rev);
-	}
-	pcap_close(pd);
+				printer = (pcap_handler) print_speed;
+				if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
+					fprintf(stderr, "pcap_loop failed %s\n", pcap_geterr(pd));
+					exit(-2);
+				}
+				if (fwd.sport == s2cport) {
+					vt_print_bins(&rev);
+					vt_print_bins(&fwd);
+				} else {
+					vt_print_bins(&fwd);
+					vt_print_bins(&rev);
+				}
+				pcap_close(pd);
 #else
-	log_println(
-			0,
-			"\n!!! In order to use viewtrace utility you have to compile it with the pcap library !!!\n");
+				log_println(
+						0,
+						"\n!!! In order to use viewtrace utility you have to compile it with the pcap library !!!\n");
 #endif
-	return 0;
-}
+				return 0;
+			}

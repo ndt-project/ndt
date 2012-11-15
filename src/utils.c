@@ -33,21 +33,21 @@
  */
 
 int check_int(char* text, int* number) {
-	char* znak;
-	long tmp;
+  char* znak;
+  long tmp;
 
-	assert(text != NULL);
-	assert(number != NULL);
+  assert(text != NULL);
+  assert(number != NULL);
 
-	if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
-		return 1;
-	}
-	if ((*text != '\0') && (*znak == '\0')) {
-		*number = tmp;
-		return 0;
-	} else {
-		return 2;
-	}
+  if (((tmp = strtol(text, &znak, 10)) >= INT_MAX) || (tmp <= INT_MIN)) {
+    return 1;
+  }
+  if ((*text != '\0') && (*znak == '\0')) {
+    *number = tmp;
+    return 0;
+  } else {
+    return 2;
+  }
 }
 
 /**
@@ -63,17 +63,17 @@ int check_int(char* text, int* number) {
  */
 
 int check_rint(char* text, int* number, int minVal, int maxVal) {
-	int ret;
+  int ret;
 
-	assert(maxVal >= minVal);
+  assert(maxVal >= minVal);
 
-	if ((ret = check_int(text, number))) {
-		return ret;
-	}
-	if ((*number < minVal) || (*number > maxVal)) {
-		return 1;
-	}
-	return 0;
+  if ((ret = check_int(text, number))) {
+    return ret;
+  }
+  if ((*number < minVal) || (*number > maxVal)) {
+    return 1;
+  }
+  return 0;
 }
 
 /**
@@ -86,20 +86,20 @@ int check_rint(char* text, int* number, int minVal, int maxVal) {
  */
 
 int check_long(char* text, long* number) {
-	char* tmp;
+  char* tmp;
 
-	assert(text != NULL);
-	assert(number != NULL);
+  assert(text != NULL);
+  assert(number != NULL);
 
-	if (((*number = strtol(text, &tmp, 10)) == LONG_MAX)
-			|| (*number == LONG_MIN)) {
-		return 1;
-	}
-	if ((*text != '\0') && (*tmp == '\0')) {
-		return 0;
-	} else {
-		return 2;
-	}
+  if (((*number = strtol(text, &tmp, 10)) == LONG_MAX)
+      || (*number == LONG_MIN)) {
+    return 1;
+  }
+  if ((*text != '\0') && (*tmp == '\0')) {
+    return 0;
+  } else {
+    return 2;
+  }
 }
 
 /**
@@ -108,9 +108,9 @@ int check_long(char* text, long* number) {
  */
 
 double secs() {
-	struct timeval ru;
-	gettimeofday(&ru, (struct timezone *) 0);
-	return (ru.tv_sec + ((double) ru.tv_usec) / 1000000);
+  struct timeval ru;
+  gettimeofday(&ru, (struct timezone *) 0);
+  return (ru.tv_sec + ((double) ru.tv_usec) / 1000000);
 }
 
 /**
@@ -119,8 +119,8 @@ double secs() {
  */
 
 void err_sys(char* s) {
-	perror(s);
-	/* return -1; */
+  perror(s);
+  /* return -1; */
 }
 
 /**
@@ -132,14 +132,14 @@ void err_sys(char* s) {
 
 int sndq_len(int fd) {
 #ifdef SIOCOUTQ
-	int length = -1;
+  int length = -1;
 
-	if (ioctl(fd, SIOCOUTQ, &length)) {
-		return -1;
-	}
-	return length;
+  if (ioctl(fd, SIOCOUTQ, &length)) {
+    return -1;
+  }
+  return length;
 #else
-	return 0;
+  return 0;
 #endif
 }
 
@@ -149,18 +149,18 @@ int sndq_len(int fd) {
  */
 
 void mysleep(double time) {
-	int rc;
-	struct timeval tv;
-	tv.tv_sec = (int) time;
-	tv.tv_usec = (int) (time * 1000000) % 1000000;
+  int rc;
+  struct timeval tv;
+  tv.tv_sec = (int) time;
+  tv.tv_usec = (int) (time * 1000000) % 1000000;
 
-	for (;;) {
-		rc = select(0, NULL, NULL, NULL, &tv);
-		if ((rc == -1) && (errno == EINTR))
-			continue;
-		if (rc == 0)
-			return;
-	}
+  for (;;) {
+    rc = select(0, NULL, NULL, NULL, &tv);
+    if ((rc == -1) && (errno == EINTR))
+      continue;
+    if (rc == 0)
+      return;
+  }
 }
 
 /**
@@ -172,28 +172,27 @@ void mysleep(double time) {
  * @return strlen of output string
  */
 int trim(char *line, int line_size,
-		char * output_buf, int output_buf_size) {
-	static char whitespacearr[4]= {  '\n', ' ', '\t', '\r' };
+         char * output_buf, int output_buf_size) {
+  static char whitespacearr[4]= {  '\n', ' ', '\t', '\r' };
 
-	int i, j, k;
+  int i, j, k;
 
-	for (i = j = 0; i < line_size && j < output_buf_size - 1; i++) {
-		// find any matching characters among the quoted
-		int is_whitespace = 0;
-		for (k = 0; k < 4; k++) {
-			if (line[i] == whitespacearr[k]) {
-				is_whitespace = 1;
-				break;
-			}
-		}
-		if (!is_whitespace) {
-			output_buf[j] = line[i];
-			j++ ;
-		}
-	}
-	output_buf[j] = '\0'; // null terminate
-	//log_println(8,"Received=%s; len=%d; dest=%d; MSG=%s\n", line, line_size,
-	//		strlen(output_buf), output_buf);
-	return j - 1;
+  for (i = j = 0; i < line_size && j < output_buf_size - 1; i++) {
+    // find any matching characters among the quoted
+    int is_whitespace = 0;
+    for (k = 0; k < 4; k++) {
+      if (line[i] == whitespacearr[k]) {
+        is_whitespace = 1;
+        break;
+      }
+    }
+    if (!is_whitespace) {
+      output_buf[j] = line[i];
+      j++ ;
+    }
+  }
+  output_buf[j] = '\0'; // null terminate
+  //log_println(8,"Received=%s; len=%d; dest=%d; MSG=%s\n", line, line_size,
+  //		strlen(output_buf), output_buf);
+  return j - 1;
 }
-
