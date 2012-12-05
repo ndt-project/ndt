@@ -72,14 +72,18 @@ public class ResultsActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		Intent intent = getIntent();
-		Map<String, Object> variables = (Map<String, Object>) intent
+		if ( intent != null ) {
+			Map<String, Object> variables = (Map<String, Object>) intent
 				.getSerializableExtra(NdtService.EXTRA_VARS);
-		formatSummaryResults(variables);
-		formatDetailedResults(variables);
-		String diagnosticStatus = intent
-				.getStringExtra(NdtService.EXTRA_DIAG_STATUS);
-		formatAdvancedResults(diagnosticStatus);
-
+			if ( variables.containsKey(new String("pub_isReady")) && 
+			     variables.get("pub_isReady").equals("yes") ) { 
+				formatSummaryResults(variables);
+				formatDetailedResults(variables);
+				String diagnosticStatus = intent
+						.getStringExtra(NdtService.EXTRA_DIAG_STATUS);
+				formatAdvancedResults(diagnosticStatus);
+			}
+		}
 		Toast resultsHint = Toast.makeText(getApplicationContext(),
 				getString(R.string.results_swipe_hint), 10);
 		resultsHint.show();
@@ -120,7 +124,7 @@ public class ResultsActivity extends Activity {
 		Double uploadSpeed = (Double) variables.get("pub_c2sspd");
 		TextView textView = (TextView) findViewById(R.id.UploadSpeed);
 		textView.setText(format.format(uploadSpeed));
-
+    
 		Double downloadSpeed = (Double) variables.get("pub_s2cspd");
 		textView = (TextView) findViewById(R.id.DownloadSpeed);
 		textView.setText(format.format(downloadSpeed));
@@ -197,11 +201,11 @@ public class ResultsActivity extends Activity {
 		results.append('\n');
 
 		results.append(formatDetailedLine(R.string.results_detailed_cwndtime, variables,
-				"pub_cwndtime"));
+				"pub_pctcwndtime"));
 		results.append(formatDetailedLine(R.string.results_detailed_rcvr_limiting, variables,
 				"pub_pctRcvrLimited"));
 		variables.put("pub_OptimalRcvrBuffer", ((Integer) variables
-				.get("pub_MaxRwinRcvd") * 1024));
+				.get("pub_MaxRwinRcvd") )); // NB: value is in octets 
 		results.append(formatDetailedLine(R.string.results_detailed_optimal_rcvr_buffer,
 				variables, "pub_OptimalRcvrBuffer"));
 		// TODO re-enable when link detection is more reliable

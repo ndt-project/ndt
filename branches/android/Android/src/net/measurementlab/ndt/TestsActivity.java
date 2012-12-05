@@ -26,6 +26,7 @@ import android.widget.TextView;
  */
 public class TestsActivity extends Activity {
 	private BroadcastReceiver statusReceiver;
+	private String serverHost=null;
 
 	/**
 	 * Initializes the activity.
@@ -61,6 +62,9 @@ public class TestsActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 
+		serverHost =  getIntent().getStringExtra(NdtService.EXTRA_SERVER_HOST);
+		Log.d(NdtSupport.LOG_TAG, "serverhost in TestsActivity: " + serverHost);
+		
 		preparing();
 		
 		statusReceiver = createReceiver();
@@ -218,7 +222,13 @@ public class TestsActivity extends Activity {
 	
 	private String getServerAddress() {
 		try {
-			InetAddress server = InetAddress.getByName(SelectServerActivity.SERVER_LIST[SelectServerActivity.DEFAULT_SERVER][1]);
+			InetAddress server = null;
+			if ( serverHost != null ) {
+				server = InetAddress.getByName(serverHost);
+			} else {
+				// use default
+				server = InetAddress.getByName(SelectServerActivity.SERVER_LIST[SelectServerActivity.DEFAULT_SERVER][1]);
+			}
 			return server.getHostAddress();
 		} catch (UnknownHostException e) {
 			Log.e(NdtSupport.LOG_TAG, "Error resolving server hosts.", e);
