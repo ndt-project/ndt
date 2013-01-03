@@ -119,7 +119,7 @@ void print_results_mismatchcheck(int mismatch) {
  */
 void print_recommend_buffersize(double rwin, double rttsec, double avgrtt,
                                 double mylink, int max_RwinRcvd) {
-  int j = 0;
+  float j = 0;
   log_print(3, "Is larger buffer recommended?  rwin*2/rttsec (%0.4f) < mylink "
             "(%0.4f) ", ((rwin*2)/rttsec), mylink);
   log_println(3, "AND j (%0.4f) > MaxRwinRcvd (%d)",
