@@ -1404,7 +1404,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
         link, mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
         c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
         CongestionSignals, PktsOut, MinRTT, RcvWinScale);
-    strncat(logstr1, logstr2, sizeof(logstr1));
+    strlcat(logstr1, logstr2, sizeof(logstr1));
     syslog(LOG_FACILITY | LOG_INFO, "%s", logstr1);
     closelog();
     log_println(4, "%s", logstr1);
