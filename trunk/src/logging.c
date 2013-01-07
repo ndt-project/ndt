@@ -36,7 +36,7 @@ static I2ErrHandle _errorhandler = NULL;
 static I2LogImmediateAttr _immediateattr_nl;
 static I2LogImmediateAttr _immediateattr;
 static time_t timestamp;
-static int64_t utimestamp;
+static long int utimestamp;
 
 /**
  * Compress snaplog, tcpdump, and cputime files to save disk space.
@@ -763,7 +763,7 @@ time_t get_timestamp() {
  * Return the previously recorded utimestamp.
  * @return The utimestamp
  */
-int64_t get_utimestamp() {
+long int get_utimestamp() {
   return utimestamp;
 }
 
