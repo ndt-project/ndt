@@ -132,7 +132,7 @@ public class NdtService extends Service {
 
 		String serverHost = intent.getStringExtra(EXTRA_SERVER_HOST);
 		if (null == serverHost) {
-			serverHost = SelectServerActivity.SERVER_LIST[SelectServerActivity.DEFAULT_SERVER][1];
+			serverHost = SelectServerActivity.lookupHostname(getBaseContext(), SelectServerActivity.DEFAULT_SERVER);
 		}
 
 		try {

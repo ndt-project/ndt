@@ -1,6 +1,7 @@
 package net.measurementlab.ndt;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -25,35 +26,35 @@ public class SelectServerActivity extends Activity implements
 	private RadioGroup radioGroup;
 
 	static final String SERVER_LIST[][] = {
-	{"Closest Server (DONAR)", "ndt.iupui.donar.measurement-lab.org"}, 
-	{"Auckland, New Zealand", "ndt.iupui.akl.donar.measurement-lab.org"},
-	{"Amsterdam, Netherlands", "ndt.iupui.ams.donar.measurement-lab.org"},
-	{"Stockholm, Sweden", "ndt.iupui.arn.donar.measurement-lab.org"},
-	{"Athens, Greece", "ndt.iupui.ath.donar.measurement-lab.org"},
-	{"Atlanta, Georgia", "ndt.iupui.atl.donar.measurement-lab.org"},
-	{"Chicago, Illinois", "ndt.iupui.ord.donar.measurement-lab.org"},
-	{"Dallas, Texas", "ndt.iupui.dfw.donar.measurement-lab.org"},
-	{"Dublin, Ireland", "ndt.iupui.dub.donar.measurement-lab.org"},
-	{"Washington Dulles Intl Washington, DC", "ndt.iupui.iad.donar.measurement-lab.org"},
-	{"Hamburg, Germany", "ndt.iupui.ham.donar.measurement-lab.org"},
-	{"Tokyo, Japan", "ndt.iupui.hnd.donar.measurement-lab.org"},
-	{"Los Angeles, California", "ndt.iupui.lax.donar.measurement-lab.org"},
-	{"Leeds, United Kingdom", "ndt.iupui.lba.donar.measurement-lab.org"},
-	{"London, United Kingdom", "ndt.iupui.lhr.donar.measurement-lab.org"},
-	{"New York City, New York", "ndt.iupui.lga.donar.measurement-lab.org"},
-	{"Ljubljana, Slovenia", "ndt.iupui.lju.donar.measurement-lab.org"},
-	{"Madrid, Spain", "ndt.iupui.mad.donar.measurement-lab.org"},
-	{"Miami, Florida", "ndt.iupui.mia.donar.measurement-lab.org"},
-	{"Milan, Italy", "ndt.iupui.mil.donar.measurement-lab.org"},
-	{"Mountain View, California", "ndt.iupui.nuq.donar.measurement-lab.org"},
-	{"Paris, France", "ndt.iupui.par.donar.measurement-lab.org"},
-	{"Seattle, Washington", "ndt.iupui.sea.donar.measurement-lab.org"},
-	{"Sydney, Australia", "ndt.iupui.syd.donar.measurement-lab.org"},
-	{"Stavanger, Norway", "ndt.iupui.svg.donar.measurement-lab.org"},
-	{"Taipei, Taiwan", "ndt.iupui.tpe.donar.measurement-lab.org"},
-	{"Turin, Italy", "ndt.iupui.trn.donar.measurement-lab.org"},
-	{"Vienna, Austria", "ndt.iupui.vie.donar.measurement-lab.org"},
-	{"Wellington, New Zealand", "ndt.iupui.wlg.donar.measurement-lab.org"}
+	{"Closest Server (MLabNS)", "default"}, 
+	{"Auckland, New Zealand", "akl"},
+	{"Amsterdam, Netherlands", "ams"},
+	{"Stockholm, Sweden", "arn"},
+	{"Athens, Greece", "ath"},
+	{"Atlanta, Georgia", "atl"},
+	{"Chicago, Illinois", "ord"},
+	{"Dallas, Texas", "dfw"},
+	{"Dublin, Ireland", "dub"},
+	{"Washington Dulles Intl Washington, DC", "iad"},
+	{"Hamburg, Germany", "ham"},
+	{"Tokyo, Japan", "hnd"},
+	{"Los Angeles, California", "lax"},
+	{"Leeds, United Kingdom", "lba"},
+	{"London, United Kingdom", "lhr"},
+	{"New York City, New York", "lga"},
+	{"Ljubljana, Slovenia", "lju"},
+	{"Madrid, Spain", "mad"},
+	{"Miami, Florida", "mia"},
+	{"Milan, Italy", "mil"},
+	{"Mountain View, California", "nuq"},
+	{"Paris, France", "par"},
+	{"Seattle, Washington", "sea"},
+	{"Sydney, Australia", "syd"},
+	{"Stavanger, Norway", "svg"},
+	{"Taipei, Taiwan", "tpe"},
+	{"Turin, Italy", "trn"},
+	{"Vienna, Austria", "vie"},
+	{"Wellington, New Zealand", "wlg"}
 	
 	};
 
@@ -69,6 +70,17 @@ public class SelectServerActivity extends Activity implements
 	// In future server list should be downloaded from some list servers
 	// dynamically.
 	static final int DEFAULT_SERVER = 0;
+
+	public static String lookupHostname(Context context, int index) {
+		if ( index <= -1 ) {
+			index = 0;
+		}
+		if ( index >= SelectServerActivity.SERVER_LIST.length ) {
+			index = 0;
+		}
+		String metroCode = SelectServerActivity.SERVER_LIST[index][1];
+		return MLabNS.Lookup(context, "ndt", "ipv4", metroCode);
+	}
 
 	/**
 	 * Reads the server list from Constants class. Records the user's choice and

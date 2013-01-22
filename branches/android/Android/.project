@@ -34,7 +34,7 @@
 		<link>
 			<name>java</name>
 			<type>2</type>
-			<location>/home/cmdln/Developer/svn/ndt/java</location>
+			<location>${PARENT-1-PROJECT_LOC}/java</location>
 		</link>
 	</linkedResources>
 </projectDescription>

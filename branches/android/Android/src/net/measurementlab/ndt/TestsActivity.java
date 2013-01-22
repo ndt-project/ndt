@@ -223,12 +223,12 @@ public class TestsActivity extends Activity {
 	private String getServerAddress() {
 		try {
 			InetAddress server = null;
-			if ( serverHost != null ) {
-				server = InetAddress.getByName(serverHost);
-			} else {
+			if ( null == serverHost ) {
 				// use default
-				server = InetAddress.getByName(SelectServerActivity.SERVER_LIST[SelectServerActivity.DEFAULT_SERVER][1]);
+				Log.e(NdtSupport.LOG_TAG, "Error: This really shouldn't happen.");
+				serverHost = SelectServerActivity.lookupHostname(getBaseContext(), SelectServerActivity.DEFAULT_SERVER);
 			}
+			server = InetAddress.getByName(serverHost);
 			return server.getHostAddress();
 		} catch (UnknownHostException e) {
 			Log.e(NdtSupport.LOG_TAG, "Error resolving server hosts.", e);

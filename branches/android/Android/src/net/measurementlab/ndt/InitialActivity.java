@@ -35,10 +35,9 @@ public class InitialActivity extends Activity {
 
 			@Override
 			public void onClick(View v) {
-				Intent intent = new Intent(getApplicationContext(),
-						TestsActivity.class);
-				intent.putExtra(NdtService.EXTRA_SERVER_HOST,
-						SelectServerActivity.SERVER_LIST[serverNumber][1]);
+				Intent intent = new Intent(getApplicationContext(), TestsActivity.class);
+				String hostName = SelectServerActivity.lookupHostname(getBaseContext(), serverNumber);
+				intent.putExtra(NdtService.EXTRA_SERVER_HOST, hostName);
 				startActivity(intent);
 			}
 		});
@@ -85,7 +84,7 @@ public class InitialActivity extends Activity {
 						SelectServerActivity.EXTRA_SERVER_NUMBER);
 				Toast serverSelected = Toast.makeText(getApplicationContext(),
 						"Selected " + SelectServerActivity.SERVER_LIST[serverNumber][0],
-						10);
+						Toast.LENGTH_LONG);
 				serverSelected.show();
 			}
 		}

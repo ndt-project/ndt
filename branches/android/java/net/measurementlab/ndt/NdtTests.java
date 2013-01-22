@@ -1141,7 +1141,7 @@ public class NdtTests implements Runnable {
     {
       while (!finalized) {
         try {
-          Thread.currentThread().sleep(1000);
+          Thread.sleep(1000);
         }
         catch (InterruptedException e) {
           // do nothing.
