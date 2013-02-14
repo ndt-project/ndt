@@ -39,7 +39,11 @@ It can also identify 2 serious error conditions:</font>
   <PARAM NAME="subject" VALUE="YOURSUBJECT">
 
 <!--
-  JZ 4/12/2010: Localization Support
+  JZ 2/14/2013: Localization Support
+
+  Greek/Greece
+  <PARAM NAME="language" VALUE="el">
+  <PARAM NAME="country" VALUE="GR">
 
   Norwegian/Norway 
   <PARAM NAME="language" VALUE="nb">
