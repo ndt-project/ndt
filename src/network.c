@@ -20,69 +20,107 @@
  * @param serv the port number
  * @param options the binding socket options
  * @returns The socket descriptor or error code (<0).
- * 			Error codes:
- * 			-1 : Unable to set socket address/port/file descriptor in address record "addr"
- * 			-2 : Unable to set socket options
+ *   Error codes:
+ *     -1 : Unable to set socket address/port/file descriptor in address
+ *          record "addr"
+ *     -2 : Unable to set socket options
  */
 
-static int OpenSocket(I2Addr addr, char* serv, int options) {
-  struct addrinfo *fai;
-  struct addrinfo *ai;
-  int on;
-  socklen_t onSize;
-  int fd = -1;
+#ifndef AF_INET6
+#error This file assumes AF_INET6 is defined.
+#endif
 
+static int OpenSocket(I2Addr addr, char* serv, int options) {
+  int fd = -1;
+  int return_code = 0;
+
+  struct addrinfo *fai = NULL;
   if (!(fai = I2AddrAddrInfo(addr, NULL, serv))) {
     return -2;
   }
 
+  struct addrinfo* ai_ipv6 = NULL;
+  struct addrinfo* ai_ipv4 = NULL;
+
+  // Get references to the first IPv6 and first IPv4 addresses. If INET6 support
+  // is not compiled in, ignore AF_INET6 entries.
+  // TODO: build lists of all IPv6 and IPv4 entries.
+  for (struct addrinfo* ai = fai; ai != NULL; ai = ai->ai_next) {
+    if (ai->ai_family == AF_INET6 && ai_ipv6 == NULL)
+      ai_ipv6 = ai;
+    else if (ai->ai_family == AF_INET && ai_ipv4 == NULL)
+      ai_ipv4 = ai;
+    if (ai_ipv4 != NULL && ai_ipv6 != NULL)
+      break;
+  }
+
+  // Determine which family the user would prefer, based on command line.
+  int family = AF_UNSPEC;
+  // options provided by user indicate V6 or V4 only
+  if ((options & OPT_IPV6_ONLY) != 0)
+    family = AF_INET6;
+  else if ((options & OPT_IPV4_ONLY) != 0)
+    family = AF_INET;
+
+  // Prefer IPv6.
+  if (family == AF_UNSPEC || family == AF_INET6) {
+    fai = ai_ipv6;
+    fai->ai_next = ai_ipv4;
+  } else {
+    fai = ai_ipv4;
+  }
+
+  // Attempt to connect to one of the chosen addresses.
+  struct addrinfo* ai = NULL;
   for (ai = fai; ai; ai = ai->ai_next) {
-    // options provided by user indicate V6
-#ifdef AF_INET6
-    if (options & OPT_IPV6_ONLY) {  // If not an INET6 address, move on
-      if (ai->ai_family != AF_INET6)
-        continue;
-    }
-#endif
-
-    if (options & OPT_IPV4_ONLY) {  // options provided by user indicate V4
-      if (ai->ai_family != AF_INET)  // Not valid Inet address family. move on
-        continue;
-    }
-
     // create socket with obtained address domain, socket type and protocol
     fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 
     // socket create failed. Abandon further activities using this socket
-    if (fd < 0) {
+    if (fd < 0)
       continue;
-    }
 
     // allow sockets to reuse local address while binding unless there
     // is an active listener. If unable to set this option, indicate failure
-
-    on = 1;
+    int on = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0) {
+      return_code = -2;
       goto failsock;
     }
-
-    // the IPv6 version socket option setup
-#if defined(AF_INET6) && defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
-    if ((ai->ai_family == AF_INET6) && (options & OPT_IPV6_ONLY) &&
-        setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
-      goto failsock;
-    }
-#endif
     // end trying to set socket option to reuse local address
+
+    if (family == AF_INET6) {
+      // If we're binding to an IPv6 address and the user hasn't specified IPv6
+      // only, bind to any address to allow IPv4 clients.
+      if ((options & OPT_IPV6_ONLY) == 0) {
+        struct sockaddr_in6* addr_in = (struct sockaddr_in6*) ai;
+        addr_in->sin6_addr = in6addr_any;
+      }
+
+#if defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
+      // the IPv6 version socket option setup
+      else if (
+          setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
+        return_code = -2;
+        goto failsock;
+      }
+#endif
+    // If the user has not specified only V4 and we're listening as V4, allow V6
+    // clients to connect.
+    } else if ((options & OPT_IPV4_ONLY) == 0) {
+      struct sockaddr_in* addr_in = (struct sockaddr_in*) ai;
+      addr_in->sin_addr.s_addr = INADDR_ANY;
+    }
 
     // try to bind to address
     if (bind(fd, ai->ai_addr, ai->ai_addrlen) == 0) {  // successful
       // set values in "addr" structure
-      if (!I2AddrSetSAddr(addr, ai->ai_addr, ai->ai_addrlen)
-          || !I2AddrSetProtocol(addr, ai->ai_protocol)
-          || !I2AddrSetSocktype(addr, ai->ai_socktype)) {
+      if (!I2AddrSetSAddr(addr, ai->ai_addr, ai->ai_addrlen) ||
+          !I2AddrSetProtocol(addr, ai->ai_protocol) ||
+          !I2AddrSetSocktype(addr, ai->ai_socktype)) {
         log_println(1, "OpenSocket: Unable to set saddr in address record");
-        return -1;
+        return_code = -1;
+        goto failsock;
       }
       // set port if not already done, else return -1
       if (!I2AddrPort(addr)) {
@@ -91,7 +129,9 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
         I2Addr tmpAddr;
         if (getsockname(fd, (struct sockaddr*) &tmp_addr,
                         &tmp_addr_len)) {
-          return -1;
+          log_println(1, "OpenSocket: Unable to getsockname in address record");
+          return_code = -1;
+          goto failsock;
         }
         tmpAddr = I2AddrBySAddr(
             get_errhandle(), (struct sockaddr*) &tmp_addr, tmp_addr_len, 0, 0);
@@ -102,7 +142,8 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
       if (!I2AddrSetFD(addr, fd, True)) {
         log_println(1, "OpenSocket: Unable to set file descriptor in address "
                     "record");
-        return -1;
+        return_code = -1;
+        goto failsock;
       }
       // end setting values in "addr" structure
 
@@ -113,25 +154,27 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     // user and return
     if (errno == EADDRINUSE) {
       /* RAC debug statemement 10/11/06 */
-      onSize = sizeof(on);
+      socklen_t onSize = sizeof(on);
       getsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, &onSize);
       log_println(1, "bind(%d) failed: Address already in use given as the "
                   "reason, getsockopt() returned %d", fd, on);
-      return -2;
+    } else {
+      log_println(1, "bind(%d) failed: %s", fd, strerror(errno));
     }
-
-    // If setting socket option failed, print error, and try to close socket
-    // file-descriptor
- failsock:
-    /* RAC debug statemement 10/11/06 */
-    log_println(1, "failsock: Unable to set socket options for fd=%d", fd);
-    while ((close(fd) < 0) && (errno == EINTR)) { }
+    return_code = -1;
+    goto failsock;
   }
 
   // set meta test's address domain family to the one used to create socket
-  if (meta.family == 0)
+  if (fd != -1 && meta.family == 0)
     meta.family = ai->ai_family;
   return fd;
+
+  // If opening socket failed, print error, and try to close socket
+  // file-descriptor.
+ failsock:
+  while ((close(fd) < 0) && (errno == EINTR)) { }
+  return return_code;
 }
 
 /**
@@ -210,8 +253,9 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
   return addr;
 
   // If error, try freeing memory
-error: I2AddrFree(addr);
-       return NULL;
+ error:
+  I2AddrFree(addr);
+  return NULL;
 }
 
 /**
@@ -241,6 +285,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
   assert(server_addr);
 
   if (!server_addr) {
+    log_println(1, "Invalid server address");
     goto error;
   }
 
@@ -250,51 +295,42 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
   }
 
   if (!(fai = I2AddrAddrInfo(server_addr, NULL, NULL))) {
+    log_println(1, "Failed to get address info for server address");
     goto error;
   }
 
-  for (ai = fai; ai; ai = ai->ai_next) {
-    // options provided by user indicate V6
-#ifdef AF_INET6
-    if (options & OPT_IPV6_ONLY) {  // If not an INET6 address, move on
-      if (ai->ai_family != AF_INET6)
-        continue;
-    }
-#endif
+  int family = AF_UNSPEC;
+  // options provided by user indicate V6 or V4 only
+  if ((options & OPT_IPV6_ONLY) != 0)
+    family = AF_INET6;
+  else if ((options & OPT_IPV4_ONLY) != 0)
+    family = AF_INET;
 
-    // options provided by user indicate V4
-    if (options & OPT_IPV4_ONLY) {
-      if (ai->ai_family != AF_INET)  // NOT valid inet address family. Move on.
-        continue;
+  for (ai = fai; ai; ai = ai->ai_next) {
+    if (family != AF_UNSPEC && ai->ai_family != family) {
+      log_println(1, "Skipping family %d", family);
+      continue;
     }
 
     // create socket with obtained address domain, socket type and protocol
     *sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (*sockfd < 0) {
       // socket create failed. Abandon further activities using this socket
+      log_println(1, "Failed to create %d %d %d", ai->ai_family, ai->ai_socktype, ai->ai_protocol);
       continue;
     }
 
     // local address has been specified. Get details and bind to this adderess
     if (local_addr) {
+      printf("local_addr\n");
       int bindFailed = 1;
-      if (!(lfai = I2AddrAddrInfo(local_addr, NULL, NULL))) {
+      if (!(lfai = I2AddrAddrInfo(local_addr, NULL, NULL)))
         continue;
-      }
 
       // Validate INET address family
       for (lai = lfai; lai; lai = lai->ai_next) {
-#ifdef AF_INET6
-        if (options & OPT_IPV6_ONLY) {
-          if (lai->ai_family != AF_INET6)
-            continue;
-        }
-#endif
-
-        if (options & OPT_IPV4_ONLY) {
-          if (lai->ai_family != AF_INET)
-            continue;
-        }
+        if (lai->ai_family != family)
+          continue;
 
         // bind to local address
         if (bind((*sockfd), lai->ai_addr, lai->ai_addrlen) == 0) {
@@ -340,22 +376,29 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 
     // Connect to target socket
     if (connect(*sockfd, ai->ai_addr, ai->ai_addrlen) == 0) {
+      log_println(1, "Connected!");
       // save server address values
-      if (I2AddrSetSAddr(server_addr, ai->ai_addr, ai->ai_addrlen)
-          && I2AddrSetSocktype(server_addr, ai->ai_socktype)
-          && I2AddrSetProtocol(server_addr, ai->ai_protocol)
-          && I2AddrSetFD(server_addr, *sockfd, True)) {
+      if (I2AddrSetSAddr(server_addr, ai->ai_addr, ai->ai_addrlen) &&
+          I2AddrSetSocktype(server_addr, ai->ai_socktype) &&
+          I2AddrSetProtocol(server_addr, ai->ai_protocol) &&
+          I2AddrSetFD(server_addr, *sockfd, True)) {
+        log_println(1, "Client socket created");
         return 0;
       }
       // unable to save
       log_println(1, "I2Addr functions failed after successful connection");
       while ((close(*sockfd) < 0) && (errno == EINTR)) { }
       return 1;
+    } else {
+      log_println(0, "Failed to connect: %s", strerror(errno));
+      //goto error;
     }
   }
 
-error: log_println(1, "Unable to create connect socket.");
-       return -1;
+  log_println(0, "No sockets could be created that match requirements.");
+
+ error:
+  return -1;
 }
 
 /**

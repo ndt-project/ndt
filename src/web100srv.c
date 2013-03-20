@@ -14,7 +14,7 @@ nonexclusive license, subject to the limitations stated herein and U.S. Governme
 license rights.
 
 3. You may modify and make a copy or copies of the Software for use within your
-organization, if you meet the following conditions: 
+organization, if you meet the following conditions:
 a. Copies in source code must include the copyright notice and this Software
 License Agreement.
 b. Copies in binary form must include the copyright notice and this Software
@@ -22,7 +22,7 @@ License Agreement in the documentation and/or other materials provided with the 
 
 4. You may make a copy, or modify a copy or copies of the Software or any
 portion of it, thus forming a work based on the Software, and distribute copies
-outside your organization, if you meet all of the following conditions: 
+outside your organization, if you meet all of the following conditions:
 a. Copies in source code must include the copyright notice and this
 Software License Agreement;
 b. Copies in binary form must include the copyright notice and this
@@ -57,7 +57,7 @@ ON THE BASIS OF CONTRACT, TORT (INCLUDING NEGLIGENCE OR STRICT LIABILITY), OR
 OTHERWISE, EVEN IF ANY OF SAID PARTIES HAS BEEN WARNED OF THE POSSIBILITY OF
 SUCH LOSS OR DAMAGES.
 The Software was developed at least in part by the University of Chicago,
-as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
+as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 */
 
 #include "../config.h"
@@ -1818,7 +1818,7 @@ int main(int argc, char** argv) {
   }
   listenfd = I2AddrFD(listenaddr);
 
-  log_println(1, "server ready on port %s", port);
+  log_println(1, "server ready on port %s (family %d)", port, meta.family);
 
   // Initialize Web100 structures
   count_vars = web100_init(VarFileName);

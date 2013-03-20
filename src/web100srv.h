@@ -55,8 +55,8 @@
 #define WEB100_VARS 128  // number of web100 variables you want to access
 #define WEB100_FILE "web100_variables"  // names of the variables to access
 /* Move to logging.h
-#define LOG_FACILITY LOG_LOCAL0		// Syslog facility to log at 
-#define LOGDIR "serverdata"		// directory for detailed snaplog and tcpdump files 
+#define LOG_FACILITY LOG_LOCAL0         // Syslog facility to log at
+#define LOGDIR "serverdata"             // directory for detailed snaplog and tcpdump files
 */
 
 /* Location of default config file */
