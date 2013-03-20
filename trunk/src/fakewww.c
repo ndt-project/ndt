@@ -571,7 +571,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
             I2AddrNodeName(serv_addr, onenodename, &nlen);
             log_println(4, "find_compare6() returned 0, reset to [%s]",
                         onenodename);
-	    struct sockaddr* sock_addr = I2AddrSAddr(serv_addr, NULL);
+            struct sockaddr* sock_addr = I2AddrSAddr(serv_addr, NULL);
             memcpy(srv_addr6,
                    &((struct sockaddr_in6*)sock_addr)->sin6_addr,
                    16);
