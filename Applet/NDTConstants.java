@@ -100,6 +100,7 @@ public class NDTConstants {
 	// Section: RFC 1323 options ( Seems like 0/1/2/3 are the options available)
 	
 	public static final int RFC_1323_DISABLED = 0;
+	public static final int RFC_1323_ENABLED = 1;
 	
 	// Section: Buffer limitation test thresholds
 	public static final float BUFFER_LIMITED = 0.15f; //unused right now
