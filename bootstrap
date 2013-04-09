@@ -39,12 +39,12 @@ case "$1" in
 		;;
 esac
 
-if test -x I2util/bootstrap; then
+if test -x I2util/bootstrap.sh; then
 	echo
 	echo "## I2util/bootstrap"
 	echo
 	cd I2util
-	./bootstrap $*
+	./bootstrap.sh $*
 	cd ..
 	echo
 	echo "## Finished I2util/bootstrap"
