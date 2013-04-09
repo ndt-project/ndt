@@ -199,7 +199,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2,
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
                    PortPair* pair, char * direction, int compress);
-int check_signal_flags();
+void force_breakloop();
 #endif
 
 /* web100-util */

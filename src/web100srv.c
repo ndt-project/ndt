@@ -468,17 +468,19 @@ void cleanup(int signo) {
       }
       exit(0);
     case SIGUSR1:
+      /* SIGUSR1 is used exclusively by C2S, to interrupt the pcap capture*/
       log_println(6,
-                  "DEBUG, caught SIGUSR1, setting sig1 flag to force exit");
+                  "DEBUG, caught SIGUSR1, setting sig1 flag and calling force_breakloop");
+      force_breakloop();
       sig1 = 1;
-      /* check_signal_flags(); */
       break;
 
     case SIGUSR2:
+      /* SIGUSR2 is used exclusively by S2C, to interrupt the pcap capture*/
       log_println(6,
-                  "DEBUG, caught SIGUSR2, setting sig2 flag to force exit");
+                  "DEBUG, caught SIGUSR2, setting sig2 flag and calling force_breakloop");
+      force_breakloop();
       sig2 = 1;
-      /* check_signal_flags(); */
       break;
 
     case SIGALRM:
@@ -834,12 +836,6 @@ void * zombieWorker(void *head_ptr) {
           recv_msg(tmp_ptr->ctlsockfd, &msgType, buff, &msgLen);
           tmp_ptr = tmp_ptr->next;
           pre_ptr = pre_ptr->next;
-          /*
-             if ((sig1 > 0) || (sig2 > 0))
-             check_signal_flags();
-             if (sig17 > 0)
-             child_sig(0);
-             */
           break;
         case -1:  // some error status
           if (errno == EINTR) {
@@ -1922,11 +1918,6 @@ mainloop: if (head_ptr == NULL)
                 "Queue pointer=%d, testing=%d, waiting=%d, mclients=%d, "
                 "zombie_check=%d",
                 head_ptr->pid, testing, waiting, mclients, zombie_check);
-
-          // moved condition from interrupt handler to here
-          /* if ((sig1 > 0) || (sig2 > 0))
-           * 	check_signal_flags;
-           */
 
           if (sig13 == 1) {
             log_println(5, "todo: Handle SIGPIPE signal, terminate child?");

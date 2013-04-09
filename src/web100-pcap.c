@@ -90,6 +90,19 @@ void get_iflist(void) {
     pcap_freealldevs(alldevs);
 }
 
+/**
+ * Force the pcap_loop to return, this is safe to call from a signal handler.
+ * Note this will break the loop without a packet being received if
+ * used from a signal handler due to the EINTR interrupting pcaps 'read'.
+ * 
+ * This calls pcap_breakloop with the correct capture.
+ */
+void force_breakloop(){
+  if (pd != NULL) {
+    pcap_breakloop(pd);
+  }
+}
+
 /** Check signal flags and process them accordingly.
  *  If signal indicates request to terminate data collection for the speed bins,
  * 	make packet-pair based speed bins available to the parent process.
@@ -97,7 +110,7 @@ void get_iflist(void) {
  * @return 1 if data was successfully written
  * 		   0 if no relevant signals were actually received
  */
-int check_signal_flags() {
+static int check_signal_flags() {
   if ((sig1 == 1) || (sig2 == 1)) {
     log_println(
         5,
@@ -135,9 +148,6 @@ int check_signal_flags() {
       usleep(30000); /* wait here 30 msec, for parent to read this data */
       print_bins(&rev, mon_pipe1);
       usleep(30000); /* wait here 30 msec, for parent to read this data */
-      if (pd != NULL) {
-        pcap_breakloop(pd);
-      }
       if (dumptrace == 1)
         pcap_dump_close(pdump);
       sig1 = 2;
@@ -175,9 +185,6 @@ int check_signal_flags() {
       usleep(30000); /* wait here 30 msec, for parent to read this data */
       print_bins(&rev, mon_pipe2);
       usleep(30000); /* wait here 30 msec, for parent to read this data */
-      if (pd != NULL) {
-        pcap_breakloop(pd);
-      }
       if (dumptrace == 1)
         pcap_dump_close(pdump);
       sig2 = 2;
@@ -556,10 +563,6 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
     fprintf(
         stderr,
         "!#!#!#!# Error, trying to process IF data, but pcap fd closed\n");
-    return;
-  }
-
-  if (check_signal_flags()) {
     return;
   }
 
@@ -1044,6 +1047,11 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
 
         if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
           log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
+        }
+
+        /* Send back results to our parent */
+        if(check_signal_flags() == 0){
+          log_println(5, "Whatever happened, we should have a sig flag set");
         }
 
         pcap_close(pd);
