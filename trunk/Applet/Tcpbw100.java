@@ -266,7 +266,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	private String pub_statistics = "Test not run.";
 	private String pub_status = "notStarted";
 	private double pub_time = 0.0;
-	private int pub_bytes = 0;
+	private long pub_bytes = 0;
 	private String _sIsAutoRun;
 	private String _sUserAgent = null;
 
@@ -2746,7 +2746,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_sEmailText += sSysvar + " " + sStrval + "\n%0A";
 				if (sStrval.indexOf(".") == -1) { // no decimal point, hence
 													// integer
-					iSysval = Integer.parseInt(sStrval);
+					try{
+						iSysval = Integer.parseInt(sStrval);
+						// If it fails as an int it's probably to big since the values are often unsigned
+					} catch (Exception e) {
+						System.out.println("Exception occured reading a web100 var - " + e);
+						iSysval = -1;
+					}
 					// save value into a key value expected by us
 					save_int_values(sSysvar, iSysval);
 				} else { // if not integer, save as double
@@ -3592,12 +3598,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// get client side IP
 		String sClientSideClientIp = tokens.nextToken();
-		k = sClientSideServerIp.indexOf("/");
-		sClientSideServerIp = sClientSideServerIp.substring(k + 1);
+		k = sClientSideClientIp.indexOf("/");
+		sClientSideClientIp = sClientSideClientIp.substring(k + 1);
 
 		// MSS = 1456 = Ethernet MTU = 1500 - 24 -20 (bytes of IP header) =
 		// 1456, thus preserved
-		
+		if(_iTimestampsEnabled == NDTConstants.RFC_1323_ENABLED)
+			iMss += 12;
+    
 		if (iMss == NDTConstants.ETHERNET_MTU_SIZE)
 			_txtStatistics.append(_resBundDisplayMsgs
 					.getString("packetSizePreserved") + "\n");
