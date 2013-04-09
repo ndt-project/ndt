@@ -25,7 +25,7 @@
 extern pthread_mutex_t mainmutex;
 extern pthread_cond_t maincond;
 
-// used to store file descriptors of pipes created for ndttrace for C2S tests
+// used to store file descriptors of pipes created for ndttrace for S2C tests
 int mon_pipe2[2];
 
 /**
@@ -46,7 +46,7 @@ int mon_pipe2[2];
  * @param testOptions - the test options
  * @param conn_options - the connection options
  * @param testOptions Test options
- * @param s2cspd In-out parameter to store C2S throughput value
+ * @param s2cspd In-out parameter to store S2C throughput value
  * @param set_buff enable setting TCP send/recv buffer size to be used (seems unused in file)
  * @param window value of TCP send/rcv buffer size intended to be used.
  * @param autotune autotuning option. Deprecated.
@@ -224,7 +224,7 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
     clilen = sizeof(cli_addr);
     FD_ZERO(&rfd);
-    FD_SET(testOptions->c2ssockfd, &rfd);
+    FD_SET(testOptions->s2csockfd, &rfd);
     sel_tv.tv_sec = 5;  // wait for 5 secs
     sel_tv.tv_usec = 0;
     for (j = 0; j < RETRY_COUNT; j++) {
