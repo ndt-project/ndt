@@ -57,6 +57,48 @@ int web100_init(char *VarFileName) {
 }
 
 /**
+ * Get a string representation of an ip address.
+ * 
+ * @param addr A sockaddr structure which contains the address
+ * @param buf A buffer to fill with the ip address as a string
+ * @param len The length of buf.
+ */
+static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
+  if(((struct sockaddr *)addr)->sa_family == AF_INET){
+    /* IPv4 */
+    inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
+                    buf, len);
+    }
+#ifdef AF_INET6 
+  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
+    /* IPv6 */
+    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
+                    buf, len);
+  }
+#endif
+}
+
+/**
+ * Get a string representation of an port number.
+ * 
+ * @param addr A sockaddr structure which contains the port number
+ * @param buf A buffer to fill with the port number as a string
+ * @param len The length of buf.
+ */
+static void port2a(struct sockaddr_storage * addr,char * buf, int len){
+  if(((struct sockaddr *)addr)->sa_family == AF_INET){
+    /* IPv4 */
+    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in *)addr)->sin_port));
+  }
+#ifdef AF_INET6 
+  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
+    /* IPv6 */
+    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in6 *)addr)->sin6_port));
+  }
+#endif
+}
+
+/**
  * Performs part of the middlebox test.
  * The server sets the maximum value of the
  * congestion window, and starts a 5 second long
@@ -88,10 +130,11 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   int ret;
   char tmpstr[200];
   size_t tmpstrlen = sizeof(tmpstr);
-  I2Addr addr = NULL;
   web100_var *LimCwnd;
   u_int32_t limcwnd_val;
-
+  struct sockaddr_storage saddr;
+  socklen_t saddr_size;
+  
   // middlebox test results
   static char vars[][255] = { "CurMSS", "WinScaleSent", "WinScaleRecv", };
 
@@ -101,16 +144,24 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 
   // get Server address and add to "results"
 
-  // get socket name
-  addr = I2AddrByLocalSockFD(get_errhandle(), sock, False);
-  memset(tmpstr, 0, 200);
-  // copy address into tmpstr String
-  I2AddrNodeName(addr, tmpstr, &tmpstrlen);
-  // now copy tmpstr containing address into "line"
-  snprintf(line, sizeof(line), "%s;", tmpstr);
-  memset(tmpstr, 0, 200);
-  // service name into tmpstr
-  I2AddrServName(addr, tmpstr, &tmpstrlen);
+  // get socket IP address
+  saddr_size = sizeof(saddr);
+  if (getsockname(sock,(struct sockaddr *) &saddr, &saddr_size) == -1) {
+    /* Make it clear something failed but continue test */
+    log_println(0,"Middlebox - getsockname() failed: %s", strerror(errno));
+    snprintf(line, sizeof(line), "address_error;");
+    snprintf(tmpstr, sizeof(tmpstr), "0");
+  } else {
+    // copy address into tmpstr String
+    memset(tmpstr, 0, 200);
+    addr2a(&saddr, tmpstr , tmpstrlen);
+    // now copy tmpstr containing address into "line"
+    snprintf(line, sizeof(line), "%s;", tmpstr);
+    memset(tmpstr, 0, 200);
+    // service name into tmpstr
+    tmpstrlen = sizeof(tmpstr);
+    port2a(&saddr, tmpstr, tmpstrlen);
+  }
   log_print(3, "Server: %s%s ", line, tmpstr);
   // copy servers address into the meta test struct
   memcpy(meta.server_ip, line, strlen(line));
@@ -118,19 +169,26 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   meta.server_ip[(strlen(line) - 1)] = 0;
   // Add this address to results
   strlcat(results, line, results_strlen);
-  I2AddrFree(addr);  // free memory
 
   // Now perform the above set of functions for client address/service name
   // and copy into results
   tmpstrlen = sizeof(tmpstr);
-  addr = I2AddrBySockFD(get_errhandle(), sock, False);
-  memset(tmpstr, 0, 200);
-  I2AddrNodeName(addr, tmpstr, &tmpstrlen);
-  snprintf(line, sizeof(line), "%s;", tmpstr);
-  I2AddrServName(addr, tmpstr, &tmpstrlen);
+  saddr_size = sizeof(saddr);
+  if (getpeername(sock,(struct sockaddr *) &saddr, &saddr_size) == -1) {
+    /* Make it clear something failed but continue test */
+    log_println(0,"Middlebox - getpeername() failed: %s", strerror(errno));
+    snprintf(line, sizeof(line), "address_error;");
+    snprintf(tmpstr, sizeof(tmpstr), "0");
+  } else {
+    // copy address into tmpstr String
+    memset(tmpstr, 0, 200);
+    addr2a(&saddr, tmpstr , tmpstrlen);
+    snprintf(line, sizeof(line), "%s;", tmpstr);
+    tmpstrlen = sizeof(tmpstr);
+    port2a(&saddr, tmpstr, tmpstrlen);
+  }
   log_print(3, "Client: %s%s ", line, tmpstr);
   strlcat(results, line, results_strlen);
-  I2AddrFree(addr);
 
   // get web100 values for the middlebox test result group
   for (i = 0; i < 3; i++) {
