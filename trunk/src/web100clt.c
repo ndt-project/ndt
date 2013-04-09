@@ -19,6 +19,8 @@
 #include "clt_tests.h"
 #include "strlutils.h"
 #include "test_results_clt.h"
+#include <arpa/inet.h>
+#include <assert.h>
 
 extern int h_errno;
 
@@ -237,6 +239,28 @@ void testResults(char tests, char *testresult_str, char* host) {
 }
 
 /**
+ * Get a string representation of an ip address.
+ * 
+ * @param addr A sockaddr structure which contains the address
+ * @param buf A buffer to fill with the ip address as a string
+ * @param len The length of buf.
+ */
+static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
+  if(((struct sockaddr *)addr)->sa_family == AF_INET){
+    /* IPv4 */
+    inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
+                    buf, len);
+  }
+#ifdef AF_INET6 
+  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
+    /* IPv6 */
+    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
+                    buf, len);
+  }
+#endif
+}
+
+/**
  * This routine decodes the middlebox test results.  The data is returned
  * from the server in a specific order.  This routine pulls the string apart
  * and puts the values into the proper variable.  It then compares the values
@@ -247,14 +271,14 @@ void testResults(char tests, char *testresult_str, char* host) {
  * Client then adds
  * Server IP; Client IP.
  * @param midresult_str  String containing test results
- * @param local_addr Client IP address
- * @param peer_addr  Server IP address
+ * @param cltsock Used to get address information
  */
 
-void middleboxResults(char *midresult_str, I2Addr local_addr,
-                      I2Addr peer_addr) {
+void middleboxResults(char *midresult_str, int cltsock) {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
+  struct sockaddr_storage addr;  
+  socklen_t addr_size;
   int mss;
   size_t tmpLen;
 
@@ -271,13 +295,26 @@ void middleboxResults(char *midresult_str, I2Addr local_addr,
   winssent = atoi(str);
   str = strtok(NULL, ";");
   winsrecv = atoi(str);
-
+  
+  /* Get the our local IP address */
+  addr_size = sizeof(addr);
   memset(ccip, 0, 64);
   tmpLen = 63;
-  I2AddrNodeName(local_addr, ccip, &tmpLen);
+  if (getsockname(cltsock,(struct sockaddr *) &addr, &addr_size) == -1) {
+    perror("Middlebox - getsockname() failed");
+  } else {
+    addr2a(&addr, ccip , tmpLen);
+  }
+  
+  /* Get the server IP address */
+  addr_size = sizeof(addr);
   memset(csip, 0, 64);
   tmpLen = 63;
-  I2AddrNodeName(peer_addr, csip, &tmpLen);
+  if (getpeername(cltsock,(struct sockaddr *) &addr, &addr_size) == -1) {
+    perror("Middlebox - getpeername() failed");
+  } else {
+    addr2a(&addr, csip , tmpLen);
+  }
 
   // Check if MSS modification is happening
   check_MSS_modification(TimestampsEnabled, &mss);
@@ -486,7 +523,6 @@ int main(int argc, char *argv[]) {
   int testId;  // test ID received from server
   // addresses..
   I2Addr server_addr = NULL;
-  I2Addr local_addr = NULL, remote_addr = NULL;
   char* ptr;
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
@@ -854,18 +890,16 @@ int main(int argc, char *argv[]) {
     log_println(6, "resultstr = '%s'", resultstr);
   }
 
-  local_addr = I2AddrByLocalSockFD(get_errhandle(), ctlSocket, False);
-  remote_addr = I2AddrBySockFD(get_errhandle(), ctlSocket, False);
-  I2AddrFree(server_addr);
-
   strlcpy(varstr, resultstr, sizeof(varstr));
   // print test results
   testResults(tests, resultstr, host);
 
   // print middlebox test results
   if (tests & TEST_MID) {
-    middleboxResults(mid_resultstr, local_addr, remote_addr);
+    middleboxResults(mid_resultstr, ctlSocket);
   }
+
+  I2AddrFree(server_addr);
 
   // print extra information collected from web100 variables
   if ((tests & TEST_S2C) && (msglvl > 1))
