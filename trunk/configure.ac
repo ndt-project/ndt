@@ -145,6 +145,7 @@ AC_CHECK_LIB([web100], [web100_snap],
                INCLUDED_WEB100LIB=""
                AM_CONDITIONAL(HAVE_WEB100, false)
                ])
+
 AC_CHECK_LIB([tcpe], [tcpe_client_init],
              [
               LINKED_TCPELIB="-ltcpe"

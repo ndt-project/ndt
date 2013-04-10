@@ -554,7 +554,7 @@ void cleanup(int signo) {
 
     case SIGHUP:
       /* Initialize Web100 structures */
-      count_vars = web100_init(VarFileName);
+      count_vars = tcp_stat_init(VarFileName);
 
       /* The administrator view automatically generates a usage page for the
        * NDT server.  This page is then accessable to the general public.
@@ -630,8 +630,12 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
       set_debuglvl(atoi(val));
       continue;
     } else if (strncasecmp(key, "variable_file", 6) == 0) {
+#if USE_WEB100
       snprintf(wvfn, sizeof(wvfn), "%s", val);
       VarFileName = wvfn;
+#elif USE_TCPE
+      log_println(0, "Web10G does not require variable file. Ignoring");
+#endif
       continue;
     } else if (strncasecmp(key, "log_file", 3) == 0) {
       snprintf(lgfn, sizeof(lgfn), "%s", val);
@@ -889,14 +893,19 @@ cputimeWorker(void* arg) {
 /**
  * Run all tests, process results, record them into relevant log files
  *
- * @param agent pointer to web_100 agent
+ * @param agent pointer to tcp_stat agent
  * @param ctlsockfd socket used for server->client communication
  * @param testopt TestOptions *
  * @param test_suite pointer to string indicating tests to be run
  * */
 
-int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
+int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
              char *test_suite) {
+#if USE_WEB100
+  tcp_stat_connection conn = NULL;
+#elif USE_TCPE
+  tcp_stat_connection conn = -1;
+#endif
   char date[32];  // date indicator
   char spds[4][256];  // speed "bin" array containing counters for speeds
   char logstr1[4096], logstr2[1024];  // log
@@ -904,18 +913,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
   char isoTime[64];
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
-  int Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut;
-  int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd, Sndbuf;
-  int CurrentCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
-      DataBytesOut;
-  int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
-  int CurrentRTO, CurrentRwinRcvd, MaxCwnd, CongestionSignals, PktsOut,
-      MinRTT;
-  int CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
-      CurTimeoutCount = 0;
-  int AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts,
-      ThruBytesAcked;
-  int RcvWinScale, SndWinScale;
+  struct tcp_vars vars;
+
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
   // link speed. Transmitted but unused at client end , which has a similar
   // link speed variable
@@ -970,8 +969,6 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   FILE * fp;
 
-  web100_connection* conn;
-
   // start with a clean slate of currently running test and direction
   setCurrentTest(TEST_NONE);
   log_println(7, "Remote host= %s", get_remotehost());
@@ -987,8 +984,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
   spd_index = 0;
 
   // obtain web100 connection and check auto-tune status
-  conn = web100_connection_from_socket(agent, ctlsockfd);
-  autotune = web100_autotune(ctlsockfd, agent, conn);
+  conn = tcp_stat_connection_from_socket(agent, ctlsockfd);
+  autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION);
@@ -1082,88 +1079,82 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
   // Get web100 vars
 
   // ...determine number of times congestion window has been changed
+#if USE_WEB100
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
     CwndDecrease(agent, options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }
+#endif
 
   // ...other variables
-  web100_logvars(&Timeouts, &SumRTT, &CountRTT, &PktsRetrans, &FastRetran,
-                 &DataPktsOut, &AckPktsOut, &CurrentMSS, &DupAcksIn, &AckPktsIn,
-                 &MaxRwinRcvd, &Sndbuf, &CurrentCwnd, &SndLimTimeRwin,
-                 &SndLimTimeCwnd, &SndLimTimeSender, &DataBytesOut,
-                 &SndLimTransRwin, &SndLimTransCwnd, &SndLimTransSender,
-                 &MaxSsthresh, &CurrentRTO, &CurrentRwinRcvd, &MaxCwnd,
-                 &CongestionSignals, &PktsOut, &MinRTT, count_vars,
-                 &RcvWinScale, &SndWinScale, &CongAvoid, &CongestionOverCount,
-                 &MaxRTT, &OtherReductions, &CurTimeoutCount, &AbruptTimeouts,
-                 &SendStall, &SlowStart, &SubsequentTimeouts, &ThruBytesAcked);
+  tcp_stat_logvars(&vars, count_vars);
 
   // end getting web100 variable values
   /* if (rc == 0) { */
 
   // section to calculate duplex mismatch
   // Calculate average round trip time and convert to seconds
-  rttsec = calc_avg_rtt(SumRTT, CountRTT, &avgrtt);
+  rttsec = calc_avg_rtt(vars.SumRTT, vars.CountRTT, &avgrtt);
   // Calculate packet loss
-  packetloss_s2c = calc_packetloss(CongestionSignals, PktsOut,
+  packetloss_s2c = calc_packetloss(vars.CongestionSignals, vars.PktsOut,
                                    c2s_linkspeed_data);
 
   // Calculate ratio of packets arriving out of order
-  oo_order = calc_packets_outoforder(DupAcksIn, AckPktsIn);
+  oo_order = calc_packets_outoforder(vars.DupAcksIn, vars.AckPktsIn);
 
   // calculate theoretical maximum goodput in bits
-  bw_theortcl = calc_max_theoretical_throughput(CurrentMSS, rttsec,
+  bw_theortcl = calc_max_theoretical_throughput(vars.CurrentMSS, rttsec,
                                                 packetloss_s2c);
 
   // get window sizes
-  calc_window_sizes(&SndWinScale, &RcvWinScale, Sndbuf, MaxRwinRcvd,
-                    MaxCwnd, &rwin, &swin, &cwin);
+  calc_window_sizes(&vars.SndWinScale, &vars.RcvWinScale, vars.Sndbuf,
+                    vars.MaxRwinRcvd, vars.MaxCwnd, &rwin, &swin, &cwin);
 
   // Total test time
-  totaltime = calc_totaltesttime(SndLimTimeRwin, SndLimTimeCwnd,
-                                 SndLimTimeSender);
+  totaltime = calc_totaltesttime(vars.SndLimTimeRwin, vars.SndLimTimeCwnd,
+                                 vars.SndLimTimeSender);
 
   // time spent being send-limited due to client's recv window
-  rwintime = calc_sendlimited_rcvrfault(SndLimTimeRwin, totaltime);
+  rwintime = calc_sendlimited_rcvrfault(vars.SndLimTimeRwin, totaltime);
 
   // time spent in being send-limited due to congestion window
-  cwndtime = calc_sendlimited_cong(SndLimTimeCwnd, totaltime);
+  cwndtime = calc_sendlimited_cong(vars.SndLimTimeCwnd, totaltime);
 
   // time spent in being send-limited due to own fault
-  sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
+  sendtime = calc_sendlimited_sndrfault(vars.SndLimTimeSender, totaltime);
 
   timesec = totaltime / MEGA;  // total time in microsecs
 
   // get fraction of total test time waiting for packets to arrive
-  RTOidle = calc_RTOIdle(Timeouts, CurrentRTO, timesec);
+  RTOidle = calc_RTOIdle(vars.Timeouts, vars.CurrentRTO, timesec);
 
   // get timeout, retransmission, acks and dup acks ratios.
-  tmoutsratio = (double) Timeouts / PktsOut;
-  rtranratio = (double) PktsRetrans / PktsOut;
-  acksratio = (double) AckPktsIn / PktsOut;
-  dackratio = (double) DupAcksIn / (double) AckPktsIn;
+  tmoutsratio = (double) vars.Timeouts / vars.PktsOut;
+  rtranratio = (double) vars.PktsRetrans / vars.PktsOut;
+  acksratio = (double) vars.AckPktsIn / vars.PktsOut;
+  dackratio = (double) vars.DupAcksIn / (double) vars.AckPktsIn;
 
   // get actual throughput in Mbps (totaltime is in microseconds)
-  realthruput = calc_real_throughput(DataBytesOut, totaltime);
+  realthruput = calc_real_throughput(vars.DataBytesOut, totaltime);
 
   // total time spent waiting
-  waitsec = cal_totalwaittime(CurrentRTO, Timeouts);
+  waitsec = cal_totalwaittime(vars.CurrentRTO, vars.Timeouts);
 
   log_println(2, "CWND limited test = %0.2f while unlimited = %0.2f", s2c2spd,
               s2cspd);
 
   // Is thruput measured with limited cwnd(midbox test) > as reported S->C test
-  if (is_limited_cwnd_throughput_better(s2c2spd, s2cspd)
-      && isNotMultipleTestMode(multiple))
+  if (is_limited_cwnd_throughput_better(s2c2spd, s2cspd) &&
+      isNotMultipleTestMode(multiple)) {
     log_println(
         2,
         "Better throughput when CWND is limited, may be duplex mismatch");
-  else
+  } else {
     log_println(2,
                 "Better throughput without CWND limits - normal operation");
+  }
 
   // remove the following line when the new detection code is ready for release
   // retaining old comment above
@@ -1171,8 +1162,8 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
   old_mismatch = 1;
 
   if (old_mismatch == 1) {
-    if (detect_duplexmismatch(cwndtime, bw_theortcl, PktsRetrans, timesec,
-                              MaxSsthresh, RTOidle, link, s2cspd, s2c2spd,
+    if (detect_duplexmismatch(cwndtime, bw_theortcl, vars.PktsRetrans, timesec,
+                              vars.MaxSsthresh, RTOidle, link, s2cspd, s2c2spd,
                               multiple)) {
       if (is_c2s_throughputbetter(c2sspd, s2cspd)) {
         // also, S->C throughput is lesser than C->S throughput
@@ -1209,7 +1200,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // Faulty hardware link heuristic.
   if (detect_faultyhardwarelink(packetloss_s2c, cwndtime, timesec,
-                                MaxSsthresh))
+                                vars.MaxSsthresh))
     bad_cable = POSSIBLE_BAD_CABLE;
 
   // test for Ethernet link (assume Fast E.)
@@ -1218,14 +1209,17 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
     link = LINK_ETHERNET;
 
   // test for wireless link
-  if (detect_wirelesslink(sendtime, realthruput, bw_theortcl, SndLimTransRwin,
-                          SndLimTransCwnd, rwintime, link))
+  if (detect_wirelesslink(sendtime, realthruput, bw_theortcl,
+                          vars.SndLimTransRwin, vars.SndLimTransCwnd, rwintime,
+                          link)) {
     link = LINK_WIRELESS;
+  }
 
   // test for DSL/Cable modem link
-  if (detect_DSLCablelink(SndLimTimeSender, SndLimTransSender, realthruput,
-                          bw_theortcl, link))
+  if (detect_DSLCablelink(vars.SndLimTimeSender, vars.SndLimTransSender,
+                          realthruput, bw_theortcl, link)) {
     link = LINK_DSLORCABLE;
+  }
 
   // full/half link duplex setting heuristic:
   // receiver-limited- time > 95%,
@@ -1234,7 +1228,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
   //  ...and the number of transitions into the 'Sender Limited' state is
   //  greater than 30 per second
 
-  if (detect_halfduplex(rwintime, SndLimTransRwin, SndLimTransSender,
+  if (detect_halfduplex(rwintime, vars.SndLimTransRwin, vars.SndLimTransSender,
                         timesec))
     half_duplex = POSSIBLE_HALF_DUPLEX;
 
@@ -1268,7 +1262,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   snprintf(buff, sizeof(buff),
            "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\n"
-           "CWND-Limited: %0.2f\n", cwin, rttsec, Sndbuf, aspd, s2c2spd);
+           "CWND-Limited: %0.2f\n", cwin, rttsec, vars.Sndbuf, aspd, s2c2spd);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   snprintf(buff, sizeof(buff),
@@ -1291,15 +1285,17 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
-           (int) s2c2spd, (int) s2cspd, (int) c2sspd, Timeouts, SumRTT,
-           CountRTT, PktsRetrans, FastRetran, DataPktsOut, AckPktsOut,
-           CurrentMSS, DupAcksIn, AckPktsIn);
+           (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
+           vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
+           vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
+           vars.AckPktsIn);
   memcpy(meta.summary, tmpstr, strlen(tmpstr));
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
-           MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
-           SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
-           SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd);
+           vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
+           vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
+           vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
+           vars.MaxSsthresh, vars.CurrentRTO, vars.CurrentRwinRcvd);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
@@ -1310,15 +1306,16 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d",
            c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
-           s2c_linkspeed_ack, CongestionSignals, PktsOut, MinRTT, RcvWinScale,
-           autotune);
+           s2c_linkspeed_ack, vars.CongestionSignals, vars.PktsOut, vars.MinRTT,
+           vars.RcvWinScale, autotune);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
-  snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid,
-           CongestionOverCount, MaxRTT, OtherReductions, CurTimeoutCount,
-           AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts,
-           ThruBytesAcked);
+  snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+           vars.CongAvoid, vars.CongestionOverCount, vars.MaxRTT,
+           vars.OtherReductions, vars.CurTimeoutCount, vars.AbruptTimeouts,
+           vars.SendStall, vars.SlowStart, vars.SubsequentTimeouts,
+           vars.ThruBytesAcked);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
@@ -1338,59 +1335,63 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
     snprintf(date, sizeof(date), "%15.15s", ctime(&stime) + 4);
     fprintf(fp, "%s,", date);
     fprintf(fp, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", rmt_host,
-            (int) s2c2spd, (int) s2cspd, (int) c2sspd, Timeouts, SumRTT,
-            CountRTT, PktsRetrans, FastRetran, DataPktsOut, AckPktsOut,
-            CurrentMSS, DupAcksIn, AckPktsIn);
-    fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", MaxRwinRcvd,
-            Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
-            SndLimTimeSender, DataBytesOut, SndLimTransRwin,
-            SndLimTransCwnd, SndLimTransSender, MaxSsthresh, CurrentRTO,
-            CurrentRwinRcvd);
+            (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
+            vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
+            vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
+            vars.AckPktsIn);
+    fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", vars.MaxRwinRcvd,
+            vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin, vars.SndLimTimeCwnd,
+            vars.SndLimTimeSender, vars.DataBytesOut, vars.SndLimTransRwin,
+            vars.SndLimTransCwnd, vars.SndLimTransSender, vars.MaxSsthresh,
+            vars.CurrentRTO, vars.CurrentRwinRcvd);
     fprintf(fp, "%d,%d,%d,%d,%d", link, mismatch, bad_cable, half_duplex,
             congestion);
     fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2s_linkspeed_data,
             c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
-            CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune);
-    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", CongAvoid,
-            CongestionOverCount, MaxRTT, OtherReductions, CurTimeoutCount,
-            AbruptTimeouts, SendStall, SlowStart, SubsequentTimeouts,
-            ThruBytesAcked);
+            vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale,
+            autotune);
+    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", vars.CongAvoid,
+            vars.CongestionOverCount, vars.MaxRTT, vars.OtherReductions,
+            vars.CurTimeoutCount, vars.AbruptTimeouts, vars.SendStall,
+            vars.SlowStart, vars.SubsequentTimeouts, vars.ThruBytesAcked);
     fprintf(fp, ",%d,%d,%d\n", peaks.min, peaks.max, peaks.amount);
     fclose(fp);
   }
   db_insert(spds, runave, cputimelog, options.s2c_logname,
             options.c2s_logname, testName, testPort, date, rmt_host, s2c2spd,
-            s2cspd, c2sspd, Timeouts, SumRTT, CountRTT, PktsRetrans, FastRetran,
-            DataPktsOut, AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn,
-            MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
-            SndLimTimeSender, DataBytesOut, SndLimTransRwin, SndLimTransCwnd,
-            SndLimTransSender, MaxSsthresh, CurrentRTO, CurrentRwinRcvd, link,
+            s2cspd, c2sspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
+            vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut,
+            vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn,
+            vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
+            vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
+            vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
+            vars.MaxSsthresh, vars.CurrentRTO, vars.CurrentRwinRcvd, link,
             mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
             c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
-            CongestionSignals, PktsOut, MinRTT, RcvWinScale, autotune,
-            CongAvoid, CongestionOverCount, MaxRTT, OtherReductions,
-            CurTimeoutCount, AbruptTimeouts, SendStall, SlowStart,
-            SubsequentTimeouts, ThruBytesAcked, peaks.min, peaks.max,
-            peaks.amount);
+            vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale,
+            autotune, vars.CongAvoid, vars.CongestionOverCount, vars.MaxRTT,
+            vars.OtherReductions, vars.CurTimeoutCount, vars.AbruptTimeouts,
+            vars.SendStall, vars.SlowStart, vars.SubsequentTimeouts,
+            vars.ThruBytesAcked, peaks.min, peaks.max, peaks.amount);
   if (usesyslog == 1) {
     snprintf(
         logstr1, sizeof(logstr1),
         "client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,"
         "CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,"
         "CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
-        rmt_host, c2sspd, s2cspd, Timeouts, SumRTT, CountRTT,
-        PktsRetrans, FastRetran, DataPktsOut, AckPktsOut, CurrentMSS,
-        DupAcksIn, AckPktsIn);
+        rmt_host, c2sspd, s2cspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
+        vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut, vars.AckPktsOut,
+        vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn);
     snprintf(
         logstr2, sizeof(logstr2),
         "MaxRwinRcvd=%d,Sndbuf=%d,MaxCwnd=%d,SndLimTimeRwin=%d,"
         "SndLimTimeCwnd=%d,SndLimTimeSender=%d,DataBytesOut=%d,"
         "SndLimTransRwin=%d,SndLimTransCwnd=%d,SndLimTransSender=%d,"
         "MaxSsthresh=%d,CurrentRTO=%d,CurrentRwinRcvd=%d,",
-        MaxRwinRcvd, Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd,
-        SndLimTimeSender, DataBytesOut, SndLimTransRwin,
-        SndLimTransCwnd, SndLimTransSender, MaxSsthresh, CurrentRTO,
-        CurrentRwinRcvd);
+        vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
+        vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
+        vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
+        vars.MaxSsthresh, vars.CurrentRTO, vars.CurrentRwinRcvd);
     strlcat(logstr1, logstr2, sizeof(logstr1));
     snprintf(
         logstr2, sizeof(logstr2),
@@ -1399,7 +1400,7 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
         "CongestionSignals=%d,PktsOut=%d,MinRTT=%d,RcvWinScale=%d\n",
         link, mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
         c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
-        CongestionSignals, PktsOut, MinRTT, RcvWinScale);
+        vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale);
     strlcat(logstr1, logstr2, sizeof(logstr1));
     syslog(LOG_FACILITY | LOG_INFO, "%s", logstr1);
     closelog();
@@ -1417,15 +1418,17 @@ int run_test(web100_agent* agent, int ctlsockfd, TestOptions* testopt,
    * updated.  Otherwise the changes are lost when the client terminates.
    */
   if (admin_view == 1) {
-    totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals, PktsOut,
-                         DupAcksIn, AckPktsIn, CurrentMSS, SndLimTimeRwin,
-                         SndLimTimeCwnd, SndLimTimeSender, MaxRwinRcvd,
-                         CurrentCwnd, Sndbuf, DataBytesOut, mismatch, bad_cable,
-                         (int) c2sspd, (int) s2cspd, c2s_linkspeed_data,
-                         s2c_linkspeed_ack, 1);
-    gen_html((int) c2sspd, (int) s2cspd, MinRTT, PktsRetrans, Timeouts,
-             Sndbuf, MaxRwinRcvd, CurrentCwnd, mismatch, bad_cable, totalcnt,
-             refresh);
+    totalcnt = calculate(date, vars.SumRTT, vars.CountRTT,
+                         vars.CongestionSignals, vars.PktsOut, vars.DupAcksIn,
+                         vars.AckPktsIn, vars.CurrentMSS, vars.SndLimTimeRwin,
+                         vars.SndLimTimeCwnd, vars.SndLimTimeSender,
+                         vars.MaxRwinRcvd, vars.CurrentCwnd, vars.Sndbuf,
+                         vars.DataBytesOut, mismatch, bad_cable, (int) c2sspd,
+                         (int) s2cspd, c2s_linkspeed_data, s2c_linkspeed_ack,
+                         1);
+    gen_html((int) c2sspd, (int) s2cspd, vars.MinRTT, vars.PktsRetrans,
+             vars.Timeouts, vars.Sndbuf, vars.MaxRwinRcvd, vars.CurrentCwnd,
+             mismatch, bad_cable, totalcnt, refresh);
   }
   shutdown(ctlsockfd, SHUT_WR);
   /* shutdown(ctlsockfd, SHUT_RDWR); */
@@ -1449,7 +1452,7 @@ int main(int argc, char** argv) {
   int i, loopcnt, t_opts = 0;
   struct sockaddr_storage cli_addr;
   struct sigaction new;
-  web100_agent* agent;
+  tcp_stat_agent* agent;
   char *lbuf = NULL, *ctime();
   char buff[32], tmpstr[256];
   char test_suite[16];
@@ -1612,7 +1615,11 @@ int main(int argc, char** argv) {
                     admin_view = 1;
                     break;
                   case 'f':
+#if USE_WEB100
                     VarFileName = optarg;
+#elif USE_TCPE
+                    log_println(2, "Web10g doesn't require varfile. Ignored.");
+#endif
                     break;
                   case 'i':
                     device = optarg;
@@ -1814,10 +1821,15 @@ int main(int argc, char** argv) {
   }
   listenfd = I2AddrFD(listenaddr);
 
+  if (listenfd == -1) {
+    log_println(0, "ERROR: Socket already in use.");
+    return 0;
+  }
+
   log_println(1, "server ready on port %s (family %d)", port, meta.family);
 
-  // Initialize Web100 structures
-  count_vars = web100_init(VarFileName);
+  // Initialize tcp_stat structures
+  count_vars = tcp_stat_init(VarFileName);
   if (count_vars == -1) {
     log_println(0, "No web100 variables file found, terminating program");
     exit(-5);
@@ -2590,11 +2602,19 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                           "pid=%d", chld_pipe[0], chld_pipe[1], chld_pid);
               close(listenfd);
               close(chld_pipe[1]);
+#if USE_WEB100
               if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL,
                                          NULL)) == NULL) {
                 web100_perror("web100_attach");
                 return 1;
               }
+#elif USE_TCPE
+              if (tcpe_client_init(&agent) != NULL) {
+                log_println(
+                    0, "Error: tcpe_client_init failed. Unable to use web10g.");
+                return 1;
+              }
+#endif
 
               // This is the child process from the above fork().  The parent
               //  is in control, and will send this child a signal when it gets
@@ -2718,7 +2738,11 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 child_sig(0);
               }
               close(ctlsockfd);
+#if USE_WEB100
               web100_detach(agent);
+#elif USE_TCPE
+              tcpe_client_destroy(&agent);
+#endif
               log_free();
 
               if (cputime && workerThreadId) {

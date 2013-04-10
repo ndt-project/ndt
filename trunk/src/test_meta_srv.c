@@ -38,8 +38,8 @@
  *			4 - Invalid data format in received message
  */
 
-int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
-                  int conn_options) {
+int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
+                  TestOptions* testOptions, int conn_options) {
   int j;
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
