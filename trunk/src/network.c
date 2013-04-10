@@ -415,7 +415,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  *
  */
 
-int send_msg(int ctlSocket, int type, void* msg, int len) {
+int send_msg(int ctlSocket, int type, const void* msg, int len) {
   unsigned char buff[3];
   int rc, i;
 
@@ -524,9 +524,9 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
  * @return The amount of bytes written to the file descriptor
  */
 
-int writen(int fd, void* buf, int amount) {
+int writen(int fd, const void* buf, int amount) {
   int sent, n;
-  char* ptr = buf;
+  const char* ptr = buf;
   sent = 0;
   assert(amount >= 0);
   while (sent < amount) {

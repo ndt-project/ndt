@@ -701,7 +701,7 @@ void protolog_println(char *msgdirection, const int type, void* msg,
  * @param processid PID of process
  * @param ctlSocket socket over which message has been exchanged
  * */
-void protolog_sendprintln(const int type, void* msg, const int len,
+void protolog_sendprintln(const int type, const void* msg, const int len,
                           const int processid, const int ctlSocket) {
   char *currentDir;
 
@@ -711,7 +711,7 @@ void protolog_sendprintln(const int type, void* msg, const int len,
   }
   currentDir = get_currentdirndesc();
 
-  protolog_println(currentDir, type, msg, len, processid, ctlSocket);
+  protolog_println(currentDir, type, (void*) msg, len, processid, ctlSocket);
 }
 
 /**
