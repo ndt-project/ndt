@@ -316,7 +316,8 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
     *sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (*sockfd < 0) {
       // socket create failed. Abandon further activities using this socket
-      log_println(1, "Failed to create %d %d %d", ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+      log_println(1, "Failed to create %d %d %d",
+                  ai->ai_family, ai->ai_socktype, ai->ai_protocol);
       continue;
     }
 
@@ -391,7 +392,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
       return 1;
     } else {
       log_println(0, "Failed to connect: %s", strerror(errno));
-      //goto error;
+      // goto error;
     }
   }
 

@@ -1,5 +1,7 @@
 #include "../config.h"
 
+#include <arpa/inet.h>
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
@@ -240,22 +242,22 @@ void testResults(char tests, char *testresult_str, char* host) {
 
 /**
  * Get a string representation of an ip address.
- * 
+ *
  * @param addr A sockaddr structure which contains the address
  * @param buf A buffer to fill with the ip address as a string
  * @param len The length of buf.
  */
-static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
-  if(((struct sockaddr *)addr)->sa_family == AF_INET){
+static void addr2a(struct sockaddr_storage * addr, char * buf, int len) {
+  if (((struct sockaddr *)addr)->sa_family == AF_INET) {
     /* IPv4 */
     inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
-                    buf, len);
+              buf, len);
   }
-#ifdef AF_INET6 
-  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
+#ifdef AF_INET6
+  else if (((struct sockaddr *)addr)->sa_family == AF_INET6) {
     /* IPv6 */
     inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
-                    buf, len);
+              buf, len);
   }
 #endif
 }
@@ -277,7 +279,7 @@ static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
 void middleboxResults(char *midresult_str, int cltsock) {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
-  struct sockaddr_storage addr;  
+  struct sockaddr_storage addr;
   socklen_t addr_size;
   int mss;
   size_t tmpLen;
@@ -295,22 +297,22 @@ void middleboxResults(char *midresult_str, int cltsock) {
   winssent = atoi(str);
   str = strtok(NULL, ";");
   winsrecv = atoi(str);
-  
+
   /* Get the our local IP address */
   addr_size = sizeof(addr);
   memset(ccip, 0, 64);
   tmpLen = 63;
-  if (getsockname(cltsock,(struct sockaddr *) &addr, &addr_size) == -1) {
+  if (getsockname(cltsock, (struct sockaddr *) &addr, &addr_size) == -1) {
     perror("Middlebox - getsockname() failed");
   } else {
     addr2a(&addr, ccip , tmpLen);
   }
-  
+
   /* Get the server IP address */
   addr_size = sizeof(addr);
   memset(csip, 0, 64);
   tmpLen = 63;
-  if (getpeername(cltsock,(struct sockaddr *) &addr, &addr_size) == -1) {
+  if (getpeername(cltsock, (struct sockaddr *) &addr, &addr_size) == -1) {
     perror("Middlebox - getpeername() failed");
   } else {
     addr2a(&addr, csip , tmpLen);
