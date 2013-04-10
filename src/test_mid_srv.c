@@ -9,7 +9,7 @@
  *      Author: kkumar
  */
 
-#include  <syslog.h>
+#include <syslog.h>
 #include <pthread.h>
 #include <sys/times.h>
 #include <assert.h>
@@ -37,7 +37,7 @@
  *          >0 - error code.
  *          Error codes:
  * 				-1 - Listener socket creation failed
- *				-3 - web100 connection data not obtained
+ *				-3 - tcp_stat connection data not obtained
  *				-100 - timeout while waiting for client to connect to serverÕs ephemeral port
  *				-errno- Other specific socket error numbers
  *				-101 - Retries exceeded while waiting for client to connect
@@ -49,7 +49,7 @@
  *
  */
 
-int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
+int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
              int conn_options, double* s2c_throughput_mid) {
   int maxseg = ETHERNET_MTU_SIZE;
   /* int maxseg=1456, largewin=16*1024*1024; */
@@ -66,7 +66,7 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
   char listenmidport[10];  // listener socket for middlebox tests
   int msgType;
   int msgLen;
-  web100_connection* conn;
+  tcp_stat_connection conn;
   char tmpstr[256];  // temporary string storage
   struct timeval sel_tv;  // time
   fd_set rfd;  // receiver file descriptor
@@ -235,8 +235,9 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
     meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
 
     buff[0] = '\0';
-    // get web100 connection data
-    if ((conn = web100_connection_from_socket(agent, midsfd)) == NULL) {
+    // get tcp_stat connection data
+#if USE_WEB100
+    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == NULL) {
       log_println(
           0,
           "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d",
@@ -244,9 +245,18 @@ int test_mid(int ctlsockfd, web100_agent* agent, TestOptions* options,
       /* exit(-1); */
       return -3;
     }
+#elif USE_TCPE
+    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == -1) {
+      log_println(
+          0,
+          "test_min() failed to get web10g connection data, rc=%d",
+          errno);
+      return -3;
+    }
+#endif
 
     // Perform S->C throughput test. Obtained results in "buff"
-    web100_middlebox(midsfd, agent, conn, buff, sizeof(buff));
+    tcp_stat_middlebox(midsfd, agent, conn, buff, sizeof(buff));
 
     // Transmit results in the form of a TEST_MSG message
     send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
