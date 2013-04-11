@@ -3379,35 +3379,35 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_txtStatistics.append("\n"
 					+ _resBundDisplayMsgs.getString("web100tcpOpts") + " \n");
 			_txtStatistics.append("RFC 2018 Selective Acknowledgment: ");
-			if (_iSACKEnabled == NDTConstants.RFC_2018_Enabled)
-				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
+			if (_iSACKEnabled == iZero)
+				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
 			else
-				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
+				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 
 			_txtStatistics.append("RFC 896 Nagle Algorithm: ");
-			if (_iNagleEnabled == NDTConstants.RFC_896_ENABLED)
-				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
+			if (_iNagleEnabled == iZero)
+				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
 			else
-				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
+				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 
 			_txtStatistics.append("RFC 3168 Explicit Congestion Notification: ");
-			if (_iECNEnabled == NDTConstants.RFC_3168_ENABLED)
-				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
+			if (_iECNEnabled == iZero)
+				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
 			else
-				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
+				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 
 			_txtStatistics.append("RFC 1323 Time Stamping: ");
-			if (_iTimestampsEnabled == NDTConstants.RFC_1323_ENABLED)
-				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
+			if (_iTimestampsEnabled == NDTConstants.RFC_1323_DISABLED)
+				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
 			else
-				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
+				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 
 			_txtStatistics.append("RFC 1323 Window Scaling: ");
