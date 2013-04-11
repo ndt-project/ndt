@@ -3379,7 +3379,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_txtStatistics.append("\n"
 					+ _resBundDisplayMsgs.getString("web100tcpOpts") + " \n");
 			_txtStatistics.append("RFC 2018 Selective Acknowledgment: ");
-			if (_iSACKEnabled == NDTConstants.RFC_2018_Enabled)
+			if (_iSACKEnabled == NDTConstants.RFC_2018_ENABLED)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 			else
