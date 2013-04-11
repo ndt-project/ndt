@@ -97,7 +97,7 @@ void get_iflist(void) {
  * 
  * This calls pcap_breakloop with the correct capture.
  */
-void force_breakloop() {
+void force_breakloop(){
   if (pd != NULL) {
     pcap_breakloop(pd);
   }
@@ -790,7 +790,7 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
 
       void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                          socklen_t saddrlen, int monitor_pipe[2], char *device,
-                         PortPair* pair, const char *direction, int compress) {
+                         PortPair* pair, char *direction, int compress) {
         char cmdbuf[256], dir[256];
         pcap_handler printer;
         u_char * pcap_userdata = (u_char*) pair;
@@ -1050,8 +1050,8 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
         }
 
         /* Send back results to our parent */
-        if (check_signal_flags() == 0) {
-          log_println(5, "We should have a sig flag set");
+        if(check_signal_flags() == 0){
+          log_println(5, "Whatever happened, we should have a sig flag set");
         }
 
         pcap_close(pd);

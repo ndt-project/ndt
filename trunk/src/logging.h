@@ -99,7 +99,7 @@ void log_linkspeed(int index);
 void protolog_printgeneric(const char* key, const char* val, int socketnum);
 void protolog_status(int pid, enum TEST_ID testid,
                      enum TEST_STATUS_INT teststatus, int socketnum);
-void protolog_sendprintln(const int type, const void* msg, const int len,
+void protolog_sendprintln(const int type, void* msg, const int len,
                           const int processid, const int ctlSocket);
 void protolog_rcvprintln(const int type, void* msg, const int len,
                          const int processid, const int ctlSocket);
