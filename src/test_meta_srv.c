@@ -22,7 +22,7 @@
 /**
  * Performs the META test.
  * @param ctlsockfd Client control socket descriptor
- * @param agent Web100 agent used to track the connection
+ * @param agent UNUSED Web100 agent used to track the connection
  * @param testOptions The test options
  * @param conn_options The connection options
  * @return 0 - success,
@@ -38,8 +38,8 @@
  *			4 - Invalid data format in received message
  */
 
-int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
-                  int conn_options) {
+int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
+                  TestOptions* testOptions, int conn_options) {
   int j;
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];

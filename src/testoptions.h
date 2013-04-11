@@ -17,7 +17,6 @@
 #define RETRY_EXCEEDED_WAITING_DATA -102
 #define SOCKET_STATUS_FAILED -1
 
-
 typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
@@ -47,8 +46,9 @@ typedef struct testoptions {
 
 // Snap log characteristics
 typedef struct snapArgs {
-  web100_snapshot* snap;  // web_100 snapshot indicator
-  web100_log* log;  // web_100 log
+  tcp_stat_connection* conn;
+  tcp_stat_snap* snap;
+  tcp_stat_log* log;
   int delay;  // periodicity, in ms, of collecting snap
 } SnapArgs;
 
@@ -59,26 +59,26 @@ int initialize_tests(int ctlsockfd, TestOptions* testOptions,
 
 void catch_s2c_alrm(int signo);
 
-int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
+int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                  int conn_options);
-int test_meta_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
+int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                   int conn_options);
 
 int getCurrentTest();
 void setCurrentTest(int testId);
 
-// void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
-void start_snap_worker(SnapArgs *snaparg, web100_agent *agentarg,
+// void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
+void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
                        CwndPeaks* peaks, char snaplogenabled,
                        pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, web100_connection* conn,
-                       web100_group* group);
+                       char *metafilename, tcp_stat_connection conn,
+                       tcp_stat_group* group);
 
 void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
                       SnapArgs* snapArgs_ptr);
 
-void setCwndlimit(web100_connection* connarg, web100_group* grouparg,
-                  web100_agent* agentarg, Options* optionsarg);
+void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
+                  tcp_stat_agent* agentarg, Options* optionsarg);
 
 int is_buffer_clogged(int nextseqtosend, int lastunackedseq);
 void stop_packet_trace(int *monpipe_arr);

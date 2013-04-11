@@ -10,12 +10,67 @@
 #include <time.h>
 #include <assert.h>
 
-#include "web100srv.h"
-#include "network.h"
 #include "logging.h"
-#include "utils.h"
+#include "network.h"
 #include "protocol.h"
 #include "strlutils.h"
+#include "utils.h"
+#include "web100srv.h"
+
+struct tcp_name {
+  char* web100_name;
+  char* web10g_name;
+};
+
+/* Must match in-order with tcp_vars in web100srv.h struct */
+// TODO: more robust order matching with included file and preprocessor macros
+static struct tcp_name tcp_names[] = {
+/* {"WEB100", "WEB10G" } / tcp_vars name / */
+  {"Timeouts", "Timeouts"}, /* Timeouts */
+  {"SumRTT", "SumRTT"}, /* SumRTT */
+  {"CountRTT", "CountRTT"}, /* CountRTT */
+  {"PktsRetrans", "SegsRetrans"}, /* PktsRetrans */
+  {"FastRetran", "FastRetran"}, /* FastRetran */
+  {"DataPktsOut", "DataSegsOut"}, /* DataPktsOut */
+  {"AckPktsOut", NULL}, /* AckPktsOut - not included in web10g */
+  {"CurMSS", "CurMSS"}, /* CurrentMSS */
+  {"DupAcksIn", "DupAcksIn"}, /* DupAcksIn */
+  /* NOTE: in the server to client throughput test all packets received from client are ack's 
+   * So SegsIn == AckPktsIn. I don't see a replacement in web10g maybe (SegsIn - DataSegsIn)
+   */
+  {"AckPktsIn", "SegsIn"}, /* AckPktsIn - not included in web10g */
+  {"MaxRwinRcvd", "MaxRwinRcvd"}, /* MaxRwinRcvd */
+  {"X_Sndbuf", NULL}, /* Sndbuf - Not in Web10g pull from socket */
+  {"CurCwnd", "CurCwnd"}, /* CurrentCwnd */
+  {"SndLimTimeRwin", "SndLimTimeRwin"}, /* SndLimTimeRwin */
+  {"SndLimTimeCwnd", "SndLimTimeCwnd"}, /* SndLimTimeCwnd */
+  {"SndLimTimeSender", "SndLimTimeSnd"}, /* SndLimTimeSender */
+  {"DataBytesOut", "DataOctetsOut"}, /* DataBytesOut */
+  {"SndLimTransRwin", "SndLimTransRwin"}, /* SndLimTransRwin */
+  {"SndLimTransCwnd", "SndLimTransCwnd"}, /* SndLimTransCwnd */
+  {"SndLimTransSender", "SndLimTransSnd"}, /* SndLimTransSender */
+  {"MaxSsthresh", "MaxSsthresh"}, /* MaxSsthresh */
+  {"CurRTO", "CurRTO"}, /* CurrentRTO */
+  {"CurRwinRcvd", "CurRwinRcvd"}, /* CurrentRwinRcvd */
+  {"MaxCwnd", NULL}, /* MaxCwnd split into MaxSsCwnd and MaxCaCwnd web10g */
+  {"CongestionSignals", "CongSignals"}, /* CongestionSignals */
+  {"PktsOut", "SegsOut"}, /* PktsOut */
+  {"MinRTT", "MinRTT"}, /* MinRTT */
+  {"RcvWinScale", "WinScaleRcvd"}, /* RcvWinScale */
+  {"SndWinScale", "WinScaleSent"}, /* SndWinScale */
+  {"CongAvoid", "CongAvoid"}, /* CongAvoid */
+  {"CongestionOverCount", "CongOverCount"}, /* CongestionOverCount */
+  {"MaxRTT", "MaxRTT"}, /* MaxRTT */
+  {"OtherReductions", "OtherReductions"}, /* OtherReductions */
+  {"CurTimeoutCount", "CurTimeoutCount"}, /* CurTimeoutCount */
+  {"AbruptTimeouts", "AbruptTimeouts"}, /* AbruptTimeouts */
+  {"SendStall", "SendStall"}, /* SendStall */
+  {"SlowStart", "SlowStart"}, /* SlowStart */
+  {"SubsequentTimeouts", "SubsequentTimeouts"}, /* SubsequentTimeouts */
+  {"ThruBytesAcked", "ThruOctetsAcked"}, /* ThruBytesAcked */
+  { NULL, "MaxSsCwnd" }, /* MaxSsCwnd */
+  { NULL, "MaxCaCwnd" } /* MaxCaCwnd */
+};
 
 /**
  * set up the necessary structures for monitoring connections at the
@@ -24,7 +79,8 @@
  * @return integer indicating number of web100 variables read
  * 		or indicating failure of initialization
  */
-int web100_init(char *VarFileName) {
+int tcp_stat_init(char *VarFileName) {
+#if USE_WEB100
   FILE * fp;
   char line[256], trimmedline[256];
   int count_vars = 0;
@@ -54,46 +110,43 @@ int web100_init(char *VarFileName) {
   log_println(1, "web100_init() read %d variables from file", count_vars);
 
   return (count_vars);
+#elif USE_TCPE
+  return TOTAL_INDEX_MAX;
+#endif
 }
 
 /**
  * Get a string representation of an ip address.
- * 
+ *
  * @param addr A sockaddr structure which contains the address
  * @param buf A buffer to fill with the ip address as a string
  * @param len The length of buf.
  */
-static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
-  if(((struct sockaddr *)addr)->sa_family == AF_INET){
-    /* IPv4 */
-    inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
-                    buf, len);
-    }
-#ifdef AF_INET6 
-  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
-    /* IPv6 */
-    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
-                    buf, len);
+static void addr2a(struct sockaddr_storage* addr, char * buf, int len) {
+  if (((struct sockaddr*)addr)->sa_family == AF_INET) {
+    inet_ntop(AF_INET, &(((struct sockaddr_in*)addr)->sin_addr), buf, len);
+  }
+#ifdef AF_INET6
+  else if (((struct sockaddr*)addr)->sa_family == AF_INET6) {
+    inet_ntop(AF_INET6, &(((struct sockaddr_in6*)addr)->sin6_addr), buf, len);
   }
 #endif
 }
 
 /**
  * Get a string representation of an port number.
- * 
+ *
  * @param addr A sockaddr structure which contains the port number
  * @param buf A buffer to fill with the port number as a string
  * @param len The length of buf.
  */
-static void port2a(struct sockaddr_storage * addr,char * buf, int len){
-  if(((struct sockaddr *)addr)->sa_family == AF_INET){
-    /* IPv4 */
-    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in *)addr)->sin_port));
+static void port2a(struct sockaddr_storage* addr, char* buf, int len) {
+  if (((struct sockaddr*)addr)->sa_family == AF_INET) {
+    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in*)addr)->sin_port));
   }
-#ifdef AF_INET6 
-  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
-    /* IPv6 */
-    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in6 *)addr)->sin6_port));
+#ifdef AF_INET6
+  else if (((struct sockaddr*)addr)->sa_family == AF_INET6) {
+    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in6*)addr)->sin6_port));
   }
 #endif
 }
@@ -116,11 +169,18 @@ static void port2a(struct sockaddr_storage * addr,char * buf, int len){
  *
  *
  */
-void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
-                      char *results, size_t results_strlen) {
+void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
+                        char *results, size_t results_strlen) {
+#if USE_WEB100
   web100_var* var;
   web100_group* group;
   web100_snapshot* snap;
+  web100_var* LimCwnd;
+#elif USE_TCPE
+  struct tcpe_val value;
+  tcpe_data* data = NULL;
+#endif
+
   char buff[8192], line[256];
   char* sndbuff;
   int i, j, k, currentMSSval = 0;
@@ -130,11 +190,10 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   int ret;
   char tmpstr[200];
   size_t tmpstrlen = sizeof(tmpstr);
-  web100_var *LimCwnd;
   u_int32_t limcwnd_val;
   struct sockaddr_storage saddr;
   socklen_t saddr_size;
-  
+
   // middlebox test results
   static char vars[][255] = { "CurMSS", "WinScaleSent", "WinScaleRecv", };
 
@@ -146,9 +205,9 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
 
   // get socket IP address
   saddr_size = sizeof(saddr);
-  if (getsockname(sock,(struct sockaddr *) &saddr, &saddr_size) == -1) {
+  if (getsockname(sock, (struct sockaddr *) &saddr, &saddr_size) == -1) {
     /* Make it clear something failed but continue test */
-    log_println(0,"Middlebox - getsockname() failed: %s", strerror(errno));
+    log_println(0, "Middlebox - getsockname() failed: %s", strerror(errno));
     snprintf(line, sizeof(line), "address_error;");
     snprintf(tmpstr, sizeof(tmpstr), "0");
   } else {
@@ -174,9 +233,9 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   // and copy into results
   tmpstrlen = sizeof(tmpstr);
   saddr_size = sizeof(saddr);
-  if (getpeername(sock,(struct sockaddr *) &saddr, &saddr_size) == -1) {
+  if (getpeername(sock, (struct sockaddr *) &saddr, &saddr_size) == -1) {
     /* Make it clear something failed but continue test */
-    log_println(0,"Middlebox - getpeername() failed: %s", strerror(errno));
+    log_println(0, "Middlebox - getpeername() failed: %s", strerror(errno));
     snprintf(line, sizeof(line), "address_error;");
     snprintf(tmpstr, sizeof(tmpstr), "0");
   } else {
@@ -191,7 +250,8 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
   strlcat(results, line, results_strlen);
 
   // get web100 values for the middlebox test result group
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
+#if USE_WEB100
     // read web100_group and web100_var of vars[i] into group and var
     web100_agent_find_var_and_group(agent, vars[i], &group, &var);
     // read variable value from web100 connection
@@ -205,6 +265,13 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
           web100_value_to_text(web100_get_var_type(var), buff));
     snprintf(line, sizeof(line), "%s;",
              web100_value_to_text(web100_get_var_type(var), buff));
+#elif USE_TCPE
+    web10g_get_val(agent, cn, vars[i], &value);
+    if (strcmp(vars[i], "CurMSS") == 0)
+      currentMSSval = value.uv32;
+    snprintf(line, sizeof(line), "%u;", value.uv32);
+#endif
+
     if (strcmp(line, "4294967295;") == 0)
       snprintf(line, sizeof(line), "%d;", -1);
 
@@ -223,12 +290,18 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
    * RAC 2/28/06
    */
 
+  limcwnd_val = 2 * currentMSSval;
+
+#if USE_WEB100
   // get web100_var and web100_group
   web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
 
   // set TCP CWND web100 variable to twice the current MSS Value
-  limcwnd_val = 2 * currentMSSval;
   web100_raw_write(LimCwnd, cn, &limcwnd_val);
+#elif USE_TCPE
+  tcpe_write_var("LimCwnd", (uint32_t)limcwnd_val, cn, agent);
+#endif
+
   log_println(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
 
   // try to allocate memory of the size of current MSS Value
@@ -252,9 +325,13 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
     sndbuff[j] = (k++ & 0x7f);
   }
 
+#if USE_WEB100
   // get web100 group with name "read"
   group = web100_group_find(agent, "read");
   snap = web100_snapshot_alloc(group, cn);
+#elif USE_TCPE
+  tcpe_data_new(&data);
+#endif
 
   FD_ZERO(&wfd);
   FD_SET(sock, &wfd);
@@ -264,6 +341,7 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
     if ((ret == -1) && (errno == EINTR)) /* a signal arrived, ignore it */
       continue;
 
+#if USE_WEB100
     web100_snap(snap);
 
     // get next sequence # to be sent
@@ -274,6 +352,13 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
     web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
     web100_snap_read(var, snap, line);
     SndUna = atoi(web100_value_to_text(web100_get_var_type(var), line));
+#elif USE_TCPE
+    tcpe_read_vars(data, cn, agent);
+    web10g_find_val(data, "SndNxt", &value);
+    SndMax = value.uv32;
+    web10g_find_val(data, "SndUna", &value);
+    SndUna = value.uv32;
+#endif
 
     // stop sending data if (buf size * 16) <
     // [ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
@@ -289,9 +374,16 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
     if (k < 0)  // general error writing to socket. quit
       break;
   }
+
+#if USE_WEB100
   log_println(5, "Finished with web100_middlebox() routine snap-0x%x, "
               "sndbuff=%x0x", snap, sndbuff);
   web100_snapshot_free(snap);
+#elif USE_TCPE
+  tcpe_data_free(&data);
+  log_println(5, "Finished with web10g_middlebox() routine, "
+              "sndbuff=%x0x", sndbuff);
+#endif
   /* free(sndbuff); */
 }
 
@@ -299,17 +391,21 @@ void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
  * Get receiver side Web100 stats and write them to the log file
  *
  * @param sock integer socket file descriptor
- * @param agent pointer to a web100_agent
- * @param cn pointer to a web100_connection
- * @param count_vars integer number of web100_variables to get value of
+ * @param agent pointer to a tcp_stat_agent
+ * @param cn pointer to a tcp_stat_connection
+ * @param count_vars integer number of tcp_stat_vars to get value of
  *
  */
-void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
-                          int count_vars) {
-  int i, ok;
-  web100_var* var;
+void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
+                            tcp_stat_connection cn, int count_vars) {
+#if USE_WEB100
+  web100_var* var = NULL;
+  web100_group* group = NULL;
+#elif USE_TCPE
+  tcpe_data* data = NULL;
+#endif
+  int i;
   char buf[32], line[256], *ctime();
-  web100_group* group;
   FILE * fp;
   time_t tt;
 
@@ -321,18 +417,24 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
     fprintf(fp, "%15.15s;", ctime(&tt) + 4);
   // get values for group, var of IP Address of the Remote host's side of
   // connection
+
+#if USE_WEB100
   web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
   web100_raw_read(var, cn, buf);
   snprintf(line, sizeof(line), "%s;",
            web100_value_to_text(web100_get_var_type(var), buf));
+#elif USE_TCPE
+  web10g_get_remote_addr(agent, cn, buf, sizeof(buf));
+  snprintf(line, sizeof(line), "%s;", buf);
+#endif
   // write remote address to log file
   if (fp)
     fprintf(fp, "%s", line);
 
-  ok = 1;
-
   // get values for other web100 variables and write to the log file
 
+#if USE_WEB100
+  int ok = 1;
   for (i = 0; i < count_vars; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
                                          &var)) != WEB100_ERR_SUCCESS) {
@@ -363,6 +465,48 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
     }
     ok = 1;
   }
+#elif USE_TCPE
+  tcpe_data_new(&data);
+  tcpe_read_vars(data, cn, agent);
+
+  // Loop through all the web10g variables and write to file/log_print them
+  for (i = 0; i < ARRAYSIZE(data->val); i++) {
+    if (data->val[i].mask) continue;
+
+    switch (tcpe_var_array[i].type) {
+      case TCPE_UNSIGNED64:
+        if (fp)
+          fprintf(fp, "%" PRIu64 ";", data->val[i].uv64);
+        log_println(9, "%s: %" PRIu64,
+                    tcpe_var_array[i].name, data->val[i].uv64);
+        break;
+      case TCPE_UNSIGNED32:
+        if (fp)
+          fprintf(fp, "%u;", data->val[i].uv32);
+        log_println(9, "%s: %u", tcpe_var_array[i].name, data->val[i].uv32);
+        break;
+      case TCPE_SIGNED32:
+        if (fp)
+          fprintf(fp, "%d;", data->val[i].sv32);
+        log_println(9, "%s: %d", tcpe_var_array[i].name, data->val[i].sv32);
+        break;
+      case TCPE_UNSIGNED16:
+        if (fp)
+          fprintf(fp, "%" PRIu16 ";", data->val[i].uv16);
+        log_println(9, "%s: %" PRIu16,
+                    tcpe_var_array[i].name, data->val[i].uv16);
+        break;
+      case TCPE_UNSIGNED8:
+        if (fp)
+          fprintf(fp, "%" PRIu8 ";", data->val[i].uv8);
+        log_println(9, "%s: %" PRIu8, tcpe_var_array[i].name, data->val[i].uv8);
+        break;
+      default:
+        break;
+    }
+  }
+  tcpe_data_free(&data);
+#endif
 
   // close file pointers after web100 variables have been fetched
   if (fp) {
@@ -371,23 +515,32 @@ void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
   }
 }
 
+#if USE_TCPE
+// Persistent storage needed.
+static tcpe_data* dataDumpSave;
+static int X_SndBuf;
+static int X_RcvBuf;
+#endif
+
 /**
  * Collect Web100 stats from a snapshot and transmit to a receiver.
  * The transmission is done using a TES_MSG type message and sent to
  * client reachable via the input parameter socket FD.
  *
- * @param snap pointer to a web100_snapshot taken earlier
+ * @param snap pointer to a tcp_stat_snapshot taken earlier
  * @param ctlsock integer socket file descriptor indicating data recipient
- * @param agent pointer to a web100_agent
- * @param count_vars integer number of web100_variables to get value of
+ * @param agent pointer to a tcp_stat_agent
+ * @param count_vars integer number of tcp_stat_variables to get value of
  *
  */
-int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
-                    int count_vars) {
+int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
+                      tcp_stat_agent* agent, int count_vars) {
+  char line[256];
+#if USE_WEB100
   int i;
   web100_var* var;
-  char buf[32], line[256];
   web100_group* group;
+  char buf[32];
 
   assert(snap);
   assert(agent);
@@ -429,8 +582,169 @@ int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
   }
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return (0);
+#elif USE_TCPE
+  int j;
+  unsigned int m;
+  struct tcpe_val val;
+
+  m = sizeof(X_RcvBuf);
+  getsockopt(testsock, SOL_SOCKET, SO_RCVBUF, (void *)&X_RcvBuf, &m);
+  m = sizeof(X_SndBuf);
+  getsockopt(testsock, SOL_SOCKET, SO_SNDBUF, (void *)&X_SndBuf, &m);
+
+  assert(snap);
+
+  tcpe_data_new(&dataDumpSave);
+
+  for (j = 0; j < ARRAYSIZE(snap->val); j++) {
+    dataDumpSave->val[j].mask = snap->val[j].mask;
+    dataDumpSave->val[j].uv64 = snap->val[j].uv64;
+    if (snap->val[j].mask) continue;
+
+    switch (tcpe_var_array[j].type) {
+      case TCPE_UNSIGNED64:
+        snprintf(line, sizeof(line), "%s: %" PRIu64 "\n",
+                 tcpe_var_array[j].name, snap->val[j].uv64);
+        break;
+      case TCPE_UNSIGNED32:
+        snprintf(line, sizeof(line), "%s: %u\n",
+                 tcpe_var_array[j].name, snap->val[j].uv32);
+        break;
+      case TCPE_SIGNED32:
+        snprintf(line, sizeof(line), "%s: %d\n",
+                 tcpe_var_array[j].name, snap->val[j].sv32);
+        break;
+      case TCPE_UNSIGNED16:
+        snprintf(line, sizeof(line), "%s: %" PRIu16 "\n",
+                 tcpe_var_array[j].name, snap->val[j].uv16);
+      case TCPE_UNSIGNED8:
+        snprintf(line, sizeof(line), "%s: %" PRIu8 "\n",
+                 tcpe_var_array[j].name, snap->val[j].uv8);
+        break;
+      default:
+        break;
+    }
+    send_msg(ctlsock, TEST_MSG, line, strlen(line));
+    log_print(9, "%s", line);
+  }
+
+  /* This is the list of changed variable names that the client tries to read.
+   * Web100 -> Web10g
+   * ECNEnabled -> ECN
+   * NagleEnabled -> Nagle
+   * SACKEnabled -> WillSendSACK & WillUseSACK
+   * TimestampsEnabled -> TimeStamps
+   * PktsRetrans -> SegsRetrans
+   * X_Rcvbuf -> Not in web10g doesn't acutally use it so just leave it out
+   * DataPktsOut -> DataSegsOut
+   * AckPktsOut -> Depreciated
+   * MaxCwnd -> MaxSsCwnd MaxCaCwnd
+   * SndLimTimeSender -> SndLimTimeSnd
+   * DataBytesOut -> DataOctetsOut
+   * AckPktsIn -> Depreciated
+   * SndLimTransSender -> SndLimTransSnd
+   * PktsOut -> SegsOut
+   * CongestionSignals -> CongSignals
+   * RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1
+   */
+  static const char* msg = "-~~~Web100_old_var_names~~~-: 1\n";
+  send_msg(ctlsock, TEST_MSG, msg, strlen(msg));
+  uint32_t temp;
+
+  /* ECNEnabled -> ECN */
+  val.uv64 = 0;
+  web10g_find_val(snap, "ECN", &val);
+  snprintf(line, sizeof(line), "ECNEnabled: %d\n", val.sv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* NagleEnabled -> Nagle */
+  val.uv64 = 0;
+  web10g_find_val(snap, "Nagle", &val);
+  snprintf(line, sizeof(line), "NagleEnabled: %d\n", val.sv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* SACKEnabled -> WillUseSACK & WillSendSACK
+   * keep this in line with web100 for now i.e. 0 == off 1 == on */
+  val.uv64 = 0;
+  web10g_find_val(snap, "WillUseSACK", &val);
+  snprintf(line, sizeof(line), "SACKEnabled: %d\n", (val.sv32 == 1) ? 1 : 0);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* TimestampsEnabled -> TimeStamps */
+  val.uv64 = 0;
+  web10g_find_val(snap, "TimeStamps", &val);
+  snprintf(line, sizeof(line), "TimestampsEnabled: %d\n", val.sv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* PktsRetrans -> SegsRetrans */
+  val.uv64 = 0;
+  web10g_find_val(snap, "SegsRetrans", &val);
+  snprintf(line, sizeof(line), "PktsRetrans: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* DataPktsOut -> DataSegsOut */
+  val.uv64 = 0;
+  web10g_find_val(snap, "DataSegsOut", &val);
+  snprintf(line, sizeof(line), "DataPktsOut: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* MaxCwnd -> MaxSsCwnd MaxCaCwnd */
+  val.uv64 = 0;
+  web10g_find_val(snap, "MaxSsCwnd", &val);
+  temp = val.uv32;
+  val.uv64 = 0;
+  web10g_find_val(snap, "MaxCaCwnd", &val);
+  temp = MAX(temp, val.uv32);
+  snprintf(line, sizeof(line), "DataPktsOut: %u\n", temp);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* SndLimTimeSender -> SndLimTimeSnd */
+  val.uv64 = 0;
+  web10g_find_val(snap, "SndLimTimeSnd", &val);
+  snprintf(line, sizeof(line), "SndLimTimeSender: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* DataBytesOut -> DataOctetsOut */
+  val.uv64 = 0;
+  web10g_find_val(snap, "DataOctetsOut", &val);
+  snprintf(line, sizeof(line), "DataBytesOut: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* SndLimTransSender -> SndLimTransSnd */
+  val.uv64 = 0;
+  web10g_find_val(snap, "SndLimTransSnd", &val);
+  snprintf(line, sizeof(line), "SndLimTransSender: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* PktsOut -> SegsOut */
+  val.uv64 = 0;
+  web10g_find_val(snap, "SegsOut", &val);
+  snprintf(line, sizeof(line), "PktsOut: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* CongestionSignals -> CongSignals */
+  val.uv64 = 0;
+  web10g_find_val(snap, "CongSignals", &val);
+  snprintf(line, sizeof(line), "CongestionSignals: %u\n", val.uv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  /* RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1 */
+  val.uv64 = 0;
+  web10g_find_val(snap, "WinScaleSent", &val);
+  if (val.sv32 == -1)
+    snprintf(line, sizeof(line), "RcvWinScale: %u\n", 0);
+  else
+    snprintf(line, sizeof(line), "RcvWinScale: %d\n", val.sv32);
+  send_msg(ctlsock, TEST_MSG, line, strlen(line));
+
+  send_msg(ctlsock, TEST_MSG, msg, strlen(msg));
+
+  log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
+  return 0;
+#endif
 }
 
+#if USE_WEB100
 /**
  * Calculate Web100 based Round-Trip Time (RTT) value.
  *
@@ -475,6 +789,7 @@ int web100_rtt(int sock, web100_agent* agent, web100_connection* cn) {
   sum = atoi(web100_value_to_text(web100_get_var_type(var), buf));
   return (sum / count);
 }
+#endif
 
 /**
  * Check if the "Auto Tune Send Buffer" and "Auto Tune Receive Buffer" options
@@ -493,7 +808,8 @@ int web100_rtt(int sock, web100_agent* agent, web100_connection* cn) {
  * 					23 cannot read the value of the X_SBufMode or X_RBufMode web100_variable.
  */
 
-int web100_autotune(int sock, web100_agent* agent, web100_connection* cn) {
+int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn) {
+#if USE_WEB100
   web100_var* var;
   char buf[32];
   web100_group* group;
@@ -534,8 +850,13 @@ int web100_autotune(int sock, web100_agent* agent, web100_connection* cn) {
   if (i == 0)
     j |= 0x02;
   return (j);
+#elif USE_TCPE
+  // Disabled in web10g.
+  return 0x03;
+#endif
 }
 
+#if USE_WEB100
 /**
  * Check if the "Auto Tune Send Buffer" and "Auto Tune Receive Buffer" options
  * are enabled. If not, scale the Send window or receive window sizes based on the
@@ -559,8 +880,8 @@ int web100_autotune(int sock, web100_agent* agent, web100_connection* cn) {
  * 					35 - cannot read value of RcvWinScale web100 variable.
  *
  */
-int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
-                   int autotune) {
+int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
+                     int autotune) {
   web100_var* var;
   char buf[32];
   web100_group* group;
@@ -624,114 +945,67 @@ int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
 
   return (0);
 }
+#endif
 
 /**
  * @param sock integer socket file descriptor indicating data recipient
- * @param pointers to local copies of web100 variables
+ * @param tcp_vars to local copies of tcp_stat variables
  * @return integer 0
- *
- *
  */
-int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
-                   int *FastRetran, int *DataPktsOut, int *AckPktsOut,
-                   int *CurrentMSS, int *DupAcksIn, int *AckPktsIn,
-                   int *MaxRwinRcvd, int *Sndbuf, int *CurrentCwnd,
-                   int *SndLimTimeRwin, int *SndLimTimeCwnd,
-                   int *SndLimTimeSender, int *DataBytesOut,
-                   int *SndLimTransRwin, int *SndLimTransCwnd,
-                   int *SndLimTransSender, int *MaxSsthresh, int *CurrentRTO,
-                   int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
-                   int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale,
-                   int *SndWinScale, int *CongAvoid, int *CongestionOverCount,
-                   int *MaxRTT, int *OtherReductions, int *CurTimeoutCount,
-                   int *AbruptTimeouts, int *SendStall, int *SlowStart,
-                   int *SubsequentTimeouts, int *ThruBytesAcked) {
-  int i;
+int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
+#if USE_WEB100
+  int a, b;
+  for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
+    const char* web100_name = tcp_names[a].web100_name;
+    if (web100_name == NULL)
+      continue;
 
-  for (i = 0; i <= count_vars; i++) {
-    if (strcmp(web_vars[i].name, "Timeouts") == 0)
-      *Timeouts = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SumRTT") == 0)
-      *SumRTT = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CountRTT") == 0)
-      *CountRTT = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "PktsRetrans") == 0)
-      *PktsRetrans = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "FastRetran") == 0)
-      *FastRetran = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "DataPktsOut") == 0)
-      *DataPktsOut = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "AckPktsOut") == 0)
-      *AckPktsOut = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CurMSS") == 0)
-      *CurrentMSS = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "DupAcksIn") == 0)
-      *DupAcksIn = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "AckPktsIn") == 0)
-      *AckPktsIn = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "MaxRwinRcvd") == 0)
-      *MaxRwinRcvd = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "X_Sndbuf") == 0)
-      *Sndbuf = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CurCwnd") == 0)
-      *CurrentCwnd = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "MaxCwnd") == 0)
-      *MaxCwnd = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndLimTimeRwin") == 0)
-      *SndLimTimeRwin = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndLimTimeCwnd") == 0)
-      *SndLimTimeCwnd = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndLimTimeSender") == 0)
-      *SndLimTimeSender = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "DataBytesOut") == 0)
-      *DataBytesOut = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndLimTransRwin") == 0)
-      *SndLimTransRwin = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndLimTransCwnd") == 0)
-      *SndLimTransCwnd = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndLimTransSender") == 0)
-      *SndLimTransSender = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "MaxSsthresh") == 0)
-      *MaxSsthresh = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CurRTO") == 0)
-      *CurrentRTO = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CurRwinRcvd") == 0)
-      *CurrentRwinRcvd = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CongestionSignals") == 0)
-      *CongestionSignals = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "PktsOut") == 0)
-      *PktsOut = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "MinRTT") == 0)
-      *MinRTT = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "RcvWinScale") == 0)
-      *RcvWinScale = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SndWinScale") == 0)
-      *SndWinScale = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CongAvoid") == 0)
-      *CongAvoid = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CongestionOverCount") == 0)
-      *CongestionOverCount = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "MaxRTT") == 0)
-      *MaxRTT = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "OtherReductions") == 0)
-      *OtherReductions = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "CurTimeoutCount") == 0)
-      *CurTimeoutCount = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "AbruptTimeouts") == 0)
-      *AbruptTimeouts = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SendStall") == 0)
-      *SendStall = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SlowStart") == 0)
-      *SlowStart = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "SubsequentTimeouts") == 0)
-      *SubsequentTimeouts = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "ThruBytesAcked") == 0)
-      *ThruBytesAcked = atoi(web_vars[i].value);
+    for (b = 0; b < count_vars; b++) {
+      if (strcmp(web_vars[b].name, web100_name) == 0) {
+        tcp_stat_var* var = ((tcp_stat_var*) vars) + a;
+        *var = atoi(web_vars[b].value);
+        log_println(5, "Found %s : %i", web100_name, *var);
+        break;
+      }
+    }
+    if (b == count_vars) {
+      log_println(1, "WARNING: Failed to find Web100 var %s", web100_name);
+    }
+  }
+#elif USE_TCPE
+  int a, b;
+  assert(dataDumpSave);
+  for (a = 0; a < (sizeof(struct tcp_vars) / sizeof(tcp_stat_var)); ++a) {
+    const char* web10g_name = tcp_names[a].web10g_name;
+    if (web10g_name == NULL)
+      continue;
+
+    for (b = 0; b < ARRAYSIZE(dataDumpSave->val); ++b) {
+      if (dataDumpSave->val[b].mask)
+        continue;
+      if (strcmp(tcpe_var_array[b].name, web10g_name) == 0) {
+        tcp_stat_var* var = ((tcp_stat_var*) vars) + a;
+        *var = dataDumpSave->val[b].uv32;
+        log_println(5, "Found %s : %i", web10g_name, *var);
+        break;
+      }
+    }
+    if (b == ARRAYSIZE(dataDumpSave->val)) {
+      log_println(1, "WARNING: Failed to find Web10g var %s", web10g_name);
+    }
   }
 
-  return (0);
+  vars->AckPktsOut = 0;
+  vars->Sndbuf = X_SndBuf;
+  vars->MaxCwnd = MAX(vars->MaxSsCwnd, vars->MaxCaCwnd);
+
+  tcpe_data_free(&dataDumpSave);
+  dataDumpSave = NULL;
+#endif
+  return 0;
 }
 
+#if USE_WEB100
 /**
  * Routine to read snaplog file and determine the number of times the
  * congestion window is reduced.
@@ -809,7 +1083,9 @@ int CwndDecrease(web100_agent* agent, char* logname, u_int32_t *dec_cnt,
       *inc_cnt, *dec_cnt, *same_cnt);
   return (0);
 }
+#endif  // TODO: Implement in web10g when logging is doable.
 
+#if USE_WEB100
 /**
  * Generate TCP/IP checksum for our packet
  *
@@ -997,3 +1273,4 @@ int KillHung(void) {
     return (-1);
   return (0);
 }
+#endif

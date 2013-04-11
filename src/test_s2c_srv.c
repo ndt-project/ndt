@@ -70,10 +70,25 @@ int mon_pipe2[2];
  *				-102   - Retries exceeded while waiting for data from connected client
  *  			-errno - Other specific socket error numbers
  */
-int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
+int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
              int* spd_index, int count_vars, CwndPeaks* peaks) {
+#if USE_WEB100
+  /* experimental code to capture and log multiple copies of the
+   * web100 variables using the web100_snap() & log() functions.
+   */
+  web100_snapshot* tsnap = NULL;
+  web100_snapshot* rsnap = NULL;
+  web100_group* tgroup;
+  web100_group* rgroup;
+  web100_var* var;
+#elif USE_TCPE
+  tcpe_data* snap;
+#endif
+  tcp_stat_connection conn;
+  /* Just a holder for web10g */
+  tcp_stat_group* group = NULL;
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
   int xmitsfd;  // transmit (i.e server) socket fd
@@ -101,16 +116,6 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
   int sndqueue;
   struct sigaction new, old;
 
-  /* experimental code to capture and log multiple copies of the
-   * web100 variables using the web100_snap() & log() functions.
-   */
-  web100_snapshot* tsnap = NULL;
-  web100_snapshot* rsnap = NULL;
-  web100_group* group;
-  web100_group* tgroup;
-  web100_group* rgroup;
-  web100_connection* conn;
-  web100_var* var;
   pthread_t workerThreadId;
   int nextseqtosend = 0, lastunackedseq = 0;
   int drainingqueuecount = 0, bufctlrnewdata = 0;
@@ -124,7 +129,9 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
 
   SnapArgs snapArgs;
   snapArgs.snap = NULL;
+#if USE_WEB100
   snapArgs.log = NULL;
+#endif
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
@@ -276,7 +283,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        }
     }
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
-    conn = web100_connection_from_socket(agent, xmitsfd);
+    conn = tcp_stat_connection_from_socket(agent, xmitsfd);
 
     // set up packet capture. The data collected is used for bottleneck link
     // calculations
@@ -340,10 +347,14 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
         system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
+#if USE_WEB100
       rgroup = web100_group_find(agent, "read");
       rsnap = web100_snapshot_alloc(rgroup, conn);
       tgroup = web100_group_find(agent, "tune");
       tsnap = web100_snapshot_alloc(tgroup, conn);
+#elif USE_TCPE
+      tcpe_data_new(&snap);
+#endif
 
       // fill send buffer with random printable data for throughput test
       bytes_written = 0;
@@ -394,6 +405,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
           // get details of next sequence # to be sent and fetch value from
           // snap file
+#if USE_WEB100
           web100_agent_find_var_and_group(agent, "SndNxt", &group,
                                           &var);
           web100_snap_read(var, snapArgs.snap, tmpstr);
@@ -407,6 +419,13 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           lastunackedseq = atoi(
               web100_value_to_text(web100_get_var_type(var),
                                    tmpstr));
+#elif USE_TCPE
+          struct tcpe_val value;
+          web10g_find_val(snapArgs.snap, "SndNxt", &value);
+          nextseqtosend = value.uv32;
+          web10g_find_val(snapArgs.snap, "SndUna", &value);
+          lastunackedseq = value.uv32;
+#endif
           pthread_mutex_unlock(&mainmutex);
 
           // Temporarily stop sending data if you sense that the buffer is
@@ -463,8 +482,12 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
                     "S2C test - failed to send test message to pid=%d",
                     s2c_childpid);
 
+#if USE_WEB100
       web100_snap(rsnap);
       web100_snap(tsnap);
+#elif USE_TCPE
+      tcpe_read_vars(snap, conn, agent);
+#endif
 
       log_println(1, "sent %d bytes to client in %0.2f seconds",
                   (int) bytes_written, tx_duration);
@@ -546,12 +569,18 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
     // Get web100 variables from snapshot taken earlier and send to client
     log_println(6, "S2C-Send web100 data vars to client pid=%d",
                 s2c_childpid);
+
+#if USE_WEB100
     // send web100 data to client
-    ret = web100_get_data(tsnap, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars);
     web100_snapshot_free(tsnap);
     // send tuning-related web100 data collected to client
-    ret = web100_get_data(rsnap, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars);
     web100_snapshot_free(rsnap);
+#elif USE_TCPE
+    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars);
+    tcpe_data_free(&snap);
+#endif
 
     // If sending web100 variables above failed, indicate to client
     if (ret < 0) {

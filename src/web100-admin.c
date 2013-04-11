@@ -7,16 +7,18 @@
  * rcarlson@internet2.edu
  */
 
+#include "web100-admin.h"
+
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "web100srv.h"
+#include "heuristics.h"
 #include "logging.h"
-#include "web100-admin.h"
-#include "utils.h"
 #include "strlutils.h"
+#include "utils.h"
+#include "web100srv.h"
 
 /* Initialize the Administrator view.  Process the data in the existing log file to
  * catch up on what's happened before.
