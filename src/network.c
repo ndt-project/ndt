@@ -316,8 +316,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
     *sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (*sockfd < 0) {
       // socket create failed. Abandon further activities using this socket
-      log_println(1, "Failed to create %d %d %d",
-                  ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+      log_println(1, "Failed to create %d %d %d", ai->ai_family, ai->ai_socktype, ai->ai_protocol);
       continue;
     }
 
@@ -392,7 +391,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
       return 1;
     } else {
       log_println(0, "Failed to connect: %s", strerror(errno));
-      // goto error;
+      //goto error;
     }
   }
 
@@ -416,7 +415,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  *
  */
 
-int send_msg(int ctlSocket, int type, const void* msg, int len) {
+int send_msg(int ctlSocket, int type, void* msg, int len) {
   unsigned char buff[3];
   int rc, i;
 
@@ -525,9 +524,9 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
  * @return The amount of bytes written to the file descriptor
  */
 
-int writen(int fd, const void* buf, int amount) {
+int writen(int fd, void* buf, int amount) {
   int sent, n;
-  const char* ptr = buf;
+  char* ptr = buf;
   sent = 0;
   assert(amount >= 0);
   while (sent < amount) {

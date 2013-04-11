@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.6.6-rc1],[ndt-user@internet2.edu])
+AC_INIT([NDT],[3.6.5.2-rc3],[ndt-user@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -146,19 +146,6 @@ AC_CHECK_LIB([web100], [web100_snap],
                AM_CONDITIONAL(HAVE_WEB100, false)
                ])
 
-AC_CHECK_LIB([tcpe], [tcpe_client_init],
-             [
-              LINKED_TCPELIB="-ltcpe"
-              INCLUDED_TCPELIB="-I/usr/local/include/tcpe"
-              AC_DEFINE(HAVE_LIBTCPE, 1, [Define to 1 if you have the 'Web10G' library (-ltcpe).])
-              AM_CONDITIONAL(HAVE_TCPE, true)
-             ],
-             [
-              LINKED_TCPELIB=""
-              INCLUDED_TCPELIB=""
-              AM_CONDITIONAL(HAVE_TCPE, false)
-            ])
-
 AC_CHECK_LIB([pcap], [pcap_open_live],
              [
               LINKED_PCAPLIB="-lpcap"
@@ -210,16 +197,14 @@ AC_CHECK_LIB([odbc], [SQLDriverConnect],
                ])
 
 
-NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB) $(INCLUDED_TCPELIB)'
+NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) $(LINKED_TCPELIB) -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
 AC_SUBST(LINKED_WEB100LIB)
 AC_SUBST(INCLUDED_WEB100LIB)
-AC_SUBST(LINKED_TCPELIB)
-AC_SUBST(INCLUDED_TCPELIB)
 AC_SUBST(LINKED_PCAPLIB)
 AC_SUBST(INCLUDED_PCAPLIB)
 AC_SUBST(LINKED_ODBCLIB)
@@ -290,12 +275,6 @@ echo "***********************************"
 echo ""
 echo ""
 
-if test -z "$HAVE_TCPE_TRUE" && test -n "$HAVE_TCPE_FALSE"; then
-  SUMMARY_WEB10GSRV="YES"
-else
-  SUMMARY_WEB10GSRV="NO (missing tcpe (web10g) library)"
-fi
-
 SUMMARY_WEB100CLT="YES"
 if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
@@ -335,14 +314,13 @@ fi
 echo "* web100clt:    ${SUMMARY_WEB100CLT}"
 echo ""
 
-if test "$SUMMARY_FAKEWWW" = "YES" && (test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES") && test "$SUMMARY_TCPBW100JAR" = "YES"; then
+if test "$SUMMARY_FAKEWWW" = "YES" && test "$SUMMARY_WEB100SRV" = "YES" && test "$SUMMARY_TCPBW100JAR" = "YES"; then
 echo "*** Server Tools - complete"
 else
 echo "*** Server Tools - incomplete"
 fi
 echo "* fakewww:      ${SUMMARY_FAKEWWW}"
 echo "* web100srv:    ${SUMMARY_WEB100SRV}"
-echo "* web10gsrv:    ${SUMMARY_WEB10GSRV}"
 echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
 echo ""
 
