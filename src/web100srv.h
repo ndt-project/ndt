@@ -290,7 +290,7 @@ typedef int tcp_stat_connection;
 typedef struct tcpe_data tcp_stat_snap;
 /* Not relevent to web10g */
 typedef void tcp_stat_group;
-/* Log currently unimplemented in web100 */
+/* Log currently unimplemented in web10g */
 typedef void tcp_stat_log;
 #define tcp_stat_connection_from_socket web10g_connection_from_socket
 
@@ -308,7 +308,6 @@ typedef web100_connection* tcp_stat_connection;
 typedef web100_snapshot tcp_stat_snap;
 /* Group only relevent to web100 */
 typedef web100_group tcp_stat_group;
-/* Log currently unimplemented in web100 */
 typedef web100_log tcp_stat_log;
 #define tcp_stat_connection_from_socket web100_connection_from_socket
 
@@ -332,7 +331,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
-
+void ipv4mapped_to_ipv6(struct sockaddr_storage * ss);
 char *get_remotehost();
 
 /* global variables for signal processing */
