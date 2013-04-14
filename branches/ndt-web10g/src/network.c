@@ -30,29 +30,47 @@
 #error This file assumes AF_INET6 is defined.
 #endif
 
+struct ai_node {
+  struct addrinfo* ai;
+  struct ai_node* next;
+};
+
 static int OpenSocket(I2Addr addr, char* serv, int options) {
   int fd = -1;
   int return_code = 0;
 
+  // Keep a list of all ipv4 and ipv6 addresses we come across
+  // So we can search for ipv6 first
+  struct ai_node ipv4_list[5] = {{NULL}};
+  struct ai_node ipv6_list[5] = {{NULL}};
   struct addrinfo *fai = NULL;
+  struct ai_node *fain = NULL;
+
   if (!(fai = I2AddrAddrInfo(addr, NULL, serv))) {
     return -2;
   }
 
-  struct addrinfo* ai_ipv6 = NULL;
-  struct addrinfo* ai_ipv4 = NULL;
+  struct ai_node* ain_ipv6 = &ipv6_list[0];
+  struct ai_node* ain_ipv4 = &ipv4_list[0];
 
-  // Get references to the first IPv6 and first IPv4 addresses. If INET6 support
-  // is not compiled in, ignore AF_INET6 entries.
-  // TODO: build lists of all IPv6 and IPv4 entries.
+  // Get lists of all IPv6 and IPv4 addresses.
   for (struct addrinfo* ai = fai; ai != NULL; ai = ai->ai_next) {
-    if (ai->ai_family == AF_INET6 && ai_ipv6 == NULL)
-      ai_ipv6 = ai;
-    else if (ai->ai_family == AF_INET && ai_ipv4 == NULL)
-      ai_ipv4 = ai;
-    if (ai_ipv4 != NULL && ai_ipv6 != NULL)
-      break;
+    if (ai->ai_family == AF_INET6 && ain_ipv6 <= &ipv6_list[4]){
+      if(ain_ipv6->ai != NULL){
+        ain_ipv6 += 1;
+        ain_ipv6->next = ain_ipv6 + 1;
+      }
+      ain_ipv6->ai = ai;
+    }
+    else if (ai->ai_family == AF_INET && ain_ipv4 <= &ipv4_list[4]){
+      if(ain_ipv4->ai != NULL){
+        ain_ipv4 += 1;
+        ain_ipv4->next = ain_ipv4 + 1;
+      }
+      ain_ipv4->ai = ai;
+    }
   }
+
 
   // Determine which family the user would prefer, based on command line.
   int family = AF_UNSPEC;
@@ -63,16 +81,23 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     family = AF_INET;
 
   // Prefer IPv6.
-  if (family == AF_UNSPEC || family == AF_INET6) {
-    fai = ai_ipv6;
-    fai->ai_next = ai_ipv4;
+  if ( (family == AF_UNSPEC || family == AF_INET6) 
+        && ipv6_list[0].ai != NULL) {
+    fain = &ipv6_list[0];
+    // Link IPv4 onto the end as a fallback
+    if(ipv4_list[0].ai != NULL){
+      ain_ipv6->next = &ipv4_list[0];
+    }
   } else {
-    fai = ai_ipv4;
+    if(ipv4_list[0].ai != NULL)
+      fain = &ipv4_list[0];
+    else
+      fain = NULL;
   }
 
   // Attempt to connect to one of the chosen addresses.
   struct addrinfo* ai = NULL;
-  for (ai = fai; ai; ai = ai->ai_next) {
+  for (ai = fain->ai; fain != NULL; fain = fain->next, ai = fain->ai) {
     // create socket with obtained address domain, socket type and protocol
     fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 

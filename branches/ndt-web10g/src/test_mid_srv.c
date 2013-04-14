@@ -249,7 +249,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == -1) {
       log_println(
           0,
-          "test_min() failed to get web10g connection data, rc=%d",
+          "test_mid() failed to get web10g connection data, rc=%d",
           errno);
       return -3;
     }

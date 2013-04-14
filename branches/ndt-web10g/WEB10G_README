@@ -5,13 +5,15 @@ I've tested with linux 3.5.1 kernel patched with web10g (web10.org - 	Web10G-0.4
 
 You need to make and install the Web10G-userland library I used Web10G-userland-2.0.4.
 
+NOTE: The older estats-userlands are not supported so the 3.2 kernel and earlier will not work.
+
 Configure and build ndt as normal. Web10G libs should be detected and hence the web10gsrv built. Web100 is still fully supported and if Web100 libs are found web100srv will be built.
 
 Known issues
 
 Web10G related
 * Logging functionality not yet implemented some related functions are missing.
-* Web10g patch not quite right - need to modify ktime_to_ns to ktime_to_us.
+* Web10g kernel patch not quite right - need to modify ktime_to_ns to ktime_to_us.
 * Server and Client(C and Java Applet) have been ported, other tools have not. Depending on their function they may not work.
 
 Other

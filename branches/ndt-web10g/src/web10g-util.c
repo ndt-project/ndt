@@ -5,13 +5,13 @@
  *
  */
 
+#include "web100srv.h"
+#include "logging.h"
+
 /*
  * These are used to pass information between web10g_connection_from_socket
  * and getremote_callback. It would be nice if these were not globals.
  */
-#include "web100srv.h"
-#include "logging.h"
-
 static struct sockaddr_storage local_name;
 static struct sockaddr_storage peer_name;
 static int connection_id;
@@ -68,6 +68,25 @@ static void fromsocket_callback(struct tcpe_connection_tuple* ct) {
 }
 
 /**
+ * Converts a IPv4-mapped IPv6 sockaddr_in6 to a sockaddr_in4
+ * 
+ * @param ss a sockaddr_storage
+ *
+ * @return if the ss represents a IPv6 mapped IPv4 address it will be converted
+ * into a IPv4 sockaddr_in. Otherwise ss will remain unchanged. 
+ */
+void ipv4mapped_to_ipv6(struct sockaddr_storage * ss){
+  if (ss->ss_family == AF_INET6){
+    if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *) ss)->sin6_addr)){
+      // Ports already in the right place so just move the actual address
+      ss->ss_family = AF_INET;
+      ((struct sockaddr_in *) ss)->sin_addr.s_addr = 
+                    ((uint32_t *) &((struct sockaddr_in6 *) ss)->sin6_addr)[3];
+    }
+  }
+}
+
+/**
  * Find the web10g connection number related to a given socket.
  *
  * @param client A web10g client
@@ -91,6 +110,7 @@ int web10g_connection_from_socket(struct tcpe_client* client, int sockfd) {
     log_println(1, "getsockname() failed: %s ", strerror(errno));
     return -1;
   }
+  ipv4mapped_to_ipv6(&local_name);
 
   /* Get the ip address of our peer */
   if (getpeername(sockfd, (struct sockaddr*) &peer_name,
@@ -98,6 +118,7 @@ int web10g_connection_from_socket(struct tcpe_client* client, int sockfd) {
     log_println(1, "getpeername() failed: %s ", strerror(errno));
     return -1;
   }
+  ipv4mapped_to_ipv6(&peer_name);
 
   tcpe_list_conns(client, fromsocket_callback);
 

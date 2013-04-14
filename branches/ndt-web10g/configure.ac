@@ -291,7 +291,11 @@ echo ""
 echo ""
 
 if test -z "$HAVE_TCPE_TRUE" && test -n "$HAVE_TCPE_FALSE"; then
+if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
   SUMMARY_WEB10GSRV="YES"
+else
+  SUMMARY_WEB10GSRV="NO    (missing pcap headers)"
+fi
 else
   SUMMARY_WEB10GSRV="NO (missing tcpe (web10g) library)"
 fi
