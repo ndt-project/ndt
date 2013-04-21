@@ -99,60 +99,52 @@ static char dbUIDbuf[256];  // DB UID
 static char dbPWDbuf[256];  // DB Password
 
 // list of global variables used throughout this program.
-int window = 64000;  // TCP buffer size
-int randomize = 0;
-int count_vars = 0;
-int dumptrace = 0;
-int usesyslog = 0;
-int multiple = 0;
-int compress = 1;
-int max_clients = 50;
-int set_buff = 0;
-int admin_view = 0;
-int queue = 1;
-int view_flag = 0;
-int record_reverse = 0;
-int testing;  // a test is currently being performed.
-int waiting;  // # of many tests pending
-int mclients;  // multiple client mode client count
-int refresh = 30;
-int old_mismatch = 0; /* use the old duplex mismatch detection heuristic */
+static int window = 64000;  // TCP buffer size
+static int count_vars = 0;
+static int dumptrace = 0;
+static int usesyslog = 0;
+static int multiple = 0;
+static int compress = 1;
+static int max_clients = 50;
+static int set_buff = 0;
+static int admin_view = 0;
+static int queue = 1;
+static int record_reverse = 0;
+static int testing;  // a test is currently being performed.
+static int waiting;  // # of many tests pending
+static int mclients;  // multiple client mode client count
+static int refresh = 30;
+static int old_mismatch = 0; /* use the old duplex mismatch detection heuristic */
 /* int sig1, sig2, sig17; */
 
-Options options;
-CwndPeaks peaks;
-int cputime = 0;
-char cputimelog[256];
-pthread_t workerThreadId, zombieThreadId;
-int cputimeworkerLoop = 1, zombie_check = 0;
+static Options options;
+static CwndPeaks peaks;
+static int cputime = 0;
+static char cputimelog[256];
+static pthread_t workerThreadId, zombieThreadId;
+static int cputimeworkerLoop = 1, zombie_check = 0;
 
-int useDB = 0;
-char* dbDSN = NULL;
-char* dbUID = NULL;
-char* dbPWD = NULL;
+static int useDB = 0;
+static char* dbDSN = NULL;
+static char* dbUID = NULL;
+static char* dbPWD = NULL;
 
-char *VarFileName = NULL;
-char *AdminFileName = NULL;
-char *SysLogFacility = NULL;
-int syslogfacility = LOG_FACILITY;
-char *ProcessName = { "web100srv" };
-char *ConfigFileName = NULL;
-char buff[BUFFSIZE + 1];
-char*rmt_host;
-char spds[4][256], buff2[32];
-char *device = NULL;
-char* port = PORT;
-TestOptions testopt;
+static char *VarFileName = NULL;
+static char *AdminFileName = NULL;
+static char *SysLogFacility = NULL;
+static int syslogfacility = LOG_FACILITY;
+static char *ConfigFileName = NULL;
+static char buff[BUFFSIZE + 1];
+static char*rmt_host;
+static char *device = NULL;
+static char* port = PORT;
+static TestOptions testopt;
 
-pcap_t *pd;
-pcap_dumper_t *pdump;
-float run_ave[4];
-
-int conn_options = 0;
-struct ndtchild *head_ptr;
-int ndtpid;
-int testPort;
-char testName[256];
+static int conn_options = 0;
+static struct ndtchild *head_ptr;
+static int ndtpid;
+static int testPort;
+static char testName[256];
 
 /* create semaphore to allow only 1 process to modify the wait queue */
 #include <semaphore.h>
