@@ -114,13 +114,9 @@ struct ndtchild {
 /* structure used to collect speed data in bins */
 struct spdpair {
   int family;  // Address family
-#if defined(AF_INET6)
   u_int32_t saddr[4];  // source address
   u_int32_t daddr[4];  // dest address
-#else
-  u_int32_t saddr;  // source address
-  u_int32_t daddr;  // dest address
-#endif
+
   u_int16_t sport;  // source port
   u_int16_t dport;  // destination port
   u_int32_t seq;  // seq number
@@ -142,8 +138,6 @@ struct spdpair {
                      // and prior value)
   u_int32_t totalcount;  // total number of valid speed data bins
 };
-
-struct spdpair fwd, rev;
 
 struct web100_variables {
   char name[256];  // key

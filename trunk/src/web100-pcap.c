@@ -30,6 +30,8 @@ int mon_pipe1[2], mon_pipe2[2];
 int sigj = 0, sigk = 0;
 int ifspeed;
 
+struct spdpair fwd, rev;
+
 /** Scan through interface device list and get names/speeds of each interface.
  *
  * The speed data can be used to cap the search for the bottleneck link
@@ -121,15 +123,9 @@ static int check_signal_flags() {
                   "Sending pkt-pair data back to parent on pipe %d, %d",
                   mon_pipe1[0], mon_pipe1[1]);
       if (get_debuglvl() > 3) {
-#ifdef AF_INET6
         if (fwd.family == 4) {
           fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
                   fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
-#else
-          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-                  fwd.saddr, fwd.sport, rev.saddr, rev.sport);
-#endif
-#ifdef AF_INET6
         } else if (fwd.family == 6) {
           char str[136];
           memset(str, 0, 136);
@@ -142,7 +138,6 @@ static int check_signal_flags() {
           fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
                   fwd.family);
         }
-#endif
       }
       print_bins(&fwd, mon_pipe1);
       usleep(30000); /* wait here 30 msec, for parent to read this data */
@@ -158,15 +153,9 @@ static int check_signal_flags() {
                   "Sending pkt-pair data back to parent on pipe %d, %d",
                   mon_pipe2[0], mon_pipe2[1]);
       if (get_debuglvl() > 3) {
-#ifdef AF_INET6
         if (fwd.family == 4) {
           fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
                   fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
-#else
-          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-                  fwd.saddr, fwd.sport, rev.saddr, rev.sport);
-#endif
-#ifdef AF_INET6
         } else if (fwd.family == 6) {
           char str[136];
           memset(str, 0, 136);
@@ -179,7 +168,6 @@ static int check_signal_flags() {
           fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
                   fwd.family);
         }
-#endif
       }
       print_bins(&fwd, mon_pipe2);
       usleep(30000); /* wait here 30 msec, for parent to read this data */
@@ -205,13 +193,8 @@ void init_vars(struct spdpair *cur) {
 
   assert(cur);
 
-#if defined(AF_INET6)
   memset(cur->saddr, 0, 4);
   memset(cur->daddr, 0, 4);
-#else
-  cur->saddr = 0;
-  cur->daddr = 0;
-#endif
   cur->sport = 0;
   cur->dport = 0;
   cur->seq = 0;
@@ -257,7 +240,6 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
     }
   }
   if (get_debuglvl() > 2) {
-#ifdef AF_INET6
     if (cur->family == 4) {
       if (fp) {
         fprintf(fp, "%u.%u.%u.%u:%d --> ", (cur->saddr[0] & 0xFF),
@@ -274,25 +256,6 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
                 ((cur->daddr[0] >> 8) & 0xff), ((cur->daddr[0] >> 16) & 0xff),
                 (cur->daddr[0] >> 24), cur->dport);
     }
-#else
-    if (fp) {
-      fprintf(
-          fp,
-          "%u.%u.%u.%u:%d --> ",
-          (cur->saddr & 0xFF), ((cur->saddr >> 8) & 0xff),
-          ((cur->saddr >> 16) & 0xff), (cur->saddr >> 24), cur->sport);
-      fprintf(fp, "%u.%u.%u.%u:%d  ", (cur->daddr & 0xFF),
-              ((cur->daddr >> 8) & 0xff), ((cur->daddr >> 16) & 0xff),
-              (cur->daddr >> 24), cur->dport);
-    }
-    log_print(3, "%u.%u.%u.%u:%d --> ", (cur->saddr & 0xFF),
-              ((cur->saddr >> 8) & 0xff), ((cur->saddr >> 16) & 0xff),
-              (cur->saddr >> 24), cur->sport);
-    log_print(3, "%u.%u.%u.%u:%d ", (cur->daddr & 0xFF),
-              ((cur->daddr >> 8) & 0xff), ((cur->daddr >> 16) & 0xff),
-              (cur->daddr >> 24), cur->dport);
-#endif
-#ifdef AF_INET6
     else {
       char name[200];
       socklen_t len;
@@ -311,7 +274,6 @@ void print_bins(struct spdpair *cur, int monitor_pipe[2]) {
       }
       log_print(3, "%s:%d  ", name, cur->dport);
     }
-#endif
   }
   // If max speed is 0, then indicate that no data has been collected
   if (max == 0) {
@@ -574,22 +536,14 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
   p += sizeof(struct ether_header);  // move packet pointer past ethernet fields
 
   ip = (const struct ip *) p;
-#if defined(AF_INET6)
   if (ip->ip_v == 4) {
-#endif
-
     /* This section grabs the IP & TCP header values from an IPv4 packet and loads the various
      * variables with the packet's values.  
      */
     p += (ip->ip_hl) * 4;
     tcp = (const struct tcphdr *) p;
-#if defined(AF_INET6)
     current.saddr[0] = ip->ip_src.s_addr;
     current.daddr[0] = ip->ip_dst.s_addr;
-#else
-    current.saddr = ip->ip_src.s_addr;
-    current.daddr = ip->ip_dst.s_addr;
-#endif
 
     current.sport = ntohs(tcp->source);
     current.dport = ntohs(tcp->dest);
@@ -630,465 +584,450 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
      * capacity based on the times between this packet and the previous one.
      */
 
-#if defined(AF_INET6)
     if (fwd.saddr[0] == current.saddr[0]) {
-#else
-      if (fwd.saddr == current.saddr) {
-#endif
-        if (current.dport == port2) {
-          calculate_spd(&current, &fwd, port2, port4);
-          return;
-        }
-        if (current.sport == port4) {
-          calculate_spd(&current, &fwd, port2, port4);
-          return;
-        }
+      if (current.dport == port2) {
+        calculate_spd(&current, &fwd, port2, port4);
+        return;
       }
+      if (current.sport == port4) {
+        calculate_spd(&current, &fwd, port2, port4);
+        return;
+      }
+    }
+    if (rev.saddr[0] == current.saddr[0]) {
+      if (current.sport == port2) {
+        calculate_spd(&current, &rev, port2, port4);
+        return;
+      }
+      if (current.dport == port4) {
+        calculate_spd(&current, &rev, port2, port4);
+        return;
+      }
+    }
+  } else { /*  IP header value is not = 4, so must be IPv6 */
 #if defined(AF_INET6)
-      if (rev.saddr[0] == current.saddr[0]) {
-#else
-        if (rev.saddr == current.saddr) {
-#endif
-          if (current.sport == port2) {
-            calculate_spd(&current, &rev, port2, port4);
-            return;
-          }
-          if (current.dport == port4) {
-            calculate_spd(&current, &rev, port2, port4);
-            return;
-          }
-        }
-#if defined(AF_INET6)
-      } else { /*  IP header value is not = 4, so must be IPv6 */
-        // This is an IPv6 packet, grab the IP & TCP header values for further
-        // use.
+    // This is an IPv6 packet, grab the IP & TCP header values for further
+    // use.
 
-        ip6 = (const struct ip6_hdr *)p;
+    ip6 = (const struct ip6_hdr *)p;
 
-        p += 40;
-        tcp = (const struct tcphdr *)p;
-        memcpy(current.saddr, (void *) &ip6->ip6_src, 16);
-        memcpy(current.daddr, (void *) &ip6->ip6_dst, 16);
+    p += 40;
+    tcp = (const struct tcphdr *)p;
+    memcpy(current.saddr, (void *) &ip6->ip6_src, 16);
+    memcpy(current.daddr, (void *) &ip6->ip6_dst, 16);
 
-        current.sport = ntohs(tcp->source);
-        current.dport = ntohs(tcp->dest);
-        current.seq = ntohl(tcp->seq);
-        current.ack = ntohl(tcp->ack_seq);
-        current.win = ntohs(tcp->window);
+    current.sport = ntohs(tcp->source);
+    current.dport = ntohs(tcp->dest);
+    current.seq = ntohl(tcp->seq);
+    current.ack = ntohl(tcp->ack_seq);
+    current.win = ntohs(tcp->window);
 
-        // The 1st packet has been received, finish the initialization process
-        // and return.
+    // The 1st packet has been received, finish the initialization process
+    // and return.
 
-        // if ((fwd.saddr[0] == 0) && (fwd.saddr[1] == 0) &&
-        //     (fwd.saddr[2] == 0) && (fwd.saddr[3] == 0)) {
-        if (fwd.seq == 0) {
-          log_println(1, "New IPv6 packet trace started -- "
-                      "initializing counters");
-          fwd.seq = current.seq;
-          fwd.st_sec = current.sec;
-          fwd.st_usec = current.usec;
-          rev.st_sec = current.sec;
-          rev.st_usec = current.usec;
-          fwd.dec_cnt = 0;
-          fwd.inc_cnt = 0;
-          fwd.same_cnt = 0;
-          fwd.timeout = 0;
-          fwd.dupack = 0;
-          rev.dec_cnt = 0;
-          rev.inc_cnt = 0;
-          rev.same_cnt = 0;
-          rev.timeout = 0;
-          rev.dupack = 0;
-          fwd.family = 6;
-          rev.family = 6;
-          return;
-        }
+    if (fwd.seq == 0) {
+      log_println(1, "New IPv6 packet trace started -- "
+                  "initializing counters");
+      fwd.seq = current.seq;
+      fwd.st_sec = current.sec;
+      fwd.st_usec = current.usec;
+      rev.st_sec = current.sec;
+      rev.st_usec = current.usec;
+      fwd.dec_cnt = 0;
+      fwd.inc_cnt = 0;
+      fwd.same_cnt = 0;
+      fwd.timeout = 0;
+      fwd.dupack = 0;
+      rev.dec_cnt = 0;
+      rev.inc_cnt = 0;
+      rev.same_cnt = 0;
+      rev.timeout = 0;
+      rev.dupack = 0;
+      fwd.family = 6;
+      rev.family = 6;
+      return;
+    }
 
-        /* A new packet has been recieved, and it's not the 1st.  Use it to calculate the
-         * bottleneck link capacity for this flow.
-         */
+    /* A new packet has been recieved, and it's not the 1st.  Use it to calculate the
+     * bottleneck link capacity for this flow.
+     */
 
-        if ((fwd.saddr[0] == current.saddr[0]) &&
-            (fwd.saddr[1] == current.saddr[1]) &&
-            (fwd.saddr[2] == current.saddr[2]) &&
-            (fwd.saddr[3] == current.saddr[3])) {
-          if (current.dport == port2) {
-            calculate_spd(&current, &fwd, port2, port4);
-            return;
-          }
-          if (current.sport == port4) {
-            calculate_spd(&current, &fwd, port2, port4);
-            return;
-          }
-        }
-        if ((rev.saddr[0] == current.saddr[0]) &&
-            (rev.saddr[1] == current.saddr[1]) &&
-            (rev.saddr[2] == current.saddr[2]) &&
-            (rev.saddr[3] == current.saddr[3])) {
-          if (current.sport == port2) {
-            calculate_spd(&current, &rev, port2, port4);
-            return;
-          }
-          if (current.dport == port4) {
-            calculate_spd(&current, &rev, port2, port4);
-            return;
-          }
-        }
+    if ((fwd.saddr[0] == current.saddr[0]) &&
+        (fwd.saddr[1] == current.saddr[1]) &&
+        (fwd.saddr[2] == current.saddr[2]) &&
+        (fwd.saddr[3] == current.saddr[3])) {
+      if (current.dport == port2) {
+        calculate_spd(&current, &fwd, port2, port4);
+        return;
       }
-#endif
-
-      /* a packet has been received, so it matched the filter, but the src/dst ports are backward for some reason.
-       * Need to fix this by reversing the values.
-       */
-
-      if (sigk == 0) {
-        sigk++;
-        log_println(6,
-                    "Fault: unknown packet received with src/dst port = %d/%d",
-                    current.sport, current.dport);
+      if (current.sport == port4) {
+        calculate_spd(&current, &fwd, port2, port4);
+        return;
       }
-      if (sigj == 0) {
-        log_println(6, "Ports need to be reversed now port1/port2 = %d/%d",
-                    pair->port1, pair->port2);
-        int tport = pair->port1;
-        pair->port1 = pair->port2;
-        pair->port2 = tport;
-        fwd.st_sec = current.sec;
-        fwd.st_usec = current.usec;
-        rev.st_sec = current.sec;
-        rev.st_usec = current.usec;
-        fwd.dec_cnt = 0;
-        fwd.inc_cnt = 0;
-        fwd.same_cnt = 0;
-        fwd.timeout = 0;
-        fwd.dupack = 0;
-        rev.dec_cnt = 0;
-        rev.inc_cnt = 0;
-        rev.same_cnt = 0;
-        rev.timeout = 0;
-        rev.dupack = 0;
-        log_println(6,
-                    "Ports should have been reversed now port1/port2 = %d/%d",
-                    pair->port1, pair->port2);
-        sigj = 1;
+    }
+    if ((rev.saddr[0] == current.saddr[0]) &&
+        (rev.saddr[1] == current.saddr[1]) &&
+        (rev.saddr[2] == current.saddr[2]) &&
+        (rev.saddr[3] == current.saddr[3])) {
+      if (current.sport == port2) {
+        calculate_spd(&current, &rev, port2, port4);
+        return;
       }
+      if (current.dport == port4) {
+        calculate_spd(&current, &rev, port2, port4);
+        return;
       }
-
-      /**
-       * Perform opening and initialization functions needed
-       * by the libpcap routines.  The print_speed function above, is passed
-       * to the pcap_open_live() function as the pcap_handler.
-       * @param srcAddr 	Source address
-       * @param sock_addr socket address used to determine client address
-       * @param saddrlen  socket address length
-       * @param monitor_pipe socket file descriptors used to read/write data (for interprocess communication)
-       * @param device devive detail string
-       * @param pair PortPair strcuture
-       * @param direction string indicating C2S/S2c test
-       * @param compress Option indicating whether log files (here, ndttrace) needs to be compressed. Unused here.
-       */
-
-      void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
-                         socklen_t saddrlen, int monitor_pipe[2], char *device,
-                         PortPair* pair, char *direction, int compress) {
-        char cmdbuf[256], dir[256];
-        pcap_handler printer;
-        u_char * pcap_userdata = (u_char*) pair;
-        struct bpf_program fcode;
-        char errbuf[PCAP_ERRBUF_SIZE];
-        int cnt, pflag = 0, i;
-        char c;
-        char namebuf[200], isoTime[64];
-        size_t nameBufLen = 199;
-        I2Addr sockAddr = NULL;
-        struct sockaddr *src_addr;
-        pcap_if_t *alldevs, *dp;
-        pcap_addr_t *curAddr;
-        int rc;
-
-        char logdir[256];
-
-        cnt = -1; /* read forever, or until end of file */
-        sig1 = 0;
-        sig2 = 0;
-
-        init_vars(&fwd);
-        init_vars(&rev);
-
-        sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
-        sock_addr = I2AddrSAddr(sockAddr, 0);
-        src_addr = I2AddrSAddr(srcAddr, 0);
-
-        /* special check for localhost, set device accordingly */
-        if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
-          // hardcoding device address to 100, as initialised in main()
-          strlcpy(device, "lo", 100);
-        if (device == NULL) {
-          if (pcap_findalldevs(&alldevs, errbuf) == 0) {
-            for (dp = alldevs; dp != NULL; dp = dp->next) {
-              for (curAddr = dp->addresses; curAddr != NULL;
-                   curAddr = curAddr->next) {
-                switch (curAddr->addr->sa_family) {
-                  case AF_INET:
-                    memset(namebuf, 0, 200);
-                    inet_ntop(
-                        AF_INET,
-                        &((struct sockaddr_in *) curAddr->addr)->sin_addr,
-                        namebuf, INET_ADDRSTRLEN);
-                    log_println(3, "IPv4 interface found address=%s",
-                                namebuf);
-                    if (((struct sockaddr_in *) curAddr->addr)->sin_addr.s_addr
-                        == ((struct sockaddr_in *) src_addr)->sin_addr.s_addr) {
-                      log_println(
-                          4,
-                          "IPv4 address match, setting device to '%s'",
-                          dp->name);
-                      device = dp->name;
-                      ifspeed = -1;
-                      for (i = 0; iflist.name[0][i] != '0'; i++) {
-                        if (strncmp((char *) iflist.name[i], device, 4)
-                            == 0) {
-                          ifspeed = iflist.speed[i];
-                          break;
-                        }
-                      }
-
-                      if (direction[0] == 's') {
-#if defined(AF_INET6)
-                        fwd.saddr[0] =
-                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
-                        fwd.daddr[0] =
-                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        rev.saddr[0] =
-                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        rev.daddr[0] =
-                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
-#else
-                        fwd.saddr =
-                            ((struct sockaddr_in *) src_addr)->sin_addr.s_addr;
-                        fwd.daddr =
-                            ((struct sockaddr_in *) sock_addr)->sin_addr.s_addr;
-                        rev.saddr =
-                            ((struct sockaddr_in *) sock_addr)->sin_addr.s_addr;
-                        rev.daddr =
-                            ((struct sockaddr_in *) src_addr)->sin_addr.s_addr;
+    }
 #endif
-                        fwd.sport =
-                            ntohs(
-                                ((struct sockaddr_in *) src_addr)->sin_port);
-                        fwd.dport =
-                            ntohs(
-                                ((struct sockaddr_in *) sock_addr)->sin_port);
-                        rev.sport =
-                            ntohs(
-                                ((struct sockaddr_in *) sock_addr)->sin_port);
-                        rev.dport =
-                            ntohs(
-                                ((struct sockaddr_in *) src_addr)->sin_port);
-                      } else {
-#if defined(AF_INET6)
-                        rev.saddr[0] =
-                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
-                        rev.daddr[0] =
-                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        fwd.saddr[0] =
-                            ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
-                        fwd.daddr[0] =
-                            ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
-#else
-                        rev.saddr =
-                            ((struct sockaddr_in *) src_addr)->sin_addr.s_addr;
-                        rev.daddr =
-                            ((struct sockaddr_in *) sock_addr)->sin_addr.s_addr;
-                        fwd.saddr =
-                            ((struct sockaddr_in *) sock_addr)->sin_addr.s_addr;
-                        fwd.daddr =
-                            ((struct sockaddr_in *) src_addr)->sin_addr.s_addr;
-#endif
-                        rev.sport =
-                            ntohs(
-                                ((struct sockaddr_in *) src_addr)->sin_port);
-                        rev.dport =
-                            ntohs(
-                                ((struct sockaddr_in *) sock_addr)->sin_port);
-                        fwd.sport =
-                            ntohs(
-                                ((struct sockaddr_in *) sock_addr)->sin_port);
-                        fwd.dport =
-                            ntohs(
-                                ((struct sockaddr_in *) src_addr)->sin_port);
-                      }
-                      goto endLoop;
-                    }
+  }
+
+  /* a packet has been received, so it matched the filter, but the src/dst ports are backward for some reason.
+   * Need to fix this by reversing the values.
+   */
+
+  if (sigk == 0) {
+    sigk++;
+    log_println(6,
+                "Fault: unknown packet received with src/dst port = %d/%d",
+                current.sport, current.dport);
+  }
+  if (sigj == 0) {
+    log_println(6, "Ports need to be reversed now port1/port2 = %d/%d",
+                pair->port1, pair->port2);
+    int tport = pair->port1;
+    pair->port1 = pair->port2;
+    pair->port2 = tport;
+    fwd.st_sec = current.sec;
+    fwd.st_usec = current.usec;
+    rev.st_sec = current.sec;
+    rev.st_usec = current.usec;
+    fwd.dec_cnt = 0;
+    fwd.inc_cnt = 0;
+    fwd.same_cnt = 0;
+    fwd.timeout = 0;
+    fwd.dupack = 0;
+    rev.dec_cnt = 0;
+    rev.inc_cnt = 0;
+    rev.same_cnt = 0;
+    rev.timeout = 0;
+    rev.dupack = 0;
+    log_println(6,
+                "Ports should have been reversed now port1/port2 = %d/%d",
+                pair->port1, pair->port2);
+    sigj = 1;
+  }
+}
+
+/**
+ * Perform opening and initialization functions needed
+ * by the libpcap routines.  The print_speed function above, is passed
+ * to the pcap_open_live() function as the pcap_handler.
+ * @param srcAddr 	Source address
+ * @param sock_addr socket address used to determine client address
+ * @param saddrlen  socket address length
+ * @param monitor_pipe socket file descriptors used to read/write data (for interprocess communication)
+ * @param device devive detail string
+ * @param pair PortPair strcuture
+ * @param direction string indicating C2S/S2c test
+ * @param compress Option indicating whether log files (here, ndttrace) needs to be compressed. Unused here.
+ */
+
+void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
+                   socklen_t saddrlen, int monitor_pipe[2], char *device,
+                   PortPair* pair, char *direction, int compress) {
+  char cmdbuf[256], dir[256];
+  pcap_handler printer;
+  u_char * pcap_userdata = (u_char*) pair;
+  struct bpf_program fcode;
+  char errbuf[PCAP_ERRBUF_SIZE];
+  int cnt, pflag = 0, i;
+  char c;
+  char namebuf[200], isoTime[64];
+  size_t nameBufLen = 199;
+  I2Addr sockAddr = NULL;
+  struct sockaddr *src_addr;
+  pcap_if_t *alldevs, *dp;
+  pcap_addr_t *curAddr;
+  int rc;
+
+  char logdir[256];
+
+  cnt = -1; /* read forever, or until end of file */
+  sig1 = 0;
+  sig2 = 0;
+
+  init_vars(&fwd);
+  init_vars(&rev);
+
+  sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
+  sock_addr = I2AddrSAddr(sockAddr, 0);
+  src_addr = I2AddrSAddr(srcAddr, 0);
+
+  /* special check for localhost, set device accordingly */
+  if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
+    // hardcoding device address to 100, as initialised in main()
+    strlcpy(device, "lo", 100);
+  if (device == NULL) {
+    if (pcap_findalldevs(&alldevs, errbuf) == 0) {
+      for (dp = alldevs; dp != NULL; dp = dp->next) {
+        for (curAddr = dp->addresses; curAddr != NULL;
+             curAddr = curAddr->next) {
+          switch (curAddr->addr->sa_family) {
+            case AF_INET:
+              memset(namebuf, 0, 200);
+              inet_ntop(
+                  AF_INET,
+                  &((struct sockaddr_in *) curAddr->addr)->sin_addr,
+                  namebuf, INET_ADDRSTRLEN);
+              log_println(3, "IPv4 interface found address=%s",
+                          namebuf);
+              if (((struct sockaddr_in *) curAddr->addr)->sin_addr.s_addr
+                  == ((struct sockaddr_in *) src_addr)->sin_addr.s_addr) {
+                log_println(
+                    4,
+                    "IPv4 address match, setting device to '%s'",
+                    dp->name);
+                device = dp->name;
+                ifspeed = -1;
+                for (i = 0; iflist.name[0][i] != '0'; i++) {
+                  if (strncmp((char *) iflist.name[i], device, 4)
+                      == 0) {
+                    ifspeed = iflist.speed[i];
                     break;
-#if defined(AF_INET6)
-                  case AF_INET6:
-                    memset(namebuf, 0, 200);
-                    inet_ntop(AF_INET6,
-                              &((struct sockaddr_in6*)(curAddr->addr))->sin6_addr,
-                              namebuf, INET6_ADDRSTRLEN);
-                    /* I2AddrNodeName(srcAddr, namebuf, &nameBufLen); */
-                    log_println(3, "IPv6 interface found address=%s", namebuf);
-                    if (memcmp(((struct sockaddr_in6 *)curAddr->addr)->
-                                  sin6_addr.s6_addr,
-                               ((struct sockaddr_in6 *)src_addr)->
-                                  sin6_addr.s6_addr,
-                               16) == 0) {
-                      log_println(4, "IPv6 address match, setting device to "
-                                  "'%s'", dp->name);
-                      device = dp->name;
-
-                      struct sockaddr_in6* src_addr6 =
-                          (struct sockaddr_in6*)src_addr;
-                      struct sockaddr_in6* sock_addr6 =
-                          (struct sockaddr_in6*)sock_addr;
-
-                      if (direction[0] == 's') {
-                        memcpy(fwd.saddr, src_addr6->sin6_addr.s6_addr, 16);
-                        memcpy(fwd.daddr, sock_addr6->sin6_addr.s6_addr, 16);
-                        memcpy(rev.saddr, sock_addr6->sin6_addr.s6_addr, 16);
-                        memcpy(rev.daddr, src_addr6->sin6_addr.s6_addr, 16);
-                        fwd.sport = ntohs(src_addr6->sin6_port);
-                        fwd.dport = ntohs(sock_addr6->sin6_port);
-                        rev.sport = ntohs(sock_addr6->sin6_port);
-                        rev.dport = ntohs(src_addr6->sin6_port);
-                      } else {
-                        memcpy(rev.saddr, src_addr6->sin6_addr.s6_addr, 16);
-                        memcpy(rev.daddr, sock_addr6->sin6_addr.s6_addr, 16);
-                        memcpy(fwd.saddr, sock_addr6->sin6_addr.s6_addr, 16);
-                        memcpy(fwd.daddr, src_addr6->sin6_addr.s6_addr, 16);
-                        rev.sport = ntohs(src_addr6->sin6_port);
-                        rev.dport = ntohs(sock_addr6->sin6_port);
-                        fwd.sport = ntohs(sock_addr6->sin6_port);
-                        fwd.dport = ntohs(src_addr6->sin6_port);
-                      }
-                      goto endLoop;
-                    }
-                    break;
-#endif
-                  default:
-                    log_println(4, "Unknown address family=%d found",
-                                curAddr->addr->sa_family);
+                  }
                 }
+
+                if (direction[0] == 's') {
+                  fwd.saddr[0] =
+                      ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+                  fwd.daddr[0] =
+                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                  rev.saddr[0] =
+                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                  rev.daddr[0] =
+                      ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+
+                  fwd.sport =
+                      ntohs(
+                          ((struct sockaddr_in *) src_addr)->sin_port);
+                  fwd.dport =
+                      ntohs(
+                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                  rev.sport =
+                      ntohs(
+                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                  rev.dport =
+                      ntohs(
+                          ((struct sockaddr_in *) src_addr)->sin_port);
+                } else {
+                  rev.saddr[0] =
+                      ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+                  rev.daddr[0] =
+                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                  fwd.saddr[0] =
+                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                  fwd.daddr[0] =
+                      ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
+
+                  rev.sport =
+                      ntohs(
+                          ((struct sockaddr_in *) src_addr)->sin_port);
+                  rev.dport =
+                      ntohs(
+                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                  fwd.sport =
+                      ntohs(
+                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                  fwd.dport =
+                      ntohs(
+                          ((struct sockaddr_in *) src_addr)->sin_port);
+                }
+                goto endLoop;
               }
-            }
+              break;
+#if defined(AF_INET6)
+            case AF_INET6:
+              memset(namebuf, 0, 200);
+              inet_ntop(AF_INET6,
+                        &((struct sockaddr_in6*)(curAddr->addr))->sin6_addr,
+                        namebuf, INET6_ADDRSTRLEN);
+              /* I2AddrNodeName(srcAddr, namebuf, &nameBufLen); */
+              log_println(3, "IPv6 interface found address=%s", namebuf);
+              if (memcmp(((struct sockaddr_in6 *)curAddr->addr)->
+                            sin6_addr.s6_addr,
+                         ((struct sockaddr_in6 *)src_addr)->
+                            sin6_addr.s6_addr,
+                         16) == 0) {
+                log_println(4, "IPv6 address match, setting device to "
+                            "'%s'", dp->name);
+                device = dp->name;
+
+                struct sockaddr_in6* src_addr6 =
+                    (struct sockaddr_in6*)src_addr;
+                struct sockaddr_in6* sock_addr6 =
+                    (struct sockaddr_in6*)sock_addr;
+
+                if (direction[0] == 's') {
+                  memcpy(fwd.saddr, src_addr6->sin6_addr.s6_addr, 16);
+                  memcpy(fwd.daddr, sock_addr6->sin6_addr.s6_addr, 16);
+                  memcpy(rev.saddr, sock_addr6->sin6_addr.s6_addr, 16);
+                  memcpy(rev.daddr, src_addr6->sin6_addr.s6_addr, 16);
+                  fwd.sport = ntohs(src_addr6->sin6_port);
+                  fwd.dport = ntohs(sock_addr6->sin6_port);
+                  rev.sport = ntohs(sock_addr6->sin6_port);
+                  rev.dport = ntohs(src_addr6->sin6_port);
+                } else {
+                  memcpy(rev.saddr, src_addr6->sin6_addr.s6_addr, 16);
+                  memcpy(rev.daddr, sock_addr6->sin6_addr.s6_addr, 16);
+                  memcpy(fwd.saddr, sock_addr6->sin6_addr.s6_addr, 16);
+                  memcpy(fwd.daddr, src_addr6->sin6_addr.s6_addr, 16);
+                  rev.sport = ntohs(src_addr6->sin6_port);
+                  rev.dport = ntohs(sock_addr6->sin6_port);
+                  fwd.sport = ntohs(sock_addr6->sin6_port);
+                  fwd.dport = ntohs(src_addr6->sin6_port);
+                }
+                goto endLoop;
+              }
+              break;
+#endif
+            default:
+              log_println(4, "Unknown address family=%d found",
+                          curAddr->addr->sa_family);
           }
         }
+      }
+    }
+  }
  endLoop:
 
-        /*  device = pcap_lookupdev(errbuf); */
-        if (device == NULL) {
-          fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
-        }
+  /*  device = pcap_lookupdev(errbuf); */
+  if (device == NULL) {
+    fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
+  }
 
-        log_println(1, "Opening network interface '%s' for packet-pair timing",
-                    device);
+  log_println(1, "Opening network interface '%s' for packet-pair timing",
+              device);
 
-        if ((pd = pcap_open_live(device, 68, !pflag, 1000, errbuf)) == NULL) {
-          fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
-        }
+  if ((pd = pcap_open_live(device, 68, !pflag, 1000, errbuf)) == NULL) {
+    fprintf(stderr, "pcap_open_live failed: %s\n", errbuf);
+  }
 
-        log_println(2, "pcap_open_live() returned pointer %p", pd);
+  log_println(2, "pcap_open_live() returned pointer %p", pd);
 
-        memset(namebuf, 0, 200);
-        I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
-        memset(cmdbuf, 0, sizeof(cmdbuf));
-        snprintf(cmdbuf, sizeof(cmdbuf), "host %s and port %d", namebuf,
-                 I2AddrPort(sockAddr));
+  switch(sock_addr->sa_family) {
+      case AF_INET:
+          inet_ntop(AF_INET, &(((struct sockaddr_in *)sock_addr)->sin_addr),
+                  namebuf, nameBufLen);
+          break;
 
-        log_println(1, "installing pkt filter for '%s'", cmdbuf);
-        log_println(1, "Initial pkt src data = %p", fwd.saddr);
+#ifdef AF_INET6
+      case AF_INET6:
+          inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sock_addr)->sin6_addr),
+                  namebuf, nameBufLen);
+          break;
+#endif
 
-        if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
-          fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
-          return;
-        }
+      default:
+          I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
+  }
 
-        if (pcap_setfilter(pd, &fcode) < 0) {
-          fprintf(stderr, "pcap_setfiler failed %s\n", pcap_geterr(pd));
-          return;
-        }
+  memset(cmdbuf, 0, sizeof(cmdbuf));
+  snprintf(cmdbuf, sizeof(cmdbuf), "host %s and port %d", namebuf,
+           I2AddrPort(sockAddr));
 
-        if (dumptrace == 1) {
-          // Create log file
-          snprintf(dir, sizeof(dir), "%s_%s:%d.%s_ndttrace",
-                   get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
-                   I2AddrPort(sockAddr), direction);
-          create_named_logdir(logdir, sizeof(logdir), dir, 0);
-          pdump = pcap_dump_open(pd, logdir);
-          fprintf(stderr, "Opening '%s' log fine\n", logdir);
-          if (pdump == NULL) {
-            fprintf(stderr, "Unable to create trace file '%s'\n", logdir);
-            dumptrace = 0;
-          }
-        }
+  log_println(1, "installing pkt filter for '%s'", cmdbuf);
+  log_println(1, "Initial pkt src data = %p", fwd.saddr);
 
-        printer = (pcap_handler) print_speed;
-        if (dumptrace == 0) {
-          for (i = 0; i < 5; i++) {
-            rc = write(monitor_pipe[1], "Ready", 6);
-            if (rc == 6)
-              break;
-            if ((rc == -1) && (errno == EINTR))
-              continue;
-          }
-        } else {
-          for (i = 0; i < 5; i++) {
-            rc = write(monitor_pipe[1], dir, strlen(dir));
-            if (rc == strlen(dir))
-              break;
-            if ((rc == -1) && (errno == EINTR))
-              continue;
-          }
-        }
+  if (pcap_compile(pd, &fcode, cmdbuf, 0, 0xFFFFFF00) < 0) {
+    fprintf(stderr, "pcap_compile failed %s\n", pcap_geterr(pd));
+    return;
+  }
 
-        /* kill process off if parent doesn't send a signal. */
-        alarm(60);
+  if (pcap_setfilter(pd, &fcode) < 0) {
+    fprintf(stderr, "pcap_setfiler failed %s\n", pcap_geterr(pd));
+    return;
+  }
 
-        if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
-          log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
-        }
+  if (dumptrace == 1) {
+    // Create log file
+    snprintf(dir, sizeof(dir), "%s_%s:%d.%s_ndttrace",
+             get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
+             I2AddrPort(sockAddr), direction);
+    create_named_logdir(logdir, sizeof(logdir), dir, 0);
+    pdump = pcap_dump_open(pd, logdir);
+    fprintf(stderr, "Opening '%s' log fine\n", logdir);
+    if (pdump == NULL) {
+      fprintf(stderr, "Unable to create trace file '%s'\n", logdir);
+      dumptrace = 0;
+    }
+  }
 
-        /* Send back results to our parent */
-        if(check_signal_flags() == 0){
-          log_println(5, "Whatever happened, we should have a sig flag set");
-        }
+  printer = (pcap_handler) print_speed;
+  if (dumptrace == 0) {
+    for (i = 0; i < 5; i++) {
+      rc = write(monitor_pipe[1], "Ready", 6);
+      if (rc == 6)
+        break;
+      if ((rc == -1) && (errno == EINTR))
+        continue;
+    }
+  } else {
+    for (i = 0; i < 5; i++) {
+      rc = write(monitor_pipe[1], dir, strlen(dir));
+      if (rc == strlen(dir))
+        break;
+      if ((rc == -1) && (errno == EINTR))
+        continue;
+    }
+  }
 
-        pcap_close(pd);
+  /* kill process off if parent doesn't send a signal. */
+  alarm(60);
 
-        log_println(
-            5,
-            "Pkt-Pair data collection ended, waiting for signal to terminate "
-            "process");
-        /*    Temporarily remove these free statements, The memory should be free'd when
-         *      the child process terminates, so we don't have a leak.  There might be a bug in
-         *      the pcap lib (on-line reference found from 2003) and on 10/14/09 I was seeing
-         *      child crashes with a traceback pointing to the freecode() routine inside the pcap-lib
-         *      as the culprit.  RAC 10/15/09
-         *
-         * if (alldevs != NULL)
-         *    pcap_freealldevs(alldevs);
-         *  if (&fcode != NULL)
-         *    pcap_freecode(&fcode);
-         */
-        free(sockAddr);
+  if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
+    log_println(5, "pcap_loop exited %s", pcap_geterr(pd));
+  }
 
-        if (sig1 == 2) {
-          while ((read(mon_pipe1[0], &c, 1)) < 0) { }
-          close(mon_pipe1[0]);
-          close(mon_pipe1[1]);
-          sig1 = 0;
-        }
-        if (sig2 == 2) {
-          while ((read(mon_pipe2[0], &c, 1)) < 0) { }
-          sleep(2);
-          close(mon_pipe2[0]);
-          close(mon_pipe2[1]);
-          sig2 = 0;
-        }
+  /* Send back results to our parent */
+  if(check_signal_flags() == 0){
+    log_println(5, "Whatever happened, we should have a sig flag set");
+  }
 
-        log_println(
-            8,
-            "Finally Finished reading data from network, process %d should "
-            "terminate now", getpid());
-      }
+  pcap_close(pd);
+
+  log_println(
+      5,
+      "Pkt-Pair data collection ended, waiting for signal to terminate "
+      "process");
+  /*    Temporarily remove these free statements, The memory should be free'd when
+   *      the child process terminates, so we don't have a leak.  There might be a bug in
+   *      the pcap lib (on-line reference found from 2003) and on 10/14/09 I was seeing
+   *      child crashes with a traceback pointing to the freecode() routine inside the pcap-lib
+   *      as the culprit.  RAC 10/15/09
+   *
+   * if (alldevs != NULL)
+   *    pcap_freealldevs(alldevs);
+   *  if (&fcode != NULL)
+   *    pcap_freecode(&fcode);
+   */
+  free(sockAddr);
+
+  if (sig1 == 2) {
+    while ((read(mon_pipe1[0], &c, 1)) < 0) { }
+    close(mon_pipe1[0]);
+    close(mon_pipe1[1]);
+    sig1 = 0;
+  }
+  if (sig2 == 2) {
+    while ((read(mon_pipe2[0], &c, 1)) < 0) { }
+    sleep(2);
+    close(mon_pipe2[0]);
+    close(mon_pipe2[1]);
+    sig2 = 0;
+  }
+
+  log_println(
+      8,
+      "Finally Finished reading data from network, process %d should "
+      "terminate now", getpid());
+}
