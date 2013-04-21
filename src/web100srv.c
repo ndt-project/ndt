@@ -1878,18 +1878,6 @@ int main(int argc, char** argv) {
      protolog_printgeneric(srvstatusdesc, startsrvmsg);
      */
 
-  // scan through the interface device list and get the names/speeds of each
-  //  if.  The speed data can be used to cap the search for the bottleneck link
-  //  capacity.  The intent is to reduce the impact of interrupt coalescing on
-  //  the bottleneck link detection algorithm
-  //  RAC 7/14/09
-
-  get_iflist();
-
-  for (i = 0; iflist.speed[i] > 0; i++)
-    log_println(4, "Generated iflist with device=%s and if_speed=%d",
-                iflist.name[i], iflist.speed[i]);
-
   // Wait at accept() for a new connection from a client process.
 
   // These 2 flags keep track of running processes.  The 'testing' flag

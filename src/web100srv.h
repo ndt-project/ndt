@@ -179,11 +179,6 @@ struct ethtool_cmd {
   u_int32_t reserved[4];
 };
 
-struct iflists {
-  char name[8][32];
-  u_int16_t speed[32];
-} iflist;
-
 /* web100-pcap */
 #ifdef HAVE_LIBPCAP
 void init_vars(struct spdpair *cur);
