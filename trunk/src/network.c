@@ -165,9 +165,6 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     goto failsock;
   }
 
-  // set meta test's address domain family to the one used to create socket
-  if (fd != -1 && meta.family == 0)
-    meta.family = ai->ai_family;
   return fd;
 
   // If opening socket failed, print error, and try to close socket
