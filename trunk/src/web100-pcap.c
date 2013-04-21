@@ -22,15 +22,20 @@
 #include "strlutils.h"
 #include "utils.h"
 
-int dumptrace;
-pcap_t *pd;
-pcap_dumper_t *pdump;
-int mon_pipe1[2], mon_pipe2[2];
-/* int sig1, sig2; */
-int sigj = 0, sigk = 0;
-int ifspeed;
+static struct iflists {
+  char name[8][32];
+  u_int16_t speed[32];
+} iflist;
 
-struct spdpair fwd, rev;
+static int dumptrace;
+static pcap_t *pd;
+static pcap_dumper_t *pdump;
+static int mon_pipe1[2], mon_pipe2[2];
+/* int sig1, sig2; */
+static int sigj = 0, sigk = 0;
+static int ifspeed;
+
+static struct spdpair fwd, rev;
 
 /** Scan through interface device list and get names/speeds of each interface.
  *
@@ -39,7 +44,7 @@ struct spdpair fwd, rev;
  * the bottleneck link detection algorithm  RAC 7/14/09
  *
  */
-void get_iflist(void) {
+void init_iflist(void) {
   /* pcap_addr_t *ifaceAddr; */
   pcap_if_t *alldevs, *dp;
   struct ethtool_cmd ecmd;
@@ -90,6 +95,10 @@ void get_iflist(void) {
   // free list allocated by pcap_findalldevs call
   if (alldevs != NULL)
     pcap_freealldevs(alldevs);
+
+  for (i = 0; iflist.speed[i] > 0; i++)
+    log_println(4, "Generated iflist with device=%s and if_speed=%d",
+                iflist.name[i], iflist.speed[i]);
 }
 
 /**
@@ -758,6 +767,13 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 
   init_vars(&fwd);
   init_vars(&rev);
+
+  // scan through the interface device list and get the names/speeds of each
+  //  if.  The speed data can be used to cap the search for the bottleneck link
+  //  capacity.  The intent is to reduce the impact of interrupt coalescing on
+  //  the bottleneck link detection algorithm
+  //  RAC 7/14/09
+  init_iflist();
 
   sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
   sock_addr = I2AddrSAddr(sockAddr, 0);
