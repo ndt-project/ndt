@@ -27,10 +27,6 @@
  *     -2 : Unable to set socket options
  */
 
-#ifndef AF_INET6
-#error This file assumes AF_INET6 is defined.
-#endif
-
 static int OpenSocket(I2Addr addr, char* serv, int family, int options) {
   int fd = -1;
   int return_code = 0;
@@ -62,14 +58,10 @@ static int OpenSocket(I2Addr addr, char* serv, int family, int options) {
     }
     // end trying to set socket option to reuse local address
 
-    log_println(1, "Family is %s", (family == AF_INET6?"ipv6":"ipv4"));
-
 #ifdef AF_INET6
 #ifdef IPV6_V6ONLY
     if (family == AF_INET6 && (options & OPT_IPV6_ONLY)) {
       on = 1;
-
-      log_print(1, "Setting ipv6 only on socket");
       // the IPv6 version socket option setup
       if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
         return_code = -2;
@@ -271,9 +263,11 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
   }
 
   int family = AF_UNSPEC;
+#ifdef AF_INET6
   // options provided by user indicate V6 or V4 only
   if ((options & OPT_IPV6_ONLY) != 0)
     family = AF_INET6;
+#endif
   else if ((options & OPT_IPV4_ONLY) != 0)
     family = AF_INET;
 
