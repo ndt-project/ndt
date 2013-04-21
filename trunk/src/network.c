@@ -18,6 +18,7 @@
  * Create and bind socket.
  * @param addr I2Addr structure, where the new socket will be stored
  * @param serv the port number
+ * @param family the ip family to try binding to
  * @param options the binding socket options
  * @returns The socket descriptor or error code (<0).
  *   Error codes:
@@ -30,7 +31,7 @@
 #error This file assumes AF_INET6 is defined.
 #endif
 
-static int OpenSocket(I2Addr addr, char* serv, int options) {
+static int OpenSocket(I2Addr addr, char* serv, int family, int options) {
   int fd = -1;
   int return_code = 0;
 
@@ -39,40 +40,12 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     return -2;
   }
 
-  struct addrinfo* ai_ipv6 = NULL;
-  struct addrinfo* ai_ipv4 = NULL;
-
-  // Get references to the first IPv6 and first IPv4 addresses. If INET6 support
-  // is not compiled in, ignore AF_INET6 entries.
-  // TODO: build lists of all IPv6 and IPv4 entries.
-  for (struct addrinfo* ai = fai; ai != NULL; ai = ai->ai_next) {
-    if (ai->ai_family == AF_INET6 && ai_ipv6 == NULL)
-      ai_ipv6 = ai;
-    else if (ai->ai_family == AF_INET && ai_ipv4 == NULL)
-      ai_ipv4 = ai;
-    if (ai_ipv4 != NULL && ai_ipv6 != NULL)
-      break;
-  }
-
-  // Determine which family the user would prefer, based on command line.
-  int family = AF_UNSPEC;
-  // options provided by user indicate V6 or V4 only
-  if ((options & OPT_IPV6_ONLY) != 0)
-    family = AF_INET6;
-  else if ((options & OPT_IPV4_ONLY) != 0)
-    family = AF_INET;
-
-  // Prefer IPv6.
-  if (family == AF_UNSPEC || family == AF_INET6) {
-    fai = ai_ipv6;
-    fai->ai_next = ai_ipv4;
-  } else {
-    fai = ai_ipv4;
-  }
-
   // Attempt to connect to one of the chosen addresses.
   struct addrinfo* ai = NULL;
   for (ai = fai; ai; ai = ai->ai_next) {
+    if(ai->ai_family != family)
+      continue;
+
     // create socket with obtained address domain, socket type and protocol
     fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 
@@ -89,28 +62,22 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     }
     // end trying to set socket option to reuse local address
 
-    if (family == AF_INET6) {
-      // If we're binding to an IPv6 address and the user hasn't specified IPv6
-      // only, bind to any address to allow IPv4 clients.
-      if ((options & OPT_IPV6_ONLY) == 0) {
-        struct sockaddr_in6* addr_in = (struct sockaddr_in6*) ai;
-        addr_in->sin6_addr = in6addr_any;
-      }
+    log_println(1, "Family is %s", (family == AF_INET6?"ipv6":"ipv4"));
 
-#if defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
+#ifdef AF_INET6
+#ifdef IPV6_V6ONLY
+    if (family == AF_INET6 && (options & OPT_IPV6_ONLY)) {
+      on = 1;
+
+      log_print(1, "Setting ipv6 only on socket");
       // the IPv6 version socket option setup
-      else if (
-          setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
+      if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
         return_code = -2;
         goto failsock;
       }
-#endif
-    // If the user has not specified only V4 and we're listening as V4, allow V6
-    // clients to connect.
-    } else if ((options & OPT_IPV4_ONLY) == 0) {
-      struct sockaddr_in* addr_in = (struct sockaddr_in*) ai;
-      addr_in->sin_addr.s_addr = INADDR_ANY;
     }
+#endif
+#endif
 
     // try to bind to address
     if (bind(fd, ai->ai_addr, ai->ai_addrlen) == 0) {  // successful
@@ -206,8 +173,15 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
     goto error;
   }
 
-  // create and bind socket using arguments
-  fd = OpenSocket(addr, serv, options);
+  // create and bind socket using arguments, prefering v6 (since v6 addresses
+  // can be both v4 and v6).
+#ifdef AF_INET6
+  if ((options & OPT_IPV4_ONLY) == 0)
+    fd = OpenSocket(addr, serv, AF_INET6, options);
+#endif
+  if (fd < 0)
+    if ((options & OPT_IPV6_ONLY) == 0)
+      fd = OpenSocket(addr, serv, AF_INET, options);
 
   if (fd < 0) {
     log_println(1, "Unable to open socket.");
