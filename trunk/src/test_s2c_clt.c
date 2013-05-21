@@ -48,7 +48,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   int inlth, retcode, one = 1, set_size;
   int inSocket;
   socklen_t optlen;
-  uint32_t bytes;
+  uint64_t bytes;
   double t;
   struct timeval sel_tv;
   fd_set rfd;
