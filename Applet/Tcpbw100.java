@@ -1293,7 +1293,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Time out the socket after 6.5 seconds
 			midSrvrSockObj.setSoTimeout(6500);
-			int bytes = 0;
+			long bytes = 0;
 			int inlth;
 			_dTime = System.currentTimeMillis();
 			pub_TimeStamp = new Date();

@@ -948,10 +948,10 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
 
   // get socketaddr size based on whether IPv6/IPV4 address was used
 #ifdef AF_INET6
-  if (meta.family == AF_INET6)
+  if (meta.c_addr.ss_family == AF_INET6)
     len = sizeof(struct sockaddr_in6);
 #endif
-  if (meta.family == AF_INET)
+  if (meta.c_addr.ss_family == AF_INET)
     len = sizeof(struct sockaddr_in);
 
   // Look up the host name and service name information for given struct

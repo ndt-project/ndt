@@ -18,6 +18,7 @@
  * Create and bind socket.
  * @param addr I2Addr structure, where the new socket will be stored
  * @param serv the port number
+ * @param family the ip family to try binding to
  * @param options the binding socket options
  * @returns The socket descriptor or error code (<0).
  *   Error codes:
@@ -26,78 +27,21 @@
  *     -2 : Unable to set socket options
  */
 
-#ifndef AF_INET6
-#error This file assumes AF_INET6 is defined.
-#endif
-
-struct ai_node {
-  struct addrinfo* ai;
-  struct ai_node* next;
-};
-
-static int OpenSocket(I2Addr addr, char* serv, int options) {
+static int OpenSocket(I2Addr addr, char* serv, int family, int options) {
   int fd = -1;
   int return_code = 0;
 
-  // Keep a list of all ipv4 and ipv6 addresses we come across
-  // So we can search for ipv6 first
-  struct ai_node ipv4_list[5] = {{NULL}};
-  struct ai_node ipv6_list[5] = {{NULL}};
   struct addrinfo *fai = NULL;
-  struct ai_node *fain = NULL;
-
   if (!(fai = I2AddrAddrInfo(addr, NULL, serv))) {
     return -2;
   }
 
-  struct ai_node* ain_ipv6 = &ipv6_list[0];
-  struct ai_node* ain_ipv4 = &ipv4_list[0];
-
-  // Get lists of all IPv6 and IPv4 addresses.
-  for (struct addrinfo* ai = fai; ai != NULL; ai = ai->ai_next) {
-    if (ai->ai_family == AF_INET6 && ain_ipv6 <= &ipv6_list[4]){
-      if(ain_ipv6->ai != NULL){
-        ain_ipv6 += 1;
-        ain_ipv6->next = ain_ipv6 + 1;
-      }
-      ain_ipv6->ai = ai;
-    }
-    else if (ai->ai_family == AF_INET && ain_ipv4 <= &ipv4_list[4]){
-      if(ain_ipv4->ai != NULL){
-        ain_ipv4 += 1;
-        ain_ipv4->next = ain_ipv4 + 1;
-      }
-      ain_ipv4->ai = ai;
-    }
-  }
-
-
-  // Determine which family the user would prefer, based on command line.
-  int family = AF_UNSPEC;
-  // options provided by user indicate V6 or V4 only
-  if ((options & OPT_IPV6_ONLY) != 0)
-    family = AF_INET6;
-  else if ((options & OPT_IPV4_ONLY) != 0)
-    family = AF_INET;
-
-  // Prefer IPv6.
-  if ( (family == AF_UNSPEC || family == AF_INET6) 
-        && ipv6_list[0].ai != NULL) {
-    fain = &ipv6_list[0];
-    // Link IPv4 onto the end as a fallback
-    if(ipv4_list[0].ai != NULL){
-      ain_ipv6->next = &ipv4_list[0];
-    }
-  } else {
-    if(ipv4_list[0].ai != NULL)
-      fain = &ipv4_list[0];
-    else
-      fain = NULL;
-  }
-
   // Attempt to connect to one of the chosen addresses.
   struct addrinfo* ai = NULL;
-  for (ai = fain->ai; fain != NULL; fain = fain->next, ai = fain->ai) {
+  for (ai = fai; ai; ai = ai->ai_next) {
+    if(ai->ai_family != family)
+      continue;
+
     // create socket with obtained address domain, socket type and protocol
     fd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
 
@@ -114,28 +58,18 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     }
     // end trying to set socket option to reuse local address
 
-    if (family == AF_INET6) {
-      // If we're binding to an IPv6 address and the user hasn't specified IPv6
-      // only, bind to any address to allow IPv4 clients.
-      if ((options & OPT_IPV6_ONLY) == 0) {
-        struct sockaddr_in6* addr_in = (struct sockaddr_in6*) ai;
-        addr_in->sin6_addr = in6addr_any;
-      }
-
-#if defined(IPPROTO_IPV6) && defined(IPV6_V6ONLY)
+#ifdef AF_INET6
+#ifdef IPV6_V6ONLY
+    if (family == AF_INET6 && (options & OPT_IPV6_ONLY)) {
+      on = 1;
       // the IPv6 version socket option setup
-      else if (
-          setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
+      if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on)) != 0) {
         return_code = -2;
         goto failsock;
       }
-#endif
-    // If the user has not specified only V4 and we're listening as V4, allow V6
-    // clients to connect.
-    } else if ((options & OPT_IPV4_ONLY) == 0) {
-      struct sockaddr_in* addr_in = (struct sockaddr_in*) ai;
-      addr_in->sin_addr.s_addr = INADDR_ANY;
     }
+#endif
+#endif
 
     // try to bind to address
     if (bind(fd, ai->ai_addr, ai->ai_addrlen) == 0) {  // successful
@@ -190,9 +124,6 @@ static int OpenSocket(I2Addr addr, char* serv, int options) {
     goto failsock;
   }
 
-  // set meta test's address domain family to the one used to create socket
-  if (fd != -1 && meta.family == 0)
-    meta.family = ai->ai_family;
   return fd;
 
   // If opening socket failed, print error, and try to close socket
@@ -234,8 +165,15 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
     goto error;
   }
 
-  // create and bind socket using arguments
-  fd = OpenSocket(addr, serv, options);
+  // create and bind socket using arguments, prefering v6 (since v6 addresses
+  // can be both v4 and v6).
+#ifdef AF_INET6
+  if ((options & OPT_IPV4_ONLY) == 0)
+    fd = OpenSocket(addr, serv, AF_INET6, options);
+#endif
+  if (fd < 0)
+    if ((options & OPT_IPV6_ONLY) == 0)
+      fd = OpenSocket(addr, serv, AF_INET, options);
 
   if (fd < 0) {
     log_println(1, "Unable to open socket.");
@@ -325,9 +263,11 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
   }
 
   int family = AF_UNSPEC;
+#ifdef AF_INET6
   // options provided by user indicate V6 or V4 only
   if ((options & OPT_IPV6_ONLY) != 0)
     family = AF_INET6;
+#endif
   else if ((options & OPT_IPV4_ONLY) != 0)
     family = AF_INET;
 
@@ -341,8 +281,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
     *sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
     if (*sockfd < 0) {
       // socket create failed. Abandon further activities using this socket
-      log_println(1, "Failed to create %d %d %d",
-                  ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+      log_println(1, "Failed to create %d %d %d", ai->ai_family, ai->ai_socktype, ai->ai_protocol);
       continue;
     }
 
@@ -417,7 +356,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
       return 1;
     } else {
       log_println(0, "Failed to connect: %s", strerror(errno));
-      // goto error;
+      //goto error;
     }
   }
 
@@ -441,7 +380,7 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  *
  */
 
-int send_msg(int ctlSocket, int type, const void* msg, int len) {
+int send_msg(int ctlSocket, int type, void* msg, int len) {
   unsigned char buff[3];
   int rc, i;
 
@@ -550,9 +489,9 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
  * @return The amount of bytes written to the file descriptor
  */
 
-int writen(int fd, const void* buf, int amount) {
+int writen(int fd, void* buf, int amount) {
   int sent, n;
-  const char* ptr = buf;
+  char* ptr = buf;
   sent = 0;
   assert(amount >= 0);
   while (sent < amount) {
