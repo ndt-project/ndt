@@ -145,13 +145,9 @@ struct ndtchild {
 /* structure used to collect speed data in bins */
 struct spdpair {
   int family;  // Address family
-#if defined(AF_INET6)
   u_int32_t saddr[4];  // source address
   u_int32_t daddr[4];  // dest address
-#else
-  u_int32_t saddr;  // source address
-  u_int32_t daddr;  // dest address
-#endif
+
   u_int16_t sport;  // source port
   u_int16_t dport;  // destination port
   u_int32_t seq;  // seq number
@@ -173,8 +169,6 @@ struct spdpair {
                      // and prior value)
   u_int32_t totalcount;  // total number of valid speed data bins
 };
-
-struct spdpair fwd, rev;
 
 struct web100_variables {
   char name[256];  // key
@@ -215,11 +209,6 @@ struct ethtool_cmd {
   u_int32_t maxrxpkt; /* Rx pkts before generating rx int */
   u_int32_t reserved[4];
 };
-
-struct iflists {
-  char name[8][32];
-  u_int16_t speed[32];
-} iflist;
 
 typedef int tcp_stat_var;
 
@@ -276,7 +265,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2,
                    int port3);
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, const char* direction, int compress);
+                   PortPair* pair, char* direction, int compress);
 void force_breakloop();
 #endif
 
