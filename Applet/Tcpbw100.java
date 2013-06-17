@@ -1947,7 +1947,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Get input stream to read bytes from socket
 			InputStream srvin = inSocket.getInputStream();
-			int iBitCount = 0;
+			long iBitCount = 0;
 			int inlth;
 
 			// wait here for signal from server application
@@ -2955,7 +2955,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			case NDTConstants.DUPLEX_OK_INDICATOR:
 				if (bad_cable == 1) {
 					_resultsTxtPane.append(_resBundDisplayMsgs
-							.getString("excessiveErrors ") + "\n");
+							.getString("excessiveErrors") + "\n");
 					_sEmailText += _resBundDisplayMsgs
 							.getString("excessiveErrors") + "\n%0A";
 				}
