@@ -135,8 +135,8 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
   web100_var* var;
   web100_connection* cn;
   web100_group* group;
-#elif USE_TCPE
-  struct tcpe_val value;
+#elif USE_WEB10G
+  struct estats_val value;
   int cn;
 #endif
   int maxRTT, maxRTO;
@@ -187,7 +187,7 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       //         255);
       strlcpy(hostname, web100_value_to_text(web100_get_var_type(var), buff),
               sizeof(hostname));
-#elif USE_TCPE
+#elif USE_WEB10G
       web10g_get_remote_addr(agent, cn, hostname, sizeof(hostname));
 #endif
 
@@ -201,7 +201,7 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       web100_agent_find_var_and_group(agent, "MaxRTO", &group, &var);
       web100_raw_read(var, cn, buff);
       maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_TCPE
+#elif USE_WEB10G
       web10g_get_val(agent, cn, "MaxRTT", &value);
       maxRTT = value.uv32;
       web10g_get_val(agent, cn, "MaxRTO", &value);

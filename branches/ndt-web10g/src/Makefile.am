@@ -33,40 +33,44 @@ else
 bin_PROGRAMS = web100clt
 endif
 
-if HAVE_TCPE
+if HAVE_WEB10G
 if HAVE_PCAP_H
 if HAVE_WEB100
-sbin_PROGRAMS += web10gsrv
+sbin_PROGRAMS += web10gsrv genplot10g
 else
-sbin_PROGRAMS = fakewww web10gsrv
+sbin_PROGRAMS = fakewww web10gsrv genplot10g
 endif
 endif
 endif
 
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
                     test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c \
-			test_results_clt.c
+                    test_results_clt.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 genplot_SOURCES = genplot.c usage.c
 genplot_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
-genplot_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
+genplot_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
+
+genplot10g_SOURCES = genplot.c usage.c web10g-util.c utils.c
+genplot10g_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS)
+genplot10g_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 analyze_SOURCES = analyze.c usage.c logging.c runningtest.c ndtptestconstants.c strlutils.c
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 
 fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
-	 runningtest.c ndtptestconstants.c strlutils.c
+                  runningtest.c ndtptestconstants.c strlutils.c
 fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
                     protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c \
-		    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c
+                    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
@@ -107,5 +111,5 @@ $(I2UTILLIBDEPS):
 
 EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h test_meta.h \
              troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h ndt_odbc.h runningtest.h ndtptestconstants.h \
-	     heuristics.h strlutils.h test_results_clt.h tests_srv.h
+             heuristics.h strlutils.h test_results_clt.h tests_srv.h
 

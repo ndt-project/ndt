@@ -1947,7 +1947,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Get input stream to read bytes from socket
 			InputStream srvin = inSocket.getInputStream();
-			int iBitCount = 0;
+			long iBitCount = 0;
 			int inlth;
 
 			// wait here for signal from server application
@@ -2750,7 +2750,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						iSysval = Integer.parseInt(sStrval);
 						// If it fails as an int it's probably to big since the values are often unsigned
 					} catch (Exception e) {
-						System.out.println("Exception occured reading a web100 var - " + e);
+						System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
 						iSysval = -1;
 					}
 					// save value into a key value expected by us
@@ -2955,7 +2955,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			case NDTConstants.DUPLEX_OK_INDICATOR:
 				if (bad_cable == 1) {
 					_resultsTxtPane.append(_resBundDisplayMsgs
-							.getString("excessiveErrors ") + "\n");
+							.getString("excessiveErrors") + "\n");
 					_sEmailText += _resBundDisplayMsgs
 							.getString("excessiveErrors") + "\n%0A";
 				}
@@ -3379,7 +3379,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_txtStatistics.append("\n"
 					+ _resBundDisplayMsgs.getString("web100tcpOpts") + " \n");
 			_txtStatistics.append("RFC 2018 Selective Acknowledgment: ");
-			if (_iSACKEnabled == NDTConstants.RFC_2018_ENABLED)
+			if (_iSACKEnabled != 0)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 			else
@@ -3387,7 +3387,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n");
 
 			_txtStatistics.append("RFC 896 Nagle Algorithm: ");
-			if (_iNagleEnabled == NDTConstants.RFC_896_ENABLED)
+			if (_iNagleEnabled != 0)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 			else
@@ -3395,7 +3395,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n");
 
 			_txtStatistics.append("RFC 3168 Explicit Congestion Notification: ");
-			if (_iECNEnabled == NDTConstants.RFC_3168_ENABLED)
+			if (_iECNEnabled != 0)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 			else
@@ -3403,7 +3403,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n");
 
 			_txtStatistics.append("RFC 1323 Time Stamping: ");
-			if (_iTimestampsEnabled == NDTConstants.RFC_1323_ENABLED)
+			if (_iTimestampsEnabled != 0)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
 						+ "\n");
 			else

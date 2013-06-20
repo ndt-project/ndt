@@ -302,7 +302,7 @@ void print_packetloss_excess(double spd, double loss) {
  */
 void print_SAck_RFC2018(int SACKEnabled) {
   printf("RFC 2018 Selective Acknowledgment: ");
-#if USE_TCPE
+/* #if USE_WEB10G
   if (SACKEnabled == 1)
     printf("ON\n");
   else if (SACKEnabled == 2)
@@ -311,12 +311,13 @@ void print_SAck_RFC2018(int SACKEnabled) {
     printf("OFF (peer)\n");
   else
     printf("<undefined (%d)>\n", SACKEnabled);
-#elif USE_WEB100
+#elif USE_WEB100 */
+/* TODO Add this back end by from 'SACK's values, 'SACKEnabled' is
+ * converted to Web100 0=off else on */
   if (SACKEnabled == 0)
     printf("OFF\n");
   else
     printf("ON\n");
-#endif
 }
 
 /**
@@ -326,19 +327,20 @@ void print_SAck_RFC2018(int SACKEnabled) {
 
 void print_Nagle_RFC896(int is_nagleenabled) {
   printf("RFC 896 Nagle Algorithm: ");
-#if USE_TCPE
+/*#if USE_WEB10G
   if (is_nagleenabled == 1)
     printf("ON\n");
   else if (is_nagleenabled == 2)
     printf("OFF\n");
   else
     printf("<undefined (%d)>\n", is_nagleenabled);
-#elif USE_WEB100
+#elif USE_WEB100 */
+/* TODO Add this back end by from 'Nagle's values, 'NagleEnabled' is
+ * converted to Web100 0=off else on */
   if (is_nagleenabled == 0)
     printf("OFF\n");
   else
     printf("ON\n");
-#endif
 }
 
 /**
@@ -349,7 +351,7 @@ void print_Nagle_RFC896(int is_nagleenabled) {
  */
 void print_congestion_RFC3168(int is_ECNenabled) {
   printf("RFC 3168 Explicit Congestion Notification: ");
-#if USE_TCPE
+/*#if USE_WEB10G
   if (is_ECNenabled == 1)
     printf("ON\n");
   else if (is_ECNenabled == 2)
@@ -358,12 +360,13 @@ void print_congestion_RFC3168(int is_ECNenabled) {
     printf("OFF (peer)\n");
   else
     printf("<undefined (%d)>\n", is_ECNenabled);
-#elif USE_WEB100
+#elif USE_WEB100 */
+/* TODO Add this back end by from 'ECN's values, 'ECNEnabled' is
+ * converted to Web100 0=off else on */
   if (is_ECNenabled == 0)
     printf("OFF\n");
   else
     printf("ON\n");
-#endif
 }
 
 /**
@@ -374,7 +377,7 @@ void print_congestion_RFC3168(int is_ECNenabled) {
  */
 void print_timestamping_RFC1323(int is_timestampenabled) {
   printf("RFC 1323 Time Stamping: ");
-#if USE_TCPE
+/*#if USE_WEB10G
   if (is_timestampenabled == 1)
     printf("ON\n");
   else if (is_timestampenabled == 2)
@@ -383,12 +386,13 @@ void print_timestamping_RFC1323(int is_timestampenabled) {
     printf("OFF (peer)\n");
   else
     printf("<undefined (%d)>\n", is_timestampenabled);
-#elif USE_WEB100
+#elif USE_WEB100 */
+/* TODO Add this back end by from 'TimeStamping's values, 
+ * 'TimestampingEnabled' is converted to Web100 0=off else on */
   if (is_timestampenabled == 0)
     printf("OFF\n");
   else
     printf("ON\n");
-#endif
 }
 
 /**

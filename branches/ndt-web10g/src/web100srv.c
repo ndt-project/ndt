@@ -464,7 +464,6 @@ void cleanup(int signo) {
       log_println(6,
                   "DEBUG, caught SIGUSR1, setting sig1 flag and calling force_breakloop");
       force_breakloop();
-      sig1 = 1;
       break;
 
     case SIGUSR2:
@@ -472,7 +471,6 @@ void cleanup(int signo) {
       log_println(6,
                   "DEBUG, caught SIGUSR2, setting sig2 flag and calling force_breakloop");
       force_breakloop();
-      sig2 = 1;
       break;
 
     case SIGALRM:
@@ -625,7 +623,7 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
 #if USE_WEB100
       snprintf(wvfn, sizeof(wvfn), "%s", val);
       VarFileName = wvfn;
-#elif USE_TCPE
+#elif USE_WEB10G
       log_println(0, "Web10G does not require variable file. Ignoring");
 #endif
       continue;
@@ -895,7 +893,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
              char *test_suite) {
 #if USE_WEB100
   tcp_stat_connection conn = NULL;
-#elif USE_TCPE
+#elif USE_WEB10G
   tcp_stat_connection conn = -1;
 #endif
   char date[32];  // date indicator
@@ -1071,16 +1069,15 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   // Get web100 vars
 
   // ...determine number of times congestion window has been changed
-#if USE_WEB100
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(agent, options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }
-#endif
 
   // ...other variables
+  memset(&vars, 0xFF, sizeof(vars));
   tcp_stat_logvars(&vars, count_vars);
 
   // end getting web100 variable values
@@ -1253,7 +1250,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
   snprintf(buff, sizeof(buff),
-           "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %d\naspd: %0.5f\n"
+           "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %"VARtype"\naspd: %0.5f\n"
            "CWND-Limited: %0.2f\n", cwin, rttsec, vars.Sndbuf, aspd, s2c2spd);
   send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
 
@@ -1276,14 +1273,18 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
 
   memset(tmpstr, 0, sizeof(tmpstr));
-  snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+  snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%"VARtype",%"VARtype",%"
+           VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
+           VARtype",%"VARtype",%"VARtype",",
            (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
            vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
            vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
            vars.AckPktsIn);
   memcpy(meta.summary, tmpstr, strlen(tmpstr));
   memset(tmpstr, 0, sizeof(tmpstr));
-  snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,",
+  snprintf(tmpstr, sizeof(tmpstr), "%"VARtype",%"VARtype",%"VARtype",%"
+           VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype
+           ",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",",
            vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
            vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
            vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
@@ -1296,14 +1297,17 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
-  snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d",
+  snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%"VARtype",%"VARtype
+           ",%"VARtype",%"VARtype",%d",
            c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
            s2c_linkspeed_ack, vars.CongestionSignals, vars.PktsOut, vars.MinRTT,
            vars.RcvWinScale, autotune);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
-  snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+  snprintf(tmpstr, sizeof(tmpstr), ",%"VARtype",%"VARtype",%"VARtype",%"
+           VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
+           VARtype",%"VARtype,
            vars.CongAvoid, vars.CongestionOverCount, vars.MaxRTT,
            vars.OtherReductions, vars.CurTimeoutCount, vars.AbruptTimeouts,
            vars.SendStall, vars.SlowStart, vars.SubsequentTimeouts,
@@ -1326,23 +1330,30 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   } else {
     snprintf(date, sizeof(date), "%15.15s", ctime(&stime) + 4);
     fprintf(fp, "%s,", date);
-    fprintf(fp, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", rmt_host,
+    fprintf(fp, "%s,%d,%d,%d,%"VARtype",%"VARtype",%"VARtype",%"
+            VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
+            VARtype",%"VARtype",", rmt_host,
             (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
             vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
             vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
             vars.AckPktsIn);
-    fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,", vars.MaxRwinRcvd,
+    fprintf(fp, "%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype","
+            "%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
+            VARtype",%"VARtype",%"VARtype",", vars.MaxRwinRcvd,
             vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin, vars.SndLimTimeCwnd,
             vars.SndLimTimeSender, vars.DataBytesOut, vars.SndLimTransRwin,
             vars.SndLimTransCwnd, vars.SndLimTransSender, vars.MaxSsthresh,
             vars.CurrentRTO, vars.CurrentRwinRcvd);
     fprintf(fp, "%d,%d,%d,%d,%d", link, mismatch, bad_cable, half_duplex,
             congestion);
-    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d", c2s_linkspeed_data,
+    fprintf(fp, ",%d,%d,%d,%d,%"VARtype",%"VARtype",%"VARtype",%"VARtype",%d",
+            c2s_linkspeed_data,
             c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
             vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale,
             autotune);
-    fprintf(fp, ",%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", vars.CongAvoid,
+    fprintf(fp, ",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype
+            ",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype,
+            vars.CongAvoid,
             vars.CongestionOverCount, vars.MaxRTT, vars.OtherReductions,
             vars.CurTimeoutCount, vars.AbruptTimeouts, vars.SendStall,
             vars.SlowStart, vars.SubsequentTimeouts, vars.ThruBytesAcked);
@@ -1368,18 +1379,26 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   if (usesyslog == 1) {
     snprintf(
         logstr1, sizeof(logstr1),
-        "client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%d,SumRTT=%d,"
-        "CountRTT=%d,PktsRetrans=%d,FastRetran=%d,DataPktsOut=%d,AckPktsOut=%d,"
-        "CurrentMSS=%d,DupAcksIn=%d,AckPktsIn=%d,",
+        "client_IP=%s,c2s_spd=%2.0f,s2c_spd=%2.0f,Timeouts=%"VARtype","
+        "SumRTT=%"VARtype","
+        "CountRTT=%"VARtype",PktsRetrans=%"VARtype","
+        "FastRetran=%"VARtype",DataPktsOut=%"VARtype","
+        "AckPktsOut=%"VARtype","
+        "CurrentMSS=%"VARtype",DupAcksIn=%"VARtype","
+        "AckPktsIn=%"VARtype",",
         rmt_host, c2sspd, s2cspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
         vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut, vars.AckPktsOut,
         vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn);
     snprintf(
         logstr2, sizeof(logstr2),
-        "MaxRwinRcvd=%d,Sndbuf=%d,MaxCwnd=%d,SndLimTimeRwin=%d,"
-        "SndLimTimeCwnd=%d,SndLimTimeSender=%d,DataBytesOut=%d,"
-        "SndLimTransRwin=%d,SndLimTransCwnd=%d,SndLimTransSender=%d,"
-        "MaxSsthresh=%d,CurrentRTO=%d,CurrentRwinRcvd=%d,",
+        "MaxRwinRcvd=%"VARtype",Sndbuf=%"VARtype","
+        "MaxCwnd=%"VARtype",SndLimTimeRwin=%"VARtype","
+        "SndLimTimeCwnd=%"VARtype",SndLimTimeSender=%"VARtype","
+        "DataBytesOut=%"VARtype","
+        "SndLimTransRwin=%"VARtype",SndLimTransCwnd=%"VARtype","
+        "SndLimTransSender=%"VARtype","
+        "MaxSsthresh=%"VARtype",CurrentRTO=%"VARtype","
+        "CurrentRwinRcvd=%"VARtype",",
         vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
         vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
         vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
@@ -1389,7 +1408,8 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
         logstr2, sizeof(logstr2),
         "link=%d,mismatch=%d,bad_cable=%d,half_duplex=%d,congestion=%d,"
         "c2s_linkspeed_data=%d,c2sack=%d,s2cdata=%d,s2cack=%d,"
-        "CongestionSignals=%d,PktsOut=%d,MinRTT=%d,RcvWinScale=%d\n",
+        "CongestionSignals=%"VARtype",PktsOut=%"VARtype",MinRTT=%"
+        VARtype",RcvWinScale=%"VARtype"\n",
         link, mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
         c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
         vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale);
@@ -1609,7 +1629,7 @@ int main(int argc, char** argv) {
                   case 'f':
 #if USE_WEB100
                     VarFileName = optarg;
-#elif USE_TCPE
+#elif USE_WEB10G
                     log_println(2, "Web10g doesn't require varfile. Ignored.");
 #endif
                     break;
@@ -1897,8 +1917,6 @@ int main(int argc, char** argv) {
   head_ptr = NULL;
   sig13 = 0;
   sig17 = 0;
-  sig1 = 0;
-  sig2 = 0;
   sem_init(&ndtq, 0, 1);
 
   for (;;) {
@@ -2588,10 +2606,11 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 web100_perror("web100_attach");
                 return 1;
               }
-#elif USE_TCPE
-              if (tcpe_client_init(&agent) != NULL) {
-                log_println(
-                    0, "Error: tcpe_client_init failed. Unable to use web10g.");
+#elif USE_WEB10G
+              if (estats_nl_client_init(&agent) != NULL) {
+                log_println(0,
+                              "Error: estats_client_init failed."
+                              "Unable to use web10g.");
                 return 1;
               }
 #endif
@@ -2720,10 +2739,12 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
               close(ctlsockfd);
 #if USE_WEB100
               web100_detach(agent);
-#elif USE_TCPE
-              tcpe_client_destroy(&agent);
+#elif USE_WEB10G
+              estats_nl_client_destroy(&agent);
 #endif
-              log_free();
+              // log_free(); // Don't free the log we use it all the time
+              // log_println()
+              // Also makes valgrind angry
 
               if (cputime && workerThreadId) {
                 cputimeworkerLoop = 0;

@@ -12,31 +12,31 @@
 
 #include "../config.h"
 
-#if HAVE_LIBWEB100 && HAVE_LIBTCPE
+#if HAVE_LIBWEB100 && HAVE_LIBWEB10G
 
-// Prefer TCPE unless forced to use Web100
+// Prefer Web10G unless forced to use Web100
 #if defined(FORCE_WEB100)
 #define USE_WEB100 1
-#define USE_TCPE 0
+#define USE_WEB10G 0
 #else
 #define USE_WEB100 0
-#define USE_TCPE 1
+#define USE_WEB10G 1
 #endif
 
-#elif HAVE_LIBTCPE
+#elif HAVE_LIBWEB10G
 
 #define USE_WEB100 0
-#define USE_TCPE 1
+#define USE_WEB10G 1
 
 #elif HAVE_LIBWEB100
 
 #define USE_WEB100 1
-#define USE_TCPE 0
+#define USE_WEB10G 0
 
 #else
 
 #define USE_WEB100 0
-#define USE_TCPE 0
+#define USE_WEB10G 0
 
 #endif
 
@@ -47,8 +47,8 @@
 #if USE_WEB100
 #include <web100.h>
 #endif
-#if USE_TCPE
-#include <tcpe.h>
+#if USE_WEB10G
+#include <estats.h>
 #endif
 #ifdef HAVE_LIBPCAP
 #include <pcap.h>
@@ -210,7 +210,12 @@ struct ethtool_cmd {
   u_int32_t reserved[4];
 };
 
-typedef int tcp_stat_var;
+/* Store everything as 64-bit ints, keep this signed. Not realistically
+ * expecting any of the unsigned 64bit variables to overflow a signed 
+ * 64-bit*/
+typedef int64_t tcp_stat_var;
+/* Use when printing */
+#define VARtype PRId64
 
 struct tcp_vars {
   tcp_stat_var Timeouts;
@@ -252,9 +257,6 @@ struct tcp_vars {
   tcp_stat_var SlowStart;
   tcp_stat_var SubsequentTimeouts;
   tcp_stat_var ThruBytesAcked;
-  /* Additional for web10g */
-  tcp_stat_var MaxSsCwnd;
-  tcp_stat_var MaxCaCwnd;
 };
 
 /* web100-pcap */
@@ -265,7 +267,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2,
                    int port3);
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, char* direction, int compress);
+                   PortPair* pair, const char* direction, int compress);
 void force_breakloop();
 #endif
 
@@ -273,25 +275,28 @@ void force_breakloop();
 
 void get_iflist(void);
 
-#if USE_TCPE
-typedef struct tcpe_client tcp_stat_agent;
+#if USE_WEB10G
+#define TCP_STAT_NAME "Web10G"
+typedef struct estats_nl_client tcp_stat_agent;
 typedef int tcp_stat_connection;
-typedef struct tcpe_data tcp_stat_snap;
+typedef struct estats_val_data tcp_stat_snap;
 /* Not relevent to web10g */
 typedef void tcp_stat_group;
 /* Log currently unimplemented in web10g */
-typedef void tcp_stat_log;
+typedef estats_record tcp_stat_log;
 #define tcp_stat_connection_from_socket web10g_connection_from_socket
 
 /* Extra Web10G functions web10g-util.c */
-int web10g_find_val(tcpe_data* data, char* name, struct tcpe_val* value);
-int web10g_get_val(struct tcpe_client* client, int conn, char* name,
-                   struct tcpe_val* value);
-int web10g_connection_from_socket(struct tcpe_client* client, int sockfd);
-int web10g_get_remote_addr(struct tcpe_client* client, int conn, char* out,
-                           int size);
+int web10g_find_val(const tcp_stat_snap* data, const char* name,
+                                  struct estats_val* value);
+int web10g_get_val(tcp_stat_agent* client, tcp_stat_connection conn,
+                        const char* name, struct estats_val* value);
+int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd);
+int web10g_get_remote_addr(tcp_stat_agent* client,
+                        tcp_stat_connection conn, char* out, int size);
 
 #elif USE_WEB100
+#define TCP_STAT_NAME "Web100"
 typedef web100_agent tcp_stat_agent;
 typedef web100_connection* tcp_stat_connection;
 typedef web100_snapshot tcp_stat_snap;
@@ -313,19 +318,16 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
                       tcp_stat_agent* agent, int count_vars);
 
-// TODO web10g version of CwndDecrease
-int CwndDecrease(tcp_stat_agent* agent, char* logname,
+int CwndDecrease(char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
 int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
-void ipv4mapped_to_ipv6(struct sockaddr_storage * ss);
+
 char *get_remotehost();
 
 /* global variables for signal processing */
-sig_atomic_t sig1;
-sig_atomic_t sig2;
 sig_atomic_t sig13;
 sig_atomic_t sig17;
 pid_t sig17_pid[256];

@@ -241,28 +241,6 @@ void testResults(char tests, char *testresult_str, char* host) {
 }
 
 /**
- * Get a string representation of an ip address.
- *
- * @param addr A sockaddr structure which contains the address
- * @param buf A buffer to fill with the ip address as a string
- * @param len The length of buf.
- */
-static void addr2a(struct sockaddr_storage * addr, char * buf, int len) {
-  if (((struct sockaddr *)addr)->sa_family == AF_INET) {
-    /* IPv4 */
-    inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
-              buf, len);
-  }
-#ifdef AF_INET6
-  else if (((struct sockaddr *)addr)->sa_family == AF_INET6) {
-    /* IPv6 */
-    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
-              buf, len);
-  }
-#endif
-}
-
-/**
  * This routine decodes the middlebox test results.  The data is returned
  * from the server in a specific order.  This routine pulls the string apart
  * and puts the values into the proper variable.  It then compares the values

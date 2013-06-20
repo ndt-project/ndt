@@ -46,7 +46,7 @@ typedef struct testoptions {
 
 // Snap log characteristics
 typedef struct snapArgs {
-  tcp_stat_connection* conn;
+  tcp_stat_connection conn;
   tcp_stat_snap* snap;
   tcp_stat_log* log;
   int delay;  // periodicity, in ms, of collecting snap
