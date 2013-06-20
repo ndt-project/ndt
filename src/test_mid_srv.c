@@ -238,22 +238,17 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     // get tcp_stat connection data
 #if USE_WEB100
     if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == NULL) {
+#elif USE_WEB10G
+    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == -1) {
+#endif
       log_println(
           0,
-          "!!!!!!!!!!!  test_mid() failed to get web100 connection data, rc=%d",
+          "!!!!!!!!!!!  test_mid() failed to get "TCP_STAT_NAME
+          " connection data, rc=%d",
           errno);
       /* exit(-1); */
       return -3;
     }
-#elif USE_TCPE
-    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == -1) {
-      log_println(
-          0,
-          "test_mid() failed to get web10g connection data, rc=%d",
-          errno);
-      return -3;
-    }
-#endif
 
     // Perform S->C throughput test. Obtained results in "buff"
     tcp_stat_middlebox(midsfd, agent, conn, buff, sizeof(buff));

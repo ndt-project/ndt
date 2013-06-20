@@ -197,3 +197,69 @@ int trim(char *line, int line_size,
   //             strlen(output_buf), output_buf);
   return j - 1;
 }
+
+/**
+ * Converts a IPv4-mapped IPv6 sockaddr_in6 to a sockaddr_in4
+ * 
+ * @param ss a sockaddr_storage
+ *
+ * @return if the ss represents a IPv6 mapped IPv4 address it will be converted
+ * into a IPv4 sockaddr_in. Otherwise ss will remain unchanged. 
+ */
+void ipv4mapped_to_ipv4(struct sockaddr_storage * ss) {
+#ifdef AF_INET6
+  if (ss->ss_family == AF_INET6) {
+    if (IN6_IS_ADDR_V4MAPPED(&((struct sockaddr_in6 *) ss)->sin6_addr)) {
+      // Ports already in the right place so just move the actual address
+      ss->ss_family = AF_INET;
+      ((struct sockaddr_in *) ss)->sin_addr.s_addr =
+                    ((uint32_t *) &((struct sockaddr_in6 *) ss)->sin6_addr)[3];
+    }
+  }
+#endif
+}
+
+/**
+ * Get a string representation of an ip address. 
+ * 
+ * NOTE: This will modify addr if its an IPv4 mapped address and return
+ * it as a IPv4 sockaddr.
+ *
+ * @param addr A sockaddr structure which contains the address
+ * @param buf A buffer to fill with the ip address as a string
+ * @param len The length of buf.
+ */
+void addr2a(struct sockaddr_storage * addr, char * buf, int len) {
+  ipv4mapped_to_ipv4(addr);
+
+  if (((struct sockaddr *)addr)->sa_family == AF_INET) {
+    /* IPv4 */
+    inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
+              buf, len);
+  }
+#ifdef AF_INET6
+  else if (((struct sockaddr *)addr)->sa_family == AF_INET6) {
+    /* IPv6 */
+    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
+              buf, len);
+  }
+#endif
+}
+
+/**
+ * Get a string representation of an port number.
+ *
+ * @param addr A sockaddr structure which contains the port number
+ * @param buf A buffer to fill with the port number as a string
+ * @param len The length of buf.
+ */
+void port2a(struct sockaddr_storage* addr, char* buf, int len) {
+  if (((struct sockaddr*)addr)->sa_family == AF_INET) {
+    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in*)addr)->sin_port));
+  }
+#ifdef AF_INET6
+  else if (((struct sockaddr*)addr)->sa_family == AF_INET6) {
+    snprintf(buf, len, "%hu", ntohs(((struct sockaddr_in6*)addr)->sin6_port));
+  }
+#endif
+}

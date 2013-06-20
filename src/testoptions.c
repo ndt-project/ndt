@@ -51,15 +51,15 @@ void findCwndPeaks(tcp_stat_agent* agent, CwndPeaks* peaks,
   web100_group* group;
   web100_var* var;
   char tmpstr[256];
-#elif USE_TCPE
-  struct tcpe_val value;
+#elif USE_WEB10G
+  struct estats_val value;
 #endif
 
 #if USE_WEB100
   web100_agent_find_var_and_group(agent, "CurCwnd", &group, &var);
   web100_snap_read(var, snap, tmpstr);
   CurCwnd = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-#elif USE_TCPE
+#elif USE_WEB10G
   web10g_find_val(snap, "CurCwnd", &value);
   CurCwnd = value.uv32;
 #endif
@@ -154,13 +154,13 @@ snapWorker(void* arg) {
     if (writeSnap) {
       web100_log_write(snapArgs->log, snapArgs->snap);
     }
-#elif USE_TCPE
-    tcpe_read_vars(snapArgs->snap, snapArgs->conn, agent);
+#elif USE_WEB10G
+    estats_read_vars(snapArgs->snap, snapArgs->conn, agent);
     if (peaks) {
       findCwndPeaks(agent, peaks, snapArgs->snap);
     }
     if (writeSnap) {
-      // TODO: logging
+      estats_record_write_data(snapArgs->log, snapArgs->snap);
     }
 #endif
     pthread_mutex_unlock(&mainmutex);
@@ -294,9 +294,9 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 #if USE_WEB100
   group = web100_group_find(agentarg, "read");
   snaparg->snap = web100_snapshot_alloc(group, conn);
-#elif USE_TCPE
+#elif USE_WEB10G
   snaparg->conn = conn;
-  tcpe_data_new(&snaparg->snap);
+  estats_val_data_new(&snaparg->snap);
 #endif
 
   if (snaplogenabled) {
@@ -308,6 +308,8 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 
 #if USE_WEB100
     snaparg->log = web100_log_open_write(metafilename, conn, group);
+#elif USE_WEB10G
+    estats_record_open(&snaparg->log, metafilename, "w");
 #endif
     if (fplocal == NULL) {
       log_println(
@@ -335,9 +337,11 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
   if (snaplogenabled) {
     web100_log_write(snaparg->log, snaparg->snap);
   }
-#elif USE_TCPE
-  tcpe_read_vars(snaparg->snap, conn, agentarg);
-  // TODO: logging
+#elif USE_WEB10G
+  estats_read_vars(snaparg->snap, conn, agentarg);
+  if (snaplogenabled) {
+    estats_record_write_data(snaparg->log, snaparg->snap);
+  }
 #endif
   pthread_cond_wait(&maincond, &mainmutex);
   pthread_mutex_unlock(&mainmutex);
@@ -362,10 +366,12 @@ void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
   if (snaplogenabled) {
     web100_log_close_write(snapArgs_ptr->log);
   }
-
   web100_snapshot_free(snapArgs_ptr->snap);
-#elif USE_TCPE
-  tcpe_data_free(&snapArgs_ptr->snap);
+#elif USE_WEB10G
+  if (snaplogenabled) {
+    estats_record_close(&snapArgs_ptr->log);
+  }
+  estats_val_data_free(&snapArgs_ptr->snap);
 #endif
 }
 
@@ -456,8 +462,8 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
                   tcp_stat_agent* agentarg, Options* optionsarg) {
 #if USE_WEB100
   web100_var *LimRwin, *yar;
-#elif USE_TCPE
-  struct tcpe_val yar;
+#elif USE_WEB10G
+  struct estats_val yar;
 #endif
 
   u_int32_t limrwin_val;
@@ -485,7 +491,7 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
       log_print(1, "now write %d to limit the Receive window",
                 limrwin_val);
       web100_raw_write(LimRwin, connarg, &limrwin_val);
-#elif USE_TCPE
+#elif USE_WEB10G
     if (connarg != -1) {
       log_println(1,
                   "Got web10g connection for recvsfd socket\n");
@@ -494,7 +500,7 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
                   yar.uv32, optionsarg->limit);
       limrwin_val = optionsarg->limit * yar.uv32;
       log_print(1, "now write %d to limit the Receive window", limrwin_val);
-      tcpe_write_var("LimRwin", limrwin_val, connarg, agentarg);
+      estats_write_var("LimRwin", limrwin_val, connarg, agentarg);
 #endif
       log_println(1, "  ---  Done");
     }

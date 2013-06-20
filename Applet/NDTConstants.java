@@ -18,7 +18,7 @@ public class NDTConstants {
 	public static final String META_BROWSER_OS = "client.browser.name";
 	public static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
 	public static final String META_CLIENT_VERSION = "client.version";
-        public static final String META_CLIENT_APPLICATION = "client.application";
+    public static final String META_CLIENT_APPLICATION = "client.application";
 
 	/*
 	 * TODO for a later release: Version could be moved to some "configurable"
