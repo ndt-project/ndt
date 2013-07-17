@@ -30,8 +30,7 @@ static struct iflists {
 static int dumptrace;
 static pcap_t *pd;
 static pcap_dumper_t *pdump;
-static int mon_pipe1[2], mon_pipe2[2];
-/* int sig1, sig2; */
+static int* mon_pipe;
 static int sigj = 0, sigk = 0;
 static int ifspeed;
 
@@ -47,7 +46,7 @@ static struct spdpair fwd, rev;
 void init_iflist(void) {
   /* pcap_addr_t *ifaceAddr; */
   pcap_if_t *alldevs, *dp;
-  struct ethtool_cmd ecmd;
+  struct ethtool_cmd ecmd = {0}; /* Keep valgrind happy */
   int fd, cnt, i, err;
   struct ifreq ifr;
   char errbuf[256];
@@ -114,83 +113,43 @@ void force_breakloop(){
   }
 }
 
-/** Check signal flags and process them accordingly.
- *  If signal indicates request to terminate data collection for the speed bins,
- * 	make packet-pair based speed bins available to the parent process.
- *
- * @return 1 if data was successfully written
- * 		   0 if no relevant signals were actually received
+/** 
+ *  Send the packet-pair speed bins over pipe to parent.
  */
-static int check_signal_flags() {
-  if ((sig1 == 1) || (sig2 == 1)) {
-    log_println(
-        5,
-        "Received SIGUSRx signal terminating data collection loop for pid=%d",
-        getpid());
-    if (sig1 == 1) {
-      log_println(4,
-                  "Sending pkt-pair data back to parent on pipe %d, %d",
-                  mon_pipe1[0], mon_pipe1[1]);
-      if (get_debuglvl() > 3) {
-        if (fwd.family == 4) {
-          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-                  fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
-        } else if (fwd.family == 6) {
-          char str[136];
-          memset(str, 0, 136);
-          inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
-          fprintf(stderr, "fwd.saddr = %s:%d", str, fwd.sport);
-          memset(str, 0, 136);
-          inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
-          fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
-        } else {
-          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
-                  fwd.family);
-        }
-      }
-      print_bins(&fwd, mon_pipe1);
-      usleep(30000); /* wait here 30 msec, for parent to read this data */
-      print_bins(&rev, mon_pipe1);
-      usleep(30000); /* wait here 30 msec, for parent to read this data */
-      if (dumptrace == 1)
-        pcap_dump_close(pdump);
-      sig1 = 2;
+static void send_bins() {
+  log_println(
+      5,
+      "Received SIGUSRx signal terminating data collection loop for pid=%d",
+      getpid());
+  log_println(4,
+              "Sending pkt-pair data back to parent on pipe %d, %d",
+              mon_pipe[0], mon_pipe[1]);
+  if (get_debuglvl() > 3) {
+    if (fwd.family == 4) {
+      fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
+              fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
+    } else if (fwd.family == 6) {
+      char str[136];
+      memset(str, 0, 136);
+      inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
+      fprintf(stderr, "fwd.saddr = %s:%d", str, fwd.sport);
+      memset(str, 0, 136);
+      inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
+      fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
+    } else {
+      fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
+              fwd.family);
     }
-
-    if (sig2 == 1) {
-      log_println(4,
-                  "Sending pkt-pair data back to parent on pipe %d, %d",
-                  mon_pipe2[0], mon_pipe2[1]);
-      if (get_debuglvl() > 3) {
-        if (fwd.family == 4) {
-          fprintf(stderr, "fwd.saddr = %x:%d, rev.saddr = %x:%d\n",
-                  fwd.saddr[0], fwd.sport, rev.saddr[0], rev.sport);
-        } else if (fwd.family == 6) {
-          char str[136];
-          memset(str, 0, 136);
-          inet_ntop(AF_INET6, (void *) fwd.saddr, str, sizeof(str));
-          fprintf(stderr, "fwd.saddr = %s:%d", str, fwd.sport);
-          memset(str, 0, 136);
-          inet_ntop(AF_INET6, (void *) rev.saddr, str, sizeof(str));
-          fprintf(stderr, ", rev.saddr = %s:%d\n", str, rev.sport);
-        } else {
-          fprintf(stderr, "check_signal_flags: Unknown IP family (%d)\n",
-                  fwd.family);
-        }
-      }
-      print_bins(&fwd, mon_pipe2);
-      usleep(30000); /* wait here 30 msec, for parent to read this data */
-      print_bins(&rev, mon_pipe2);
-      usleep(30000); /* wait here 30 msec, for parent to read this data */
-      if (dumptrace == 1)
-        pcap_dump_close(pdump);
-      sig2 = 2;
-    }
-    log_println(6, "Finished reading pkt-pair data from network, process %d "
-                "should terminate now", getpid());
-    return 1;
   }
-  return 0;
+  print_bins(&fwd, mon_pipe);
+  usleep(30000); /* wait here 30 msec, for parent to read this data */
+  print_bins(&rev, mon_pipe);
+  usleep(30000); /* wait here 30 msec, for parent to read this data */
+  if (dumptrace == 1)
+    pcap_dump_close(pdump);
+  
+  log_println(6, "Finished reading pkt-pair data from network, process %d "
+              "should terminate now", getpid());
 }
 
 /**
@@ -743,14 +702,13 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
 
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, char *direction, int compress) {
+                   PortPair* pair, const char *direction, int compress) {
   char cmdbuf[256], dir[256];
   pcap_handler printer;
   u_char * pcap_userdata = (u_char*) pair;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
   int cnt, pflag = 0, i;
-  char c;
   char namebuf[200], isoTime[64];
   size_t nameBufLen = 199;
   I2Addr sockAddr = NULL;
@@ -762,9 +720,10 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
   char logdir[256];
 
   cnt = -1; /* read forever, or until end of file */
-  sig1 = 0;
-  sig2 = 0;
 
+  /* Store the monitor pipe as a static global for this file
+   * so we can stop the trace later */
+  mon_pipe = monitor_pipe;
   init_vars(&fwd);
   init_vars(&rev);
 
@@ -779,10 +738,18 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
   sock_addr = I2AddrSAddr(sockAddr, 0);
   src_addr = I2AddrSAddr(srcAddr, 0);
 
+  // Disable, device can be NULL trying to copy "lo" into
+  // it will fail. Also fwd/rev still need to be set
+  //
+  // Pcap will figure out this should be "lo" below anyway
+  // TODO move fwd/rev outside of device == NULL check
+#if 0
   /* special check for localhost, set device accordingly */
   if (I2SockAddrIsLoopback(sock_addr, saddrlen) > 0)
     // hardcoding device address to 100, as initialised in main()
     strlcpy(device, "lo", 100);
+#endif
+
   if (device == NULL) {
     if (pcap_findalldevs(&alldevs, errbuf) == 0) {
       for (dp = alldevs; dp != NULL; dp = dp->next) {
@@ -1005,9 +972,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
   }
 
   /* Send back results to our parent */
-  if(check_signal_flags() == 0){
-    log_println(5, "Whatever happened, we should have a sig flag set");
-  }
+  send_bins();
 
   pcap_close(pd);
 
@@ -1027,20 +992,6 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
    *    pcap_freecode(&fcode);
    */
   free(sockAddr);
-
-  if (sig1 == 2) {
-    while ((read(mon_pipe1[0], &c, 1)) < 0) { }
-    close(mon_pipe1[0]);
-    close(mon_pipe1[1]);
-    sig1 = 0;
-  }
-  if (sig2 == 2) {
-    while ((read(mon_pipe2[0], &c, 1)) < 0) { }
-    sleep(2);
-    close(mon_pipe2[0]);
-    close(mon_pipe2[1]);
-    sig2 = 0;
-  }
 
   log_println(
       8,

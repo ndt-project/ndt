@@ -25,8 +25,6 @@
 extern pthread_mutex_t mainmutex;
 extern pthread_cond_t maincond;
 
-// used to store file descriptors of pipes created for ndttrace for S2C tests
-int mon_pipe2[2];
 
 /**
  * Perform the S2C Throughput test. This throughput test tests the achievable
@@ -74,6 +72,8 @@ int test_s2c(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
              int* spd_index, int count_vars, CwndPeaks* peaks) {
+  /* Pipe that handles returning packet pair timing */
+  int mon_pipe[2];
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
   int xmitsfd;  // transmit (i.e server) socket fd
@@ -291,7 +291,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
            clilen, device, &pair, "s2c", options->compress,
            meta.s2c_ndttrace);
            */
-        pipe(mon_pipe2);
+        pipe(mon_pipe);
         if ((s2c_childpid = fork()) == 0) {
           /* close(ctlsockfd); */
           close(testOptions->s2csockfd);
@@ -299,19 +299,22 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           log_println(
               5,
               "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
-              mon_pipe2[0], mon_pipe2[1]);
+              mon_pipe[0], mon_pipe[1]);
           // log_println(2, "S2C test calling init_pkttrace() with pd=0x%x",
           //             (int) &cli_addr);
           init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
-                        clilen, mon_pipe2, device, &pair, "s2c",
+                        clilen, mon_pipe, device, &pair, "s2c",
                         options->compress);
           log_println(6,
                       "S2C test ended, why is timer still running?");
+          /* Close the pipe */
+          close(mon_pipe[0]);
+          close(mon_pipe[1]);
           exit(0); /* Packet trace finished, terminate gracefully */
         }
         memset(tmpstr, 0, 256);
         for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
-          ret = read(mon_pipe2[0], tmpstr, 128);
+          ret = read(mon_pipe[0], tmpstr, 128);
           // socket interrupted, try reading again
           if ((ret == -1) && (errno == EINTR))
             continue;
@@ -484,13 +487,13 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         testOptions->child2 = s2c_childpid;
         kill(s2c_childpid, SIGUSR2);
         FD_ZERO(&rfd);
-        FD_SET(mon_pipe2[0], &rfd);
+        FD_SET(mon_pipe[0], &rfd);
         sel_tv.tv_sec = 1;
         sel_tv.tv_usec = 100000;
         i = 0;
 
         for (;;) {
-          ret = select(mon_pipe2[0] + 1, &rfd, NULL, NULL, &sel_tv);
+          ret = select(mon_pipe[0] + 1, &rfd, NULL, NULL, &sel_tv);
           if ((ret == -1) && (errno == EINTR)) {
             log_println(
                 6,
@@ -519,7 +522,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
            * RAC 2/8/10
            */
           if (ret > 0) {
-            if ((ret = read(mon_pipe2[0], spds[*spd_index], 128))
+            if ((ret = read(mon_pipe[0], spds[*spd_index], 128))
                 < 0)
               snprintf(
                   spds[*spd_index],
@@ -604,7 +607,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
                   s2c_childpid);
 
     if (getuid() == 0) {
-      stop_packet_trace(mon_pipe2);
+      stop_packet_trace(mon_pipe);
     }
 
     // log end of test (generic and protocol logs)
