@@ -763,7 +763,7 @@ void view_init(int refresh) {
         MinRTT = atoi(tmpstr);
       }
 
-display: log_println(4, "Web100 variables line received\n");
+display: log_println(4, TCP_STAT_NAME" variables line received\n");
          totalcnt = calculate(date, SumRTT, CountRTT, CongestionSignals,
                               PktsOut, DupAcksIn, AckPktsIn, CurrentMSS,
                               SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,

@@ -177,6 +177,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	// int _iPkts, _iLength=8192, _iCurrentRTO;
 	int _iPkts, _iLength = NDTConstants.PREDEFINED_BUFFER_SIZE, _iCurrentRTO;
 	int _iC2sData, _iC2sAck, _iS2cData, _iS2cAck;
+	// Lowercase string either web100 or web10g used to select Message based upon server type
+	String _sServerType = "web100";
 	// added for mailto url
 	protected URL _targetURL;
 
@@ -550,8 +552,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				int testsNum = ((Integer) _spinnerTestCount.getValue())
 						.intValue();
 				_bTestInProgress = true;
-				createDiagnoseWindow();
-				createStatsWindow();
 				_buttonStartTest.setEnabled(false);
 				_buttonDetails.setEnabled(false);
 				_buttonStatistics.setEnabled(false);
@@ -896,7 +896,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * Create the "More details" window.
 	 */
 	public void createDiagnoseWindow() {
-		showStatus(_resBundDisplayMsgs.getString("getWeb100Var"));
+		if (_sServerType.compareTo("web100") == 0)
+			showStatus(_resBundDisplayMsgs.getString("getWeb100Var"));
+		else
+			showStatus(_resBundDisplayMsgs.getString("getWeb10gVar"));
 
 		// create new frame
 		if (_frameWeb100Vars == null) {
@@ -904,7 +907,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 
 		// Get title for this window
-		_frameWeb100Vars.setTitle(_resBundDisplayMsgs.getString("web100Var"));
+		_frameWeb100Vars.setTitle(_resBundDisplayMsgs.getString(_sServerType + "Var"));
 		Panel buttons = new Panel();
 		_frameWeb100Vars.getContentPane().add("South", buttons);
 
@@ -918,7 +921,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// Create Text area for displaying results, add "Heading"
 		_txtDiagnosis = new JTextArea(
-				_resBundDisplayMsgs.getString("web100KernelVar") + ":\n", 15,
+				_resBundDisplayMsgs.getString(_sServerType + "KernelVar") + ":\n", 15,
 				30);
 		_txtDiagnosis.setEditable(true);
 		_buttonDismiss.setEnabled(true);
@@ -959,7 +962,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// Text area for Statistics, add "heading"
 		_txtStatistics = new JTextArea(
-				_resBundDisplayMsgs.getString("web100Stats") + ":\n", 25, 70);
+				_resBundDisplayMsgs.getString(_sServerType + "Stats") + ":\n", 25, 70);
 		_txtStatistics.setEditable(true);
 		_buttonStatsDismiss.setEnabled(true);
 		_buttonStatsCopy.setEnabled(_bCanCopy);
@@ -2478,9 +2481,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 									// already encountered
 		} // end waiting
 
-		_frameWeb100Vars.toBack();
-		_frameDetailedStats.toBack();
-
 		// Tests can be started. Read server response again.
 		// The server must send a message to verify version, and this is
 		// a MSG_LOGIN type of message
@@ -2517,6 +2517,15 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			return;
 		}
 		System.out.println("Server version: " + vVersion.substring(1));
+
+		// If we have connected to a Web10G server rebrand ourselves as such
+		_sServerType = vVersion.endsWith("Web10G") ? "web10g" : "web100";
+
+		// Only create the windows once we have connected to the server so this works
+		createDiagnoseWindow();
+		createStatsWindow();
+		_frameWeb100Vars.toBack();
+		_frameDetailedStats.toBack();
 
 		// Read server message again. Server must send a message to negotiate
 		// the test suite, and this is
@@ -3064,7 +3073,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// System.getProperty("java.class.version") + "\n");
 
 			_txtStatistics.append("\n\t------  "
-					+ _resBundDisplayMsgs.getString("web100Details")
+					+ _resBundDisplayMsgs.getString(_sServerType + "Details")
 					+ "  ------\n");
 
 			// Now add data to the statistics pane about access speed/technology
@@ -3167,9 +3176,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			_txtStatistics.append("\n"
-					+ _resBundDisplayMsgs.getString("web100rtt") + " =  "
+					+ _resBundDisplayMsgs.getString(_sServerType + "rtt") + " =  "
 					+ NDTUtils.prtdbl(avgrtt) + " " + "ms" + "; ");
-			_sEmailText += "\n%0A" + _resBundDisplayMsgs.getString("web100rtt")
+			_sEmailText += "\n%0A" + _resBundDisplayMsgs.getString(_sServerType + "rtt")
 					+ " = " + NDTUtils.prtdbl(avgrtt) + " " + "ms" + "; ";
 
 			_txtStatistics.append(_resBundDisplayMsgs.getString("packetsize")
@@ -3377,7 +3386,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Update statistics on TCP negotiated optional Performance Settings
 			_txtStatistics.append("\n"
-					+ _resBundDisplayMsgs.getString("web100tcpOpts") + " \n");
+					+ _resBundDisplayMsgs.getString(_sServerType + "tcpOpts") + " \n");
 			_txtStatistics.append("RFC 2018 Selective Acknowledgment: ");
 			if (_iSACKEnabled != 0)
 				_txtStatistics.append(_resBundDisplayMsgs.getString("on")
