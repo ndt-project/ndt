@@ -464,7 +464,6 @@ void cleanup(int signo) {
       log_println(6,
                   "DEBUG, caught SIGUSR1, setting sig1 flag and calling force_breakloop");
       force_breakloop();
-      sig1 = 1;
       break;
 
     case SIGUSR2:
@@ -472,7 +471,6 @@ void cleanup(int signo) {
       log_println(6,
                   "DEBUG, caught SIGUSR2, setting sig2 flag and calling force_breakloop");
       force_breakloop();
-      sig2 = 1;
       break;
 
     case SIGALRM:
@@ -1885,8 +1883,6 @@ int main(int argc, char** argv) {
   head_ptr = NULL;
   sig13 = 0;
   sig17 = 0;
-  sig1 = 0;
-  sig2 = 0;
   sem_init(&ndtq, 0, 1);
 
   for (;;) {

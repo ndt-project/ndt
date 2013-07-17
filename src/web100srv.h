@@ -187,7 +187,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2,
                    int port3);
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, char * direction, int compress);
+                   PortPair* pair, const char* direction, int compress);
 void force_breakloop();
 #endif
 
@@ -227,8 +227,6 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
 char *get_remotehost();
 
 /* global variables for signal processing */
-sig_atomic_t sig1;
-sig_atomic_t sig2;
 sig_atomic_t sig13;
 sig_atomic_t sig17;
 pid_t sig17_pid[256];
