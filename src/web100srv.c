@@ -978,7 +978,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
 
   // client needs to be version compatible. Send current version
-  snprintf(buff, sizeof(buff), "v%s", VERSION);
+  snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
   send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
 
   // initiate test with MSG_LOGIN message.
@@ -1560,6 +1560,10 @@ int main(int argc, char** argv) {
   setCurrentDirn(currentDirn);
   // end protocol logging
 
+#if USE_WEB10G
+  log_println(0, "WARNING: The Web10G NDT server is still in testing"
+              " and may contain bugs.");
+#endif
   // Get server execution options
   while ((c =
           getopt_long(
@@ -1630,7 +1634,7 @@ int main(int argc, char** argv) {
 #if USE_WEB100
                     VarFileName = optarg;
 #elif USE_WEB10G
-                    log_println(2, "Web10g doesn't require varfile. Ignored.");
+                    log_println(2, "Web10G doesn't require varfile. Ignored.");
 #endif
                     break;
                   case 'i':
@@ -1843,7 +1847,7 @@ int main(int argc, char** argv) {
   // Initialize tcp_stat structures
   count_vars = tcp_stat_init(VarFileName);
   if (count_vars == -1) {
-    log_println(0, "No web100 variables file found, terminating program");
+    log_println(0, "No Web100 variables file found, terminating program");
     exit(-5);
   }
 
