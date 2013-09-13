@@ -647,10 +647,17 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
                    int *AbruptTimeouts, int *SendStall, int *SlowStart,
                    int *SubsequentTimeouts, int *ThruBytesAcked) {
   int i;
+  int PktsIn = -1;
+  int DataPktsIn = -1;
+  int has_AckPktsIn = 0;
 
   for (i = 0; i <= count_vars; i++) {
     if (strcmp(web_vars[i].name, "Timeouts") == 0)
       *Timeouts = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "PktsIn") == 0)
+      PktsIn = atoi(web_vars[i].value);
+    else if (strcmp(web_vars[i].name, "DataPktsIn") == 0)
+      DataPktsIn = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "SumRTT") == 0)
       *SumRTT = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "CountRTT") == 0)
@@ -667,8 +674,10 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
       *CurrentMSS = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "DupAcksIn") == 0)
       *DupAcksIn = atoi(web_vars[i].value);
-    else if (strcmp(web_vars[i].name, "AckPktsIn") == 0)
+    else if (strcmp(web_vars[i].name, "AckPktsIn") == 0) {
+      has_AckPktsIn = 1;
       *AckPktsIn = atoi(web_vars[i].value);
+    }
     else if (strcmp(web_vars[i].name, "MaxRwinRcvd") == 0)
       *MaxRwinRcvd = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "X_Sndbuf") == 0)
@@ -727,6 +736,10 @@ int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT, int *PktsRetrans,
       *SubsequentTimeouts = atoi(web_vars[i].value);
     else if (strcmp(web_vars[i].name, "ThruBytesAcked") == 0)
       *ThruBytesAcked = atoi(web_vars[i].value);
+  }
+
+  if (!has_AckPktsIn) {
+    *AckPktsIn = PktsIn - DataPktsIn;
   }
 
   return (0);
