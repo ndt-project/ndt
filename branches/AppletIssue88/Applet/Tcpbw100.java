@@ -685,11 +685,17 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 							System.err.println("INFO: Thread interrupted while sleeping before starting the next test.");
 						}
 					}
-				} catch (IOException e) {
+				} catch (Exception e) {
 					e.printStackTrace();
+
+					String sMessage = NDTUtils.isEmpty(e.getMessage())
+							? _resBundDisplayMsgs.getString("withoutMessage")
+							: e.getMessage();
+
 					_bFailed = true;
-					_sErrMsg = _resBundDisplayMsgs.getString("serverBusy30s")
-							+ "\n";
+					_sErrMsg = _resBundDisplayMsgs.getString("unexpectedException")
+							+ " (" + e.getClass().getName() + "): "
+							+ sMessage + "\n";
 				}
 
 				// If test failed due to any reason, mark failure reason too
