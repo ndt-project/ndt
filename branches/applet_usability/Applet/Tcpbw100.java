@@ -966,7 +966,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// Text area for Statistics, add "heading"
 		_txtStatistics = new JTextArea(
 				_resBundDisplayMsgs.getString("web100Stats") + ":\n", 25, 70);
-		_txtStatistics.setEditable(true);
+		_txtStatistics.setEditable(false);
 		_buttonStatsDismiss.setEnabled(true);
 		_buttonStatsCopy.setEnabled(_bCanCopy);
 
@@ -1142,13 +1142,18 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			String sTemp = _txtStatistics.getText();
 			StringSelection ssTemp = new StringSelection(sTemp);
 			clipbd.setContents(ssTemp, ssTemp);
-			_txtStatistics.selectAll();
 		}
 		// Show "statistics" window
 		else if (source == _buttonStatistics) {
 			_buttonStatistics.setEnabled(false);
 			_frameDetailedStats.setResizable(true);
 			_frameDetailedStats.setVisible(true);
+
+			if (NDTUtils.isNotEmpty(_txtStatistics.getText())) {
+				// enable copy button only if there is statistics informations
+				_buttonStatsCopy.setEnabled(true);
+			}
+
 			_buttonStatistics.setEnabled(true);
 		}
 		// mail to functionality

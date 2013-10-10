@@ -92,4 +92,15 @@ import java.util.ResourceBundle;
 		return str == null || str.length() == 0;
 	} // isEmpty() method ends
 
+	/**
+	 * Utility method to check if the given string is not empty ("") or null.
+	 *
+	 * @param str
+	 *            String to check
+	 * @return true is the given string is not empty; otherwise false
+	 */
+	public static boolean isNotEmpty(String str) {
+	    return !isEmpty(str);
+	} // isNotEmpty() method ends
+
 }
