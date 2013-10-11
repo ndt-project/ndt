@@ -883,7 +883,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		_chkboxDefaultTest = new JCheckBox(
 				_resBundDisplayMsgs.getString("defaultTests"));
 		_chkboxDefaultTest.setSelected(true);
-		_chkboxDefaultTest.setEnabled(false);
 		// 3. configure number of tests
 		SpinnerNumberModel model = new SpinnerNumberModel();
 		model.setMinimum(new Integer(0));
@@ -2350,17 +2349,17 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					+ _resBundDisplayMsgs.getString("toRunTest") + "\n");
 			// If IPv6 is preferred by Applet user, set property for any further
 			// use
-			if (_chkboxPreferIPv6.isSelected()) {
-				try {
-					System.setProperty("java.net.preferIPv6Addresses",
-							"true");
-				} catch (SecurityException e) {
-					System.err
-							.println("Couldn't set system property. Check your security settings.");
-					// retain this way for now
-				}
-			}
-			_chkboxPreferIPv6.setEnabled(false);
+            try {
+                System.setProperty("java.net.preferIPv6Addresses",
+                        _chkboxPreferIPv6.isSelected() ? "true" : "false");
+
+                System.setProperty("java.net.preferIPv4Stack",
+                        _chkboxPreferIPv6.isSelected() ? "false" : "true");
+            } catch (SecurityException e) {
+                System.err
+                        .println("Couldn't set system property. Check your security settings.");
+                // retain this way for now
+            }
 			// create socket to host specified by user and the default port
 			ctlSocket = new Socket(sHostName, ctlport);
 		} catch (UnknownHostException e) {
