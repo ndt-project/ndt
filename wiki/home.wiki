@@ -8,7 +8,7 @@ The Network Diagnostic Tool (*NDT*) is a client/server program that provides net
 
 == Software ==
 
-Please visit [http://software.internet2.edu/sources/ndt/ http://software.internet2.edu/sources/ndt/] for the latest releae of NDT software
+Please visit [http://software.internet2.edu/sources/ndt/ http://software.internet2.edu/sources/ndt/] for the latest release of the NDT software
 
 == Mailing Lists ==
 
