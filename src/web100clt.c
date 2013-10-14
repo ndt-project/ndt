@@ -1,5 +1,7 @@
 #include "../config.h"
 
+#include <arpa/inet.h>
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
@@ -46,6 +48,9 @@ int half_duplex, congestion, bad_cable, mismatch;
 double loss, estimate, avgrtt, spd, waitsec, timesec, rttsec;
 double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
+/* Set to either Web10G or Web100 */
+const char *ServerType;
+
 static struct option long_options[] = {
   { "name", 1, 0, 'n' }, { "port", 1, 0, 'p' },
   { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' },
@@ -104,7 +109,8 @@ void printVariables(char *tmpstr) {
 
 void printWeb100VarInfo() {
   int i = 0;
-  printf(" --- Detailed description of the Web100 variables ---\n\n");
+
+  printf(" --- Detailed description of the %s variables ---\n\n", ServerType);
 
   while (web100vartable[i][0]) {
     printf("* %s\n    %s\n", web100vartable[i][0], web100vartable[i][1]);
@@ -185,10 +191,10 @@ void testResults(char tests, char *testresult_str, char* host) {
     results_sfw(tests, host);
 
     if (msglvl > 0) {
-      printf("\n\t------  Web100 Detailed Analysis  ------\n");
+      printf("\n\t------  %s Detailed Analysis  ------\n", ServerType);
 
-      printf("\nWeb100 reports the Round trip time = %0.2f msec;",
-             avgrtt);
+      printf("\n%s reports the Round trip time = %0.2f msec;",
+             ServerType, avgrtt);
 
       printf("the Packet size = %d Bytes; and \n", CurrentMSS);
 
@@ -205,8 +211,8 @@ void testResults(char tests, char *testresult_str, char* host) {
 
       // Now print details of optional Performance settings values like the
       // following list:
-      printf("\n    Web100 reports TCP negotiated the optional Performance "
-             "Settings to: \n");
+      printf("\n    %s reports TCP negotiated the optional Performance "
+             "Settings to: \n", ServerType);
 
       // ..Selective ack options
       print_SAck_RFC2018(SACKEnabled);
@@ -232,32 +238,10 @@ void testResults(char tests, char *testresult_str, char* host) {
                                c2sAck, s2cData, s2cAck);
     }
   } else {
-    printf("No Web100 data collected!  Possible Duplex Mismatch condition "
+    printf("No %s data collected!  Possible Duplex Mismatch condition "
            "caused Server to client test to run long.\nCheck for host=Full "
-           "and switch=Half mismatch condition\n");
+           "and switch=Half mismatch condition\n", ServerType);
   }
-}
-
-/**
- * Get a string representation of an ip address.
- * 
- * @param addr A sockaddr structure which contains the address
- * @param buf A buffer to fill with the ip address as a string
- * @param len The length of buf.
- */
-static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
-  if(((struct sockaddr *)addr)->sa_family == AF_INET){
-    /* IPv4 */
-    inet_ntop(AF_INET, &(((struct sockaddr_in *)addr)->sin_addr),
-                    buf, len);
-  }
-#ifdef AF_INET6 
-  else if(((struct sockaddr *)addr)->sa_family == AF_INET6 ){
-    /* IPv6 */
-    inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)addr)->sin6_addr),
-                    buf, len);
-  }
-#endif
 }
 
 /**
@@ -277,7 +261,7 @@ static void addr2a(struct sockaddr_storage * addr,char * buf, int len){
 void middleboxResults(char *midresult_str, int cltsock) {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
-  struct sockaddr_storage addr;  
+  struct sockaddr_storage addr;
   socklen_t addr_size;
   int mss;
   size_t tmpLen;
@@ -295,22 +279,22 @@ void middleboxResults(char *midresult_str, int cltsock) {
   winssent = atoi(str);
   str = strtok(NULL, ";");
   winsrecv = atoi(str);
-  
+
   /* Get the our local IP address */
   addr_size = sizeof(addr);
   memset(ccip, 0, 64);
   tmpLen = 63;
-  if (getsockname(cltsock,(struct sockaddr *) &addr, &addr_size) == -1) {
+  if (getsockname(cltsock, (struct sockaddr *) &addr, &addr_size) == -1) {
     perror("Middlebox - getsockname() failed");
   } else {
     addr2a(&addr, ccip , tmpLen);
   }
-  
+
   /* Get the server IP address */
   addr_size = sizeof(addr);
   memset(csip, 0, 64);
   tmpLen = 63;
-  if (getpeername(cltsock,(struct sockaddr *) &addr, &addr_size) == -1) {
+  if (getpeername(cltsock, (struct sockaddr *) &addr, &addr_size) == -1) {
     perror("Middlebox - getpeername() failed");
   } else {
     addr2a(&addr, csip , tmpLen);
@@ -777,7 +761,7 @@ int main(int argc, char *argv[]) {
   // Version compatibility between server-client must be verified
 
   buff[msgLen] = 0;
-  if (buff[0] != 'v') {  // payload does'nt start with a version indicator
+  if (buff[0] != 'v') {  // payload doesn't start with a version indicator
     log_println(0, "Incompatible version number");
     exit(4);
   }
@@ -785,6 +769,12 @@ int main(int argc, char *argv[]) {
   if (strcmp(&buff[1], VERSION)) {
     log_println(1, "WARNING: NDT server has different version number (%s)",
                 &buff[1]);
+  }
+
+  ServerType = "Web100";
+  if (strlen(buff) > 6) {
+    if (strcmp(&buff[strlen(buff) - 6], "Web10G") == 0)
+      ServerType = "Web10G";
   }
 
   // Server must send a message to negotiate the test suite, and this is

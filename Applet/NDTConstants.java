@@ -18,7 +18,7 @@ public class NDTConstants {
 	public static final String META_BROWSER_OS = "client.browser.name";
 	public static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
 	public static final String META_CLIENT_VERSION = "client.version";
-        public static final String META_CLIENT_APPLICATION = "client.application";
+    public static final String META_CLIENT_APPLICATION = "client.application";
 
 	/*
 	 * TODO for a later release: Version could be moved to some "configurable"
@@ -26,7 +26,7 @@ public class NDTConstants {
 	 */
 	public static final String VERSION = "3.6.5.2";
 
-	public static final String NDT_TITLE_STR = "TCP/Web100 Network Diagnostic Tool v";
+	public static final String NDT_TITLE_STR = "Network Diagnostic Tool Client v";
 
 	// Section: Test type
 	public static final byte TEST_MID = (1 << 0);
@@ -101,7 +101,22 @@ public class NDTConstants {
 	
 	public static final int RFC_1323_DISABLED = 0;
 	public static final int RFC_1323_ENABLED = 1;
-	
+ 	// Note Self disabled from servers standpoint i.e. disabled by server
+ 	public static final int RFC_1323_SELF_DISABLED = 2;
+ 	public static final int RFC_1323_PEER_DISABLED = 3;
+ 	
+ 	// Section: RFC2018 SAck
+ 	public static final int RFC_2018_ENABLED = 1;
+ 	
+ 	// Section: RFC2018 Nagle
+ 	public static final int RFC_896_ENABLED = 1;
+ 	
+ 	// Section: RFC3168
+ 	public static final int RFC_3168_ENABLED = 1;
+ 	// Note Self disabled from servers standpoint i.e. disabled by server
+ 	public static final int RFC_3168_SELF_DISABLED = 2;
+ 	public static final int RFC_3168_PEER_DISABLED = 3;
+ 	
 	// Section: Buffer limitation test thresholds
 	public static final float BUFFER_LIMITED = 0.15f; //unused right now
 	

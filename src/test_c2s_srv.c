@@ -57,10 +57,12 @@
  *			-102 - Retries exceeded while waiting for data from connected client
  *
  */
-int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
+int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
              int count_vars, char spds[4][256], int* spd_index) {
+  tcp_stat_connection conn;
+  tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
   int recvsfd;  // receiver socket file descriptor
@@ -83,14 +85,12 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
   char listenc2sport[10];  // listening port
   pthread_t workerThreadId;
 
-  // web_100 related variables
-  web100_group* group = NULL;
-  web100_connection* conn = NULL;
-
   // snap related variables
   SnapArgs snapArgs;
   snapArgs.snap = NULL;
+#if USE_WEB100
   snapArgs.log = NULL;
+#endif
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
@@ -250,8 +250,8 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
     // commenting out below to move to init_pkttrace function
     I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
 
-    // Get web100 connection. Used to collect web100 variable statistics
-    conn = web100_connection_from_socket(agent, recvsfd);
+    // Get tcp_stat connection. Used to collect tcp_stat variable statistics
+    conn = tcp_stat_connection_from_socket(agent, recvsfd);
 
     // set up packet tracing. Collected data is used for bottleneck link
     // calculations
@@ -294,8 +294,7 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
           continue;
         break;
       }
-      if (strlen(tmpstr) > 5)
-        memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
+      memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
       // name of nettrace file passed back from pcap child
       log_println(3, "--tracefile after packet_trace %s",
                   meta.c2s_ndttrace);
@@ -377,7 +376,8 @@ int test_c2s(int ctlsockfd, web100_agent* agent, TestOptions* testOptions,
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
     if (record_reverse == 1)
-      web100_get_data_recv(recvsfd, agent, conn, count_vars);
+      tcp_stat_get_data_recv(recvsfd, agent, conn, count_vars);
+
 
     close(recvsfd);
     close(testOptions->c2ssockfd);

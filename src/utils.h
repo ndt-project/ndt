@@ -9,6 +9,8 @@
 #ifndef SRC_UTILS_H_
 #define SRC_UTILS_H_
 
+#include <arpa/inet.h>
+
 int check_int(char* text, int* number);
 int check_rint(char* text, int* number, int minVal, int maxVal);
 int check_long(char* text, long* number);
@@ -18,6 +20,10 @@ int sndq_len(int fd);
 void mysleep(double time);
 int trim(char *line, int line_size,
          char * output_buf, int output_buf_size);
+/* These are socket/sock_addr related functions */
+void ipv4mapped_to_ipv4(struct sockaddr_storage * ss);
+void addr2a(struct sockaddr_storage * addr, char * buf, int len);
+void port2a(struct sockaddr_storage* addr, char* buf, int len);
 
 // Numbers 1 and 65535 are used in mrange.c for determining "valid" ranges
 // While the methods could be used for any "range" comparison,

@@ -120,7 +120,7 @@ void finalize_sfw(int ctlsockfd) {
  *			5 - Unable to resolve client address
  */
 
-int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
+int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                  int conn_options) {
   char buff[BUFFSIZE + 1];
   I2Addr sfwsrv_addr = NULL;
@@ -130,9 +130,15 @@ int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
   fd_set fds;
   struct timeval sel_tv;
   int msgLen, msgType;
+
+#if USE_WEB100
   web100_var* var;
   web100_connection* cn;
   web100_group* group;
+#elif USE_WEB10G
+  struct estats_val value;
+  int cn;
+#endif
   int maxRTT, maxRTO;
   char hostname[256];
   int rc;
@@ -169,26 +175,39 @@ int test_sfw_srv(int ctlsockfd, web100_agent* agent, TestOptions* options,
     sfwsockport = I2AddrPort(sfwsrv_addr);
     log_println(1, "  -- port: %d", sfwsockport);
 
-    cn = web100_connection_from_socket(agent, ctlsockfd);
+    cn = tcp_stat_connection_from_socket(agent, ctlsockfd);
     if (cn) {
       // Get remote end's address
+      memset(hostname, 0, sizeof(hostname));
+
+#if USE_WEB100
       web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
       web100_raw_read(var, cn, buff);
-      memset(hostname, 0, 256);
       // strncpy(hostname, web100_value_to_text(web100_get_var_type(var), buff),
       //         255);
       strlcpy(hostname, web100_value_to_text(web100_get_var_type(var), buff),
               sizeof(hostname));
+#elif USE_WEB10G
+      web10g_get_remote_addr(agent, cn, hostname, sizeof(hostname));
+#endif
 
       // Determine test time in seconds.
       // test-time = max(round trip time, timeout) > 3 ? 3 : 1
 
+#if USE_WEB100
       web100_agent_find_var_and_group(agent, "MaxRTT", &group, &var);
       web100_raw_read(var, cn, buff);
       maxRTT = atoi(web100_value_to_text(web100_get_var_type(var), buff));
       web100_agent_find_var_and_group(agent, "MaxRTO", &group, &var);
       web100_raw_read(var, cn, buff);
       maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
+#elif USE_WEB10G
+      web10g_get_val(agent, cn, "MaxRTT", &value);
+      maxRTT = value.uv32;
+      web10g_get_val(agent, cn, "MaxRTO", &value);
+      maxRTO = value.uv32;
+#endif
+
       if (maxRTT > maxRTO)
         maxRTO = maxRTT;
       if ((((double) maxRTO) / 1000.0) > 3.0)

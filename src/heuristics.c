@@ -132,10 +132,12 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data,
  * @return average round trip time
  * */
 
-double calc_avg_rtt(int sumRTT, int countRTT, double *avgRTT) {
+double calc_avg_rtt(tcp_stat_var sumRTT, tcp_stat_var countRTT,
+                                                  double *avgRTT) {
   *avgRTT = (double) sumRTT / countRTT;
   log_println(log_lvl_heur,
-              "-- Average round trip time= SumRTT (%d) over countRTT (%d)=%f",
+              "-- Average round trip time= SumRTT (%"VARtype") over "
+              "countRTT (%"VARtype")=%f",
               sumRTT, countRTT, (*avgRTT) * .001);
   return ((*avgRTT) * .001);
 }
@@ -158,7 +160,8 @@ double calc_avg_rtt(int sumRTT, int countRTT, double *avgRTT) {
  * @param c2sdatalinkspd Integer indicative of link speed, as collected in the C->S test
  * @return packet loss value
  * */
-double calc_packetloss(int congsnsignals, int pktsout, int c2sdatalinkspd) {
+double calc_packetloss(tcp_stat_var congsnsignals, tcp_stat_var pktsout,
+                        int c2sdatalinkspd) {
   double packetloss = (double) congsnsignals / pktsout;
   if (packetloss == 0) {
     if (c2sdatalinkspd > 5)
@@ -166,7 +169,8 @@ double calc_packetloss(int congsnsignals, int pktsout, int c2sdatalinkspd) {
     else
       packetloss = .000001;  // set to 10^-6 otherwise
   }
-  log_println(log_lvl_heur, "--packetloss=%d over %d=%f. Link spd=%d",
+  log_println(log_lvl_heur, "--packetloss=%"VARtype" over %"VARtype
+              "=%f. Link spd=%d",
               congsnsignals, pktsout, packetloss, c2sdatalinkspd);
   return packetloss;
 }
@@ -179,7 +183,8 @@ double calc_packetloss(int congsnsignals, int pktsout, int c2sdatalinkspd) {
  * 	@param actualackcount number of non-duplicate ACKs received
  * 	@return percentage of packets out of order
  * */
-double calc_packets_outoforder(int dupackcount, int actualackcount) {
+double calc_packets_outoforder(tcp_stat_var dupackcount,
+                                      tcp_stat_var actualackcount) {
   log_println(log_lvl_heur, "--packets out of order: %f",
               (double) dupackcount / actualackcount);
   return ((double) dupackcount / actualackcount);
@@ -197,12 +202,13 @@ double calc_packets_outoforder(int dupackcount, int actualackcount) {
  * @param packetloss Packet loss
  * @return maximum theoretical bandwidth
  * */
-double calc_max_theoretical_throughput(int currentMSS, double rttsec,
-                                       double packetloss) {
+double calc_max_theoretical_throughput(tcp_stat_var currentMSS,
+                                double rttsec, double packetloss) {
   double maxthruput;
   maxthruput = (currentMSS / (rttsec * sqrt(packetloss))) * BITS_8 / KILO_BITS
       / KILO_BITS;
-  log_println(log_lvl_heur, "--max_theoretical_thruput: %f. From %d,%f,%f",
+  log_println(log_lvl_heur, "--max_theoretical_thruput: %f. From %"
+              VARtype",%f,%f",
               maxthruput, currentMSS, rttsec, packetloss);
   return maxthruput;
 }
@@ -218,9 +224,10 @@ double calc_max_theoretical_throughput(int currentMSS, double rttsec,
  * @param cwin   congestion window value in bytes
  *
  * */
-void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
-                       int MaxRwinRcvd, int MaxCwnd, double *rwin, double *swin,
-                       double *cwin) {
+void calc_window_sizes(tcp_stat_var *SndWinScale,
+                       tcp_stat_var *RcvWinScale, tcp_stat_var SendBuf,
+                       tcp_stat_var MaxRwinRcvd, tcp_stat_var MaxCwnd,
+                       double *rwin, double *swin, double *cwin) {
   if ((*SndWinScale > WINDOW_SCALE_THRESH) || (SendBuf < MAX_TCP_PORT))
     *SndWinScale = 0;
   if ((*RcvWinScale > WINDOW_SCALE_THRESH) || (MaxRwinRcvd < MAX_TCP_PORT))
@@ -231,8 +238,9 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
   *cwin = (double) MaxCwnd * BITS_8 / KILO_BITS / KILO_BITS;
   log_println(
       log_lvl_heur,
-      "--window sizes: SndWinScale= %d, RcvwinScale=%d, MaxRwinRcvd=%d, "
-      "maxCwnd=%d,rwin=%f, swin=%f, cwin=%f",
+      "--window sizes: SndWinScale= %"VARtype", RcvwinScale=%"VARtype
+      ", MaxRwinRcvd=%"VARtype", "
+      "maxCwnd=%"VARtype",rwin=%f, swin=%f, cwin=%f",
       *SndWinScale, *RcvWinScale, MaxRwinRcvd, MaxCwnd, *rwin, *swin, *cwin);
 }
 
@@ -245,7 +253,8 @@ void calc_window_sizes(int *SndWinScale, int *RcvWinScale, int SendBuf,
  * @param totaltime total test time
  * @return idle time fraction
  * */
-double calc_RTOIdle(int timeouts, int currentRTO, double totaltime) {
+double calc_RTOIdle(tcp_stat_var timeouts, tcp_stat_var currentRTO,
+                                                  double totaltime) {
   double idlewaitingforpackets = (timeouts * ((double) currentRTO / 1000))
       / totaltime;
   log_println(log_lvl_heur, "--RTOIdle:%f", idlewaitingforpackets);
@@ -263,10 +272,12 @@ double calc_RTOIdle(int timeouts, int currentRTO, double totaltime) {
  * 			'sender limited' state
  * @return Total test time
  * */
-int calc_totaltesttime(int SndLimTimeRwin, int SndLimTimeCwnd,
-                       int SndLimTimeSender) {
+int calc_totaltesttime(tcp_stat_var SndLimTimeRwin,
+                       tcp_stat_var SndLimTimeCwnd,
+                       tcp_stat_var SndLimTimeSender) {
   int totaltime = SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender;
-  log_println(log_lvl_heur, "--Total test time: %d+%d+%d=%d ", SndLimTimeRwin,
+  log_println(log_lvl_heur, "--Total test time: %"VARtype"+%"VARtype"+%"
+              VARtype"=%d ", SndLimTimeRwin,
               SndLimTimeCwnd, SndLimTimeSender, totaltime);
   return (totaltime);
 }
@@ -278,9 +289,10 @@ int calc_totaltesttime(int SndLimTimeRwin, int SndLimTimeCwnd,
  * @return sender limited time ratio
  *
  */
-double calc_sendlimited_sndrfault(int SndLimTimeSender, int totaltime) {
+double calc_sendlimited_sndrfault(tcp_stat_var SndLimTimeSender,
+                                  int totaltime) {
   double sendlimitedtime = ((double) SndLimTimeSender) / totaltime;
-  log_println(log_lvl_heur, "--Send limited time: %d over %d=%f ",
+  log_println(log_lvl_heur, "--Send limited time: %"VARtype" over %d=%f ",
               SndLimTimeSender, totaltime, sendlimitedtime);
   return sendlimitedtime;
 }
@@ -293,9 +305,10 @@ double calc_sendlimited_sndrfault(int SndLimTimeSender, int totaltime) {
  * @return sender limited time ratio
  *
  */
-double calc_sendlimited_rcvrfault(int SndLimTimeRwin, int totaltime) {
+double calc_sendlimited_rcvrfault(tcp_stat_var SndLimTimeRwin,
+                                  int totaltime) {
   double sendlimitedtime = ((double) SndLimTimeRwin) / totaltime;
-  log_println(log_lvl_heur, "--Send limited time: %d over %d=%f ",
+  log_println(log_lvl_heur, "--Send limited time: %"VARtype" over %d=%f ",
               SndLimTimeRwin, totaltime, sendlimitedtime);
   return sendlimitedtime;
 }
@@ -306,9 +319,10 @@ double calc_sendlimited_rcvrfault(int SndLimTimeRwin, int totaltime) {
  * @param totaltime Total test time
  * @return sender limited time ratio
  */
-double calc_sendlimited_cong(int SndLimTimeCwnd, int totaltime) {
+double calc_sendlimited_cong(tcp_stat_var SndLimTimeCwnd,
+                              int totaltime) {
   double sendlimitedtime = ((double) SndLimTimeCwnd) / totaltime;
-  log_println(log_lvl_heur, "--Send limited time: %d over %d=%f ",
+  log_println(log_lvl_heur, "--Send limited time: %"VARtype" over %d=%f ",
               SndLimTimeCwnd, totaltime, sendlimitedtime);
   return sendlimitedtime;
 }
@@ -321,7 +335,8 @@ double calc_sendlimited_cong(int SndLimTimeCwnd, int totaltime) {
  * @param totaltime Total test time in microseconds
  * @return Actual throughput
  */
-double calc_real_throughput(int DataBytesOut, int totaltime) {
+double calc_real_throughput(tcp_stat_var DataBytesOut,
+                            tcp_stat_var totaltime) {
   double realthruput = ((double) DataBytesOut / (double) totaltime) * BITS_8;
   log_println(log_lvl_heur, "--Actual observed throughput: %f ", realthruput);
   return realthruput;
@@ -335,7 +350,8 @@ double calc_real_throughput(int DataBytesOut, int totaltime) {
  * 				 expired when the RTO backoff multiplier is equal to one
  * @return Actual throughput
  */
-double cal_totalwaittime(int currentRTO, int timeoutcounters) {
+double cal_totalwaittime(tcp_stat_var currentRTO,
+                         tcp_stat_var timeoutcounters) {
   double waitarrivetime = (double) (currentRTO * timeoutcounters) / KILO;
   log_println(log_lvl_heur, "--Total wait time: %f ", waitarrivetime);
   return waitarrivetime;
@@ -404,8 +420,9 @@ int isNotMultipleTestMode(int multiple) {
  * @param multiple     is multiple test mode on?
  * @return int 1 if duplex mismatch is found, 0 if not.
  * */
-int detect_duplexmismatch(double cwndtime, double bwtheoretcl, int pktsretxed,
-                          double timesec, int maxsstartthresh, double idleRTO,
+int detect_duplexmismatch(double cwndtime, double bwtheoretcl,
+                          tcp_stat_var pktsretxed, double timesec,
+                          tcp_stat_var maxsstartthresh, double idleRTO,
                           int link, int s2cspd, int midboxspd, int multiple) {
   int duplex_mismatch_yes = 0;
   if ((cwndtime > .9)  // more than 90% time spent being receiver window limited
@@ -468,7 +485,7 @@ int detect_internal_duplexmismatch(double s2cspd, double realthruput,
  * @return 1 is fault hardware suspected, 0 otherwise
  * */
 int detect_faultyhardwarelink(double packetloss, double cwndtime,
-                              double timesec, int maxslowstartthresh) {
+                              double timesec, tcp_stat_var maxslowstartthresh) {
   int faultyhw_found = 0;
   if (((packetloss * 100) / timesec > 15) && (cwndtime / timesec > .6)
       && (packetloss < .01) && (maxslowstartthresh > 0)) {
@@ -532,7 +549,8 @@ int detect_ethernetlink(double realthruput, double s2cspd, double packetloss,
  * @return 1 if wireless link, 0 otherwise
  * */
 int detect_wirelesslink(double sendtime, double realthruput, double bw_theortcl,
-                        int sndlimtrans_rwin, int sndlimtrans_cwnd,
+                        tcp_stat_var sndlimtrans_rwin,
+                        tcp_stat_var sndlimtrans_cwnd,
                         double rwindowtime, int link) {
   int is_wireless = 0;
   if ((sendtime == 0) && (realthruput < 5) && (bw_theortcl > 50)
@@ -563,7 +581,8 @@ int detect_wirelesslink(double sendtime, double realthruput, double bw_theortcl,
  * @param link integer indicative of link type
  * @return 1 if wireless link, 0 otherwise
  * */
-int detect_DSLCablelink(int sndlim_timesender, int sndlim_transsender,
+int detect_DSLCablelink(tcp_stat_var sndlim_timesender,
+                        tcp_stat_var sndlim_transsender,
                         double realthruput, double bw_theoretical, int link) {
   int is_dslorcable = 0;
   if ((sndlim_timesender < 600) && (sndlim_transsender == 0)
@@ -593,8 +612,8 @@ int detect_DSLCablelink(int sndlim_timesender, int sndlim_transsender,
  * @param totaltesttime total test time
  * @return 1 if half_duplex link suspected, 0 otherwise
  * */
-int detect_halfduplex(double rwintime, int sndlim_transrwin,
-                      int sndlim_transsender, double totaltesttime) {
+int detect_halfduplex(double rwintime, tcp_stat_var sndlim_transrwin,
+                      tcp_stat_var sndlim_transsender, double totaltesttime) {
   int is_halfduplex = 0;
   if ((rwintime > .95) && (sndlim_transrwin / totaltesttime > 30)
       && (sndlim_transsender / totaltesttime > 30)) {

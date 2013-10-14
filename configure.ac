@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.6.5.2],[ndt-user@internet2.edu])
+AC_INIT([NDT],[3.6.6-rc1],[ndt-user@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -146,6 +146,19 @@ AC_CHECK_LIB([web100], [web100_snap],
                AM_CONDITIONAL(HAVE_WEB100, false)
                ])
 
+AC_CHECK_LIB([estats], [estats_record_open],
+             [
+              LINKED_WEB10GLIB="-lestats"
+              INCLUDED_WEB10GLIB="-I/usr/local/include/estats"
+              AC_DEFINE(HAVE_LIBWEB10G, 1, [Define to 1 if you have the 'Web10G' library (-lestats >=2.0.6.2).])
+              AM_CONDITIONAL(HAVE_WEB10G, true)
+             ],
+             [
+              LINKED_WEB10GLIB=""
+              INCLUDED_WEB10GLIB=""
+              AM_CONDITIONAL(HAVE_WEB10G, false)
+            ])
+
 AC_CHECK_LIB([pcap], [pcap_open_live],
              [
               LINKED_PCAPLIB="-lpcap"
@@ -197,14 +210,16 @@ AC_CHECK_LIB([odbc], [SQLDriverConnect],
                ])
 
 
-NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB)'
+NDTINCDIR='$(INCLUDED_WEB100LIB) $(INCLUDED_PCAPLIB) $(INCLUDED_WEB10GLIB)'
 NDTLIBDIR=/usr/local/lib
 NDTLDFLAGS='-L$(NDTLIBDIR) -Wl,-rpath,$(NDTLIBDIR)'
-NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) -lm'
+NDTLIBS='$(LINKED_WEB100LIB) $(LINKED_PCAPLIB) $(LINKED_ODBCLIB) $(LINKED_WEB10GLIB) -lm'
 NDTINCS='-I$(NDTINCDIR)'
 
 AC_SUBST(LINKED_WEB100LIB)
 AC_SUBST(INCLUDED_WEB100LIB)
+AC_SUBST(LINKED_WEB10GLIB)
+AC_SUBST(INCLUDED_WEB10GLIB)
 AC_SUBST(LINKED_PCAPLIB)
 AC_SUBST(INCLUDED_PCAPLIB)
 AC_SUBST(LINKED_ODBCLIB)
@@ -275,6 +290,19 @@ echo "***********************************"
 echo ""
 echo ""
 
+if test -z "$HAVE_WEB10G_TRUE" && test -n "$HAVE_WEB10G_FALSE"; then
+if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
+  SUMMARY_WEB10GSRV="YES"
+  SUMMARY_GENPLOT10G="YES"
+else
+  SUMMARY_GENPLOT10G="YES"
+  SUMMARY_WEB10GSRV="NO    (missing pcap headers)"
+fi
+else
+  SUMMARY_WEB10GSRV="NO (missing web10g userland library >=2.0.6.2)"
+  SUMMARY_GENPLOT10G="NO (missing web10g userland library >=2.0.6.2)"
+fi
+
 SUMMARY_WEB100CLT="YES"
 if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
@@ -314,13 +342,14 @@ fi
 echo "* web100clt:    ${SUMMARY_WEB100CLT}"
 echo ""
 
-if test "$SUMMARY_FAKEWWW" = "YES" && test "$SUMMARY_WEB100SRV" = "YES" && test "$SUMMARY_TCPBW100JAR" = "YES"; then
+if test "$SUMMARY_FAKEWWW" = "YES" && (test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES") && test "$SUMMARY_TCPBW100JAR" = "YES"; then
 echo "*** Server Tools - complete"
 else
 echo "*** Server Tools - incomplete"
 fi
 echo "* fakewww:      ${SUMMARY_FAKEWWW}"
 echo "* web100srv:    ${SUMMARY_WEB100SRV}"
+echo "* web10gsrv:    ${SUMMARY_WEB10GSRV}"
 echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
 echo ""
 
@@ -333,6 +362,7 @@ echo "* analyze:      ${SUMMARY_ANALYZE}"
 echo "* viewtrace:    ${SUMMARY_VIEWTRACE}"
 echo "* tr-mkmap:     ${SUMMARY_TRMKMAP}"
 echo "* genplot:      ${SUMMARY_GENPLOT}"
+echo "* genplot10g:   ${SUMMARY_GENPLOT10G}"
 echo "* JAnalyze.jar: ${SUMMARY_JANALYZEJAR}"
 echo "* Admin.class:  ${SUMMARY_ADMINCLASS}"
 echo ""
