@@ -107,7 +107,7 @@ void init_iflist(void) {
  * 
  * This calls pcap_breakloop with the correct capture.
  */
-void force_breakloop(){
+void force_breakloop() {
   if (pd != NULL) {
     pcap_breakloop(pd);
   }

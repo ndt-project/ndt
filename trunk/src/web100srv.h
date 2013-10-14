@@ -12,40 +12,71 @@
 
 #include "../config.h"
 
+#if HAVE_LIBWEB100 && HAVE_LIBWEB10G
+
+// Prefer Web10G unless forced to use Web100
+#if defined(FORCE_WEB100)
+#define USE_WEB100 1
+#define USE_WEB10G 0
+#else
+#define USE_WEB100 0
+#define USE_WEB10G 1
+#endif
+
+#elif HAVE_LIBWEB10G
+
+#define USE_WEB100 0
+#define USE_WEB10G 1
+
+#elif HAVE_LIBWEB100
+
+#define USE_WEB100 1
+#define USE_WEB10G 0
+
+#else
+
+#define USE_WEB100 0
+#define USE_WEB10G 0
+
+#endif
+
 #define   _USE_BSD
-#include  <stdio.h>
-#include  <netdb.h>
-#include  <signal.h>
-#ifdef HAVE_LIBWEB100
-#include  <web100.h>
+#include <stdio.h>
+#include <netdb.h>
+#include <signal.h>
+#if USE_WEB100
+#include <web100.h>
+#endif
+#if USE_WEB10G
+#include <estats.h>
 #endif
 #ifdef HAVE_LIBPCAP
-#include  <pcap.h>
+#include <pcap.h>
 #endif
-#include  <stdlib.h>
-#include  <string.h>
-#include  <fcntl.h>
-#include  <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-#include  <sys/types.h>
-#include  <sys/socket.h>
-#include  <sys/un.h>
-#include  <sys/errno.h>
-#include  <sys/select.h>
-#include  <sys/resource.h>
-#include  <sys/wait.h>
-#include  <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/errno.h>
+#include <sys/select.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
+#include <sys/time.h>
 
-#include  <netinet/in.h>
-#include  <netinet/tcp.h>
-#include  <netinet/ip.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <netinet/ip.h>
 #ifdef HAVE_NETINET_IP6_H
-#include  <netinet/ip6.h>
+#include <netinet/ip6.h>
 #endif
 #ifdef HAVE_NET_ETHERNET_H
-#include  <net/ethernet.h>
+#include <net/ethernet.h>
 #endif
-#include  <arpa/inet.h>
+#include <arpa/inet.h>
 #include <I2util/util.h>
 
 /* move version to configure.ac file for package name */
@@ -179,6 +210,55 @@ struct ethtool_cmd {
   u_int32_t reserved[4];
 };
 
+/* Store everything as 64-bit ints, keep this signed. Not realistically
+ * expecting any of the unsigned 64bit variables to overflow a signed 
+ * 64-bit*/
+typedef int64_t tcp_stat_var;
+/* Use when printing */
+#define VARtype PRId64
+
+struct tcp_vars {
+  tcp_stat_var Timeouts;
+  tcp_stat_var SumRTT;
+  tcp_stat_var CountRTT;
+  tcp_stat_var PktsRetrans;
+  tcp_stat_var FastRetran;
+  tcp_stat_var DataPktsOut;
+  tcp_stat_var AckPktsOut;
+  tcp_stat_var CurrentMSS;
+  tcp_stat_var DupAcksIn;
+  tcp_stat_var AckPktsIn;
+  tcp_stat_var MaxRwinRcvd;
+  tcp_stat_var Sndbuf;
+  tcp_stat_var CurrentCwnd;
+  tcp_stat_var SndLimTimeRwin;
+  tcp_stat_var SndLimTimeCwnd;
+  tcp_stat_var SndLimTimeSender;
+  tcp_stat_var DataBytesOut;
+  tcp_stat_var SndLimTransRwin;
+  tcp_stat_var SndLimTransCwnd;
+  tcp_stat_var SndLimTransSender;
+  tcp_stat_var MaxSsthresh;
+  tcp_stat_var CurrentRTO;
+  tcp_stat_var CurrentRwinRcvd;
+  tcp_stat_var MaxCwnd;
+  tcp_stat_var CongestionSignals;
+  tcp_stat_var PktsOut;
+  tcp_stat_var MinRTT;
+  tcp_stat_var RcvWinScale;
+  tcp_stat_var SndWinScale;
+  tcp_stat_var CongAvoid;
+  tcp_stat_var CongestionOverCount;
+  tcp_stat_var MaxRTT;
+  tcp_stat_var OtherReductions;
+  tcp_stat_var CurTimeoutCount;
+  tcp_stat_var AbruptTimeouts;
+  tcp_stat_var SendStall;
+  tcp_stat_var SlowStart;
+  tcp_stat_var SubsequentTimeouts;
+  tcp_stat_var ThruBytesAcked;
+};
+
 /* web100-pcap */
 #ifdef HAVE_LIBPCAP
 void init_vars(struct spdpair *cur);
@@ -192,35 +272,56 @@ void force_breakloop();
 #endif
 
 /* web100-util */
-#ifdef HAVE_LIBWEB100
+
 void get_iflist(void);
-int web100_init(char *VarFileName);
-int web100_autotune(int sock, web100_agent* agent, web100_connection* cn);
-void web100_middlebox(int sock, web100_agent* agent, web100_connection* cn,
-                      char *results, size_t results_strlen);
-int web100_setbuff(int sock, web100_agent* agent, web100_connection* cn,
-                   int autotune);
-void web100_get_data_recv(int sock, web100_agent* agent, web100_connection* cn,
-                          int count_vars);
-int web100_get_data(web100_snapshot* snap, int ctlsock, web100_agent* agent,
-                    int count_vars);
-int CwndDecrease(web100_agent* agent, char* logname,
-                 u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
-int web100_logvars(int *Timeouts, int *SumRTT, int *CountRTT,
-                   int *PktsRetrans, int *FastRetran, int *DataPktsOut,
-                   int *AckPktsOut, int *CurrentMSS, int *DupAcksIn,
-                   int *AckPktsIn, int *MaxRwinRcvd, int *Sndbuf,
-                   int *CurrentCwnd, int *SndLimTimeRwin, int *SndLimTimeCwnd,
-                   int *SndLimTimeSender, int *DataBytesOut,
-                   int *SndLimTransRwin, int *SndLimTransCwnd,
-                   int *SndLimTransSender, int *MaxSsthresh, int *CurrentRTO,
-                   int *CurrentRwinRcvd, int *MaxCwnd, int *CongestionSignals,
-                   int *PktsOut, int *MinRTT, int count_vars, int *RcvWinScale,
-                   int *SndWinScale, int *CongAvoid, int *CongestionOverCount,
-                   int *MaxRTT, int *OtherReductions, int *CurTimeoutCount,
-                   int *AbruptTimeouts, int *SendStall, int *SlowStart,
-                   int *SubsequentTimeouts, int *ThruBytesAcked);
+
+#if USE_WEB10G
+#define TCP_STAT_NAME "Web10G"
+typedef struct estats_nl_client tcp_stat_agent;
+typedef int tcp_stat_connection;
+typedef struct estats_val_data tcp_stat_snap;
+/* Not relevent to web10g */
+typedef void tcp_stat_group;
+/* Log currently unimplemented in web10g */
+typedef estats_record tcp_stat_log;
+#define tcp_stat_connection_from_socket web10g_connection_from_socket
+
+/* Extra Web10G functions web10g-util.c */
+int web10g_find_val(const tcp_stat_snap* data, const char* name,
+                                  struct estats_val* value);
+int web10g_get_val(tcp_stat_agent* client, tcp_stat_connection conn,
+                        const char* name, struct estats_val* value);
+int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd);
+int web10g_get_remote_addr(tcp_stat_agent* client,
+                        tcp_stat_connection conn, char* out, int size);
+
+#elif USE_WEB100
+#define TCP_STAT_NAME "Web100"
+typedef web100_agent tcp_stat_agent;
+typedef web100_connection* tcp_stat_connection;
+typedef web100_snapshot tcp_stat_snap;
+/* Group only relevent to web100 */
+typedef web100_group tcp_stat_group;
+typedef web100_log tcp_stat_log;
+#define tcp_stat_connection_from_socket web100_connection_from_socket
+
 #endif
+
+int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
+int tcp_stat_init(char *VarFileName);
+void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
+                      char *results, size_t results_strlen);
+int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
+                   int autotune);/* Not used so no web10g version */
+void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
+                            tcp_stat_connection cn, int count_vars);
+int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
+                      tcp_stat_agent* agent, int count_vars);
+
+int CwndDecrease(char* logname,
+                 u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
+int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
+
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
 
