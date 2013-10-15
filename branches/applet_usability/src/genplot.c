@@ -28,10 +28,7 @@
 #include <getopt.h>
 #include <sys/types.h>
 
-#ifdef HAVE_LIBWEB100
-#include  <web100.h>
-#endif
-
+#include "web100srv.h"
 #include "usage.h"
 
 char *color[16] = { "green", "blue", "orange", "red", "yellow", "magenta",
@@ -42,6 +39,10 @@ static struct option long_options[] = { { "both", 0, 0, 'b' }, { "multi", 1, 0,
     0, 0, 'R' }, { "throughput", 0, 0, 'S' }, { "cwndtime", 0, 0, 'c' }, {
       "help", 0, 0, 'h' }, { "version", 0, 0, 'v' }, { 0, 0, 0, 0 } };
 
+/**
+ * @param x 
+ * @return x unless x == 2147483647 in which case -1 is returned.
+ */
 int checkmz(int x) {
   if (x == 2147483647) {
     return -1;
@@ -49,15 +50,127 @@ int checkmz(int x) {
   return x;
 }
 
-void get_title(web100_snapshot* snap, web100_log* log, web100_agent* agent,
-               web100_group* group, char* title, char* remport) {
+
+#if USE_WEB100
+
+#define ELAPSED_TIME "Duration"
+#define TIME_SENDER  "SndLimTimeSender"
+#define DATA_OCT_OUT "DataBytesOut"
+
+#elif USE_WEB10G
+
+#define Chk(x) \
+    do { \
+        err = (x); \
+        if (err != NULL) { \
+            goto Cleanup; \
+        } \
+    } while (0)
+
+/* ElapsedMicroSecs is the one of the only things not yet working in the
+ * kernel patch. Instead use snaplog timestamps to fake this */
+static uint64_t start_time = 0;
+#define ELAPSED_TIME "ElapsedMicroSecs"
+#define TIME_SENDER  "SndLimTimeSnd"
+#define DATA_OCT_OUT "HCDataOctetsOut"
+
+/* web10g-util.c needs logging but we don't want real logging
+ * so let it link with this version and print to stderr */
+void log_println(int lvl, const char* format, ...) {
+  va_list ap;
+  va_start(ap, format);
+  vfprintf(stderr, format, ap);
+  fprintf(stderr, "\n");
+  va_end(ap);
+}
+
+#endif
+
+/**
+ * Given a snap (likely read from a log) read a value as a double.
+ * Upon failure will exit the program with error code EXIT_FAILURE.
+ * 
+ * 
+ * @param name The name of the variable to read in Web100/Web10G.
+ * @param snap A Web100/Web10G snap
+ * @param group A Web100 group - ignored by Web10G should be NULL
+ * @param agent A Web100 agent - ignored by Web10G should be NULL
+ * 
+ * @return The value of 'name' covnerted to a double.
+ */
+double tcp_stat_read_double(const char * name, tcp_stat_snap* snap,
+                         tcp_stat_group* group, tcp_stat_agent* agent) {
+#if USE_WEB100
+  web100_var* var;
+  char buf[256];
+#elif USE_WEB10G
+  estats_val val;
+#endif
+
+#if USE_WEB100
+  if ((web100_agent_find_var_and_group(agent, name, &group,
+                                       &var)) != WEB100_ERR_SUCCESS) {
+    web100_perror("web100_agent_find_var_and_group");
+    exit(EXIT_FAILURE);
+  }
+
+  if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
+    web100_perror("web100_snap_read");
+    exit(EXIT_FAILURE);
+  }
+  return atof(
+              web100_value_to_text(web100_get_var_type(var),
+                                   buf));
+#elif USE_WEB10G
+  int vartype = ESTATS_UNSIGNED32;
+  /* ELAPSED_TIME not working in kernel patch, so use time on the 
+   * snap */
+  if (strcmp(name, ELAPSED_TIME) == 0) {
+    val.masked = 0;
+    val.uv32 = snap->tv.sec * 1000000 + snap->tv.usec - start_time;
+  } else {
+    vartype = web10g_find_val(snap, name, &val);
+    if (vartype == -1) {
+      printf("Bad vartype tcp_stat_read_double %s\n", name);
+      exit(EXIT_FAILURE);
+    }
+  }
+  switch (vartype) {
+    case ESTATS_UNSIGNED64:
+      return (double) val.uv64;
+    case ESTATS_UNSIGNED32:
+      return (double) val.uv32;
+    case ESTATS_SIGNED32:
+      return (double) val.sv32;
+    case ESTATS_UNSIGNED16:
+      return (double) val.uv16;
+    case ESTATS_UNSIGNED8:
+      return (double) val.uv8;
+  }
+  fprintf(stderr, "Bad vartype tcp_stat_read_double %s\n", name);
+  exit(EXIT_FAILURE);
+#endif
+}
+
+/**
+ * Get the title info from the snap. That is local address:port remote
+ * address:port.
+ * 
+ * For Web10G this also logs the start_time because this is expected
+ * to be the first snap captured.
+ * 
+ * @param snap A Web100/Web10G snap
+ * @param agent A Web100 agent - ignored by Web10G should be NULL
+ * @param group A Web100 group - ignored by Web10G should be NULL
+ * @param title Upon return contains the string 
+ *          "<localaddr>:<localport> --> <remoteaddr>"
+ * @param remport Upon return contains the remote port as a string
+ */
+void get_title(tcp_stat_snap* snap, tcp_stat_agent* agent,
+               tcp_stat_group* group, char* title, char* remport) {
+#if USE_WEB100
   web100_var* var;
   char buf[128];
-
-  if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
-    web100_perror("web100_log_open_read");
-    return;
-  }
 
   if ((web100_agent_find_var_and_group(agent, "LocalAddress", &group, &var))
       != WEB100_ERR_SUCCESS) {
@@ -102,14 +215,64 @@ void get_title(web100_snapshot* snap, web100_log* log, web100_agent* agent,
   }
   strcpy(remport, web100_value_to_text(web100_get_var_type(var), buf));
   /* printf("%s:%s\n", title, remport); */
+#elif USE_WEB10G
+  estats_error* err = NULL;
+  struct estats_connection_tuple_ascii tuple_ascii;
+
+  /* Quite a convenient little function we have */
+  if ((err = estats_connection_tuple_as_strings(&tuple_ascii,
+                                            &snap->tuple)) != NULL) {
+    /* If using the 3.5 kernel to make snaps it appears that the
+     * address isn't filled in, so continue with unknown */
+    fprintf(stderr, "WARNING estats_connection_tuple_as_string has"
+        " failed this could be due to using the 3.5 kernel patch which"
+        " doesn't log this information!!!!");
+    estats_error_print(stderr, err);
+    estats_error_free(&err);
+    sprintf(title, "unknown:unknown --> unknown");
+    sprintf(remport, "unknown");
+    // exit(EXIT_FAILURE);
+  }
+
+  sprintf(title, "%s:%s --> %s", tuple_ascii.local_addr,
+                  tuple_ascii.local_port, tuple_ascii.rem_addr);
+  sprintf(remport, "%s", tuple_ascii.rem_port);
+  /* Notes the time fo this the first snap in the global start_time
+   * because ElapsedTimeMicroSec is unimplemented in the kernel patch */
+  start_time = snap->tv.sec * 1000000 + snap->tv.usec;
+
+#endif
 }
 
-void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
-              web100_log* log, web100_agent* agent, web100_group* group,
+/**
+ * Plot anything else.
+ * 
+ * @param list A comma seperated list of Web100/Web10G names to
+ * 	        plot.
+ * @param cnt The number of items in list to plot, starting from the 
+ *          start. Shouldn't be larger than the number of items in 'list'
+ * @param name The file name to output to (gets .<remport>.xpls
+ *          appended to the end).
+ * @param snap Allocated storage for Web100 - NULL for Web10G
+ * @param log A open Web100/Web10G log file
+ * @param agent A Web100 agent - ignored by Web10G should be NULL
+ * @param group A Web100 group - ignored by Web10G should be NULL
+ * @param func (Can be NULL) A function that expects two integers for
+ * 	        its arguments and returns a new integer. The first interger 
+ * 			corrosponds to the item in 'list' 0 for the first etc. 
+ *          The second the value in the snap. The returned value is 
+ *          plotted.
+ *          Called once for every list item for ever snap in the log.
+ */
+void plot_var(char *list, int cnt, char *name, tcp_stat_snap* snap,
+              tcp_stat_log* log, tcp_stat_agent* agent, tcp_stat_group* group,
               int(*func)(const int arg, const int value)) {
+#if USE_WEB10G
+  estats_error* err = NULL;
+#endif
   char *varg;
-  char buf[256];
-  web100_var* var;
+  /*char buf[256];
+  web100_var* var;*/
   char varlist[256], lname[256], remport[8];
   char title[256];
   int i, first = 0;
@@ -124,11 +287,28 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
 
   memset(lname, 0, 256);
 
-  get_title(snap, log, agent, group, title, remport);
+  /* Get the first snap from the log */
+#if USE_WEB100
+  if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
+    web100_perror("web100_snap_from_log");
+    return;
+  }
+#elif USE_WEB10G
+  if ((err = estats_record_read_data(&snap, log)) != NULL) {
+    estats_record_close(&log);
+    estats_error_print(stderr, err);
+    estats_error_free(&err);
+    return;
+  }
+#endif
+
+  get_title(snap, agent, group, title, remport);
 
   if (name == NULL) {
     fn = stdout;
-    strncpy(name, "Unknown", 7);
+    /* XXX writing into a NULL pointer?? */
+    // strncpy(name, "Unknown", 7);
+    name = "Unknown";
   } else {
     snprintf(lname, sizeof(lname), "%s.%s.xpl", name, remport);
     fn = fopen(lname, "w");
@@ -149,9 +329,14 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
   first = 0;
 
   for (;;) {
+    /* We've already read the first item to use with get_title */
     if (first != 0) {
+#if USE_WEB100
       if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
-        /* web100_perror("web100_log_open_read"); */
+#elif USE_WEB10G
+      if ((err = estats_record_read_data(&snap, log)) != NULL) {
+        estats_error_free(&err);
+#endif
         fprintf(fn, "go\n");
         return;
       }
@@ -159,33 +344,16 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
     strncpy(varlist, list, strlen(list) + 1);
     varg = strtok(varlist, ",");
     for (i = 0; i < cnt; i++) {
-      if ((web100_agent_find_var_and_group(agent, varg, &group, &var))
-          != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_agent_find_var_and_group");
-        exit(EXIT_FAILURE);
-      }
-
-      if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_snap_read");
-        exit(EXIT_FAILURE);
-      }
-
       if (i == 0) {
         if (first == 0) {
           if (func) {
             x1 = func(
                 i,
                 checkmz(
-                    atoi(
-                        web100_value_to_text(
-                            web100_get_var_type(
-                                var), buf))));
+                        tcp_stat_read_double(varg, snap, group, agent)));
           } else {
             x1 = checkmz(
-                atoi(
-                    web100_value_to_text(
-                        web100_get_var_type(var),
-                        buf)));
+                    tcp_stat_read_double(varg, snap, group, agent));
           }
         } else {
           x1 = x2;
@@ -196,16 +364,10 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
             y1[i - 1] = func(
                 i,
                 checkmz(
-                    atoi(
-                        web100_value_to_text(
-                            web100_get_var_type(
-                                var), buf))));
+                    tcp_stat_read_double(varg, snap, group, agent)));
           } else {
             y1[i - 1] = checkmz(
-                atoi(
-                    web100_value_to_text(
-                        web100_get_var_type(var),
-                        buf)));
+                        tcp_stat_read_double(varg, snap, group, agent));
           }
         } else {
           y1[i - 1] = y2[i - 1];
@@ -218,46 +380,25 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
     strncpy(varlist, list, strlen(list) + 1);
     varg = strtok(varlist, ",");
     for (i = 0; i < cnt; i++) {
-      if ((web100_agent_find_var_and_group(agent, varg, &group, &var))
-          != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_agent_find_var_and_group");
-        exit(EXIT_FAILURE);
-      }
-
-      if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_snap_read");
-        exit(EXIT_FAILURE);
-      }
-
       if (i == 0) {
         if (func) {
           x2 = func(
               i,
               checkmz(
-                  atoi(
-                      web100_value_to_text(
-                          web100_get_var_type(var),
-                          buf))));
+                  tcp_stat_read_double(varg, snap, group, agent)));
         } else {
           x2 = checkmz(
-              atoi(
-                  web100_value_to_text(
-                      web100_get_var_type(var), buf)));
+              tcp_stat_read_double(varg, snap, group, agent));
         }
       } else {
         if (func) {
           y2[i - 1] = func(
               i,
               checkmz(
-                  atoi(
-                      web100_value_to_text(
-                          web100_get_var_type(var),
-                          buf))));
+                  tcp_stat_read_double(varg, snap, group, agent)));
         } else {
           y2[i - 1] = checkmz(
-              atoi(
-                  web100_value_to_text(
-                      web100_get_var_type(var), buf)));
+              tcp_stat_read_double(varg, snap, group, agent));
         }
         fprintf(fn, "%s\nline %0.4f %0.4f %0.4f %0.4f\n", color[i - 1],
                 x1 / 1000000, y1[i - 1] / 1024, x2 / 1000000,
@@ -265,18 +406,33 @@ void plot_var(char *list, int cnt, char *name, web100_snapshot* snap,
       }
       varg = strtok(NULL, ",");
     }
+#if USE_WEB10G
+    estats_val_data_free(&snap);
+#endif
   }
   fprintf(fn, "go\n");
 }
 
-void plot_cwndtime(char *name, web100_snapshot* snap, web100_log* log,
-                   web100_agent* agent, web100_group* group) {
+
+/**
+ * Make a plot CwndTime(%) against total time.
+ * 
+ * @param name The file name to output to (gets .<remport>.xpls
+ *          appended to the end).
+ * @param snap Allocated storage for Web100 - NULL for Web10G
+ * @param log A open Web100/Web10G log file
+ * @param agent A Web100 agent - ignored by Web10G should be NULL
+ * @param group A Web100 group - ignored by Web10G should be NULL
+ */
+void plot_cwndtime(char *name, tcp_stat_snap* snap, tcp_stat_log* log,
+                   tcp_stat_agent* agent, tcp_stat_group* group) {
+#if USE_WEB10G
+  estats_error* err = NULL;
+#endif
   double SndLimTimeRwin = 0, SndLimTimeSender = 0;
-  char buf[256];
-  web100_var* var;
   char lname[256], remport[8];
   char title[256];
-  char* variables[] = { "Duration", "SndLimTimeRwin", "SndLimTimeSender",
+  char* variables[] = { ELAPSED_TIME, "SndLimTimeRwin", TIME_SENDER,
     "SndLimTimeCwnd" };
   int i, first = 0;
   double x1, x2, y1, y2;
@@ -284,11 +440,28 @@ void plot_cwndtime(char *name, web100_snapshot* snap, web100_log* log,
 
   memset(lname, 0, 256);
 
-  get_title(snap, log, agent, group, title, remport);
+  /* Get the first snap from the log */
+#if USE_WEB100
+  if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
+    web100_perror("web100_snap_from_log");
+    return;
+  }
+#elif USE_WEB10G
+  if ((err = estats_record_read_data(&snap, log)) != NULL) {
+    estats_record_close(&log);
+    estats_error_print(stderr, err);
+    estats_error_free(&err);
+    return;
+  }
+#endif
+
+  get_title(snap, agent, group, title, remport);
 
   if (name == NULL) {
     fn = stdout;
-    strncpy(name, "Unknown", 7);
+    /* XXX writing into a NULL pointer?? */
+    // strncpy(name, "Unknown", 7);
+    name = "Unknown";
   } else {
     snprintf(lname, sizeof(lname), "%s.%s.xpl", name, remport);
     fn = fopen(lname, "w");
@@ -302,104 +475,127 @@ void plot_cwndtime(char *name, web100_snapshot* snap, web100_log* log,
   first = 0;
 
   for (;;) {
+    /* We've already read the first item to use with get_title */
     if (first != 0) {
+#if USE_WEB100
       if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
+#elif USE_WEB10G
+      if ((err = estats_record_read_data(&snap, log)) != NULL) {
+        estats_error_free(&err);
+#endif
         fprintf(fn, "go\n");
         return;
       }
     }
     for (i = 0; i < 4; i++) {
-      if ((web100_agent_find_var_and_group(agent, variables[i], &group,
-                                           &var)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_agent_find_var_and_group");
-        exit(EXIT_FAILURE);
-      }
-
-      if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_snap_read");
-        exit(EXIT_FAILURE);
-      }
-
-      if (i == 0) {
-        if (first == 0) {
-          x1 = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   buf));
-        } else {
-          x1 = x2;
-        }
-      } else if (i == 1) {
-        if (first == 0) {
-          SndLimTimeRwin = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   buf));
-        }
-      } else if (i == 2) {
-        if (first == 0) {
-          SndLimTimeSender = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   buf));
+      if (first == 0) {
+        /* Give everything starting values */
+        switch (i) {
+          case 0: /* ELAPSED_TIME */
+            x1 = tcp_stat_read_double(variables[i], snap, group, agent);
+          break;
+          case 1: /* "SndLimTimeRwin" */
+            SndLimTimeRwin = tcp_stat_read_double(variables[i],
+                                                    snap, group, agent);
+          break;
+          case 2: /* "SndLimTimeSender" */
+            SndLimTimeSender = tcp_stat_read_double(variables[i],
+                                                    snap, group, agent);
+          break;
+          case 3: /* "SndLimTimeCwnd" */
+            y1 = tcp_stat_read_double(variables[i], snap, group, agent);
+            y1 = y1 / (SndLimTimeRwin + SndLimTimeSender + y1);
+          break;
         }
       } else {
-        if (first == 0) {
-          y1 = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   buf));
-          y1 = y1 / (SndLimTimeRwin + SndLimTimeSender + y1);
-        } else {
-          y1 = y2;
+        switch (i) {
+          case 0: /* ELAPSED_TIME */
+            x1 = x2;
+            break;
+          case 3: /* "SndLimTimeCwnd" */
+            y1 = y2;
+            break;
         }
       }
     }
 
     first++;
     for (i = 0; i < 4; i++) {
-      if ((web100_agent_find_var_and_group(agent, variables[i], &group,
-                                           &var)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_agent_find_var_and_group");
-        exit(EXIT_FAILURE);
-      }
-
-      if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_snap_read");
-        exit(EXIT_FAILURE);
-      }
-
-      if (i == 0) {
-        x2 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
-      } else if (i == 1) {
-        SndLimTimeRwin = atoi(
-            web100_value_to_text(web100_get_var_type(var), buf));
-      } else if (i == 2) {
-        SndLimTimeSender = atoi(
-            web100_value_to_text(web100_get_var_type(var), buf));
-      } else {
-        y2 = atoi(web100_value_to_text(web100_get_var_type(var), buf));
+      if (i == 0) { /* ELAPSED_TIME */
+        x2 = tcp_stat_read_double(variables[i], snap, group, agent);
+      } else if (i == 1) { /* "SndLimTimeRwin" */
+        SndLimTimeRwin = tcp_stat_read_double(variables[i],
+                                                    snap, group, agent);
+      } else if (i == 2) { /* "SndLimTimeSender" */
+        SndLimTimeSender = tcp_stat_read_double(variables[i],
+                                                    snap, group, agent);
+      } else { /* "SndLimTimeCwnd" */
+        y2 = tcp_stat_read_double(variables[i], snap, group, agent);
         y2 = y2 / (SndLimTimeRwin + SndLimTimeSender + y2);
         fprintf(fn, "%s\nline %0.4f %0.4f %0.4f %0.4f\n", color[i - 1],
                 x1 / 1000000, y1, x2 / 1000000, y2);
       }
     }
+#if USE_WEB10G
+      estats_val_data_free(&snap);
+#endif
   }
   fprintf(fn, "go\n");
 }
 
-void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
-               web100_agent* agent, web100_group* group,
+/**
+ * 
+ * Loop through the supplied list of variables and prints them to
+ * stdout as a new row for every snap in the log file.
+ * 
+ * A function 'func' can be provided to changed how these are printed.
+ * 
+ * @param varlist A comma seperated list of Web100/Web10G names to
+ * 					print.
+ * @param snap Allocated storage for Web100 - NULL for Web10G
+ * @param log A open Web100/Web10G log file
+ * @param agent A Web100 agent - ignored by Web10G should be NULL
+ * @param group A Web100 group - ignored by Web10G should be NULL
+ * @param func (Can be NULL) A function that expects two integers for
+ * 	        its arguments. The first corrosponds to the item in varlist
+ *          0 for the first etc. The second the value in the snap.
+ *          Called once for every varlist item for ever snap in the log.
+ */
+void print_var(char *varlist, tcp_stat_snap* snap, tcp_stat_log* log,
+               tcp_stat_agent* agent, tcp_stat_group* group,
                void(*func)(const int arg, const int value)) {
-  char *varg, savelist[256], *text;
-  char buf[256], title[256], remport[8];
+  char *varg, savelist[256];
+  char title[256], remport[8];
   int i, j;
-  web100_var* var;
+#if USE_WEB10G
+  estats_error* err = NULL;
+#endif
   FILE* fn;
 
   fn = stdout;
-  get_title(snap, log, agent, group, title, remport);
+
+  /* Get the first snap from the log */
+#if USE_WEB100
+  if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
+    web100_perror("web100_snap_from_log");
+    return;
+  }
+#elif USE_WEB10G
+  if ((err = estats_record_read_data(&snap, log)) != NULL) {
+    estats_record_close(&log);
+    estats_error_print(stderr, err);
+    estats_error_free(&err);
+    return;
+  }
+#endif
+
+  get_title(snap, agent, group, title, remport);
   fprintf(fn, "Extracting Data from %s:%s connection\n\n", title, remport);
 
   strncpy(savelist, varlist, strlen(varlist) + 1);
   printf("Index\t");
   varg = strtok(varlist, ",");
+  /* Loop through varlist and print them out as the column names */
   for (j = 0;; j++) {
     if (varg == NULL)
       break;
@@ -411,45 +607,46 @@ void print_var(char *varlist, web100_snapshot* snap, web100_log* log,
     varg = strtok(NULL, ",");
   }
   printf("\n");
+  /* Loop over the log file */
   for (i = 0;; i++) {
-    if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
-      /* web100_perror("web100_log_open_read"); */
-      printf("-------------- End Of Data  --------------\n\n");
-      return;
+    /* We've already read the first item to use with get_title */
+    if (i != 0) {
+#if USE_WEB100
+      if ((web100_snap_from_log(snap, log)) != WEB100_ERR_SUCCESS) {
+#elif USE_WEB10G
+      if ((err = estats_record_read_data(&snap, log)) != NULL) {
+        estats_error_free(&err);
+#endif
+        printf("-------------- End Of Data  --------------\n\n");
+        return;
+      }
     }
     printf("%5d\t", i);
-
     strncpy(varlist, savelist, strlen(savelist) + 1);
     varg = strtok(varlist, ",");
+    /* Loop over the vars we are printing out */
     for (j = 0;; j++) {
-      if (varg == NULL)
+      if (varg == NULL) {
         break;
-      if ((web100_agent_find_var_and_group(agent, varg, &group, &var))
-          != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_agent_find_var_and_group");
-        exit(EXIT_FAILURE);
-      }
-
-      if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-        web100_perror("web100_snap_read");
-        exit(EXIT_FAILURE);
       }
       if (func) {
-        func(
-            j,
-            atoi(
-                web100_value_to_text(web100_get_var_type(var),
-                                     buf)));
+        /* Let the provided function do the printing */
+        func(j, (int) tcp_stat_read_double(varg, snap, group, agent));
       } else {
-        text = web100_value_to_text(web100_get_var_type(var), buf);
-        if (strcmp(text, "4294966376") == 0) {
+        /* Do it ourself */
+        double value = tcp_stat_read_double(varg, snap, group, agent);
+        // weird magic number ((2^32) - 1) - 919
+        if ((int) value == 4294966376) {
           printf("%10s\t", "-1");
         } else {
-          printf("%10s\t", text);
+          printf("%10"PRId64"\t", (int64_t) value);
         }
       }
       varg = strtok(NULL, ",");
     }
+#if USE_WEB10G
+    estats_val_data_free(&snap);
+#endif
     printf("\n");
   }
 }
@@ -460,9 +657,9 @@ void throughput(const int arg, const int value) {
 
   if (arg == -1) {
     if (value) {
-      printf("%10s\t", "Throughput (kB/s)");
+      printf("%10s\t", "Throughput (mB/s)");
     } else {
-      printf("%10s\t", "Duration");
+      printf("%10s\t", ELAPSED_TIME);
     }
     return;
   }
@@ -494,7 +691,7 @@ void cwndtime(const int arg, const int value) {
 
   if (arg == -1) {
     if (value == 0) {
-      printf("%10s\t", "Duration");
+      printf("%10s\t", ELAPSED_TIME);
     } else if (value == 3) {
       printf("%10s\t", "CwndTime (%% of total time)");
     }
@@ -519,11 +716,14 @@ void cwndtime(const int arg, const int value) {
 /* --- */
 
 int main(int argc, char** argv) {
-  web100_agent* agent;
-  web100_connection* conn;
-  web100_group* group;
-  web100_log* log;
-  web100_snapshot* snap;
+  tcp_stat_agent* agent = NULL;
+  tcp_stat_connection conn = NULL;
+  tcp_stat_group* group = NULL;
+  tcp_stat_log* log = NULL;
+  tcp_stat_snap* snap = NULL;
+#if USE_WEB10G
+  estats_error* err = NULL;
+#endif
   char fn[128];
   char *varlist = NULL, list[1024];
   char *varg;
@@ -577,6 +777,7 @@ int main(int argc, char** argv) {
 
   for (j = optind; j < argc; j++) {
     snprintf(fn, sizeof(fn), "%s", argv[j]);
+#if USE_WEB100
     if ((log = web100_log_open_read(fn)) == NULL) {
       web100_perror("web100_log_open_read");
       exit(EXIT_FAILURE);
@@ -596,17 +797,25 @@ int main(int argc, char** argv) {
       web100_perror("web100_get_log_connection");
       exit(EXIT_FAILURE);
     }
-
+#elif USE_WEB10G
+    if ((err = estats_record_open(&log, fn, "r")) != NULL) {
+      estats_error_print(stderr, err);
+      estats_error_free(&err);
+      exit(EXIT_FAILURE);
+    }
+#endif
     fprintf(stderr, "Extracting data from Snaplog '%s'\n\n", fn);
 
+#if USE_WEB100
     if ((snap = web100_snapshot_alloc_from_log(log)) == NULL) {
       web100_perror("web100_snapshot_alloc_from_log");
       exit(EXIT_FAILURE);
     }
+#endif
 
     if (plotuser == 1) {
       memset(list, 0, 1024);
-      strncpy(list, "Duration,", 9);
+      strncpy(list, ELAPSED_TIME",", 1024);
       strncat(list, varlist, strlen(varlist));
       varg = strtok(list, ",");
       for (k = 1;; k++) {
@@ -614,7 +823,7 @@ int main(int argc, char** argv) {
           break;
       }
       memset(list, 0, 1024);
-      strncpy(list, "Duration,", 9);
+      strncpy(list, ELAPSED_TIME",", 1024);
       strncat(list, varlist, strlen(varlist));
       if (txt == 1)
         print_var(list, snap, log, agent, group, NULL);
@@ -624,7 +833,7 @@ int main(int argc, char** argv) {
     }
     if (plotspd == 1) {
       memset(list, 0, 1024);
-      strncpy(list, "Duration,DataBytesOut", 21);
+      strncpy(list, ELAPSED_TIME","DATA_OCT_OUT, 1024);
       if (txt == 1)
         print_var(list, snap, log, agent, group, throughput);
       else
@@ -634,8 +843,8 @@ int main(int argc, char** argv) {
     if (plotcwndtime == 1) {
       memset(list, 0, 1024);
       strncpy(list,
-              "Duration,SndLimTimeRwin,SndLimTimeSender,SndLimTimeCwnd",
-              55);
+              ELAPSED_TIME",SndLimTimeRwin,"TIME_SENDER",SndLimTimeCwnd",
+              1024);
       if (txt == 1)
         print_var(list, snap, log, agent, group, cwndtime);
       else
@@ -643,7 +852,7 @@ int main(int argc, char** argv) {
     }
     if (plotcwnd == 1) {
       memset(list, 0, 1024);
-      strncpy(list, "Duration,CurCwnd", 16);
+      strncpy(list, ELAPSED_TIME",CurCwnd", 1024);
       if (txt == 1)
         print_var(list, snap, log, agent, group, NULL);
       else
@@ -651,7 +860,7 @@ int main(int argc, char** argv) {
     }
     if (plotrwin == 1) {
       memset(list, 0, 1024);
-      strncpy(list, "Duration,CurRwinRcvd", 20);
+      strncpy(list, ELAPSED_TIME",CurRwinRcvd", 1024);
       if (txt == 1)
         print_var(list, snap, log, agent, group, NULL);
       else
@@ -659,13 +868,17 @@ int main(int argc, char** argv) {
     }
     if (plotboth == 1) {
       memset(list, 0, 1024);
-      strncpy(list, "Duration,CurCwnd,CurRwinRcvd", 28);
+      strncpy(list, ELAPSED_TIME",CurCwnd,CurRwinRcvd", 1024);
       if (txt == 1)
         print_var(list, snap, log, agent, group, NULL);
       else
         plot_var(list, 3, "Both", snap, log, agent, group, NULL);
     }
-    web100_log_close_read(log);
+#if USE_WEB100
+  web100_log_close_read(log);
+#elif USE_WEB10G
+  estats_record_close(&log);
+#endif
   }
 
   exit(0);
