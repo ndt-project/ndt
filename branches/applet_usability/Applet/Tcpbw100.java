@@ -79,12 +79,10 @@ import java.io.OutputStream;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -909,7 +907,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// create new frame
 		if (_frameWeb100Vars == null) {
-			_frameWeb100Vars = new NewFrame();
+			_frameWeb100Vars = new NewFrame(this);
 		}
 
 		// Get title for this window
@@ -948,7 +946,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// create new frame
 		if (_frameDetailedStats == null) {
-			_frameDetailedStats = new NewFrame();
+			_frameDetailedStats = new NewFrame(this);
 		}
 		_frameDetailedStats.setTitle(_resBundDisplayMsgs
 				.getString("detailedStats"));
@@ -993,7 +991,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		showStatus(_resBundDisplayMsgs.getString("showOptions"));
 
 		if (_frameOptions == null) {
-			_frameOptions = new NewFrame();
+			_frameOptions = new NewFrame(this);
 			_frameOptions.setTitle(_resBundDisplayMsgs.getString("options"));
 
 			// main panel
@@ -1107,10 +1105,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		// show details of tests since that button was clicked
 		else if (source == _buttonDetails) {
-			_buttonDetails.setEnabled(false);
 			_frameWeb100Vars.setResizable(true);
 			_frameWeb100Vars.setVisible(true);
-			_buttonDetails.setEnabled(true);
 		}
 		// "More Details" Web100 variables window to be closed
 		else if (source == _buttonDismiss) {
@@ -1148,7 +1144,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		// Show "statistics" window
 		else if (source == _buttonStatistics) {
-			_buttonStatistics.setEnabled(false);
 			_frameDetailedStats.setResizable(true);
 			_frameDetailedStats.setVisible(true);
 
@@ -1156,8 +1151,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				// enable copy button only if there is statistics informations
 				_buttonStatsCopy.setEnabled(true);
 			}
-
-			_buttonStatistics.setEnabled(true);
 		}
 		// mail to functionality
 		else if (source == _buttonMailTo) {
@@ -1166,7 +1159,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// String to[], from[], comments[]; //commented out unused variables
 			String sName, sHost;
 
-			_buttonMailTo.setEnabled(false);
 			// invoke mailto: function
 			showStatus(_resBundDisplayMsgs.getString("invokingMailtoFunction")
 					+ "...");
@@ -1201,7 +1193,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_targetURL = new URL(sUrl);
 
 				getAppletContext().showDocument(_targetURL);
-				_buttonMailTo.setEnabled(true);
 			} catch (Exception e) {
 				e.printStackTrace();
 
