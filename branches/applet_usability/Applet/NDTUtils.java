@@ -1,3 +1,5 @@
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ResourceBundle;
 
 /**
@@ -102,5 +104,45 @@ import java.util.ResourceBundle;
 	public static boolean isNotEmpty(String str) {
 	    return !isEmpty(str);
 	} // isNotEmpty() method ends
+
+
+	/**
+	 * Utility method to create mailTo link
+	 *
+	 * @param name
+	 *            user identifier
+	 * @param host
+	 *            fully qualified domain name
+	 * @param subject
+	 *            email subject
+	 * @param body
+	 *            email body
+	 * @return created mailTo link with the encoded parameters
+	 */
+	public static String mailTo(final String name, final String host,
+								final String subject, final String body) {
+		return String.format(
+				"mailto:%s@%s?subject=%s&body=%s",
+				new Object[]{
+						urlEncode(name), urlEncode(host),
+						urlEncode(subject), urlEncode(body)
+				}
+		);
+	} // mailTo() method ends
+
+	/**
+	 * Utility method to encode the given string using UTF-8 encoding
+	 *
+	 * @param str
+	 *            String to encode
+	 * @return encoded string with replacing '+' to '%20'
+	 */
+	public static String urlEncode(String str) {
+		try {
+			return URLEncoder.encode(str, "utf-8").replace("+", "%20");
+		} catch (UnsupportedEncodingException e) {
+			throw new IllegalArgumentException(e);
+		}
+	} // urlEncode() method ends
 
 }

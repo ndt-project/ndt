@@ -84,6 +84,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -1179,28 +1180,38 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					throw new IllegalArgumentException("H parameter Required:");
 				}
 
-				String theURL = "mailto:" + sName + "@" + sHost;
-				String subject = getParameter("subject"); // get subject
+				String sSubject = getParameter("subject"); // get subject
 
-				if (subject == null) {
-					subject = _resBundDisplayMsgs
+				if (sSubject == null) {
+					sSubject = _resBundDisplayMsgs
 							.getString("troubleReportFrom")
 							+ " "
 							+ getCodeBase().getHost();
 				}
-				theURL += "?subject=" + subject;
-				theURL += "&body=" + _resBundDisplayMsgs.getString("comments")
-						+ ":%0A%0A" + _sEmailText + " "
-						+ _resBundDisplayMsgs.getString("endOfEmail") + "\n%0A";
-				// System.out.println("Message body is '" + emailText + "'\n");
-				_targetURL = new URL(theURL);
 
-			} catch (MalformedURLException rsi) {
-				throw new IllegalArgumentException("Can't create mailto: URL"
-						+ rsi.getMessage());
+				String sBody = _resBundDisplayMsgs.getString("comments")
+						+ ":\n\n" + _sEmailText + "\n\n"
+						+ _resBundDisplayMsgs.getString("endOfEmail");
+
+				String sUrl = NDTUtils.mailTo(sName, sHost, sSubject, sBody);
+
+				_targetURL = new URL(sUrl);
+
+				getAppletContext().showDocument(_targetURL);
+				_buttonMailTo.setEnabled(true);
+			} catch (Exception e) {
+				e.printStackTrace();
+
+				String sMessage = NDTUtils.isEmpty(e.getMessage())
+						? _resBundDisplayMsgs.getString("withoutMessage")
+						: e.getMessage();
+
+				_sErrMsg = _resBundDisplayMsgs.getString("unexpectedException")
+						+ " (" + e.getClass().getName() + "): "
+						+ sMessage + "\n";
+
+				_resultsTxtPane.append(_sErrMsg);
 			}
-
-			getAppletContext().showDocument(_targetURL);
 		} // end mail-to functionality
 	} // actionPerformed()
 
