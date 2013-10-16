@@ -24,7 +24,7 @@ public class NDTConstants {
 	 * TODO for a later release: Version could be moved to some "configurable"
 	 * or "property" area instead of being in code that needs compilation.
 	 */
-	public static final String VERSION = "3.6.5.2";
+	public static final String VERSION = "3.6.6-rc1";
 
 	public static final String NDT_TITLE_STR = "Network Diagnostic Tool Client v";
 
