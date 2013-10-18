@@ -1,7 +1,8 @@
+import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.JFrame;
+import javax.swing.*;
 
 /**
  * Utility class that creates a new "Frame" with a window closing functionality.
@@ -19,17 +20,16 @@ public class NewFrame extends JFrame {
 	 */
 	private static final long serialVersionUID = 8990839319520684317L;
 
-	/**
-	 * Constructor
-	 **/
-	public NewFrame() {
+    /**
+     * Constructor
+     **/
+    public NewFrame(final JApplet parent) throws HeadlessException {
 		addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent event) {
-				// System.err.println("Handling window closing event");
+                parent.requestFocus();
 				dispose();
 			}
 		});
-		// System.err.println("Extended Frame class - RAC9/15/03");
 	}
 
 } // class: NewFrame
