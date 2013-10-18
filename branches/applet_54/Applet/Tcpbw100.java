@@ -210,6 +210,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	boolean _bIsApplication = false;
 	boolean _bTestInProgress = false;
 	String sHostName = null;
+	InetAddress hostAddress = null;
 	String _sTestResults, _sMidBoxTestResult;
 	byte _yTests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S
 			| NDTConstants.TEST_S2C | NDTConstants.TEST_SFW
@@ -289,13 +290,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 		});
 		applet._bIsApplication = true;
-		applet.sHostName = args[0];
                 if (args.length > 1) {
                         applet._sClient = args[1];
                 }
 		frame.getContentPane().add(applet);
 		frame.setSize(700, 320);
 		applet.init();
+		applet.setsHostName(args[0]);
 		applet.start();
 		frame.setVisible(true);
 	}
@@ -878,6 +879,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		_chkboxPreferIPv6 = new JCheckBox(
 				_resBundDisplayMsgs.getString("preferIPv6"));
 		_chkboxPreferIPv6.setSelected(true);
+	    _chkboxPreferIPv6.addActionListener(this);
 		// 2. Conduct default tests?
 		_chkboxDefaultTest = new JCheckBox(
 				_resBundDisplayMsgs.getString("defaultTests"));
@@ -1152,6 +1154,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_buttonStatsCopy.setEnabled(true);
 			}
 		}
+		// prefer IPv6 checkbox
+		else if (source == _chkboxPreferIPv6) {
+			setHostAddress(sHostName);
+		}
 		// mail to functionality
 		else if (source == _buttonMailTo) {
 			// int i; //did'nt need it
@@ -1286,7 +1292,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// connect to server using port obtained above
 			Socket midSrvrSockObj = null;
 			try {
-				midSrvrSockObj = new Socket(sHostName, midport);
+				midSrvrSockObj = new Socket(hostAddress, midport);
 			} catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + sHostName);
 				_sErrMsg = _resBundDisplayMsgs.getString("unknownServer")
@@ -1565,7 +1571,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			Socket sfwSocket = new Socket();
 			try {
 				// create socket to ephemeral port. testTime now specified in mS
-				sfwSocket.connect(new InetSocketAddress(sHostName, iSrvPort),
+				sfwSocket.connect(new InetSocketAddress(hostAddress, iSrvPort),
 						iTestTime * NDTConstants.KILO);
 
 				Protocol sfwCtl = new Protocol(sfwSocket);
@@ -1700,7 +1706,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// client connects to this port
 			final Socket outSocket;
 			try {
-				outSocket = new Socket(sHostName, iC2sport);
+				outSocket = new Socket(hostAddress, iC2sport);
 			} catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + sHostName);
 				_sErrMsg = _resBundDisplayMsgs.getString("unknownServer")
@@ -1948,7 +1954,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Create socket and bind to port as instructed by server
 			Socket inSocket;
 			try {
-				inSocket = new Socket(sHostName, iS2cport);
+				inSocket = new Socket(hostAddress, iS2cport);
 			} catch (UnknownHostException e) {
 				System.err.println("Don't know about host: " + sHostName);
 				_sErrMsg = "unknown server\n";
@@ -2316,13 +2322,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// are
 			// potentially accessing a server outside the source domain.
 			//
-			sHostName = getParameter("testingServer");
+			String sTestingServer = getParameter("testingServer");
 
 			// fall back to the old behavior if the APPLET tag is not set
-			if (sHostName == null) {
-				sHostName = getCodeBase().getHost();
+			if (sTestingServer == null) {
+				sTestingServer = getCodeBase().getHost();
 			}
 
+			setsHostName(sTestingServer);
 			pub_host = sHostName;
 		}
 
@@ -2349,24 +2356,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					+ " '"
 					+ sHostName
 					+ "' ["
-					+ InetAddress.getByName(sHostName)
+					+ hostAddress
 					+ "] "
 					+ _resBundDisplayMsgs.getString("toRunTest") + "\n");
-			// If IPv6 is preferred by Applet user, set property for any further
-			// use
-            try {
-                System.setProperty("java.net.preferIPv6Addresses",
-                        _chkboxPreferIPv6.isSelected() ? "true" : "false");
-
-                System.setProperty("java.net.preferIPv4Stack",
-                        _chkboxPreferIPv6.isSelected() ? "false" : "true");
-            } catch (SecurityException e) {
-                System.err
-                        .println("Couldn't set system property. Check your security settings.");
-                // retain this way for now
-            }
 			// create socket to host specified by user and the default port
-			ctlSocket = new Socket(sHostName, ctlport);
+			ctlSocket = new Socket(hostAddress, ctlport);
 		} catch (UnknownHostException e) {
 			System.err.println("Don't know about host: " + sHostName);
 			_sErrMsg = _resBundDisplayMsgs.getString("unknownServer") + "\n";
@@ -3626,7 +3620,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// 1456, thus preserved
 		if(_iTimestampsEnabled == NDTConstants.RFC_1323_ENABLED)
 			iMss += 12;
-    
+
 		if (iMss == NDTConstants.ETHERNET_MTU_SIZE)
 			_txtStatistics.append(_resBundDisplayMsgs
 					.getString("packetSizePreserved") + "\n");
@@ -3895,4 +3889,34 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		return null;
 	}
 
+	private void setsHostName(String sHostName) {
+		this.sHostName = sHostName;
+		setHostAddress(sHostName);
+	}
+
+	private void setHostAddress(String sHostName) {
+        InetAddress[] addresses;
+		InetAddress found = null;
+
+		try {
+			addresses = InetAddress.getAllByName(sHostName);
+
+			if (_chkboxPreferIPv6.isSelected()) {
+				for(int k = 0; k < addresses.length; ++k) {
+					if (addresses[k] instanceof Inet6Address) {
+						found = addresses[k];
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			throw new IllegalArgumentException(e);
+		}
+
+		if (null != found) {
+			this.hostAddress = found;
+		} else if (addresses.length > 0) {
+			this.hostAddress = addresses[0];
+		}
+	}
 } // class: Tcpbw100
