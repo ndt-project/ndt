@@ -79,7 +79,6 @@ import java.io.OutputStream;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -883,7 +882,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		_chkboxDefaultTest = new JCheckBox(
 				_resBundDisplayMsgs.getString("defaultTests"));
 		_chkboxDefaultTest.setSelected(true);
-		_chkboxDefaultTest.setEnabled(false);
 		// 3. configure number of tests
 		SpinnerNumberModel model = new SpinnerNumberModel();
 		model.setMinimum(new Integer(0));
@@ -909,7 +907,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// create new frame
 		if (_frameWeb100Vars == null) {
-			_frameWeb100Vars = new NewFrame();
+			_frameWeb100Vars = new NewFrame(this);
 		}
 
 		// Get title for this window
@@ -948,7 +946,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// create new frame
 		if (_frameDetailedStats == null) {
-			_frameDetailedStats = new NewFrame();
+			_frameDetailedStats = new NewFrame(this);
 		}
 		_frameDetailedStats.setTitle(_resBundDisplayMsgs
 				.getString("detailedStats"));
@@ -969,7 +967,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// Text area for Statistics, add "heading"
 		_txtStatistics = new JTextArea(
 				_resBundDisplayMsgs.getString(_sServerType + "Stats") + ":\n", 25, 70);
-		_txtStatistics.setEditable(true);
+		_txtStatistics.setEditable(false);
 		_buttonStatsDismiss.setEnabled(true);
 		_buttonStatsCopy.setEnabled(_bCanCopy);
 
@@ -993,7 +991,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		showStatus(_resBundDisplayMsgs.getString("showOptions"));
 
 		if (_frameOptions == null) {
-			_frameOptions = new NewFrame();
+			_frameOptions = new NewFrame(this);
 			_frameOptions.setTitle(_resBundDisplayMsgs.getString("options"));
 
 			// main panel
@@ -1107,10 +1105,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		// show details of tests since that button was clicked
 		else if (source == _buttonDetails) {
-			_buttonDetails.setEnabled(false);
 			_frameWeb100Vars.setResizable(true);
 			_frameWeb100Vars.setVisible(true);
-			_buttonDetails.setEnabled(true);
 		}
 		// "More Details" Web100 variables window to be closed
 		else if (source == _buttonDismiss) {
@@ -1145,14 +1141,16 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			String sTemp = _txtStatistics.getText();
 			StringSelection ssTemp = new StringSelection(sTemp);
 			clipbd.setContents(ssTemp, ssTemp);
-			_txtStatistics.selectAll();
 		}
 		// Show "statistics" window
 		else if (source == _buttonStatistics) {
-			_buttonStatistics.setEnabled(false);
 			_frameDetailedStats.setResizable(true);
 			_frameDetailedStats.setVisible(true);
-			_buttonStatistics.setEnabled(true);
+
+			if (NDTUtils.isNotEmpty(_txtStatistics.getText())) {
+				// enable copy button only if there is statistics informations
+				_buttonStatsCopy.setEnabled(true);
+			}
 		}
 		// mail to functionality
 		else if (source == _buttonMailTo) {
@@ -1161,7 +1159,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// String to[], from[], comments[]; //commented out unused variables
 			String sName, sHost;
 
-			_buttonMailTo.setEnabled(false);
 			// invoke mailto: function
 			showStatus(_resBundDisplayMsgs.getString("invokingMailtoFunction")
 					+ "...");
@@ -1178,28 +1175,37 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					throw new IllegalArgumentException("H parameter Required:");
 				}
 
-				String theURL = "mailto:" + sName + "@" + sHost;
-				String subject = getParameter("subject"); // get subject
+				String sSubject = getParameter("subject"); // get subject
 
-				if (subject == null) {
-					subject = _resBundDisplayMsgs
+				if (sSubject == null) {
+					sSubject = _resBundDisplayMsgs
 							.getString("troubleReportFrom")
 							+ " "
 							+ getCodeBase().getHost();
 				}
-				theURL += "?subject=" + subject;
-				theURL += "&body=" + _resBundDisplayMsgs.getString("comments")
-						+ ":%0A%0A" + _sEmailText + " "
-						+ _resBundDisplayMsgs.getString("endOfEmail") + "\n%0A";
-				// System.out.println("Message body is '" + emailText + "'\n");
-				_targetURL = new URL(theURL);
 
-			} catch (MalformedURLException rsi) {
-				throw new IllegalArgumentException("Can't create mailto: URL"
-						+ rsi.getMessage());
+				String sBody = _resBundDisplayMsgs.getString("comments")
+						+ ":\n\n" + _sEmailText + "\n\n"
+						+ _resBundDisplayMsgs.getString("endOfEmail");
+
+				String sUrl = NDTUtils.mailTo(sName, sHost, sSubject, sBody);
+
+				_targetURL = new URL(sUrl);
+
+				getAppletContext().showDocument(_targetURL);
+			} catch (Exception e) {
+				e.printStackTrace();
+
+				String sMessage = NDTUtils.isEmpty(e.getMessage())
+						? _resBundDisplayMsgs.getString("withoutMessage")
+						: e.getMessage();
+
+				_sErrMsg = _resBundDisplayMsgs.getString("unexpectedException")
+						+ " (" + e.getClass().getName() + "): "
+						+ sMessage + "\n";
+
+				_resultsTxtPane.append(_sErrMsg);
 			}
-
-			getAppletContext().showDocument(_targetURL);
 		} // end mail-to functionality
 	} // actionPerformed()
 
@@ -2348,17 +2354,17 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					+ _resBundDisplayMsgs.getString("toRunTest") + "\n");
 			// If IPv6 is preferred by Applet user, set property for any further
 			// use
-			if (_chkboxPreferIPv6.isSelected()) {
-				try {
-					System.setProperty("java.net.preferIPv6Addresses",
-							"true");
-				} catch (SecurityException e) {
-					System.err
-							.println("Couldn't set system property. Check your security settings.");
-					// retain this way for now
-				}
-			}
-			_chkboxPreferIPv6.setEnabled(false);
+            try {
+                System.setProperty("java.net.preferIPv6Addresses",
+                        _chkboxPreferIPv6.isSelected() ? "true" : "false");
+
+                System.setProperty("java.net.preferIPv4Stack",
+                        _chkboxPreferIPv6.isSelected() ? "false" : "true");
+            } catch (SecurityException e) {
+                System.err
+                        .println("Couldn't set system property. Check your security settings.");
+                // retain this way for now
+            }
 			// create socket to host specified by user and the default port
 			ctlSocket = new Socket(sHostName, ctlport);
 		} catch (UnknownHostException e) {
