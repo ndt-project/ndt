@@ -36,7 +36,11 @@ int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd) {
   socklen_t peer_name_len = sizeof(peer_name);
   int connection_id = -1;
   struct estats_connection_list* clist = NULL;
+#ifdef ESTATS_LIST_FOREACH /* Web10G Userland 2.0.6 */
   struct estats_list* list_pos;
+#else /* Web10G Userland 2.0.7 + */
+  struct estats_connection* cp;
+#endif
 
   /* Get the ip address of ourself on the localsocket */
   if (getsockname(sockfd, (struct sockaddr*) &local_name,
@@ -59,18 +63,27 @@ int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd) {
   estats_connection_list_new(&clist);
   estats_list_conns(clist, client);
 
-
+#ifdef ESTATS_LIST_FOREACH /* Web10G Userland 2.0.6 */
   ESTATS_LIST_FOREACH(list_pos, &(clist->connection_head)) {
     struct estats_connection* cp =
                   ESTATS_LIST_ENTRY(list_pos, estats_connection, list);
+#elif defined(estats_list_for_each) /* Web10G Userland 2.0.8 */
+  estats_list_for_each(&(clist->connection_head), cp, list) {
+#else /* Web10G Userland 2.0.7 */
+  list_for_each(&(clist->connection_head), cp, list) {
+#endif
     struct estats_connection_tuple* ct =
                                   (struct estats_connection_tuple*) cp;
 
     if (local_name.ss_family == AF_INET &&
         peer_name.ss_family == AF_INET &&
+#ifdef estats_list_for_each /* Web10G Userland 2.0.8 */
+        ct->addr_type == ESTATS_ADDRTYPE_IPV4) {
+#else /* Web10G Userland 2.0.6/7 */
         ct->local_addr[16] == ESTATS_ADDRTYPE_IPV4 &&
         ct->rem_addr[16] == ESTATS_ADDRTYPE_IPV4) {
-        /* All IPv4 - compare addresses */
+#endif
+      /* All IPv4 - compare addresses */
       struct sockaddr_in * ipv4_local =
                                   (struct sockaddr_in *) &local_name;
       struct sockaddr_in * ipv4_peer =
@@ -91,8 +104,12 @@ int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd) {
       }
     } else if (local_name.ss_family == AF_INET6 &&
                 peer_name.ss_family == AF_INET6 &&
+#ifdef estats_list_for_each /* Web10G Userland 2.0.8 */
+                ct->addr_type == ESTATS_ADDRTYPE_IPV6) {
+#else /* Web10G Userland 2.0.6/7 */
                 ct->local_addr[16] == ESTATS_ADDRTYPE_IPV6 &&
                 ct->rem_addr[16] == ESTATS_ADDRTYPE_IPV6) {
+#endif
       /* We are IPv6  - compare addresses */
       struct sockaddr_in6 * ipv6_local =
                   (struct sockaddr_in6 *) &local_name;
@@ -137,24 +154,42 @@ int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd) {
 int web10g_get_remote_addr(tcp_stat_agent* client,
                       tcp_stat_connection conn, char* out, int size) {
   struct estats_connection_list* clist = NULL;
+#ifdef ESTATS_LIST_FOREACH /* Web10G Userland 2.0.6 */
   struct estats_list* list_pos;
+#else /* Web10G Userland 2.0.7 + */
+  struct estats_connection* cp;
+#endif
 
   estats_connection_list_new(&clist);
   estats_list_conns(clist, client);
   out[0] = 0;
 
+#ifdef ESTATS_LIST_FOREACH /* Web10G Userland 2.0.6 */
   ESTATS_LIST_FOREACH(list_pos, &(clist->connection_head)) {
     struct estats_connection* cp =
                   ESTATS_LIST_ENTRY(list_pos, estats_connection, list);
+#elif defined(estats_list_for_each) /* Web10G Userland 2.0.8 */
+  estats_list_for_each(&(clist->connection_head), cp, list) {
+#else /* Web10G Userland 2.0.7 */
+  list_for_each(&(clist->connection_head), cp, list) {
+#endif
     struct estats_connection_tuple* ct =
                                   (struct estats_connection_tuple*) cp;
 
     if (ct->cid == conn) {
+#ifdef estats_list_for_each /* Web10G Userland 2.0.8 */
+      if (ct->addr_type == ESTATS_ADDRTYPE_IPV4) {
+#else /* Web10G Userland 2.0.6/7 */
       if (ct->local_addr[16] == ESTATS_ADDRTYPE_IPV4) {
+#endif
         inet_ntop(AF_INET, &(ct->rem_addr[0]), out, size);
         log_println(1, "Got remote address IPv4 %s", out);
         goto Cleanup;
+#ifdef estats_list_for_each /* Web10G Userland 2.0.8 */
+      } else if (ct->addr_type == ESTATS_ADDRTYPE_IPV6) {
+#else /* Web10G Userland 2.0.6/7 */
       } else if (ct->local_addr[16] == ESTATS_ADDRTYPE_IPV6) {
+#endif
         inet_ntop(AF_INET6, &(ct->rem_addr[0]), out, size);
         log_println(1, "Got remote address IPv6 %s", out);
         goto Cleanup;
