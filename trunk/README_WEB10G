@@ -1,15 +1,23 @@
                             ndt-web10g
+Updated: 26th October 2013
 
 Required libraries:
 
 Web10G
 Download and install the latest userland and your kernel patch from 
-http://web10g.org. You will need the use the Web10G userland-2.0.6.2
-(as at time of writing the newest release).
+http://web10g.org. You will need the use the Web10G userland-2.0.6.2,
+userland-2.0.7. Support for the next upcoming userland has also
+been added however this does not appear to have backwards support for
+the 3.5-3.9 kernels and as such is untested.
 
 This is known/expected to work with the following web10g kernel patches:
+Web10G-0.7-patches (Linux kernel 3.9)
 Web10G-0.6.2-patches (Linux kernel 3.6, 3.7 & 3.8).
 Web10G-0.4-3.5-patch - You will have to make a small modification
+
+You can choose to use either the userland-2.0.6.2 or userland-2.0.7.
+The 2.0.7 userland appears to be compatible with the 3.5-2.8 kernels,
+however only limited testing has been performed.
 
 IMPORTANT - Web10G-0.4-3.5-patch modification
 Swap the single occurrence of ktime_to_ns(...) to ktime_to_us(...) 
