@@ -1156,7 +1156,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		// prefer IPv6 checkbox
 		else if (source == _chkboxPreferIPv6) {
-			setHostAddress(sHostName);
+            setsHostName(sHostName);
 		}
 		// mail to functionality
 		else if (source == _buttonMailTo) {
@@ -3891,32 +3891,29 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	private void setsHostName(String sHostName) {
 		this.sHostName = sHostName;
-		setHostAddress(sHostName);
-	}
-
-	private void setHostAddress(String sHostName) {
         InetAddress[] addresses;
-		InetAddress found = null;
+        InetAddress found = null;
 
-		try {
-			addresses = InetAddress.getAllByName(sHostName);
+        try {
+            addresses = InetAddress.getAllByName(sHostName);
 
-			if (_chkboxPreferIPv6.isSelected()) {
-				for(int k = 0; k < addresses.length; ++k) {
-					if (addresses[k] instanceof Inet6Address) {
-						found = addresses[k];
-						break;
-					}
-				}
-			}
-		} catch (Exception e) {
-			throw new IllegalArgumentException(e);
-		}
+            if (_chkboxPreferIPv6.isSelected()) {
+                for(int k = 0; k < addresses.length; ++k) {
+                    if (addresses[k] instanceof Inet6Address) {
+                        found = addresses[k];
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
 
-		if (null != found) {
-			this.hostAddress = found;
-		} else if (addresses.length > 0) {
-			this.hostAddress = addresses[0];
-		}
-	}
+        if (null != found) {
+            this.hostAddress = found;
+        } else if (addresses.length > 0) {
+            this.hostAddress = addresses[0];
+        }
+    }
+
 } // class: Tcpbw100
