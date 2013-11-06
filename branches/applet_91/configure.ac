@@ -236,10 +236,18 @@ AC_SUBST(TOP_BUILD_DIRS)
 # Java config files
 #
 GCJ=javac
-NDTGCJFLAGS="-source 1.4"
-GCJFLAGS="-source 1.4"
+NDTGCJFLAGS="-source 1.6"
+GCJFLAGS="-source 1.6"
+
+#
+# maven config
+#
+MVN=mvn
+NDTMVNFLAGS="clean verify"
+MVNFLAGS="clean verify"
 
 AC_SUBST(NDTGCJFLAGS)
+AC_SUBST(NDTMVNFLAGS)
 
 NDTJAR=jar
 NDTJARFLAG='-cmf'
@@ -252,7 +260,9 @@ AC_PROG_CC
 AC_PROG_LN_S
 AM_PROG_GCJ
 AC_CHECK_PROGS(SGCJ, javac)
+AC_CHECK_PROGS(SMVN, mvn)
 AM_CONDITIONAL(HAVE_GCJ, test -n "$SGCJ")
+AM_CONDITIONAL(HAVE_MVN, test -n "$SMVN")
 
 # Checks for libraries.
 
@@ -332,6 +342,12 @@ else
 SUMMARY_ADMINCLASS="NO    (missing java compiler)"
 SUMMARY_TCPBW100JAR="NO    (missing java compiler)"
 SUMMARY_JANALYZEJAR="NO    (missing java compiler)"
+fi
+
+if test -z "$HAVE_MVN_TRUE" && test -n "$HAVE_MVN_FALSE"; then
+SUMMARY_TCPBW100JAR="YES"
+else
+SUMMARY_TCPBW100JAR="NO    (missing maven)"
 fi
 
 if test "$SUMMARY_WEB100CLT" = "YES"; then

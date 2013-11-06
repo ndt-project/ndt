@@ -32,8 +32,7 @@ It can also identify 2 serious error conditions:</font>
      built into the java program.  -->
 
 <table align=center><tr><td>
-<applet code=Tcpbw100.class name="NDTApplet" ARCHIVE="Tcpbw100.jar"
-   width=700 height=320>
+<applet code=edu.internet2.ndt.Tcpbw100 name="NDTApplet" archive="Tcpbw100.jar" width="700" height="320">
   <PARAM NAME="H" VALUE="YOURDOMAIN">
   <PARAM NAME="U" VALUE="YOUREMAIL">
   <PARAM NAME="subject" VALUE="YOURSUBJECT">
