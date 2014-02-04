@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 /*
  Copyright 2003 University of Chicago.  All rights reserved.
  The Web100 Network Diagnostic Tool (NDT) is distributed subject to
@@ -60,11 +62,8 @@
  as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
  */
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Panel;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
@@ -90,21 +89,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
-
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.JApplet;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.SpinnerNumberModel;
 
 /* 
  * Naming convention used: Hungarian, with the following details
@@ -759,7 +743,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		try {
 			_localeObj = new Locale(_sLang, _sCountry);
-			_resBundDisplayMsgs = ResourceBundle.getBundle("Tcpbw100_msgs",
+			_resBundDisplayMsgs = ResourceBundle.getBundle(NDTConstants.TCPBW100_MSGS,
 					_localeObj);
 
 			// Replaced method call to initialize _resBundDisplayMsgs for access

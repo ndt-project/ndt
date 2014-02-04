@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 /**
  * Class to define Message. Messages are composed of a "type" and a body. Some
  * examples of message types are : COMM_FAILURE, SRV_QUEUE, MSG_LOGIN,
