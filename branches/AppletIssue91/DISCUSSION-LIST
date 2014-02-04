@@ -1,0 +1,91 @@
+Majordomo address:	# Majordomo@anl.gov
+Majordomo-Owner address:# Majordomo-Owner@anl.gov
+List posting address:	# ndt@anl.gov
+List request address:	# ndt-Request@anl.gov
+List flags:		# open
+
+Your mailing list has been established.  It is being served by an
+automated mailing list manager that responds to commands emailed to
+the "Majordomo address" listed above.  This message has all the details
+of how to manage your list remotely using Majordomo.  If you have any
+questions, refer them to the Majordomo-Owner address listed above.
+
+There's a lot of info here, so please read this completely and
+carefully, and save it for future reference.  If you have any questions,
+you should send them to the Majordomo-Owner address above.
+
+Your list-owner password is shown above.  Keep track of this; you'll
+need it later.  Instructions for changing your password are below.
+
+As soon as possible, please issue a "newinfo" command for your
+list (see below) to create the file that someone will receive when
+they join or ask about your list.
+
+You can issue a "who" command for your list to see who's already on your
+list.  You may or may not already be subscribed to your own list.
+
+================
+The Gory Details
+================
+
+Your mailing list is managed by an automated mailing list management
+program called Majordomo.  Majordomo should free you from dealing
+with most of the administrivia usually associated with running mailing
+lists (adding users, dropping users, etc.).
+
+To submit something to your list, you (or anybody else) should simply
+mail it to the list posting address shown at the top of this file.
+
+If somebody sends something to list request address shown above (which
+is the traditional Internet way of being added to a mailing list), they'll
+get back a message telling them how to use Majordomo for routine requests,
+and how to contact you if they need to speak to a human being.
+
+To be added to your list, a user simply sends a message with an empty 
+"Subject:" line and with the following line in the body of the message:
+
+    subscribe ndt
+
+by email to majordomo@anl.gov.
+
+The mail message to subscribe to the ndt mailing list would be:
+
+   To: majordomo@anl.gov
+   subscribe ndt
+
+or:
+
+   To: majordomo@anl.gov
+   Subject:
+   subscribe ndt
+
+where each of the above lines starts in column 1 and there is no "Subject:"
+line or the "Subject:" line is empty.
+
+Majordomo understands several commands, and is not limited to a
+single command per message (it will process commands until reaching
+end-of-message or the command "end").  The command "help" will tell
+you about all the other commands.
+
+Actually, it won't tell you about _all_ the other commands that 
+Majordomo understands.  There are several commands there for use by
+list owners such as yourself, which are not advertised to the public.
+All of these commands are password-protected on a list-by-list basis,
+but anyone with a valid list/password combination can invoke these
+commands.  This is not exactly high-tech security, but it's more
+intended to keep annoyance to a minimum than to be foolproof. 
+
+The "documented" commands which Majordomo understands and which are
+for everyone to use are:
+
+    subscribe ndt [<address>]
+    unsubscribe ndt [<address>]
+    which [<address>]
+    who ndt
+    info ndt
+    index ndt
+    get ndt <filename>
+    lists
+    help
+    end
+
