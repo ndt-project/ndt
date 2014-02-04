@@ -1,8 +1,9 @@
+package edu.internet2.ndt;
+
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
-import javax.swing.*;
 
 /**
  * Utility class that creates a new "Frame" with a window closing functionality.
