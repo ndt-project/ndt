@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -65,7 +67,7 @@ public class NDTConstants {
 	public static final String SFW_PREDEFINED_TEST_MESSAGE = "Simple firewall test";
 
 	private static ResourceBundle _rscBundleMessages;
-	public static final String TCPBW100_MSGS = "Tcpbw100_msgs";
+	public static final String TCPBW100_MSGS = "edu.internet2.ndt.locale.Tcpbw100_msgs";
 	public static final int PREDEFINED_BUFFER_SIZE = 8192; // 8k buffer size
 
 	// Section: Data rate indicator integers
@@ -188,7 +190,7 @@ public class NDTConstants {
 	public static void initConstants(String paramStrLang, String paramStrCountry) {
 		try {
 			Locale locale = new Locale(paramStrLang, paramStrCountry);
-			_rscBundleMessages = ResourceBundle.getBundle("Tcpbw100_msgs",
+			_rscBundleMessages = ResourceBundle.getBundle(TCPBW100_MSGS,
 					locale);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null,

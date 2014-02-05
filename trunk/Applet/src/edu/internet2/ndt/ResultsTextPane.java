@@ -1,7 +1,8 @@
-import java.awt.Component;
+package edu.internet2.ndt;
 
-import javax.swing.JTextPane;
+import javax.swing.*;
 import javax.swing.text.BadLocationException;
+import java.awt.*;
 
 /*
  * Class that extends TextPane. This Text-pane is used as the chief

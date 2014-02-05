@@ -17,16 +17,23 @@
 
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV =
+NDTGCJFLAGS = -d bin -sourcepath src
+TEMPDIRS = bin dist
 
 ndtdir = $(prefix)/ndt
 
-ndt_DATA	= Tcpbw100.jar
+ndt_DATA	= dist/Tcpbw100.jar
 Tcpbw100dir = $(ndtdir)
 
 noinst_PROGRAMS = Tcpbw100.jar
 
-Tcpbw100_JAVA	= Tcpbw100.java
-Tcpbw100_jar_SOURCES	= Tcpbw100.java StatusPanel.java Protocol.java Message.java UserAgentTools.java NDTConstants.java OsfwWorker.java NewFrame.java ResultsTextPane.java MessageType.java NDTUtils.java
+Tcpbw100_JAVA	= src/edu/internet2/ndt/Tcpbw100.java
+Tcpbw100_jar_SOURCES	= src/edu/internet2/ndt/Tcpbw100.java src/edu/internet2/ndt/StatusPanel.java \
+				src/edu/internet2/ndt/Protocol.java src/edu/internet2/ndt/Message.java \
+				src/edu/internet2/ndt/UserAgentTools.java src/edu/internet2/ndt/NDTConstants.java \
+				src/edu/internet2/ndt/OsfwWorker.java src/edu/internet2/ndt/NewFrame.java \
+				src/edu/internet2/ndt/ResultsTextPane.java src/edu/internet2/ndt/MessageType.java \
+				src/edu/internet2/ndt/NDTUtils.java
 
 Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
 	@rm -f Tcpbw100$(EXEEXT)
@@ -48,6 +55,12 @@ classTcpbw100stamp: $(Tcpbw100_jar_SOURCES)
 	    $(GCJ) $(NDTGCJFLAGS) $?; \
 	else :; fi
 	echo timestamp > classTcpbw100.stamp
+
+bin:
+	mkdir -p bin
+
+dist:
+	mkdir -p dist
 
 #Tcpbw100.class: $(Tcpbw100_JAVA)
 #	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_JAVA)
@@ -71,8 +84,20 @@ OsfwWorker.class: NDTConstants.class Message.class Protocol.class
 
 	
 #Include all classes into jar
-Tcpbw100.jar:	all.class
-	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar *.class Tcpbw100*.properties
+Tcpbw100.jar:	$(TEMPDIRS) all.class
+	cp -r src/edu/internet2/ndt/locale  bin/edu/internet2/ndt/
+	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/Tcpbw100.jar -C bin .
 	echo timestamp > classTcpbw100.stamp
 
-EXTRA_DIST = MANIFEST.MF Tcpbw100_msgs_ca_ES.properties Tcpbw100_msgs_nb_NO.properties Tcpbw100_msgs_en_US.properties Tcpbw100_msgs_nl_NL.properties Tcpbw100_msgs_fr_FR.properties Tcpbw100_msgs_ru_RU.properties Tcpbw100_msgs_pt_BR.properties Tcpbw100_msgs_el_GR.properties
+
+mostlyclean-generic:
+	rm -rf $(TEMPDIRS) *~
+
+EXTRA_DIST = MANIFEST.MF src/edu/internet2/ndt/locale/Tcpbw100_msgs_ca_ES.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_nb_NO.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_en_US.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_nl_NL.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_fr_FR.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_ru_RU.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_pt_BR.properties \
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_el_GR.properties
