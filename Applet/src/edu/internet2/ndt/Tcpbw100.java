@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 /*
  Copyright 2003 University of Chicago.  All rights reserved.
  The Web100 Network Diagnostic Tool (NDT) is distributed subject to
@@ -759,7 +761,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		try {
 			_localeObj = new Locale(_sLang, _sCountry);
-			_resBundDisplayMsgs = ResourceBundle.getBundle("Tcpbw100_msgs",
+			_resBundDisplayMsgs = ResourceBundle.getBundle(NDTConstants.TCPBW100_MSGS,
 					_localeObj);
 
 			// Replaced method call to initialize _resBundDisplayMsgs for access

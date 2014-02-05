@@ -1,4 +1,6 @@
-/* Class to define the NDTP control message types  
+package edu.internet2.ndt;
+
+/* Class to define the NDTP control message types
  * */
 
 public class MessageType {

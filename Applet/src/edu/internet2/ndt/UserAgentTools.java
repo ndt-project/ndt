@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 /* This class has code taken from
  *   http://nerds.palmdrive.net/useragent/code.html
  *
