@@ -1976,7 +1976,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// server now sends a TEST_START message
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // erroneous
 																							// read/receive
-				_sErrMsg = _resBundDisplayMsgs.getString("unknownServer")
+				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
 						+ Integer.parseInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
@@ -1984,7 +1984,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			if (msg.getType() != MessageType.TEST_START) { // no other type of
 															// message expected
-				_sErrMsg = _resBundDisplayMsgs.getString("serverFail") + "\n";
+				_sErrMsg = _resBundDisplayMsgs.getString("inboundWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
 							+ Integer.parseInt(new String(msg.getBody()), 16)
