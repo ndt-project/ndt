@@ -16,10 +16,17 @@
 #	Description:	toplevel build for bwctl
 #
 
-if HAVE_GCJ
-SUBDIRS = @TOP_BUILD_DIRS@ src Admin Applet conf doc janalyze
-else
 SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
+if HAVE_GCJ
+SUBDIRS += Admin janalyze
+if BUILD_APPLET
+SUBDIRS += Applet
+endif
+if HAVE_MXMLC
+if BUILD_FLASH_CLT
+SUBDIRS += flash-client
+endif
+endif
 endif
 
 EXTRA_DIST = admin_description.html admin.html \
