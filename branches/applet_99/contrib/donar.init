@@ -1,0 +1,85 @@
+#!/bin/bash
+#
+# Init file for DONAR
+#
+# chkconfig: 2345 60 20
+# description: DONAR
+#
+# Version: $id$
+# Author:  Jason Zurawski <zurawski@internet2.edu>
+# 
+# You should have received a copy of the Internet2 Intellectual Property
+# Framework along with this software.  If not, see
+# <http://www.internet2.edu/membership/ip.html>
+#
+
+
+PREFIX=/home/iupui_ndt/donar
+BASH=/bin/bash
+DONAR=${PREFIX}/monitor.sh
+
+PID=`pgrep -f monitor\.sh$`
+
+ERROR=0
+ARGV="$@"
+if [ "x$ARGV" = "x" ] ; then 
+    ARGS="help"
+fi
+
+for ARG in $@ $ARGS
+do
+    if [ "x$PID" != "x" ] && kill -0 $PID 2>/dev/null ; then
+        STATUS="DONAR (pid $PID) running"
+        RUNNING=1
+    else
+        STATUS="DONAR (pid $PID?) not running"
+        RUNNING=0
+    fi
+
+    case $ARG in
+    start)
+	echo "cd ${PREFIX} && ${BASH} ${DONAR} > /dev/null 2>&1 &"
+        cd ${PREFIX} && sudo ${BASH} ${DONAR} > /dev/null 2>&1 &
+
+        PID2=`pgrep -f monitor\.sh$`
+	if kill -0 $PID2 2>/dev/null ;
+        then
+	    echo "$0 $ARG: DONAR started ($PID2)"
+	else
+	    echo "$0 $ARG: DONAR could not be started"
+	    ERROR=3
+	fi
+	;;
+    stop)
+	if [ $RUNNING -eq 0 ]; then
+	    echo "$0 $ARG: $STATUS"
+	    continue
+	fi
+	if kill $PID ; then
+	    echo "$0 $ARG: DONAR stopped"
+	else
+	    echo "$0 $ARG: DONAR could not be stopped"
+	    ERROR=4
+	fi
+	;;
+    restart)
+    	$0 stop; echo "waiting..."; sleep 5; $0 start;
+	;;
+    *)
+	echo "usage: $0 (start|stop|restart|help)"
+	cat <<EOF
+
+start      - start DONAR
+stop       - stop DONAR
+restart    - restart DONAR if running by sending a kill or start if not running
+help       - this screen
+
+EOF
+	ERROR=2
+    ;;
+
+    esac
+
+done
+
+exit $ERROR
