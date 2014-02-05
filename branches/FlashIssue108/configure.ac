@@ -78,11 +78,31 @@ else
     AC_MSG_RESULT(yes)
 fi
 
+# Enabling/disabling java client build
+AC_ARG_ENABLE(java, [  --enable-java=[yes/no] turn on java applet build
+              [default=yes]],, enable_java=yes)
+
+if test "x$enable_java" != "xno"; then
+	AM_CONDITIONAL(BUILD_APPLET, true)
+else
+	AM_CONDITIONAL(BUILD_APPLET, false)
+fi
+
+# Enabling.disabling flash client build
+AC_ARG_ENABLE(flash, [  --enable-flash=[yes/no] turn on flash client build
+              [default=yes]],, enable_flash=yes)
+
+if test "x$enable_flash" != "xno"; then
+	AM_CONDITIONAL(BUILD_FLASH_CLT, true)
+else
+	AM_CONDITIONAL(BUILD_FLASH_CLT, false)
+fi
+
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
 				[defaults to building I2util under owamp if exists]),
-		with_I2util=$withval, with_I2util=yes)
+		with_I2util=$withval, with_I2util=yes)		
 
 #
 # find I2util
@@ -247,12 +267,19 @@ NDTJARFLAG='-cmf'
 AC_SUBST(NDTJAR)
 AC_SUBST(NDTJARFLAG)
 
+# Flash application compiler
+NDTMXMLC=mxmlc
+
+AC_SUBST(NDTMXMLC)
+
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_LN_S
 AM_PROG_GCJ
 AC_CHECK_PROGS(SGCJ, javac)
+AC_CHECK_PROGS(MXMLC, mxmlc)
 AM_CONDITIONAL(HAVE_GCJ, test -n "$SGCJ")
+AM_CONDITIONAL(HAVE_MXMLC, test -n "$MXMLC")
 
 # Checks for libraries.
 
@@ -277,7 +304,7 @@ AC_CHECK_FUNCS([alarm bzero gethostbyaddr gettimeofday inet_ntoa memset select s
 AC_SUBST(ac_aux_dir)
 AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
-		conf/Makefile doc/Makefile janalyze/Makefile])
+		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile])
 AC_OUTPUT
 
 echo ""
@@ -326,7 +353,11 @@ fi
 
 if test -z "$HAVE_GCJ_TRUE" && test -n "$HAVE_GCJ_FALSE"; then
 SUMMARY_ADMINCLASS="YES"
+if test "x$enable_java" != "xno"; then
 SUMMARY_TCPBW100JAR="YES"
+else
+SUMMARY_TCPBW100JAR="NO    (disabled by user)"
+fi
 SUMMARY_JANALYZEJAR="YES"
 else
 SUMMARY_ADMINCLASS="NO    (missing java compiler)"
@@ -334,15 +365,27 @@ SUMMARY_TCPBW100JAR="NO    (missing java compiler)"
 SUMMARY_JANALYZEJAR="NO    (missing java compiler)"
 fi
 
-if test "$SUMMARY_WEB100CLT" = "YES"; then
+if test -z "$HAVE_MXMLC_TRUE" && test -n "$HAVE_MXMLC_FALSE"; then
+if test "x$enable_flash" != "xno"; then
+SUMMARY_FLASHCLT="YES"
+else
+SUMMARY_FLASHCLT="NO (disabled by user)"
+fi
+else
+SUMMARY_FLASHCLT="NO (missing action script compiler)"
+fi
+
+if test "$SUMMARY_WEB100CLT" = "YES" && test "$SUMMARY_FLASHCLT" = "YES" && test "$SUMMARY_TCPBW100JAR" = "YES"; then
 echo "*** Client Tools - complete"
 else
 echo "*** Client Tools - incomplete"
 fi
 echo "* web100clt:    ${SUMMARY_WEB100CLT}"
+echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
+echo "* flash-client: ${SUMMARY_FLASHCLT}"
 echo ""
 
-if test "$SUMMARY_FAKEWWW" = "YES" && (test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES") && test "$SUMMARY_TCPBW100JAR" = "YES"; then
+if test "$SUMMARY_FAKEWWW" = "YES" && (test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES"); then
 echo "*** Server Tools - complete"
 else
 echo "*** Server Tools - incomplete"
@@ -350,7 +393,6 @@ fi
 echo "* fakewww:      ${SUMMARY_FAKEWWW}"
 echo "* web100srv:    ${SUMMARY_WEB100SRV}"
 echo "* web10gsrv:    ${SUMMARY_WEB10GSRV}"
-echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
 echo ""
 
 if test "$SUMMARY_ANALYZE" = "YES" && test "$SUMMARY_VIEWTRACE" = "YES" && test "$SUMMARY_TRMKMAP" = "YES" && test "$SUMMARY_GENPLOT" = "YES" && test "$SUMMARY_JANALYZEJAR" = "YES" && test "$SUMMARY_ADMINCLASS" = "YES"; then
