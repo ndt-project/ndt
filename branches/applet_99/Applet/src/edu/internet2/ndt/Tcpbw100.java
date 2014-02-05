@@ -173,7 +173,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_iMaxSsthresh;
 	int _iSumRTT, _iCountRTT, _iCurrentMSS, _iTimeouts, _iPktsRetrans;
 	int _iSACKsRcvd, _iDupAcksIn, _iMaxRwinRcvd, _iMaxRwinSent;
-	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn, _iDataBytesOut;
+	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn;
+    long _iDataBytesOut;
 	int _iPktsOut, _iCongestionSignals, _iRcvWinScale;
 	// int _iPkts, _iLength=8192, _iCurrentRTO;
 	int _iPkts, _iLength = NDTConstants.PREDEFINED_BUFFER_SIZE, _iCurrentRTO;
@@ -2746,38 +2747,54 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		String sSysvar, sStrval;
 		int iSysval, iZero = 0; // iBwdelay, iMinwin; // commented out unused
 								// variables
-		double dSysval2, j;
-		String sOsName, sOsArch, sOsVer, sJavaVer, sJavaVendor, sClient;
+        double dSysval2, j;
+        long lSysval3;
+        String sOsName, sOsArch, sOsVer, sJavaVer, sJavaVendor, sClient;
 
-		// extract key-value pair results
+        // extract key-value pair results
 
-		tokens = new StringTokenizer(sTestResParam);
-		sSysvar = null;
-		sStrval = null;
-		while (tokens.hasMoreTokens()) {
-			if (++i % 2 == 1) {
-				sSysvar = tokens.nextToken();
-			} else {
-				sStrval = tokens.nextToken();
-				_txtDiagnosis.append(sSysvar + " " + sStrval + "\n");
-				_sEmailText += sSysvar + " " + sStrval + "\n%0A";
-				if (sStrval.indexOf(".") == -1) { // no decimal point, hence
-													// integer
-					try{
-						iSysval = Integer.parseInt(sStrval);
-						// If it fails as an int it's probably to big since the values are often unsigned
-					} catch (Exception e) {
-						System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
-						iSysval = -1;
-					}
-					// save value into a key value expected by us
-					save_int_values(sSysvar, iSysval);
-				} else { // if not integer, save as double
-					dSysval2 = Double.valueOf(sStrval).doubleValue();
-					save_dbl_values(sSysvar, dSysval2);
-				}
-			}
-		}
+        tokens = new StringTokenizer(sTestResParam);
+        sSysvar = null;
+        sStrval = null;
+        while (tokens.hasMoreTokens()) {
+            if (++i % 2 == 1) {
+                sSysvar = tokens.nextToken();
+            } else {
+                sStrval = tokens.nextToken();
+                _txtDiagnosis.append(sSysvar + " " + sStrval + "\n");
+                _sEmailText += sSysvar + " " + sStrval + "\n%0A";
+
+                //check if it's save anywhere after parse
+                if (isValueSave(sSysvar)) {
+                    if (sSysvar.equals("DataBytesOut:")) {
+                        // long
+                        try{
+                            lSysval3 = Long.parseLong(sStrval);
+                        } catch (Exception e) {
+                            System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
+                            lSysval3 = -1;
+                        }
+                        // save value into a key value expected by us
+                        save_long_values(sSysvar, lSysval3);
+                    }
+                    else if (sStrval.indexOf(".") == -1) { // no decimal point, hence
+                        // integer
+                        try{
+                            iSysval = Integer.parseInt(sStrval);
+                            // If it fails as an int it's probably to big since the values are often unsigned
+                        } catch (Exception e) {
+                            System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
+                            iSysval = -1;
+                        }
+                        // save value into a key value expected by us
+                        save_int_values(sSysvar, iSysval);
+                    } else { // if not integer, save as double
+                        dSysval2 = Double.valueOf(sStrval).doubleValue();
+                        save_dbl_values(sSysvar, dSysval2);
+                    }
+                }
+            }
+        }
 
 		// Grab some client details from the Applet environment
 		sOsName = System.getProperty("os.name");
@@ -3745,6 +3762,20 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			aspd = dSysvalParam;
 	} // save_dbl_values()
 
+    /**
+     * Method to save long values of various "keys" from the the test results
+     * string into corresponding long datatypes.
+     *
+     * @param sSysvarParam
+     *            key name string
+     * @param lSysvalParam
+     *            Value for this key name
+     */
+    public void save_long_values(String sSysvarParam, long lSysvalParam) {
+        if (sSysvarParam.equals("DataBytesOut:"))
+            _iDataBytesOut = lSysvalParam;
+    }
+
 	/**
 	 * Method to save integer values of various "keys" from the the test results
 	 * string into corresponding integer datatypes.
@@ -3754,7 +3785,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @param iSysvalParam
 	 *            Value for this key name
 	 * */
-
 	public void save_int_values(String sSysvarParam, int iSysvalParam) {
 		//
 		// Values saved for interpretation: SumRTT CountRTT CurrentMSS Timeouts
@@ -3819,8 +3849,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_iSndLimTimeCwnd = iSysvalParam;
 		else if (sSysvarParam.equals("SndLimTimeSender:"))
 			_iSndLimTimeSender = iSysvalParam;
-		else if (sSysvarParam.equals("DataBytesOut:"))
-			_iDataBytesOut = iSysvalParam;
 		else if (sSysvarParam.equals("AckPktsIn:"))
 			_iAckPktsIn = iSysvalParam;
 		else if (sSysvarParam.equals("SndLimTransRwin:"))
@@ -3877,7 +3905,157 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 	} // save_int_values()
 
-	/**
+    /**
+     * Method check, if values of various "keys" from the the test results
+     * string is save by save_int_values(), save_dbl_values() or save_long_values()
+     * after parse to int/double/long
+     *
+     * @param sSysvarParam
+     *            String key name
+     * */
+    private boolean isValueSave(String sSysvarParam) {
+        //is_save_int_values
+        if (sSysvarParam.equals("MSSSent:"))
+            return true;
+        else if (sSysvarParam.equals("MSSRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("ECNEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("NagleEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("SACKEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("TimestampsEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("WinScaleRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("WinScaleSent:"))
+            return true;
+        else if (sSysvarParam.equals("SumRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CountRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CurMSS:"))
+            return true;
+        else if (sSysvarParam.equals("Timeouts:"))
+            return true;
+        else if (sSysvarParam.equals("PktsRetrans:"))
+            return true;
+        else if (sSysvarParam.equals("SACKsRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("DupAcksIn:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRwinRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRwinSent:"))
+            return true;
+        else if (sSysvarParam.equals("Sndbuf:"))
+            return true;
+        else if (sSysvarParam.equals("X_Rcvbuf:"))
+            return true;
+        else if (sSysvarParam.equals("DataPktsOut:"))
+            return true;
+        else if (sSysvarParam.equals("FastRetran:"))
+            return true;
+        else if (sSysvarParam.equals("AckPktsOut:"))
+            return true;
+        else if (sSysvarParam.equals("SmoothedRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CurCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("MaxCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTimeRwin:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTimeCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTimeSender:"))
+            return true;
+        else if (sSysvarParam.equals("AckPktsIn:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTransRwin:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTransCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTransSender:"))
+            return true;
+        else if (sSysvarParam.equals("MaxSsthresh:"))
+            return true;
+        else if (sSysvarParam.equals("CurRTO:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRTO:"))
+            return true;
+        else if (sSysvarParam.equals("MinRTO:"))
+            return true;
+        else if (sSysvarParam.equals("MinRTT:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CurRwinRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("Timeouts:"))
+            return true;
+        else if (sSysvarParam.equals("c2sData:"))
+            return true;
+        else if (sSysvarParam.equals("c2sAck:"))
+            return true;
+        else if (sSysvarParam.equals("s2cData:"))
+            return true;
+        else if (sSysvarParam.equals("s2cAck:"))
+            return true;
+        else if (sSysvarParam.equals("PktsOut:"))
+            return true;
+        else if (sSysvarParam.equals("mismatch:"))
+            return true;
+        else if (sSysvarParam.equals("congestion:"))
+            return true;
+        else if (sSysvarParam.equals("bad_cable:"))
+            return true;
+        else if (sSysvarParam.equals("half_duplex:"))
+            return true;
+        else if (sSysvarParam.equals("CongestionSignals:"))
+            return true;
+        else if (sSysvarParam.equals("RcvWinScale:"))
+            return true;
+            //is_save_long_values
+        else if (sSysvarParam.equals("DataBytesOut:"))
+            return true;
+            //is_save_dbl_values
+        else if (sSysvarParam.equals("bw:"))
+            return true;
+        else if (sSysvarParam.equals("loss:"))
+            return true;
+        else if (sSysvarParam.equals("avgrtt:"))
+            return true;
+        else if (sSysvarParam.equals("waitsec:"))
+            return true;
+        else if (sSysvarParam.equals("timesec:"))
+            return true;
+        else if (sSysvarParam.equals("order:"))
+            return true;
+        else if (sSysvarParam.equals("rwintime:"))
+            return true;
+        else if (sSysvarParam.equals("sendtime:"))
+            return true;
+        else if (sSysvarParam.equals("cwndtime:"))
+            return true;
+        else if (sSysvarParam.equals("rttsec:"))
+            return true;
+        else if (sSysvarParam.equals("rwin:"))
+            return true;
+        else if (sSysvarParam.equals("swin:"))
+            return true;
+        else if (sSysvarParam.equals("cwin:"))
+            return true;
+        else if (sSysvarParam.equals("spd:"))
+            return true;
+        else if (sSysvarParam.equals("aspd:"))
+            return true;
+
+        return false;
+    }
+
+    /**
 	 * Utility method to get parameter value.
 	 *
 	 * @param paramStrName
