@@ -16,7 +16,7 @@ package edu.internet2.ndt;
  license rights.
 
  3. You may modify and make a copy or copies of the Software for use within your
- organization, if you meet the following conditions: 
+ organization, if you meet the following conditions:
  a. Copies in source code must include the copyright notice and this Software
  License Agreement.
  b. Copies in binary form must include the copyright notice and this Software
@@ -24,7 +24,7 @@ package edu.internet2.ndt;
 
  4. You may make a copy, or modify a copy or copies of the Software or any
  portion of it, thus forming a work based on the Software, and distribute copies
- outside your organization, if you meet all of the following conditions: 
+ outside your organization, if you meet all of the following conditions:
  a. Copies in source code must include the copyright notice and this
  Software License Agreement;
  b. Copies in binary form must include the copyright notice and this
@@ -59,7 +59,7 @@ package edu.internet2.ndt;
  OTHERWISE, EVEN IF ANY OF SAID PARTIES HAS BEEN WARNED OF THE POSSIBILITY OF
  SUCH LOSS OR DAMAGES.
  The Software was developed at least in part by the University of Chicago,
- as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
+ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
  */
 
 import java.awt.BorderLayout;
@@ -108,11 +108,11 @@ import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 
-/* 
+/*
  * Naming convention used: Hungarian, with the following details
- * _VarName: Instance variables 
+ * _VarName: Instance variables
  * __Varname: Static variables (instead of c_VarName to reduce length)
- * iVarName: Integer variable 
+ * iVarName: Integer variable
  * sVarName: String variable
  * bVarName: boolean variable
  * dVarName: double variable
@@ -120,18 +120,18 @@ import javax.swing.SpinnerNumberModel;
  * ...and some other self descriptive examples are..
  * _rscBundleMessages : class scoped ResourceBundle Variable called "Messages"
  * _cmboboxIpV6 : Class scoped combo-box variable to indicate IpV6 choice..
- * 
+ *
  * Some variables which were called "pub_xxx" are declared to have "accessor" methods for use by
  * other clients. I have left this untouched. These are private variables. Though the type is
  * not evident from the declaration immediately, the "getter/setter" methods for them will immediately
  * indicate their types
- * 
+ *
  */
 
 /**
  * Main Applet class that creates UI, defines tests and interprets results from
  * the tests.
- * 
+ *
  * */
 public class Tcpbw100 extends JApplet implements ActionListener {
 
@@ -173,7 +173,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_iMaxSsthresh;
 	int _iSumRTT, _iCountRTT, _iCurrentMSS, _iTimeouts, _iPktsRetrans;
 	int _iSACKsRcvd, _iDupAcksIn, _iMaxRwinRcvd, _iMaxRwinSent;
-	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn, _iDataBytesOut;
+	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn;
+    long _iDataBytesOut;
 	int _iPktsOut, _iCongestionSignals, _iRcvWinScale;
 	// int _iPkts, _iLength=8192, _iCurrentRTO;
 	int _iPkts, _iLength = NDTConstants.PREDEFINED_BUFFER_SIZE, _iCurrentRTO;
@@ -439,10 +440,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	// commenting out unused method, but not removing in case of future use
 	/*
 	 * public String isReady() {
-	 * 
+	 *
 	 * // if ((pub_isReady == null) || (pub_isReady.equals(""))) { //
 	 * pub_isReady = "no"; // } // String result = "foo";
-	 * 
+	 *
 	 * //if (failed) { // pub_isReady = "failed1"; //} //result = pub_isReady;
 	 * // return result; return pub_isReady; }
 	 */
@@ -479,7 +480,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Set UserAgent String containing browser details.
-	 * 
+	 *
 	 * @return String UserAgent details set locally
 	 * @see UserAgentTools
 	 * */
@@ -489,7 +490,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Set UserAgent String.
-	 * 
+	 *
 	 * @param paramStrUserAgent
 	 *            UserAgent String to be set locally
 	 * @see UserAgentTools
@@ -500,7 +501,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Get Client->Server fire-wall test results.
-	 * 
+	 *
 	 * @return integer indicating C->S test results
 	 * */
 	public int getC2sSFWTestResults() {
@@ -509,7 +510,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Set Client->Server fire-wall test results.
-	 * 
+	 *
 	 * @param iParamC2SRes
 	 *            integer indicating C->S test results
 	 * */
@@ -519,7 +520,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Get Server->Client fire-wall test results.
-	 * 
+	 *
 	 * @return integer indicating C->S test results
 	 * */
 	public int getS2cSFWTestResults() {
@@ -528,7 +529,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Set server->Client fire-wall test results.
-	 * 
+	 *
 	 * @param iParamS2CRes
 	 *            integer indicating C->S test results
 	 * */
@@ -785,7 +786,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		} catch (Exception e) {
 			System.err.println("createGUI didn't successfully complete");
 		}
-		
+
 		// Autorun functionality
 		_sIsAutoRun = getParameter("autoRun");
 		if ((_sIsAutoRun != null) && _sIsAutoRun.equals("true")) {
@@ -798,8 +799,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	/**
 	 * Initialize the "main" window. The main window is composed of 1. The
 	 * results pane, which describes the process and displays their results 2.
-	 * The buttons pane, which houses all the buttons for various options 
-	 * 
+	 * The buttons pane, which houses all the buttons for various options
+	 *
 	 * */
 	private void createMainWindow() {
 		// set content manager
@@ -1083,13 +1084,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Action handler method called when an associated action is performed
-	 * 
+	 *
 	 * @param paramEventObj
 	 *            Event object that prompted the call
 	 * */
 	public void actionPerformed(ActionEvent paramEventObj) {
 		Object source = paramEventObj.getSource();
-		
+
 		// Start the test
 		if (source == _buttonStartTest) {
 			if (_frameWeb100Vars != null) {
@@ -1133,9 +1134,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_txtDiagnosis.selectAll();
 			} catch (SecurityException e) {
 				_bCanCopy = false;
-				// this Exception is only when the client cannot copy 
-				// some data, and is acted on by disabling the 
-				// copy button. 
+				// this Exception is only when the client cannot copy
+				// some data, and is acted on by disabling the
+				// copy button.
 				System.err.println(" You may not have some security Permissions. Please confirm");
 			}
 		}
@@ -1219,7 +1220,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Display current status in Applet window.
-	 * 
+	 *
 	 * @param msg
 	 *            String value of status
 	 * */
@@ -1233,12 +1234,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * MiddleBox testing is a throughput test from the Server to the Client to
 	 * check for duplex mismatch conditions. It determines if routers or
 	 * switches in the path may be making changes to some TCP parameters.
-	 * 
+	 *
 	 * @param paramProtoObj
 	 *            Protocol Object used to exchange messages
 	 * @return boolean value indicating test failure status true if test was not
 	 *         completed false if test was completed
-	 * 
+	 *
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
@@ -1352,8 +1353,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_dS2cspd = tempSpeedInBits / NDTConstants.KILO;
 
 			// Test is complete. Now, get results from server
-			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { 
-					
+			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
+
 				// msg not received correctly
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
 						+ Integer.parseInt(new String(msg.getBody()), 16)
@@ -1449,7 +1450,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	/**
 	 * Fire-wall tests aiming to find out if one exists between Client and
 	 * server. Tests are performed in both directions.
-	 * 
+	 *
 	 * @param protocolObj
 	 *            Protocol Object used for message exchange
 	 * @return boolean, true if test was not completed, false if test was
@@ -1459,7 +1460,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 *             methods for more information on causes for Exception.
 	 * @see Protocol#recv_msg(Message msgParam)
 	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
-	 * 
+	 *
 	 * */
 	public boolean test_sfw(Protocol protocolObj) throws IOException {
 		Message msg = new Message();
@@ -1582,7 +1583,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				sfwCtl.send_msg(MessageType.TEST_MSG, new String(
 						NDTConstants.SFW_PREDEFINED_TEST_MESSAGE).getBytes());
 			} catch (Exception e) {
-				e.printStackTrace(); 
+				e.printStackTrace();
 				//Indication that there might be a firewall from C->S side.
 			}
 
@@ -1653,7 +1654,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	/**
 	 * Client to server throughput test. This test performs 10 seconds
 	 * memory-to-memory data transfer to test achievable network bandwidth.
-	 * 
+	 *
 	 * @param paramProtoObj
 	 *            Protocol Object used to exchange messages
 	 * @return boolean, true if test was not completed, false if test was
@@ -1662,7 +1663,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
 	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
-	 * 
+	 *
 	 */
 	public boolean test_c2s(Protocol paramProtoObj) throws IOException {
 
@@ -1774,11 +1775,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						Thread.sleep(10000);
 					} catch (InterruptedException e) {
 						System.err.println("Thread interrupted : " + e);
-						// Thread was interrupted while timing 10 seconds 
+						// Thread was interrupted while timing 10 seconds
 						// of the C->S test. So, streaming 10 seconds of data may not be complete.
-						// But, the throughput is correctly calculated based on the number of packets 
+						// But, the throughput is correctly calculated based on the number of packets
 						// that were actually sent
-						
+
 					}
 					try {
 						outStream.close();
@@ -1804,11 +1805,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					System.out.println("Client socket timed out");
 					break;
 				}
-				// In both cases above, thread was interrupted while timing 10 seconds 
+				// In both cases above, thread was interrupted while timing 10 seconds
 				// of the C->S test. So, streaming 10 seconds of data may not be complete.
-				// But, the throughput is correctly calculated based on the number of packets 
+				// But, the throughput is correctly calculated based on the number of packets
 				// that were actually sent
-				
+
 				_iPkts++;
 				// number of bytes sent = (num of iterations) X (buffer size)
 				pub_bytes = (_iPkts * _iLength);
@@ -1816,11 +1817,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			_dTime = System.currentTimeMillis() - _dTime;
 			System.err.println(_dTime + " millisec test completed" + ","
-					+ yabuff2Write.length + ","+ _iPkts); 
+					+ yabuff2Write.length + ","+ _iPkts);
 			if (_dTime == 0) {
 				_dTime = 1;
 			}
-			
+
 			// Calculate C2S throughput in kbps
 			System.out.println((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / _dTime
 					+ " kb/s outbound"); //*8 for calculating bits
@@ -1902,7 +1903,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * S2C throughput test to measure network bandwidth from server to client.
-	 * 
+	 *
 	 * @param paramProtoObj
 	 *            Protocol Object used to exchange messages
 	 * @param paramSocketObj
@@ -1913,7 +1914,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
 	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
-	 * 
+	 *
 	 * */
 	public boolean test_s2c(Protocol paramProtoObj, Socket paramSocketObj)
 			throws IOException {
@@ -2162,7 +2163,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * The META test allows the Client to send an additional information to the
 	 * Server that basically gets included along with the overall set of test
 	 * results.
-	 * 
+	 *
 	 * @param paramProtoObj
 	 *            Protocol Object used to exchange protocol messages
 	 * @return boolean, true if test was completed, false if test is incomplete.
@@ -2299,14 +2300,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	/**
 	 * Method to run tests and interpret the results sent by the server
-	 * 
+	 *
 	 * @param sPanel
 	 *            StatusPanel object to describe status of tests
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
 	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
-	 * 
+	 *
 	 */
 	public void dottcp(StatusPanel sPanel) throws IOException {
 		Socket ctlSocket = null;
@@ -2731,14 +2732,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * Method that interprets test results. This routine extracts the key-value
 	 * pairs of results of various categories and assigns these to the correct
 	 * variables.
-	 * 
+	 *
 	 * These values are then interpreted to make decisions about various
 	 * measurement items and written to the main results, statistics, web100 or
 	 * mail-to panels.
-	 * 
+	 *
 	 * @param sTestResParam
 	 *            String containing all results
-	 * 
+	 *
 	 * */
 	public void testResults(String sTestResParam) {
 		StringTokenizer tokens;
@@ -2746,38 +2747,54 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		String sSysvar, sStrval;
 		int iSysval, iZero = 0; // iBwdelay, iMinwin; // commented out unused
 								// variables
-		double dSysval2, j;
-		String sOsName, sOsArch, sOsVer, sJavaVer, sJavaVendor, sClient;
+        double dSysval2, j;
+        long lSysval3;
+        String sOsName, sOsArch, sOsVer, sJavaVer, sJavaVendor, sClient;
 
-		// extract key-value pair results
+        // extract key-value pair results
 
-		tokens = new StringTokenizer(sTestResParam);
-		sSysvar = null;
-		sStrval = null;
-		while (tokens.hasMoreTokens()) {
-			if (++i % 2 == 1) {
-				sSysvar = tokens.nextToken();
-			} else {
-				sStrval = tokens.nextToken();
-				_txtDiagnosis.append(sSysvar + " " + sStrval + "\n");
-				_sEmailText += sSysvar + " " + sStrval + "\n%0A";
-				if (sStrval.indexOf(".") == -1) { // no decimal point, hence
-													// integer
-					try{
-						iSysval = Integer.parseInt(sStrval);
-						// If it fails as an int it's probably to big since the values are often unsigned
-					} catch (Exception e) {
-						System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
-						iSysval = -1;
-					}
-					// save value into a key value expected by us
-					save_int_values(sSysvar, iSysval);
-				} else { // if not integer, save as double
-					dSysval2 = Double.valueOf(sStrval).doubleValue();
-					save_dbl_values(sSysvar, dSysval2);
-				}
-			}
-		}
+        tokens = new StringTokenizer(sTestResParam);
+        sSysvar = null;
+        sStrval = null;
+        while (tokens.hasMoreTokens()) {
+            if (++i % 2 == 1) {
+                sSysvar = tokens.nextToken();
+            } else {
+                sStrval = tokens.nextToken();
+                _txtDiagnosis.append(sSysvar + " " + sStrval + "\n");
+                _sEmailText += sSysvar + " " + sStrval + "\n%0A";
+
+                //check if it's save anywhere after parse
+                if (isValueSave(sSysvar)) {
+                    if (sSysvar.equals("DataBytesOut:")) {
+                        // long
+                        try{
+                            lSysval3 = Long.parseLong(sStrval);
+                        } catch (Exception e) {
+                            System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
+                            lSysval3 = -1;
+                        }
+                        // save value into a key value expected by us
+                        save_long_values(sSysvar, lSysval3);
+                    }
+                    else if (sStrval.indexOf(".") == -1) { // no decimal point, hence
+                        // integer
+                        try{
+                            iSysval = Integer.parseInt(sStrval);
+                            // If it fails as an int it's probably to big since the values are often unsigned
+                        } catch (Exception e) {
+                            System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
+                            iSysval = -1;
+                        }
+                        // save value into a key value expected by us
+                        save_int_values(sSysvar, iSysval);
+                    } else { // if not integer, save as double
+                        dSysval2 = Double.valueOf(sStrval).doubleValue();
+                        save_dbl_values(sSysvar, dSysval2);
+                    }
+                }
+            }
+        }
 
 		// Grab some client details from the Applet environment
 		sOsName = System.getProperty("os.name");
@@ -2809,12 +2826,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Now write some _resBundDisplayMsgs to the screen
 			// Access speed/technology details added to the result main panel
 			// and mailing text. Link speed is also assigned.
-			
+
 			// Try to determine bottleneck link type
-			
+
 			if (_iC2sData < NDTConstants.DATA_RATE_ETHERNET) { // < 3
-				if (_iC2sData < NDTConstants.DATA_RATE_RTT) { 
-					
+				if (_iC2sData < NDTConstants.DATA_RATE_RTT) {
+
 					// Data collected was not sufficient to determine bottleneck type
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("unableToDetectBottleneck") + "\n");
@@ -2823,7 +2840,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 				} else {
 					// get link speed
-					
+
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("your")
 							+ " "
@@ -2835,7 +2852,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 							+ sClient + " "
 							+ _resBundDisplayMsgs.getString("connectedTo")
 							+ " ";
-					if (_iC2sData == NDTConstants.DATA_RATE_DIAL_UP) { 
+					if (_iC2sData == NDTConstants.DATA_RATE_DIAL_UP) {
 
 						_resultsTxtPane.append(_resBundDisplayMsgs
 								.getString("dialup") + "\n");
@@ -2986,12 +3003,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				// We seem to be transmitting less than link speed possibly due
 				// a receiver window setting (i.e calculated bandwidth is greater
 				// than measured throughput). Advise appropriate size
-				
+
 				// Note: All comparisons henceforth of ( (window size * 2/rttsec) < mylink)
 				//  are along the same logic
-				
+
 				if (((2 * rwin) / rttsec) < mylink) {  // multiply by 2 to counter round-trip
-				    	
+
 				    	// link speed is in Mbps. Convert it back to kbps (*1000),
 				    	// and bytes (/8)
 					j = (float) ((mylink * avgrtt) * NDTConstants.KILO)
@@ -3088,7 +3105,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Slightly different from the earlier switch (that added data about
 			// this to the Results pane) in that negative values are checked for
 			// too.
-			
+
 			switch (_iC2sData) {
 			case NDTConstants.DATA_RATE_INSUFFICIENT_DATA:
 				_txtStatistics.append(_resBundDisplayMsgs
@@ -3262,7 +3279,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Add Packet queuing details found during C2S throughput test to
 			// the statistics pane. Data is displayed as a percentage
-			
+
 			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 				if (_dC2sspd > _dSc2sspd) {
 					if (_dSc2sspd < (_dC2sspd * (1.0 - NDTConstants.VIEW_DIFF))) {
@@ -3287,7 +3304,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Add Packet queuing details found during S2C throughput test to
 			// the statistics pane. Data is displayed as a percentage
-			
+
 			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
 				if (_dSs2cspd > _dS2cspd) {
 					if (_dSs2cspd < (_dSs2cspd * (1.0 - NDTConstants.VIEW_DIFF))) {
@@ -3382,7 +3399,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n%0A";
 			}
 
-			
+
 			// Is the loss excessive?
                         // If the link speed is less than a T3, and loss
                         // is greater than 1 percent, loss is determined
@@ -3429,7 +3446,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			_txtStatistics.append("RFC 1323 Window Scaling: ");
 			if (_iMaxRwinRcvd < NDTConstants.TCP_MAX_RECV_WIN_SIZE)
-				_iWinScaleRcvd = 0; //Max rec window size lesser than TCP's max value, 
+				_iWinScaleRcvd = 0; //Max rec window size lesser than TCP's max value,
 						    // so, no scaling requested
                                                     // According to RFC1323, Section 2.3 the max valid value of _iWinScaleRcvd is 14.
                                                     // Unclear why NDT uses 20 for this, but leaving for now in case this is a web100
@@ -3517,7 +3534,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					break;
 				}
 			}
-			
+
 			_txtDiagnosis.append("\n");
 
 			// Output relevant to the "More Details" tab, related to factors
@@ -3532,7 +3549,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_sEmailText += _resBundDisplayMsgs.getString("theoreticalLimit")
 					+ " " + NDTUtils.prtdbl(estimate) + " Mbps\n%0A";
 
-			// NDT server buffer imposed limit 
+			// NDT server buffer imposed limit
 			// divide by 2 to counter "round-trip" time
 			_txtDiagnosis.append(_resBundDisplayMsgs.getString("ndtServerHas")
 					+ " " + NDTUtils.prtdbl(_iSndbuf / (2 * NDTConstants.KILO_BITS) ) + " "
@@ -3582,10 +3599,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * from the server is a specific order. This routine pulls the string apart
 	 * and puts the values into the proper variable. It then compares the values
 	 * to known values and writes out the specific results.
-	 * 
+	 *
 	 * server data is ordered as: Server IP; Client IP; CurrentMSS;
 	 * WinScaleSent; WinScaleRcvd; Client then adds Server IP; Client IP.
-	 * 
+	 *
 	 * @param sMidBoxTestResParam
 	 *            String Middlebox results
 	 */
@@ -3605,7 +3622,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		int iMss = Integer.parseInt(tokens.nextToken());
 		// changing order for issue 61
-		int iWinsSent = Integer.parseInt(tokens.nextToken()); 
+		int iWinsSent = Integer.parseInt(tokens.nextToken());
 		int iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but retaining
 
 		// Get Client reported server IP
@@ -3694,7 +3711,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				JOptionPane.INFORMATION_MESSAGE);
 	}
 
-	
+
 	/*
 	 * This routine saves the specific value into the variable of the same name.
 	 * There should probably be an easier way to do this.
@@ -3703,7 +3720,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	/**
 	 * Method to save double values of various "keys" from the the test results
 	 * string into corresponding double datatypes.
-	 * 
+	 *
 	 * @param sSysvarParam
 	 *            key name string
 	 * @param dSysvalParam
@@ -3745,16 +3762,29 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			aspd = dSysvalParam;
 	} // save_dbl_values()
 
+    /**
+     * Method to save long values of various "keys" from the the test results
+     * string into corresponding long datatypes.
+     *
+     * @param sSysvarParam
+     *            key name string
+     * @param lSysvalParam
+     *            Value for this key name
+     */
+    public void save_long_values(String sSysvarParam, long lSysvalParam) {
+        if (sSysvarParam.equals("DataBytesOut:"))
+            _iDataBytesOut = lSysvalParam;
+    }
+
 	/**
 	 * Method to save integer values of various "keys" from the the test results
 	 * string into corresponding integer datatypes.
-	 * 
+	 *
 	 * @param sSysvarParam
 	 *            String key name
 	 * @param iSysvalParam
 	 *            Value for this key name
 	 * */
-
 	public void save_int_values(String sSysvarParam, int iSysvalParam) {
 		//
 		// Values saved for interpretation: SumRTT CountRTT CurrentMSS Timeouts
@@ -3819,8 +3849,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_iSndLimTimeCwnd = iSysvalParam;
 		else if (sSysvarParam.equals("SndLimTimeSender:"))
 			_iSndLimTimeSender = iSysvalParam;
-		else if (sSysvarParam.equals("DataBytesOut:"))
-			_iDataBytesOut = iSysvalParam;
 		else if (sSysvarParam.equals("AckPktsIn:"))
 			_iAckPktsIn = iSysvalParam;
 		else if (sSysvarParam.equals("SndLimTransRwin:"))
@@ -3877,9 +3905,159 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 	} // save_int_values()
 
-	/**
+    /**
+     * Method check, if values of various "keys" from the the test results
+     * string is save by save_int_values(), save_dbl_values() or save_long_values()
+     * after parse to int/double/long
+     *
+     * @param sSysvarParam
+     *            String key name
+     * */
+    private boolean isValueSave(String sSysvarParam) {
+        //is_save_int_values
+        if (sSysvarParam.equals("MSSSent:"))
+            return true;
+        else if (sSysvarParam.equals("MSSRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("ECNEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("NagleEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("SACKEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("TimestampsEnabled:"))
+            return true;
+        else if (sSysvarParam.equals("WinScaleRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("WinScaleSent:"))
+            return true;
+        else if (sSysvarParam.equals("SumRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CountRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CurMSS:"))
+            return true;
+        else if (sSysvarParam.equals("Timeouts:"))
+            return true;
+        else if (sSysvarParam.equals("PktsRetrans:"))
+            return true;
+        else if (sSysvarParam.equals("SACKsRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("DupAcksIn:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRwinRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRwinSent:"))
+            return true;
+        else if (sSysvarParam.equals("Sndbuf:"))
+            return true;
+        else if (sSysvarParam.equals("X_Rcvbuf:"))
+            return true;
+        else if (sSysvarParam.equals("DataPktsOut:"))
+            return true;
+        else if (sSysvarParam.equals("FastRetran:"))
+            return true;
+        else if (sSysvarParam.equals("AckPktsOut:"))
+            return true;
+        else if (sSysvarParam.equals("SmoothedRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CurCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("MaxCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTimeRwin:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTimeCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTimeSender:"))
+            return true;
+        else if (sSysvarParam.equals("AckPktsIn:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTransRwin:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTransCwnd:"))
+            return true;
+        else if (sSysvarParam.equals("SndLimTransSender:"))
+            return true;
+        else if (sSysvarParam.equals("MaxSsthresh:"))
+            return true;
+        else if (sSysvarParam.equals("CurRTO:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRTO:"))
+            return true;
+        else if (sSysvarParam.equals("MinRTO:"))
+            return true;
+        else if (sSysvarParam.equals("MinRTT:"))
+            return true;
+        else if (sSysvarParam.equals("MaxRTT:"))
+            return true;
+        else if (sSysvarParam.equals("CurRwinRcvd:"))
+            return true;
+        else if (sSysvarParam.equals("Timeouts:"))
+            return true;
+        else if (sSysvarParam.equals("c2sData:"))
+            return true;
+        else if (sSysvarParam.equals("c2sAck:"))
+            return true;
+        else if (sSysvarParam.equals("s2cData:"))
+            return true;
+        else if (sSysvarParam.equals("s2cAck:"))
+            return true;
+        else if (sSysvarParam.equals("PktsOut:"))
+            return true;
+        else if (sSysvarParam.equals("mismatch:"))
+            return true;
+        else if (sSysvarParam.equals("congestion:"))
+            return true;
+        else if (sSysvarParam.equals("bad_cable:"))
+            return true;
+        else if (sSysvarParam.equals("half_duplex:"))
+            return true;
+        else if (sSysvarParam.equals("CongestionSignals:"))
+            return true;
+        else if (sSysvarParam.equals("RcvWinScale:"))
+            return true;
+            //is_save_long_values
+        else if (sSysvarParam.equals("DataBytesOut:"))
+            return true;
+            //is_save_dbl_values
+        else if (sSysvarParam.equals("bw:"))
+            return true;
+        else if (sSysvarParam.equals("loss:"))
+            return true;
+        else if (sSysvarParam.equals("avgrtt:"))
+            return true;
+        else if (sSysvarParam.equals("waitsec:"))
+            return true;
+        else if (sSysvarParam.equals("timesec:"))
+            return true;
+        else if (sSysvarParam.equals("order:"))
+            return true;
+        else if (sSysvarParam.equals("rwintime:"))
+            return true;
+        else if (sSysvarParam.equals("sendtime:"))
+            return true;
+        else if (sSysvarParam.equals("cwndtime:"))
+            return true;
+        else if (sSysvarParam.equals("rttsec:"))
+            return true;
+        else if (sSysvarParam.equals("rwin:"))
+            return true;
+        else if (sSysvarParam.equals("swin:"))
+            return true;
+        else if (sSysvarParam.equals("cwin:"))
+            return true;
+        else if (sSysvarParam.equals("spd:"))
+            return true;
+        else if (sSysvarParam.equals("aspd:"))
+            return true;
+
+        return false;
+    }
+
+    /**
 	 * Utility method to get parameter value.
-	 * 
+	 *
 	 * @param paramStrName
 	 *            Key String whose value has to be found
 	 * @return String Value of key requested for
