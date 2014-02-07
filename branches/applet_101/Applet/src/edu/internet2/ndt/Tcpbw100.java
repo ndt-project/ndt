@@ -2412,7 +2412,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// If SRV_QUEUE message sent by NDT server does not indicate that
 			// the test
 			// session starts now, return
-			if (protocolObj.recv_msg(msg) != NDTConstants.SRV_QUEUE_TEST_STARTS_NOW) {
+			if (protocolObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
 						+ Integer.parseInt(new String(msg.getBody()), 16)
 						+ " instead\n";
@@ -2437,7 +2437,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			wait = Integer.parseInt(tmpstr3);
 			System.out.println("wait flag received = " + wait);
 
-			if (wait == 0) { // SRV_QUEUE message received indicating
+			if (wait == NDTConstants.SRV_QUEUE_TEST_STARTS_NOW) { // SRV_QUEUE message received indicating
 								// "ready to start tests" status,
 								// proceed to running tests
 				break;
