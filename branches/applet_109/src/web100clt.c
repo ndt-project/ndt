@@ -766,9 +766,18 @@ int main(int argc, char *argv[]) {
     exit(4);
   }
   log_println(5, "Server version: %s", &buff[1]);
-  if (strcmp(&buff[1], VERSION)) {
-    log_println(1, "WARNING: NDT server has different version number (%s)",
-                &buff[1]);
+
+  if (strcmp(&buff[strlen(buff) - 6], "Web10G") == 0 || strcmp(&buff[strlen(buff) - 6], "web100") == 0) {
+    char buffTmp[strlen(buff)+1];
+    strncpy(buffTmp, &buff[1], strlen(&buff[1])-7);
+
+    log_println(5, "Compare versions. Server:%s Client:%s Compare result: %i", buffTmp, VERSION, strcmp(buffTmp, VERSION));
+    if (strcmp(buffTmp, VERSION) != 0) {
+      log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
+    }
+  }
+  else if (strcmp(&buff[1], VERSION)) { //older server did not send type server at the end
+    log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
   }
 
   ServerType = "Web100";
