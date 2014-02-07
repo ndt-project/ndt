@@ -2527,6 +2527,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		System.out.println("Server version: " + vVersion.substring(1));
 
+        if (vVersion.endsWith("Web10G") || vVersion.endsWith("web100")) {
+            if (!vVersion.substring(1, vVersion.lastIndexOf('-')).equals(NDTConstants.VERSION)) {
+                _resultsTxtPane.append(_resBundDisplayMsgs
+                        .getString("diffrentVersion") + " (" + vVersion.substring(1, vVersion.lastIndexOf('-')) + ")\n");
+                System.out.println("WARNING: NDT server has different version number (" + vVersion.substring(1) + ")");
+            }
+        }
+        else if (!vVersion.substring(1).equals(NDTConstants.VERSION)) {
+            _resultsTxtPane.append(_resBundDisplayMsgs
+                    .getString("diffrentVersion") + " (" + vVersion.substring(1) + ")\n");
+            System.out.println("WARNING: NDT server has different version number (" + vVersion.substring(1) + ")");
+        }
+
 		// If we have connected to a Web10G server rebrand ourselves as such
 		_sServerType = vVersion.endsWith("Web10G") ? "web10g" : "web100";
 
