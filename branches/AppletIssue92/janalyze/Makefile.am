@@ -8,7 +8,7 @@
 #
 #  File:    Makefile.am
 #
-#  Author:    Jakub S³awiñski
+#  Author:    Jakub SÅ‚awiÅ„ski
 #
 #  Date:    Wed Oct 10 23:33:27 CEST 2007
 #
@@ -16,7 +16,7 @@
 
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV =
-NDTGCJFLAGS = -cp external:src -d bin
+NDTGCJFLAGS = -cp external:src/edu/internet2/ndt -d bin -sourcepath src
 GCJFLAGS =
 TEMPDIRS = bin dist
 
@@ -27,12 +27,13 @@ JAnalyzedir = $(ndtdir)/janalyze
 
 noinst_PROGRAMS = JAnalyze.jar
 
-JAnalyze_JAVA  = src/JAnalyze.java src/DBConfFrame.java src/FilterFrame.java \
-				 src/Helpers.java src/LoadingDBFrame.java src/LoadingFrame.java \
-				 src/MaxPeakInfo.java src/MinPeakInfo.java src/PeakInfo.java \
-				 src/PropertyListener.java src/ResultsContainer.java \
-				 src/ResultsList.java src/SimpleTextPane.java src/SnaplogFrame.java \
-				 src/SwingWorker.java
+JAnalyze_JAVA  = src/edu/internet2/ndt/JAnalyze.java src/edu/internet2/ndt/DBConfFrame.java src/edu/internet2/ndt/FilterFrame.java \
+				 src/edu/internet2/ndt/Helpers.java src/edu/internet2/ndt/LoadingDBFrame.java \
+				 src/edu/internet2/ndt/LoadingFrame.java src/edu/internet2/ndt/MaxPeakInfo.java \
+				 src/edu/internet2/ndt/MinPeakInfo.java src/edu/internet2/ndt/PeakInfo.java \
+				 src/edu/internet2/ndt/PropertyListener.java src/edu/internet2/ndt/ResultsContainer.java \
+				 src/edu/internet2/ndt/ResultsList.java src/edu/internet2/ndt/SimpleTextPane.java \
+				 src/edu/internet2/ndt/SnaplogFrame.java src/edu/internet2/ndt/SwingWorker.java
 
 JAnalyze_jar_SOURCES  = $(JAnalyze_JAVA)
 
@@ -43,15 +44,20 @@ JAnalyze$(EXEEXT): $(JAnalyze_OBJECTS) $(JAnalyze_DEPENDENCIES)
 		echo timestamp > classJAnalyze.stamp; \
 		else :; fi
 
-install-JAnalyzeJAVA: classJAnalyze.stamp
+create-packageDirs:
+	test -z "$(JAnalyzedir)/edu" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)/edu"
+	test -z "$(JAnalyzedir)/edu/internet2" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)/edu/internet2"
+	test -z "$(JAnalyzedir)/edu/internet2/ndt" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt"
+
+install-JAnalyzeJAVA: classJAnalyze.stamp create-packageDirs
 	@$(NORMAL_INSTALL)
-	test -z "$(JAnalyzedir)" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)"
-	@test -z "$(JAnalyze_JAVA/bin)" || for p in *.class; do \
-		echo " $(INSTALL_DATA) '$$p' '$(DESTDIR)$(JAnalyzedir)/$$p'"; \
-		$(INSTALL_DATA) "$$p" "$(DESTDIR)$(JAnalyzedir)/$$p"; \
+	test -z "$(JAnalyzedir)" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)"	
+	@test -z "$(JAnalyze_JAVA/bin/edu/internet2/ndt)" || for p in *.class; do \
+		echo " $(INSTALL_DATA) '$$p' '$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt/$$p'"; \
+		$(INSTALL_DATA) "$$p" "$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt/$$p"; \
 	done
 
-install-ndtDATA: $(ndt_DATA)
+install-ndtDATA: $(ndt_DATA) create-packageDirs
 	@$(NORMAL_INSTALL)
 	test -z "$(ndtdir)" || $(mkdir_p) "$(DESTDIR)$(ndtdir)"
 	@list='dist/$(ndt_DATA)'; for p in $$list; do \
@@ -60,11 +66,11 @@ install-ndtDATA: $(ndt_DATA)
 	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(JAnalyzedir)/$$f'"; \
 	   $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(JAnalyzedir)/$$f"; \
 	done
-	@list='bin/*.class'; for p in $$list; do \
+	@list='bin/edu/internet2/ndt/*.class'; for p in $$list; do \
 	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
 	  $(am__strip_dir) \
-	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(JAnalyzedir)/$$f'"; \
-	   $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(JAnalyzedir)/$$f"; \
+	  echo " $(INSTALL_DATA) '$$d$$p' '$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt/$$f'"; \
+	   $(INSTALL_DATA) "$$d$$p" "$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt/$$f"; \
 	done
 	/bin/cp -Rp external/de $(DESTDIR)$(JAnalyzedir)/
 

@@ -16,16 +16,18 @@
 #	Description:
 
 GCJLINK = $(GCJLD)
+NDTGCJFLAGS = -d bin -sourcepath src
 CLASSPATH_ENV = 
+TEMPDIRS = bin
 
 noinst_PROGRAMS	= Admin.class
 
 ndtdir = $(prefix)/ndt
-ndt_DATA	= Admin.class
-Admindir = $(ndtdir)
+ndt_DATA	= bin/edu/internet2/ndt/Admin.class
+Admindir = $(ndtdir)/Admin
 
-Admin_JAVA	= Admin.java
-Admin_class_SOURCES	= Admin.java
+Admin_JAVA	= src/edu/internet2/ndt/Admin.java
+Admin_class_SOURCES	= src/edu/internet2/ndt/Admin.java
 
 Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	@rm -f Admin$(EXEEXT)
@@ -34,12 +36,27 @@ Admin$(EXEEXT): $(Admin_OBJECTS) $(Admin_DEPENDENCIES)
 	    echo timestamp > classAdmin.stamp; \
 	else :; fi
 
+install-ndtDATA: $(ndt_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(ndtdir)" || $(mkdir_p) "$(DESTDIR)$(ndtdir)"
+	test -z "$(Admindir)/edu" || $(mkdir_p) "$(DESTDIR)$(Admindir)/edu"
+	test -z "$(Admindir)/edu/internet2" || $(mkdir_p) "$(DESTDIR)$(Admindir)/edu/internet2"
+	test -z "$(Admindir)/edu/internet2/ndt" || $(mkdir_p) "$(DESTDIR)$(Admindir)/edu/internet2/ndt"
+	echo " $(INSTALL_DATA) "$(ndt_DATA)" '$(DESTDIR)$(Admindir)/edu/internet2/ndt/'"; \
+	$(INSTALL_DATA) "$(ndt_DATA)" "$(DESTDIR)$(Admindir)/edu/internet2/ndt/"; 
+
+bin:
+	mkdir -p bin
+
 classAdmin.stamp: $(Admin_JAVA)
 	if test -n "$?"; then \
-	    echo '$(GCJ) $?' ; \
-	    $(GCJ) $?; \
+	    echo '$(GCJ) $(NDTGCJFLAGS) $?' ; \
+	    $(GCJ) $(NDTGCJFLAGS) $?; \
 	else :; fi
 	echo timestamp > classAdmin.stamp
 
-Admin.class: $(Admin_JAVA)
-	$(GCJ) $(Admin_JAVA)
+mostlyclean-generic:
+	rm -rf $(TEMPDIRS) *~
+
+Admin.class: $(Admin_JAVA) $(TEMPDIRS)
+	$(GCJ) $(NDTGCJFLAGS) $(Admin_JAVA)
