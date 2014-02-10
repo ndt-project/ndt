@@ -2527,7 +2527,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		System.out.println("Server version: " + vVersion.substring(1));
 
-        if (vVersion.endsWith("Web10G") || vVersion.endsWith("web100")) {
+        if (vVersion.endsWith("Web10G") || vVersion.endsWith("Web100")) {
             if (!vVersion.substring(1, vVersion.lastIndexOf('-')).equals(NDTConstants.VERSION)) {
                 _resultsTxtPane.append(_resBundDisplayMsgs
                         .getString("diffrentVersion") + " (" + vVersion.substring(1, vVersion.lastIndexOf('-')) + ")\n");
