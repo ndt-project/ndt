@@ -30,7 +30,7 @@ endif
 endif
 
 EXTRA_DIST = admin_description.html admin.html \
-	tcpbw100.template copyright.html web100variables.html \
+	tcpbw100.template tcpbw100-java.template test-header.html test-description.html copyright.html web100variables.html \
 	web100_variables COPYRIGHT \
 	DISCUSSION-LIST FILES Readme-fakewww Readme-web100srv \
 	contrib/README contrib/loadmap.intro contrib/loadmap.js \
