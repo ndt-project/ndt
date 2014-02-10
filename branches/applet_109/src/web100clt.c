@@ -767,23 +767,20 @@ int main(int argc, char *argv[]) {
   }
   log_println(5, "Server version: %s", &buff[1]);
 
-  if (strcmp(&buff[strlen(buff) - 6], "Web10G") == 0 || strcmp(&buff[strlen(buff) - 6], "web100") == 0) {
-    char buffTmp[strlen(buff)+1];
-    strncpy(buffTmp, &buff[1], strlen(&buff[1])-7);
-
-    log_println(5, "Compare versions. Server:%s Client:%s Compare result: %i", buffTmp, VERSION, strcmp(buffTmp, VERSION));
-    if (strcmp(buffTmp, VERSION) != 0) {
-      log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
+  ServerType = "Web100";
+  if (strlen(buff) > 8) {
+    if (strcmp(&buff[strlen(buff) - 7], "-Web10G") == 0) {
+      ServerType = "Web10G";
+      buff[strlen(buff) - 7] = '\0';
+    }
+    else if (strcmp(&buff[strlen(buff) - 7], "-Web100") == 0) {
+      buff[strlen(buff) - 7] = '\0';
     }
   }
-  else if (strcmp(&buff[1], VERSION)) { //older server did not send type server at the end
-    log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
-  }
 
-  ServerType = "Web100";
-  if (strlen(buff) > 6) {
-    if (strcmp(&buff[strlen(buff) - 6], "Web10G") == 0)
-      ServerType = "Web10G";
+  log_println(5, "Compare versions. Server:%s Client:%s Compare result: %i", &buff[1], VERSION, strcmp(&buff[1], VERSION));
+  if (strcmp(&buff[1], VERSION)) { //older server did not send type server at the end
+    log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
   }
 
   // Server must send a message to negotiate the test suite, and this is
