@@ -1,0 +1,68 @@
+This is a brief description of the fakewww server program.
+
+This code was originally developed by Tom Dunnigan (ORNL) to
+allow testing of a web based web100 speed tool.  It has been
+modified by Rich Carlson (Internet2) to perform several additional
+tasks.
+
+The basic operation is to start the 'fakewww' process on the 
+server.  This causes the process to start listening for connections 
+on port 7123 (use the -p option to specify a different port number).
+
+Once in the listen state, it monitors the connection for new clients.
+An incoming connection causes a child process to be fork'ed off while
+the parent return to the wait state.  The child process then waits
+for an HTTP 'GET' command to arrive.  If anything other than a 'GET'
+is recieved, the connection is dropped.
+
+The child then processes the 'GET' command.  It has a compilied in
+list of html and java class/jar files that it can return to the client.
+If the user specifies anything other than these compiled in files, a
+file not found message is returned and the connection is terminated.
+
+By default the fakewww program is installed in the /usr/local/sbin
+directory.
+
+There are 6 run time options that may be specified on the command line
+     $ /usr/local/sbin/fakewww -h
+     Usage: /usr/local/sbin/fakewww {options}
+     	     -d 	increment debugging mode
+	     -h 	print this help message
+	     -l log_FN 	log connection requests in specified file
+	     -p port# 	specify the port number (default is 7123)
+	     -t # 	specify maximum number of hops in path (default is 10)
+	     -F 	operate in Federated mode
+
+The '-F' flag controls the basic operating mode of the fakewww
+program.  If the -F is not specified, then the server acts in stand-
+alone mode, just as previous versions of the tool did.  If the -F
+options is specified, then the server operates in federated mode.
+
+In federated mode, multiple servers work together to form a single
+testing domain.  In this mode, the clients are outside the testing
+domain and each fakewww server will re-direct the client to the 
+'closest' server, i.e., the testing domain ingress server.  This allows
+testing of the shortest network path, and any host based configuration
+problems will be detected and reported.  Future versions will allow
+the user to test to the egress point for better performance diagnostics.
+
+See the readme-FM file for details on setting up a federation of NDT
+servers.
+
+Start the fakewww server with the -F options "/usr/local/sbin/fakewww -F".
+This will cause the server to perform these additional tasks.
+
+When a new client connects, the server will perform a traceroute back
+to the client.  (The number of hops that must be crossed is set by the
+-t flag on the fakewww server.)  This task is performed by the fakewww
+child process using a modified version of traceroute.  (note this means
+that the fakewww process must run as root in order to process the returned
+ICMP messages.)
+
+After the traceroute to the client is complete, the fakewww child will
+compare this route to that pre-stored map data.  A match is found when
+the paths start to diverge.  This ensures that the client will always
+recieve a positive answer, but that it might re-direct to itself.  A
+dynamic web page is created and sent to the client, indicating that 
+the 'closest' NDT server is being contacted and testing can begin once
+the java applet is downloaded.
