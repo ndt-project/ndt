@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JPanel;

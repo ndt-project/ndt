@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 /* This applet provides an administrator view of the NDT usage
  * statistics.  It was originally developed for the SC-03 conference.
  * An admin script will run to collect the necessary data.  This data

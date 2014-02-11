@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 import javax.swing.JTextPane;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.AttributeSet;

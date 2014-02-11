@@ -1,3 +1,4 @@
+package edu.internet2.ndt;
 
 public class Helpers {
 	public static String formatDouble(double val, int precision) {
