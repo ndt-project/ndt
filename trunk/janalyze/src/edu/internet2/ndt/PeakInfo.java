@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 class PeakInfo {
     private int cwnd;
     private int sampleRTT;

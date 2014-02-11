@@ -1,3 +1,5 @@
+package edu.internet2.ndt;
+
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,7 +11,7 @@ import javax.swing.JLabel;
 //import javax.swing.JProgressBar;
 import javax.swing.WindowConstants;
 
-public class LoadingFrame extends JFrame {
+public class LoadingDBFrame extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 
@@ -18,23 +20,23 @@ public class LoadingFrame extends JFrame {
 	private int loaded = 0;
 	private JLabel loadedLabel = new JLabel("Loaded results: " + loaded);
 
-	public LoadingFrame(final String filename, final JAnalyze janalyze) {
+	public LoadingDBFrame(final JAnalyze janalyze) {
 		super("Loading...");
 
 		final SwingWorker worker = new SwingWorker() {
 			public Object construct() {
 				try {
-					janalyze.loadWeb100srvLog(filename, LoadingFrame.this);
+					janalyze.loadDB(LoadingDBFrame.this);
 				}
                 catch (Exception exc) {
-                    System.out.println("Loading of the web100srv.log failed!");
+                    System.out.println("Loading of the DB data failed!");
                     exc.printStackTrace();
                 }
 				return null;
 			}
 			public void finished() {
-				LoadingFrame.this.setVisible(false);
-				LoadingFrame.this.dispose();
+				LoadingDBFrame.this.setVisible(false);
+				LoadingDBFrame.this.dispose();
 			}
 		};
 		
@@ -50,8 +52,8 @@ public class LoadingFrame extends JFrame {
 	    	public void actionPerformed(ActionEvent e) {
 	    		worker.interrupt();
 	    		janalyze.stopLoading();
-	    		LoadingFrame.this.setVisible(false);
-	    		LoadingFrame.this.dispose();
+	    		LoadingDBFrame.this.setVisible(false);
+	    		LoadingDBFrame.this.dispose();
 	    	}
 	    });
 
