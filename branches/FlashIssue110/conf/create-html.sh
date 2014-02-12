@@ -84,18 +84,6 @@ elif test -f ../tcpbw100.template ; then
 	TEMPLATE_JAVA=../tcpbw100-java.template
 fi
 
-if test -f test-header.html ; then
-	HEADER_PAGE=test-header.html
-elif test -f ../test-header.html ; then
-	HEADER_PAGE=../test-header.html
-fi
-
-if test -f test-description.html ; then
-	DESCRIPTION_PAGE=test-description.html
-elif test -f ../test-description.html ; then
-	DESCRIPTION_PAGE=../test-description.html
-fi
-
 # /bin/sed -f /tmp/$$ tcpbw100.template > tcpbw100.html
 /bin/sed -f /tmp/$$ $TEMPLATE_FLASH > tcpbw100.html
 /bin/sed -f /tmp/$$ $TEMPLATE_JAVA > tcpbw100-java.html
@@ -120,8 +108,6 @@ fi
 if test -w $answer; then
 	/bin/cp -p tcpbw100.html $answer
 	/bin/cp -p tcpbw100-java.html $answer
-	/bin/cp -p $HEADER_PAGE $answer
-	/bin/cp -p $DESCRIPTION_PAGE $answer
 	# create a default directory to store snaplog and tcpdump files in
 	if test ! -d $answer/serverdata; then
 		/bin/mkdir $answer/serverdata

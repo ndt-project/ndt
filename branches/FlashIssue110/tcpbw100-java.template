@@ -10,7 +10,6 @@
 <b>Located at YOURLOCATION; 
 YOURSPEED network connection</b>
 <br><font size=-1>
-<iframe width="100%" height="350" frameborder="0" src="test-header.html"></iframe>
  This is java version of client. If you want to use flash app instead, please visit <a href="tcpbw100.html">this site</a>
 <!-- this applet will email results to the person specified by the 
      param parameters.  The 'H' value is the hostname, the 'U' value
@@ -76,7 +75,6 @@ to copy data onto the clipboard and then paste it into the email message. </font
 
 <hr size=3  width="99%" noshade>
 <br>
-<iframe width="100%" height="920" frameborder="0" src="test-description.html"></iframe>
 This java applet was originally developed by ORNL and has been extensively modified
 at ANL.
 <br>
