@@ -18,6 +18,7 @@
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV =
 NDTGCJFLAGS = -d bin -sourcepath src
+NDTJARSIGNERFLAG = -keystore
 TEMPDIRS = bin dist
 
 ndtdir = $(prefix)/ndt
@@ -87,6 +88,9 @@ OsfwWorker.class: NDTConstants.class Message.class Protocol.class
 Tcpbw100.jar:	$(TEMPDIRS) all.class
 	cp -r src/edu/internet2/ndt/locale  bin/edu/internet2/ndt/
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/Tcpbw100.jar -C bin .
+	if test -n "$(CERTIFICATE_FILE)"; then \
+		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) $(ndt_DATA) $(ALIAS); \
+	else :; fi
 	echo timestamp > classTcpbw100.stamp
 
 

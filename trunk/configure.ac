@@ -88,7 +88,32 @@ else
 	AM_CONDITIONAL(BUILD_APPLET, false)
 fi
 
-# Enabling.disabling flash client build
+# Using certificate to sign java applet
+AC_ARG_WITH(cert,
+    		AC_HELP_STRING([--with-cert=<file>],
+				[certificate file to be used to sign java applet]),
+    		[cert="$withval"]
+)
+
+AC_ARG_WITH(alias,
+    		AC_HELP_STRING([--with-alias=<alias>],
+				[alias to be used during java applet signing (NOTE: specifying alias is required when using --with-cert option]),
+    		[alias="$withval"]
+)
+
+if test "$with_cert" != "no"; then
+	CERTIFICATE_FILE=$with_cert
+	ALIAS=$with_alias
+else
+	CERTIFICATE_FILE=""
+	ALIAS=$with_alias 
+fi
+
+AC_SUBST(CERTIFICATE_FILE)
+AC_SUBST(ALIAS)
+	
+
+# Enabling/disabling flash client build
 AC_ARG_ENABLE(flash, [  --enable-flash=[yes/no] turn on flash client build
               [default=yes]],, enable_flash=yes)
 
@@ -97,7 +122,6 @@ if test "x$enable_flash" != "xno"; then
 else
 	AM_CONDITIONAL(BUILD_FLASH_CLT, false)
 fi
-
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
@@ -263,9 +287,11 @@ AC_SUBST(NDTGCJFLAGS)
 
 NDTJAR=jar
 NDTJARFLAG='-cmf'
+NDTJARSIGNER=jarsigner
 
 AC_SUBST(NDTJAR)
 AC_SUBST(NDTJARFLAG)
+AC_SUBST(NDTJARSIGNER)
 
 # Flash application compiler
 NDTMXMLC=mxmlc
