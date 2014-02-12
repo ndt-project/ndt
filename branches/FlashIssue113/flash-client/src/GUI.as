@@ -52,7 +52,7 @@ package  {
     private var _detailsButton:Sprite;
     private var _errorsButton:Sprite;
     private var _debugButton:Sprite;
-	private var _restartButton:Sprite;
+    private var _restartButton:Sprite;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -174,31 +174,31 @@ package  {
       _startButton.removeEventListener(MouseEvent.CLICK, clickStart);
     }
 	
-	private function hideResultsScreen():void {
-		while (this.numChildren > 0)
-			this.removeChildAt(0);
-		
-		_resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-		_detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-		_errorsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-		if (_debugButton)
-			_debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-		_restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-		
-		_resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-		_detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-		_errorsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-		if (_debugButton)
-			_debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-		_restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-		
-		_resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
-		_detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
-		_errorsButton.removeEventListener(MouseEvent.CLICK, clickErrors);
-		if (_debugButton)
-			_debugButton.removeEventListener(MouseEvent.CLICK, clickDebug);
-		_restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
-	}
+    private function hideResultsScreen():void {
+      while (this.numChildren > 0)
+        this.removeChildAt(0);
+	
+      _resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _errorsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      if (_debugButton)
+        _debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+	
+      _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _errorsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      if (_debugButton)
+        _debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+	
+      _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
+      _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
+      _errorsButton.removeEventListener(MouseEvent.CLICK, clickErrors);
+      if (_debugButton)
+        _debugButton.removeEventListener(MouseEvent.CLICK, clickDebug);
+      _restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
+    }
 
     /**
      * Add text to the console while the NDT test is running.
@@ -252,35 +252,35 @@ package  {
       _detailsButton.x += _detailsButton.width / 2;
       _errorsButton.x += _errorsButton.width / 2;
       _debugButton.x += _debugButton.width / 2;
-	  _restartButton.x += _restartButton.width / 2;
+      _restartButton.x += _restartButton.width / 2;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
       this.addChild(_errorsButton);
       if (_debugButton)
         this.addChild(_debugButton);
-	  this.addChild(_restartButton);
+      this.addChild(_restartButton);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _errorsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
-	  _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _errorsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
-	  _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
       _errorsButton.addEventListener(MouseEvent.CLICK, clickErrors);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
-	  _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
+      _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
 
       setSummaryResultText();
       _resultsTextField.htmlText = _summaryResultText;
@@ -369,13 +369,13 @@ package  {
       _resultsTextField.scrollV = 0;
     }
 	
-	private function clickRestart(e:MouseEvent):void {
-		hideResultsScreen();
-		TestResults.clearResults();
-		_consoleText.text = "";
-		this.addChild(_consoleText);
-		_callerObj.startNDTTest();
-	}
+    private function clickRestart(e:MouseEvent):void {
+      hideResultsScreen();
+      TestResults.clearResults();
+      _consoleText.text = "";
+      this.addChild(_consoleText);
+      _callerObj.startNDTTest();
+    }
   }
 }
 
