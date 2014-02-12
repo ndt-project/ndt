@@ -1,0 +1,431 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <Title>Web100 variables descriptions</Title>
+    <meta http-equiv="Content-Language" content="en">
+    <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+  </head>
+  <body>
+    <center>
+      <h1>Web100 variables descriptions</h1>
+Please note, that this page is not guaranteed to be up-to-date with the newest Web100 releases. You should always prefer to look at the official documentation of variables for the Web100 TCP Kernel Instrument Set (KIS), which you can find in the file <b>tcp-kis.txt</b>. This file can be obtained from the official web site (<a href="http://www.web100.org/">http://www.web100.org/</a>) and from the Web100 releases.<p>
+      <table border>
+        <tr>
+          <th>Variable
+          <th>Description
+        </tr>
+        <tr>
+          <td>CurMSS
+          <td>The current maximum segment size (MSS), in octets.
+
+        </tr>
+        <tr>
+          <td>X_Rcvbuf
+          <td>The socket receive buffer size in octets.  Note that the
+meaning of this variable is implementation dependent.  In
+particular, it may or may not include the reassembly queue.
+
+        </tr>
+        <tr>
+          <td>X_Sndbuf
+          <td>The socket send buffer size in octets.  Note that the
+meaning of this variable is implementation dependent.
+Particularly, it may or may not include the retransmit
+queue.
+
+        </tr>
+        <tr>
+          <td>AckPktsIn
+          <td>The number of valid pure ack packets that have been
+received on this connection by the Local Host.
+
+        </tr>
+        <tr>
+          <td>AckPktsOut
+          <td>The number of pure ack packets that have been sent
+on this connection by the Local Host.
+
+        </tr>
+        <tr>
+          <td>BytesRetrans
+          <td>The number of octets retransmitted.
+
+        </tr>
+        <tr>
+          <td>CongAvoid
+          <td>The number of times the congestion window has been
+increased by the Congestion Avoidance algorithm.
+
+        </tr>
+        <tr>
+          <td>CongestionOverCount
+          <td>The number of congestion events which were 'backed out' of
+the congestion control state machine such that the
+congestion window was restored to a prior value. This can
+happen due to the Eifel algorithm [RFC3522] or other
+algorithms which can be used to detect and cancel spurious
+invocations of the Fast Retransmit Algorithm.
+
+        </tr>
+        <tr>
+          <td>CongestionSignals
+          <td>The number of multiplicative downward congestion window
+adjustments due to all forms of congestion signals,
+including Fast Retransmit, ECN and timeouts. This object
+summarizes all events that invoke the MD portion of AIMD
+congestion control, and as such is the best indicator of
+how cwnd is being affected by congestion.
+
+        </tr>
+        <tr>
+          <td>CountRTT
+          <td>The number of round trip time samples included in
+tcpEStatsPathSumRTT and tcpEStatsPathHCSumRTT.
+
+        </tr>
+        <tr>
+          <td>CurCwnd
+          <td>The current congestion window, in octets.
+
+        </tr>
+        <tr>
+          <td>CurRTO
+          <td>The current value of the retransmit timer RTO.
+
+        </tr>
+        <tr>
+          <td>CurRwinRcvd
+          <td>The most recent window advertisement received, in octets.
+
+        </tr>
+        <tr>
+          <td>CurRwinSent
+          <td>The most recent window advertisement sent, in octets.
+
+        </tr>
+        <tr>
+          <td>CurSsthresh
+          <td>The current slow start threshold in octets.
+
+        </tr>
+        <tr>
+          <td>DSACKDups
+          <td>The number of duplicate segments reported to the local host
+by D-SACK blocks.
+
+        </tr>
+        <tr>
+          <td>DataBytesIn
+          <td>The number of octets contained in received data segments,
+including retransmitted data.  Note that this does not
+include TCP headers.
+
+        </tr>
+        <tr>
+          <td>DataBytesOut
+          <td>The number of octets of data contained in transmitted segments,
+including retransmitted data.  Note that this does not include
+TCP headers.
+
+        </tr>
+        <tr>
+          <td>DataPktsIn
+          <td>The number of segments received containing a positive length
+data segment.
+
+        </tr>
+        <tr>
+          <td>DataPktsOut
+          <td>The number of segments sent containing a positive length data
+segment.
+
+        </tr>
+        <tr>
+          <td>DupAcksIn
+          <td>The number of duplicate ACKs received.
+
+        </tr>
+        <tr>
+          <td>ECNEnabled
+          <td>Enabled(1) if Explicit Congestion Notification (ECN)
+has been negotiated on,
+selfDisabled(2) if it is disabled or not implemented
+on the local host, or
+peerDisabled(3) if not negotiated by the remote hosts.
+
+        </tr>
+        <tr>
+          <td>FastRetran
+          <td>The number of invocations of the Fast Retransmit algorithm.
+
+        </tr>
+        <tr>
+          <td>MaxCwnd
+          <td>The maximum congestion window used during Slow Start, in octets.
+
+        </tr>
+        <tr>
+          <td>MaxMSS
+          <td>The maximum MSS, in octets.
+
+        </tr>
+        <tr>
+          <td>MaxRTO
+          <td>The maximum value of the retransmit timer RTO.
+
+        </tr>
+        <tr>
+          <td>MaxRTT
+          <td>The maximum sampled round trip time.
+
+        </tr>
+        <tr>
+          <td>MaxRwinRcvd
+          <td>The maximum window advertisement received, in octets.
+
+        </tr>
+        <tr>
+          <td>MaxRwinSent
+          <td>The maximum window advertisement sent, in octets.
+
+        </tr>
+        <tr>
+          <td>MaxSsthresh
+          <td>The maximum slow start threshold, excluding the initial
+value.
+
+        </tr>
+        <tr>
+          <td>MinMSS
+          <td>The minimum MSS, in octets.
+
+        </tr>
+        <tr>
+          <td>MinRTO
+          <td>The minimum value of the retransmit timer RTO.
+
+        </tr>
+        <tr>
+          <td>MinRTT
+          <td>The minimum sampled round trip time.
+
+        </tr>
+        <tr>
+          <td>MinRwinRcvd
+          <td>The minimum window advertisement received, in octets.
+
+        </tr>
+        <tr>
+          <td>MinRwinSent
+          <td>The minimum window advertisement sent, excluding the initial
+unscaled window advertised on the SYN, in octets.
+
+        </tr>
+        <tr>
+          <td>NagleEnabled
+          <td>True(1) if the Nagle algorithm is being used, else false(2).
+
+        </tr>
+        <tr>
+          <td>OtherReductions
+          <td>The number of congestion window reductions made as a result
+of anything other than AIMD congestion control algorithms.
+Examples of non-multiplicative window reductions include
+Congestion Window Validation [RFC2861] and experimental
+algorithms such as Vegas.
+
+        </tr>
+        <tr>
+          <td>PktsIn
+          <td>The total number of segments received.
+
+        </tr>
+        <tr>
+          <td>PktsOut
+          <td>The total number of segments sent.
+
+        </tr>
+        <tr>
+          <td>PktsRetrans
+          <td>The number of segments transmitted containing at least some
+retransmitted data.
+
+        </tr>
+        <tr>
+          <td>RcvWinScale
+          <td>The value of Rcv.Wind.Scale.  Note that
+RcvWinScale is either zero or the same as WinScaleSent.
+
+        </tr>
+        <tr>
+          <td>SACKEnabled
+          <td>True(1) if SACK has been negotiated on, else false(2).
+
+        </tr>
+        <tr>
+          <td>SACKsRcvd
+          <td>The number of SACK options received.
+
+        </tr>
+        <tr>
+          <td>SendStall
+          <td>The number of interface stalls or other sender local
+resource limitations that are treated as congestion
+signals.
+
+        </tr>
+        <tr>
+          <td>SlowStart
+          <td>The number of times the congestion window has been
+increased by the Slow Start algorithm.
+
+        </tr>
+        <tr>
+          <td>SampleRTT
+          <td>The most recent raw round trip time measurement used in
+calculation of the RTO.
+
+        </tr>
+        <tr>
+          <td>SmoothedRTT
+          <td>The smoothed round trip time used in calculation of the
+RTO. See SRTT in [RFC2988].
+
+        </tr>
+        <tr>
+          <td>SndWinScale
+          <td>The value of Snd.Wind.Scale.  Note that
+SndWinScale is either zero or the same as WinScaleRcvd.
+
+        </tr>
+        <tr>
+          <td>SndLimTimeRwin
+          <td>The cumulative time spent in the 'Receiver Limited' state.
+
+        </tr>
+        <tr>
+          <td>SndLimTimeCwnd
+          <td>The cumulative time spent in the 'Congestion Limited' state.
+
+        </tr>
+        <tr>
+          <td>SndLimTimeSender
+          <td>The cumulative time spent in the 'Sender Limited' state.
+
+        </tr>
+        <tr>
+          <td>SndLimTransRwin
+          <td>The number of transitions into the 'Receiver Limited' state
+from either the 'Congestion Limited' or 'Sender Limited'
+states. This state is entered whenever TCP transmission
+stops because the sender has filled the announced receiver
+window.
+
+        </tr>
+        <tr>
+          <td>SndLimTransCwnd
+          <td>The number of transitions into the 'Congestion Limited'
+state from either the 'Receiver Limited' or 'Sender
+Limited' states. This state is entered whenever TCP
+transmission stops because the sender has reached some
+limit defined by congestion control (e.g. cwnd) or other
+algorithms (retransmission timeouts) designed to control
+network traffic.
+
+        </tr>
+        <tr>
+          <td>SndLimTransSender
+          <td>The number of transitions into the 'Sender Limited' state
+from either the 'Receiver Limited' or 'Congestion Limited'
+states. This state is entered whenever TCP transmission
+stops due to some sender limit such as running out of
+application data or other resources and the Karn algorithm.
+When TCP stops sending data for any reason which can not be
+classified as Receiver Limited or Congestion Limited it
+MUST be treated as Sender Limited.
+
+        </tr>
+        <tr>
+          <td>SndLimBytesRwin
+          <td>The cumulative bytes sent while in the 'Receiver Limited'
+state, as determined by the Local Host, when the Local Host is
+a sender.  This state is entered whenever TCP transmission
+stops due to Receiver not being able to receive data.
+
+        </tr>
+        <tr>
+          <td>SndLimBytesCwnd
+          <td>The cumulative bytes sent while in the 'Congestion Limited'
+state, as determined by the Local Host, when the Local Host is
+a sender.  This state is entered whenever TCP transmission
+stops due to congestion.
+
+        </tr>
+        <tr>
+          <td>SndLimBytesSender
+          <td>The cumulative bytes sent while in the 'Sender Limited'
+state, as determined by the Local Host, when the Local Host is
+a sender.  This state is entered whenever TCP transmission
+stops because there is no more data in sender's buffer.
+
+        </tr>
+        <tr>
+          <td>SubsequentTimeouts
+          <td>The number of times the retransmit timeout has expired
+after the RTO has been doubled. See section 5.5 in RFC2988.
+
+        </tr>
+        <tr>
+          <td>SumRTT
+          <td>The sum of all sampled round trip times.
+
+        </tr>
+        <tr>
+          <td>Timeouts
+          <td>The number of times the retransmit timeout has expired when
+the RTO backoff multiplier is equal to one.
+
+        </tr>
+        <tr>
+          <td>TimestampsEnabled
+          <td>Enabled(1) if TCP timestamps have been negotiated on,
+selfDisabled(2) if they are disabled or not implemented on
+the local host, or peerDisabled(3) if not negotiated by the
+remote hosts.
+
+        </tr>
+        <tr>
+          <td>WinScaleRcvd
+          <td>The value of the received window scale option if one was
+received; otherwise, a value of -1.
+
+        </tr>
+        <tr>
+          <td>WinScaleSent
+          <td>The value of the transmitted window scale option if one was
+sent; otherwise, a value of -1.
+
+        </tr>
+        <tr>
+          <td>DupAcksOut
+          <td>The number of duplicate ACKs sent.
+
+        </tr>
+        <tr>
+          <td>StartTimeUsec
+          <td>The value of sysUpTime at the time this listener was
+established.  If the current state was entered prior to
+the last re-initialization of the local network management
+subsystem, then this object contains a zero value.
+
+        </tr>
+        <tr>
+          <td>Duration
+          <td>The seconds part of the time elapsed between StartTimeStamp
+and the most recent protocol event (segment sent or received).
+
+        </tr>
+      </table>
+    </center>
+  </body>
+</html>
