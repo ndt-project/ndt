@@ -2443,6 +2443,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				break;
 			}
 
+            if (wait == NDTConstants.SRV_QUEUE_SERVER_FAULT) {
+                _sErrMsg = _resBundDisplayMsgs.getString("serverFault")
+                        + "\n";
+                _bFailed = true;
+                return;
+            }
+
 			if (wait == NDTConstants.SRV_QUEUE_SERVER_BUSY) {
 				if (iServerWaitFlag == 0) { // First message from server,
 											// indicating server is busy. Quit
