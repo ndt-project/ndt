@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# This script creates the basic tcpbw100.html page needed by
+# This script creates the basic tcpbw100.html and tcpbw100-java.html pages needed by
 # the NDT server.
 #
 # First prompt the user for some local data variables, site name
 # and location, email address and subject line for reports, and
 # the local link connection info.
 #
-# Then create the html file using the tcpbw100.template file 
-# modified by sed.
+# Then create the html files using the tcpbw100.template (for page with flash client) 
+# and tcpbw100-java.template (for page with java applet) files modified by sed.
 #
 # Richard Carlson
 # rcarlson@internet2.edu
@@ -16,7 +16,7 @@
 #
 
 echo "Welcome to the NDT server configuration program.  This"
-echo "program will create a custom tcpbw100.html file for your site."
+echo "program will create a custom tcpbw100.html and tcpbw100-java.html files for your site."
 echo ""
 
 echo -n "Enter your site name [Internet2]  : "
@@ -73,20 +73,27 @@ echo "s/YOURSPEED/$yourspeed/"   >> /tmp/$$
 
 
 if test -f tcpbw100.template ; then
-	TEMPLATE=tcpbw100.template
+	TEMPLATE_FLASH=../tcpbw100.template
 elif test -f ../tcpbw100.template ; then
-	TEMPLATE=../tcpbw100.template
+	TEMPLATE_FLASH=../tcpbw100.template
+fi
+
+if test -f tcpbw100-java.template ; then
+	TEMPLATE_JAVA=tcpbw100-java.template
+elif test -f ../tcpbw100.template ; then
+	TEMPLATE_JAVA=../tcpbw100-java.template
 fi
 
 # /bin/sed -f /tmp/$$ tcpbw100.template > tcpbw100.html
-/bin/sed -f /tmp/$$ $TEMPLATE > tcpbw100.html
+/bin/sed -f /tmp/$$ $TEMPLATE_FLASH > tcpbw100.html
+/bin/sed -f /tmp/$$ $TEMPLATE_JAVA > tcpbw100-java.html
 /bin/rm -f /tmp/$$
 
-echo "The base web page 'tcpbw100.html' has now been created.  You"
-echo "must move this file into the ndt_DATA directory [/usr/local/ndt]"
+echo "The base web pages 'tcpbw100.html' (with java applet) and 'tcpbw100-java.html (with flash client) has now been created.  You"
+echo "must move these files into the ndt_DATA directory [/usr/local/ndt]"
 echo "created during the 'make' process."
 
-echo -n "Do you want to install this file now? [yes]  : "
+echo -n "Do you want to install these files now? [yes]  : "
 read answer
 if test "$answer" = "n" -o "$answer" = "no"; then
 	exit
@@ -100,7 +107,7 @@ fi
 
 if test -w $answer; then
 	/bin/cp -p tcpbw100.html $answer
-
+	/bin/cp -p tcpbw100-java.html $answer
 	# create a default directory to store snaplog and tcpdump files in
 	if test ! -d $answer/serverdata; then
 		/bin/mkdir $answer/serverdata

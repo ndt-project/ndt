@@ -5,12 +5,12 @@
 <meta http-equiv="Content-Language" content="en">
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 </head>
-<body onload="setTimeout('setUserAgent()', 2000)">
+<body>
 <h3> YOURSITE Web100 based Network Diagnostic Tool (NDT) </h3>
 <b>Located at YOURLOCATION; 
 YOURSPEED network connection</b>
 <br><font size=-1>
-This java applet was developed to test the reliablity and operational
+This component was developed to test the reliablity and operational
 status of your desktop computer and network connection.  It does this by sending data between your
 computer and this remote NDT server.  These tests will determine:</font>
 <ul>
@@ -25,66 +25,16 @@ It can also identify 2 serious error conditions:</font>
  <li><font size=-1>Excessive packet loss due to faulty cables.</font>
 </ul>
 <br>A test takes about 20 seconds.  Click on "start" to begin.
-
-<!-- this applet will email results to the person specified by the 
-     param parameters.  The 'H' value is the hostname, the 'U' value
-     is the username.  The 'subject' line overwrites the default message
-     built into the java program.  -->
-
+<br>
+ This is flash version of client. If you want to use java applet instead, please visit <a href="tcpbw100-java.html">this site</a>
 <table align=center><tr><td>
-<applet code="edu.internet2.ndt.Tcpbw100.class" name="NDTApplet" ARCHIVE="Tcpbw100.jar"
-   width=700 height=320>
-  <PARAM NAME="H" VALUE="YOURDOMAIN">
-  <PARAM NAME="U" VALUE="YOUREMAIL">
-  <PARAM NAME="subject" VALUE="YOURSUBJECT">
-
-<!--
-  JZ 2/14/2013: Localization Support
-
-  Greek/Greece
-  <PARAM NAME="language" VALUE="el">
-  <PARAM NAME="country" VALUE="GR">
-
-  Norwegian/Norway 
-  <PARAM NAME="language" VALUE="nb">
-  <PARAM NAME="country" VALUE="NO">
-
-  Dutch/Netherlands
-  <PARAM NAME="language" VALUE="nl">
-  <PARAM NAME="country" VALUE="NL">
-
-  Catalan/Spain
-  <PARAM NAME="language" VALUE="ca">
-  <PARAM NAME="country" VALUE="ES">
-
-  Russian/Russia
-  <PARAM NAME="language" VALUE="ru">
-  <PARAM NAME="country" VALUE="RU">
-  
-  French/France
-  <PARAM NAME="language" VALUE="fr">
-  <PARAM NAME="country" VALUE="FR">
-
-  Portugese/Brazil
-  <PARAM NAME="language" VALUE="pt">
-  <PARAM NAME="country" VALUE="BR">
-  
-  English/US
-  <PARAM NAME="language" VALUE="en">
-  <PARAM NAME="country" VALUE="US">
--->
-
-  <PARAM NAME="language" VALUE="en">
-  <PARAM NAME="country" VALUE="US">
-  <PARAM NAME="client" VALUE="applet">
-
-</applet>
+<embed type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="400" id="flash_client" name="flash_client" />
 </td></tr></table>
 
 <br>
 <a href="mailto:YOUREMAIL@YOURDOMAIN?subject=YOURSUBJECT
 ?&amp;body=Your name:  %0aEmail:  %0aHostname:  %0a%0aPaste results from%20
-'Statistics' window here:%0a%0a%0aPaste results from 'More Details' window%20
+'Results' page here:%0a%0a%0aPaste results from 'Details' page%20
 here:%0a%0a%0aComments:%0a">Report Problems</a> <font size=-1> &nbsp; &nbsp; &nbsp; &nbsp; Use "ctrl-C"
 to copy data onto the clipboard and then paste it into the email message. </font>
 
@@ -127,7 +77,7 @@ Extremely long round trip times (over 1 sec) ususally indicate that a network ro
 or switch is congested leading to long queuing times.  Contact your local network
 administrator for help in solving this problem
 <p>
-The Bandwidth * Delay product is reported at the bottom of the "more details" page.
+The Bandwidth * Delay product is reported in the details section.
 Throughput limits for the NDT server's transmit buffer, your clients receive buffer,
 and the network infrastructure.  You may use these numbers as a guide to determining
 what your client's receive buffer is currently set to.  Divide the buffer size by
@@ -181,7 +131,7 @@ Tom Dunigan at ORNL also has traceroute servers at
 <a href="http://www.epm.ornl.gov/~dunigan/cgi-bin/traceroute.cgi">ORNL</a>.
 
 <p>
-The NDT server window size for this Java tester is 64KB.
+The NDT server window size for this tester is 64KB.
 Max window used to be 64KB, but newer OS's now support window scaling,
 so you may be able to request more than 64 KB.
 (This NDT server a window of 64,000 bytes,
@@ -193,10 +143,7 @@ The NDT software (source and compiled programs) is available via the Internet2 P
 or <a href="https://mail.internet2.edu/wws/info/ndt-announce">NDT announcement</a>
 lists hosted by Internet2.  
 <p>
-This java applet was originally developed by ORNL and has been extensively modified
-at ANL.
-<br>
-Complete University of Chicago <a href="copyright.html">Copyright Notice</a>
+
 <hr noshade width="90%" size=-4>
 Comments to <a href="mailto:rcarlson501@gmail.com"> Rich Carlson </a> email:rcarlson501@gmail.com
 <br><i>Created: April 4, 2002 by Rich Carlson
