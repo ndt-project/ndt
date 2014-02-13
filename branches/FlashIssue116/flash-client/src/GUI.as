@@ -177,7 +177,7 @@ package  {
      * Add text to the console while the NDT test is running.
      */
     public function addConsoleOutput(text:String):void {
-      _consoleText.appendText(text);
+      _consoleText.htmlText += text;
       _consoleText.scrollV++;
     }
 

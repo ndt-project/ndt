@@ -306,14 +306,14 @@ package  {
     }
 
     private function failHandshake():void {
-      TestResults.appendDebugMsg("Handshake: FAIL.");
+      TestResults.appendDebugMsg("Handshake: FAIL.<br>");
 
       removeOnReceivedDataListener();
       _callerObj.failNDTTest();
     }
 
     private function endHandshake(confirmedTests:String):void {
-      TestResults.appendDebugMsg("Handshake: END.");
+      TestResults.appendDebugMsg("Handshake: END.<br>");
 
       removeOnReceivedDataListener();
       _callerObj.initiateTests(confirmedTests);

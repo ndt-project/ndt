@@ -80,16 +80,16 @@ package  {
     }
 
     public static function appendErrMsg(msg:String):void {
-      _errMsg += msg + "\n";
+      _errMsg += "<font color=\"#FE9A2E\"><b>" + msg + "</b></font>" + "\n";
       NDTUtils.callExternalFunction("appendErrors", msg);
-      appendDebugMsg(msg);
+      appendDebugMsg("<font color=\"#FE9A2E\"><b>" + msg + "</b></font>");
     }
 
     public static function appendDebugMsg(msg:String):void {
       if (!CONFIG::debug) {
           return;
       }
-      var formattedMsg:String = (new Date().toUTCString()) + ": " + msg + "\n";
+      var formattedMsg:String = "<font size=\"12\">" + (new Date().toUTCString()) + ": " + "</font>" + msg + "\n";
       _debugMsg += formattedMsg;
       NDTUtils.callExternalFunction("appendDebugOutput", msg);
       // _ndtTestStartTime > 0 ensures the console window has been created.

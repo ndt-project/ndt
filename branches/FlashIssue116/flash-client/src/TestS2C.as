@@ -490,12 +490,12 @@ package  {
          TestResults.appendDebugMsg(
              ResourceManager.getInstance().getString(
                  NDTConstants.BUNDLE_NAME, "s2cThroughput", null, Main.locale)
-             + " test " + ResourceManager.getInstance().getString(
-                 NDTConstants.BUNDLE_NAME, "done", null, Main.locale));
+             + " test <font color=\"#006400\"><b>" + ResourceManager.getInstance().getString(
+                 NDTConstants.BUNDLE_NAME, "done", null, Main.locale) + "</b></font><br>");
       else
-        TestResults.appendDebugMsg(ResourceManager.getInstance().getString(
-            NDTConstants.BUNDLE_NAME, "s2cThroughputFailed", null,
-            Main.locale));
+        TestResults.appendDebugMsg("<font color=\"#FE9A2E\">" +
+	     ResourceManager.getInstance().getString(
+            	NDTConstants.BUNDLE_NAME, "s2cThroughputFailed", null, Main.locale) + "</font>");
 
       TestResults.ndt_test_results::s2cTestSuccess = _s2cTestSuccess;
       TestResults.ndt_test_results::ndtTestStatus = "done";
