@@ -722,13 +722,13 @@ int main(int argc, char *argv[]) {
     }
 
 
-    /* Each test should take less than 30 s. So convey 45 sec *
-       number of tests-suites waiting in the queue. Note that server sends a
-       number equal to the number of clients ==
+    /* Each test should take less than 30 s.
+       Convey 60 sec * number of tests-suites waiting in the queue.
+       Note that server sends a number equal to the number of clients ==
        number of minutes to wait before starting tests. In other words,
        wait = num of minutes to wait = number of queued clients */
 
-    xwait = (xwait * 45);
+    xwait = (xwait * 60);
     log_print(0,
               "Another client is currently begin served, your test will ");
     log_println(0, "begin within %d seconds", xwait);
