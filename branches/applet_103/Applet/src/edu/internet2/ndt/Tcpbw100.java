@@ -2477,13 +2477,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				continue;
 			}
 
-			// Each test should take less than 30 seconds, so tell them 45 sec *
-			// number of
-			// tests-suites waiting in the queue. Note that server sends a
-			// number equal to the number of clients ==
+			// Each test should take less than 30 seconds,
+			// Tell them 60 sec * number of tests-suites waiting in the queue.
+			// Note that server sends a number equal to the number of clients ==
 			// number of minutes to wait before starting tests (i.e wait =
 			// number of minutes to wait = number of queued clients)
-			wait = (wait * 45);
+			wait = (wait * 60);
 			_resultsTxtPane.append(_resBundDisplayMsgs.getString("otherClient")
 					+ wait + _resBundDisplayMsgs.getString("seconds") + ".\n");
 			iServerWaitFlag = 1; // mark variable as ==first message from server
