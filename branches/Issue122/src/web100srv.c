@@ -757,7 +757,7 @@ void * zombieWorker(void *head_ptr) {
   int i = 0, retcode;
   struct timeval sel_tv;
   fd_set rfd;
-  char tmpstr[8], buff[32];
+  char buff[32];
   int msgType, msgLen = 1;
 
   tmp_ptr = (struct ndtchild *) head_ptr;
@@ -772,7 +772,6 @@ void * zombieWorker(void *head_ptr) {
       pre_ptr = tmp_ptr;
     tmp_ptr = tmp_ptr->next;
   }
-  snprintf(tmpstr, sizeof(tmpstr), "9990");
   i = 0;
   while (tmp_ptr != NULL) {
     if (tmp_ptr->oldclient == 0) {
@@ -788,8 +787,9 @@ void * zombieWorker(void *head_ptr) {
                 tmp_ptr->pid);
 
     // send "keep-alive" SRV_QUEUE message to client and expect a response
-    retcode = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr,
-                       strlen(tmpstr));
+    retcode = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, 
+      SRV_QUEUE_HEARTBEAT_STR,
+      SRV_QUEUE_HEARTBEAT_STR_LN);
     log_println(6,
                 "send_msg() returned %d during zombie check on client %d",
                 retcode, tmp_ptr->pid);
@@ -2027,7 +2027,9 @@ mainloop: if (head_ptr == NULL)
             while (head_ptr != NULL) {
               /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9933", 4); */
               // indicate server waiting in queue
-              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
+              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
+	        SRV_QUEUE_SERVER_BUSY_STR, 
+		SRV_QUEUE_SERVER_BUSY_STR_LN);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2046,7 +2048,9 @@ mainloop: if (head_ptr == NULL)
                         "clients", head_ptr->pid);
             while (head_ptr != NULL) {
               /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9977", 4); */
-              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
+              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
+	        SRV_QUEUE_SERVER_BUSY_STR, 
+		SRV_QUEUE_SERVER_BUSY_STR_LN);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2080,7 +2084,9 @@ mainloop: if (head_ptr == NULL)
                   head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
                   head_ptr->oldclient, head_ptr->tests);
               // boot the client
-              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9988", 4);
+              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
+	        SRV_QUEUE_SERVER_BUSY_STR, 
+		SRV_QUEUE_SERVER_BUSY_STR_LN);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2287,9 +2293,9 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                     0,
                     "Too many clients/mclients (%d) waiting to be served, "
                     "Please try again later.", chld_pid);
-                // 9988 = server_BUSY_OR_ERROR
-                snprintf(tmpstr, sizeof(tmpstr), "9988");
-                send_msg(ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+                send_msg(ctlsockfd, SRV_QUEUE, 
+		  SRV_QUEUE_SERVER_BUSY_STR, 
+		  SRV_QUEUE_SERVER_BUSY_STR_LN);
                 close(chld_pipe[0]);
                 close(chld_pipe[1]);
                 shutdown(ctlsockfd, SHUT_WR);
@@ -2306,18 +2312,16 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
               t_opts = initialize_tests(ctlsockfd, &testopt, test_suite,
                                         sizeof(test_suite));
               if (t_opts < 1) {  // some error in initialization routines
-                log_println(
-                    3,
-                    "Invalid test suite string '%s' received, terminate child",
-                    test_suite);
+                log_println(3, "Invalid test suite received, terminate child");
                 close(chld_pipe[0]);
                 close(chld_pipe[1]);
                 shutdown(ctlsockfd, SHUT_WR);
                 close(ctlsockfd);
                 kill(chld_pid, SIGTERM);
                 if (new_child != NULL) {
-                  log_println(6, "invalid test suite, freeing new_child=0x%x",
-                              new_child);
+                  log_println(6, "Freeing new_child=0x%x because of " 
+		    "invalid test suite",
+                    new_child);
                   free(new_child);
                 }
                 continue;
@@ -2351,7 +2355,7 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
               else
                 new_child->oldclient = 0;
               memset(new_child->tests, 0, sizeof(test_suite));
-              memcpy(new_child->tests, test_suite, strlen(test_suite));
+              memcpy(new_child->tests, test_suite, sizeof(test_suite));
               new_child->next = NULL;
               /* sigprocmask(SIG_SETMASK, &oldmask, NULL); */
               sem_post(&ndtq);
@@ -2372,7 +2376,9 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                     3,
                     "queuing disabled and testing in progress, tell client no");
                 /* send_msg(new_child->ctlsockfd, SRV_QUEUE, "9944", 4); */
-                send_msg(new_child->ctlsockfd, SRV_QUEUE, "9988", 4);
+                send_msg(new_child->ctlsockfd, SRV_QUEUE, 
+		  SRV_QUEUE_SERVER_BUSY_STR, 
+		  SRV_QUEUE_SERVER_BUSY_STR_LN);
                 close(chld_pipe[1]);
                 shutdown(new_child->ctlsockfd, SHUT_WR);
                 close(new_child->ctlsockfd);
