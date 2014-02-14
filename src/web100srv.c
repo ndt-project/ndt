@@ -311,106 +311,97 @@ void child_sig(pid_t chld_pid) {
   if (child_proc1 == NULL)
     return;
 
-reap_child: if (multiple == 1) {
-              log_println(5, "mclient child '%d' (%d) has finished its test",
-                          mclients, pid);
-              mclients--;
-              /*     return; */
-            }
+  if (multiple == 1) {
+    log_println(5, "mclient child '%d' (%d) has finished its test",
+                mclients, pid);
+    mclients--;
+    /*     return; */
+  }
 
-            log_println(4, "Attempting to clean up child %d, head pid = %d",
-                        pid, head_ptr->pid);
-            if (head_ptr->pid == pid) {
-              if (get_debuglvl() > 5) {
-                log_println(5, "Walkingqueue");
-                child_proc1 = head_ptr;
-                while (child_proc1 != NULL) {
-                  log_println(5, "\tChild %d, host: %s [%s], next=0x%x",
-                              child_proc1->pid, child_proc1->host,
-                              child_proc1->addr, (u_int64_t) child_proc1->next);
-                  if (child_proc1->next == NULL)
-                    break;
-                  child_proc1 = child_proc1->next;
-                }
-              }
+  log_println(4, "Attempting to clean up child %d, head pid = %d",
+              pid, head_ptr->pid);
+  if (head_ptr->pid == pid) {
+    if (get_debuglvl() > 5) {
+      log_println(5, "Walkingqueue");
+      child_proc1 = head_ptr;
+      while (child_proc1 != NULL) {
+        log_println(5, "\tChild %d, host: %s [%s], next=0x%x",
+                    child_proc1->pid, child_proc1->host,
+                    child_proc1->addr, (u_int64_t) child_proc1->next);
+        if (child_proc1->next == NULL)
+          break;
+        child_proc1 = child_proc1->next;
+      }
+    }
 
-              while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-                log_println(6, "Waiting for ndtq semaphore to free - 1");
-                continue;
-              }
-              log_println(
-                  5,
-                  "Child process %d causing head pointer modification, "
-                  "semaphore locked", pid);
-              if (head_ptr != NULL) {
-                child_proc1 = head_ptr;
-                log_println(6, "modifying queue child_proc1=0x%x, "
-                            "head_ptr=0x%x", child_proc1, head_ptr);
-                head_ptr = head_ptr->next;
-                log_println(6, "free child_proc1=0x%x", child_proc1);
-                free(child_proc1);
-              }
-              if (head_ptr == NULL)
-                testing = 0;
-              if (multiple == 0)
-                testing = 0;
-              waiting--;
-              log_println(3,
-                          "Removing Child from head, decremented "
-                          "waiting/mclients %d/%d", waiting, mclients);
-              sem_post(&ndtq);
-              log_println(6, "Free'd ndtq semaphore lock - 3");
-              if (sig17 > 0)
-                sig17--;
-              return;
-            } else {
-              child_proc1 = head_ptr;
-              while (child_proc1->next != NULL) {
-                if (child_proc1->next->pid == pid) {
-                  while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-                    log_println(6, "Waiting for ndtq semaphore to free - 2");
-                    continue;
-                  }
-                  log_println(
-                      4,
-                      "Child process %d causing task list modification, "
-                      "semaphore locked", chld_pid);
-                  child_proc2 = child_proc1->next;
-                  child_proc1->next = child_proc2->next;
-                  log_println(6, "free child_proc2=0x%x", child_proc2);
-                  free(child_proc2);
-                  /* testing = 0; */
-                  waiting--;
-                  log_println(
-                      3,
-                      "Removing Child from list, decremented "
-                      "waiting/mclients %d/%d", waiting, mclients);
-                  sem_post(&ndtq);
-                  log_println(6, "Free'd ndtq semaphore lock - 4");
-                  if (sig17 > 0)
-                    sig17--;
-                  return;
-                }
-                child_proc1 = child_proc1->next;
-                log_println(6, "Looping through service queue ptr = 0x%x",
-                            (u_int64_t) child_proc1);
-              }
-            }
-            if (sig17 > 0)
-              sig17--;
-            log_println(3,
-                        "SIGCHLD routine finished!, decremented sig17 counter "
-                        "now =%d", sig17);
-            return;
-            if (pid > 0) {
-              chld_pid = head_ptr->pid;
-              log_println(
-                  6,
-                  "stuck process or other problem, removing pointer from head "
-                  "of queue");
-              goto reap_child;
-            }
-            log_println(6, "Did we get here???");
+    while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+      log_println(6, "Waiting for ndtq semaphore to free - 1");
+      continue;
+    }
+    log_println(
+        5,
+        "Child process %d causing head pointer modification, "
+        "semaphore locked", pid);
+    if (head_ptr != NULL) {
+      child_proc1 = head_ptr;
+      log_println(6, "modifying queue child_proc1=0x%x, "
+                  "head_ptr=0x%x", child_proc1, head_ptr);
+      head_ptr = head_ptr->next;
+      log_println(6, "free child_proc1=0x%x", child_proc1);
+      free(child_proc1);
+    }
+    if (head_ptr == NULL)
+      testing = 0;
+    if (multiple == 0)
+      testing = 0;
+    waiting--;
+    log_println(3,
+                "Removing Child from head, decremented "
+                "waiting/mclients %d/%d", waiting, mclients);
+    sem_post(&ndtq);
+    log_println(6, "Free'd ndtq semaphore lock - 3");
+    if (sig17 > 0)
+      sig17--;
+    return;
+  } else {
+    child_proc1 = head_ptr;
+    while (child_proc1->next != NULL) {
+      if (child_proc1->next->pid == pid) {
+        while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
+          log_println(6, "Waiting for ndtq semaphore to free - 2");
+          continue;
+        }
+        log_println(
+            4,
+            "Child process %d causing task list modification, "
+            "semaphore locked", chld_pid);
+        child_proc2 = child_proc1->next;
+        child_proc1->next = child_proc2->next;
+        log_println(6, "free child_proc2=0x%x", child_proc2);
+        free(child_proc2);
+        /* testing = 0; */
+        waiting--;
+        log_println(
+            3,
+            "Removing Child from list, decremented "
+            "waiting/mclients %d/%d", waiting, mclients);
+        sem_post(&ndtq);
+        log_println(6, "Free'd ndtq semaphore lock - 4");
+        if (sig17 > 0)
+          sig17--;
+        return;
+      }
+      child_proc1 = child_proc1->next;
+      log_println(6, "Looping through service queue ptr = 0x%x",
+                  (u_int64_t) child_proc1);
+    }
+  }
+  if (sig17 > 0)
+    sig17--;
+  log_println(3,
+              "SIGCHLD routine finished!, decremented sig17 counter "
+              "now =%d", sig17);
+  return;
 }
 
 /**
