@@ -95,6 +95,20 @@ package  {
         TestResults.appendDebugMsg("Bad Flash permissions: No "
           + "access to javascript.");
       }
+      try {
+        var js_client_application:String = 
+	  ExternalInterface.call("getClientApplication");
+        if (js_client_application) {
+          Main.client_application += js_client_application
+          TestResults.appendDebugMsg(
+            "Initialized client application from JavaScript. " +
+	    "Client application: "
+            + Main.client_application);
+        }
+      } catch(e:Error) {
+        TestResults.appendDebugMsg("Bad Flash permissions: No "
+          + "access to javascript.");
+      }
     }
 
     /**
