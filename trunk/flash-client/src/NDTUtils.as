@@ -84,12 +84,16 @@ package  {
       }
 
       try {
-        Main.server_hostname = ExternalInterface.call("getNDTServer");
-        TestResults.appendDebugMsg(
+        var js_server_hostname:String = ExternalInterface.call("getNDTServer");
+        if (js_server_hostname) {
+          Main.server_hostname = js_server_hostname;
+          TestResults.appendDebugMsg(
             "Initialized server from JavaScript. Server hostname:"
             + Main.server_hostname);
+        }
       } catch(e:Error) {
-        Main.server_hostname = NDTConstants.SERVER_HOSTNAME;
+        TestResults.appendDebugMsg("Bad Flash permissions: No "
+          + "access to javascript.");
       }
     }
 
