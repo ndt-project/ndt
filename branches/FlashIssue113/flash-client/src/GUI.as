@@ -247,7 +247,7 @@ package  {
       _detailsButton.y = _resultsButton.y + verticalMargin;
       _errorsButton.y = _detailsButton.y  + verticalMargin;
       _debugButton.y = _errorsButton.y + verticalMargin;
-      _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin 
+      _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
                                        : _errorsButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
