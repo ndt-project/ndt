@@ -423,12 +423,15 @@ package  {
         TestResults.appendDebugMsg(
             ResourceManager.getInstance().getString(
                 NDTConstants.BUNDLE_NAME, "c2sThroughput", null, Main.locale)
-            + " test <font color=\"#006400\"><b>" + ResourceManager.getInstance().getString(
-                NDTConstants.BUNDLE_NAME, "done", null, Main.locale) + "</b></font><br>");
+            + " test <font color=\"#7CFC00\"><b>" 
+            + ResourceManager.getInstance().getString(
+                NDTConstants.BUNDLE_NAME, "done", null, Main.locale) 
+            + "</b></font><br>");
       else
-        TestResults.appendDebugMsg("<font color=\"#FE9A2E\">" + 
-	    ResourceManager.getInstance().getString(
-            	NDTConstants.BUNDLE_NAME, "c2sThroughputFailed", null, Main.locale) + "</font>");
+        TestResults.appendDebugMsg("<font color=\"#FE9A2E\">" 
+	    + ResourceManager.getInstance().getString(
+                NDTConstants.BUNDLE_NAME, "c2sThroughputFailed", null, Main.locale)
+            + "</font>");
       TestResults.ndt_test_results::c2sTestSuccess = _c2sTestSuccess;
       TestResults.ndt_test_results::ndtTestStatus = "done";
       NDTUtils.callExternalFunction("testCompleted", "ClientToServerThroughput",

@@ -89,7 +89,9 @@ package  {
       if (!CONFIG::debug) {
           return;
       }
-      var formattedMsg:String = "<font size=\"12\">" + (new Date().toUTCString()) + ": " + "</font>" + msg + "\n";
+      var formattedMsg:String = "<font size=\"12\">" 
+                                + (new Date().toUTCString()) + ": "
+                                + "</font>" + msg + "\n";
       _debugMsg += formattedMsg;
       NDTUtils.callExternalFunction("appendDebugOutput", msg);
       // _ndtTestStartTime > 0 ensures the console window has been created.
