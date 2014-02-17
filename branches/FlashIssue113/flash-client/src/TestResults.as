@@ -143,7 +143,7 @@ package  {
       TestResults.appendResultDetails(s2cTestResults + remoteTestResults);
       // TODO(tiziana): If parsing mistake, log message "resultsParseError".
     }
-	
+
     public static function clearResults():void {
       _ndtTestStartTime = 0.0;
       _ndtTestEndTime = 0.0;
@@ -162,6 +162,8 @@ package  {
       ss2cSpeed = 0.0;
       s2cTestResults = "";
       remoteTestResults = "";
+      c2sTestSuccess = false;
+      s2cTestSuccess = false;
     }
   }
 }

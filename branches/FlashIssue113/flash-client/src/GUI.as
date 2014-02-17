@@ -247,7 +247,8 @@ package  {
       _detailsButton.y = _resultsButton.y + verticalMargin;
       _errorsButton.y = _detailsButton.y  + verticalMargin;
       _debugButton.y = _errorsButton.y + verticalMargin;
-	  _restartButton.y = CONFIG::debug ? _debugButton.y + 1.5 * verticalMargin : _errorsButton.y + 1.5 * verticalMargin;
+      _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin 
+                                       : _errorsButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       _errorsButton.x += _errorsButton.width / 2;
@@ -368,7 +369,7 @@ package  {
                                    + TestResults.getErrMsg();
       _resultsTextField.scrollV = 0;
     }
-	
+
     private function clickRestart(e:MouseEvent):void {
       hideResultsScreen();
       TestResults.clearResults();
