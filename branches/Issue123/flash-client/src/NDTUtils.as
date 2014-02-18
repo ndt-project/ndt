@@ -99,7 +99,7 @@ package  {
         var js_client_application:String = 
 	  ExternalInterface.call("getClientApplication");
         if (js_client_application) {
-          Main.client_application += js_client_application
+          Main.client_application = js_client_application;
           TestResults.appendDebugMsg(
             "Initialized client application from JavaScript. " +
 	    "Client application: "
