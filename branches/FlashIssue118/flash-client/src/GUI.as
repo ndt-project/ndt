@@ -392,7 +392,7 @@ class NDTButton extends Sprite {
   
   public function setActive():void {
     var textFormat:TextFormat = _textField.getTextFormat();
-    textFormat.color = 0x00FA9A;
+    textFormat.color = 0x00DBA8;
     _textField.setTextFormat(textFormat);
   }
   
