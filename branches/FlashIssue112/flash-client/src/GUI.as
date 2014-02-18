@@ -75,8 +75,7 @@ package  {
       _aboutNDTText.height = 0.40 * _stageHeight;
       _aboutNDTText.wordWrap = true;
       _aboutNDTText.selectable = false;
-      _aboutNDTText.text = Main.NDT_description == null ? 
-                           NDTConstants.NDT_DESCRIPTION : Main.NDT_description;
+      _aboutNDTText.text = Main.ndt_description;
 
       // 3) Learn more link
       _urlRequest = new URLRequest(NDTConstants.MLAB_SITE);

@@ -26,7 +26,7 @@ package {
     public static var locale:String = CONFIG::defaultLocale;
     public static var gui:GUI;
     public static var server_hostname:String = NDTConstants.SERVER_HOSTNAME;
-    public static var NDT_description:String = NDTConstants.NDT_DESCRIPTION;
+    public static var ndt_description:String = NDTConstants.NDT_DESCRIPTION;
 
     public function Main():void {
       if (stage)
