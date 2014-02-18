@@ -91,6 +91,14 @@ package  {
       } catch(e:Error) {
         Main.server_hostname = NDTConstants.SERVER_HOSTNAME;
       }
+	  
+      try {
+        Main.NDT_description = ExternalInterface.call("getNDTDescription");
+        TestResults.appendDebugMsg(
+            "Initialized description from JavaScript.");
+      } catch(e:Error) {
+        Main.NDT_description = NDTConstants.NDT_DESCRIPTION;
+      }
     }
 
     /**

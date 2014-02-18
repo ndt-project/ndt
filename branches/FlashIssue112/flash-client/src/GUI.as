@@ -75,17 +75,8 @@ package  {
       _aboutNDTText.height = 0.40 * _stageHeight;
       _aboutNDTText.wordWrap = true;
       _aboutNDTText.selectable = false;
-      _aboutNDTText.text = "Network Diagnostic Tool (NDT) provides a "
-                           + "sophisticated speed and diagnostic test. An NDT "
-                           + "test reports more than just the upload and "
-                           + "download speeds — it also attempts to determine "
-                           + "what, if any, problems limited these speeds, "
-                           + "differentiating between computer configuration "
-                           + "and network infrastructure problems. While the "
-                           + "diagnostic messages are most useful for expert "
-                           + "users, they can also help novice users by "
-                           + "allowing them to provide detailed trouble "
-                           + "reports to their network administrator.";
+      _aboutNDTText.text = Main.NDT_description == null ? 
+                           NDTConstants.NDT_DESCRIPTION : Main.NDT_description;
 
       // 3) Learn more link
       _urlRequest = new URLRequest(NDTConstants.MLAB_SITE);
