@@ -241,14 +241,15 @@ package  {
         TestResults.appendDebugMsg(
              ResourceManager.getInstance().getString(
                  NDTConstants.BUNDLE_NAME, "meta", null, Main.locale)
-             + " test <font color=\"#7CFC00\"><b>" 
+             + " test <font color=\"#7CFC00\"><b>"
              + ResourceManager.getInstance().getString(
                  NDTConstants.BUNDLE_NAME, "done", null, Main.locale)
              + "</b></font><br>");
       else
         TestResults.appendDebugMsg("<font color=\"#FE9A2E\">" +
 	     ResourceManager.getInstance().getString(
-            	NDTConstants.BUNDLE_NAME, "metaFailed", null, Main.locale) + "</font>");
+            	NDTConstants.BUNDLE_NAME, "metaFailed", null, Main.locale)
+             + "</font>");
 
       TestResults.ndt_test_results::ndtTestStatus = "done";
       NDTUtils.callExternalFunction(

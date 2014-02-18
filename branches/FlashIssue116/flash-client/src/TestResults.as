@@ -89,7 +89,7 @@ package  {
       if (!CONFIG::debug) {
           return;
       }
-      var formattedMsg:String = "<font size=\"12\">" 
+      var formattedMsg:String = "<font size=\"12\">"
                                 + (new Date().toUTCString()) + ": "
                                 + "</font>" + msg + "\n";
       _debugMsg += formattedMsg;
