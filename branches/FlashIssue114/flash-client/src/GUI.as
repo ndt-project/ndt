@@ -25,6 +25,8 @@ package  {
   import flash.display.DisplayObjectContainer;
   import flash.display.DisplayObject;
   import flash.filters.BlurFilter;
+  import flash.desktop.Clipboard;
+  import flash.desktop.ClipboardFormats;
   import spark.effects.*;
 
   /**
@@ -52,6 +54,7 @@ package  {
     private var _detailsButton:Sprite;
     private var _errorsButton:Sprite;
     private var _debugButton:Sprite;
+    private var _copyButton:Sprite;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -163,6 +166,12 @@ package  {
       _callerObj.startNDTTest();
     }
 
+    private function clickCopy(e:MouseEvent):void {
+      Clipboard.generalClipboard.clear();
+      Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT,
+                                         _resultsTextField.text);
+    }
+
     private function hideInitialScreen():void {
       while (this.numChildren > 0)
         this.removeChildAt(0);
@@ -211,42 +220,50 @@ package  {
       _errorsButton = new NDTButton("ERRORS", 18, 30, 0.25);
       if (CONFIG::debug)
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
+      _copyButton = new NDTButton("COPY", 18, 30, 0.25);
 
-      var verticalMargin:Number = _stageHeight / 4;
+      var verticalMargin:Number = _stageHeight / 5;
       if (CONFIG::debug)
-        verticalMargin = _stageHeight / 5;
+        verticalMargin = _stageHeight / 6;
       _resultsButton.y = verticalMargin;
       _detailsButton.y = _resultsButton.y + verticalMargin;
       _errorsButton.y = _detailsButton.y  + verticalMargin;
       _debugButton.y = _errorsButton.y + verticalMargin;
+      _copyButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
+                                    : _errorsButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       _errorsButton.x += _errorsButton.width / 2;
       _debugButton.x += _debugButton.width / 2;
+      _copyButton.x += _copyButton.width / 2;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
       this.addChild(_errorsButton);
       if (_debugButton)
         this.addChild(_debugButton);
+      this.addChild(_copyButton);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _errorsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _copyButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _errorsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _copyButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
       _errorsButton.addEventListener(MouseEvent.CLICK, clickErrors);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
+      _copyButton.addEventListener(MouseEvent.CLICK, clickCopy);
 
       setSummaryResultText();
       _resultsTextField.htmlText = _summaryResultText;
