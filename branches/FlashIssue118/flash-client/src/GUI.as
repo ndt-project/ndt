@@ -328,21 +328,21 @@ package  {
     }
 
     private function clickDebug(e:MouseEvent):void {
-      changeActiveButton(NDTButton(e.target));  
+      changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getDebugMsg();
       _resultsTextField.scrollV = 0;
     }
 
     private function clickErrors(e:MouseEvent):void {
-      changeActiveButton(NDTButton(e.target));	
+      changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getErrMsg();
       _resultsTextField.scrollV = 0;
     }
-	
+
     private function changeActiveButton(target:NDTButton):void {
-      if (_activeButton) 
+      if (_activeButton)
         _activeButton.setInactive();
       target.setActive();
       _activeButton = target;
@@ -357,8 +357,8 @@ import flash.text.*;
 class NDTButton extends Sprite {
   [Embed(source="../assets/hover.png")]
   private var ButtonImg:Class;
-  
-  private var _textField:TextField; 
+
+  private var _textField:TextField;
 
   function NDTButton(text:String, textSize:int, height:int, prop:Number) {
     super();
@@ -389,13 +389,13 @@ class NDTButton extends Sprite {
     this.addChild(_textField);
     this.mouseChildren = false;
   }
-  
+
   public function setActive():void {
     var textFormat:TextFormat = _textField.getTextFormat();
     textFormat.color = 0x00DBA8;
     _textField.setTextFormat(textFormat);
   }
-  
+
   public function setInactive():void {
     var textFormat:TextFormat = _textField.getTextFormat();
     textFormat.color = 0xFFFFFF;
