@@ -95,7 +95,7 @@ package  {
       try {
         Main.ndt_description = ExternalInterface.call("getNDTDescription");
         TestResults.appendDebugMsg(
-            "Initialized s/description/NDT description from JavaScript:"
+            "Initialized NDT description from JavaScript:"
             + Main.ndt_description);
       } catch(e:Error) {
         Main.ndt_description = NDTConstants.NDT_DESCRIPTION;
