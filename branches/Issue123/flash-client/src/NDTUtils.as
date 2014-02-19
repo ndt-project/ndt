@@ -96,7 +96,7 @@ package  {
           + "access to javascript.");
       }
       try {
-        var js_client_application:String = 
+        var js_client_application:String =
 	  ExternalInterface.call("getClientApplication");
         if (js_client_application) {
           Main.client_application = js_client_application;
