@@ -46,6 +46,7 @@ package  {
     private var _startButton:Sprite;
 
     private var _consoleText:TextField;
+    private var _progressText:TextField;
     private var _resultsTextField:TextField;
     private var _summaryResultText:String;
     private var _resultsButton:Sprite;
@@ -158,9 +159,28 @@ package  {
       _consoleText.x = 0.02 * _stageWidth;
       _consoleText.y = 0.02 * _stageHeight;
       _consoleText.width = 0.96 * _stageWidth;
-      _consoleText.height = 0.96 * _stageHeight;
+      _consoleText.height = 0.9 * _stageHeight;
+
+      _progressText = new TextField();
+      _progressText.x = 0.02 * _stageWidth;
+      _progressText.y = 0.95 * _stageHeight;
+      _progressText.width = 0.96 * _stageWidth;
+      _progressText.height = 0.06 * _stageHeight;
+      var textFormat:TextFormat = new TextFormat();
+      textFormat.size = 14;
+      textFormat.font = "Verdana";
+      textFormat.color = 0x000000;
+      textFormat.align = TextFormatAlign.RIGHT;
+      _progressText.defaultTextFormat = textFormat;
+      updateProgressText(0);
+
       this.addChild(_consoleText);
+      this.addChild(_progressText);
       _callerObj.startNDTTest();
+    }
+
+    public function updateProgressText(progress:int):void {
+      _progressText.text = "Tests completed: " + progress + "%";
     }
 
     private function hideInitialScreen():void {

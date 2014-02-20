@@ -42,6 +42,7 @@ package  {
     private var _remoteTestResults:String;
     private var _testsToRun:Array;
     private var _testStage:int;
+    private var _currentTest:int = 0;
 
     public function NDTPController(hostname:String) {
       _hostname = hostname;
@@ -113,9 +114,14 @@ package  {
     }
 
     public function runTests():void {
-      if (_testsToRun.length > 0) {
-       var currentTest:int = parseInt(_testsToRun.shift());
-        switch (currentTest) {
+      if (Main.guiEnabled) {
+        Main.gui.updateProgressText(_currentTest / _testsToRun.length * 100);
+      }
+
+      if (_testsToRun.length > _currentTest) {
+        var currentTestCode:int = parseInt(_testsToRun[_currentTest]);
+        _currentTest++;
+        switch (currentTestCode) {
           case TestType.C2S:
               var c2s:TestC2S = new TestC2S(_ctlSocket, _hostname, this);
               c2s.run();
@@ -244,6 +250,7 @@ package  {
 
       TestResults.interpretResults();
       if (Main.guiEnabled) {
+        Main.gui.updateProgressText(100);
         Main.gui.displayResults();
       }
     }
