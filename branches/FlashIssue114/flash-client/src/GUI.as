@@ -210,9 +210,9 @@ package  {
 
       _resultsTextField = new ResultsTextField();
       _resultsTextField.x = 0.275 * _stageWidth;
-      _resultsTextField.y = 0.05 * _stageHeight;
+      _resultsTextField.y = 0.1 * _stageHeight;
       _resultsTextField.width = 0.725 * _stageWidth;
-      _resultsTextField.height = 0.90 * _stageHeight;
+      _resultsTextField.height = 0.85 * _stageHeight;
       this.addChild(_resultsTextField);
 
       _resultsButton = new NDTButton("RESULTS", 18, 30, 0.25);
@@ -220,7 +220,7 @@ package  {
       _errorsButton = new NDTButton("ERRORS", 18, 30, 0.25);
       if (CONFIG::debug)
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
-      _copyButton = new NDTButton("COPY", 18, 30, 0.25);
+      _copyButton = new NDTButton("COPY", 12, 20, 0.15);
 
       var verticalMargin:Number = _stageHeight / 5;
       if (CONFIG::debug)
@@ -229,13 +229,12 @@ package  {
       _detailsButton.y = _resultsButton.y + verticalMargin;
       _errorsButton.y = _detailsButton.y  + verticalMargin;
       _debugButton.y = _errorsButton.y + verticalMargin;
-      _copyButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
-                                    : _errorsButton.y + verticalMargin;
+      _copyButton.y = 0.05 * _stageHeight;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       _errorsButton.x += _errorsButton.width / 2;
       _debugButton.x += _debugButton.width / 2;
-      _copyButton.x += _copyButton.width / 2;
+      _copyButton.x += _resultsTextField.x + _resultsTextField.width / 2;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
