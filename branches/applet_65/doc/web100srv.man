@@ -1,0 +1,312 @@
+.TH web100srv 8 "$Date$"
+." The first line of this file must contain the '"[e][r][t][v] line
+." to tell man to run the appropriate filter "t" for table.
+."
+."	$Id$
+."
+."######################################################################
+."#									#
+."#			   Copyright (C)  2004				#
+."#	     			Internet2				#
+."#			   All Rights Reserved				#
+."#									#
+."######################################################################
+."
+."	File:		web100srv.8
+."
+."	Author:		Rich Carlson
+."			Internet2
+."
+."	Date:		Sun May 20 16:01:25 CST 2004
+."
+."	Description:	
+."
+.SH NAME
+web100srv \- NDT server-side testing and analysis engine.
+.SH SYNOPSIS
+.B web100srv 
+[\fIoptions\fR] 
+.SH DESCRIPTION
+The \fBNetwork Diagnostic Tester\fR (NDT) tool is a client/server
+program that provides network configuration and performance testing
+to a user's desktop or laptop computer.  The system is composed of a
+client program (\fIcommand line\fR or \fIjava applet\fR) and a pair
+of server programs (a webserver and a testing/analysis engine).  
+.PP
+The NDT server components are deployed on a \fBWeb100\fR-enhanced
+server and these processes are started at boot time. A simple
+web server, \fBfakewww\fR, provides a front end to the \fItesting
+and analysis engine\fR. It allows any Java-enabled web browser
+to access the \fItesting and analysis engine,\fR eliminating the
+need to pre-load software on the desktop computer. This greatly
+enhances the utility of the system. The \fItesting and
+analysis engine\fR, \fBweb100srv\fR, exchanges data with a \fIcommand
+line\fR or \fIJava applet-based\fR client program to test the
+client computer and the network path between the client and
+server. A series of specific tests are conducted with the
+purpose of identifying well know configuration problems
+that adversely affect network performance. The goal is to
+allow users to self-test their desktop or laptop computer and
+produce results that are acceptable to a site network administrator.
+.PP
+The \fBweb100srv\fR program provides the \fItesting and analysis\fR
+features that make the \fBNDT\fR an effective diagnostic tool. The
+basic operation is:
+.RS
+.IP \(bu
+A client program connects to the server opening a command channel
+on the well-know TCP port 3001. This command channel is maintained
+throughout the life of the test to allow the exchange of test results. 
+This client program may be the Java applet, automatically downloaded
+via the web services interface, or a command line program, \fBweb100clt\fR,
+pre-loaded on the client computer. The server accepts this request,
+forks a child process to handle the specific tests, and goes back to
+listen for new requests. There are several operational modes (see
+options below) that may cause the child to start a test, handle
+multiple simultaneous clients, or immediately terminate the pending request.
+.IP \(bu
+Once a test request is accepted, the server returns a TCP port number
+that the client must use for the next test. The
+server process does a passive open on this port via the \fBlisten(2)\fR
+command. The client performs the active open, via the \fBconnect(2)\fR
+command, to allow it to operate, even when located behind a NAT or
+other filtering firewall. By default, the server uses TCP port
+numbers 3002 and 3003 in the tests from the basic suite.
+.IP \(bu
+Testing begins with the client opening a connection on port 3003. 
+The server records and returns the negotiated TCP max segment size,
+along with the server's view of the IP addresses used for this connection. 
+These values allow the client to determine if a NAT or filtering
+firewall is located in the network path. Moreover, the 5 seconds CWND limited
+throughput test is performed during this connection. The connection is closed
+and the client records the results for later display.
+.IP \(bu
+Next, the server listens on the random ephemeral port. The client tries to
+open a connection to this port. The same operation is repeated in the
+opposite direction. There will be a possible firewall detection, when the
+connections will not be established in the specified amount of time.
+.IP \(bu
+Then, the client opens a connection on port 3002.
+Data is streamed from the client to the server for 10 seconds. 
+The result is a measurement of the achieved throughput from the
+client to the server - i.e., the \fIupload direction\fR. By default, the server
+\fBfork(2)'s\fR a child process to monitor the packet dispersion of the
+packets sent and received during this test. A simple \fBpcap(3)\fR
+program notes the arrival time of each packet and computes a
+throughput rate for each pair. These results are then quantized
+into a limited number of bins, one for each link technology to be
+identified, and a weighted average is also computed. At the end
+of the test these bins are returned to the parent process for analysis.
+.IP \(bu
+Next, the client opens a connection on port 3003.
+Data is streamed from the server to the client for 10 seconds. 
+The result is a measurement of the achieved throughput from the
+server to the client - i.e., the \fIdownload direction\fR. By default, the server
+\fBfork(2)'s\fR a child process to capture another set of packet dispersion
+events. (Note: the server process must have enough privileges
+to perform this snooping on the network interface.) After the
+test stream has finished, the server retrieves a set of \fBWeb100\fR
+kernel variables and counters. These variables are used by the
+analysis engine to determine what, if any, fault conditions occurred.
+.IP \(bu
+The final step is to analyze the collected data. The packet
+dispersion results are used to calculate the bottleneck link
+technology used on the network path. This value provides an
+upper limit on how fast an application may operate. The current
+list of detected links is defined below. Following the link
+detection, the analysis engine looks for signs of duplex mismatch
+and cable faults that cause non-congestive packet loss. These
+two conditions will adversely effect throughput, but may not
+show up with simple connectivity testing, allowing them to
+remain undetected for long periods of time. The final step
+is to analyze the connection for signs of congestion and
+full/half duplex operation. These normal conditions can help
+identify when problems exist and when the network is operating properly.
+.RE
+.SH OPTIONS
+.TP
+\fB\-a, --adminview\fR 
+Generate an administrator view web page. The \fBNDT\fR server
+maintains a log file that contains the results from every test. 
+This allows the \fBNDT\fR administrator to examine the test results when
+users complain. This option allows the \fBNDT\fR administrator to make
+a summary of these results available to the user community via
+the web interface. When enabled, this options generates the
+results web page.
+.TP
+\fB\-d, --debug\fR 
+Print debugging information. This option increments the internal
+debugging flag, allowing the display of run-time diagnostic messages. 
+Repeated use of this option increases the amount of debugging
+information that will be displayed. Note: debugging information
+prints to stderr.
+.TP
+\fB\-h, --help\fR 
+Print a simple usage page and exit.
+.TP
+\fB\-m, --multiple\fR 
+Select single or multi-test mode. By default, the \fBNDT\fR operates
+in single test mode. This means that only a single client may
+run a test at any given time. The \fBNDT\fR administrator may choose
+to allow multiple clients to run concurrent tests instead of this
+single client mode. Note: doing so allows clients to interfere
+with each other, possibly congesting the \fBNDT's\fR local network link.
+.TP
+\fB\-o, --old\fR 
+Use old Duplex Mismatch heuristic.
+.TP
+\fB\-q, --disable-queue\fR 
+Disable FIFO queuing. By default, the \fBNDT\fR operates with a FIFO
+queue, allowing multiple clients to request tests. If the server
+is currently performing a test, the requesting client is informed
+that the server is busy and testing will begin within xx seconds. 
+The \fBNDT\fR administrator may disable this queuing and reject test
+requests while the server is busy. In this mode, the user must
+manually request another test.
+.TP
+\fB\-r, --record\fR 
+Record \fBWeb100\fR variables when the server is receiving data. 
+By default, the server does not capture \fBWeb100\fR variables during the
+client to server throughput test. There is a minimal amount of
+Web100 data collected when TCP is operating in a receive mode. 
+This option allows the \fBNDT\fR administrator to collect and examine
+this \fBWeb100\fR data.
+.TP
+\fB\-s, --syslog\fR 
+Export Web100 data via the syslog() LOG_LOCAL0 facility.
+.TP
+\fB\-t, --tcpdump\fR 
+Write a \fBtcpdump(8)\fR formatted file to disk. By default,
+the server tries to perform a packet dispersion analysis of all
+data sent and received on the test ports (3002 and 3003). 
+This options allows the administrator to capture these data
+streams for later analysis. The \fBtcpdump(8)\fR and \fBtcptrace(1)\fR
+programs can be used to analyze these trace files.
+.TP
+\fB\-v, --version\fR 
+Print version number and exit.
+.TP
+\fB\-c, --config\fR \fIfilename\fR
+Specify the name of the file with configuration.
+.TP
+\fB\-y, --limit\fR \fIlimit\fR
+Enable the experimental throughput limiting code.
+.TP
+\fB\--avoidsndblockup\fR
+Enable the experimental code to avoid send buffers blocking in the S2C test.
+.TP
+\fB\--snaplog\fR
+Enable the experimental snaplog writing.
+.TP
+\fB\--cwnddecrease\fR
+Enable the experimental analyzing of the cwnd changes during the S2C test.
+Note, that this automatically enables 'snaplog' option.
+.TP
+\fB\--cputime\fR
+Enable the experimental cputime writing.
+.TP
+\fB\--enableDBlogging\fR
+Enable the test results logging to the database.
+.TP
+\fB\--dbDSN\fR \fIdsn\fR
+Specify the DSN to use.
+.TP
+\fB\--dbUID\fR \fIuid\fR
+Specify the UID to use.
+.TP
+\fB\--dbPWD\fR \fIpwd\fR
+Specify the PWD to use.
+.TP
+\fB\-b, --buffer\fR \fIbuffer_size\fR
+This option allows the \fBNDT\fR administrator to set the TCP send
+and receive buffer sizes via the \fBsetsockopt(2)\fR function. 
+Values larger than 64 kbytes will result in large windows if
+the RFC1323 window scaling option is enabled on the client host.
+By default, the server uses the system default values.  The
+\fBNDT\fR administrator may override the system defaults
+with this option.
+.TP
+\fB\-f, --file\fR \fIvariable_FN\fR
+By default, the \fI/usr/local/ndt/web100_variables\fR file
+contains a list of \fBWeb100\fR variables that should be collected
+by the \fBNDT\fR server. This options allows the \fBNDT\fR administrator
+to specifically define the location and name of this file.
+.TP
+\fB\-i, --interface\fR \fIdevice\fR
+By default, the \fBNDT\fR server monitors the 1st Ethernet interface
+for the packet dispersion testing. This option allows the
+\fBNDT\fR administrator to select a different interface.
+.TP
+\fB\-l, --log\fR \fIlog_FN\fR
+By default, the \fBNDT\fR server writes the results of every test
+to the \fI/usr/local/ndt/web100srv.log\fR log file. This option
+allows the \fBNDT\fR administrator to define a new location and
+name for this log file.
+.TP
+\fB\-p, --port\fR \fIport #\fR
+By default, the \fBNDT\fR server listens for test request on port 3001. 
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
+\fB\--snapdelay\fR \fImsec #\fR
+By default, the \fBNDT\fR server writes the snaplog every 5 msecs. This
+option allows the \fBNDT\fR administrator to change this time period.
+.TP
+\fB\--midport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3003 for the Middlebox test.
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
+\fB\--c2sport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3002 for the C2S throughput test.
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
+\fB\--s2cport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3003 for the S2C throughput test.
+This option allows the \fBNDT\fR administrator to change this port number.
+.TP
+\fB\-T, --refresh\fR \fItime #\fR
+Specify the refresh time of the admin page.
+.TP
+\fB\--mrange\fR \fIrange\fR
+Set the port range used in multi-test mode. The following format is
+recognized: \fBmin:max\fR. This will result in a range from \fBmin\fR
+to \fBmax\fR (inclusive in both cases). The ranges can be separated by
+the commas or can be added by the multiple use of the \fB--mrange\fR
+option. Note, that this enables multi-test mode.
+.TP
+\fB\-A, --adminfile\fR \fIFN\fR
+By default, the \fBNDT\fR server writes the Admin web page to the
+\fI/usr/local/ndt/admin.html\fR. This option allows the \fBNDT\fR
+administrator to define a new location and name for this file. Note,
+that this doesn't enable generating of the administrator view web page.
+.TP
+\fB\-S, --logfacility\fR \fIF\fR
+By default, the \fBNDT\fR server uses \fILOG_LOCAL0\fR syslog facility.
+This option allows the \fBNDT\fR administrator to use the other one.
+The facility names can be taken from \fI<sys/syslog.h>\fR file. Note, that
+this doesn't enable using the syslog for logging purposes.
+.TP
+\fB\-4, --ipv4\fR 
+Use IPv4 addresses only.
+.TP
+\fB\-6, --ipv6\fR 
+Use IPv6 addresses only.
+.SH LIMITATIONS
+The NDT service is continuing to undergo testing and upgrading. 
+Better diagnostic algorithms are being developed to improve the
+accuracy and reliability of this service.
+.SH EXAMPLES
+.LP
+\fBweb100srv -a >& /dev/null &\fR
+.IP
+Start server with administrator view enabled
+.LP
+\fBweb100srv -ddd\fR
+.IP
+Start server in foreground and enable 3 levels of debug messages.
+.SH SEE ALSO
+The \%http://e2epi.internet2.edu/ndt/ web site, web100clt(1), fakewww(8), and setsockopt(2).
+.SH ACKNOWLEDGMENTS
+This material is based, in part, on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings,
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the NSF.

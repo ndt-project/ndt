@@ -1,0 +1,1701 @@
+------------------------------------------------------------------------
+r357 | jwzurawski | 2010-05-18 13:32:00 -0400 (Tue, 18 May 2010) | 5 lines
+
+Updating translation
+
+-jason
+
+
+------------------------------------------------------------------------
+r356 | jwzurawski | 2010-05-07 07:37:48 -0400 (Fri, 07 May 2010) | 5 lines
+
+Adding support for pt_BR to the translations.
+
+-jason
+
+
+------------------------------------------------------------------------
+r355 | rcarlson501 | 2010-05-06 18:47:15 -0400 (Thu, 06 May 2010) | 5 lines
+
+uncomment close() function to release sock fd's
+
+RaC
+
+
+------------------------------------------------------------------------
+r354 | jwzurawski | 2010-05-06 09:28:11 -0400 (Thu, 06 May 2010) | 6 lines
+
+Applying security patch for issue experienced in Safari - applet would 
+freeze and not continue.  
+
+-jason
+
+
+------------------------------------------------------------------------
+r353 | jwzurawski | 2010-05-06 09:26:03 -0400 (Thu, 06 May 2010) | 5 lines
+
+Adding the correct patch
+
+-jason
+
+
+------------------------------------------------------------------------
+r352 | jwzurawski | 2010-05-06 09:25:14 -0400 (Thu, 06 May 2010) | 5 lines
+
+whoops, this is the wrong patch to be adding
+
+-jason
+
+
+------------------------------------------------------------------------
+r351 | jwzurawski | 2010-05-06 09:19:34 -0400 (Thu, 06 May 2010) | 5 lines
+
+Adding a patch for Tcpb100.java to fix a freezing error.
+
+-jason
+
+
+------------------------------------------------------------------------
+r350 | jwzurawski | 2010-05-05 07:20:44 -0400 (Wed, 05 May 2010) | 5 lines
+
+Adding a contributed patch for fakewww.
+
+-jason
+
+
+------------------------------------------------------------------------
+r349 | rcarlson501 | 2010-04-22 22:07:19 -0400 (Thu, 22 Apr 2010) | 10 lines
+
+more error processing
+
+Call exit(-2) when a child generates a SIGSEGV.
+
+handle case, terminate process, if a child receives a 
+blank 'go' message.
+
+4/22/09 RAC
+
+
+------------------------------------------------------------------------
+r348 | rcarlson501 | 2010-04-21 20:45:18 -0400 (Wed, 21 Apr 2010) | 12 lines
+
+Improve error handling when communicating with child.  Use select() with 
+a timer to prevent child processes from hanging in an accept() state.
+the time will now expire and the child will return a error flag back to the parent
+process.  
+
+Also handle write errors and terminate if a non EINTR error is encountered
+while processing a write() call.  
+
+bumped version number to 3.6.3
+
+RAC 4/21/10
+
+------------------------------------------------------------------------
+r347 | jwzurawski | 2010-04-15 14:16:28 -0400 (Thu, 15 Apr 2010) | 5 lines
+
+Adding a second samknows patch
+
+-jason
+
+
+------------------------------------------------------------------------
+r346 | jwzurawski | 2010-04-14 11:15:20 -0400 (Wed, 14 Apr 2010) | 6 lines
+
+adding the 'SamKnows' patch to Tcpbw100.java to the repo.  We will be 
+sorting out how to apply this at a later date.
+
+-jason
+
+
+------------------------------------------------------------------------
+r345 | jwzurawski | 2010-04-13 22:14:36 -0400 (Tue, 13 Apr 2010) | 5 lines
+
+adding more localizations
+
+-jason
+
+
+------------------------------------------------------------------------
+r343 | jwzurawski | 2010-04-12 19:00:51 -0400 (Mon, 12 Apr 2010) | 5 lines
+
+Adding support for some localizations.  
+
+-jason
+
+
+------------------------------------------------------------------------
+r342 | rcarlson501 | 2010-04-09 13:34:54 -0400 (Fri, 09 Apr 2010) | 6 lines
+
+update version number to 3.6.2b
+Matches Tcpbw100.java version
+
+RAC 4/9/10
+
+
+------------------------------------------------------------------------
+r341 | rcarlson501 | 2010-04-09 12:49:47 -0400 (Fri, 09 Apr 2010) | 11 lines
+
+Part of the ToDo on error handling.  The server can send the '9988' signal
+multiple times.  Old clients will see this and report a 'server busy' signal.
+The NDT applet and commandline client will report a 'server busy' if no
+valid wait time was received, otherwise they will report an ' unknown fault'
+occurred.
+
+Note messages are now in a .properties file for multi-lingual support.
+
+RAC 4/9/10
+
+
+------------------------------------------------------------------------
+r340 | rcarlson501 | 2010-04-09 12:23:03 -0400 (Fri, 09 Apr 2010) | 98 lines
+
+Mostly debugging changes.  Added multiple log_println() lines and updated
+others to include the PID on the line.  This adds in debugging multi-client
+operations by allowing the admin to tie messags to a specific process.
+
+There were some more substantive changes as well:
+
+test_sfw_srv.c
+	Changed testTime value.  The max value was reduced from 30 sec to 3 sec
+	there is no reason to wait longer.  There is now 2 possible values 1 sec
+	and 3 secs.  This is based on the MaxRTO value.
+	Todo: fix this to use RTO values and make testTime a float instead
+	of int var.  Both the client and server code needs to change to
+	implement this approach.
+
+network.c
+	Handle interrupts/signals while read()/write() data.  These functions
+	can exit before reading/writing if an interrupt occurs.  In multi-client
+	mode this is quite possible.  The new code handles up to 5 interrupts
+	before returning an error (this number may need to change).
+
+	I also fixed the error handling to have send_msg() return an error 
+	indication if the write() failed.  The calling routine can then determin
+	what to do.
+
+testoptions.c
+	Improved the error handling around the TEST_PREPARE messages.  This is
+	the send_msg() call that tells the client to begin a new test.  It typically
+	sends a text message (usually a port number) along with this flag.  (ToDo:
+	it should also send a flag indicating which test to run so the client can
+	skip failed tests.)  The return code from send_msg() is used to determine
+	if the client got this message.  If not the test is aborted.  (ToDo: implement
+	a TEST_ABORT message to let the client know this test is being skipped.)
+
+	Also moved the I2AddrFree() calls inside the if() loop.  The middlebox, c2s,
+	and s2c tests all have a master if() loop.  The main run_test() routine calls
+	each test in turn.  The test routine determines if it should do something or
+	just return.  The Free() call should only be used if the test was run.
+
+testoptions.h
+	Added new 'int state' value to the testoptions struct.  ToDo: use this 
+	state var to keep track of where in the test process (prepare, start, running,
+	finalize) the server is.  This would allow the server to clean up if a test
+	aborted or failed.
+
+web100clt.c
+	Handle condition where the CreateConnectSocket() call failed.  In this case
+	the client was unable to open the control socket to the server.  The 
+	client now aborts and reports the fault instead of trying to continue
+
+web100srv.c
+	Fixed bug when trying to dispatch a waiting client in multi-client mode.  The
+	server would find that a client was able to run, but the goto: call was 
+	inside an if() statement instead of after it, so the call would only happen
+	if there were lots of clients in the queue.
+
+	Fixed bug where the server would try to 'start' a client multiple times.  The
+	server now checks the clients 'running' flag before trying to 'start' signal.
+
+	Moved the check for a stuck client.  The server now does the following tasks
+		process pending signals
+		dispatch waiting clients if there is a run slot
+			Also update waiting clients when they move up in the queue
+		handle fault conditions (ToDo: improve this function.)
+		process new test requests
+
+	Handle SIGPIPE (13) signals
+
+	Improved error handling in the run_test() routine.  Each child has a run_test()
+	routine that control the testing.  The test order is fixed and each test routine
+	is called in sequence.  The error code for a failed test is now reported.  (ToDo:
+	further improvements are needed to handle the case where a test fails while
+	running.  At the present time, faults are caught when the prepare signal is sent
+	to the client. The server needs to track the process and handle other conditions.)
+
+ToDo: 
+in order to handle error conditions and faults better, the server needs the ability
+to inform the client that a fault has occurred and to 'skip ahead' in the test sequence.
+This will require changes to both the server and the client code.  Since there are now multiple
+clients, this will need to be done in a group manner and backward compatability issues need
+to be addresses. 
+
+At the present time the client can't get an abort signal after it has received a valid
+'wait time' signal.  The client can track this and issue different messages depending
+on what state it is in, thus overloading the '9999 - server busy' signal.  This will
+be implimented shortly in the NDT managed clients, and the process started to work out
+a better solution with the other client developers
+
+The client should also tell the server some info (OS type, client name, browser (if 
+applicable).  This would help when post processing data and this will go into the .meta
+file.  This can also be done in a backward compatable manner.  The current NDT managed
+clients have a flag to indicate their old/new state.  This flag can be used/changed to 
+let the server maintain this compatability with old clients.
+
+RAC 4/9/2010
+
+
+
+
+------------------------------------------------------------------------
+r338 | jwzurawski | 2010-04-08 16:53:43 -0400 (Thu, 08 Apr 2010) | 5 lines
+
+Merging changes from jz-localization into the trunk.  
+
+-jason
+
+
+------------------------------------------------------------------------
+r331 | rcarlson501 | 2010-03-25 18:23:58 -0400 (Thu, 25 Mar 2010) | 5 lines
+
+adding author/version/IP info.
+
+-jason
+
+
+------------------------------------------------------------------------
+r330 | rcarlson501 | 2010-03-25 18:09:38 -0400 (Thu, 25 Mar 2010) | 5 lines
+
+Adding a donar init script, addresses issue 38.
+
+-jason
+
+
+------------------------------------------------------------------------
+r327 | jwzurawski | 2010-03-25 13:12:13 -0400 (Thu, 25 Mar 2010) | 5 lines
+
+Adding 'x' to the list for getopt.  This addresses issue 18.
+
+-jason
+
+
+------------------------------------------------------------------------
+r326 | rcarlson501 | 2010-03-24 15:18:47 -0400 (Wed, 24 Mar 2010) | 5 lines
+
+Adding a log rotation script for use on MLab.
+
+-jason
+
+
+------------------------------------------------------------------------
+r325 | rcarlson501 | 2010-03-23 23:16:43 -0400 (Tue, 23 Mar 2010) | 5 lines
+
+catch return code for send_msg call when doing the S2C test_prepare message
+exchange.  
+
+RAC 3/23/10
+
+------------------------------------------------------------------------
+r324 | rcarlson501 | 2010-03-23 22:36:09 -0400 (Tue, 23 Mar 2010) | 6 lines
+
+more debuging in s2c test, testing shows not all clients
+are entering this test loop.
+
+RAC 3/23/10
+
+
+------------------------------------------------------------------------
+r323 | rcarlson501 | 2010-03-23 22:02:58 -0400 (Tue, 23 Mar 2010) | 5 lines
+
+add a couple of debug messages around the s2c test loop   Testing
+is showning the server is getting stuck in this area.
+
+RAC 3/23/10
+
+------------------------------------------------------------------------
+r322 | rcarlson501 | 2010-03-23 20:58:45 -0400 (Tue, 23 Mar 2010) | 6 lines
+
+add some debug messages and a rewrite c2s accept() loop to
+detect and recover from interrupt.
+
+rac /23/09
+
+
+------------------------------------------------------------------------
+r319 | rcarlson501 | 2010-03-22 23:56:00 -0400 (Mon, 22 Mar 2010) | 12 lines
+
+Updating files to handle case where a write() or read() can return due
+to an interrupt.  In this case no date is written/read and the server may
+not move to the next test.  This would cause the server to timeout the client
+and the client would report a failed test.
+
+Previous changes also include a reduction in the firewall test time.  The
+original version had a max time of 30 sec.  This may cause an alarm() signal
+to go off terminating the server process.  The max time was reduced to 3 sec.
+
+RAC 3/22/10
+
+
+------------------------------------------------------------------------
+r318 | rcarlson501 | 2010-03-21 15:11:15 -0400 (Sun, 21 Mar 2010) | 9 lines
+
+the write() function can get terminated by an interrupt.  When there
+ar multiple clients running, the possibility of this happening increases.
+This update wraps the write() calls in a for() loop.  This way the write()
+can get repeated up to 4 times.  If all 4 write()'s fail then the test
+will fail.
+
+RAC 3/21/10
+
+
+------------------------------------------------------------------------
+r317 | rcarlson501 | 2010-03-21 14:04:42 -0400 (Sun, 21 Mar 2010) | 9 lines
+
+Updates to server code
+
+catch/report sig13, sigpipe
+
+Remove alarm() timers around individual tests
+
+rac 3/21/10
+
+
+------------------------------------------------------------------------
+r312 | jwzurawski | 2010-03-16 13:02:10 -0400 (Tue, 16 Mar 2010) | 5 lines
+
+Fixes for issue 16.  All links have been updated and checked.  
+
+-jason
+
+
+------------------------------------------------------------------------
+r308 | jwzurawski | 2010-03-08 17:34:02 -0500 (Mon, 08 Mar 2010) | 5 lines
+
+Reverting protocol messages to r278.  Change is due to MLab use.
+
+-jason
+
+
+------------------------------------------------------------------------
+r307 | rcarlson501 | 2010-03-02 14:13:35 -0500 (Tue, 02 Mar 2010) | 6 lines
+
+Updated copy of the Tcpbw100.java file.  Contains references to API and 
+error codes.  Commit is in conjunction with MLab development.
+
+-jason
+
+
+------------------------------------------------------------------------
+r305 | rcarlson501 | 2010-02-28 15:04:47 -0500 (Sun, 28 Feb 2010) | 11 lines
+
+More bug fixes.
+
+changed exit() call to return -1 in err_sys() function.  This funcion is called
+by the main web100srv process and it shouldn't exit!
+
+Changed logging level for web100 data text, reduces the amount of text in the 
+debug log file.
+
+RAC 2/28/10
+
+
+------------------------------------------------------------------------
+r304 | rcarlson501 | 2010-02-28 14:51:47 -0500 (Sun, 28 Feb 2010) | 8 lines
+
+change alarm() time from 60 sec to 120 sec. This alarm is suppose to 
+prevent clients from remaining stuck in the queue forever, but the
+normal queue walking process should provide that protection.  This
+alarm() may be removed in the near future.
+
+RAC -2.28.10
+
+
+------------------------------------------------------------------------
+r303 | rcarlson501 | 2010-02-28 14:29:32 -0500 (Sun, 28 Feb 2010) | 40 lines
+
+More changes to resolve bugs in the mlab distro.
+
+From looking at the code this weekend (2.27.10) and running tests it appears
+the part of the problem is that the server and/or client is timing out on 
+reads/writes and then the test fails.  As a specific example the network.c
+file contains the readn() function, which is called by the read_msg() function.
+This routine reads data from the network and returns the data it found.  I 
+earlier found that the read() call would exit if an interrupt was received so
+this could cause the readn() routine to fail.  I also noticed that it could hang
+forever if nothing ever arrived on the socket.  To resolve these problems I 
+added a select with a timer to prevent an indefinate hang, and handled the errno=INTR
+case.  This should have fixed thing, but I then found that both the server code AND
+the client code use this same readxxx() functions, and the timeout for the server was
+way too short for the client.  This cased the client to exit before the server sent it
+the wait time signal.  (at least this happend in multi-client mode.)  The solution was
+to make the time much longer (was 10 sec, now it's 600 sec).  This may need to be
+revisited.
+
+I then found a couple of bugs in the web100srv.c code.  In 1 case if the client times out
+the waiting variable was decremented twice, causing the server to miss count waiting clients.
+I also moved one of the test conditions to handle errors better, The server was attempting
+to run tests with invalid test suite data, it now detects this condition.
+
+Handled error and exit conditions better when a client can't get into the queue.
+
+Handled a full queue bug that caused an extra client to enter the queue.
+
+Improved the exit and error reporting for the command-line and java client.  
+
+Fixed a bug in deploying the janalyze class and jar files.
+
+incremented the version number to 3.6.1
+
+Remaining, task --  The error messages on the Java applet have been updated to help
+identify what was going on when the fault occurred.  This version needs to be 
+patches with Seth's version and a new signed applet needs to be generated.
+
+RAC 2/28/10
+
+
+------------------------------------------------------------------------
+r296 | racarlson | 2010-02-21 14:06:25 -0500 (Sun, 21 Feb 2010) | 7 lines
+
+clear send buffer (buff) before writing s2c test results into buffer.  This buffer use to
+hold the 8K of text being sent to the client.  set the entire buffer to 0 before loading in 
+the test results.
+
+RAC 2.21.10
+
+
+------------------------------------------------------------------------
+r295 | racarlson | 2010-02-11 11:31:38 -0500 (Thu, 11 Feb 2010) | 17 lines
+
+This is a revision to v3.6.0
+
+Modified web100srv.c to handle error conditions better.  If a child gets stuck or some other
+error occurs, then the code takes the following actions:
+
+1) get the PID from the process at the head of the FIFO
+2) call the child_sig() function with a -1
+3) the child_sig process will remove the process from the head of the FIFO queue
+4) then call kill() with a SIGTERM for this pid
+5) finally call child_sig() again with the pid so the wait4() will clean up the kernel state
+
+This should keep the server going and prevent the current situation where the main process
+gets into a tight loop looking for some process to kill/cleanup.
+
+RAC 2/11/10
+
+
+------------------------------------------------------------------------
+r294 | racarlson | 2010-02-09 20:30:07 -0500 (Tue, 09 Feb 2010) | 38 lines
+
+Modfications to fix bugs in multi-client mode operations.
+
+Bumped version number to 3.6.0, with intermediate versions of 3.5.15, 3.5.16, 3.5.17 & 3.5.18
+Version 3.6.0 should be a working version that doesn't crash the server and clients don't get
+partial results.
+
+Partial results:  Changed web100-pcap.c and testoptions.c to resolve this bug.  The problem 
+was that the pkt-pair timing data wasn't getting delivered to the parent (testing) process.
+The parent would then hang in a wait state until a SIGALRM fired.  By then it was usually
+too late.  In testing with 2 clients, one wired and the other wireless, I found that the 
+wireless (100+ msec RTT) would see ALRM's and failed tests, but the wired client would run
+to completion.  I finally noticed that the parent was reading data from the pipe in larger chunks
+than it should have.  That is, the child was writing 2 lines, but in some cases the parent got
+everything in a single read.  This would hang the parent on the 2nd read.
+
+To solve this I reworked the read() section of the code.  It now lives inside a select() call
+and a for() loop.  After the 1st read, the code loops back to the select() to wait for the 
+2nd line.  I also added a short 30 msec delay (using usleep()) into the web100-pcap.c file.
+This went between the 2 writes.  This gives the parent time to pick up the 1st line before
+looking for the 2nd.  Testing now shows this code is working correctly.
+
+Server crashes and hangs:  This was the 2nd major problem with the multi-client code.  In fact
+I fixed this 1st and then found the above problem.  To solve this I reworked the select(), read(),
+and write() code to correctly handle an Interrupt (EINTR error).  These functions typically wait
+for an event.  However, if an interrupt occurs, then they exit and report this using the EINTR
+error code.  Previously, the code didn't handle this correctly so it would hang or proceed when
+I wasn't expecting it to.  
+
+I also reworked the SIGCHLD processing and the child_sig() routine.  This routine now handles
+both pkt-pair children and test children properly.  
+
+Finally I added in a little more error handling into the main test loop.  I now detect when there
+is something in the queue, but the waiting variable says it should be empty.  I also added some
+code to catch an error when the waiting and/or mclients variable went below zero.  
+
+RAC 2/9/10
+
+
+------------------------------------------------------------------------
+r293 | jwzurawski | 2010-01-26 13:44:17 -0500 (Tue, 26 Jan 2010) | 5 lines
+
+Testing SVN notification
+
+-jason
+
+
+------------------------------------------------------------------------
+r292 | racarlson | 2010-01-13 20:24:05 -0500 (Wed, 13 Jan 2010) | 15 lines
+
+Update files to handle interrupt signals during select() function call.  The
+select() function will exit if a signal is received.  However, the code may
+still be waiting for a read to complete, and the signal should be handled, but
+then loop back to continue waiting for the select to timeout or the read to 
+complete.  The select() call now checks for this condition and returns to the 
+wait state.  It still needs to check for/handle some of the signals.
+
+Also, fixed bug in single user mode operations.  Multiple clients were
+starting instead of properly queuing.  
+
+Bumped version to 3.5.14
+
+RAC 1/14/10
+
+
+------------------------------------------------------------------------
+r291 | jwzurawski | 2010-01-12 16:27:35 -0500 (Tue, 12 Jan 2010) | 7 lines
+
+Replacing instances of 'MKDIR_P' with 'mkdir_p' in some makefile 
+defintions.  This was causing 'make install' to fail for versions 3.5.7 
+through 3.5.13.  
+
+-jason (1/12/09)
+
+
+------------------------------------------------------------------------
+r290 | racarlson | 2010-01-04 21:34:32 -0500 (Mon, 04 Jan 2010) | 7 lines
+
+update files to catch up with mlab patches
+
+update to version 3.5.13
+
+1/4/10
+
+
+------------------------------------------------------------------------
+r289 | racarlson | 2009-12-04 17:16:10 -0500 (Fri, 04 Dec 2009) | 25 lines
+
+catching up with work done on mlab4 node.
+
+update version to 3.5.12 in configure.ac and Tcpbw100.java
+
+Add select() call to readn() function in network.c  This prevents the server from
+blocking forever when trying to read data from a remote client.  The select() will 
+wait 13 seconds (or something like) for data.  If nothing arrives, the subroutine
+will return an error.
+
+Changed the signal processing for SIGTERM to ignore these signals for the parent NDT process
+These should never happen, and the init.d script uses sigkill to stop/restart the ndtd process.
+
+Updated the signal handling for SIGCHLD & SIGALRM events when the pcap child processes terminate.  For
+some reason, these children don't always throw the SIGCHLD signal until the alarm() timer
+expires.  Once they do, the CHLD signal is generated/processed.  Modified the SIGALRM handler to
+monitor the waid_sig global flag.  If this flag is set, then the pcap child has done it's stuff and
+the server should simply process the CHLD signal and continue testing.  Otherwize the client has
+dissapearred and we should termnate this test.  This solves the problem where a test appears to
+complete properly, but then the server throws a 'protocol error' message and kills off the test.
+
+Changes a few alarm timer values as well.
+
+RAC  12/2/09
+
+
+------------------------------------------------------------------------
+r288 | racarlson | 2009-10-22 20:13:14 -0400 (Thu, 22 Oct 2009) | 10 lines
+
+add config.h include statement to logging.c file, brings in the defines from the configure process.
+
+changed the waitpid() routine in testoptions.c to make it look at the return code and detect if
+the waidpid() function returned due to a signal or the child terminating.
+
+Start looking at ways to detect if a test timed-out so the next test could run if desired.
+
+RAC 10/22/09
+
+
+------------------------------------------------------------------------
+r287 | racarlson | 2009-10-14 13:56:36 -0400 (Wed, 14 Oct 2009) | 4 lines
+
+added debug line to see why compression routine wasn't being called.
+
+RAC - 10/14/09
+
+------------------------------------------------------------------------
+r286 | racarlson | 2009-10-14 13:23:04 -0400 (Wed, 14 Oct 2009) | 35 lines
+
+More memory leak fixes and a couple of bug fixes.
+
+I found an on-line reference from 2003 that indicated there was a bug in the libpcap
+freecode() routine.  I appearred to be bumping into this bug, so this function is 
+commented out for now in the web100-pcap.c file.  I also commented out the alldevfree()
+call.  This should be revisited later, but since the child process that runs this code
+terminates, it should free up any malloc'ed memory.
+
+Possible bug fix in web100srv.c  -  When creating a new child a block of memory is
+malloc'ed and later free'ed.  I noticed that some of the strings contained extraneous
+characters.  The code now calls memset() to 0 out the block of memory before using it.
+The extraneous characters are now gone.
+
+Probable bug fix in web100srv.c - All clients now go through the FIFO linked list to
+control the testing.  In pre3.5 versions only the single client mode operation uses the
+FIFO queue, multi-client mode bypassed this queue.  The v3.5 code was modified to send all
+clients through the queue so clients could wait if the server was busy.
+
+In v3.5.10, a semaphore was added to protect the queue pointer manipulation routines (adding
+and removing clients from this queue). This caused the server to hang at a semaphore wait state
+instead of crashing due to pointer corruptions.  I finally trace this down to a child_sig()
+call being made in the middle of a queue update.  The child_sig() routine can also update the 
+queue, and this was causing the hang/crash.  The child_sig() call has been moved to after the
+pointer manipulation is completed.
+
+Also, implimented better SIGCHLD handling.  This signal is handled by a short routine that 
+checks to see which process generated the signal.  If one of the pkt-pair children generated 
+it, then ignore this signal, those signals are handles by waitpid() calls after each test 
+completes.  SIGCHLD signals for the each test child should be handled by the main process, by
+calling the child_sig() rouitne.  The main process also detects "defunct" processes and clean
+them up by making repeated calls to the child_sig() function.
+
+RAC 10/14/09
+
+
+------------------------------------------------------------------------
+r285 | racarlson | 2009-10-13 10:49:45 -0400 (Tue, 13 Oct 2009) | 10 lines
+
+Clean up memory leaks reported by valgrind program http://valgrind.org
+
+Added in new error detection routine in main for() loop.  If running in multi-client
+mode and the number of waiting clients (in the queue) is less than the number of mclients
+then we probably missed a signal.  Test for this condition and if true, call the signal 
+handler routine child_sig() to clean up.
+
+RAC 10/13/09
+
+
+------------------------------------------------------------------------
+r284 | racarlson | 2009-10-09 16:19:49 -0400 (Fri, 09 Oct 2009) | 4 lines
+
+Update fifo pointers after removing stuck client from queue.
+
+RAC 10/9/09
+
+------------------------------------------------------------------------
+r283 | racarlson | 2009-10-09 15:46:38 -0400 (Fri, 09 Oct 2009) | 14 lines
+
+Convert wait() to waidpid() function in testoptions.c file.  This call is made after the c2s & s2c
+tests run, to catch/close the pkt-pair child process.  The wait() call responded to any child, while 
+the waitpid() call only responds to a specific child.  This may fix a bug with multi-client mode where the 
+server gets multiple signals.
+
+remove a possible extraneous call to child_sig() when a client is listed as stuck in the fifo queue.
+The mlab servers are entering a state where a new client is delayed from entering the run state if
+a previous client pushed the parent into this stuck state.  
+
+Update version in configure.ac and .java files to 3.5.11
+
+RAC 10/9/09
+
+
+------------------------------------------------------------------------
+r282 | racarlson | 2009-09-17 17:15:33 -0400 (Thu, 17 Sep 2009) | 10 lines
+
+Fixed configure.ac to detect and report if the zlib.h and pcap.h header files are 
+loaded on the system.  It pcap.h doesn't exist, some client things will be built, 
+if zlib.h doesn't exist the web100srv process will build, but it will not attempt
+to compress snaplog and/or tcpdump files.
+
+Bumped version number to 3.5.10
+
+RAC 9/17/09
+
+
+------------------------------------------------------------------------
+r281 | racarlson | 2009-09-14 12:28:38 -0400 (Mon, 14 Sep 2009) | 6 lines
+
+wrap compression routines in #ifdef HAVE_ZLIB statements.  The code should build even if
+the zlib library isn't installed, you just can't compress the logs then.
+
+RAC  9/14/09
+
+
+------------------------------------------------------------------------
+r280 | racarlson | 2009-09-10 12:16:13 -0400 (Thu, 10 Sep 2009) | 9 lines
+
+Changes to the build process (makefile.am's) and configure.ac to detect if the libz library
+is found.  This is needed to compress the snaplog & tcpdump files.  The logging.c code should (will)
+be modified to include a def statement so it compiles without the zlib.h file, disabling the
+compression function.
+
+This also updates the aclocal.m4 file to use automake v1.11
+RAC 9/10/09
+
+
+------------------------------------------------------------------------
+r279 | racarlson | 2009-09-10 11:14:16 -0400 (Thu, 10 Sep 2009) | 4 lines
+
+bump the version number in the applet to match the server version number (3.5.9)
+
+RAC 0/10/09
+
+------------------------------------------------------------------------
+r278 | racarlson | 2009-09-09 17:00:45 -0400 (Wed, 09 Sep 2009) | 14 lines
+
+changes to support compression of tcpdump, snaplog, and cputime files.
+
+The configure.ac file changed due to the need to add the libz library to the linker
+
+Test code went into web100-pcap.c and testoptions.c, but it was removed and everything
+was put into the logging.c file.  
+
+The web100srv.c file has an update to the writeMeta() routine to call it with more options
+that need to be passed in to determine if compression is requested.
+
+Note: compression is enabled by default.  The -z command line option disables this function.
+
+RAC 9/9/09
+
+------------------------------------------------------------------------
+r277 | racarlson | 2009-09-08 12:37:09 -0400 (Tue, 08 Sep 2009) | 13 lines
+
+Added new field to ndtchild structure.  This field keeps track of the childs running/not-running state.
+This was added to support multi-client operations.
+
+possible bug fix for web100-pcap.c.  Some serves are throwing a SIGSEVG signal after the pkt-pair child
+process finishes collecting data.  
+
+Other changes support multi-client operations, all clients now enter the queue and then get dispatched
+when they are ready to run.  Multi-clinets get dispatched immediately, up to the max_client limit FIFO
+clients get dispatched one at a time.
+
+RAC 9/8/09
+
+
+------------------------------------------------------------------------
+r276 | racarlson | 2009-08-03 15:25:16 -0400 (Mon, 03 Aug 2009) | 13 lines
+
+Bug fix.
+
+Server wasn't handling clients with improperly formed test requests.  (i.e., telnet'ing to test port would cause
+server to kill itself).  The fix was to catch the return code from the initialize_tests() routine.  Now this 
+routine returns a negative number on failure and a positive number on success.  The return code is then 
+checked in the web100srv.c file and if negative, the child is killed and the server loops back to see if another
+client has arrived.
+
+Incremented to ver 3.5.8
+
+Rich
+
+
+------------------------------------------------------------------------
+r275 | racarlson | 2009-07-24 10:22:00 -0400 (Fri, 24 Jul 2009) | 10 lines
+
+Bug fixes
+
+web100-pcap.c: initial ifspeed value wasn't being set to -1
+
+converted from gethostbyaddr() to getnameinfo() routine.  getnameinfo() is v4/v6 compatible
+so I don't need to do the conversion.
+
+RAC 7/24/09
+
+
+------------------------------------------------------------------------
+r274 | racarlson | 2009-07-17 20:31:45 -0400 (Fri, 17 Jul 2009) | 8 lines
+
+bug fix to multi-client code
+
+mclients counter was being incremented in parent an decremented in child.
+Obviously this isn't right.  mclients counter now decremented when termination
+signal is caught.
+
+RAC 7/17/09
+
+------------------------------------------------------------------------
+r273 | racarlson | 2009-07-17 13:09:49 -0400 (Fri, 17 Jul 2009) | 6 lines
+
+bump version number for previous multi-client bug fix
+
+now v3.5.7
+
+RAC 7/17/09
+
+------------------------------------------------------------------------
+r272 | racarlson | 2009-07-17 13:04:32 -0400 (Fri, 17 Jul 2009) | 8 lines
+
+Bug fix - there was no limit to the number of clients when running in multi-client mode.
+
+Now the max_client variable is used for both the max number of clients in the queue (FIFO mode)
+or the max number of simultaneous clients (multi-client mode).
+
+RAC 7/17/09
+
+
+------------------------------------------------------------------------
+r271 | racarlson | 2009-07-16 10:59:50 -0400 (Thu, 16 Jul 2009) | 7 lines
+
+check returned ifspeed value.  If it wasn't found it will be -1, reset that to 10 before
+entering the pkt-pair bin scan.  Otherwise the loop will be from 0 to -1, which could
+take a very long time .-)
+
+RAC 7/16/09
+
+
+------------------------------------------------------------------------
+r270 | racarlson | 2009-07-15 17:43:24 -0400 (Wed, 15 Jul 2009) | 10 lines
+
+Add in code to capture interface speed, based on ethtool code.  During initialization, the
+server walks the list of interfaces and grabs the current speed for each up interface.
+this data is then used to limit the pkt-pair search to find the bottleneck link type.
+
+The intent is to reduce over extimates of the link speed when the local host is doing
+interrupt coalescing.  Bumped version number to 3.5.6 in configure.ac and Tcpbw100.java
+
+RAC 7/15/09
+
+
+------------------------------------------------------------------------
+r269 | racarlson | 2009-07-14 12:17:53 -0400 (Tue, 14 Jul 2009) | 9 lines
+
+bug fix
+
+Don't use s2c2 gt s2c speeds as an indication of duplex mismatch when running in 
+multi-client mode.  The CWND limited speed may be greater than the unlimitet CWND
+case due to congestion on the local link.
+
+RAC 7/14/09
+
+
+------------------------------------------------------------------------
+r268 | racarlson | 2009-07-14 11:56:34 -0400 (Tue, 14 Jul 2009) | 15 lines
+
+Bug fixes-
+
+1) zero out buffer used to receive parent-to-child "go" message.  The buffer had 
+extraenous characters which caused the last test to be requeted to fail.  The
+value wasn't a test number, but a string with the extraenous data attached.
+
+2) fixed multi-client test mode, server initialization code use to be handled
+once the test started, it was moved to the init stage, but the test for multi-client
+mode occurred before the test_suite was initialized. Moved test for multi-client
+to after initialization step.
+
+v3.5.5 should be ready for release
+
+RAC 7/14/09
+
+------------------------------------------------------------------------
+r267 | racarlson | 2009-07-14 11:00:19 -0400 (Tue, 14 Jul 2009) | 7 lines
+
+Bug fix.  Server was sending waiting messages to last client in the queue instead
+of sending a message to each client.  Changed send_msg() call to use ctlsockfd stored
+in ndtchild struct instead of the last set value.
+
+RAC 7/14/09
+
+
+------------------------------------------------------------------------
+r266 | racarlson | 2009-07-14 10:29:39 -0400 (Tue, 14 Jul 2009) | 21 lines
+
+The c2s routine had a fixed number of file descriptors (32) it would read from.  This
+should have been a variable (mon_pipe[0]+1).  The result was that if more than 16 clients
+were in the queue, the c2s test routine would never exit properly.  This would result in 
+the FINALIZE signal never getting sent to the client, so the s2c test would also fail.
+
+I made 2 changes,
+	1) changed fixed value to variable
+	2) changed code to handle select timeout properly, causing the c2s test
+	   to signal the client the exit status.
+FIXME, I need a better way to handle this type of error.
+
+Added alarm(90) signal to client, make it exit after 90 seconds if a test starts
+and never completes.
+
+moved test for too many clients up before doing the server initialize code.  The
+intent is to get rid of clients that exceed the queue limit without sending them 
+a waiting in queue message.
+
+RAC 7/14/09
+
+
+------------------------------------------------------------------------
+r265 | racarlson | 2009-07-10 12:49:51 -0400 (Fri, 10 Jul 2009) | 9 lines
+
+there is a problem with the test_suite string that is being passed down to the
+child.  The string has extraneous characters on the end and this causes the
+client to fail on the last test (s2c_speed).
+
+Tempory fix to make the copy 7 bytes (1 8 2 4) instead of a strlen() variable.
+need to fix later.
+
+RAC 7/10/09
+
+------------------------------------------------------------------------
+r264 | racarlson | 2009-07-09 13:20:27 -0400 (Thu, 09 Jul 2009) | 4 lines
+
+removed code to set meta.family value.  Now set in testopts.c
+
+RAC 7/9/09
+
+------------------------------------------------------------------------
+r263 | racarlson | 2009-07-09 13:17:31 -0400 (Thu, 09 Jul 2009) | 13 lines
+
+bug fix to ndttrace logging filename.  The file name is generated in the child process 
+and then it needs to be passed back to the parent to get listed in the metadata file.
+
+There already was a pipe and the child sent a message to the parent once the filter was
+in place.  Now that message is either the ndttrace name, if logging is requested or
+a "Ready" message.
+
+also fixed bug in setting the hostname.  the meta.family varialbe is now set right after
+the middlebox test is requested.
+
+rac 7/9/09
+
+
+------------------------------------------------------------------------
+r262 | racarlson | 2009-07-09 11:00:55 -0400 (Thu, 09 Jul 2009) | 19 lines
+
+Added new thread to remove zombie clients from queue list.  A zombie client
+is one which the user has requested a test, but left before the test ran.
+The old code would catch this after a 30 sec timeout when it tried to start
+the test.  This new code spawns a thread to walk through the queue list to
+see if the client is still there.
+
+This required adding a new message type and test flag to the server and 
+client code.  The client now indicates on the initial request if it can 
+respond to these queue queries.  The server now remembers the clients old/new
+status (pre 3.5.5 is old) and only sends probes to new clients.  
+
+Code changes to the initialize_test() routine and passing parameters between
+the parent and child enable this new function.
+
+Incremented version number and changed Applet version to match the servers
+
+RAC 7/9/09
+
+
+------------------------------------------------------------------------
+r261 | racarlson | 2009-07-07 17:20:57 -0400 (Tue, 07 Jul 2009) | 12 lines
+
+Added more logging functions.  The detailed log files (snaplog, ndttrace, cputime
+all drop into a YYYY/DD/MM directory structure under the serverdata directory.  The
+sub-dirs are created automatically if they don't exist.
+
+A new metadata file fn.meta is also created.  It contains details about the files that
+got created (snaplog, ndttrace, cputime), the client & server IP/hostname, and some other
+minor details.  The Janalyze program should probably be changed to look for these .meta files
+to create the analysis work instead of parsing the web100srv.log file.
+
+RAC 7/7/09
+
+
+------------------------------------------------------------------------
+r260 | racarlson | 2009-07-01 18:24:58 -0400 (Wed, 01 Jul 2009) | 7 lines
+
+More changes to pcap routines.  Change code to manually set src/dst address/port info during
+the initialization phase.  This replaces the old code where the address/port info was 
+automatically gathered once the data packets started flowing.  This should fix a bug in the
+code that hits the m-lab nodes running in virtual machine space.
+
+Rich  7/1/09
+
+------------------------------------------------------------------------
+r259 | racarlson | 2009-07-01 14:40:19 -0400 (Wed, 01 Jul 2009) | 7 lines
+
+more changes to pcap routines.  
+	Improve ability to find pkt-pair data.  For some reason, the current
+	code does not work correctly on the M-Lab Virtual machines.
+
+RAC  7/1/09
+
+
+------------------------------------------------------------------------
+r258 | racarlson | 2009-07-01 10:06:50 -0400 (Wed, 01 Jul 2009) | 11 lines
+
+improveing multiple interface support.  Using pcap_findalldevs() routine to handle case
+where a host has multiple interfaces.  This code walks the list of interfaces comparing the
+interface addr with the addr the client connected to.  Once a match is found the interface name
+(ethx) is found and used to create the pcap filter.
+
+Adds new parameter to the init_pkttrace() routine passing down the IP (v4 or v6) addr the
+client connected to.
+
+Rich Carlosn 7/1/09
+
+
+------------------------------------------------------------------------
+r257 | racarlson | 2009-06-30 12:17:48 -0400 (Tue, 30 Jun 2009) | 20 lines
+
+RAC changes
+
+web100-pcap, logging.h, logging.c testoptions.c, and web100srv.c all have new
+code to improve the logging of snaplog and tcpdump files.  The admin can now
+specify the dir (absolute or relative to BASEDIR for the log files.
+
+In addition to the above, log files now have a new filename structure based on the
+ISO time syntax.  Finally snaplog and ndttrace log files are in a subdir structure where
+the YYYY/MM/DD structure is used.  All of these changes are to support archiving in the 
+M-Lab infrastructure.
+
+web100-pcap: now has a direction field, currently it just prepends c2s or s2c to the 
+ndttrace file name.  
+
+Patched server and client code to support setting of the TCP buffer.  A bug in the 
+existing code prevented this option from actually working.
+
+Bumped server version to 3.5.2
+
+
+------------------------------------------------------------------------
+r256 | racarlson | 2009-04-09 17:31:07 -0400 (Thu, 09 Apr 2009) | 6 lines
+
+more changes to config/make process
+
+Added in slinks to transition from web100srv/clt names to ndtd/ndtclt names
+changed ndt script to use new ndtd name 
+
+
+------------------------------------------------------------------------
+r255 | racarlson | 2009-04-08 15:34:07 -0400 (Wed, 08 Apr 2009) | 6 lines
+
+ran svn propdel svn:eol-style configure
+does that help?
+
+Rich
+
+
+------------------------------------------------------------------------
+r254 | racarlson | 2009-04-06 15:49:59 -0400 (Mon, 06 Apr 2009) | 8 lines
+
+Fixed minor bug in client code, scale factors were backwards
+
+Applet changes include adding scale factor message to client and code to report too many
+clients in FIFO queue.
+
+Rich
+
+
+------------------------------------------------------------------------
+r253 | racarlson | 2009-04-06 15:39:53 -0400 (Mon, 06 Apr 2009) | 12 lines
+
+Updated to 3.5.1
+
+Changedes to most .c files return lost setbuffer option to code.  The TCP send/receive buffer is set using the 
+setsockopt() function, this function needs to be called before the connect() or listen() call.  This was lost when
+these calles were moved to a function.  Patch from user installed
+
+Other changes to server * Client code are from M-Lab experience.  This impliments a server FIFO queue limit.  Clients
+print out the correct message when sent the too many clients code.
+
+Rich
+
+
+------------------------------------------------------------------------
+r252 | racarlson | 2009-04-06 13:48:26 -0400 (Mon, 06 Apr 2009) | 3 lines
+
+minor changes to template, testoptoins and pcap routines
+
+
+------------------------------------------------------------------------
+r251 | racarlson | 2008-05-08 11:05:04 -0400 (Thu, 08 May 2008) | 6 lines
+
+Clean up some of the JAnalyze make process.  Don't rebuild
+the JAnalyze.jar file during the install process.
+
+Rich
+
+
+------------------------------------------------------------------------
+r250 | racarlson | 2008-05-01 14:36:05 -0400 (Thu, 01 May 2008) | 10 lines
+
+Makefile.in, now creates serverdata directory under the
+installed ndt dir.  This will be the default location for the
+tcpdump and snaplog files.
+
+janalyze Makefiles changed to correctly install JAnalyze classes
+in ndt/janalyze dir.
+
+Rich
+
+
+------------------------------------------------------------------------
+r249 | racarlson | 2008-05-01 09:24:42 -0400 (Thu, 01 May 2008) | 8 lines
+
+Cnanged version name from 3.4.4 to 3.4.4a.  This bump is because
+the java client now uses 64KB application buffers instead of 8K ones.
+This is a workaround for some funky Windows behavior.  The SWITCH
+server name was also corrected.
+
+Rich
+
+
+------------------------------------------------------------------------
+r248 | racarlson | 2008-04-17 10:40:45 -0400 (Thu, 17 Apr 2008) | 12 lines
+
+Increased the size of the client application buffer.  Was 8KB, now
+64KB.  This is to work around a deficiency in Windows based clients.
+It appears that Windows clients are slow moving data from the user
+space to kernel space.  The client is in a tight do loop dumping 
+data to the kernel in 8KB chunks.  A Windows client seems to dump
+2 buffers (16KB) per RTT, so the longer the RTT the slower the 
+speed.  Upping the application buffer size results in a higher
+C2S throughput over long RTT paths.  
+
+Rich
+
+
+------------------------------------------------------------------------
+r247 | racarlson | 2008-03-28 12:19:35 -0400 (Fri, 28 Mar 2008) | 14 lines
+
+Updated create-html.sh file to create a "serverdata" dir in the 
+specified prefix (/usr/local/ndt by default).  The /etc/init.d/ndt
+startup script needs to be modified to web100srv program needs
+to be modified to include this dir as the destination for the
+snaplog and tcpdump files.  Right now the admin needs to manually
+modify the /etc/init.d/ndt startup file to add the line
+"cd /usr/local/ndt/serverdata" to the start section.
+
+the fakewww.c file was modified to list some specific Tcpbw100*.class
+files.  These should come from the .jar file, but the client may ask
+for them separately and they need to be in the access list.
+
+Rich
+
+------------------------------------------------------------------------
+r246 | jslawins | 2007-11-16 12:21:53 -0500 (Fri, 16 Nov 2007) | 1 line
+
+Added info about initial peak speed filter.
+------------------------------------------------------------------------
+r245 | jslawins | 2007-11-15 16:17:15 -0500 (Thu, 15 Nov 2007) | 2 lines
+
+Cosmetic fixes according to the eclipse suggestions.
+
+------------------------------------------------------------------------
+r244 | jslawins | 2007-11-13 14:16:15 -0500 (Tue, 13 Nov 2007) | 2 lines
+
+Refactorization of the janalyze package.
+
+------------------------------------------------------------------------
+r243 | jslawins | 2007-11-09 16:04:54 -0500 (Fri, 09 Nov 2007) | 2 lines
+
+Fixed calculating the jitter factor.
+
+------------------------------------------------------------------------
+r242 | jslawins | 2007-11-05 14:31:07 -0500 (Mon, 05 Nov 2007) | 4 lines
+
+Added statistical analysis to the JAnalyze.
+
+Increased the JAnalyze version to 0.9.1.
+
+------------------------------------------------------------------------
+r241 | jslawins | 2007-11-01 15:04:34 -0400 (Thu, 01 Nov 2007) | 2 lines
+
+Added the possibility to select/deselect all IPs in the filter.
+
+------------------------------------------------------------------------
+r240 | jslawins | 2007-10-30 16:11:15 -0400 (Tue, 30 Oct 2007) | 2 lines
+
+Added initial peak speed link detection.
+
+------------------------------------------------------------------------
+r239 | jslawins | 2007-10-29 15:33:11 -0400 (Mon, 29 Oct 2007) | 2 lines
+
+Added info about actual traffic speed.
+
+------------------------------------------------------------------------
+r238 | jslawins | 2007-10-12 14:11:39 -0400 (Fri, 12 Oct 2007) | 2 lines
+
+Added tfw directory to the dist package.
+
+------------------------------------------------------------------------
+r237 | jslawins | 2007-10-10 18:33:34 -0400 (Wed, 10 Oct 2007) | 2 lines
+
+Fixed the dist target for the NDT 3.4.4.
+
+------------------------------------------------------------------------
+r236 | jslawins | 2007-10-10 18:03:10 -0400 (Wed, 10 Oct 2007) | 2 lines
+
+Added JAnalyze to the distribution.
+
+------------------------------------------------------------------------
+r235 | jslawins | 2007-10-10 17:09:36 -0400 (Wed, 10 Oct 2007) | 2 lines
+
+Added checking for the sql.h file.
+
+------------------------------------------------------------------------
+r234 | jslawins | 2007-10-01 15:45:04 -0400 (Mon, 01 Oct 2007) | 4 lines
+
+Modified the Results Look&Feel.
+
+Increased the JAnalyze version to 0.9.
+
+------------------------------------------------------------------------
+r233 | jslawins | 2007-09-23 15:50:26 -0400 (Sun, 23 Sep 2007) | 6 lines
+
+Added the C2S snaplogs.
+JAnalyze is now aware of the c2s_snaplog.
+Fixed plotting of the snaplogs with the timestamps in the filename.
+
+Increased the NDT version to 3.4.4.
+
+------------------------------------------------------------------------
+r232 | jslawins | 2007-09-23 14:08:50 -0400 (Sun, 23 Sep 2007) | 5 lines
+
+Completed storing user settings.
+Fixes in the filters.
+
+Increased the JAnalyze version to 0.8.
+
+------------------------------------------------------------------------
+r231 | jslawins | 2007-09-13 15:09:56 -0400 (Thu, 13 Sep 2007) | 2 lines
+
+Added storing the snalogs directory value.
+
+------------------------------------------------------------------------
+r230 | jslawins | 2007-09-10 17:26:01 -0400 (Mon, 10 Sep 2007) | 2 lines
+
+Added raw peaks printing.
+
+------------------------------------------------------------------------
+r229 | jslawins | 2007-09-06 12:10:59 -0400 (Thu, 06 Sep 2007) | 2 lines
+
+Added timestamps to the snaplog/cputime/ndttrace file names.
+
+------------------------------------------------------------------------
+r228 | racarlson | 2007-08-24 12:44:05 -0400 (Fri, 24 Aug 2007) | 5 lines
+
+Changed referenced to miranda.ctd.anl.gov to ndt.anl.gov.  ANL is going
+to retire the .ctd.anl.gov domain and miranda is the original NDT server.
+
+
+
+------------------------------------------------------------------------
+r227 | jslawins | 2007-08-19 06:26:07 -0400 (Sun, 19 Aug 2007) | 4 lines
+
+Merged ndte branch changes r152:226 into the trunk.
+Updated the ChangeLog.
+Removed few unimportant files from the repository.
+
+------------------------------------------------------------------------
+r151 | racarlson | 2006-12-13 18:18:41 -0500 (Wed, 13 Dec 2006) | 5 lines
+
+merging Jakub's changes with mine.
+Updated src files to find/kill stuck processes
+
+Rich
+
+------------------------------------------------------------------------
+r150 | jslawins | 2006-11-14 14:41:15 -0500 (Tue, 14 Nov 2006) | 2 lines
+
+Fixed the bugs in the logging functions.
+
+------------------------------------------------------------------------
+r149 | jslawins | 2006-10-17 13:30:18 -0400 (Tue, 17 Oct 2006) | 4 lines
+
+Modified the packet queuing message.
+
+Increased the Java applet version to 5.4.12.
+
+------------------------------------------------------------------------
+r148 | racarlson | 2006-10-06 11:12:12 -0400 (Fri, 06 Oct 2006) | 4 lines
+
+fixed bugs in testioptions.c I introduced while testing LAST_ACK bug.
+
+Rich
+
+------------------------------------------------------------------------
+r147 | racarlson | 2006-10-06 09:20:26 -0400 (Fri, 06 Oct 2006) | 5 lines
+
+removed debugging statements from code.  Shouldn't have been there - just
+looking for LAST_ACK bug.
+
+Rich
+
+------------------------------------------------------------------------
+r146 | racarlson | 2006-10-06 09:14:17 -0400 (Fri, 06 Oct 2006) | 5 lines
+
+Moved INSTALL to a later version.  src files probably contain some
+of my debugging code, which should be removed.
+
+Rich
+
+------------------------------------------------------------------------
+r145 | jslawins | 2006-10-06 06:20:58 -0400 (Fri, 06 Oct 2006) | 2 lines
+
+Fixed a small bug in the viewtrace program.
+
+------------------------------------------------------------------------
+r144 | jslawins | 2006-10-06 05:58:29 -0400 (Fri, 06 Oct 2006) | 6 lines
+
+Removed the socket shutdown in the client part of the mid test.
+
+Restored the original INSTALL file.
+
+Increased the NDT version to 3.3.18.
+
+------------------------------------------------------------------------
+r143 | jslawins | 2006-09-29 07:12:39 -0400 (Fri, 29 Sep 2006) | 9 lines
+
+Installed some of the Seth Peery patches: public variables upstream and
+downstream, possibility to set testing server by the APPLET tag.
+
+Added the possibility to disable buttons by the APPLET tag. Added the 'prefer
+IPv6' checkbox in the options.
+
+Increased the Java applet version to 5.4.11.
+Increased the NDT version to 3.3.17
+
+------------------------------------------------------------------------
+r142 | jslawins | 2006-08-31 16:32:01 -0400 (Thu, 31 Aug 2006) | 10 lines
+
+Modified the makefiles to allow clean web100clt compilation without the need
+to have web100 library installed.
+
+Changed the -source 1.3 directive to -source 1.4.
+
+Added the information about TCP version used in the Java applet.
+
+Increased the Java applet version to 5.4.10.
+Increased the NDT version to 3.3.16.
+
+------------------------------------------------------------------------
+r141 | jslawins | 2006-08-25 05:20:49 -0400 (Fri, 25 Aug 2006) | 5 lines
+
+Installed some of the Simon's patches.  Removed the command line client
+dependencies on the web100 code.
+
+Incremented NDT version to 3.3.15.
+
+------------------------------------------------------------------------
+r140 | racarlson | 2006-08-24 14:04:39 -0400 (Thu, 24 Aug 2006) | 11 lines
+
+RAC updates
+
+aclocal.m4 changed to use the GCJFLAGS= -source 1.3 option, forcing the
+javac code to be java 1.3 compatable
+
+Updated Tcpbw100.java to include patches from Lixin (Simon Fraser Univ)
+to fix a bug with Safari browser on Mac
+
+Incremented NDT version 3.3.13 and 3.3.14
+Applet version incremented to 5.4.9
+
+------------------------------------------------------------------------
+r139 | jslawins | 2006-08-18 06:16:24 -0400 (Fri, 18 Aug 2006) | 2 lines
+
+merged from branch mdndt
+
+------------------------------------------------------------------------
+r48 | jslawins | 2006-05-26 18:31:11 -0400 (Fri, 26 May 2006) | 2 lines
+
+Added acinclude file to the I2util section in order to avoid I2_* functions disappearing.
+
+------------------------------------------------------------------------
+r47 | jslawins | 2006-05-26 04:27:37 -0400 (Fri, 26 May 2006) | 2 lines
+
+My first commit. Some files rearrangement connected with autoconf/automake support.
+
+------------------------------------------------------------------------
+r46 | racarlson | 2006-05-18 10:25:59 -0400 (Thu, 18 May 2006) | 5 lines
+
+Bug fixes to time() and ctime() function calls.  Now uses time_t
+structure from <time.h> instead of integer.
+
+Patch from Mike Inglesias
+
+------------------------------------------------------------------------
+r45 | racarlson | 2006-05-12 13:49:37 -0400 (Fri, 12 May 2006) | 3 lines
+
+update web100srv.c file to stop reporting mismatch for DSL/Cable Modem
+type connections.
+
+------------------------------------------------------------------------
+r44 | racarlson | 2006-05-12 13:48:26 -0400 (Fri, 12 May 2006) | 2 lines
+
+3.1.13 updates, now the repository should be up to date.
+
+------------------------------------------------------------------------
+r43 | racarlson | 2006-05-12 13:47:41 -0400 (Fri, 12 May 2006) | 2 lines
+
+3.1.12 updates
+
+------------------------------------------------------------------------
+r42 | racarlson | 2006-05-12 13:47:18 -0400 (Fri, 12 May 2006) | 2 lines
+
+3.1.11 updates
+
+------------------------------------------------------------------------
+r41 | racarlson | 2006-05-12 13:46:41 -0400 (Fri, 12 May 2006) | 2 lines
+
+3.1.10 tree updates
+
+------------------------------------------------------------------------
+r40 | racarlson | 2006-05-12 13:45:42 -0400 (Fri, 12 May 2006) | 3 lines
+
+OK, previous efforts failed, so this updates everything even though
+most of the files didn't change.
+
+------------------------------------------------------------------------
+r39 | racarlson | 2006-05-12 13:40:16 -0400 (Fri, 12 May 2006) | 2 lines
+
+3.1.9 changes
+
+------------------------------------------------------------------------
+r38 | racarlson | 2006-05-12 13:39:43 -0400 (Fri, 12 May 2006) | 3 lines
+
+Bringing repository up to data.
+Changes made to 3.1.8 distribution
+
+------------------------------------------------------------------------
+r37 | racarlson | 2005-04-25 17:39:58 -0400 (Mon, 25 Apr 2005) | 5 lines
+
+cleanup client programs to report buffer tuning messgaes and window
+scaling only if large windows are used.
+
+Rich
+
+------------------------------------------------------------------------
+r36 | racarlson | 2005-04-25 10:40:01 -0400 (Mon, 25 Apr 2005) | 4 lines
+
+Major changes to duplex mismsatch detection.
+
+Separate algoritms to detect mismatch in each direction
+
+------------------------------------------------------------------------
+r35 | racarlson | 2005-03-14 14:43:31 -0500 (Mon, 14 Mar 2005) | 10 lines
+
+Chnages 3.1.1 thru 3.1.3
+
+bug fixes to signal processing.  Start work on new duplex mismatch
+detection algorithm/implementation.
+
+Bug fix in applet and client code to only display new buffer size
+if suggesting an increase.
+
+3/14/05
+
+------------------------------------------------------------------------
+r34 | racarlson | 2005-01-24 18:35:40 -0500 (Mon, 24 Jan 2005) | 7 lines
+
+increment NDT versino number in configure.ac
+
+modify server and client code to calculate and use new duplex mismatch
+detection algorithm
+
+Changelog contains all the details.
+
+------------------------------------------------------------------------
+r33 | racarlson | 2005-01-24 17:00:16 -0500 (Mon, 24 Jan 2005) | 2 lines
+
+updated version of Tcpbw100.java, reformatted by D. Richter UMich
+
+------------------------------------------------------------------------
+r32 | racarlson | 2005-01-24 16:50:05 -0500 (Mon, 24 Jan 2005) | 6 lines
+
+update analyze.c to add new duplex mismatch detection
+
+minor changes to web100srv and web100clt code.
+
+Rich
+
+------------------------------------------------------------------------
+r31 | racarlson | 2004-11-28 12:46:16 -0500 (Sun, 28 Nov 2004) | 4 lines
+
+ChangeLog file modified to describe changes.
+
+Rich
+
+------------------------------------------------------------------------
+r30 | racarlson | 2004-11-28 12:31:35 -0500 (Sun, 28 Nov 2004) | 9 lines
+
+Update to version 3.0.24
+
+Finally fixed Java comiple options so compile only occurs if .class file
+is missing.
+
+Added in some autotuning code to the web100srv.c and web100-util.c files.
+
+Rich
+
+------------------------------------------------------------------------
+r29 | racarlson | 2004-11-13 11:28:41 -0500 (Sat, 13 Nov 2004) | 12 lines
+
+Increment configure.ac to NDT v3.0.23
+
+ChangeLog contaings details of latest change
+
+Bug fix for passing current test date to the Admin view routines.
+I moved the 'date' variable from a global to a local var in the
+web100srv.c file, and didn't pass it into the calcualate() and
+gen_html() routines.  This meant it never updated the admin.html
+page.
+
+Rich Carlson
+
+------------------------------------------------------------------------
+r28 | racarlson | 2004-10-25 12:50:04 -0400 (Mon, 25 Oct 2004) | 5 lines
+
+Slight change to web100srv.c, don't let waiting flag go negative.  This
+flag counts the number of childern in the queue.  It should be decremented
+when killing off a stuck child, but it shouldn't go below 0.  Also write
+the number of queued childern out to the log file.
+
+------------------------------------------------------------------------
+r27 | racarlson | 2004-10-25 12:43:26 -0400 (Mon, 25 Oct 2004) | 6 lines
+
+Incremented configure.ac to 3.0.22
+ChangeLog contains bug fix description
+web100srv.c, decremented waiting flag, this flag counts the number
+of clients waiting in the queue.  This count was not being decremented
+after changing the queue length.
+
+------------------------------------------------------------------------
+r26 | racarlson | 2004-10-04 12:10:41 -0400 (Mon, 04 Oct 2004) | 2 lines
+
+Update to ChangeLog file to let folks know what's new.
+
+------------------------------------------------------------------------
+r25 | racarlson | 2004-10-04 12:04:42 -0400 (Mon, 04 Oct 2004) | 6 lines
+
+Update web100srv.c with bug fix.  Wrong signal sent when killing off a
+hung child.  Changed sig=0 (log action but don't do it) to sig=9 (kill
+off hung process).
+
+Rich
+
+------------------------------------------------------------------------
+r24 | racarlson | 2004-08-18 15:02:07 -0400 (Wed, 18 Aug 2004) | 9 lines
+
+Added in 2 new scripts.  The conf/autostart.sh script copies the conf/ndt
+script into the /etc/rc.d directory and run chkconfig to make the package
+server programs start at boot time.  The conf/ndt script contains the
+start/stop/status/restart commands to perform this tasks.
+
+The conf/Makefile.am file now includes these 2 files in the distribution package
+
+Finally, the ChangeLog tells you what I did.
+
+------------------------------------------------------------------------
+r23 | racarlson | 2004-08-18 12:18:36 -0400 (Wed, 18 Aug 2004) | 7 lines
+
+Copy man pages back from brubeck, the had been updated by Susan, but the
+changed versions weren't being include in the distribution package.  I also
+update the ndt.conf.man page to reflect several new options.  The web100srv.c
+progam was modified to process these options.  The configure.ac file contains
+the new package version number (3.0.20) and the Changelog file documents
+these changes.
+
+------------------------------------------------------------------------
+r22 | racarlson | 2004-08-17 13:12:17 -0400 (Tue, 17 Aug 2004) | 11 lines
+
+Bug fix to recommending buffer size when throughput could be improved.
+Changes to both clients (java and command-line).
+
+Added in syslog() logging functions.  Will be used to export data to
+a database.  Logging uses LOCAL0.INFO facility and preference values.  Log
+record is in the form of "key=value" pairs separated by comma's (,).
+
+ChangeLog file contains specific text describing the changes.
+
+Rich
+
+------------------------------------------------------------------------
+r19 | racarlson | 2004-07-28 12:10:06 -0400 (Wed, 28 Jul 2004) | 8 lines
+
+New minor version.  Changes to the tcpbw100.template are:
+
+	applet code now lives in a table, to improve placement in the
+	  browser window
+	New public server listed at NSF
+
+Rich
+
+------------------------------------------------------------------------
+r18 | racarlson | 2004-07-15 13:54:20 -0400 (Thu, 15 Jul 2004) | 3 lines
+
+Change start.ndt file to log all fakewww activity in the /varl/log/fakewww.log
+file.
+
+------------------------------------------------------------------------
+r17 | racarlson | 2004-07-15 13:08:07 -0400 (Thu, 15 Jul 2004) | 3 lines
+
+Remove Makefile's from conf directory.  They shouldn't be in the
+repository.
+
+------------------------------------------------------------------------
+r16 | racarlson | 2004-07-15 13:06:42 -0400 (Thu, 15 Jul 2004) | 3 lines
+
+Added logging function to fakewww.c.  It now writes a message into the
+log file (if specified) indicating that a redirect action took place.
+
+------------------------------------------------------------------------
+r15 | racarlson | 2004-07-14 12:29:21 -0400 (Wed, 14 Jul 2004) | 2 lines
+
+Removing Makefiles, they shouldn't be included in the repository.
+
+------------------------------------------------------------------------
+r14 | racarlson | 2004-07-14 12:27:12 -0400 (Wed, 14 Jul 2004) | 6 lines
+
+Added in old server detection to command line client.  Old servers
+rely on the client to analyze the raw results.  New servers analyze
+the test results and pass the answers back to the clients (java and
+command line).  ChangeLog and configure.ac bump the package version
+number.
+
+------------------------------------------------------------------------
+r13 | racarlson | 2004-07-09 14:52:11 -0400 (Fri, 09 Jul 2004) | 2 lines
+
+Increment version number and document changes in ChangeLog file.
+
+------------------------------------------------------------------------
+r12 | racarlson | 2004-07-09 14:42:54 -0400 (Fri, 09 Jul 2004) | 7 lines
+
+bug fixes to tr-tree.c code.  Changes to the traceroute map comparison
+function.  Changes include, fixing path for map file and comparison code
+to properly do comparison.
+
+web100clt code changed to fflush() 'running xxx to yyy test' message prints
+right away instead of when test results are received.
+
+------------------------------------------------------------------------
+r11 | racarlson | 2004-07-06 22:32:30 -0400 (Tue, 06 Jul 2004) | 2 lines
+
+Removing executable files that shouldn't be in the repository.
+
+------------------------------------------------------------------------
+r10 | racarlson | 2004-07-06 22:26:43 -0400 (Tue, 06 Jul 2004) | 3 lines
+
+Changed web100srv.c, web100clt.c and Tcpbw100.java.  New code for better
+duplex mismatch detection.
+
+------------------------------------------------------------------------
+r9 | racarlson | 2004-07-06 18:57:01 -0400 (Tue, 06 Jul 2004) | 2 lines
+
+completing removal of unneeded files
+
+------------------------------------------------------------------------
+r8 | racarlson | 2004-07-06 18:52:17 -0400 (Tue, 06 Jul 2004) | 2 lines
+
+Removeing files that shouldn't be in the repository
+
+------------------------------------------------------------------------
+r7 | racarlson | 2004-07-06 18:29:50 -0400 (Tue, 06 Jul 2004) | 2 lines
+
+cleanup and remove files that shouldn't be archived.
+
+------------------------------------------------------------------------
+r6 | racarlson | 2004-07-06 18:24:29 -0400 (Tue, 06 Jul 2004) | 5 lines
+
+Changes to duplex mismatch detection in web100srv.c and analyze.c.
+Also changes to analyze.c to make it more robust to data in input
+file (web100srv.log).  Correctly handles "Apr" and "Sep" dates, and
+new variables logged by server.
+
+------------------------------------------------------------------------
+r2 | racarlson | 2004-06-30 11:40:21 -0400 (Wed, 30 Jun 2004) | 2 lines
+
+Initial revision
+
+------------------------------------------------------------------------
+r1 | (no author) | 2004-06-30 11:40:21 -0400 (Wed, 30 Jun 2004) | 1 line
+
+New repository initialized by cvs2svn.
+------------------------------------------------------------------------
