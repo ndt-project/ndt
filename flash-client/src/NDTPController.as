@@ -42,9 +42,11 @@ package  {
     private var _remoteTestResults:String;
     private var _testsToRun:Array;
     private var _testStage:int;
+    private var _clientApplication:String;
 
-    public function NDTPController(hostname:String) {
+    public function NDTPController(hostname:String, clientApplication:String) {
       _hostname = hostname;
+      _clientApplication = clientApplication;
 
       _remoteTestResults = ""
     }
@@ -125,7 +127,9 @@ package  {
               s2c.run();
               break;
           case TestType.META:
-              var meta:TestMETA = new TestMETA(_ctlSocket, this);
+              var meta:TestMETA = new TestMETA(_ctlSocket, 
+	                                       _clientApplication, 
+					       this);
               meta.run();
               break;
           default:
