@@ -37,14 +37,10 @@ package  {
     private var _metaTestSuccess:Boolean;
     private var _msg:Message;
     private var _testStage:int;
-    private var _clientApplication:String;
 
-    public function TestMETA(ctlSocket:Socket, 
-                             clientApplication:String, 
-			     callerObject:NDTPController) {
+    public function TestMETA(ctlSocket:Socket, callerObject:NDTPController) {
       _callerObj = callerObject;
       _ctlSocket = ctlSocket;
-      _clientApplication = clientApplication;
 
       _metaTestSuccess = true;  // Initially the test has not failed.
     }
@@ -196,13 +192,7 @@ package  {
 
       bodyToSend.clear();
       bodyToSend.writeUTFBytes(new String(
-          NDTConstants.META_CLIENT_APPLICATION + ":" + _clientApplication));
-      _msg = new Message(MessageType.TEST_MSG, bodyToSend);
-      if (!_msg.sendMessage(_ctlSocket)) {
-        _metaTestSuccess = false;
-        endTest();
-        return;
-      }
+          NDTConstants.META_CLIENT_APPLICATION + ":" + NDTConstants.CLIENT_ID));
 
       // Client can send any number of such meta data in a TEST_MSG format and
       // signal the send of the transmission using an empty TEST_MSG.
