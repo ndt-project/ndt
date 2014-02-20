@@ -789,7 +789,7 @@ void * zombieWorker(void *head_ptr) {
     // send "keep-alive" SRV_QUEUE message to client and expect a response
     retcode = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, 
       SRV_QUEUE_HEARTBEAT_STR,
-      SRV_QUEUE_HEARTBEAT_STR_LN);
+      strlen(SRV_QUEUE_HEARTBEAT_STR));
     log_println(6,
                 "send_msg() returned %d during zombie check on client %d",
                 retcode, tmp_ptr->pid);
@@ -2029,7 +2029,7 @@ mainloop: if (head_ptr == NULL)
               // indicate server waiting in queue
               send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
 	        SRV_QUEUE_SERVER_BUSY_STR, 
-		SRV_QUEUE_SERVER_BUSY_STR_LN);
+		strlen(SRV_QUEUE_SERVER_BUSY_STR));
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2050,7 +2050,7 @@ mainloop: if (head_ptr == NULL)
               /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9977", 4); */
               send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
 	        SRV_QUEUE_SERVER_BUSY_STR, 
-		SRV_QUEUE_SERVER_BUSY_STR_LN);
+		strlen(SRV_QUEUE_SERVER_BUSY_STR));
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2086,7 +2086,7 @@ mainloop: if (head_ptr == NULL)
               // boot the client
               send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
 	        SRV_QUEUE_SERVER_BUSY_STR, 
-		SRV_QUEUE_SERVER_BUSY_STR_LN);
+		strlen(SRV_QUEUE_SERVER_BUSY_STR));
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2295,7 +2295,7 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                     "Please try again later.", chld_pid);
                 send_msg(ctlsockfd, SRV_QUEUE, 
 		  SRV_QUEUE_SERVER_BUSY_STR, 
-		  SRV_QUEUE_SERVER_BUSY_STR_LN);
+		  strlen(SRV_QUEUE_SERVER_BUSY_STR));
                 close(chld_pipe[0]);
                 close(chld_pipe[1]);
                 shutdown(ctlsockfd, SHUT_WR);
@@ -2378,7 +2378,7 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 /* send_msg(new_child->ctlsockfd, SRV_QUEUE, "9944", 4); */
                 send_msg(new_child->ctlsockfd, SRV_QUEUE, 
 		  SRV_QUEUE_SERVER_BUSY_STR, 
-		  SRV_QUEUE_SERVER_BUSY_STR_LN);
+		  strlen(SRV_QUEUE_SERVER_BUSY_STR));
                 close(chld_pipe[1]);
                 shutdown(new_child->ctlsockfd, SHUT_WR);
                 close(new_child->ctlsockfd);
