@@ -210,6 +210,10 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   int msgType;
   int msgLen = 1;
   int first = 1;
+  char *invalid_test_suite = "Invalid test suite request.";
+  char *client_timeout = "Client timeout.";
+  char *invalid_test = "Invalid test request.";
+
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
 
@@ -218,8 +222,8 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
 
   // read the test suite request
   if (recv_msg(ctlsockfd, &msgType, &useropt, &msgLen)) {
-    snprintf(buff, buff_strlen, "Invalid test suite request");
-    send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+    send_msg(ctlsockfd, MSG_ERROR, invalid_test_suite, 
+      strlen(invalid_test_suite));
     return (-1);
   }
   if (msgLen == -1) {
@@ -228,8 +232,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   }
   // Expecting a MSG_LOGIN with payload byte indicating tests to be run
   if ((msgType != MSG_LOGIN) || (msgLen != 1)) {
-    snprintf(buff, buff_strlen, "Invalid test request");
-    send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+    send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
     return (-2);
   }
   // client connect received correctly. Logging activity
@@ -244,8 +247,8 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
         & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
            | TEST_META))) {
     // message received does not indicate a valid test!
-    snprintf(buff, buff_strlen, "Invalid test suite request");
-    send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+    send_msg(ctlsockfd, MSG_ERROR, invalid_test_suite, 
+      strlen(invalid_test_suite));
     return (-3);
   }
   // construct test suite request based on user options received
