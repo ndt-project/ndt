@@ -29,6 +29,18 @@ package  {
         "ndt.iupui.mlab1.nuq0t.measurement-lab.org";
     // For localization.
     public static const BUNDLE_NAME:String = "DisplayMessages";
+    public static const NDT_DESCRIPTION:String =
+        "Network Diagnostic Tool (NDT) provides a "
+        + "sophisticated speed and diagnostic test. An NDT "
+        + "test reports more than just the upload and "
+        + "download speeds — it also attempts to determine "
+        + "what, if any, problems limited these speeds, "
+        + "differentiating between computer configuration "
+        + "and network infrastructure problems. While the "
+        + "diagnostic messages are most useful for expert "
+        + "users, they can also help novice users by "
+        + "allowing them to provide detailed trouble "
+        + "reports to their network administrator.";
 
     public static const PROTOCOL_MSG_READ_SUCCESS:int = 0;
     public static const PROTOCOL_MSG_READ_ERROR:int = 1;

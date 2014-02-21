@@ -80,16 +80,18 @@ package  {
     }
 
     public static function appendErrMsg(msg:String):void {
-      _errMsg += msg + "\n";
+      _errMsg += "<font color=\"#FE9A2E\"><b>" + msg + "</b></font>" + "\n";
       NDTUtils.callExternalFunction("appendErrors", msg);
-      appendDebugMsg(msg);
+      appendDebugMsg("<font color=\"#FE9A2E\"><b>" + msg + "</b></font>");
     }
 
     public static function appendDebugMsg(msg:String):void {
       if (!CONFIG::debug) {
           return;
       }
-      var formattedMsg:String = (new Date().toUTCString()) + ": " + msg + "\n";
+      var formattedMsg:String = "<font size=\"12\">"
+                                + (new Date().toUTCString()) + ": "
+                                + "</font>" + msg + "\n";
       _debugMsg += formattedMsg;
       NDTUtils.callExternalFunction("appendDebugOutput", msg);
       // _ndtTestStartTime > 0 ensures the console window has been created.
@@ -142,6 +144,28 @@ package  {
       TestResults.appendResultDetails("=== Results sent by the server ===");
       TestResults.appendResultDetails(s2cTestResults + remoteTestResults);
       // TODO(tiziana): If parsing mistake, log message "resultsParseError".
+    }
+
+    public static function clearResults():void {
+      _ndtTestStartTime = 0.0;
+      _ndtTestEndTime = 0.0;
+      _resultDetails = "";
+      _errMsg = "";
+      _debugMsg = "";
+
+      accessTech = null;
+      linkSpeed = 0.0;
+      ndtVariables = new Object();
+      ndtTestStatus = null;
+      ndtTestFailed = false;
+      c2sSpeed = 0.0;
+      s2cSpeed = 0.0;
+      sc2sSpeed = 0.0;
+      ss2cSpeed = 0.0;
+      s2cTestResults = "";
+      remoteTestResults = "";
+      c2sTestSuccess = false;
+      s2cTestSuccess = false;
     }
   }
 }
