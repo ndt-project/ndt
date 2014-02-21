@@ -48,10 +48,11 @@ package  {
     private var _consoleText:TextField;
     private var _resultsTextField:TextField;
     private var _summaryResultText:String;
-    private var _resultsButton:Sprite;
-    private var _detailsButton:Sprite;
-    private var _errorsButton:Sprite;
-    private var _debugButton:Sprite;
+    private var _resultsButton:NDTButton;
+    private var _detailsButton:NDTButton;
+    private var _errorsButton:NDTButton;
+    private var _debugButton:NDTButton;
+    private var _activeButton:NDTButton;
     private var _restartButton:Sprite;
 
     public function GUI(
@@ -173,25 +174,25 @@ package  {
       _startButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _startButton.removeEventListener(MouseEvent.CLICK, clickStart);
     }
-	
+
     private function hideResultsScreen():void {
       while (this.numChildren > 0)
         this.removeChildAt(0);
-	
+
       _resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _errorsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-	
+
       _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _errorsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-	
+
       _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
       _errorsButton.removeEventListener(MouseEvent.CLICK, clickErrors);
@@ -283,6 +284,7 @@ package  {
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
 
+      changeActiveButton(_resultsButton);
       setSummaryResultText();
       _resultsTextField.htmlText = _summaryResultText;
     }
@@ -348,23 +350,27 @@ package  {
     }
 
     private function clickResults(e:MouseEvent):void {
+      changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = _summaryResultText;
       _resultsTextField.scrollV = 0;
-   }
+    }
 
     private function clickDetails(e:MouseEvent):void {
+      changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getResultDetails();
       _resultsTextField.scrollV = 0;
     }
 
     private function clickDebug(e:MouseEvent):void {
+      changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getDebugMsg();
       _resultsTextField.scrollV = 0;
     }
 
     private function clickErrors(e:MouseEvent):void {
+      changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getErrMsg();
       _resultsTextField.scrollV = 0;
@@ -377,6 +383,13 @@ package  {
       this.addChild(_consoleText);
       _callerObj.startNDTTest();
     }
+
+    private function changeActiveButton(target:NDTButton):void {
+      if (_activeButton)
+        _activeButton.setInactive();
+      target.setActive();
+      _activeButton = target;
+    }
   }
 }
 
@@ -388,6 +401,8 @@ class NDTButton extends Sprite {
   [Embed(source="../assets/hover.png")]
   private var ButtonImg:Class;
 
+  private var _textField:TextField;
+
   function NDTButton(text:String, textSize:int, height:int, prop:Number) {
     super();
     this.buttonMode = true;
@@ -398,9 +413,9 @@ class NDTButton extends Sprite {
     textFormat.bold = true;
     textFormat.align = TextFormatAlign.CENTER;
     textFormat.color = 0xFFFFFF;
-    var textField:TextField = new TextField();
-    textField.defaultTextFormat = textFormat;
-    textField.text = text;
+    _textField = new TextField();
+    _textField.defaultTextFormat = textFormat;
+    _textField.text = text;
 
     var buttonShape:DisplayObject = new ButtonImg();
 
@@ -408,14 +423,26 @@ class NDTButton extends Sprite {
     buttonShape.height *= prop;
     buttonShape.x -= buttonShape.width / 2;
     buttonShape.y -= buttonShape.height / 2;
-    textField.width = buttonShape.width;
-    textField.height = height;
-    textField.x -= textField.width / 2;
-    textField.y -= textField.height / 2;
+    _textField.width = buttonShape.width;
+    _textField.height = height;
+    _textField.x -= _textField.width / 2;
+    _textField.y -= _textField.height / 2;
 
     this.addChild(buttonShape);
-    this.addChild(textField);
+    this.addChild(_textField);
     this.mouseChildren = false;
+  }
+
+  public function setActive():void {
+    var textFormat:TextFormat = _textField.getTextFormat();
+    textFormat.color = 0x00DBA8;
+    _textField.setTextFormat(textFormat);
+  }
+
+  public function setInactive():void {
+    var textFormat:TextFormat = _textField.getTextFormat();
+    textFormat.color = 0xFFFFFF;
+    _textField.setTextFormat(textFormat);
   }
 }
 
