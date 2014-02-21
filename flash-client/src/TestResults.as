@@ -143,5 +143,27 @@ package  {
       TestResults.appendResultDetails(s2cTestResults + remoteTestResults);
       // TODO(tiziana): If parsing mistake, log message "resultsParseError".
     }
+
+    public static function clearResults():void {
+      _ndtTestStartTime = 0.0;
+      _ndtTestEndTime = 0.0;
+      _resultDetails = "";
+      _errMsg = "";
+      _debugMsg = "";
+
+      accessTech = null;
+      linkSpeed = 0.0;
+      ndtVariables = new Object();
+      ndtTestStatus = null;
+      ndtTestFailed = false;
+      c2sSpeed = 0.0;
+      s2cSpeed = 0.0;
+      sc2sSpeed = 0.0;
+      ss2cSpeed = 0.0;
+      s2cTestResults = "";
+      remoteTestResults = "";
+      c2sTestSuccess = false;
+      s2cTestSuccess = false;
+    }
   }
 }

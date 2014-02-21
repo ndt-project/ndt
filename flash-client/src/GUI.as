@@ -52,6 +52,7 @@ package  {
     private var _detailsButton:Sprite;
     private var _errorsButton:Sprite;
     private var _debugButton:Sprite;
+    private var _restartButton:Sprite;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -172,6 +173,32 @@ package  {
       _startButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _startButton.removeEventListener(MouseEvent.CLICK, clickStart);
     }
+	
+    private function hideResultsScreen():void {
+      while (this.numChildren > 0)
+        this.removeChildAt(0);
+	
+      _resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _errorsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      if (_debugButton)
+        _debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+	
+      _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _errorsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      if (_debugButton)
+        _debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+	
+      _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
+      _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
+      _errorsButton.removeEventListener(MouseEvent.CLICK, clickErrors);
+      if (_debugButton)
+        _debugButton.removeEventListener(MouseEvent.CLICK, clickDebug);
+      _restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
+    }
 
     /**
      * Add text to the console while the NDT test is running.
@@ -211,42 +238,50 @@ package  {
       _errorsButton = new NDTButton("ERRORS", 18, 30, 0.25);
       if (CONFIG::debug)
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
+	  _restartButton = new NDTButton("RESTART", 18, 30, 0.25);
 
-      var verticalMargin:Number = _stageHeight / 4;
+      var verticalMargin:Number = _stageHeight / 5;
       if (CONFIG::debug)
-        verticalMargin = _stageHeight / 5;
+        verticalMargin = _stageHeight / 6;
       _resultsButton.y = verticalMargin;
       _detailsButton.y = _resultsButton.y + verticalMargin;
       _errorsButton.y = _detailsButton.y  + verticalMargin;
       _debugButton.y = _errorsButton.y + verticalMargin;
+      _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
+                                       : _errorsButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       _errorsButton.x += _errorsButton.width / 2;
       _debugButton.x += _debugButton.width / 2;
+      _restartButton.x += _restartButton.width / 2;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
       this.addChild(_errorsButton);
       if (_debugButton)
         this.addChild(_debugButton);
+      this.addChild(_restartButton);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _errorsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _errorsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
       _errorsButton.addEventListener(MouseEvent.CLICK, clickErrors);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
+      _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
 
       setSummaryResultText();
       _resultsTextField.htmlText = _summaryResultText;
@@ -333,6 +368,14 @@ package  {
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getErrMsg();
       _resultsTextField.scrollV = 0;
+    }
+
+    private function clickRestart(e:MouseEvent):void {
+      hideResultsScreen();
+      TestResults.clearResults();
+      _consoleText.text = "";
+      this.addChild(_consoleText);
+      _callerObj.startNDTTest();
     }
   }
 }
