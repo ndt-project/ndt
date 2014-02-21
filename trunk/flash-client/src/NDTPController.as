@@ -232,7 +232,8 @@ package  {
     public function succeedNDTTest():void {
       TestResults.ndt_test_results::ndtTestFailed = false;
       NDTUtils.callExternalFunction("allTestsCompleted");
-      TestResults.appendDebugMsg("All the tests completed successfully.");
+      TestResults.appendDebugMsg("<font color=\"#7CFC00\">"
+        + "All the tests completed successfully." + "</font>");
       finishNDTTest();
     }
 
