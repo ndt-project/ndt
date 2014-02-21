@@ -95,6 +95,7 @@ package  {
         TestResults.appendDebugMsg("Bad Flash permissions: No "
           + "access to javascript.");
       }
+
       try {
         var js_client_application:String =
 	  ExternalInterface.call("getClientApplication");
@@ -108,6 +109,15 @@ package  {
       } catch(e:Error) {
         TestResults.appendDebugMsg("Bad Flash permissions: No "
           + "access to javascript.");
+      }
+
+      try {
+        Main.ndt_description = ExternalInterface.call("getNDTDescription");
+        TestResults.appendDebugMsg(
+            "Initialized NDT description from JavaScript:"
+            + Main.ndt_description);
+      } catch(e:Error) {
+        Main.ndt_description = NDTConstants.NDT_DESCRIPTION;
       }
     }
 
