@@ -111,10 +111,7 @@ package  {
     }
 
     public static function getErrMsg():String {
-      if (_errMsg == "")
-        return "No errors!";
-      else
-        return _errMsg;
+      return _errMsg;
     }
 
     public static function interpretResults():void {
