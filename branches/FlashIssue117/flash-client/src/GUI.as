@@ -328,9 +328,9 @@ package  {
       }
       if (TestResults.getErrMsg() != "") {
         _summaryResultText += "There were some errors during the test:<br>"
-                           + "<font color=\"#CC3333\"><b>"
-                           + TestResults.getErrMsg()
-                           + "</b></font>" + "\n";
+                              + "<font color=\"#CC3333\"><b>"
+                              + TestResults.getErrMsg()
+                              + "</b></font>" + "\n";
       }
     }
 
