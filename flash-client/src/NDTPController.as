@@ -43,6 +43,7 @@ package  {
     private var _testsToRun:Array;
     private var _testStage:int;
     private var _clientApplication:String;
+    private var _currentTest:int = 0;
 
     public function NDTPController(hostname:String, clientApplication:String) {
       _hostname = hostname;
@@ -115,9 +116,14 @@ package  {
     }
 
     public function runTests():void {
-      if (_testsToRun.length > 0) {
-       var currentTest:int = parseInt(_testsToRun.shift());
-        switch (currentTest) {
+      if (Main.guiEnabled) {
+        Main.gui.updateProgressText(_currentTest, _testsToRun.length);
+      }
+
+      if (_testsToRun.length > _currentTest) {
+        var currentTestCode:int = parseInt(_testsToRun[_currentTest]);
+        _currentTest++;
+        switch (currentTestCode) {
           case TestType.C2S:
               var c2s:TestC2S = new TestC2S(_ctlSocket, _hostname, this);
               c2s.run();
@@ -127,8 +133,8 @@ package  {
               s2c.run();
               break;
           case TestType.META:
-              var meta:TestMETA = new TestMETA(_ctlSocket, 
-	                                       _clientApplication, 
+              var meta:TestMETA = new TestMETA(_ctlSocket,
+	                                       _clientApplication,
 					       this);
               meta.run();
               break;
