@@ -50,7 +50,6 @@ package  {
     private var _summaryResultText:String;
     private var _resultsButton:NDTButton;
     private var _detailsButton:NDTButton;
-    private var _errorsButton:NDTButton;
     private var _debugButton:NDTButton;
     private var _activeButton:NDTButton;
     private var _restartButton:Sprite;
@@ -171,21 +170,18 @@ package  {
 
       _resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
-      _errorsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
-      _errorsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
-      _errorsButton.removeEventListener(MouseEvent.CLICK, clickErrors);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
@@ -226,7 +222,6 @@ package  {
 
       _resultsButton = new NDTButton("RESULTS", 18, 30, 0.25);
       _detailsButton = new NDTButton("DETAILS", 18, 30, 0.25);
-      _errorsButton = new NDTButton("ERRORS", 18, 30, 0.25);
       if (CONFIG::debug)
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
 	  _restartButton = new NDTButton("RESTART", 18, 30, 0.25);
@@ -236,40 +231,34 @@ package  {
         verticalMargin = _stageHeight / 6;
       _resultsButton.y = verticalMargin;
       _detailsButton.y = _resultsButton.y + verticalMargin;
-      _errorsButton.y = _detailsButton.y  + verticalMargin;
-      _debugButton.y = _errorsButton.y + verticalMargin;
+      _debugButton.y = _detailsButton.y + verticalMargin;
       _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
-                                       : _errorsButton.y + verticalMargin;
+                                       : _detailsButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
-      _errorsButton.x += _errorsButton.width / 2;
       _debugButton.x += _debugButton.width / 2;
       _restartButton.x += _restartButton.width / 2;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
-      this.addChild(_errorsButton);
       if (_debugButton)
         this.addChild(_debugButton);
       this.addChild(_restartButton);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
-      _errorsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
-      _errorsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
-      _errorsButton.addEventListener(MouseEvent.CLICK, clickErrors);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
@@ -337,6 +326,12 @@ package  {
             + "</font> Mbps</font><br><br>");
         }
       }
+      if (TestResults.getErrMsg() != "") {
+        _summaryResultText += "There were some errors during the test:<br>"
+                              + "<font color=\"#CC3333\"><b>"
+                              + TestResults.getErrMsg()
+                              + "</b></font>" + "\n";
+      }
     }
 
     private function clickResults(e:MouseEvent):void {
@@ -356,13 +351,6 @@ package  {
       changeActiveButton(NDTButton(e.target));
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getDebugMsg();
-      _resultsTextField.scrollV = 0;
-    }
-
-    private function clickErrors(e:MouseEvent):void {
-      changeActiveButton(NDTButton(e.target));
-      _resultsTextField.htmlText = "<font size=\"14\">"
-                                   + TestResults.getErrMsg();
       _resultsTextField.scrollV = 0;
     }
 
