@@ -169,18 +169,19 @@ package  {
       var textFormat:TextFormat = new TextFormat();
       textFormat.size = 14;
       textFormat.font = "Verdana";
+      textFormat.bold = true;
       textFormat.color = 0x000000;
       textFormat.align = TextFormatAlign.RIGHT;
       _progressText.defaultTextFormat = textFormat;
-      updateProgressText(0);
 
       this.addChild(_consoleText);
       this.addChild(_progressText);
       _callerObj.startNDTTest();
     }
 
-    public function updateProgressText(progress:int):void {
-      _progressText.text = "Tests completed: " + progress + "%";
+    public function updateProgressText(completed:int, total:int):void {
+      _progressText.text = "Completed " + completed + " of "
+                           + total + " tests";
     }
 
     private function hideInitialScreen():void {

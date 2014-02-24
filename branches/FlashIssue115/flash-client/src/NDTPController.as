@@ -115,7 +115,7 @@ package  {
 
     public function runTests():void {
       if (Main.guiEnabled) {
-        Main.gui.updateProgressText(_currentTest / _testsToRun.length * 100);
+        Main.gui.updateProgressText(_currentTest, _testsToRun.length);
       }
 
       if (_testsToRun.length > _currentTest) {
@@ -250,7 +250,6 @@ package  {
 
       TestResults.interpretResults();
       if (Main.guiEnabled) {
-        Main.gui.updateProgressText(100);
         Main.gui.displayResults();
       }
     }
