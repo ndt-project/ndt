@@ -80,9 +80,9 @@ package  {
     }
 
     public static function appendErrMsg(msg:String):void {
-      _errMsg += "<font color=\"#FE9A2E\"><b>" + msg + "</b></font>" + "\n";
+      _errMsg += msg + "\n";
       NDTUtils.callExternalFunction("appendErrors", msg);
-      appendDebugMsg("<font color=\"#FE9A2E\"><b>" + msg + "</b></font>");
+      appendDebugMsg(msg);
     }
 
     public static function appendDebugMsg(msg:String):void {

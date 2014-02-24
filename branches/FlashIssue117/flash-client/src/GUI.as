@@ -326,10 +326,12 @@ package  {
             + "</font> Mbps</font><br><br>");
         }
       }
-	  if (TestResults.getErrMsg() != "") {
-        _summaryResultText += "There were some errors during tests:<br>"
-		                    + TestResults.getErrMsg();
-	  }
+      if (TestResults.getErrMsg() != "") {
+        _summaryResultText += "There were some errors during the test:<br>"
+                           + "<font color=\"#CC3333\"><b>"
+                           + TestResults.getErrMsg()
+                           + "</b></font>" + "\n";
+      }
     }
 
     private function clickResults(e:MouseEvent):void {
