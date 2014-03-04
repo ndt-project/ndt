@@ -3298,7 +3298,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						_txtStatistics.append(_resBundDisplayMsgs
 								.getString("c2s")
 								+ " "
-								+ _resBundDisplayMsgs.getString("qSeen")
+								+ _resBundDisplayMsgs.getString("eqSeen")
 								+ ": "
 								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dC2sspd - _dSc2sspd)
 										/ _dC2sspd) + "%\n");
@@ -3323,7 +3323,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						_txtStatistics.append(_resBundDisplayMsgs
 								.getString("s2c")
 								+ " "
-								+ _resBundDisplayMsgs.getString("qSeen")
+								+ _resBundDisplayMsgs.getString("eqSeen")
 								+ ": "
 								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dSs2cspd - _dS2cspd)
 										/ _dSs2cspd) + "%\n");
