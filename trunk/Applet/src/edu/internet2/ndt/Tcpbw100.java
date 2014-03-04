@@ -147,8 +147,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	String _sErrMsg;
 	JButton _buttonStartTest;
 	// TODO: Could use just one button for dismiss and copy. For later release
-	JButton _buttonDismiss, _buttonStatsDismiss;
-	JButton _buttonCopy, _buttonStatsCopy;
+	JButton _buttonDetailsDismiss, _buttonStatsDismiss;
+	JButton _buttonDetailsCopy, _buttonStatsCopy;
 	JButton _buttonDetails;
 	JButton _buttonStatistics;
 	JButton _buttonMailTo;
@@ -921,24 +921,24 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		_frameWeb100Vars.getContentPane().add("South", buttons);
 
 		// Add "close" button
-		_buttonDismiss = new JButton(_resBundDisplayMsgs.getString("close"));
-		_buttonDismiss.addActionListener(this);
+		_buttonDetailsDismiss = new JButton(_resBundDisplayMsgs.getString("close"));
+		_buttonDetailsDismiss.addActionListener(this);
 
 		// Add "copy" button
-		_buttonCopy = new JButton(_resBundDisplayMsgs.getString("copy"));
-		_buttonCopy.addActionListener(this);
+		_buttonDetailsCopy = new JButton(_resBundDisplayMsgs.getString("copy"));
+		_buttonDetailsCopy.addActionListener(this);
 
 		// Create Text area for displaying results, add "Heading"
 		_txtDiagnosis = new JTextArea(
 				_resBundDisplayMsgs.getString(_sServerType + "KernelVar") + ":\n", 15,
 				30);
 		_txtDiagnosis.setEditable(true);
-		_buttonDismiss.setEnabled(true);
-		_buttonCopy.setEnabled(_bCanCopy);
+		_buttonDetailsDismiss.setEnabled(true);
+		_buttonDetailsCopy.setEnabled(_bCanCopy);
 
 		// Now place all the buttons
-		buttons.add("West", _buttonDismiss);
-		buttons.add("East", _buttonCopy);
+		buttons.add("West", _buttonDetailsDismiss);
+		buttons.add("East", _buttonDetailsCopy);
 		_frameWeb100Vars.getContentPane().add(new JScrollPane(_txtDiagnosis));
 		_frameWeb100Vars.pack();
 	} // createDiagnoseWindow() ends
@@ -1112,9 +1112,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		else if (source == _buttonDetails) {
 			_frameWeb100Vars.setResizable(true);
 			_frameWeb100Vars.setVisible(true);
+
+            if (NDTUtils.isNotEmpty(_txtDiagnosis.getText())) {
+                // enable copy button only if there is details informations
+                _buttonDetailsCopy.setEnabled(true);
+            }
 		}
 		// "More Details" Web100 variables window to be closed
-		else if (source == _buttonDismiss) {
+		else if (source == _buttonDetailsDismiss) {
 			_frameWeb100Vars.toBack();
 			_frameWeb100Vars.dispose();
 		}
@@ -1124,29 +1129,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_frameDetailedStats.dispose();
 		}
 		// "More details" copy button functionality
-		else if (source == _buttonCopy) {
-			try {
-				Clipboard clipbd = getToolkit().getSystemClipboard();
-				_bCanCopy = true;
-				String s = _txtDiagnosis.getText();
-				StringSelection ss = new StringSelection(s);
-				clipbd.setContents(ss, ss);
-				_txtDiagnosis.selectAll();
-			} catch (SecurityException e) {
-				_bCanCopy = false;
-				// this Exception is only when the client cannot copy
-				// some data, and is acted on by disabling the
-				// copy button.
-				System.err.println(" You may not have some security Permissions. Please confirm");
-			}
+		else if (source == _buttonDetailsCopy) {
+			copy(_txtDiagnosis);
 		}
 		// "Statistics" copy button functionality
 		else if (source == _buttonStatsCopy) {
-			Clipboard clipbd = getToolkit().getSystemClipboard();
-			String sTemp = _txtStatistics.getText();
-			StringSelection ssTemp = new StringSelection(sTemp);
-			clipbd.setContents(ssTemp, ssTemp);
-		}
+            copy(_txtStatistics);
+        }
 		// Show "statistics" window
 		else if (source == _buttonStatistics) {
 			_frameDetailedStats.setResizable(true);
@@ -1217,6 +1206,28 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 		} // end mail-to functionality
 	} // actionPerformed()
+
+    /**
+     * Copy text from JTextarea to clipboard
+     *
+     * @param _txt
+     *            Source copied text to clipboard
+     * */
+    private void copy (JTextArea _txt) {
+        try {
+            Clipboard clipbd = getToolkit().getSystemClipboard();
+            _bCanCopy = true;
+            String sTemp = _txt.getText();
+            StringSelection ssTemp = new StringSelection(sTemp);
+            clipbd.setContents(ssTemp, ssTemp);
+        } catch (SecurityException e) {
+            _bCanCopy = false;
+            // this Exception is only when the client cannot copy
+            // some data, and is acted on by disabling the
+            // copy button.
+            System.err.println(" You may not have some security Permissions. Please confirm");
+        }
+    }
 
 	/**
 	 * Display current status in Applet window.
