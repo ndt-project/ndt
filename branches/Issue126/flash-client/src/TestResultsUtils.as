@@ -84,14 +84,40 @@ package  {
           return Capabilities.os;
         case "ClientVersion":
           return NDTConstants.CLIENT_VERSION;
-        case "FlashVersion":
+        case "PluginVersion":
           return Capabilities.version;
         case "OsArchitecture":
           return Capabilities.cpuArchitecture;
+        case NDTConstants.MISMATCH:
+          if (TestResults.ndtVariables[varName]
+              == NDTConstants.DUPLEX_OK_INDICATOR)
+            return "no";
+          else
+            return "yes";
+        case NDTConstants.BAD_CABLE:
+          if (TestResults.ndtVariables[varName]
+              == NDTConstants.CABLE_STATUS_OK)
+            return "no";
+          else
+            return "yes";
+        case NDTConstants.CONGESTION:
+          if (TestResults.ndtVariables[varName]
+              == NDTConstants.CONGESTION_NONE)
+            return "no";
+          else
+            return "yes";
+        case NDTConstants.RWINTIME:
+          return String(TestResults.ndtVariables[varName] * NDTConstants.PERCENTAGE);
+        case NDTConstants.OPTRCVRBUFF:
+          return String(TestResults.ndtVariables[NDTConstants.MAXRWINRCVD] * NDTConstants.KBITS2BITS);
+        case NDTConstants.ACCESS_TECH:
+         return TestResults.ndt_test_results::accessTech;
+        default:
+          if (varName in TestResults.ndtVariables) {
+            return TestResults.ndtVariables[varName].toString();
+          }
       }
-      if (varName in TestResults.ndtVariables) {
-        return TestResults.ndtVariables[varName].toString();
-      }
+
       return null;
     }
 

@@ -20,7 +20,26 @@ public class NDTConstants {
 	public static final String META_BROWSER_OS = "client.browser.name";
 	public static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
 	public static final String META_CLIENT_VERSION = "client.version";
-    public static final String META_CLIENT_APPLICATION = "client.application";
+        public static final String META_CLIENT_APPLICATION = "client.application";
+
+        // Section: NDT Variables sent by server
+        public static final String AVGRTT = "avgrtt";
+        public static final String CURRWINRCVD = "CurRwinRcvd";
+        public static final String MAXRWINRCVD = "MaxRwinRcvd";
+        public static final String LOSS = "loss";
+        public static final String MINRTT = "MinRTT";
+        public static final String MAXRTT = "MaxRTT";
+        public static final String WAITSEC = "waitsec";
+        public static final String CURRTO = "CurRTO";
+        public static final String SACKSRCVD = "SACKsRcvd";
+        public static final String MISMATCH = "mismatch";
+        public static final String BAD_CABLE = "bad_cable";
+        public static final String CONGESTION = "congestion";
+        public static final String CWNDTIME = "cwndtime";
+        public static final String RWINTIME = "rwintime";
+        public static final String OPTRCVRBUFF = "optimalRcvrBuffer";
+        public static final String ACCESS_TECH = "accessTech";
+        public static final String DUPACKSIN = "DupAcksIn";
 
 	/*
 	 * TODO for a later release: Version could be moved to some "configurable"

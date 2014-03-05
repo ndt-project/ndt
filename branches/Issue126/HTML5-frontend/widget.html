@@ -118,7 +118,11 @@
   </div>
 </div>
 
-<applet name="NDT" code="Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar" width="400" height="400"></applet>
+<!--Use embed tag to have flash client being background for JS UI or applet tag if you want to use java applet instead. -->
+<applet id="NDT" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar" width="400" height="400"></applet>
+
+<!--<embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="400" />-->
+
 
 </body>
 </html>
