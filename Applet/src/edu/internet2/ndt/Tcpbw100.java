@@ -931,7 +931,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// Create Text area for displaying results, add "Heading"
 		_txtDiagnosis = new JTextArea(
 				_resBundDisplayMsgs.getString(_sServerType + "KernelVar") + ":\n", 15,
-				30);
+				70);
 		_txtDiagnosis.setEditable(true);
 		_buttonDetailsDismiss.setEnabled(true);
 		_buttonDetailsCopy.setEnabled(_bCanCopy);
