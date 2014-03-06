@@ -1,0 +1,35 @@
+This program started out as a Web100 based speed tester
+	Tom Dunnigan - ORNL
+	Frances Flower - ORNL
+
+This basic program, was converted into the current NDT
+format by
+	Richard Carlson 
+
+The base Web100 library and routines were done by the
+Web100 team at PSC http://www.web100.org
+
+The NDT Java applet has been localized by the following people, many thanks to:
+
+    The Catalan translation was provided by:
+        Victor Saez - vicsaez _at_ gmail _dot_ com
+        David Rincon - drincon _at_ entel_dot _upc _dot_ edu
+        Laia Ecunillera - ecunillera _at_ cesca _dot_ es
+
+    The French translation was provided by:
+        Aris Adamantiadis - aris.adamantiadis _at_ belnet _dot_ be
+
+    The Norwegian translation was provided by:
+        Jon Hellan - jon.kare.hellan _at_ uninett _dot_ no
+
+    The Dutch translation was provided by:
+        Merlijn Hofstra - mhofstra _at_ gmail _dot_ com
+
+    The Brazilian Portuguese translation was provided by:
+        Patricia Dourado - paty_dourado _at_ unifacs_dot _edu _dot_ br
+        Leobino Sampaio - leobino _at_ gmail _dot_ com
+        Jose Augusto Suruagy Monteiro - suruagy _at_ unifacs _dot_ br
+
+    The Russian translation was provided by:
+        Maxim Grigoriev - maxim _at_ fnal _dot_ gov
+
