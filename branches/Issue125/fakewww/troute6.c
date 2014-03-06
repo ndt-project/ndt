@@ -273,7 +273,7 @@ char copyright[] =
 #include <string.h>
 #include <unistd.h>
 
-#include "logging.h"
+#include "../src/logging.h"
 
 #define  MAXPACKET  65535
 #ifndef MAXHOSTNAMELEN
