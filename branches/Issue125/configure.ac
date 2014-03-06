@@ -88,6 +88,16 @@ else
 	AM_CONDITIONAL(BUILD_APPLET, false)
 fi
 
+# Enabling/disabling fakewww build
+AC_ARG_ENABLE(fakewww, [  --enable-fakewww=[yes/no] turn on fakewww build
+              [default=no]],, enable_fakewww=no)
+
+if test "x$enable_fakewww" != "xyes"; then
+	AM_CONDITIONAL(BUILD_FAKEWWW, false)
+else
+	AM_CONDITIONAL(BUILD_FAKEWWW, true)
+fi
+
 # Using certificate to sign java applet
 AC_ARG_WITH(cert,
     		AC_HELP_STRING([--with-cert=<file>],
@@ -330,7 +340,7 @@ AC_CHECK_FUNCS([alarm bzero gethostbyaddr gettimeofday inet_ntoa memset select s
 AC_SUBST(ac_aux_dir)
 AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
-		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile])
+		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile fakewww/Makefile])
 AC_OUTPUT
 
 echo ""
@@ -363,7 +373,11 @@ SUMMARY_WEB100SRV="YES"
 else
 SUMMARY_WEB100SRV="NO    (missing pcap headers)"
 fi
+if test "x$enable_fakewww" != "xyes"; then
+SUMMARY_FAKEWWW="NO    (disabled by default)"
+else
 SUMMARY_FAKEWWW="YES"
+fi
 SUMMARY_ANALYZE="YES"
 SUMMARY_VIEWTRACE="YES"
 SUMMARY_TRMKMAP="YES"
@@ -411,12 +425,14 @@ echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
 echo "* flash-client: ${SUMMARY_FLASHCLT}"
 echo ""
 
-if test "$SUMMARY_FAKEWWW" = "YES" && (test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES"); then
+if test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES"; then
 echo "*** Server Tools - complete"
 else
 echo "*** Server Tools - incomplete"
 fi
+if test "x$enable_fakewww" == "xyes"; then
 echo "* fakewww:      ${SUMMARY_FAKEWWW}"
+fi
 echo "* web100srv:    ${SUMMARY_WEB100SRV}"
 echo "* web10gsrv:    ${SUMMARY_WEB10GSRV}"
 echo ""

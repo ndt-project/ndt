@@ -27,6 +27,9 @@ if BUILD_FLASH_CLT
 SUBDIRS += flash-client
 endif
 endif
+if BUILD_FAKEWWW
+SUBDIRS += fakewww
+endif
 endif
 
 EXTRA_DIST = admin_description.html admin.html \
