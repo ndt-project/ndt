@@ -53,6 +53,7 @@ package  {
     }
 
     public function startNDTTest():void {
+      _currentTest = 0;
       TestResults.recordStartTime();
       TestResults.ndt_test_results::ndtTestFailed = false;
       TestResults.appendDebugMsg(ResourceManager.getInstance().getString(
