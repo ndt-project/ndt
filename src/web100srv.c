@@ -969,11 +969,6 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(3, "run_test() routine, asking for test_suite = %s",
               test_suite);
   send_msg(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite));
-  /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
-     log_println(0, "ERROR: Tests initialization failed (%d)", n);
-     return;
-     }
-     */
 
   log_println(1, "Starting test suite:");
   if (testopt->midopt) {
@@ -1055,7 +1050,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   // ...determine number of times congestion window has been changed
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(agent, options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }

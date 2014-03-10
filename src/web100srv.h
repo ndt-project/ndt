@@ -312,10 +312,11 @@ tcp_stat_group *tcp_stats_get_group(tcp_stat_agent *agent, char *group_name);
 
 tcp_stat_snap *tcp_stats_init_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group *group);
 void tcp_stats_take_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_snap *snap);
+int tcp_stats_read_snapshot(tcp_stat_snap **snap, tcp_stat_log *log);
 void tcp_stats_write_snapshot(tcp_stat_log *log, tcp_stat_snap *snap);
 void tcp_stats_free_snapshot(tcp_stat_snap *snap);
 
-tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group);
+tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group, char *mode);
 void tcp_stats_close_log(tcp_stat_log *log);
 
 int tcp_stats_autotune_enabled(tcp_stat_agent *agent, int sock);
@@ -330,7 +331,7 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
                       tcp_stat_agent* agent);
 
-int CwndDecrease(char* logname,
+int CwndDecrease(tcp_stat_agent *agent, char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
 int tcp_stat_logvars(struct tcp_vars* vars);
 
