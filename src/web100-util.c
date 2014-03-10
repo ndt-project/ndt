@@ -398,6 +398,9 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
   estats_val_data* data = NULL;
   estats_error* err = NULL;
 #endif
+  socklen_t len;
+  struct sockaddr_storage addr;
+  int port;
   int i;
   char buf[32], line[256], *ctime();
   FILE * fp;
@@ -412,15 +415,12 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
   // get values for group, var of IP Address of the Remote host's side of
   // connection
 
-#if USE_WEB100
-  web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
-  web100_raw_read(var, cn, buf);
-  snprintf(line, sizeof(line), "%s;",
-           web100_value_to_text(web100_get_var_type(var), buf));
-#elif USE_WEB10G
-  web10g_get_remote_addr(agent, cn, buf, sizeof(buf));
+  len = sizeof(addr);
+  getpeername(sock, (struct sockaddr*)&addr, &len);
+  addr2a(&addr, buf, sizeof(buf));
+
   snprintf(line, sizeof(line), "%s;", buf);
-#endif
+
   // write remote address to log file
   if (fp)
     fprintf(fp, "%s", line);
