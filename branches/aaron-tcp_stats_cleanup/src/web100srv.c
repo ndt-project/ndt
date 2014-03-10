@@ -100,7 +100,6 @@ static char dbPWDbuf[256];  // DB Password
 
 // list of global variables used throughout this program.
 static int window = 64000;  // TCP buffer size
-static int count_vars = 0;
 static int dumptrace = 0;
 static int usesyslog = 0;
 static int multiple = 0;
@@ -535,7 +534,7 @@ void cleanup(int signo) {
 
     case SIGHUP:
       /* Initialize Web100 structures */
-      count_vars = tcp_stats_init(VarFileName);
+      tcp_stats_init(VarFileName);
 
       /* The administrator view automatically generates a usage page for the
        * NDT server.  This page is then accessable to the general public.
@@ -1018,7 +1017,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, count_vars, spds, &spd_index)) != 0) {
+                      record_reverse, spds, &spd_index)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -1030,7 +1029,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks)) != 0) {
+                      &spd_index, &peaks)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -1065,7 +1064,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // ...other variables
   memset(&vars, 0xFF, sizeof(vars));
-  tcp_stat_logvars(&vars, count_vars);
+  tcp_stat_logvars(&vars);
 
   // end getting web100 variable values
   /* if (rc == 0) { */
@@ -1832,8 +1831,7 @@ int main(int argc, char** argv) {
   log_println(1, "server ready on port %s (family %d)", port, meta.family);
 
   // Initialize tcp_stat structures
-  count_vars = tcp_stats_init(VarFileName);
-  if (count_vars == -1) {
+  if (tcp_stats_init(VarFileName) == 0) {
     log_println(0, "No Web100 variables file found, terminating program");
     exit(-5);
   }

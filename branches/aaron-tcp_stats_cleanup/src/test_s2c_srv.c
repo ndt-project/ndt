@@ -52,7 +52,6 @@ extern pthread_cond_t maincond;
  * @param options Test Option variables
  * @param spds[][] speed check array
  * @param spd_index  index used for speed check array
- * @param count_vars count of web100 variables
  * @param peaks Cwnd peaks structure pointer
  *
  * @return 0 - success,
@@ -71,7 +70,7 @@ extern pthread_cond_t maincond;
 int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
-             int* spd_index, int count_vars, CwndPeaks* peaks) {
+             int* spd_index, CwndPeaks* peaks) {
 #if USE_WEB100
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -578,13 +577,13 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent);
     web100_snapshot_free(tsnap);
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent);
     web100_snapshot_free(rsnap);
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent);
     estats_val_data_free(&snap);
 #endif
 

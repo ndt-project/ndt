@@ -133,12 +133,14 @@ int tcp_stats_init(char *VarFileName) {
     trim(line, strlen(line), trimmedline, sizeof(trimmedline));
     strlcpy(web_vars[count_vars].name, trimmedline,
             sizeof(web_vars[count_vars].name));
+    web_vars[count_vars].defined = 1;
     count_vars++;
   }
+  web_vars[count_vars].defined = 0;
   fclose(fp);
   log_println(1, "web100_init() read %d variables from file", count_vars);
 
-  return (count_vars);
+  return count_vars;
 #elif USE_WEB10G
   return TOTAL_INDEX_MAX;
 #endif
@@ -339,11 +341,10 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
  * @param sock integer socket file descriptor
  * @param agent pointer to a tcp_stat_agent
  * @param cn A tcp_stat_connection
- * @param count_vars integer number of tcp_stat_vars to get value of
  *
  */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
-                            tcp_stat_connection cn, int count_vars) {
+                            tcp_stat_connection cn) {
 #if USE_WEB100
   web100_var* var = NULL;
   web100_group* group = NULL;
@@ -381,7 +382,7 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 
 #if USE_WEB100
   int ok = 1;
-  for (i = 0; i < count_vars; i++) {
+  for (i = 0; web_vars[i].defined; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
                                          &var)) != WEB100_ERR_SUCCESS) {
       log_println(1, "Variable %d (%s) not found in KIS", i,
@@ -509,11 +510,10 @@ static void print_10gvar_renamed(const char * old_name,
  * @param snap pointer to a tcp_stat_snapshot taken earlier
  * @param ctlsock integer socket file descriptor indicating data recipient
  * @param agent pointer to a tcp_stat_agent
- * @param count_vars integer number of tcp_stat_variables to get value of
  *
  */
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars) {
+                      tcp_stat_agent* agent) {
   char line[256];
 #if USE_WEB100
   int i;
@@ -524,7 +524,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
   assert(snap);
   assert(agent);
 
-  for (i = 0; i < count_vars; i++) {
+  for (i = 0; web_vars[i].defined; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
                                          &var)) != WEB100_ERR_SUCCESS) {
       log_println(9, "Variable %d (%s) not found in KIS: ", i,
@@ -802,7 +802,7 @@ int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn) {
  * @param tcp_vars to local copies of tcp_stat variables
  * @return integer 0
  */
-int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
+int tcp_stat_logvars(struct tcp_vars* vars) {
 #if USE_WEB100
   int a, b;
   for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
@@ -810,7 +810,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
     if (web100_name == NULL)
       continue;
 
-    for (b = 0; b < count_vars; b++) {
+    for (b = 0; web_vars[b].defined; b++) {
       if (strcmp(web_vars[b].name, web100_name) == 0) {
         tcp_stat_var* var = &((tcp_stat_var *)vars)[a];
         *var = atoi(web_vars[b].value);
@@ -818,7 +818,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
         break;
       }
     }
-    if (b == count_vars) {
+    if (web_vars[b].defined == 0) {
       log_println(1, "WARNING: Failed to find Web100 var %s", web100_name);
     }
   }

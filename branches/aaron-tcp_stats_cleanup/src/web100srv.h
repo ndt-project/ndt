@@ -171,6 +171,7 @@ struct spdpair {
 };
 
 struct web100_variables {
+  int defined;
   char name[256];  // key
   char value[256];  // value
 } web_vars[WEB100_VARS];
@@ -331,13 +332,13 @@ int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                       char *results, size_t results_strlen);
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
-                            tcp_stat_connection cn, int count_vars);
+                            tcp_stat_connection cn);
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars);
+                      tcp_stat_agent* agent);
 
 int CwndDecrease(char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
-int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
+int tcp_stat_logvars(struct tcp_vars* vars);
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);

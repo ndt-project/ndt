@@ -43,7 +43,6 @@
  * @param device string device name inout parameter
  * @param options Test Option variables
  * @param record_reverse integer indicating whether receiver-side statistics have to be logged
- * @param count_vars count of web100 variables
  * @param spds[] [] speed check array
  * @param spd_index  index used for speed check array
  * @param conn_options Connection options
@@ -60,7 +59,7 @@
 int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
-             int count_vars, char spds[4][256], int* spd_index) {
+             char spds[4][256], int* spd_index) {
   tcp_stat_connection conn;
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
@@ -88,9 +87,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   // snap related variables
   SnapArgs snapArgs;
   snapArgs.snap = NULL;
-#if USE_WEB100
   snapArgs.log = NULL;
-#endif
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
@@ -378,7 +375,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
     if (record_reverse == 1)
-      tcp_stat_get_data_recv(recvsfd, agent, conn, count_vars);
+      tcp_stat_get_data_recv(recvsfd, agent, conn);
 
 
     close(recvsfd);
