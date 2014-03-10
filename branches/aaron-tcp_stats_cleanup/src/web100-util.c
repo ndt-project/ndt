@@ -1063,3 +1063,31 @@ void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t 
 #endif
 }
 
+tcp_stat_agent *tcp_stats_init_agent() {
+    tcp_stat_agent *agent;
+
+#if USE_WEB100
+    if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL,
+                               NULL)) == NULL) {
+      web100_perror("web100_attach");
+      return NULL;
+    }
+#elif USE_WEB10G
+    if (estats_nl_client_init(&agent) != NULL) {
+      log_println(0,
+                    "Error: estats_client_init failed."
+                    "Unable to use web10g.");
+      return NULL;
+    }
+#endif
+    return agent;
+}
+
+void tcp_stats_free_agent(tcp_stat_agent *agent) {
+#if USE_WEB100
+    web100_detach(agent);
+#elif USE_WEB10G
+    estats_nl_client_destroy(&agent);
+#endif
+    return;
+}

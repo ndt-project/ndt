@@ -2601,20 +2601,11 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                           "pid=%d", chld_pipe[0], chld_pipe[1], chld_pid);
               close(listenfd);
               close(chld_pipe[1]);
-#if USE_WEB100
-              if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL,
-                                         NULL)) == NULL) {
-                web100_perror("web100_attach");
+
+              if ((agent = tcp_stats_init_agent()) == NULL) {
+                log_println(0, "Unable to initialize TCP stats collection");
                 return 1;
               }
-#elif USE_WEB10G
-              if (estats_nl_client_init(&agent) != NULL) {
-                log_println(0,
-                              "Error: estats_client_init failed."
-                              "Unable to use web10g.");
-                return 1;
-              }
-#endif
 
               // This is the child process from the above fork().  The parent
               //  is in control, and will send this child a signal when it gets
@@ -2738,11 +2729,9 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 child_sig(0);
               }
               close(ctlsockfd);
-#if USE_WEB100
-              web100_detach(agent);
-#elif USE_WEB10G
-              estats_nl_client_destroy(&agent);
-#endif
+
+              tcp_stats_free_agent(agent);
+
               // log_free(); // Don't free the log we use it all the time
               // log_println()
               // Also makes valgrind angry
