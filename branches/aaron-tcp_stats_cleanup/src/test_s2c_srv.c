@@ -283,7 +283,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        }
     }
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
-    conn = tcp_stat_connection_from_socket(agent, xmitsfd);
+    conn = tcp_stats_connection_from_socket(agent, xmitsfd);
 
     // set up packet capture. The data collected is used for bottleneck link
     // calculations

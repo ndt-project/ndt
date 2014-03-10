@@ -284,7 +284,6 @@ typedef struct estats_val_data tcp_stat_snap;
 typedef void tcp_stat_group;
 /* Log currently unimplemented in web10g */
 typedef estats_record tcp_stat_log;
-#define tcp_stat_connection_from_socket web10g_connection_from_socket
 
 /* Extra Web10G functions web10g-util.c */
 int web10g_find_val(const tcp_stat_snap* data, const char* name,
@@ -303,7 +302,6 @@ typedef web100_snapshot tcp_stat_snap;
 /* Group only relevent to web100 */
 typedef web100_group tcp_stat_group;
 typedef web100_log tcp_stat_log;
-#define tcp_stat_connection_from_socket web100_connection_from_socket
 
 #endif
 
@@ -313,6 +311,7 @@ tcp_stat_agent *tcp_stats_init_agent();
 void tcp_stats_free_agent(tcp_stat_agent *agent);
 int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name);
 void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd);
+tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock);
 
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,

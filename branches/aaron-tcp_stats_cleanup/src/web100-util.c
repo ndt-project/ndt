@@ -1048,6 +1048,19 @@ int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const ch
 #endif
 }
 
+tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock) {
+    tcp_stat_connection retval;
+
+#ifdef USE_WEB100
+    retval = web100_connection_from_socket(agent, sock);
+#elif USE_WEB10G
+    retval = web10g_connection_from_socket(agent, sock);
+    if (retval == -1)
+        retval = NULL;
+#endif
+    return retval;
+}
+
 void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd) {
 #if USE_WEB100
   web100_var* LimCwnd;

@@ -251,7 +251,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
 
     // Get tcp_stat connection. Used to collect tcp_stat variable statistics
-    conn = tcp_stat_connection_from_socket(agent, recvsfd);
+    conn = tcp_stats_connection_from_socket(agent, recvsfd);
 
     // set up packet tracing. Collected data is used for bottleneck link
     // calculations
