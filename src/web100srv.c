@@ -881,7 +881,6 @@ cputimeWorker(void* arg) {
 
 int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
              char *test_suite) {
-  tcp_stat_connection conn = NULL;
   char date[32];  // date indicator
   char spds[4][256];  // speed "bin" array containing counters for speeds
   char logstr1[4096], logstr2[1024];  // log
@@ -960,8 +959,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   spd_index = 0;
 
   // obtain web100 connection and check auto-tune status
-  conn = tcp_stats_connection_from_socket(agent, ctlsockfd);
-  autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
+  autotune = tcp_stats_autotune_enabled(agent, ctlsockfd);
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
