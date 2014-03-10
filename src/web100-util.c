@@ -164,15 +164,6 @@ int tcp_stats_init(char *VarFileName) {
  */
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                         char *results, size_t results_strlen) {
-#if USE_WEB100
-  web100_var* var;
-  web100_group* group;
-  web100_snapshot* snap;
-#elif USE_WEB10G
-  struct estats_val value;
-  estats_val_data* data = NULL;
-#endif
-
   char buff[8192], line[256];
   char* sndbuff;
   int i, j, k, currentMSSval = 0;
@@ -185,6 +176,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   u_int32_t limcwnd_val;
   struct sockaddr_storage saddr;
   socklen_t saddr_size;
+  tcp_stat_group *group;
+  tcp_stat_snap *snap;
 
   // middlebox test results
   static char vars[][255] = { "CurMSS", "WinScaleSent", "WinScaleRcvd", };
@@ -298,13 +291,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     sndbuff[j] = (k++ & 0x7f);
   }
 
-#if USE_WEB100
-  // get web100 group with name "read"
-  group = web100_group_find(agent, "read");
-  snap = web100_snapshot_alloc(group, cn);
-#elif USE_WEB10G
-  estats_val_data_new(&data);
-#endif
+  group = tcp_stats_get_group(agent, "read");
+  snap = tcp_stats_init_snapshot(agent, cn, group);
 
   FD_ZERO(&wfd);
   FD_SET(sock, &wfd);
@@ -314,24 +302,15 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     if ((ret == -1) && (errno == EINTR)) /* a signal arrived, ignore it */
       continue;
 
-#if USE_WEB100
-    web100_snap(snap);
+    tcp_stats_take_snapshot(agent, cn, snap);
 
     // get next sequence # to be sent
-    web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-    web100_snap_read(var, snap, line);
-    SndMax = atoi(web100_value_to_text(web100_get_var_type(var), line));
+    tcp_stats_snap_read_var(agent, snap, "SndNxt", tmpstr, sizeof(tmpstr));
+    SndMax = atoi(tmpstr);
+
     // get oldest un-acked sequence number
-    web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-    web100_snap_read(var, snap, line);
-    SndUna = atoi(web100_value_to_text(web100_get_var_type(var), line));
-#elif USE_WEB10G
-    estats_read_vars(data, cn, agent);
-    web10g_find_val(data, "SndNxt", &value);
-    SndMax = value.uv32;
-    web10g_find_val(data, "SndUna", &value);
-    SndUna = value.uv32;
-#endif
+    tcp_stats_snap_read_var(agent, snap, "SndUna", tmpstr, sizeof(tmpstr));
+    SndUna = atoi(tmpstr);
 
     // stop sending data if (buf size * 16) <
     // [ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
@@ -348,16 +327,9 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
       break;
   }
 
-#if USE_WEB100
-  log_println(5, "Finished with web100_middlebox() routine snap-0x%x, "
-              "sndbuff=%x0x", snap, sndbuff);
-  web100_snapshot_free(snap);
-#elif USE_WEB10G
-
-  estats_val_data_free(&data);
-  log_println(5, "Finished with web10g_middlebox() routine, "
+  log_println(5, "Finished with middlebox() routine, "
               "sndbuff=%x0x", sndbuff);
-#endif
+  tcp_stats_free_snapshot(snap);
   /* free(sndbuff); */
 }
 
