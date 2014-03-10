@@ -20,22 +20,7 @@
 #include "runningtest.h"
 #include "strlutils.h"
 #include "web100srv.h"
-
-
-// Worker thread characteristics used to record snaplog and Cwnd peaks
-typedef struct workerArgs {
-  SnapArgs* snapArgs;  // snapArgs struct pointer
-  tcp_stat_agent* agent;  // tcp_stat agent pointer
-  CwndPeaks* peaks;  // data indicating Cwnd values
-  int writeSnap;  // enable writing snaplog
-} WorkerArgs;
-
-int workerLoop = 0;
-pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
-static int slowStart = 1;
-static int prevCWNDval = -1;
-static int decreasing = 0;
+#include "snap_worker.h"
 
 /**
  * Count the CWND peaks from a snapshot and record the minimal and maximum one.
@@ -45,43 +30,50 @@ static int decreasing = 0;
  * @param peaks Structure containing CWND peaks information
  * @param snap Web100 snapshot structure
  */
-void findCwndPeaks(tcp_stat_agent* agent, CwndPeaks* peaks,
-                   tcp_stat_snap* snap) {
-  int CurCwnd;
+void findCwndPeaks(SnapResults *results, CwndPeaks *peaks) {
   char buf[128];
+  int i;
+  int slowStart = 1;
+  int prevCWNDval = -1;
+  int decreasing = 0;
 
-  tcp_stats_snap_read_var(agent, snap, "CurCwnd", buf, sizeof(buf));
+  for(i = 0; i < results->collected; i++) {
+    tcp_stat_snap *snap = results->snapshots[i];
+    int CurCwnd;
 
-  CurCwnd = atoi(buf);
+    tcp_stats_snap_read_var(results->agent, snap, "CurCwnd", buf, sizeof(buf));
 
-  if (slowStart) {
-    if (CurCwnd < prevCWNDval) {
-      slowStart = 0;
-      peaks->max = prevCWNDval;
-      peaks->amount = 1;
-      decreasing = 1;
-    }
-  } else {
-    // current congestion window < previous value, so, decreasing
-    if (CurCwnd < prevCWNDval) {
-      // update values based on actual values
-      if (prevCWNDval > peaks->max) {
+    CurCwnd = atoi(buf);
+
+    if (slowStart) {
+      if (CurCwnd < prevCWNDval || prevCWNDval == -1) {
+        slowStart = 0;
         peaks->max = prevCWNDval;
+        peaks->amount = 1;
+        decreasing = 1;
       }
-      if (!decreasing) {
-        peaks->amount += 1;
+    } else {
+      // current congestion window < previous value, so, decreasing
+      if (CurCwnd < prevCWNDval || prevCWNDval == -1) {
+        // update values based on actual values
+        if (prevCWNDval > peaks->max) {
+          peaks->max = prevCWNDval;
+        }
+        if (!decreasing) {
+          peaks->amount += 1;
+        }
+        decreasing = 1;
+        // current congestion window size > previous value,
+      } else if (CurCwnd > prevCWNDval) {
+        // not decreasing.
+        if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
+          peaks->min = prevCWNDval;
+        }
+        decreasing = 0;
       }
-      decreasing = 1;
-      // current congestion window size > previous value,
-    } else if (CurCwnd > prevCWNDval) {
-      // not decreasing.
-      if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
-        peaks->min = prevCWNDval;
-      }
-      decreasing = 0;
     }
+    prevCWNDval = CurCwnd;
   }
-  prevCWNDval = CurCwnd;
 }
 
 /**
@@ -95,59 +87,6 @@ void catch_s2c_alrm(int signo) {
     return;
   }
   log_println(0, "Unknown (%d) signal was caught", signo);
-}
-
-/**
- * Write the snap logs with fixed time intervals in a separate
- *              thread, locking and releasing resources as necessary.
- * @param arg pointer to the snapshot structure
- * @return void pointer null
- */
-
-void*
-snapWorker(void* arg) {
-  /* WARNING void* arg (workerArgs) is on the stack of the function below and
-   * doesn't exist forever. */
-  WorkerArgs *workerArgs = (WorkerArgs*) arg;
-  SnapArgs *snapArgs = workerArgs->snapArgs;
-  tcp_stat_agent* agent = workerArgs->agent;
-  CwndPeaks* peaks = workerArgs->peaks;
-  int writeSnap = workerArgs->writeSnap;
-
-  // snap log written into every "delay" milliseconds
-  double delay = ((double) snapArgs->delay) / 1000.0;
-
-  while (1) {
-    pthread_mutex_lock(&mainmutex);
-    if (workerLoop) {
-      pthread_mutex_unlock(&mainmutex);
-      pthread_cond_broadcast(&maincond);
-      break;
-    }
-    pthread_mutex_unlock(&mainmutex);
-    mysleep(0.01);
-  }
-
-  // Find Congestion window peaks from a web_100 snapshot, if enabled
-  // Write snap log , if enabled, all in a synchronous manner.
-  while (1) {
-    pthread_mutex_lock(&mainmutex);
-    if (!workerLoop) {
-      pthread_mutex_unlock(&mainmutex);
-      break;
-    }
-    tcp_stats_take_snapshot(agent, snapArgs->conn, snapArgs->snap);
-    if (peaks) {
-      findCwndPeaks(agent, peaks, snapArgs->snap);
-    }
-    if (writeSnap) {
-      tcp_stats_write_snapshot(snapArgs->log, snapArgs->snap);
-    }
-    pthread_mutex_unlock(&mainmutex);
-    mysleep(delay);
-  }
-
-  return NULL;
 }
 
 /**
@@ -248,94 +187,6 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
     add_test_to_suite(&first, buff, buff_strlen, TEST_META);
   }
   return useropt;
-}
-
-/** Method to start snap worker thread that collects snap logs
- * @param snaparg object
- * @param tcp_stat_agent Agent
- * @param snaplogenabled Is snap logging enabled?
- * @param workerlooparg integer used to syncronize writing/reading from snaplog/tcp_stat snapshot
- * @param wrkrthreadidarg Thread Id of workera
- * @param metafilevariablename Which variable of the meta file gets assigned the snaplog name (unused now)
- * @param metafilename	value of metafile name
- * @param tcp_stat_connection connection pointer
- * @param tcp_stat_group group web100_group pointer
- */
-void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
-                       CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group) {
-  FILE *fplocal;
-
-  WorkerArgs workerArgs;
-  workerArgs.snapArgs = snaparg;
-  workerArgs.agent = agentarg;
-  workerArgs.peaks = peaks;
-  workerArgs.writeSnap = snaplogenabled;
-
-  group = tcp_stats_get_group(agentarg, "read");
-
-  snaparg->snap = tcp_stats_init_snapshot(agentarg, conn, group);
-
-  if (snaplogenabled) {
-    // memcpy(metafilevariablename, metafilename, strlen(metafilename));
-    // The above could have been here, except for a caveat: metafile stores
-    // just the file name, but full filename is needed to open the log file
-
-    fplocal = fopen(get_logfile(), "a");
-
-    snaparg->log = tcp_stats_open_log(metafilename, conn, group, "w");
-    log_println( 0, "snaparg->log: %X", snaparg->log);
-
-    if (fplocal == NULL) {
-      log_println(
-          0,
-          "Unable to open log file '%s', continuing on without logging",
-          get_logfile());
-    } else {
-      log_println(0, "Snaplog file: %s\n", metafilename);
-      fprintf(fplocal, "Snaplog file: %s\n", metafilename);
-      fclose(fplocal);
-    }
-  }
-
-  if (pthread_create(wrkrthreadidarg, NULL, snapWorker,
-                     (void*) &workerArgs)) {
-    log_println(0, "Cannot create worker thread for writing snap log!");
-    *wrkrthreadidarg = 0;
-  }
-
-  pthread_mutex_lock(&mainmutex);
-  workerLoop= 1;
-  // obtain web100 snap into "snaparg.snap"
-  tcp_stats_take_snapshot(agentarg, conn, snaparg->snap);
-  if (snaplogenabled) {
-    tcp_stats_write_snapshot(snaparg->log, snaparg->snap);
-  }
-  pthread_cond_wait(&maincond, &mainmutex);
-  pthread_mutex_unlock(&mainmutex);
-}
-
-/**
- * Stop snapWorker
- * @param workerThreadId Worker Thread's ID
- * @param snaplogenabled boolean indication whether snap logging is enabled
- * @param snapArgs_ptr  pointer to a snapArgs object
- * */
-void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
-                      SnapArgs* snapArgs_ptr) {
-  if (*workerThreadId) {
-    pthread_mutex_lock(&mainmutex);
-    workerLoop = 0;
-    pthread_mutex_unlock(&mainmutex);
-    pthread_join(*workerThreadId, NULL);
-  }
-  // close writing snaplog, if snaplog recording is enabled
-  if (snaplogenabled) {
-    tcp_stats_close_log(snapArgs_ptr->log);
-  }
-  tcp_stats_free_snapshot(snapArgs_ptr->snap);
 }
 
 /**

@@ -10,6 +10,7 @@
 #define SRC_TESTOPTIONS_H_
 
 #include "web100srv.h"
+#include "snap_worker.h"
 
 #define LISTENER_SOCKET_CREATE_FAILED  -1
 #define SOCKET_CONNECT_TIMEOUT  -100
@@ -66,15 +67,7 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
 int getCurrentTest();
 void setCurrentTest(int testId);
 
-// void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
-void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
-                       CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group);
-
-void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
-                      SnapArgs* snapArgs_ptr);
+void findCwndPeaks(SnapResults *results, CwndPeaks *peaks);
 
 void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
                   tcp_stat_agent* agentarg, Options* optionsarg);

@@ -839,30 +839,26 @@ int tcp_stat_logvars(struct tcp_vars* vars) {
  * @return Integer, 0 on success, -1 on failure
  */
 
-int CwndDecrease(tcp_stat_agent *agent, char* logname, u_int32_t *dec_cnt,
+int CwndDecrease(SnapResults *results, u_int32_t *dec_cnt,
                  u_int32_t *same_cnt, u_int32_t *inc_cnt) {
-  tcp_stat_log *log;
-  tcp_stat_snap *snap = NULL;
+  int i;
   int s1, s2, cnt;
   char buf[1024];
-
-  log = tcp_stats_open_log(logname, NULL, NULL, "r");
 
   s2 = 0;
   cnt = 0;
 
-  // get values and update counts
-  while (tcp_stats_read_snapshot(&snap, log) == 0) {
+  for(i = 0; i < results->collected; i++) {
+    tcp_stat_snap *snap = results->snapshots[i];
+
     if (cnt++ == 0) {
-      tcp_stats_free_snapshot(snap);
       continue;
     }
 
     s1 = s2;
     // Parse snapshot, returning variable values
 
-    if (tcp_stats_snap_read_var(agent, snap, "CurCwnd", buf, sizeof(buf)) != 0) {
-      tcp_stats_free_snapshot(snap);
+    if (tcp_stats_snap_read_var(results->agent, snap, "CurCwnd", buf, sizeof(buf)) != 0) {
       continue;
     }
 
@@ -882,11 +878,7 @@ int CwndDecrease(tcp_stat_agent *agent, char* logname, u_int32_t *dec_cnt,
       (*same_cnt)++;
     if (s2 > s1)
       (*inc_cnt)++;
-
-    tcp_stats_free_snapshot(snap);
   }
-
-  tcp_stats_close_log(log);
 
   log_println(
       2,

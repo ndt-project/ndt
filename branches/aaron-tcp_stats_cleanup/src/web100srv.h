@@ -93,13 +93,35 @@
 /* Location of default config file */
 #define CONFIGFILE  "/etc/ndt.conf"
 
-/* hard-coded port values */
-/*
-#define PORT  "3001"
-#define PORT2 "3002"
-#define PORT3 "3003"
-#define PORT4 "3003"
-*/
+#if USE_WEB10G
+#define TCP_STAT_NAME "Web10G"
+typedef struct estats_nl_client tcp_stat_agent;
+typedef int tcp_stat_connection;
+typedef struct estats_val_data tcp_stat_snap;
+/* Not relevent to web10g */
+typedef void tcp_stat_group;
+/* Log currently unimplemented in web10g */
+typedef estats_record tcp_stat_log;
+
+/* Extra Web10G functions web10g-util.c */
+int web10g_find_val(const tcp_stat_snap* data, const char* name,
+                                  struct estats_val* value);
+int web10g_get_val(tcp_stat_agent* client, tcp_stat_connection conn,
+                        const char* name, struct estats_val* value);
+int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd);
+int web10g_get_remote_addr(tcp_stat_agent* client,
+                        tcp_stat_connection conn, char* out, int size);
+
+#elif USE_WEB100
+#define TCP_STAT_NAME "Web100"
+typedef web100_agent tcp_stat_agent;
+typedef web100_connection* tcp_stat_connection;
+typedef web100_snapshot tcp_stat_snap;
+/* Group only relevent to web100 */
+typedef web100_group tcp_stat_group;
+typedef web100_log tcp_stat_log;
+
+#endif
 
 // Congestion window peak information
 typedef struct CwndPeaks {
@@ -254,6 +276,17 @@ struct tcp_vars {
   tcp_stat_var ThruBytesAcked;
 };
 
+typedef struct SnapResults {
+  tcp_stat_agent *agent;
+  tcp_stat_group *group;
+  tcp_stat_connection conn;
+
+  tcp_stat_snap **snapshots;
+
+  int allocated;
+  int collected;
+} SnapResults;
+
 /* web100-pcap */
 #ifdef HAVE_LIBPCAP
 void init_vars(struct spdpair *cur);
@@ -269,36 +302,6 @@ void force_breakloop();
 /* web100-util */
 
 void get_iflist(void);
-
-#if USE_WEB10G
-#define TCP_STAT_NAME "Web10G"
-typedef struct estats_nl_client tcp_stat_agent;
-typedef int tcp_stat_connection;
-typedef struct estats_val_data tcp_stat_snap;
-/* Not relevent to web10g */
-typedef void tcp_stat_group;
-/* Log currently unimplemented in web10g */
-typedef estats_record tcp_stat_log;
-
-/* Extra Web10G functions web10g-util.c */
-int web10g_find_val(const tcp_stat_snap* data, const char* name,
-                                  struct estats_val* value);
-int web10g_get_val(tcp_stat_agent* client, tcp_stat_connection conn,
-                        const char* name, struct estats_val* value);
-int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd);
-int web10g_get_remote_addr(tcp_stat_agent* client,
-                        tcp_stat_connection conn, char* out, int size);
-
-#elif USE_WEB100
-#define TCP_STAT_NAME "Web100"
-typedef web100_agent tcp_stat_agent;
-typedef web100_connection* tcp_stat_connection;
-typedef web100_snapshot tcp_stat_snap;
-/* Group only relevent to web100 */
-typedef web100_group tcp_stat_group;
-typedef web100_log tcp_stat_log;
-
-#endif
 
 // Generic functions that, at compile-time, reads either from web10g or web100
 int tcp_stats_init(char *VarFileName);
@@ -331,8 +334,9 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
                       tcp_stat_agent* agent);
 
-int CwndDecrease(tcp_stat_agent *agent, char* logname,
-                 u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
+int CwndDecrease(SnapResults *results, u_int32_t *dec_cnt,
+                 u_int32_t *same_cnt, u_int32_t *inc_cnt);
+
 int tcp_stat_logvars(struct tcp_vars* vars);
 
 int KillHung(void);
