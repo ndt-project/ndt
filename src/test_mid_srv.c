@@ -221,11 +221,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
 
     buff[0] = '\0';
     // get tcp_stat connection data
-#if USE_WEB100
-    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == NULL) {
-#elif USE_WEB10G
-    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == -1) {
-#endif
+    if ((conn = tcp_stats_connection_from_socket(agent, midsfd)) == NULL) {
       log_println(
           0,
           "!!!!!!!!!!!  test_mid() failed to get "TCP_STAT_NAME

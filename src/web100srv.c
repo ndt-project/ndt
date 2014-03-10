@@ -965,7 +965,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   spd_index = 0;
 
   // obtain web100 connection and check auto-tune status
-  conn = tcp_stat_connection_from_socket(agent, ctlsockfd);
+  conn = tcp_stats_connection_from_socket(agent, ctlsockfd);
   autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
 
   // client needs to be version compatible. Send current version
