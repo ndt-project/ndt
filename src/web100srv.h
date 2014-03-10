@@ -325,6 +325,7 @@ void tcp_stats_close_log(tcp_stat_log *log);
 
 void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit);
 
+int tcp_stats_read_var_str(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize);
 
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,

@@ -242,33 +242,16 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   strlcat(results, line, results_strlen);
 
   // get web100 values for the middlebox test result group
+  tcp_stats_read_var_str(agent, cn, "CurMSS", buff, sizeof(buff));
+  currentMSSval = atoi(buff);
+
   for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
-#if USE_WEB100
-    // read web100_group and web100_var of vars[i] into group and var
-    web100_agent_find_var_and_group(agent, vars[i], &group, &var);
-    // read variable value from web100 connection
-    web100_raw_read(var, cn, buff);
-
-    // get current MSS in textual format and append to results
-
-    // get current MSS value and append to "results"
-    if (strcmp(vars[i], "CurMSS") == 0)
-      currentMSSval = atoi(
-          web100_value_to_text(web100_get_var_type(var), buff));
-    snprintf(line, sizeof(line), "%s;",
-          web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_WEB10G
-    int type;
-    type = web10g_get_val(agent, cn, vars[i], &value);
-    if (type == -1) {
+    if (tcp_stats_read_var_str(agent, cn, vars[i], buff, sizeof(buff)) != 0) {
       log_println(0, "Middlebox: Failed to read the value of %s", vars[i]);
       return;
-    } else {
-      if (strcmp(vars[i], "CurMSS") == 0)
-        currentMSSval = value.uv32;
-      snprintf(line, sizeof(line), "%u;", value.uv32);
     }
-#endif
+
+    snprintf(line, sizeof(line), "%s;", buff);
 
     if (strcmp(line, "4294967295;") == 0)
       snprintf(line, sizeof(line), "%d;", -1);
@@ -1031,6 +1014,36 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
       "no change = %d",
       *inc_cnt, *dec_cnt, *same_cnt);
   return (0);
+}
+
+int tcp_stats_read_var_str(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize) {
+#ifdef USE_WEB100
+    web100_group *group;
+    web100_var* var;
+    char tmp[1024];
+    char *tmpstr;
+
+    // read web100_group and web100_var of vars[i] into group and var
+    web100_agent_find_var_and_group(agent, var_name, &group, &var);
+    // read variable value from web100 connection
+    web100_raw_read(var, conn, tmp);
+    tmpstr = web100_value_to_text(web100_get_var_type(var), tmp);
+    strlcpy(buf, tmpstr, bufsize);
+#elif USE_WEB10G
+    struct estats_val value;
+    int type;
+
+    type = web10g_get_val(agent, conn, var_name, &value);
+    if (type == -1) {
+      return -1;
+    }
+
+    snprintf(buf, bufsize, "%u", value.uv32);
+#endif
+
+    log_println( 0, "Read %s: %s", var_name, buf);
+
+    return 0;
 }
 
 int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name) {
