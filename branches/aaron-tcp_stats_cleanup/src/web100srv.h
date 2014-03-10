@@ -170,12 +170,6 @@ struct spdpair {
   u_int32_t totalcount;  // total number of valid speed data bins
 };
 
-struct web100_variables {
-  int defined;
-  char name[256];  // key
-  char value[256];  // value
-} web_vars[WEB100_VARS];
-
 struct pseudo_hdr {  /* used to compute TCP checksum */
   uint64_t s_addr;  // source addr
   uint64_t d_addr;  // destination address
@@ -324,11 +318,11 @@ void tcp_stats_free_snapshot(tcp_stat_snap *snap);
 tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group);
 void tcp_stats_close_log(tcp_stat_log *log);
 
+int tcp_stats_autotune_enabled(tcp_stat_agent *agent, int sock);
 void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit);
 
 int tcp_stats_read_var(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize);
 
-int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                       char *results, size_t results_strlen);
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,

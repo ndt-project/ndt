@@ -24,6 +24,12 @@
 #include <estats.h>
 #endif
 
+static struct web100_variables {
+  int defined;
+  char name[256];  // key
+  char value[256];  // value
+} web_vars[WEB100_VARS];
+
 struct tcp_name {
   char* web100_name;
   char* web10g_name;
@@ -749,13 +755,15 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
  * 					23 cannot read the value of the X_SBufMode or X_RBufMode web100_variable.
  */
 
-int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn) {
+int tcp_stats_autotune_enabled(tcp_stat_agent *agent, int sock) {
 #if USE_WEB100
   web100_var* var;
   char buf[32];
   web100_group* group;
+  web100_connection *cn;
   int i, j = 0;
 
+  cn = tcp_stats_connection_from_socket(agent, sock);
   if (cn == NULL)
     return (10);
 
