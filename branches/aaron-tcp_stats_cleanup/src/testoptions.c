@@ -47,22 +47,8 @@ static int decreasing = 0;
 void findCwndPeaks(tcp_stat_agent* agent, CwndPeaks* peaks,
                    tcp_stat_snap* snap) {
   int CurCwnd;
-#if USE_WEB100
-  web100_group* group;
-  web100_var* var;
-  char tmpstr[256];
-#elif USE_WEB10G
-  struct estats_val value;
-#endif
 
-#if USE_WEB100
-  web100_agent_find_var_and_group(agent, "CurCwnd", &group, &var);
-  web100_snap_read(var, snap, tmpstr);
-  CurCwnd = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-#elif USE_WEB10G
-  web10g_find_val(snap, "CurCwnd", &value);
-  CurCwnd = value.uv32;
-#endif
+  CurCwnd = tcp_stats_snap_read_var(agent, snap, "CurCwnd");
 
   if (slowStart) {
     if (CurCwnd < prevCWNDval) {

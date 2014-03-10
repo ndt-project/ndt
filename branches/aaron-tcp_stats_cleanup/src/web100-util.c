@@ -101,7 +101,7 @@ static struct tcp_name tcp_names[] = {
  * @return integer indicating number of web100 variables read
  * 		or indicating failure of initialization
  */
-int tcp_stat_init(char *VarFileName) {
+int tcp_stats_init(char *VarFileName) {
 #if USE_WEB100
   FILE * fp;
   char line[256], trimmedline[256];
@@ -284,15 +284,7 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
 
   limcwnd_val = 2 * currentMSSval;
 
-#if USE_WEB100
-  // get web100_var and web100_group
-  web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
-
-  // set TCP CWND web100 variable to twice the current MSS Value
-  web100_raw_write(LimCwnd, cn, &limcwnd_val);
-#elif USE_WEB10G
-  estats_write_var("LimCwnd", (uint32_t)limcwnd_val, cn, agent);
-#endif
+  tcp_stats_set_cwnd(agent, cn, limcwnd_val);
 
   log_println(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
 
@@ -1038,3 +1030,36 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
       *inc_cnt, *dec_cnt, *same_cnt);
   return (0);
 }
+
+int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name) {
+#if USE_WEB100
+  web100_group* group;
+  web100_var* var;
+  char tmpstr[256];
+
+  web100_agent_find_var_and_group(agent, var_name, &group, &var);
+  web100_snap_read(var, snap, tmpstr);
+  return atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+#elif USE_WEB10G
+  struct estats_val value;
+
+  web10g_find_val(snap, var_name, &value);
+  return value.uv32;
+#endif
+}
+
+void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd) {
+#if USE_WEB100
+  web100_var* LimCwnd;
+  web100_group* group;
+
+  // get web100_var and web100_group
+  web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
+
+  // set TCP CWND web100 variable to twice the current MSS Value
+  web100_raw_write(LimCwnd, cn, &cwnd);
+#elif USE_WEB10G
+  estats_write_var("LimCwnd", (uint32_t)cwnd, cn, agent);
+#endif
+}
+
