@@ -335,7 +335,10 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       }
 
       /* experimental code, delete when finished */
-      setCwndlimit(conn, group, agent, options);
+      if (options->limit > 0) {
+          tcp_stats_set_cwnd_limit(agent, conn, group, options->limit);
+      }
+
       /* End of test code */
 
       // create directory to write web100 snaplog trace

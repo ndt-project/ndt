@@ -413,61 +413,6 @@ void stop_packet_trace(int *monpipe_arr) {
 }
 
 /**
- * Set Cwnd limit
- * @param connarg tcp_stat_connection pointer
- * @param group_arg tcp_stat group pointer
- * @param agentarg tcp_stat agent pointer
- * */
-void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
-                  tcp_stat_agent* agentarg, Options* optionsarg) {
-#if USE_WEB100
-  web100_var *LimRwin, *yar;
-#elif USE_WEB10G
-  struct estats_val yar;
-#endif
-
-  u_int32_t limrwin_val;
-
-  if (optionsarg->limit > 0) {
-    log_print(1, "Setting Cwnd limit - ");
-
-#if USE_WEB100
-    if (connarg != NULL) {
-      log_println(1,
-                  "Got web100 connection pointer for recvsfd socket\n");
-      char yuff[32];
-      web100_agent_find_var_and_group(agentarg, "CurMSS", &grouparg,
-                                      &yar);
-      web100_raw_read(yar, connarg, yuff);
-      log_println(1, "MSS = %s, multiplication factor = %d",
-                  web100_value_to_text(web100_get_var_type(yar), yuff),
-                  optionsarg->limit);
-      limrwin_val = optionsarg->limit
-          * (atoi(
-              web100_value_to_text(web100_get_var_type(yar),
-                                   yuff)));
-      web100_agent_find_var_and_group(agentarg, "LimRwin", &grouparg,
-                                      &LimRwin);
-      log_print(1, "now write %d to limit the Receive window",
-                limrwin_val);
-      web100_raw_write(LimRwin, connarg, &limrwin_val);
-#elif USE_WEB10G
-    if (connarg != -1) {
-      log_println(1,
-                  "Got web10g connection for recvsfd socket\n");
-      web10g_get_val(agentarg, connarg, "CurMSS", &yar);
-      log_println(1, "MSS = %s, multiplication factor = %d",
-                  yar.uv32, optionsarg->limit);
-      limrwin_val = optionsarg->limit * yar.uv32;
-      log_print(1, "now write %d to limit the Receive window", limrwin_val);
-      estats_write_var("LimRwin", limrwin_val, connarg, agentarg);
-#endif
-      log_println(1, "  ---  Done");
-    }
-  }
-}
-
-/**
  * Check if receiver is clogged and use decision to temporarily
  * stop sending packets.
  * @param nextseqtosend integer indicating the Next Sequence Number To Be Sent
