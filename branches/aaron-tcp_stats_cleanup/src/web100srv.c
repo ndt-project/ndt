@@ -882,11 +882,7 @@ cputimeWorker(void* arg) {
 
 int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
              char *test_suite) {
-#if USE_WEB100
   tcp_stat_connection conn = NULL;
-#elif USE_WEB10G
-  tcp_stat_connection conn = -1;
-#endif
   char date[32];  // date indicator
   char spds[4][256];  // speed "bin" array containing counters for speeds
   char logstr1[4096], logstr2[1024];  // log

@@ -1177,3 +1177,30 @@ void tcp_stats_write_snapshot(tcp_stat_log *log, tcp_stat_snap *snap) {
 #endif
     return;
 }
+
+void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit) {
+    uint32_t limrwin_val;
+
+#if USE_WEB100
+    web100_var *LimRwin, *yar;
+    char yuff[24];
+
+    web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
+    web100_raw_read(yar, conn, yuff);
+    limrwin_val = limit
+          * (atoi(
+              web100_value_to_text(web100_get_var_type(yar),
+                                   yuff)));
+    web100_agent_find_var_and_group(agent, "LimRwin", &group,
+                                      &LimRwin);
+    web100_raw_write(LimRwin, conn, &limrwin_val);
+#elif USE_WEB10G
+    struct estats_val yar;
+    web10g_get_val(agentarg, conn, "CurMSS", &yar);
+    limrwin_val = limit * yar.uv32;
+    estats_write_var("LimRwin", limrwin_val, conn, agent);
+#endif
+    return;
+}
+
+

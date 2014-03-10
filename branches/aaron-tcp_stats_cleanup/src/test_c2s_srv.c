@@ -304,7 +304,9 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                 mon_pipe[0], mon_pipe[1]);
 
     // experimental code, delete when finished
-    setCwndlimit(conn, group, agent, options);
+    if (options->limit > 0) {
+        tcp_stats_set_cwnd_limit(agent, conn, group, options->limit);
+    }
 
     // Create C->S snaplog directories, and perform some initialization based on
     // options

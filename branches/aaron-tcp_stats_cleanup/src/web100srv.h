@@ -323,6 +323,9 @@ void tcp_stats_free_snapshot(tcp_stat_snap *snap);
 tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group);
 void tcp_stats_close_log(tcp_stat_log *log);
 
+void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit);
+
+
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                       char *results, size_t results_strlen);
