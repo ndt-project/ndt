@@ -17,6 +17,13 @@
 #include "utils.h"
 #include "web100srv.h"
 
+#if USE_WEB100
+#include <web100.h>
+#endif
+#if USE_WEB10G
+#include <estats.h>
+#endif
+
 struct tcp_name {
   char* web100_name;
   char* web10g_name;
@@ -161,7 +168,6 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   web100_var* var;
   web100_group* group;
   web100_snapshot* snap;
-  web100_var* LimCwnd;
 #elif USE_WEB10G
   struct estats_val value;
   estats_val_data* data = NULL;
@@ -392,7 +398,6 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 #endif
   socklen_t len;
   struct sockaddr_storage addr;
-  int port;
   int i;
   char buf[32], line[256], *ctime();
   FILE * fp;
@@ -849,9 +854,6 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
     const char* web100_name = tcp_names[a].web100_name;
     if (web100_name == NULL)
       continue;
-  int PktsIn = -1;
-  int DataPktsIn = -1;
-  int has_AckPktsIn = 0;
 
     for (b = 0; b < count_vars; b++) {
       if (strcmp(web_vars[b].name, web100_name) == 0) {
@@ -1101,6 +1103,77 @@ void tcp_stats_free_agent(tcp_stat_agent *agent) {
     web100_detach(agent);
 #elif USE_WEB10G
     estats_nl_client_destroy(&agent);
+#endif
+    return;
+}
+
+tcp_stat_group *tcp_stats_get_group(tcp_stat_agent *agent, char *group_name) {
+    tcp_stat_group *retval;
+
+#if USE_WEB100
+    retval = web100_group_find(agent, group_name);
+#elif USE_WEB10G
+    retval = NULL;
+#endif
+
+    return retval;
+}
+
+tcp_stat_snap *tcp_stats_init_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group *group) {
+    tcp_stat_snap *retval;
+
+#if USE_WEB100
+    retval = web100_snapshot_alloc(group, conn);
+#elif USE_WEB10G
+    estats_val_data_new(&retval);
+#endif
+
+    return retval;
+}
+
+void tcp_stats_take_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_snap *snap) {
+#if USE_WEB100
+    web100_snap(snap);
+#elif USE_WEB10G
+    estats_read_vars(snap, conn, agent);
+#endif
+    return;
+}
+
+void tcp_stats_free_snapshot(tcp_stat_snap *snap) {
+#ifdef USE_WEB100
+    web100_snapshot_free(snap);
+#elif USE_WEB10G
+    estats_val_data_free(snap);
+#endif
+}
+
+tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group) {
+    tcp_stat_log *retval;
+
+#if USE_WEB100
+    retval = web100_log_open_write(filename, conn, group);
+#elif USE_WEB10G
+    estats_record_open(&retval, filename, "w");
+#endif
+
+    return retval;
+}
+
+void tcp_stats_close_log(tcp_stat_log *log) {
+#if USE_WEB100
+    web100_log_close_write(log);
+#else
+    estats_record_close(log);
+#endif
+    return;
+}
+
+void tcp_stats_write_snapshot(tcp_stat_log *log, tcp_stat_snap *snap) {
+#if USE_WEB100
+    web100_log_write(log, snap);
+#elif USE_WEB10G
+    estats_record_write_data(log, snap);
 #endif
     return;
 }

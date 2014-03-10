@@ -19,6 +19,7 @@
 #include "I2util/util.h"
 #include "runningtest.h"
 #include "strlutils.h"
+#include "web100srv.h"
 
 
 // Worker thread characteristics used to record snaplog and Cwnd peaks
@@ -132,23 +133,13 @@ snapWorker(void* arg) {
       pthread_mutex_unlock(&mainmutex);
       break;
     }
-#if USE_WEB100
-    web100_snap(snapArgs->snap);
+    tcp_stats_take_snapshot(agent, snapArgs->conn, snapArgs->snap);
     if (peaks) {
       findCwndPeaks(agent, peaks, snapArgs->snap);
     }
     if (writeSnap) {
-      web100_log_write(snapArgs->log, snapArgs->snap);
+      tcp_stats_write_snapshot(snapArgs->log, snapArgs->snap);
     }
-#elif USE_WEB10G
-    estats_read_vars(snapArgs->snap, snapArgs->conn, agent);
-    if (peaks) {
-      findCwndPeaks(agent, peaks, snapArgs->snap);
-    }
-    if (writeSnap) {
-      estats_record_write_data(snapArgs->log, snapArgs->snap);
-    }
-#endif
     pthread_mutex_unlock(&mainmutex);
     mysleep(delay);
   }
@@ -280,13 +271,9 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
   workerArgs.peaks = peaks;
   workerArgs.writeSnap = snaplogenabled;
 
-#if USE_WEB100
-  group = web100_group_find(agentarg, "read");
-  snaparg->snap = web100_snapshot_alloc(group, conn);
-#elif USE_WEB10G
-  snaparg->conn = conn;
-  estats_val_data_new(&snaparg->snap);
-#endif
+  group = tcp_stats_get_group(agentarg, "read");
+
+  snaparg->snap = tcp_stats_init_snapshot(agentarg, conn, group);
 
   if (snaplogenabled) {
     // memcpy(metafilevariablename, metafilename, strlen(metafilename));
@@ -295,11 +282,9 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 
     fplocal = fopen(get_logfile(), "a");
 
-#if USE_WEB100
-    snaparg->log = web100_log_open_write(metafilename, conn, group);
-#elif USE_WEB10G
-    estats_record_open(&snaparg->log, metafilename, "w");
-#endif
+    snaparg->log = tcp_stats_open_log(metafilename, conn, group);
+    log_println( 0, "snaparg->log: %X", snaparg->log);
+
     if (fplocal == NULL) {
       log_println(
           0,
@@ -321,17 +306,10 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
   pthread_mutex_lock(&mainmutex);
   workerLoop= 1;
   // obtain web100 snap into "snaparg.snap"
-#if USE_WEB100
-  web100_snap(snaparg->snap);
+  tcp_stats_take_snapshot(agentarg, conn, snaparg->snap);
   if (snaplogenabled) {
-    web100_log_write(snaparg->log, snaparg->snap);
+    tcp_stats_write_snapshot(snaparg->log, snaparg->snap);
   }
-#elif USE_WEB10G
-  estats_read_vars(snaparg->snap, conn, agentarg);
-  if (snaplogenabled) {
-    estats_record_write_data(snaparg->log, snaparg->snap);
-  }
-#endif
   pthread_cond_wait(&maincond, &mainmutex);
   pthread_mutex_unlock(&mainmutex);
 }
@@ -351,17 +329,10 @@ void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
     pthread_join(*workerThreadId, NULL);
   }
   // close writing snaplog, if snaplog recording is enabled
-#if USE_WEB100
   if (snaplogenabled) {
-    web100_log_close_write(snapArgs_ptr->log);
+    tcp_stats_close_log(snapArgs_ptr->log);
   }
-  web100_snapshot_free(snapArgs_ptr->snap);
-#elif USE_WEB10G
-  if (snaplogenabled) {
-    estats_record_close(&snapArgs_ptr->log);
-  }
-  estats_val_data_free(&snapArgs_ptr->snap);
-#endif
+  tcp_stats_free_snapshot(snapArgs_ptr->snap);
 }
 
 /**

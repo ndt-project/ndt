@@ -313,6 +313,16 @@ int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const ch
 void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd);
 tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock);
 
+tcp_stat_group *tcp_stats_get_group(tcp_stat_agent *agent, char *group_name);
+
+tcp_stat_snap *tcp_stats_init_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group *group);
+void tcp_stats_take_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_snap *snap);
+void tcp_stats_write_snapshot(tcp_stat_log *log, tcp_stat_snap *snap);
+void tcp_stats_free_snapshot(tcp_stat_snap *snap);
+
+tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group);
+void tcp_stats_close_log(tcp_stat_log *log);
+
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                       char *results, size_t results_strlen);
