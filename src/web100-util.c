@@ -351,13 +351,6 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
  */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn) {
-#if USE_WEB100
-  web100_var* var = NULL;
-  web100_group* group = NULL;
-#elif USE_WEB10G
-  estats_val_data* data = NULL;
-  estats_error* err = NULL;
-#endif
   socklen_t len;
   struct sockaddr_storage addr;
   int i;
@@ -386,60 +379,20 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 
   // get values for other web100 variables and write to the log file
 
-#if USE_WEB100
-  int ok = 1;
   for (i = 0; web_vars[i].defined; i++) {
-    if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
-                                         &var)) != WEB100_ERR_SUCCESS) {
+    char buf[1024];
+
+    if (tcp_stats_read_var(agent, cn, web_vars[i].name, buf, sizeof(buf)) != 0) {
       log_println(1, "Variable %d (%s) not found in KIS", i,
                   web_vars[i].name);
-      ok = 0;
       continue;
     }
 
-    if (cn == NULL) {
-      fprintf(
-          stderr,
-          "Web100_get_data_recv() failed, return to testing routine\n");
-      return;
-    }
-
-    if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-      if (get_debuglvl() > 9)
-        web100_perror("web100_raw_read()");
-      continue;
-    }
-    if (ok == 1) {
-      snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
-               web100_value_to_text(web100_get_var_type(var), buf));
-      if (fp)
-        fprintf(fp, "%d;", (int32_t) atoi(web_vars[i].value));
-      log_println(9, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
-    }
-    ok = 1;
-  }
-#elif USE_WEB10G
-  estats_val_data_new(&data);
-  estats_read_vars(data, cn, agent);
-
-  // Loop through all the web10g variables and write to file/log_print them
-  for (i = 0; i < data->length; i++) {
-    if (data->val[i].masked) continue;
-    char * str = NULL;
-
-    if ((err = estats_val_as_string(&str, &data->val[i], estats_var_array[i].valtype)) != NULL) {
-      log_println(0, "Error: tcp_stat_get_data_recv - estats_val_as_string");
-      estats_error_print(stderr, err);
-      estats_error_free(&err);
-      continue;
-    }
+    snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s", buf);
     if (fp)
-      fprintf(fp, "%s;", str);
-    log_println(9, "%s: %s", estats_var_array[i].name, estats_read_vars);
+      fprintf(fp, "%d;", (int32_t) atoi(web_vars[i].value));
+    log_println(9, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
   }
-
-  estats_val_data_free(&data);
-#endif
 
   // close file pointers after web100 variables have been fetched
   if (fp) {
