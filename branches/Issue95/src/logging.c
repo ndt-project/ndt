@@ -1169,7 +1169,7 @@ void create_client_logdir(struct sockaddr *cliaddrarg, socklen_t clilenarg,
 
   snprintf(dir, sizeof(dir), "%s_%s:%d.%s",
            get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
-           socketaddrport, finalsuffix);
+           meta.ctl_port, finalsuffix);
   strlcpy(finalsuffix, dir, finalsuffixsize);
 
   create_named_logdir(dirnamedestarg, destnamearrsize, finalsuffix, 0);
