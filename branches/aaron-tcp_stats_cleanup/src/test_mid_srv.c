@@ -110,14 +110,6 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       strlcpy(listenmidport, "0", sizeof(listenmidport));
     }
 
-    /*  RAC debug  */
-    /*
-       if (KillHung() == 0)
-       log_println(5, "KillHung() returned 0, should have tried to kill off some LastAck process");
-       else
-       log_println(5, "KillHung(): returned non-0 response, nothing to kill or kill failed");
-       */
-
     while (midsrv_addr == NULL) {
       // attempt to bind to a new port and obtain address structure with
       // details of listening port
@@ -129,13 +121,6 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                   mrange_next(listenmidport, sizeof(listenmidport)) :
                   listenmidport,
               conn_options, 0);
-      if (midsrv_addr == NULL) {
-        /*
-           log_println(5, " Calling KillHung() because midsrv_address failed to bind");
-           if (KillHung() == 0)
-           continue;
-           */
-      }
       if (strcmp(listenmidport, "0") == 0) {
         log_println(0, "WARNING: ephemeral port number was bound");
         break;

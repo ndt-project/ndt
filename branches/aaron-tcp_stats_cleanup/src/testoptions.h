@@ -59,8 +59,7 @@ int initialize_tests(int ctlsockfd, TestOptions* testOptions,
 
 void catch_s2c_alrm(int signo);
 
-int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
-                 int conn_options);
+int test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options);
 int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                   int conn_options);
 

@@ -108,7 +108,6 @@ void finalize_sfw(int ctlsockfd) {
 /**
  * Performs the server part of the Simple firewall test.
  * @param ctlsockfd Client control socket descriptor
- * @param agent web100_agent
  * @param options The test options
  * @param conn_options The connection options
  * @returns Integer with values:
@@ -120,7 +119,7 @@ void finalize_sfw(int ctlsockfd) {
  *			5 - Unable to resolve client address
  */
 
-int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
+int test_sfw_srv(int ctlsockfd, TestOptions* options,
                  int conn_options) {
   char buff[BUFFSIZE + 1];
   I2Addr sfwsrv_addr = NULL;
