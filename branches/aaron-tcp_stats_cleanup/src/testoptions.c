@@ -48,8 +48,11 @@ static int decreasing = 0;
 void findCwndPeaks(tcp_stat_agent* agent, CwndPeaks* peaks,
                    tcp_stat_snap* snap) {
   int CurCwnd;
+  char buf[128];
 
-  CurCwnd = tcp_stats_snap_read_var(agent, snap, "CurCwnd");
+  tcp_stats_snap_read_var(agent, snap, "CurCwnd", buf, sizeof(buf));
+
+  CurCwnd = atoi(buf);
 
   if (slowStart) {
     if (CurCwnd < prevCWNDval) {
