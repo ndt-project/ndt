@@ -1013,7 +1013,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   /*  alarm(20); */
   log_println(6, "Starting simple firewall test");
-  if ((ret = test_sfw_srv(ctlsockfd, agent, &*testopt, conn_options)) != 0) {
+  if ((ret = test_sfw_srv(ctlsockfd, &*testopt, conn_options)) != 0) {
     if (ret < 0)
       log_println(6, "SFW test failed with rc=%d", ret);
   }
