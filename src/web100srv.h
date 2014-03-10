@@ -307,8 +307,12 @@ typedef web100_log tcp_stat_log;
 
 #endif
 
+// Generic functions that, at compile-time, reads either from web10g or web100
+int tcp_stats_init(char *VarFileName);
+int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name);
+void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd);
+
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
-int tcp_stat_init(char *VarFileName);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                       char *results, size_t results_strlen);
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,

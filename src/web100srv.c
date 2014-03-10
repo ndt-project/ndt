@@ -535,7 +535,7 @@ void cleanup(int signo) {
 
     case SIGHUP:
       /* Initialize Web100 structures */
-      count_vars = tcp_stat_init(VarFileName);
+      count_vars = tcp_stats_init(VarFileName);
 
       /* The administrator view automatically generates a usage page for the
        * NDT server.  This page is then accessable to the general public.
@@ -1836,7 +1836,7 @@ int main(int argc, char** argv) {
   log_println(1, "server ready on port %s (family %d)", port, meta.family);
 
   // Initialize tcp_stat structures
-  count_vars = tcp_stat_init(VarFileName);
+  count_vars = tcp_stats_init(VarFileName);
   if (count_vars == -1) {
     log_println(0, "No Web100 variables file found, terminating program");
     exit(-5);
