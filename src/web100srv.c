@@ -85,6 +85,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "runningtest.h"
 #include "strlutils.h"
 #include "heuristics.h"
+#include "snap_worker.h"
 #include "tests_srv.h"
 
 static char lgfn[FILENAME_SIZE];  // log file name
@@ -915,6 +916,8 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   int timeout, dupack;
   // int ifspeed;
 
+  SnapResults *c2s_snap_results, *s2c_snap_results;
+
   time_t stime;
 
   double rttsec;  // average round trip time
@@ -1010,7 +1013,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, spds, &spd_index)) != 0) {
+                      record_reverse, spds, &spd_index, &c2s_snap_results)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -1022,7 +1025,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, &peaks)) != 0) {
+                      &spd_index, &s2c_snap_results)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -1041,6 +1044,9 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps",
               c2sspd / 1000, s2cspd / 1000);
 
+  // Calculate the cwnd peaks from the server-side sending data
+  findCwndPeaks(s2c_snap_results, &peaks);
+
   // Determine link speed
   calc_linkspeed(spds, spd_index, &c2s_linkspeed_data, &c2s_linkspeed_ack,
                  &s2c_linkspeed_data, &s2c_linkspeed_ack, runave, &dec_cnt,
@@ -1050,7 +1056,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   // ...determine number of times congestion window has been changed
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(agent, options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(s2c_snap_results, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }

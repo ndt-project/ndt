@@ -20,6 +20,7 @@
 #include "protocol.h"
 #include "network.h"
 #include "mrange.h"
+#include "snap_worker.h"
 
 /**
  * Perform the C2S Throughput test. This test intends to measure throughput
@@ -59,9 +60,10 @@
 int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
-             char spds[4][256], int* spd_index) {
+             char spds[4][256], int* spd_index, SnapResults **snap_results) {
   tcp_stat_connection conn;
   tcp_stat_group* group = NULL;
+  SnapWorker *snap_worker;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
   int recvsfd;  // receiver socket file descriptor
@@ -82,13 +84,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   I2Addr c2ssrv_addr = NULL;  // c2s test's server address
   // I2Addr src_addr=NULL;  // c2s test source address
   char listenc2sport[10];  // listening port
-  pthread_t workerThreadId;
 
-  // snap related variables
-  SnapArgs snapArgs;
-  snapArgs.snap = NULL;
-  snapArgs.log = NULL;
-  snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
   // Test ID and status descriptors
@@ -96,7 +92,6 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
-  char namesuffix[256] = "c2s_snaplog";
 
   if (testOptions->c2sopt) {
     setCurrentTest(TEST_C2S);
@@ -300,17 +295,13 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     log_println(5, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d",
                 mon_pipe[0], mon_pipe[1]);
 
+    group = tcp_stats_get_group(agent, "read");
+
     // experimental code, delete when finished
     if (options->limit > 0) {
         tcp_stats_set_cwnd_limit(agent, conn, group, options->limit);
     }
 
-    // Create C->S snaplog directories, and perform some initialization based on
-    // options
-    create_client_logdir((struct sockaddr *) &cli_addr, clilen,
-                         options->c2s_logname, sizeof(options->c2s_logname),
-                         namesuffix,
-                         sizeof(namesuffix));
     sleep(2);
 
     // send empty TEST_START indicating start of the test
@@ -318,19 +309,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     /* alarm(30); */  // reset alarm() again, this 10 sec test should finish
                       // before this signal is generated.
 
-    // If snaplog recording is enabled, update meta file to indicate the same
-    // and proceed to get snapshot and log it.
-    // This block is needed here since the meta file stores names without the
-    // full directory but fopen needs full path. Else, it could have gone into
-    // the "start_snap_worker" method
-    if (options->snaplog) {
-      memcpy(meta.c2s_snaplog, namesuffix, strlen(namesuffix));
-      /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
-        &workerThreadId, meta.c2s_snaplog, options->c2s_logname,
-        conn, group); */
-    }
-    start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
-                      meta.c2s_snaplog, options->c2s_logname, conn, group);
+    snap_worker = start_snap_worker(agent, group, conn, options->snapDelay, 10);
+
     // Wait on listening socket and read data once ready.
     tmptime = secs();
     sel_tv.tv_sec = 11;  // time out after 11 seconds
@@ -363,7 +343,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // c->s throuput value calculated and assigned ! Release resources, conclude
     // snap writing.
-    stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
+    *snap_results = stop_snap_worker(snap_worker);
 
     // send the server calculated value of C->S throughput as result to client
     snprintf(buff, sizeof(buff), "%6.0f kbps outbound for child %d", *c2sspd,
@@ -449,6 +429,30 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // protocol logs
     teststatuses = TEST_ENDED;
     protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
+
+    // save the snapshots
+    if (options->snaplog) {
+        int i;
+        char namesuffix[256] = "c2s_snaplog";
+        tcp_stat_log *log;
+
+        // Create C->S snaplog directories, and perform some initialization based on
+        // options
+        create_client_logdir((struct sockaddr *) &cli_addr, clilen,
+                             options->c2s_logname, sizeof(options->c2s_logname),
+                             namesuffix,
+                             sizeof(namesuffix));
+
+        memcpy(meta.c2s_snaplog, namesuffix, strlen(namesuffix));
+
+        log = tcp_stats_open_log(options->c2s_logname, (*snap_results)->conn, (*snap_results)->group, "w");
+
+        for(i = 0; i < (*snap_results)->collected; i++) {
+            tcp_stats_write_snapshot(log, (*snap_results)->snapshots[i]);
+        }
+
+        tcp_stats_close_log(log);
+    }
 
     // set current test status and free address
     setCurrentTest(TEST_NONE);
