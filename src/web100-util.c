@@ -242,11 +242,11 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   strlcat(results, line, results_strlen);
 
   // get web100 values for the middlebox test result group
-  tcp_stats_read_var_str(agent, cn, "CurMSS", buff, sizeof(buff));
+  tcp_stats_read_var(agent, cn, "CurMSS", buff, sizeof(buff));
   currentMSSval = atoi(buff);
 
   for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
-    if (tcp_stats_read_var_str(agent, cn, vars[i], buff, sizeof(buff)) != 0) {
+    if (tcp_stats_read_var(agent, cn, vars[i], buff, sizeof(buff)) != 0) {
       log_println(0, "Middlebox: Failed to read the value of %s", vars[i]);
       return;
     }
@@ -1016,7 +1016,7 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
   return (0);
 }
 
-int tcp_stats_read_var_str(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize) {
+int tcp_stats_read_var(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize) {
 #ifdef USE_WEB100
     web100_group *group;
     web100_var* var;
@@ -1041,12 +1041,10 @@ int tcp_stats_read_var_str(tcp_stat_agent *agent, tcp_stat_connection conn, cons
     snprintf(buf, bufsize, "%u", value.uv32);
 #endif
 
-    log_println( 0, "Read %s: %s", var_name, buf);
-
     return 0;
 }
 
-int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name) {
+int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name, char *buf, int bufsize) {
 #if USE_WEB100
   web100_group* group;
   web100_var* var;
@@ -1054,13 +1052,14 @@ int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const ch
 
   web100_agent_find_var_and_group(agent, var_name, &group, &var);
   web100_snap_read(var, snap, tmpstr);
-  return atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+  snprintf(buf, bufsize, "%s", web100_value_to_text(web100_get_var_type(var), tmpstr));
 #elif USE_WEB10G
   struct estats_val value;
 
   web10g_find_val(snap, var_name, &value);
-  return value.uv32;
+  sprintf(buf, bufsize, "%u", value.uv32);
 #endif
+  return 0;
 }
 
 tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock) {

@@ -309,7 +309,7 @@ typedef web100_log tcp_stat_log;
 int tcp_stats_init(char *VarFileName);
 tcp_stat_agent *tcp_stats_init_agent();
 void tcp_stats_free_agent(tcp_stat_agent *agent);
-int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name);
+int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name, char *buf, int bufsize);
 void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd);
 tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock);
 
@@ -325,7 +325,7 @@ void tcp_stats_close_log(tcp_stat_log *log);
 
 void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit);
 
-int tcp_stats_read_var_str(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize);
+int tcp_stats_read_var(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize);
 
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
