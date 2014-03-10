@@ -79,7 +79,6 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   web100_snapshot* rsnap = NULL;
   web100_group* tgroup;
   web100_group* rgroup;
-  web100_var* var;
 #elif USE_WEB10G
   estats_val_data* snap;
 #endif
@@ -128,9 +127,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
   SnapArgs snapArgs;
   snapArgs.snap = NULL;
-#if USE_WEB100
   snapArgs.log = NULL;
-#endif
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
@@ -410,27 +407,15 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
           // get details of next sequence # to be sent and fetch value from
           // snap file
-#if USE_WEB100
-          web100_agent_find_var_and_group(agent, "SndNxt", &group,
-                                          &var);
-          web100_snap_read(var, snapArgs.snap, tmpstr);
-          nextseqtosend = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   tmpstr));
+
+          // get next sequence # to be sent
+          tcp_stats_snap_read_var(agent, snapArgs.snap, "SndNxt", tmpstr, sizeof(tmpstr));
+          nextseqtosend = atoi(tmpstr);
+
           // get oldest un-acked sequence number
-          web100_agent_find_var_and_group(agent, "SndUna", &group,
-                                          &var);
-          web100_snap_read(var, snapArgs.snap, tmpstr);
-          lastunackedseq = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   tmpstr));
-#elif USE_WEB10G
-          struct estats_val value;
-          web10g_find_val(snapArgs.snap, "SndNxt", &value);
-          nextseqtosend = value.uv32;
-          web10g_find_val(snapArgs.snap, "SndUna", &value);
-          lastunackedseq = value.uv32;
-#endif
+          tcp_stats_snap_read_var(agent, snapArgs.snap, "SndUna", tmpstr, sizeof(tmpstr));
+          lastunackedseq = atoi(tmpstr);
+
           pthread_mutex_unlock(&mainmutex);
 
           // Temporarily stop sending data if you sense that the buffer is

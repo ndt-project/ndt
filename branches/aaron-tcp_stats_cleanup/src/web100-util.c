@@ -744,7 +744,6 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
  *
  * @param sock integer socket file descriptor indicating data recipient
  * @param agent pointer to a web100_agent
- * @param cn pointer to web100_connection
  * @return On successful fetch of required web100_variables, integers:
  *  				0x01 if "Autotune send buffer" is not enabled
  *  				0x02 if "Autotune receive buffer" is not enabled
@@ -806,7 +805,6 @@ int tcp_stats_autotune_enabled(tcp_stat_agent *agent, int sock) {
 }
 
 /**
- * @param sock integer socket file descriptor indicating data recipient
  * @param tcp_vars to local copies of tcp_stat variables
  * @return integer 0
  */
@@ -888,83 +886,42 @@ int tcp_stat_logvars(struct tcp_vars* vars) {
  * @return Integer, 0 on success, -1 on failure
  */
 
-int CwndDecrease(char* logname, u_int32_t *dec_cnt,
+int CwndDecrease(tcp_stat_agent *agent, char* logname, u_int32_t *dec_cnt,
                  u_int32_t *same_cnt, u_int32_t *inc_cnt) {
-#if USE_WEB100
-  web100_var* var;
-  char buff[256];
-  web100_snapshot* snap;
-  int s1, s2, cnt, rt;
-  web100_log* log;
-  web100_group* group;
-  web100_agent* agnt;
-#elif USE_WEB10G
-  estats_val var;
-  char buff[256];
-  estats_val_data* snap;
-  int s1, s2, cnt, rt;
-  estats_record* log;
-#endif
+  tcp_stat_log *log;
+  tcp_stat_snap *snap = NULL;
+  int s1, s2, cnt;
+  char buf[1024];
 
-#if USE_WEB100
-  // open snaplog file to read values
-  if ((log = web100_log_open_read(logname)) == NULL)
-    return (0);
-  if ((snap = web100_snapshot_alloc_from_log(log)) == NULL)
-    return (-1);
-  if ((agnt = web100_get_log_agent(log)) == NULL)
-    return (-1);
-  if ((group = web100_get_log_group(log)) == NULL)
-    return (-1);
-
-  // Find current values of the congestion window
-  if (web100_agent_find_var_and_group(agnt, "CurCwnd", &group, &var)
-      != WEB100_ERR_SUCCESS)
-    return (-1);
-#elif USE_WEB10G
-  estats_record_open(&log, logname, "r");
-#endif
+  log = tcp_stats_open_log(logname, NULL, NULL, "r");
 
   s2 = 0;
   cnt = 0;
 
   // get values and update counts
-#if USE_WEB100
-  while (web100_snap_from_log(snap, log) == 0) {
-#elif USE_WEB10G
-  while (estats_record_read_data(&snap, log) == NULL) {
-#endif
-    if (cnt++ == 0)
+  while (tcp_stats_read_snapshot(&snap, log) == 0) {
+    if (cnt++ == 0) {
+      tcp_stats_free_snapshot(snap);
       continue;
+    }
+
     s1 = s2;
     // Parse snapshot, returning variable values
-#if USE_WEB100
-    rt = web100_snap_read(var, snap, buff);
-    s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_WEB10G
-    rt = web10g_find_val(snap, "CurCwnd", &var);
-    s2 = var.uv32;
-#endif
+
+    if (tcp_stats_snap_read_var(agent, snap, "CurCwnd", buf, sizeof(buf)) != 0) {
+      tcp_stats_free_snapshot(snap);
+      continue;
+    }
+
+    s2 = atoi(buf);
 
     if (cnt < 20) {
-#if USE_WEB100
-      log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt,
-                  (char*) var);
+      log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt, buf);
       log_println(
           7,
-          "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
-          rt, s1, s2,
-          web100_value_to_text(web100_get_var_type(var), buff),
+          "Checking for Cwnd decreases. s1=%d, s2=%d, dec-cnt=%d",
+          s1, s2,
           *dec_cnt);
-#elif USE_WEB10G
-      log_println(7, "Reading snaplog %p (%d), var = %"PRIu64, snap, cnt,
-                     var.uv64);
-      log_println(
-          7,
-          "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d, dec-cnt=%d",
-          rt, s1, s2,
-          *dec_cnt);
-#endif
     }
     if (s2 < s1)
       (*dec_cnt)++;
@@ -973,21 +930,11 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
     if (s2 > s1)
       (*inc_cnt)++;
 
-#if USE_WEB100
-    if (rt != WEB100_ERR_SUCCESS)
-      break;
-#elif USE_WEB10G
-    estats_val_data_free(&snap);
-    if (rt != -1)
-      break;
-#endif
+    tcp_stats_free_snapshot(snap);
   }
-#if USE_WEB100
-  web100_snapshot_free(snap);
-  web100_log_close_read(log);
-#elif USE_WEB10G
-  estats_record_close(&log);
-#endif
+
+  tcp_stats_close_log(log);
+
   log_println(
       2,
       "-=-=-=- CWND window report: increases = %d, decreases = %d, "
@@ -1140,13 +1087,21 @@ void tcp_stats_free_snapshot(tcp_stat_snap *snap) {
 #endif
 }
 
-tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group) {
+tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group, char *mode) {
     tcp_stat_log *retval;
 
 #if USE_WEB100
-    retval = web100_log_open_write(filename, conn, group);
+    if (strcmp(mode, "w") == 0) {
+        retval = web100_log_open_write(filename, conn, group);
+    }
+    else if (strcmp(mode, "r") == 0) {
+        retval = web100_log_open_read(filename);
+    }
+    else {
+        retval = NULL;
+    }
 #elif USE_WEB10G
-    estats_record_open(&retval, filename, "w");
+    estats_record_open(&retval, filename, mode);
 #endif
 
     return retval;
@@ -1195,4 +1150,18 @@ void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, t
     return;
 }
 
+int tcp_stats_read_snapshot(tcp_stat_snap **snap, tcp_stat_log *log) {
+  int retval;
 
+#if USE_WEB100
+  if (*snap == NULL)
+    if ((*snap = web100_snapshot_alloc_from_log(log)) == NULL)
+      return (-1);
+
+  retval = web100_snap_from_log(*snap, log);
+#elif USE_WEB10G
+  retval = estats_record_read_data(snap, log);
+#endif
+
+  return retval;
+}

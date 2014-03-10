@@ -285,7 +285,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 
     fplocal = fopen(get_logfile(), "a");
 
-    snaparg->log = tcp_stats_open_log(metafilename, conn, group);
+    snaparg->log = tcp_stats_open_log(metafilename, conn, group, "w");
     log_println( 0, "snaparg->log: %X", snaparg->log);
 
     if (fplocal == NULL) {
