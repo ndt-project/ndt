@@ -340,7 +340,7 @@ AC_CHECK_FUNCS([alarm bzero gethostbyaddr gettimeofday inet_ntoa memset select s
 AC_SUBST(ac_aux_dir)
 AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
-		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile fakewww/Makefile])
+		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile])
 AC_OUTPUT
 
 echo ""
@@ -373,7 +373,9 @@ SUMMARY_WEB100SRV="YES"
 else
 SUMMARY_WEB100SRV="NO    (missing pcap headers)"
 fi
-if test "x$enable_fakewww" != "xyes"; then
+if test "x$enable_fakewww" == "xno"; then
+SUMMARY_FAKEWWW="NO    (disabled by user)"
+elif test "x$enable_fakewww" != "xyes"; then
 SUMMARY_FAKEWWW="NO    (disabled by default)"
 else
 SUMMARY_FAKEWWW="YES"
@@ -430,9 +432,7 @@ echo "*** Server Tools - complete"
 else
 echo "*** Server Tools - incomplete"
 fi
-if test "x$enable_fakewww" == "xyes"; then
 echo "* fakewww:      ${SUMMARY_FAKEWWW}"
-fi
 echo "* web100srv:    ${SUMMARY_WEB100SRV}"
 echo "* web10gsrv:    ${SUMMARY_WEB10GSRV}"
 echo ""

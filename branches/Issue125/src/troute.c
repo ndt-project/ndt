@@ -67,7 +67,7 @@
 #include <netdb.h>
 #include <stdio.h>
 
-#include "../src/logging.h"
+#include "logging.h"
 
 #define  MAXPACKET  65535  /* max ip packet size */
 #ifndef MAXHOSTNAMELEN
