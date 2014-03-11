@@ -332,4 +332,7 @@ sig_atomic_t sig13;
 sig_atomic_t sig17;
 pid_t sig17_pid[256];
 
+/* global variables shared with other source files */
+extern int dumptrace;
+
 #endif  // SRC_WEB100SRV_H_

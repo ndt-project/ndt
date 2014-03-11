@@ -27,7 +27,6 @@ static struct iflists {
   u_int16_t speed[32];
 } iflist;
 
-static int dumptrace;
 static pcap_t *pd;
 static pcap_dumper_t *pdump;
 static int* mon_pipe;

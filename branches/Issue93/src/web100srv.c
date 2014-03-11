@@ -101,7 +101,7 @@ static char dbPWDbuf[256];  // DB Password
 // list of global variables used throughout this program.
 static int window = 64000;  // TCP buffer size
 static int count_vars = 0;
-static int dumptrace = 0;
+int dumptrace = 0;
 static int usesyslog = 0;
 static int multiple = 0;
 static int compress = 1;
