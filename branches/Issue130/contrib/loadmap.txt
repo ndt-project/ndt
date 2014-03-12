@@ -1,0 +1,87 @@
+So that's basically it from the NDT perspective.  But it really helps to
+understand my changes in the context of the overall site architecture.
+So I'll spend a few moments summarizing that.  The map we use on the
+site is a Google Map, and as you probably know, all Google maps are
+driven by Javascript.  I've used Javascript to create the map, populate
+the markers, return the current location, get info about an existing
+marker, and create a new marker.  All my Javascript that does this can
+be found in the file http://www.ecorridors.vt.edu/maps/loadmap.js
+
+
+When a user visits the site, we've tried to encourage the following
+order of events:
+(assume steps 10-11 have already happened)  
+1)   User clicks the "Run Internet Speed Test" button.  This opens
+speedtast.htm, which contains our custom NDT client, in a new window.
+At this point the window.opener assocation is made in speedtest.htm that
+allows it to pass its results back to the main form.
+2)  User elects to trust the NDT applet, because it's signed by Virginia
+Tech and hey, everybody can trust Virginia Tech.
+3)  User runs the NDT test.  Gets some results.
+4)  User clicks the "Return to Map" button.  The results are pasted back
+on the main form.  We also have hidden fields that store the server name
+from which web100srv was run (harvested from Public String host in NDT),
+and the IP address of the user's machine, which comes from PHP.  This
+gives us both endpoints.
+5)  User clicks on the map somewhere to mark their location.  The
+lat/long of said location is transferred to the main form.
+6)  User adds the various optional information in the "Service Details"
+area.
+7)  The PHP validates the submission.  Hopefully everything goes OK.
+8)  PHP inserts the data, along with the hidden fields mentioned above
+and a timestamp, into a MySQL database.
+9) Page refreshes.
+10) Google Map loads its markers from dynamicxml.php, which just takes
+as input the "envelope" of minx, miny, maxx, maxy that represents the
+user's current viewing extent, queries MySQL, and then builds a
+well-formed XML document in the format that Google Maps expects
+containing the points, and their attributes, that fall into that
+bounding rectangle.  
+11)  We then do a little kludgy logic to create the map symbology.
+Whereas a GIS would do this for us out of the box, since Google Maps is
+not a GIS by any means, we have to do it manually.  So I have 45
+different marker symbols for every permutation of connection speed class
+and access tachnology that follow a naming convention.  The big IF
+statements in the beginning of loadmap.js take care of assigning marker
+symbols by building the filename in two separate steps.
+
+
+
+So that's the context in which the custom client is used.  I would say
+that the changes I have made are very dependent on this context, and
+don't make much sense outside of it.  Now, what might be interesting
+would be if you and I (and/or other members of the NDT community) could
+take what I've created as a starting point and then build something more
+generic that would essentially "spatially enable" NDT.  Or maybe build
+some kind of web template for users to customize that would already have
+the linkages to NDT built-in, so that they only had to customize the
+testingserver parameter and the look and feel of their site.  I'm open
+to any suggestions you might have with regards to the future of this
+project.  Of course, the entire source code I'm sending you is free (as
+in speech AND beer) to the community.
+
+
+One additional thing I was thinking of trying was to add a
+load-balancing element to the NDT client.  We have two servers here that
+we plan to install NDT on (we have it running only on 128.173.240.137 at
+the moment).  I was thinking that if a user accessed server #1, but it
+was currently serving another client, the java client could be modified
+to check server #2 before entering the queue.  If I get this running
+here at our shop, and I can polish it enough to be worthy of
+contribution, I might send that your way also.
+
+
+So... I see I've been at this for a while and now most of the morning
+has gone by.  I hope that the information I've provided will be useful
+to you as you examine my changes to the client source and try to
+determine if/how my work would fit into the NDT project.  Please let me
+know if you have any questions, and I look forward to continuing this
+discussion!
+
+
+______________________________________
+Seth Peery
+Environmental Design and Planning
+Research Assistant, eCorridors Program
+Virginia Tech 
+sspeery@vt.edu
