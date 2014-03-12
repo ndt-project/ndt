@@ -90,7 +90,7 @@ fi
 
 # Enabling/disabling fakewww build
 AC_ARG_ENABLE(fakewww, [  --enable-fakewww=[yes/no] turn on fakewww build
-              [default=no]],, enable_fakewww=no)
+              [default=no]],, enable_fakewww=no_def)
 
 if test "x$enable_fakewww" != "xyes"; then
 	AM_CONDITIONAL(BUILD_FAKEWWW, false)
