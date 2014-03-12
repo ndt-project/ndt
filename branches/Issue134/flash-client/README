@@ -1,0 +1,38 @@
+ndt-flash is a Flash implementation of the NDT client.
+NDT (Network Diagnostic Tool) is a client/server program that provides network
+configuration and performance testing to end-users' desktop, laptop, and mobile
+platforms.
+For more information about NDT, see https://code.google.com/p/ndt/.
+
+How to compile :
+1. Download the latest Flex SDK from http://www.adobe.com/devnet/flex/flex-sdk-download.html
+2. Change the current working directory to the location of this README file.
+3. Create frameworks for the missing locales :
+   Call the copylocale in the bin directory of the Flex SDK to create frameworks for the
+   missing locales as below (You should repeat for any locales you want to add other than
+   the default flex supported ones) :
+   
+   i. If on Linux/Mac :
+   {path-to-flex-sdk}/bin/copylocale en_US ca_ES
+   {path-to-flex-sdk}/bin/copylocale en_US el_GR
+   
+   ii.If on Windows :
+   {path-to-flex-sdk}\bin\copylocale.exe en_US ca_ES
+   {path-to-flex-sdk}\bin\copylocale.exe en_US el_GR
+   
+4. Calling mxmlc from the command line :
+   Call the mxmlc in the bin directory of the Flex SDK by passing the Flex configuration 
+   file ndt-flash-config.xml and Main.as as arguments :
+  
+   i. If on Linux/Mac :
+   {path-to-flex-sdk}/bin/mxmlc src/Main.as -o <Insert_Filename_Here>.swf -load-config+=ndt-flash-config.xml
+   
+   ii.If on Windows :
+   {path-to-flex-sdk}\bin\mxmlc.exe src\Main.as -o <Insert_Filename_Here>.swf -load-config+=ndt-flash-config.xml
+   
+   Make sure to append ndt-flash-config.xml to -load-config instead of simply equating
+   to ensure the default flex-config.xml file is also loaded as ndt uses crucial properties
+   from that file as well.
+   
+4. If there are no compilation errors, your compiled SWF should be created in the current
+   working directory.
