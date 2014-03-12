@@ -112,12 +112,18 @@ package  {
       }
 
       try {
-        Main.ndt_description = ExternalInterface.call("getNDTDescription");
-        TestResults.appendDebugMsg(
-            "Initialized NDT description from JavaScript:"
+        var ndt_description:String =
+	  ExternalInterface.call("getNDTDescription");
+        if (ndt_description) {
+          Main.ndt_description = ndt_description;
+          TestResults.appendDebugMsg(
+            "Initialized NDT description from JavaScript. " +
+	    "NDT description: "
             + Main.ndt_description);
+        }
       } catch(e:Error) {
-        Main.ndt_description = NDTConstants.NDT_DESCRIPTION;
+        TestResults.appendDebugMsg("Bad Flash permissions: No "
+          + "access to javascript.");
       }
     }
 
