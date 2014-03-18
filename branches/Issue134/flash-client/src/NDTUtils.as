@@ -53,7 +53,7 @@ package  {
 	// recurse infinitely. 
 	if (functionName != "appendDebugOutput") {
           TestResults.appendDebugMsg("Failed to call " + functionName + ": "
-            + e.toString());
+                                     + e.toString());
         }
       }
     }
@@ -90,7 +90,7 @@ package  {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
         TestResults.appendDebugMsg("Failed to get window.navigator.userAgent: "
-          + e.toString());
+                                   + e.toString());
       }
 
       try {
@@ -103,7 +103,7 @@ package  {
         }
       } catch(e:Error) {
         TestResults.appendDebugMsg("Failed to call getNDTServer(): "
-          + e.toString());
+                                   + e.toString());
       }
 
       try {
@@ -118,7 +118,7 @@ package  {
         }
       } catch(e:Error) {
         TestResults.appendDebugMsg("Failed to call getClientApplication(): "
-          + e.toString());
+                                   + e.toString());
       }
 
       try {
@@ -133,7 +133,7 @@ package  {
         }
       } catch(e:Error) {
         TestResults.appendDebugMsg("Failed to call getNDTDescription(): "
-          + e.toString());
+                                   + e.toString());
       }
     }
 
