@@ -75,9 +75,11 @@ package  {
         case "TestDuration":
           return TestResults.duration.toString();
         case "ClientToServerSpeed":
-          return (TestResults.ndt_test_results::c2sSpeed / 1000).toString();
+          return (TestResults.ndt_test_results::c2sSpeed
+                  / NDTConstants.KBITS2BITS).toString();
         case "ServerToClientSpeed":
-          return (TestResults.ndt_test_results::s2cSpeed / 1000).toString();
+          return (TestResults.ndt_test_results::s2cSpeed
+                  / NDTConstants.KBITS2BITS).toString();
         case "Jitter":
           return TestResults.jitter.toString();
         case "OperatingSystem":
