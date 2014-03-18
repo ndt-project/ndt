@@ -259,7 +259,9 @@ package  {
           _c2sSendCount * NDTConstants.PREDEFINED_BUFFER_SIZE
           + (NDTConstants.PREDEFINED_BUFFER_SIZE - _c2sBytesNotSent));
 
-      TestResults.ndt_test_results::c2sSpeed = (c2sByteSent * NDTConstants.BYTES2BITS);
+      TestResults.ndt_test_results::c2sSpeed = (c2sByteSent
+                                                * NDTConstants.BYTES2BITS
+                                                / _c2sTestDuration);
     }
 
     private function startTest():void {
