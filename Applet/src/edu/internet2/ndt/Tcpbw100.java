@@ -92,6 +92,8 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -165,6 +167,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	NewFrame _frameWeb100Vars, _frameDetailedStats, _frameOptions;
 	// String s; Unused, commenting out
 	double _dTime;
+        int _s2cspdUpdateTime = 500, _c2sspdUpdateTime = 500; // ms
 	int _iECNEnabled, _iNagleEnabled, MSSSent, MSSRcvd;
 	int _iSACKEnabled, _iTimestampsEnabled, _iWinScaleRcvd, _iWinScaleSent;
 	int _iFastRetran, _iAckPktsOut, _iSmoothedRTT, _iCurrentCwnd, _iMaxCwnd;
@@ -174,7 +177,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	int _iSumRTT, _iCountRTT, _iCurrentMSS, _iTimeouts, _iPktsRetrans;
 	int _iSACKsRcvd, _iDupAcksIn, _iMaxRwinRcvd, _iMaxRwinSent;
 	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn;
-    long _iDataBytesOut;
+        long _iDataBytesOut;
 	int _iPktsOut, _iCongestionSignals, _iRcvWinScale;
 	// int _iPkts, _iLength=8192, _iCurrentRTO;
 	int _iPkts, _iLength = NDTConstants.PREDEFINED_BUFFER_SIZE, _iCurrentRTO;
@@ -188,6 +191,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	double _dS2cspd, _dC2sspd, _dSc2sspd, _dSs2cspd;
 	int _iSsndqueue;
 	double _dSbytes;
+        byte[] _yabuff2Write;
 
 	/**
 	 * Added by Martin Sandsmark, UNINETT AS Internationalization
@@ -1680,7 +1684,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// byte buff2[] = new byte[8192];
 		// Initialise for 64 Kb
-		byte yabuff2Write[] = new byte[64 * NDTConstants.KILO_BITS];
+		_yabuff2Write = new byte[64 * NDTConstants.KILO_BITS];
 		Message msg = new Message();
 		// start C2S throughput tests
 		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
@@ -1770,7 +1774,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				if (c == 'z') {
 					c = '0';
 				}
-				yabuff2Write[i] = c++;
+                                _yabuff2Write[i] = c++;
 			}
 			System.err.println("******Send buffer size =" + i);
 
@@ -1801,12 +1805,21 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}.start();
 
+                        Timer c2sspdUpdateTimer = new Timer();
+                        c2sspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+                            @Override
+                            public void run() {
+                                pub_c2sspd = ((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / NDTConstants.KILO)
+                                        / (System.currentTimeMillis() - _dTime);
+                            }
+                        }, 100, _c2sspdUpdateTime);
+
 			// While the 10 s timer ticks, write buffer data into server socket
 			while (true) {
 				// System.err.println("Send pkt = " + pkts + "; at " +
 				// System.currentTimeMillis());
 				try {
-					outStream.write(yabuff2Write, 0, yabuff2Write.length);
+					outStream.write(_yabuff2Write, 0, _yabuff2Write.length);
 				} catch (SocketException e) {
 					System.out.println("SocketException while writing to server" + e);
 					break;
@@ -1826,18 +1839,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				pub_bytes = (_iPkts * _iLength);
 			}
 
+                        c2sspdUpdateTimer.cancel();
 			_dTime = System.currentTimeMillis() - _dTime;
 			System.err.println(_dTime + " millisec test completed" + ","
-					+ yabuff2Write.length + ","+ _iPkts);
+					+ _yabuff2Write.length + ","+ _iPkts);
 			if (_dTime == 0) {
 				_dTime = 1;
 			}
 
 			// Calculate C2S throughput in kbps
-			System.out.println((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / _dTime
+			System.out.println((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / _dTime
 					+ " kb/s outbound"); //*8 for calculating bits
 
-			_dC2sspd = ((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / NDTConstants.KILO)
+			_dC2sspd = ((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / NDTConstants.KILO)
 					/ _dTime;
 
 			// The client has stopped streaming data, and the server is now
@@ -2012,6 +2026,15 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_dTime = System.currentTimeMillis();
 			pub_time = _dTime;
 
+                        Timer s2cspdUpdateTimer = new Timer();
+                        s2cspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+                            @Override
+                            public void run() {
+                                pub_s2cspd = ((NDTConstants.EIGHT * pub_bytes) / NDTConstants.KILO)
+                                        / (System.currentTimeMillis() - _dTime);
+                            }
+                        }, 100, _s2cspdUpdateTime);
+
 			// read data sent by server
 			try {
 				while ((inlth = srvin.read(buff, 0, buff.length)) > 0) {
@@ -2027,7 +2050,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ sHostName + ":" + ioExcep);
 				_sErrMsg = "Server Failed while reading socket data\n";
 				return true;
-			}
+			} finally {
+                                s2cspdUpdateTimer.cancel();
+                        }
 
 			// get time duration during which bytes were received
 			_dTime = System.currentTimeMillis() - _dTime;
