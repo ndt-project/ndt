@@ -294,7 +294,9 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           continue;
         break;
       }
-      memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
+
+      if (strlen(tmpstr) > 5)
+        memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
       // name of nettrace file passed back from pcap child
       log_println(3, "--tracefile after packet_trace %s",
                   meta.c2s_ndttrace);

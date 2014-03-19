@@ -92,6 +92,8 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -147,8 +149,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	String _sErrMsg;
 	JButton _buttonStartTest;
 	// TODO: Could use just one button for dismiss and copy. For later release
-	JButton _buttonDismiss, _buttonStatsDismiss;
-	JButton _buttonCopy, _buttonStatsCopy;
+	JButton _buttonDetailsDismiss, _buttonStatsDismiss;
+	JButton _buttonDetailsCopy, _buttonStatsCopy;
 	JButton _buttonDetails;
 	JButton _buttonStatistics;
 	JButton _buttonMailTo;
@@ -165,6 +167,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	NewFrame _frameWeb100Vars, _frameDetailedStats, _frameOptions;
 	// String s; Unused, commenting out
 	double _dTime;
+        int _s2cspdUpdateTime = 500, _c2sspdUpdateTime = 500; // ms
 	int _iECNEnabled, _iNagleEnabled, MSSSent, MSSRcvd;
 	int _iSACKEnabled, _iTimestampsEnabled, _iWinScaleRcvd, _iWinScaleSent;
 	int _iFastRetran, _iAckPktsOut, _iSmoothedRTT, _iCurrentCwnd, _iMaxCwnd;
@@ -174,7 +177,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	int _iSumRTT, _iCountRTT, _iCurrentMSS, _iTimeouts, _iPktsRetrans;
 	int _iSACKsRcvd, _iDupAcksIn, _iMaxRwinRcvd, _iMaxRwinSent;
 	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn;
-    long _iDataBytesOut;
+        long _iDataBytesOut;
 	int _iPktsOut, _iCongestionSignals, _iRcvWinScale;
 	// int _iPkts, _iLength=8192, _iCurrentRTO;
 	int _iPkts, _iLength = NDTConstants.PREDEFINED_BUFFER_SIZE, _iCurrentRTO;
@@ -188,6 +191,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	double _dS2cspd, _dC2sspd, _dSc2sspd, _dSs2cspd;
 	int _iSsndqueue;
 	double _dSbytes;
+        byte[] _yabuff2Write;
 
 	/**
 	 * Added by Martin Sandsmark, UNINETT AS Internationalization
@@ -926,24 +930,24 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		_frameWeb100Vars.getContentPane().add("South", buttons);
 
 		// Add "close" button
-		_buttonDismiss = new JButton(_resBundDisplayMsgs.getString("close"));
-		_buttonDismiss.addActionListener(this);
+		_buttonDetailsDismiss = new JButton(_resBundDisplayMsgs.getString("close"));
+		_buttonDetailsDismiss.addActionListener(this);
 
 		// Add "copy" button
-		_buttonCopy = new JButton(_resBundDisplayMsgs.getString("copy"));
-		_buttonCopy.addActionListener(this);
+		_buttonDetailsCopy = new JButton(_resBundDisplayMsgs.getString("copy"));
+		_buttonDetailsCopy.addActionListener(this);
 
 		// Create Text area for displaying results, add "Heading"
 		_txtDiagnosis = new JTextArea(
 				_resBundDisplayMsgs.getString(_sServerType + "KernelVar") + ":\n", 15,
-				30);
+				70);
 		_txtDiagnosis.setEditable(true);
-		_buttonDismiss.setEnabled(true);
-		_buttonCopy.setEnabled(_bCanCopy);
+		_buttonDetailsDismiss.setEnabled(true);
+		_buttonDetailsCopy.setEnabled(_bCanCopy);
 
 		// Now place all the buttons
-		buttons.add("West", _buttonDismiss);
-		buttons.add("East", _buttonCopy);
+		buttons.add("West", _buttonDetailsDismiss);
+		buttons.add("East", _buttonDetailsCopy);
 		_frameWeb100Vars.getContentPane().add(new JScrollPane(_txtDiagnosis));
 		_frameWeb100Vars.pack();
 	} // createDiagnoseWindow() ends
@@ -1117,9 +1121,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		else if (source == _buttonDetails) {
 			_frameWeb100Vars.setResizable(true);
 			_frameWeb100Vars.setVisible(true);
+
+            if (NDTUtils.isNotEmpty(_txtDiagnosis.getText())) {
+                // enable copy button only if there is details informations
+                _buttonDetailsCopy.setEnabled(true);
+            }
 		}
 		// "More Details" Web100 variables window to be closed
-		else if (source == _buttonDismiss) {
+		else if (source == _buttonDetailsDismiss) {
 			_frameWeb100Vars.toBack();
 			_frameWeb100Vars.dispose();
 		}
@@ -1129,29 +1138,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_frameDetailedStats.dispose();
 		}
 		// "More details" copy button functionality
-		else if (source == _buttonCopy) {
-			try {
-				Clipboard clipbd = getToolkit().getSystemClipboard();
-				_bCanCopy = true;
-				String s = _txtDiagnosis.getText();
-				StringSelection ss = new StringSelection(s);
-				clipbd.setContents(ss, ss);
-				_txtDiagnosis.selectAll();
-			} catch (SecurityException e) {
-				_bCanCopy = false;
-				// this Exception is only when the client cannot copy
-				// some data, and is acted on by disabling the
-				// copy button.
-				System.err.println(" You may not have some security Permissions. Please confirm");
-			}
+		else if (source == _buttonDetailsCopy) {
+			copy(_txtDiagnosis);
 		}
 		// "Statistics" copy button functionality
 		else if (source == _buttonStatsCopy) {
-			Clipboard clipbd = getToolkit().getSystemClipboard();
-			String sTemp = _txtStatistics.getText();
-			StringSelection ssTemp = new StringSelection(sTemp);
-			clipbd.setContents(ssTemp, ssTemp);
-		}
+            copy(_txtStatistics);
+        }
 		// Show "statistics" window
 		else if (source == _buttonStatistics) {
 			_frameDetailedStats.setResizable(true);
@@ -1222,6 +1215,28 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 		} // end mail-to functionality
 	} // actionPerformed()
+
+    /**
+     * Copy text from JTextarea to clipboard
+     *
+     * @param _txt
+     *            Source copied text to clipboard
+     * */
+    private void copy (JTextArea _txt) {
+        try {
+            Clipboard clipbd = getToolkit().getSystemClipboard();
+            _bCanCopy = true;
+            String sTemp = _txt.getText();
+            StringSelection ssTemp = new StringSelection(sTemp);
+            clipbd.setContents(ssTemp, ssTemp);
+        } catch (SecurityException e) {
+            _bCanCopy = false;
+            // this Exception is only when the client cannot copy
+            // some data, and is acted on by disabling the
+            // copy button.
+            System.err.println(" You may not have some security Permissions. Please confirm");
+        }
+    }
 
 	/**
 	 * Display current status in Applet window.
@@ -1674,7 +1689,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// byte buff2[] = new byte[8192];
 		// Initialise for 64 Kb
-		byte yabuff2Write[] = new byte[64 * NDTConstants.KILO_BITS];
+		_yabuff2Write = new byte[64 * NDTConstants.KILO_BITS];
 		Message msg = new Message();
 		// start C2S throughput tests
 		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
@@ -1764,7 +1779,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				if (c == 'z') {
 					c = '0';
 				}
-				yabuff2Write[i] = c++;
+                                _yabuff2Write[i] = c++;
 			}
 			System.err.println("******Send buffer size =" + i);
 
@@ -1795,12 +1810,21 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}.start();
 
+                        Timer c2sspdUpdateTimer = new Timer();
+                        c2sspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+                            @Override
+                            public void run() {
+                                pub_c2sspd = ((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / NDTConstants.KILO)
+                                        / (System.currentTimeMillis() - _dTime);
+                            }
+                        }, 100, _c2sspdUpdateTime);
+
 			// While the 10 s timer ticks, write buffer data into server socket
 			while (true) {
 				// System.err.println("Send pkt = " + pkts + "; at " +
 				// System.currentTimeMillis());
 				try {
-					outStream.write(yabuff2Write, 0, yabuff2Write.length);
+					outStream.write(_yabuff2Write, 0, _yabuff2Write.length);
 				} catch (SocketException e) {
 					System.out.println("SocketException while writing to server" + e);
 					break;
@@ -1820,18 +1844,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				pub_bytes = (_iPkts * _iLength);
 			}
 
+                        c2sspdUpdateTimer.cancel();
 			_dTime = System.currentTimeMillis() - _dTime;
 			System.err.println(_dTime + " millisec test completed" + ","
-					+ yabuff2Write.length + ","+ _iPkts);
+					+ _yabuff2Write.length + ","+ _iPkts);
 			if (_dTime == 0) {
 				_dTime = 1;
 			}
 
 			// Calculate C2S throughput in kbps
-			System.out.println((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / _dTime
+			System.out.println((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / _dTime
 					+ " kb/s outbound"); //*8 for calculating bits
 
-			_dC2sspd = ((NDTConstants.EIGHT * _iPkts * yabuff2Write.length) / NDTConstants.KILO)
+			_dC2sspd = ((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / NDTConstants.KILO)
 					/ _dTime;
 
 			// The client has stopped streaming data, and the server is now
@@ -2006,6 +2031,15 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_dTime = System.currentTimeMillis();
 			pub_time = _dTime;
 
+                        Timer s2cspdUpdateTimer = new Timer();
+                        s2cspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+                            @Override
+                            public void run() {
+                                pub_s2cspd = ((NDTConstants.EIGHT * pub_bytes) / NDTConstants.KILO)
+                                        / (System.currentTimeMillis() - _dTime);
+                            }
+                        }, 100, _s2cspdUpdateTime);
+
 			// read data sent by server
 			try {
 				while ((inlth = srvin.read(buff, 0, buff.length)) > 0) {
@@ -2021,7 +2055,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ sHostName + ":" + ioExcep);
 				_sErrMsg = "Server Failed while reading socket data\n";
 				return true;
-			}
+			} finally {
+                                s2cspdUpdateTimer.cancel();
+                        }
 
 			// get time duration during which bytes were received
 			_dTime = System.currentTimeMillis() - _dTime;
@@ -2447,6 +2483,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								// proceed to running tests
 				break;
 			}
+
+            if (wait == NDTConstants.SRV_QUEUE_SERVER_FAULT) {
+                _sErrMsg = _resBundDisplayMsgs.getString("serverFault")
+                        + "\n";
+                _bFailed = true;
+                return;
+            }
 
 			if (wait == NDTConstants.SRV_QUEUE_SERVER_BUSY) {
 				if (iServerWaitFlag == 0) { // First message from server,
@@ -3303,7 +3346,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						_txtStatistics.append(_resBundDisplayMsgs
 								.getString("c2s")
 								+ " "
-								+ _resBundDisplayMsgs.getString("qSeen")
+								+ _resBundDisplayMsgs.getString("eqSeen")
 								+ ": "
 								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dC2sspd - _dSc2sspd)
 										/ _dC2sspd) + "%\n");
@@ -3328,7 +3371,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						_txtStatistics.append(_resBundDisplayMsgs
 								.getString("s2c")
 								+ " "
-								+ _resBundDisplayMsgs.getString("qSeen")
+								+ _resBundDisplayMsgs.getString("eqSeen")
 								+ ": "
 								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dSs2cspd - _dS2cspd)
 										/ _dSs2cspd) + "%\n");
