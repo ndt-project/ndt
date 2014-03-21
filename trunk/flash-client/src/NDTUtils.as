@@ -160,11 +160,16 @@ package  {
       Security.allowDomain("*");
       try {
         ExternalInterface.addCallback(
+            "run_test", NDTPController.getInstance().startNDTTest);
+        ExternalInterface.addCallback(
+            "get_status", TestResults.getTestStatus);
+        ExternalInterface.addCallback(
             "getDebugOutput", TestResults.getDebugMsg);
         ExternalInterface.addCallback(
-            "getDetails", TestResults.getResultDetails);
+            "get_diagnosis", TestResults.getResultDetails);
         ExternalInterface.addCallback(
-            "getErrors", TestResults.getErrMsg);
+            "get_errmsg", TestResults.getErrStatus);
+        ExternalInterface.addCallback("get_host", Main.getHost);
         ExternalInterface.addCallback(
             "getNDTvar", TestResultsUtils.getNDTVariable);
       } catch (e:Error) {

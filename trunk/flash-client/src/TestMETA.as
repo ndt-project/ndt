@@ -39,8 +39,8 @@ package  {
     private var _testStage:int;
     private var _clientApplication:String;
 
-    public function TestMETA(ctlSocket:Socket, 
-                             clientApplication:String, 
+    public function TestMETA(ctlSocket:Socket,
+                             clientApplication:String,
 			     callerObject:NDTPController) {
       _callerObj = callerObject;
       _ctlSocket = ctlSocket;

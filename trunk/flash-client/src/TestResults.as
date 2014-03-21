@@ -34,7 +34,8 @@ package  {
     ndt_test_results static var ndtVariables:Object = new Object();
     ndt_test_results static var userAgent:String;
     // Valid only when ndtTestFailed == false.
-    ndt_test_results static var ndtTestStatus:String = null;
+    ndt_test_results static var ndtTestStatus:String = "notStarted";
+    ndt_test_results static var ndtErrStatus:String = "Test not run.";
     ndt_test_results static var ndtTestFailed:Boolean = false;
     ndt_test_results static var c2sSpeed:Number = 0.0;
     ndt_test_results static var s2cSpeed:Number = 0.0;
@@ -54,6 +55,14 @@ package  {
 
     public static function get duration():Number {
       return _ndtTestEndTime - _ndtTestStartTime;
+    }
+
+    public static function getTestStatus():String {
+      return ndt_test_results::ndtTestStatus;
+    }
+
+    public static function getErrStatus():String {
+      return ndt_test_results::ndtErrStatus;
     }
 
     public static function get testList():String {
@@ -153,7 +162,7 @@ package  {
       accessTech = null;
       linkSpeed = 0.0;
       ndtVariables = new Object();
-      ndtTestStatus = null;
+      ndtTestStatus = "notStarted";
       ndtTestFailed = false;
       c2sSpeed = 0.0;
       s2cSpeed = 0.0;
