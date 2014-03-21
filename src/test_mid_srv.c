@@ -229,11 +229,6 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
         return RETRY_EXCEEDED_WAITING_DATA;
     }
 
-    // get meta test details copied into results
-    memcpy(&meta.c_addr, &cli_addr, clilen);
-    /* meta.c_addr = cli_addr; */
-    meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
-
     buff[0] = '\0';
     // get tcp_stat connection data
 #if USE_WEB100
