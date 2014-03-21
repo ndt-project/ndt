@@ -1,0 +1,22 @@
+This is the README file from the NDT contrib directory.  This directory
+contains code contributed by 3rd parties.  This file will briefly describe
+what each contribution does, list the contirbuted files, and report who
+contirbuted this code.  For more details, contact the ndt-users@internet2.edu
+email discussion list.
+
+Rich Carlson
+5/30/07
+
+
+From: Seth Peery <sspeery@vt.edu>
+Date: Aug 18, 2006
+Organization: Virginia Tech University (vt.edu)
+Purpose:  Mashup code to plot client location on google map
+Files:  loadmap.intro, loadmap.js, loadmap.txt, Tcpbw1001.java
+Notes:  The Tcpbw1001.java is a modified version of the NDT Tcpbw100.java
+	file.  Most of the modifications have been incorporated into 
+	the Tcpbw100.java file.  
+	The loadmap.js javascript is contributed code.
+
+
+-----------------------------------------------------------------
