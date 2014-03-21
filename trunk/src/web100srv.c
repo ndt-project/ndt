@@ -2172,6 +2172,11 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
               // socket interrupted, retry
               if ((ctlsockfd == -1) && (errno == EINTR))
                 continue;  // sig child
+
+	      // get meta test details copied into results
+              memcpy(&meta.c_addr, &cli_addr, clilen);
+              meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
+              
               size_t tmpstrlen = sizeof(tmpstr);
               memset(tmpstr, 0, tmpstrlen);
               // get addr details based on socket info available
