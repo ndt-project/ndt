@@ -377,7 +377,6 @@ package  {
 
     private function clickRestart(e:MouseEvent):void {
       hideResultsScreen();
-      TestResults.clearResults();
       _consoleText.text = "";
       this.addChild(_consoleText);
       _callerObj.startNDTTest();

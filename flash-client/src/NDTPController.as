@@ -30,6 +30,7 @@ package  {
    * the measurement tests and the retrieval of the test results.
    */
   public class NDTPController {
+    private static var _instance:NDTPController = null;
     private const READ_TIMEOUT:int = 10000;  // 10sec
     // Valid values for _testStage.
     private const REMOTE_RESULTS1:int = 0;
@@ -52,10 +53,20 @@ package  {
       _remoteTestResults = ""
     }
 
+    public static function getInstance():NDTPController {
+      if (_instance == null) {
+        _instance = new NDTPController(Main.server_hostname,
+                                       Main.client_application);
+      }
+      return _instance;
+    }
+
     public function startNDTTest():void {
       _currentTest = 0;
+      TestResults.clearResults();
       TestResults.recordStartTime();
       TestResults.ndt_test_results::ndtTestFailed = false;
+      TestResults.ndt_test_results::ndtErrStatus = "Test in progress.";
       TestResults.appendDebugMsg(ResourceManager.getInstance().getString(
               NDTConstants.BUNDLE_NAME, "connectingTo", null, Main.locale)
           + " " + _hostname + " " + ResourceManager.getInstance().getString(
@@ -251,6 +262,11 @@ package  {
             "Client failed to close Control socket. Error" + e);
       }
 
+      if (!TestResults.ndt_test_results::ndtTestFailed) {
+        TestResults.ndt_test_results::ndtErrStatus = "All tests completed OK.";
+      } else {
+        TestResults.ndt_test_results::ndtErrStatus = TestResults.getErrMsg();
+      }
       TestResults.recordEndTime();
       TestResults.ndt_test_results::remoteTestResults += _remoteTestResults;
 

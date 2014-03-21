@@ -58,7 +58,7 @@ function startTest(evt) {
   showPage('test');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testApplet().run_test();
+  testNDT().run_test();
   monitorTest();
 }
 
@@ -322,107 +322,107 @@ function newSegment() {
 
 
 
-// TESTING APPLET
+// TESTING JAVA/FLASH CLIENT
 
-function testApplet() {
-  return applet = document.applets['NDT'];
+function testNDT() {
+  return ndt = document.getElementById('NDT');
 }
 
 function testStatus() {
-  return testApplet().get_status();
+  return testNDT().get_status();
 }
 
 function testDiagnosis() {
   if (simulate) return "Test diagnosis";
-  return testApplet().get_diagnosis();
+  return testNDT().get_diagnosis();
 }
 
 function testError() {
-  return testApplet().get_errmsg();
+  return testNDT().get_errmsg();
 }
 
 function remoteServer() {
   if (simulate) return '0.0.0.0';
-  return testApplet().get_host();
+  return testNDT().get_host();
 }
 
 function uploadSpeed(raw) {
   if (simulate) return 0;
-  var speed = testApplet().get_c2sspd();
+  var speed = testNDT().getNDTvar("ClientToServerSpeed");
   return raw ? speed : parseFloat(speed);
 }
 
 function downloadSpeed() {
   if (simulate) return 0;
-  return parseFloat(testApplet().get_s2cspd());
+  return parseFloat(testNDT().getNDTvar("ServerToClientSpeed"));
 }
 
 function averageRoundTrip() {
   if (simulate) return 0;
-  return parseFloat(testApplet().get_avgrtt());
+  return parseFloat(testNDT().getNDTvar("avgrtt"));
 }
 
 function jitter() {
   if (simulate) return 0;
-  return parseFloat(testApplet().get_jitter());
+  return parseFloat(testNDT().getNDTvar("Jitter"));
 }
 
 function testDetails() {
   if (simulate) return 'Test details';
 
-  var a = testApplet();
+  var a = testNDT();
   var d = '';
 
-  d += "Your system: " + a.get_osName() + " version " + a.get_osVer() + "<br>";
-  d += "Java version: " + a.get_javaVer() + " (" + a.get_osArch() + ")<br>";
+  d += "Your system: " + a.getNDTvar("OperatingSystem") + "<br>";
+  d += "Plugin version: " + a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>";
 
   d += "<br>";
 
-  d += "TCP receive window: " + a.get_CurRwinRcvd() + " current, " + a.get_MaxRwinRcvd() + " maximum<br>";
-  d += a.get_loss() + " packets lost during test<br>";
-  d += "Round trip time: " + a.get_Ping() + " msec (minimum), " + a.get_MaxRTT() + " msec (maximum), " + a.get_avgrtt() + " msec (average)<br>";
-  d += "Jitter: " + a.get_jitter() + " msec<br>";
-  d += a.get_WaitSec() + " seconds spend waiting following a timeout<br>";
-  d += "TCP time-out counter: " + a.get_CurRTO() + "<br>";
-  d += a.get_SACKsRcvd() + " selective acknowledgement packets received<br>";
+  d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd") + " current, " + a.getNDTvar("MaxRwinRcvd") + " maximum<br>";
+  d += a.getNDTvar("loss") + " packets lost during test<br>";
+  d += "Round trip time: " + a.getNDTvar("MinRTT") + " msec (minimum), " + a.getNDTvar("MaxRTT") + " msec (maximum), " + a.getNDTvar("avgrtt") + " msec (average)<br>";
+  d += "Jitter: " + a.getNDTvar("Jitter") + " msec<br>";
+  d += a.getNDTvar("waitsec") + " seconds spend waiting following a timeout<br>";
+  d += "TCP time-out counter: " + a.getNDTvar("CurRTO") + "<br>";
+  d += a.getNDTvar("SACKsRcvd") + " selective acknowledgement packets received<br>";
 
   d += "<br>";
 
-  if (a.get_mismatch() == "yes") {
+  if (a.getNDTvar("mismatch") == "yes") {
     d += "A duplex mismatch condition was detected.<br>";
   }
   else {
     d += "No duplex mismatch condition was detected.<br>";
   }
 
-  if (a.get_Bad_cable() == "yes") {
+  if (a.getNDTvar("bad_cable") == "yes") {
     d += "The test detected a cable fault.<br>";
   }
   else {
     d += "The test did not detect a cable fault.<br>";
   }
 
-  if (a.get_congestion() == "yes") {
+  if (a.getNDTvar("congestion") == "yes") {
     d += "Network congestion may be limiting the connection.<br>";
   }
   else {
     d += "No network congestion was detected.<br>";
   }
 
-  if (a.get_natStatus() == "yes") {
-    d += "A network addess translation appliance was detected.<br>";
+  /*if (a.get_natStatus() == "yes") {
+    d += "A network address translation appliance was detected.<br>";
   }
   else {
     d += "No network addess translation appliance was detected.<br>";
-  }
+  }*/
 
   d += "<br>";
 
-  d += a.get_cwndtime() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
-  d += a.get_rcvrLimiting() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
-  d += "Optimal receive buffer: " + a.get_optimalRcvrBuffer() + " bytes<br>";
-  d += "Bottleneck link: " + a.get_AccessTech() + "<br>";
-  d += a.get_DupAcksOut() + " duplicate ACKs set<br>";
+  d += a.getNDTvar("cwndtime") + "% of the time was not spent in a receiver limited or sender limited state.<br>";
+  d += a.getNDTvar("rwintime") + "% of the time the connection is limited by the client machine's receive buffer.<br>";
+  d += "Optimal receive buffer: " + a.getNDTvar("optimalRcvrBuffer") + " bytes<br>";
+  d += "Bottleneck link: " + a.getNDTvar("accessTech") + "<br>";
+  d += a.getNDTvar("DupAcksIn") + " duplicate ACKs set<br>";
 
   return d;
 }

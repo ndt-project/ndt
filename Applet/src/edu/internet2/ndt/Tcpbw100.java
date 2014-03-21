@@ -253,7 +253,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	// private String pub_CWNDpeaks = ""; // source variable does not exist
 	private int pub_SACKsRcvd = 0;
 	private String pub_osVer = "unknown";
-	private String pub_javaVer = "unknown";
+	private String pub_pluginVer = "unknown";
 	private String pub_host = "unknown";
 	private String pub_osName = "unknown";
 	private String pub_osArch = "unknown";
@@ -265,6 +265,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	private String pub_AccessTech = "unknown";
 	private String pub_natBox = "unknown";
 	private int pub_DupAcksOut = 0;
+        private int pub_DupAcksIn = 0;
 	private Date pub_TimeStamp;
 	private String pub_isReady = new String("no");
 	private String pub_clientIP = "unknown";
@@ -358,8 +359,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		return pub_osVer;
 	}
 
-	public String get_javaVer() {
-		return pub_javaVer;
+	public String get_pluginVer() {
+		return pub_pluginVer;
 	}
 
 	public String get_host() {
@@ -432,6 +433,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	public String get_DupAcksOut() {
 		return Integer.toString(pub_DupAcksOut);
 	}
+
+        public String get_DupAcksIn() {
+                return Integer.toString(pub_DupAcksIn);
+        }
 
 	public String get_TimeStamp() {
 		String result = "unknown";
@@ -2862,7 +2867,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		pub_osVer = sOsVer;
 
 		sJavaVer = System.getProperty("java.version");
-		pub_javaVer = sJavaVer;
+		pub_pluginVer = sJavaVer;
 
 		sJavaVendor = System.getProperty("java.vendor");
 
@@ -3875,8 +3880,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		else if (sSysvarParam.equals("SACKsRcvd:")) {
 			_iSACKsRcvd = iSysvalParam;
 			pub_SACKsRcvd = _iSACKsRcvd;
-		} else if (sSysvarParam.equals("DupAcksIn:"))
-			_iDupAcksIn = iSysvalParam;
+		} else if (sSysvarParam.equals("DupAcksIn:")) {
+                       _iDupAcksIn = iSysvalParam;
+                       pub_DupAcksIn = _iDupAcksIn;
+                }
 		else if (sSysvarParam.equals("MaxRwinRcvd:")) {
 			_iMaxRwinRcvd = iSysvalParam;
 			pub_MaxRwinRcvd = _iMaxRwinRcvd;
@@ -4149,6 +4156,63 @@ public class Tcpbw100 extends JApplet implements ActionListener {
         } else if (addresses.length > 0) {
             this.hostAddress = addresses[0];
         }
+    }
+
+    /**
+     * Function that returns a variable corresponding to the parameter passed to
+     * it as a request.
+     * @param {String} The parameter which the caller is seeking.
+     * @return {String} The value of the desired parameter.
+     */
+    public String getNDTvar(String varName) {
+        if (varName.equals("ClientToServerSpeed"))
+            return get_c2sspd();
+        else if (varName.equals("ServerToClientSpeed"))
+            return get_s2cspd();
+        else if (varName.equals("Jitter"))
+            return get_jitter();
+        else if (varName.equals("OperatingSystem"))
+            return get_osName() + " " + get_osVer();
+        else if (varName.equals("PluginVersion"))
+            return get_pluginVer();
+        else if (varName.equals("OsArchitecture"))
+            return get_osArch();
+        else if (varName.equals(NDTConstants.AVGRTT))
+            return get_avgrtt();
+        else if (varName.equals(NDTConstants.CURRWINRCVD))
+            return get_CurRwinRcvd();
+        else if (varName.equals(NDTConstants.MAXRWINRCVD))
+            return get_MaxRwinRcvd();
+        else if (varName.equals(NDTConstants.LOSS))
+            return get_loss();
+        else if (varName.equals(NDTConstants.MINRTT))
+            return get_Ping();
+        else if (varName.equals(NDTConstants.MAXRTT))
+            return get_MaxRTT();
+        else if (varName.equals(NDTConstants.WAITSEC))
+            return get_WaitSec();
+        else if (varName.equals(NDTConstants.CURRTO))
+            return get_CurRTO();
+        else if (varName.equals(NDTConstants.SACKSRCVD))
+            return get_SACKsRcvd();
+        else if (varName.equals(NDTConstants.MISMATCH))
+            return get_mismatch();
+        else if (varName.equals(NDTConstants.BAD_CABLE))
+            return get_Bad_cable();
+        else if (varName.equals(NDTConstants.CONGESTION))
+            return get_congestion();
+        else if (varName.equals(NDTConstants.CWNDTIME))
+            return get_cwndtime();
+        else if (varName.equals(NDTConstants.RWINTIME))
+            return get_rcvrLimiting();
+        else if (varName.equals(NDTConstants.OPTRCVRBUFF))
+            return get_optimalRcvrBuffer();
+        else if (varName.equals(NDTConstants.ACCESS_TECH))
+            return get_AccessTech();
+        else if (varName.equals(NDTConstants.DUPACKSIN))
+            return get_DupAcksIn();
+        else
+            return null;
     }
 
 } // class: Tcpbw100
