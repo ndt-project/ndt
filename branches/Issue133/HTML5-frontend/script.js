@@ -334,7 +334,31 @@ function testStatus() {
 
 function testDiagnosis() {
   if (simulate) return "Test diagnosis";
-  return testApplet().get_diagnosis();
+
+  var tempArray = testNDT().get_diagnosis().split('\n');
+  var d = '';
+
+  var table = false;
+  for (var i = 0; i < tempArray.length; i++) {
+    if (table) {
+      d = d + "<tr><td>";
+      d = d + tempArray[i].replace(":", "</td><td>");
+      d = d + "</td></tr>";
+    }  
+    else {
+      d = d + tempArray[i] + "\n";
+    }
+    if (tempArray[i].indexOf('=== Results sent by the server ===') != -1) { 
+      d = d + "<table>";
+      table = true;
+      continue;
+    }
+    if (table && (i+1 == tempArray.length || tempArray[i+1] == "")) {
+      d = d + "</table>";
+      table = false;
+    }
+  }
+  return d;
 }
 
 function testError() {
