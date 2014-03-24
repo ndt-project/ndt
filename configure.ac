@@ -88,6 +88,16 @@ else
 	AM_CONDITIONAL(BUILD_APPLET, false)
 fi
 
+# Enabling/disabling fakewww build
+AC_ARG_ENABLE(fakewww, [  --enable-fakewww=[yes/no] turn on fakewww build
+              [default=no]],, enable_fakewww=no_def)
+
+if test "x$enable_fakewww" != "xyes"; then
+	AM_CONDITIONAL(BUILD_FAKEWWW, false)
+else
+	AM_CONDITIONAL(BUILD_FAKEWWW, true)
+fi
+
 # Using certificate to sign java applet
 AC_ARG_WITH(cert,
     		AC_HELP_STRING([--with-cert=<file>],
@@ -363,7 +373,13 @@ SUMMARY_WEB100SRV="YES"
 else
 SUMMARY_WEB100SRV="NO    (missing pcap headers)"
 fi
+if test "x$enable_fakewww" == "xno"; then
+SUMMARY_FAKEWWW="NO    (disabled by user)"
+elif test "x$enable_fakewww" != "xyes"; then
+SUMMARY_FAKEWWW="NO    (disabled by default)"
+else
 SUMMARY_FAKEWWW="YES"
+fi
 SUMMARY_ANALYZE="YES"
 SUMMARY_VIEWTRACE="YES"
 SUMMARY_TRMKMAP="YES"
@@ -411,7 +427,7 @@ echo "* Tcpbw100.jar: ${SUMMARY_TCPBW100JAR}"
 echo "* flash-client: ${SUMMARY_FLASHCLT}"
 echo ""
 
-if test "$SUMMARY_FAKEWWW" = "YES" && (test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES"); then
+if test "$SUMMARY_WEB100SRV" = "YES" || test "$SUMMARY_WEB100GSRV" = "YES"; then
 echo "*** Server Tools - complete"
 else
 echo "*** Server Tools - incomplete"

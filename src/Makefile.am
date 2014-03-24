@@ -22,12 +22,16 @@ AM_CFLAGS  = $(NDTCFLAGS)
 
 ndtdir = $(prefix)/ndt
 
+if BUILD_FAKEWWW
+ADD_FAKEWWW = fakewww
+endif
+
 if HAVE_WEB100
 bin_PROGRAMS = web100clt analyze viewtrace tr-mkmap genplot
 if HAVE_PCAP_H
-sbin_PROGRAMS = fakewww web100srv 
+sbin_PROGRAMS = $(ADD_FAKEWWW) web100srv
 else
-sbin_PROGRAMS = fakewww
+sbin_PROGRAMS = $(ADD_FAKEWWW)
 endif
 else
 bin_PROGRAMS = web100clt
@@ -38,7 +42,7 @@ if HAVE_PCAP_H
 if HAVE_WEB100
 sbin_PROGRAMS += web10gsrv genplot10g
 else
-sbin_PROGRAMS = fakewww web10gsrv genplot10g
+sbin_PROGRAMS = $(ADD_FAKEWWW) web10gsrv genplot10g
 endif
 endif
 endif
@@ -62,10 +66,12 @@ analyze_SOURCES = analyze.c usage.c logging.c runningtest.c ndtptestconstants.c 
 analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 
+if BUILD_FAKEWWW
 fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
                   runningtest.c ndtptestconstants.c strlutils.c
 fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
+endif
 
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
