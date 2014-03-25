@@ -112,7 +112,7 @@ void clt_long_usage(char* info) {
   printf("                           Note: add multiple d's (-ddd) for more details\n");
   printf("  -h, --help             - print this help message\n");
   printf("  -l, --msglvl           - increase message level details\n");
-  printf("  --web100variables      - print the information about each Web100 variable\n");
+  printf("  --webvariables         - print the information about each Web100/Web10g variable\n");
   printf("  -v, --version          - print version number\n\n");
   printf(" Configuration:\n\n");
   printf("  -b, --buffer #size     - set send/receive buffer to value\n");
