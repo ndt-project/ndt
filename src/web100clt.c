@@ -54,7 +54,7 @@ const char *ServerType;
 static struct option long_options[] = {
   { "name", 1, 0, 'n' }, { "port", 1, 0, 'p' },
   { "debug", 0, 0, 'd' }, { "help", 0, 0, 'h' },
-  { "msglvl", 0, 0, 'l' }, { "web100variables", 0, 0, 301 },
+  { "msglvl", 0, 0, 'l' }, { "webvariables", 0, 0, 301 },
   { "buffer", 1, 0, 'b' }, { "disablemid", 0, 0, 302 },
   { "disablec2s", 0, 0, 303 }, { "disables2c", 0, 0, 304 },
   { "disablesfw", 0, 0, 305 }, { "protocol_log", 1, 0, 'u' },
@@ -110,7 +110,7 @@ void printVariables(char *tmpstr) {
 void printWeb100VarInfo() {
   int i = 0;
 
-  printf(" --- Detailed description of the %s variables ---\n\n", ServerType);
+  printf(" --- Detailed description of the Web100/Web10g variables ---\n\n");
 
   while (web100vartable[i][0]) {
     printf("* %s\n    %s\n", web100vartable[i][0], web100vartable[i][1]);
