@@ -441,6 +441,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		return result;
 	}
 
+	// get PC buffer imposed throughput limit
+	public String get_PcBuffSpdLimit() {
+	       return Double.toString(rwin / rttsec);
+	}
+
 	// commenting out unused method, but not removing in case of future use
 	/*
 	 * public String isReady() {
@@ -3656,8 +3661,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * to known values and writes out the specific results.
 	 *
 	 * server data is ordered as: Server IP; Client IP; CurrentMSS;
-	 * WinScaleSent; WinScaleRcvd; Client then adds Server IP; Client IP.
-	 *
+	 * WinScaleSent; WinScaleRcvd; SumRTT; CountRTT; MaxRwinRcvd; Client then adds Server IP; Client IP.
+     *
 	 * @param sMidBoxTestResParam
 	 *            String Middlebox results
 	 */
@@ -3679,6 +3684,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// changing order for issue 61
 		int iWinsSent = Integer.parseInt(tokens.nextToken());
 		int iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but retaining
+
+                // for compatibility with older servers
+        	// which does not sent SumRTT,CountRTT and MaxRwinRcvd values
+        	if (tokens.countTokens() > 2) {
+            		_iSumRTT = Integer.parseInt(tokens.nextToken());
+            		_iCountRTT = Integer.parseInt(tokens.nextToken());
+            		_iMaxRwinRcvd = Integer.parseInt(tokens.nextToken());
+
+		    	// calculate avgrtt and PC buffer imposed throughput limit
+		    	pub_avgrtt = (double) _iSumRTT / _iCountRTT;
+		    	rwin = _iMaxRwinRcvd * NDTConstants.EIGHT / NDTConstants.KILO_BITS / NDTConstants.KILO_BITS;
+		    	rttsec = pub_avgrtt / NDTConstants.KILO;
+        	}
 
 		// Get Client reported server IP
 		String sClientSideServerIp = tokens.nextToken();

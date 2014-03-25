@@ -252,6 +252,7 @@ void testResults(char tests, char *testresult_str, char* host) {
  *
  * Server data is first.
  * order is Server IP; Client IP; CurrentMSS; WinScaleRcvd; WinScaleSent;
+ * SumRTT; CountRTT; MaxRwinRcvd;
  * Client then adds
  * Server IP; Client IP.
  * @param midresult_str  String containing test results

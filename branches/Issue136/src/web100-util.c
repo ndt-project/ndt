@@ -151,7 +151,7 @@ int tcp_stat_init(char *VarFileName) {
  * @param agent pointer to a web100_agent
  * @param cn pointer to the web100_connection
  * @param results pointer to string containing Server address , client address
- * 			 currentMSS, WinScaleSent and WinScaleRecv values
+ * 			 currentMSS, WinScaleSent, WinScaleRecv, SumRTT, CountRTT and MaxRwinRcvd values
  *
  *
  */
@@ -181,7 +181,7 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   socklen_t saddr_size;
 
   // middlebox test results
-  static char vars[][255] = { "CurMSS", "WinScaleSent", "WinScaleRcvd", };
+  static char vars[][255] = {"WinScaleSent", "WinScaleRcvd", "SumRTT", "CountRTT", "MaxRwinRcvd" };
 
   assert(results);
 
@@ -235,30 +235,27 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   log_print(3, "Client: %s%s ", line, tmpstr);
   strlcat(results, line, results_strlen);
 
-  // get web100 values for the middlebox test result group
-  for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
+  // get current MSS value
 #if USE_WEB100
-    // read web100_group and web100_var of vars[i] into group and var
-    web100_agent_find_var_and_group(agent, vars[i], &group, &var);
+    // read web100_group and web100_var of CurMSS into group and var
+    web100_agent_find_var_and_group(agent, "CurMSS", &group, &var);
     // read variable value from web100 connection
     web100_raw_read(var, cn, buff);
 
     // get current MSS in textual format and append to results
 
     // get current MSS value and append to "results"
-    if (strcmp(vars[i], "CurMSS") == 0)
       currentMSSval = atoi(
           web100_value_to_text(web100_get_var_type(var), buff));
     snprintf(line, sizeof(line), "%s;",
           web100_value_to_text(web100_get_var_type(var), buff));
 #elif USE_WEB10G
     int type;
-    type = web10g_get_val(agent, cn, vars[i], &value);
+    type = web10g_get_val(agent, cn, "CurMSS", &value);
     if (type == -1) {
-      log_println(0, "Middlebox: Failed to read the value of %s", vars[i]);
+      log_println(0, "Middlebox: Failed to read the value of CurMSS");
       return;
     } else {
-      if (strcmp(vars[i], "CurMSS") == 0)
         currentMSSval = value.uv32;
       snprintf(line, sizeof(line), "%u;", value.uv32);
     }
@@ -270,7 +267,7 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     // strlcat(results, line, sizeof(results));
     strlcat(results, line, results_strlen);
     log_print(3, "%s", line);
-  }
+
   log_println(3, "");
   log_println(0, "Sending %d Byte packets over the network, and data=%s",
               currentMSSval, line);
@@ -366,6 +363,36 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     if (k < 0)  // general error writing to socket. quit
       break;
   }
+
+  // get web100 values for the middlebox test result group
+  for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
+#if USE_WEB100
+    // read web100_group and web100_var of vars[i] into group and var
+    web100_agent_find_var_and_group(agent, vars[i], &group, &var);
+    // read variable value from web100 connection
+    web100_raw_read(var, cn, buff);
+
+    snprintf(line, sizeof(line), "%s;",
+          web100_value_to_text(web100_get_var_type(var), buff));
+#elif USE_WEB10G
+    int type;
+    type = web10g_get_val(agent, cn, vars[i], &value);
+    if (type == -1) {
+      log_println(0, "Middlebox: Failed to read the value of %s", vars[i]);
+      return;
+    } else {
+      snprintf(line, sizeof(line), "%u;", value.uv32);
+    }
+#endif
+
+    if (strcmp(line, "4294967295;") == 0)
+      snprintf(line, sizeof(line), "%d;", -1);
+
+    // strlcat(results, line, sizeof(results));
+    strlcat(results, line, results_strlen);
+    log_print(3, "%s", line);
+  }
+
 
 #if USE_WEB100
   log_println(5, "Finished with web100_middlebox() routine snap-0x%x, "
