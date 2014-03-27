@@ -47,6 +47,14 @@ package  {
       } catch (e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
+
+	// TestResults.appendDebugMsg() calls callExternalFunction
+	// to invoke JS callbacks. Without this check we can 
+	// recurse infinitely. 
+	if (functionName != "appendDebugOutput") {
+          TestResults.appendDebugMsg("Failed to call " + functionName + ": "
+                                     + e.toString());
+        }
       }
     }
     /**
@@ -81,6 +89,8 @@ package  {
       } catch(e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
+        TestResults.appendDebugMsg("Failed to get window.navigator.userAgent: "
+                                   + e.toString());
       }
 
       try {
@@ -92,8 +102,8 @@ package  {
             + Main.server_hostname);
         }
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Bad Flash permissions: No "
-          + "access to javascript.");
+        TestResults.appendDebugMsg("Failed to call getNDTServer(): "
+                                   + e.toString());
       }
 
       try {
@@ -107,8 +117,8 @@ package  {
             + Main.client_application);
         }
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Bad Flash permissions: No "
-          + "access to javascript.");
+        TestResults.appendDebugMsg("Failed to call getClientApplication(): "
+                                   + e.toString());
       }
 
       try {
@@ -122,8 +132,8 @@ package  {
             + Main.ndt_description);
         }
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Bad Flash permissions: No "
-          + "access to javascript.");
+        TestResults.appendDebugMsg("Failed to call getNDTDescription(): "
+                                   + e.toString());
       }
     }
 
