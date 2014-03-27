@@ -242,6 +242,12 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         return RETRY_EXCEEDED_WAITING_DATA;
       }
     }
+    
+    close(I2AddrFD(c2ssrv_addr));
+    I2AddrFree(c2ssrv_addr);
+    c2ssrv_addr = NULL;
+    testOptions->c2ssockfd = 0;
+    testOptions->c2ssockport = 0;
 
     // Get address associated with the throughput test. Used for packet tracing
     log_println(6, "child %d - c2s ready for test with fd=%d",

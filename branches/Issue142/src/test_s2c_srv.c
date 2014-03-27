@@ -282,6 +282,13 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
          return -102;
        }
     }
+
+    close(I2AddrFD(s2csrv_addr));
+    I2AddrFree(s2csrv_addr);
+    s2csrv_addr = NULL;
+    testOptions->s2csockfd = 0;
+    testOptions->s2csockport = 0;
+
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
     conn = tcp_stat_connection_from_socket(agent, xmitsfd);
 
