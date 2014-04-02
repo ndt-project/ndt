@@ -1,0 +1,115 @@
+.TH web100clt 1 "$Date$"
+." The first line of this file must contain the '"[e][r][t][v] line
+." to tell man to run the appropriate filter "t" for table.
+."
+."	$Id$
+."
+."######################################################################
+."#									#
+."#			   Copyright (C)  2004				#
+."#	     			Internet2				#
+."#			   All Rights Reserved				#
+."#									#
+."######################################################################
+."
+."	File:		web100clt.1
+."
+."	Author:		Rich Carlson
+."			Internet2
+."
+."	Date:		Sun May 20 16:01:25 CST 2004
+."
+."	Description:	
+."
+.SH NAME
+web100clt \- NDT command line client.
+.SH SYNOPSIS
+.B web100clt 
+[\fIoptions\fR]
+.SH DESCRIPTION
+The \fBNetwork Diagnostic Tester\fR (NDT) tool is a client/server program that
+provides network configuration and performance testing to a user's desktop or laptop
+computer. The system is composed of a client program (\fIcommand line\fR or \fIjava applet\fR)
+and a pair of server programs (a webserver and a testing/analysis engine).  
+.PP
+The command line client \fBweb100clt(1)\fR connects directly to the NDT \fBweb100srv(8)\fR
+testing and analysis engine. It bypasses the web server front end (Note: this
+will be an option in a future release). The client communicates with the
+server process to perform a series of tests of the network path and the clients
+network configuration. A multi-level series of messages are
+displayed on the user's console.
+.PP
+The command line client may share a server with other \fIcommand line\fR or
+\fIJava-based\fR clients. By default, the server will handle incoming requests in a
+FIFO manner and the server does not distinguish between command line or
+Java-based clients. If the NDT server administrator has disable FIFO processing,
+the web100clt program will terminate gracefully.
+.SH OPTIONS
+.TP
+\fB\-n, --name\fR \fIname\fR
+Specify the name of the server.
+.TP
+\fB\-p, --port\fR \fIport\fR
+Specify the port the server is listening on.
+.TP
+\fB\-d, --debug\fR 
+Print debugging information. This option increments the internal
+debugging flag, allowing the display of run-time diagnostic messages. 
+Repeated use of this option increases the amount of debugging
+information that will be displayed. Note: debugging information
+prints on stderr.
+.TP
+\fB\-h, --help\fR 
+Print a simple usage page and exit.
+.TP
+\fB\-l, --msglvl\fR 
+Increment the diagnostic message level. Repeated use of this
+option increases the amount of diagnostic results that will
+appear on the screen.
+.TP
+\fB\--web100variables\fR 
+Print the information about each Web100 variable.
+.TP
+\fB\-v, --version\fR 
+Print version number and exit.
+.TP
+\fB\-b, --buffer\fR \fIbuffer_size\fR
+Set the TCP send and receive buffer size. This option uses the
+\fBsetsockopt(2)\fR function to set the TCP buffer size. Values
+larger than 64 kbytes will result in large windows if the RFC1323
+window scaling option is enabled on the client host.
+.TP
+\fB\--disablemid\fR 
+Disable the Middlebox test.
+.TP
+\fB\--disablec2s\fR 
+Disable the C2S throughput test.
+.TP
+\fB\--disables2c\fR 
+Disable the S2C throughput test.
+.TP
+\fB\--disablesfw\fR 
+Disable the Simple firewall test.
+.TP
+\fB\-4, --ipv4\fR 
+Use IPv4 addresses only.
+.TP
+\fB\-6, --ipv6\fR 
+Use IPv6 addresses only.
+.SH LIMITATIONS
+The NDT service is continuing to undergo testing and upgrading. 
+Better diagnostic algorithms are being developed to improve the
+accuracy and reliability of this service.
+.SH EXAMPLES
+.LP
+\fBweb100clt -n somehost.example.com\fR
+.IP
+Run an NDT test between this host and the remote server on
+somehost.example.com.
+.SH SEE ALSO
+The \%http://e2epi.internet2.edu/ndt/ web site, web100srv(8), fakewww(8), and setsockopt(2).
+.SH ACKNOWLEDGMENTS
+This material is based, in part on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings,
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the NSF.
