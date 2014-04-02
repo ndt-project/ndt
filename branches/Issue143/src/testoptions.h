@@ -21,6 +21,8 @@ typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
 
+  char client_version[33]; // client version number.
+
   int midopt;  // middlebox test to be perfomed?
   int midsockfd;  // socket file desc for middlebox test
   int midsockport;  // port used for middlebox test
