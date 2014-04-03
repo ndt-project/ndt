@@ -206,14 +206,15 @@ void add_test_to_suite(int* first, char * buff, size_t buff_strlen,
 
 int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
                      size_t buff_strlen) {
-  unsigned char msgValue[33] = {'\0', };
+  unsigned char msgValue[CS_VERSION_LENGTH_MAX + 1] = {'\0', };
   unsigned char useropt = 0;
   int msgType;
-  int msgLen = 33;
+  int msgLen = CS_VERSION_LENGTH_MAX + 1;
   int first = 1;
   char *invalid_test_suite = "Invalid test suite request.";
   char *client_timeout = "Client timeout.";
   char *invalid_test = "Invalid test request.";
+  char *invalid_login_msg = "Invalid login message.";
 
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
@@ -221,7 +222,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   assert(ctlsockfd != -1);
   assert(options);
 
-  memset(options->client_version, 0, 33);
+  memset(options->client_version, 0, sizeof(options->client_version));
 
   // read the test suite request
   if (recv_msg(ctlsockfd, &msgType, msgValue, &msgLen)) {
@@ -239,26 +240,36 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
    * payload byte indicating tests to be run and potentially
    * a US-ASCII string indicating the version number.
    * Three cases:
-   * 1: MSG_LOGIN
-   * 2: MSG_EXTENDED_LOGIN:
+   * 1: MSG_LOGIN: Check that msgLen is 1
+   * 2: MSG_EXTENDED_LOGIN: Check that msgLen is >= 1 and
+   *    <= the maximum length of the client/server version 
+   *    string (plus 1 to account for the initial useropt
+   *    and then copy the client version into client_version.
    * 3: Neither
+   * 
+   * In case (1) or (2) we copy the 0th byte from the msgValue
+   * into useropt so we'll do that in the fallthrough. 
    */
-  if (msgType == MSG_LOGIN || msgType == MSG_EXTENDED_LOGIN) {
-    if (msgLen < 1) {
+  if (msgType == MSG_LOGIN) { /* Case 1 */
+    if (msgLen != 1) {
       send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
       return (-2);
     }
-    useropt = msgValue[0];
-    if (msgLen > 1) {
-      log_println(0, "msgLen: %d-\n", msgLen);
-      log_println(0, "msgValue: %s-\n", msgValue + 1);
-      memcpy(options->client_version, msgValue + 1, msgLen-1);
+  } else if (msgType == MSG_EXTENDED_LOGIN) { /* Case 2 */
+    if (msgLen >= 1 && msgLen <= (CS_VERSION_LENGTH_MAX + 1)) {
+      memcpy(options->client_version, msgValue + 1, msgLen - 1);
       log_println(0, "Client version: %s-\n", options->client_version);
+    } else {
+      send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
+      return (-2);
     }
-  } else {
-    send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
+  } else { /* Case 3 */
+    send_msg(ctlsockfd, MSG_ERROR,
+             invalid_login_msg, 
+             strlen(invalid_login_msg));
     return (-2);
   }
+  useropt = msgValue[0];
 
   // client connect received correctly. Logging activity
   // log that client connected, and create log file
