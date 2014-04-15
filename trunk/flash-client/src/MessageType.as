@@ -31,6 +31,7 @@ package {
     public static const MSG_RESULTS:int = 8;
     public static const MSG_LOGOUT:int = 9;
     public static const MSG_WAITING:int = 10;
+    public static const MSG_EXTENDED_LOGIN:int = 11;
   }
 }
 
