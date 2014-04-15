@@ -135,6 +135,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
+  log_println(0, "test client version: %s", testOptions->client_version);
+
   // Determine port to be used. Compute based on options set earlier
   // by reading from config file, or use default port2 (3003)
   if (testOptions->s2copt) {

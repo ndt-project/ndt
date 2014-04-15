@@ -52,8 +52,12 @@ package  {
 
     public function run():void {
       var msgBody:ByteArray = new ByteArray();
+      var clientVersion:String = NDTConstants.CLIENT_VERSION;
+
       msgBody.writeByte(_testsRequestByClient);
-      _msg = new Message(MessageType.MSG_LOGIN, msgBody);
+      msgBody.writeMultiByte(clientVersion, "us-ascii");
+
+      _msg = new Message(MessageType.MSG_EXTENDED_LOGIN, msgBody);
       if (!_msg.sendMessage(_ctlSocket)) {
         failHandshake();
       }

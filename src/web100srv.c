@@ -2224,24 +2224,17 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 close(ctlsockfd);
                 goto mainloop;
               }
-
-              log_println(6, "xxx, calling initialize_tests()");
-              t_opts = initialize_tests(ctlsockfd, &testopt, test_suite,
-                                        sizeof(test_suite));
-
-              if (t_opts < 1) {
-                log_println(
-                    3,
-                    "Invalid test suite string '%s' received, terminate child",
-                    test_suite);
-                close(chld_pipe[0]);
-                close(chld_pipe[1]);
-                shutdown(ctlsockfd, SHUT_WR);
-                close(ctlsockfd);
-
-                /* todo: handle other error contitions */
-              }
             }
+
+            t_opts = initialize_tests(ctlsockfd, &testopt, test_suite,
+                                      sizeof(test_suite));
+            if (t_opts < 1) {  // some error in initialization routines
+              log_println(3, "Invalid test suite received, terminate child");
+              close(ctlsockfd);
+              shutdown(ctlsockfd, SHUT_WR);
+              goto mainloop;
+            }
+
             new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
             memset(new_child, 0, sizeof(struct ndtchild));
             tt = time(0);
@@ -2300,24 +2293,6 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 if (new_child != NULL) {
                   log_println(6, "Too many clients freeing child=0x%x",
                               new_child);
-                  free(new_child);
-                }
-                continue;
-              }
-
-              t_opts = initialize_tests(ctlsockfd, &testopt, test_suite,
-                                        sizeof(test_suite));
-              if (t_opts < 1) {  // some error in initialization routines
-                log_println(3, "Invalid test suite received, terminate child");
-                close(chld_pipe[0]);
-                close(chld_pipe[1]);
-                shutdown(ctlsockfd, SHUT_WR);
-                close(ctlsockfd);
-                kill(chld_pid, SIGTERM);
-                if (new_child != NULL) {
-                  log_println(6, "Freeing new_child=0x%x because of " 
-		    "invalid test suite",
-                    new_child);
                   free(new_child);
                 }
                 continue;
