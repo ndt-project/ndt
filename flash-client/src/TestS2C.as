@@ -31,6 +31,7 @@ package  {
   public class TestS2C {
     // Timer for single read operation.
     private const READ_TIMEOUT:int = 15000; // 15sec
+    private const SPEED_UPDATE_TIMER:int = 1000; // ms
 
     // Valid values for _testStage.
     private static const PREPARE_TEST1:int = 0;
@@ -48,16 +49,17 @@ package  {
     private var _ctlSocket:Socket;
     private var _msg:Message;
     private var _readTimer:Timer;
+    private var _speedUpdateTimer:Timer;
     private var _s2cByteCount:int;
     private var _s2cSocket:Socket;
     private var _s2cTimer:Timer;
     // Time to send data to client on the S2C socket.
     private var _s2cTestDuration:Number;
+    private var _s2cTestStartTime:Number;
     private var _s2cTestSuccess:Boolean;
     private var _serverHostname:String;
     private var _testStage:int;
     private var _web100VarResult:String;
-
 
     public function TestS2C(ctlSocket:Socket, serverHostname:String,
                             callerObj:NDTPController) {
@@ -67,6 +69,7 @@ package  {
 
       _s2cTestSuccess = true;  // Initially the test has not failed.
       _s2cTestDuration = 0;
+      _s2cTestStartTime = 0;
       _s2cByteCount = 0;
       _web100VarResult = "";
     }
@@ -172,6 +175,8 @@ package  {
       }
       _readTimer = new Timer(READ_TIMEOUT);
       _readTimer.addEventListener(TimerEvent.TIMER, onS2CTimeout);
+      _speedUpdateTimer = new Timer(SPEED_UPDATE_TIMER);
+      _speedUpdateTimer.addEventListener(TimerEvent.TIMER, onSpeedUpdate);
       _s2cTimer = new Timer(NDTConstants.S2C_DURATION);
       _s2cTimer.addEventListener(TimerEvent.TIMER, onS2CTimeout);
       _msg = new Message();
@@ -235,6 +240,13 @@ package  {
       receiveData();
     }
 
+    private function onSpeedUpdate(e:TimerEvent):void {
+      _s2cTestDuration = getTimer() - _s2cTestStartTime;
+      TestResults.ndt_test_results::s2cSpeed = _s2cByteCount
+                                               * NDTConstants.BYTES2BITS
+                                               / _s2cTestDuration;
+    }
+
     private function startTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
@@ -258,9 +270,10 @@ package  {
 
       _readTimer.start();
       _s2cTimer.start();
+      _speedUpdateTimer.start();
       // Record start time right before it starts receiving data, to be as
       // accurate as possible.
-      _s2cTestDuration = getTimer();
+      _s2cTestStartTime = getTimer();
 
       _testStage = RECEIVE_DATA;
       TestResults.appendDebugMsg("S2C test: RECEIVE_DATA stage.");
@@ -290,9 +303,11 @@ package  {
       // Record end time right after it stops receiving data, to be as accurate
       // as possible.
       _s2cTimer.stop();
-      _s2cTestDuration = getTimer() - _s2cTestDuration;
+      _s2cTestDuration = getTimer() - _s2cTestStartTime;
       TestResults.appendDebugMsg(
           "S2C test lasted " + _s2cTestDuration + " msec.");
+      _speedUpdateTimer.stop();
+      _speedUpdateTimer.removeEventListener(TimerEvent.TIMER, onSpeedUpdate);
       _readTimer.stop();
       _readTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
       _s2cTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
@@ -485,7 +500,6 @@ package  {
       removeCtlSocketOnReceivedDataListener();
 
       TestResults.appendDebugMsg("S2C test: END_TEST stage.");
-
       if (_s2cTestSuccess)
          TestResults.appendDebugMsg(
              ResourceManager.getInstance().getString(
