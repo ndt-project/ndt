@@ -1,0 +1,61 @@
+This is the Web100srv Readme file.  It provides a brief description
+of the web100srv program.
+
+The web100srv program is designed to use web100 data to analyze a
+client's TCP stack and the local network this client attaches to.
+A multi-level set of diagnostic messagese provide feedback to the 
+user and can be forwarded to a systems or network administrator to 
+aid in resolving uer problems.
+
+The simplest way to access this tool is to use a java enabled web
+browser.  Simply connect to the NDT servers' fakewww process and
+press the 'Start' button once the java applet has loaded.  Another
+approach is to use the 'web100clt' command line version of the 
+client program.
+
+The web100 server process performs several diagnostic tasks that
+can aid users and administrators in understanding what problems
+may exist in a network.  The program has a number of options
+     $ /usr/local/sbin/web100srv -h
+     Usage: /usr/local/sbin/web100srv {options}
+	     -a 	Generate administrator view html page
+	     -d 	print additional diagnostic messages
+		     Note: add multiple d's (-ddd) for more details
+	     -h 	print help message (this message)
+	     -m 	select single or multi-test mode
+	     -q 	disable FIFO queuing of client requests
+	     -r 	record client to server Web100 variables
+	     -t 	write tcpdump formatted file to disk
+	     -x 	enable any experimental code
+	     -v 	print version number
+     
+	     -b buffer size 	Set TCP send/recv buffers to user value
+	     -f variable_FN 	specify alternate 'web100_variables' file
+	     -i device 	specify network interface (libpcap device)
+	     -l Log_FN 	specify alternate 'web100srv.log' file
+	     -p port# 	specify primary port number (default 3001)
+     ANL NDT version 3.0.9
+
+By default the web100srv process uses 3 TCP ports to communicate with
+the client.  Port 3001 is used as a command channel allowing the server
+and client to exchange state information and test results.  Port 3002
+is used when the client streams data to the server.  A 10 second test
+is used to determine the upload speed.  Port 3003 is used when the
+server streams data to the client, and when middlebox testing is being
+performed.  A 10 second test is used to determine the download speed.
+
+Once all tests have been completed, the server access the web100 data
+generated on this port.  This data is processed and results messages
+are displayed.  Additional diagnostic messages are also available
+allowing the user to dig as deep as necessary to understand why the tests
+produced the reported results.
+
+In addition to looking at web100 variables, the server also uses the 
+pcap library routines to perform some packet dispersion measurements.
+This task aids in determining what the underlying network capacity is.
+The web100srv process monitors all test traffic it generates and times
+when each Data or ACK packet is sent/received.  These times are quantized
+and the result are interpered by the web100srv process.
+
+Lastly, the web100 and packet dispersion results are written to a log
+file for post-processing at a later date.
