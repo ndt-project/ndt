@@ -309,8 +309,8 @@ typedef web100_log tcp_stat_log;
 
 int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
 int tcp_stat_init(char *VarFileName);
-void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
-                      char *results, size_t results_strlen);
+void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn, char *results_keys,
+                        size_t results_keys_strlen, char *results_values, size_t results_strlen);
 int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                    int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,

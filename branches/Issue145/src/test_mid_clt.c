@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle Middlebox
  * test (client part).
  *
- * Jakub S³awiñski 2006-08-02
+ * Jakub Sï¿½awiï¿½ski 2006-08-02
  * jeremian@poczta.fm
  */
 
@@ -16,6 +16,7 @@
 #include "protocol.h"
 #include "utils.h"
 #include "strlutils.h"
+#include "jsonutils.h"
 
 /**
  * Perform the client part of the middleBox testing. The middlebox test
@@ -29,6 +30,7 @@
  * @param buf_size TCP send/receive buffer size
  * @param testresult_str result obtained from server (containing server ip,
  * 						client ip, currentMSS, WinSCaleSent, WinScaleRcvd)
+ * @param jsonSupport Indicates if messages should be sent using JSON format
  * @return  integer
  *     => 0 on success
  *     < 0 if error
@@ -46,7 +48,7 @@
  *
  */
 int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, char* testresult_str) {
+                 int buf_size, char* testresult_str, int jsonSupport) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int midport = atoi(PORT3);
@@ -57,6 +59,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
   uint32_t bytes;
   struct timeval sel_tv;
   fd_set rfd;
+  char* jsonMsgValue;
 
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = MIDDLEBOX;
@@ -84,11 +87,17 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
     // The server is expected to send a message with a valid payload that
     // contains the port number that server wants client to bind to for this
     // test
+    buff[msgLen] = 0;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
+    }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
     }
-    buff[msgLen] = 0;
     if (check_int(buff, &midport)) {  // obtained message does not contain
                                       // integer port#
       log_println(0, "Invalid port number");
@@ -168,6 +177,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
                        msgLen)) {
       return 2;
     }
+    buff[msgLen] = 0;
 
     strlcat(testresult_str, buff, MIDBOX_TEST_RES_SIZE);
 
@@ -178,7 +188,7 @@ int test_mid_clt(int ctlSocket, char tests, char* host, int conn_options,
     log_println(4, "CWND limited speed = %0.2f kbps", spdin);
 
     // client now sends throughput it calculated above to server, as a TEST_MSG
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff), jsonSupport, JSON_SINGLE_VALUE);
     printf("Done\n");
 
     I2AddrFree(sec_addr);

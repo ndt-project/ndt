@@ -2,7 +2,7 @@
  * This file contains the definitions and function declarations to
  * handle network related stuff.
  *
- * Jakub S³awiñski 2006-05-30
+ * Jakub Sï¿½awiï¿½ski 2006-05-30
  * jeremian@poczta.fm
  */
 
@@ -20,6 +20,11 @@
 I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size);
 int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
                         int option, int buf_sizes);
+int send_json_msg(int ctlSocket, int type, const char* msg, int len, int jsonSupport,
+                  int jsonConvertType, const char *keys, const char *keysDelimiters,
+                  const char *values, char *valuesDelimiters);
+int send_json_message(int ctlSocket, int type, const char* msg, int len, int jsonSupport,
+                      int jsonConvertType);
 int send_msg(int ctlSocket, int type, const void* msg, int len);
 int recv_msg(int ctlSocket, int* type, void* msg, int* len);
 int writen(int fd, const void* buf, int amount);

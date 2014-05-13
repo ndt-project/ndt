@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle simple firewall
  * test (client part).
  *
- * Jakub S³awiñski 2006-07-15
+ * Jakub Sï¿½awiï¿½ski 2006-07-15
  * jeremian@poczta.fm
  */
 
@@ -18,6 +18,7 @@
 #include "protocol.h"
 #include "network.h"
 #include "utils.h"
+#include "jsonutils.h"
 
 static int c2s_result = SFW_NOTTESTED;
 static int s2c_result = SFW_NOTTESTED;
@@ -57,6 +58,8 @@ test_osfw_clt(void* vptr) {
   int msgLen, msgType;
   struct sockaddr_storage srv_addr;
   socklen_t srvlen;
+  int jsonSupport = *((int*) vptr);
+  char* jsonMsgValue;
 
   // protocol logging
   enum PROCESS_TYPE_INT proctypeenum = PROCESS_TYPE;
@@ -115,7 +118,13 @@ test_osfw_clt(void* vptr) {
   // The server is expected to send a 20 char message that
   // says "Simple firewall test" . Every other message string
   // indicates an unknown firewall status
-
+  buff[msgLen] = 0;
+  if (jsonSupport) {
+    jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+    strlcpy(buff, jsonMsgValue, sizeof(buff));
+    msgLen = strlen(buff);
+    free(jsonMsgValue);
+  }
   if (msgLen != SFW_TEST_DEFAULT_LEN) {
     log_println(0, "Simple firewall test: Improper message");
     s2c_result = SFW_UNKNOWN;
@@ -123,7 +132,6 @@ test_osfw_clt(void* vptr) {
     I2AddrFree(sfwcli_addr);
     return NULL;
   }
-  buff[msgLen] = 0;
   if (strcmp(buff, SFW_PREDEFINED_TEST_MSG) != 0) {
     log_println(0, "Simple firewall test: Improper message");
     s2c_result = SFW_UNKNOWN;
@@ -149,6 +157,7 @@ test_osfw_clt(void* vptr) {
  * @param tests set of tests to perform
  * @param host hostname of the server
  * @param conn_options the connection options
+ * @param jsonSupport indicates if messages should be sent using JSON format
  * @return integer
  *     => 0 on success
  *     < 0 if error
@@ -165,13 +174,13 @@ test_osfw_clt(void* vptr) {
  *			-3: Unable to resolve server address
  *
  */
-int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
+int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options, int jsonSupport) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int sfwport, sfwsock, sfwsockport;
   I2Addr sfwsrv_addr = NULL;
   struct sigaction new, old;
-  char* ptr;
+  char* ptr, *jsonMsgValue;
   pthread_t threadId;
 
   // variables used for protocol validation logs
@@ -203,28 +212,53 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
     // This message is expected to be of valid length, and have a message
     // .. payload containing the integral ephemeral port number and testTime
     // ... separated by a single space
+    buff[msgLen] = 0;
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
     }
-    buff[msgLen] = 0;
-    ptr = strtok(buff, " ");
-    if (ptr == NULL) {
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, EMPHERAL_PORT_NUMBER);
+      if (jsonMsgValue == NULL) {
+        log_println(0, "SFW: Improper message");
+        return 5;
+      }
+      if (check_int(jsonMsgValue, &sfwport)) {  // get ephemeral port#
+        log_println(0, "Invalid port number");
+        return 4;
+      }
+    free(jsonMsgValue);
+
+    jsonMsgValue = json_read_map_value(buff, TEST_TIME);
+    if (jsonMsgValue == NULL) {
       log_println(0, "SFW: Improper message");
       return 5;
     }
-    if (check_int(ptr, &sfwport)) {  // get ephemeral port#
-      log_println(0, "Invalid port number");
-      return 4;
-    }
-    ptr = strtok(NULL, " ");
-    if (ptr == NULL) {
-      log_println(0, "SFW: Improper message");
-      return 5;
-    }
-    if (check_int(ptr, &testTime)) {  // get test time
+    if (check_int(jsonMsgValue, &testTime)) {  // get test time
       log_println(0, "Invalid waiting time");
       return 4;
+    }
+    free(jsonMsgValue);
+    }
+    else {
+      ptr = strtok(buff, " ");
+      if (ptr == NULL) {
+        log_println(0, "SFW: Improper message");
+        return 5;
+      }
+      if (check_int(ptr, &sfwport)) {  // get ephemeral port#
+        log_println(0, "Invalid port number");
+        return 4;
+      }
+      ptr = strtok(NULL, " ");
+      if (ptr == NULL) {
+        log_println(0, "SFW: Improper message");
+        return 5;
+      }
+      if (check_int(ptr, &testTime)) {  // get test time
+        log_println(0, "Invalid waiting time");
+        return 4;
+      }
     }
     log_println(1, "\n  -- port: %d", sfwport);
     log_println(1, "  -- time: %d", testTime);
@@ -248,7 +282,8 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 
     // Send a TEST_MSG to server with the client's port number
     snprintf(buff, sizeof(buff), "%d", sfwsockport);
-    send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+    		jsonSupport, JSON_SINGLE_VALUE);
 
     // The server responds to the TEST_MSG messages with a TEST_START message.
     // Any other type of message is an error here.
@@ -262,7 +297,7 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 
     // Now listen for server sending out a test for the S->C direction , and
     // update test results
-    pthread_create(&threadId, NULL, &test_osfw_clt, NULL);
+    pthread_create(&threadId, NULL, &test_osfw_clt, &jsonSupport);
 
     // ignore the alarm signal
     memset(&new, 0, sizeof(new));
@@ -275,7 +310,8 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
 
     if (CreateConnectSocket(&sfwsock, NULL, sfwsrv_addr,
                             conn_options, 0) == 0) {
-      send_msg(sfwsock, TEST_MSG, SFW_PREDEFINED_TEST_MSG, 20);
+      send_json_message(sfwsock, TEST_MSG, SFW_PREDEFINED_TEST_MSG, 20,
+    		  jsonSupport, JSON_SINGLE_VALUE);
     }
     alarm(0);
     sigaction(SIGALRM, &old, NULL);
@@ -293,12 +329,17 @@ int test_sfw_clt(int ctlsockfd, char tests, char* host, int conn_options) {
     }
 
     // The test results are sent as a numeric encoding the test results.
-
+    buff[msgLen] = 0;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
+    }
     if (msgLen <= 0) {  // test results have valid length
       log_println(0, "Improper message");
       return 3;
     }
-    buff[msgLen] = 0;
     if (check_int(buff, &c2s_result)) {
       // test result has to be a valid integer
       log_println(0, "Invalid test result");

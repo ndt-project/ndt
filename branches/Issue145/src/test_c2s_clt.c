@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle C2S throughput
  * test (client part).
  *
- * Jakub S³awiñski 2006-08-02
+ * Jakub Sï¿½awiï¿½ski 2006-08-02
  * jeremian@poczta.fm
  */
 
@@ -17,6 +17,7 @@
 #include "network.h"
 #include "protocol.h"
 #include "utils.h"
+#include "jsonutils.h"
 
 int pkts, lth;
 int sndqueue;
@@ -31,6 +32,7 @@ double spdout, c2sspd;
  * @param host		Server name string
  * @param conn_options Options to use while connecting to server(for ex, IPV4)
  * @param buf_size  TCP send/receive buffer size
+ * @param jsonSupport Indicates if messages should be send using JSON format
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
  * 		1: Error receiving protocol message
@@ -42,12 +44,13 @@ double spdout, c2sspd;
  *
  */
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size) {
+                 int buf_size, int jsonSupport) {
   /* char buff[BUFFSIZE+1]; */
   char buff[64 * KILO_BITS];  // message payload.
   // note that there is a size variation between server and CLT - do not
   // know why this was changed from BUFFZISE, though
   // no specific problem is seen due to this
+  char* jsonMsgValue; // temporary buffer for storing values from JSON message
 
   int msgLen, msgType;  // message related data
   int c2sport = atoi(PORT2);  // default C2S port
@@ -83,6 +86,13 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
                        msgLen)) {
       return 2;
     }
+    buff[msgLen] = 0;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
+    }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
@@ -90,7 +100,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Server sends port number to bind to in the TEST_PREPARE. Check if this
     // message body (string) is a valid integral port number.
-    buff[msgLen] = 0;
     if (check_int(buff, &c2sport)) {
       log_println(0, "Invalid port number");
       return 4;
@@ -187,7 +196,14 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     buff[msgLen] = 0;
 
     // get C->S test speed as calculated by server
-    c2sspd = atoi(buff);
+    if (json_check_msg(buff) == 0) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      c2sspd = atoi(jsonMsgValue);
+      free(jsonMsgValue);
+    }
+    else {
+      c2sspd = atoi(buff);
+    }
 
     // Print results in the most convenient units (kbps or Mbps)
     if (c2sspd < KILO)

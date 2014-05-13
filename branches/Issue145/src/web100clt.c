@@ -23,6 +23,7 @@
 #include "test_results_clt.h"
 #include <arpa/inet.h>
 #include <assert.h>
+#include "jsonutils.h"
 
 extern int h_errno;
 
@@ -256,29 +257,54 @@ void testResults(char tests, char *testresult_str, char* host) {
  * Server IP; Client IP.
  * @param midresult_str  String containing test results
  * @param cltsock Used to get address information
+ * @param jsonFormat Indicates if results are saved using JSON format
  */
 
-void middleboxResults(char *midresult_str, int cltsock) {
+void middleboxResults(char *midresult_str, int cltsock, int jsonFormat) {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
   struct sockaddr_storage addr;
   socklen_t addr_size;
   int mss;
   size_t tmpLen;
+  char *jsonMsgValue;
 
-  str = strtok(midresult_str, ";");
-  strlcpy(ssip, str, sizeof(ssip));
-  str = strtok(NULL, ";");
+  if (jsonFormat) {
+    jsonMsgValue = json_read_map_value(midresult_str, SERVER_ADDRESS);
+    strlcpy(ssip, jsonMsgValue, sizeof(ssip));
+    free(jsonMsgValue);
 
-  strlcpy(scip, str, sizeof(scip));
+    jsonMsgValue = json_read_map_value(midresult_str, CLIENT_ADDRESS);
+    strlcpy(scip, jsonMsgValue, sizeof(scip));
+    free(jsonMsgValue);
 
-  str = strtok(NULL, ";");
-  mss = atoi(str);
-  str = strtok(NULL, ";");
-  // changing order to read winsent before winsrecv for issue 61
-  winssent = atoi(str);
-  str = strtok(NULL, ";");
-  winsrecv = atoi(str);
+    jsonMsgValue = json_read_map_value(midresult_str, CUR_MSS);
+    mss = atoi(jsonMsgValue);
+    free(jsonMsgValue);
+
+    jsonMsgValue = json_read_map_value(midresult_str, WIN_SCALE_SENT);
+    winssent = atoi(jsonMsgValue);
+    free(jsonMsgValue);
+
+    jsonMsgValue = json_read_map_value(midresult_str, WIN_SCALE_RCVD);
+    winsrecv = atoi(jsonMsgValue);
+    free(jsonMsgValue);
+  }
+  else {
+    str = strtok(midresult_str, ";");
+    strlcpy(ssip, str, sizeof(ssip));
+    str = strtok(NULL, ";");
+
+    strlcpy(scip, str, sizeof(scip));
+
+    str = strtok(NULL, ";");
+    mss = atoi(str);
+    str = strtok(NULL, ";");
+    // changing order to read winsent before winsrecv for issue 61
+    winssent = atoi(str);
+    str = strtok(NULL, ";");
+    winsrecv = atoi(str);
+  }
 
   /* Get the our local IP address */
   addr_size = sizeof(addr);
@@ -505,6 +531,7 @@ int main(int argc, char *argv[]) {
   int conn_options = 0;  // connection options received from user
   int debug = 0;  // debug flag
   int testId;  // test ID received from server
+  int jsonSupport = 1; // indicates if client should sent messages in JSON format
   // addresses..
   I2Addr server_addr = NULL;
   char* ptr;
@@ -652,7 +679,7 @@ int main(int argc, char *argv[]) {
   /* The beginning of the protocol */
 
   /* write our test suite request by sending a login message */
-  send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
+  send_msg(ctlSocket, MSG_EXTENDED_LOGIN, &tests, 1);
   /* read the specially crafted data that kicks off the old clients */
   if (readn(ctlSocket, buff, 13) != 13) {
     printf("Information: The server '%s' does not support this command line "
@@ -818,32 +845,32 @@ int main(int argc, char *argv[]) {
     switch (testId) {
       case TEST_MID:
         if (test_mid_clt(ctlSocket, tests, host, conn_options, buf_size,
-                         mid_resultstr)) {
+                         mid_resultstr, jsonSupport)) {
           log_println(0, "Middlebox test FAILED!");
           tests &= (~TEST_MID);
         }
         break;
       case TEST_C2S:
-        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size)) {
+        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, jsonSupport)) {
           log_println(0, "C2S throughput test FAILED!");
           tests &= (~TEST_C2S);
         }
         break;
       case TEST_S2C:
         if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
-                         resultstr)) {
+                         resultstr, jsonSupport)) {
           log_println(0, "S2C throughput test FAILED!");
           tests &= (~TEST_S2C);
         }
         break;
       case TEST_SFW:
-        if (test_sfw_clt(ctlSocket, tests, host, conn_options)) {
+        if (test_sfw_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
           log_println(0, "Simple firewall test FAILED!");
           tests &= (~TEST_SFW);
         }
         break;
       case TEST_META:
-        if (test_meta_clt(ctlSocket, tests, host, conn_options)) {
+        if (test_meta_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
           log_println(0, "META test FAILED!");
           tests &= (~TEST_META);
         }
@@ -892,7 +919,7 @@ int main(int argc, char *argv[]) {
 
   // print middlebox test results
   if (tests & TEST_MID) {
-    middleboxResults(mid_resultstr, ctlSocket);
+    middleboxResults(mid_resultstr, ctlSocket, jsonSupport);
   }
 
   I2AddrFree(server_addr);

@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle simple firewall
  * test (server part).
  *
- * Jakub S³awiñski 2006-07-15
+ * Jakub Sï¿½awiï¿½ski 2006-07-15
  * jeremian@poczta.fm
  */
 
@@ -17,6 +17,7 @@
 #include "testoptions.h"
 #include "runningtest.h"
 #include "strlutils.h"
+#include "jsonutils.h"
 
 static pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
@@ -47,13 +48,14 @@ void catch_alrm(int signo) {
  *              firewall test in a separate thread.
  * In other words, sends the S->C TEST_MSG with message body
  * "Simple firewall test"
- * @param vptr void pointer
+ * @param vptr void pointer containing jsonSupport parameter
  */
 
 void*
 test_osfw_srv(void* vptr) {
   int sfwsock;
   struct sigaction new, old;
+  int jsonSupport = *((int*) vptr);
 
   // ignore the alarm signal
   memset(&new, 0, sizeof(new));
@@ -63,7 +65,8 @@ test_osfw_srv(void* vptr) {
 
   // connect to client and send TEST_MSG message containing a pre-defined string
   if (CreateConnectSocket(&sfwsock, NULL, sfwcli_addr, 0, 0) == 0) {
-    send_msg(sfwsock, TEST_MSG, "Simple firewall test", 20);
+    send_json_message(sfwsock, TEST_MSG, "Simple firewall test", 20,
+                      jsonSupport, JSON_SINGLE_VALUE);
   }
 
   alarm(0);
@@ -82,9 +85,10 @@ test_osfw_srv(void* vptr) {
  * Wait for the every thread to conclude and finalize
  *              the SFW test.
  * @param ctlsockfd Client control socket descriptor
+ * @param jsonSupport Indicates if messages should be sent using JSON format
  */
 
-void finalize_sfw(int ctlsockfd) {
+void finalize_sfw(int ctlsockfd, int jsonSupport) {
   enum TEST_ID thistestId = SFW;
   enum TEST_STATUS_INT teststatusnow = NONE;
   // wait for mutex to be released before attempting to finalize
@@ -95,7 +99,7 @@ void finalize_sfw(int ctlsockfd) {
   }
 
   // close the SFW test by sending a nil (0 length) message
-  send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+  send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, jsonSupport, JSON_SINGLE_VALUE);
 
   // log
   teststatusnow = TEST_ENDED;
@@ -130,6 +134,7 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
   fd_set fds;
   struct timeval sel_tv;
   int msgLen, msgType;
+  char* jsonMsgValue;
 
 #if USE_WEB100
   web100_var* var;
@@ -166,7 +171,8 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                   "CreateListenSocket failed: %s", strerror(errno));
       snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
                "CreateListenSocket failed: %s", strerror(errno));
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -219,7 +225,8 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       log_println(0, "Simple firewall test: Cannot find connection");
       snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
                "Cannot find connection");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       I2AddrFree(sfwsrv_addr);
       return -1;
     }
@@ -227,8 +234,16 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
 
     // try sending TEST_PREPARE msg with ephemeral port number to client.
     // If unable to, return
-    snprintf(buff, sizeof(buff), "%d %d", sfwsockport, testTime);
-    if ((rc = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff))) < 0)
+    if (options->json_support) {
+      snprintf(buff, sizeof(buff), "%s: %d\n%s: %d", EMPHERAL_PORT_NUMBER,sfwsockport,
+              TEST_TIME, testTime);
+    }
+    else {
+        snprintf(buff, sizeof(buff), "%d %d", sfwsockport, testTime);
+    }
+
+    if ((rc = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
+                                options->json_support, JSON_KEY_VALUE_PAIRS)) < 0)
       return (rc);
 
     // Listen for TEST_MSG from client's port number sent as data.
@@ -239,7 +254,8 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       log_println(0, "Protocol error!");
       snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
                "Invalid port number received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       I2AddrFree(sfwsrv_addr);
       return 1;
     }
@@ -248,28 +264,37 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       log_println(0, "Fault, unexpected message received!");
       snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
                "Invalid port number received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       I2AddrFree(sfwsrv_addr);
       return 2;
+    }
+    buff[msgLen] = 0;
+    if (options->json_support) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
     }
     if (msgLen <= 0) {  // message reception has error
       log_println(0, "Improper message");
       snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
                "Invalid port number received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       I2AddrFree(sfwsrv_addr);
       return 3;
     }
     // Note: The same error message is transmitted to the client
     // under any error condition, but the log messages  indicate the difference
 
-    buff[msgLen] = 0;
     if (check_int(buff, &sfwport)) {
       // message data is not number, thus no port info received
       log_println(0, "Invalid port number");
       snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
                "Invalid port number received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       I2AddrFree(sfwsrv_addr);
       return 4;
     }
@@ -280,7 +305,8 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     if ((sfwcli_addr = I2AddrByNode(get_errhandle(), hostname)) == NULL) {
       // todo, this is the client address we cannot resolve?
       log_println(0, "Unable to resolve server address");
-      send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+      send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
+                        options->json_support, JSON_SINGLE_VALUE);
 
       // log end
       teststatusnow = TEST_ENDED;
@@ -293,10 +319,10 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     log_println(1, "  -- oport: %d", sfwport);
 
     // send S->C side TEST_MSG
-    send_msg(ctlsockfd, TEST_START, "", 0);
+    send_json_message(ctlsockfd, TEST_START, "", 0, options->json_support, JSON_SINGLE_VALUE);
 
     // send the S->C default test message in a separate thread to client
-    pthread_create(&threadId, NULL, &test_osfw_srv, NULL);
+    pthread_create(&threadId, NULL, &test_osfw_srv, &options->json_support);
 
     FD_ZERO(&fds);
     FD_SET(sfwsockfd, &fds);
@@ -311,8 +337,9 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       case -1:  // If SOCKET_ERROR - status of firewall unknown
         log_println(0, "Simple firewall test: select exited with error");
         snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
-        send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
-        finalize_sfw(ctlsockfd);
+        send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                          options->json_support, JSON_SINGLE_VALUE);
+        finalize_sfw(ctlsockfd, options->json_support);
         I2AddrFree(sfwsrv_addr);
         I2AddrFree(sfwcli_addr);
         return 1;
@@ -320,8 +347,9 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
         log_println(0, "Simple firewall test: no connection for %d seconds",
                     testTime);
         snprintf(buff, sizeof(buff), "%d", SFW_POSSIBLE);
-        send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
-        finalize_sfw(ctlsockfd);
+        send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                          options->json_support, JSON_SINGLE_VALUE);
+        finalize_sfw(ctlsockfd, options->json_support);
         I2AddrFree(sfwsrv_addr);
         I2AddrFree(sfwcli_addr);
         return 2;
@@ -342,9 +370,10 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       // message received in error
       log_println(0, "Simple firewall test: unrecognized message");
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       close(sockfd);
-      finalize_sfw(ctlsockfd);
+      finalize_sfw(ctlsockfd, options->json_support);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
       return 1;
@@ -353,32 +382,41 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                        msgLen)) {
       // unexpected message type received
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       close(sockfd);
-      finalize_sfw(ctlsockfd);
-      I2AddrFree(sfwsrv_addr);
-      I2AddrFree(sfwcli_addr);
-      return 1;
-    }
-    if (msgLen != SFW_TEST_DEFAULT_LEN) {
-      // Expecting default 20 byte long "Simple firewall test" message
-      log_println(0, "Simple firewall test: Improper message");
-      snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
-      close(sockfd);
-      finalize_sfw(ctlsockfd);
+      finalize_sfw(ctlsockfd, options->json_support);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
       return 1;
     }
     buff[msgLen] = 0;
+    if (options->json_support) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
+    }
+    if (msgLen != SFW_TEST_DEFAULT_LEN) {
+      // Expecting default 20 byte long "Simple firewall test" message
+      log_println(0, "Simple firewall test: Improper message");
+      snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
+      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
+      close(sockfd);
+      finalize_sfw(ctlsockfd, options->json_support);
+      I2AddrFree(sfwsrv_addr);
+      I2AddrFree(sfwcli_addr);
+      return 1;
+    }
     if (strcmp(buff, "Simple firewall test") != 0) {
       // Message was of correct length, but was not expected content-wise
       log_println(0, "Simple firewall test: Improper message");
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                        options->json_support, JSON_SINGLE_VALUE);
       close(sockfd);
-      finalize_sfw(ctlsockfd);
+      finalize_sfw(ctlsockfd, options->json_support);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
       return 1;
@@ -386,9 +424,10 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
 
     // All messages were received correctly, hence no firewall
     snprintf(buff, sizeof(buff), "%d", SFW_NOFIREWALL);
-    send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+    		options->json_support, JSON_SINGLE_VALUE);
     close(sockfd);
-    finalize_sfw(ctlsockfd);
+    finalize_sfw(ctlsockfd, options->json_support);
     I2AddrFree(sfwsrv_addr);
     I2AddrFree(sfwcli_addr);
   }

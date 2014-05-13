@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle network related
  * stuff.
  *
- * Jakub S³awiñski 2006-05-30
+ * Jakub Sï¿½awiï¿½ski 2006-05-30
  * jeremian@poczta.fm
  */
 
@@ -10,6 +10,7 @@
 #include <netdb.h>
 #include <string.h>
 #include <unistd.h>
+#include "jsonutils.h"
 
 #include "network.h"
 #include "logging.h"
@@ -368,6 +369,81 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 }
 
 /**
+ * Converts message to JSON format and sends it to the control socket.
+ * @param ctlSocket control socket
+ * @param type type of the message
+ * @param msg message to send
+ * @param len length of the message
+ * @param jsonSupport indicates if JSON format is supported by second side (if not
+ * 					  then msg is being sent as it is and no JSON converting is done)
+ * @param jsonConvertType defines how message converting should be handled:
+ *			JSON_SINGLE_VALUE: single key/value pair is being created (using default key)
+ *							   with msg as value
+ *			JSON_MULTIPLE_VALUES: multiple key/values pairs are being created using
+ *                                keys, keys_delimiters, values and values_delimiters
+ *                                params
+ *			JSON_KEY_VALUE_PAIRS: given message contains one or many key/value pairs
+ *                                with following syntax: key1: value1
+ *                                                       key2: value2 etc
+ * @param keys buffer containing keys' values (used only when jsonConvertType is set to
+ * 			   JSON_MULTIPLE_VALUES)
+ * @param keysDelimiters delimiters for keys parameter (used only when jsonConvertType is set to
+ * 			   JSON_MULTIPLE_VALUES)
+ * @param values buffer containing map values, key-value matching is being done by order in which
+ * 		  		 they appear in keys and values params (used only when jsonConvertType is set to
+ * 			     JSON_MULTIPLE_VALUES)
+ * @param valuesDelimiters delimiters for values parameter (used only when jsonConvertType is
+ * 			   set to JSON_MULTIPLE_VALUES)
+ *
+ * @return 0 on success, error code otherwise
+ *        Error codes:
+ *        -1 - Cannot write to socket at all
+ *        -2 - Cannot complete writing full message data into socket
+ *        -3 - Cannot write after retries
+ *        -4 - Cannot convert msg to JSON
+ *
+ */
+int send_json_msg(int ctlSocket, int type, const char* msg, int len, int jsonSupport,
+		int jsonConvertType, const char *keys, const char *keysDelimiters,
+        const char *values, char *valuesDelimiters) {
+  char* tempBuff;
+  int ret = 0;
+  // if JSON is not supported by second side, sends msg as it is
+  if (!jsonSupport) {
+    return send_msg(ctlSocket, type, msg, len);
+  }
+
+  switch(jsonConvertType) {
+    case JSON_SINGLE_VALUE:
+      tempBuff = json_create_from_single_value(msg); break;
+    case JSON_MULTIPLE_VALUES:
+      tempBuff = json_create_from_multiple_values(keys, keysDelimiters,
+                                                  values, valuesDelimiters); break;
+    case JSON_KEY_VALUE_PAIRS:
+      tempBuff = json_create_from_key_value_pairs(msg); break;
+    default:
+      return send_msg(ctlSocket, type, msg, len);
+  }
+
+  if (!tempBuff) {
+    return -4;
+  }
+  ret = send_msg(ctlSocket, type, tempBuff, strlen(tempBuff));
+  free(tempBuff);
+  return ret;
+}
+
+/**
+ * Shortest version of send_json_msg method. Uses default NULL values for JSON_MULTIPLE_VALUES
+ * convert type specific parameters.
+ */
+int send_json_message(int ctlSocket, int type, const char* msg, int len, int jsonSupport,
+		int jsonConvertType) {
+  return send_json_msg(ctlSocket, type, msg, len, jsonSupport, jsonConvertType,
+                       NULL, NULL, NULL, NULL);
+}
+
+/**
  * Sends the protocol message to the control socket.
  * @param ctlSocket control socket
  * @param type type of the message
@@ -378,8 +454,8 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  *        -1 - Cannot write to socket at all
  *        -2 - Cannot complete writing full message data into socket
  *        -3 - Cannot write after retries
- *
  */
+
 
 int send_msg(int ctlSocket, int type, const void* msg, int len) {
   unsigned char buff[3];

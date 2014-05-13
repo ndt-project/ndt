@@ -150,13 +150,14 @@ int tcp_stat_init(char *VarFileName) {
  * @param sock integer socket file descriptor
  * @param agent pointer to a web100_agent
  * @param cn pointer to the web100_connection
- * @param results pointer to string containing Server address , client address
+ * @param results_keys pointer to string containing names of variables stored in results_values
+ * @param results_values pointer to string containing Server address , client address
  * 			 currentMSS, WinScaleSent and WinScaleRecv values
  *
  *
  */
-void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
-                        char *results, size_t results_strlen) {
+void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn, char *results_keys,
+						size_t results_keys_strlen, char *results_values, size_t results_strlen) {
 #if USE_WEB100
   web100_var* var;
   web100_group* group;
@@ -183,7 +184,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   // middlebox test results
   static char vars[][255] = { "CurMSS", "WinScaleSent", "WinScaleRcvd", };
 
-  assert(results);
+  assert(results_keys);
+  assert(results_values);
 
   log_println(4, "Looking for Web100 data on socketid %d", sock);
 
@@ -213,7 +215,9 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   // terminate the IP address string
   meta.server_ip[(strlen(line) - 1)] = 0;
   // Add this address to results
-  strlcat(results, line, results_strlen);
+  strlcat(results_keys, SERVER_ADDRESS, results_keys_strlen);
+  strlcat(results_keys, ";", results_keys_strlen);
+  strlcat(results_values, line, results_strlen);
 
   // Now perform the above set of functions for client address/service name
   // and copy into results
@@ -233,7 +237,9 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     port2a(&saddr, tmpstr, tmpstrlen);
   }
   log_print(3, "Client: %s%s ", line, tmpstr);
-  strlcat(results, line, results_strlen);
+  strlcat(results_keys, CLIENT_ADDRESS, results_keys_strlen);
+  strlcat(results_keys, ";", results_keys_strlen);
+  strlcat(results_values, line, results_strlen);
 
   // get web100 values for the middlebox test result group
   for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
@@ -268,7 +274,9 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
       snprintf(line, sizeof(line), "%d;", -1);
 
     // strlcat(results, line, sizeof(results));
-    strlcat(results, line, results_strlen);
+    strlcat(results_keys, vars[i], results_keys_strlen);
+    strlcat(results_keys, ";", results_keys_strlen);
+    strlcat(results_values, line, results_strlen);
     log_print(3, "%s", line);
   }
   log_println(3, "");

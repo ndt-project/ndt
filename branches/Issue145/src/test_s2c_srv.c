@@ -21,10 +21,12 @@
 #include "protocol.h"
 #include "network.h"
 #include "mrange.h"
+#include "jsonutils.h"
 
 extern pthread_mutex_t mainmutex;
 extern pthread_cond_t maincond;
 
+const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 
 /**
  * Perform the S2C Throughput test. This throughput test tests the achievable
@@ -58,12 +60,12 @@ extern pthread_cond_t maincond;
  * @return 0 - success,
  *         >0 - error code.
  *     Error codes:
- * 			 	-1	   - Message reception errors/inconsistencies in clientÕs final message, or Listener socket creation failed or cannot write message header information while attempting to send
+ * 			 	-1	   - Message reception errors/inconsistencies in clientï¿½s final message, or Listener socket creation failed or cannot write message header information while attempting to send
  *        		 TEST_PREPARE message
  *				-2 	   - Cannot write message data while attempting to send
  *           		 TEST_PREPARE message, or Unexpected message type received
  *           	-3 	   -  Received message is invalid
- *          	-100   - timeout while waiting for client to connect to serverÕs ephemeral port
+ *          	-100   - timeout while waiting for client to connect to serverï¿½s ephemeral port
  *				-101   - Retries exceeded while waiting for client to connect
  *				-102   - Retries exceeded while waiting for data from connected client
  *  			-errno - Other specific socket error numbers
@@ -115,6 +117,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int msgLen;
   int sndqueue;
   struct sigaction new, old;
+  char* jsonMsgValue;
 
   pthread_t workerThreadId;
   int nextseqtosend = 0, lastunackedseq = 0;
@@ -196,7 +199,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           sizeof(buff),
           "Server (S2C throughput test): CreateListenSocket failed: %s",
           strerror(errno));
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        testOptions->json_support, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -212,7 +216,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // Data received from speed-chk. Send TEST_PREPARE "GO" signal with port
     // number
     snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
-    j = send_msg(ctlsockfd, TEST_PREPARE, buff, strlen(buff));
+    j = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
+                          testOptions->json_support, JSON_SINGLE_VALUE);
     if (j == -1) {
       log_println(6, "S2C %d Error!, Test start message not sent!",
                   testOptions->child0);
@@ -371,7 +376,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       }
 
       // Send message to client indicating TEST_START
-      if (send_msg(ctlsockfd, TEST_START, "", 0) < 0)
+      if (send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->json_support,
+                            JSON_SINGLE_VALUE) < 0)
         log_println(6,
                     "S2C test - Test-start message failed for pid=%d",
                     s2c_childpid);
@@ -482,10 +488,21 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       // Send throughput, unsent byte count, total sent byte count to client
       snprintf(buff, sizeof(buff), "%0.0f %d %0.0f", x2cspd, sndqueue,
                bytes_written);
-      if (send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff)) < 0)
-        log_println(6,
-                    "S2C test - failed to send test message to pid=%d",
-                    s2c_childpid);
+      if (testOptions->json_support) {
+        if (send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support,
+                          JSON_MULTIPLE_VALUES, RESULTS_KEYS, " ", buff, " ") < 0)
+            log_println(6,
+                "S2C test - failed to send test message to pid=%d",
+                s2c_childpid);
+      }
+      else {
+        if (send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
+                              testOptions->json_support, JSON_SINGLE_VALUE) < 0)
+          log_println(6,
+              "S2C test - failed to send test message to pid=%d",
+              s2c_childpid);
+      }
+
 
 #if USE_WEB100
       web100_snap(rsnap);
@@ -592,7 +609,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       log_println(6, "S2C - No web100 data received for pid=%d",
                   s2c_childpid);
       snprintf(buff, sizeof(buff), "No Data Collected: 000000");
-      send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support,
+                        JSON_SINGLE_VALUE);
     }
 
     // Wait for message from client. Client sends its calculated throughput
@@ -605,7 +623,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        testOptions->json_support, JSON_SINGLE_VALUE);
       return -1;
     }
     if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff,
@@ -614,8 +633,16 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        testOptions->json_support, JSON_SINGLE_VALUE);
       return -2;
+    }
+    buff[msgLen] = 0;
+    if (testOptions->json_support) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
@@ -623,16 +650,17 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        testOptions->json_support, JSON_SINGLE_VALUE);
       return -3;
     }
-    buff[msgLen] = 0;
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client
     close(xmitsfd);
-    if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0)
+    if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
+                          testOptions->json_support, JSON_SINGLE_VALUE) < 0)
       log_println(6,
                   "S2C test - failed to send finalize message to pid=%d",
                   s2c_childpid);
