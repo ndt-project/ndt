@@ -532,6 +532,8 @@ int main(int argc, char *argv[]) {
   int debug = 0;  // debug flag
   int testId;  // test ID received from server
   int jsonSupport = 1; // indicates if client should sent messages in JSON format
+  int retry = 0; // flag set after invalid login message is being received
+  char *invalid_login_msg = "Invalid login message.";
   // addresses..
   I2Addr server_addr = NULL;
   char* ptr;
@@ -678,8 +680,10 @@ int main(int argc, char *argv[]) {
 
   /* The beginning of the protocol */
 
+  buff[0] = tests;
+  strlcpy(buff + 1, VERSION, sizeof(buff) - 1);
   /* write our test suite request by sending a login message */
-  send_msg(ctlSocket, MSG_EXTENDED_LOGIN, &tests, 1);
+  send_msg(ctlSocket, MSG_EXTENDED_LOGIN, buff, strlen(buff));
   /* read the specially crafted data that kicks off the old clients */
   if (readn(ctlSocket, buff, 13) != 13) {
     printf("Information: The server '%s' does not support this command line "
@@ -702,6 +706,42 @@ int main(int argc, char *argv[]) {
     if (check_msg_type("Logging to server", SRV_QUEUE, msgType, buff,
                        msgLen)) {
       // Any other type of message at this stage is incorrect
+      // If received invalid login message error then try to connect using basic MSG_LOGIN msg
+      if (!retry && strcmp(buff, invalid_login_msg) == 0) {
+        printf("Information: The server '%s' does not support MSG_EXTENDED_LOGIN message. "
+               "Trying to connect using MSG_LOGIN\n", host);
+        retry = 1; // to prevent infinite retrying to connect
+        jsonSupport = 0;
+        if ((server_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
+          printf("Unable to resolve server address\n");
+          exit(-3);
+        }
+        I2AddrSetPort(server_addr, ctlport);
+
+        if ((retcode = CreateConnectSocket(&ctlSocket, NULL, server_addr,
+                                           conn_options, 0))) {
+          printf("Connect() for control socket failed\n");
+          exit(-4);
+        }
+
+        // check and print Address family being used
+        if (I2AddrSAddr(server_addr, 0)->sa_family == AF_INET) {
+         printf("Using IPv4 address\n");
+        } else {
+         printf("Using IPv6 address\n");
+        }
+
+        send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
+        /* read the specially crafted data that kicks off the old clients */
+        if (readn(ctlSocket, buff, 13) != 13) {
+          printf("Information: The server '%s' does not support this command line "
+                 "client\n", host);
+          exit(0);
+        }
+
+        continue;
+      }
+
       exit(2);
     }
     if (msgLen <= 0) {
