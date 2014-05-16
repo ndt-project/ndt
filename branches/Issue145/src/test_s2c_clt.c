@@ -284,8 +284,16 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         return 2;
       }
 
-      // hardcoded size of array from main tests
-      strlcat(result_srv, buff, 2 * BUFFSIZE);
+      if (jsonSupport) {
+        jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+        strlcat(result_srv, jsonMsgValue, 2 * BUFFSIZE);
+        free(jsonMsgValue);
+      }
+      else {
+        // hardcoded size of array from main tests
+        strlcat(result_srv, buff, 2 * BUFFSIZE);
+      }
+
     }
     log_println(6, "result_srv = '%s', of len %d", result_srv, msgLen);
     log_println(1, " <------------------------->");

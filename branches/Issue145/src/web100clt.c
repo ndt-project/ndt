@@ -536,7 +536,7 @@ int main(int argc, char *argv[]) {
   char *invalid_login_msg = "Invalid login message.";
   // addresses..
   I2Addr server_addr = NULL;
-  char* ptr;
+  char* ptr, *jsonMsgValue;
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
 #else
@@ -683,7 +683,7 @@ int main(int argc, char *argv[]) {
   buff[0] = tests;
   strlcpy(buff + 1, VERSION, sizeof(buff) - 1);
   /* write our test suite request by sending a login message */
-  send_msg(ctlSocket, MSG_EXTENDED_LOGIN, buff, strlen(buff));
+  send_json_message(ctlSocket, MSG_EXTENDED_LOGIN, buff, strlen(buff), jsonSupport, JSON_SINGLE_VALUE);
   /* read the specially crafted data that kicks off the old clients */
   if (readn(ctlSocket, buff, 13) != 13) {
     printf("Information: The server '%s' does not support this command line "
@@ -707,7 +707,7 @@ int main(int argc, char *argv[]) {
                        msgLen)) {
       // Any other type of message at this stage is incorrect
       // If received invalid login message error then try to connect using basic MSG_LOGIN msg
-      if (!retry && strcmp(buff, invalid_login_msg) == 0) {
+      if (!retry) {
         printf("Information: The server '%s' does not support MSG_EXTENDED_LOGIN message. "
                "Trying to connect using MSG_LOGIN\n", host);
         retry = 1; // to prevent infinite retrying to connect
@@ -744,11 +744,17 @@ int main(int argc, char *argv[]) {
 
       exit(2);
     }
+    buff[msgLen] = 0;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
+    }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       exit(3);
     }
-    buff[msgLen] = 0;
     if (check_int(buff, &xwait)) {
       log_println(0, "Invalid queue indicator");
       exit(4);
@@ -784,7 +790,7 @@ int main(int argc, char *argv[]) {
     }
     // Signal from the server to see if the client is still alive
     if (xwait == SRV_QUEUE_HEARTBEAT) {
-      send_msg(ctlSocket, MSG_WAITING, &tests, 1);
+      send_json_message(ctlSocket, MSG_WAITING, &tests, 1, jsonSupport, JSON_SINGLE_VALUE);
       continue;
     }
 
@@ -820,6 +826,13 @@ int main(int argc, char *argv[]) {
                      msgLen)) {
     exit(2);
   }
+  buff[msgLen] = 0;
+  if (jsonSupport) {
+    jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+    strlcpy(buff, jsonMsgValue, sizeof(buff));
+    msgLen = strlen(buff);
+    free(jsonMsgValue);
+  }
   if (msgLen <= 0) {
     log_println(0, "Improper message");
     exit(3);
@@ -827,7 +840,6 @@ int main(int argc, char *argv[]) {
 
   // Version compatibility between server-client must be verified
 
-  buff[msgLen] = 0;
   if (buff[0] != 'v') {  // payload doesn't start with a version indicator
     log_println(0, "Incompatible version number");
     exit(4);
@@ -862,13 +874,19 @@ int main(int argc, char *argv[]) {
                      msgLen)) {
     exit(2);
   }
+  buff[msgLen] = 0;
+  if (jsonSupport) {
+    jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+    strlcpy(buff, jsonMsgValue, sizeof(buff));
+    msgLen = strlen(buff);
+    free(jsonMsgValue);
+  }
   if (msgLen <= 0) {
     log_println(0, "Improper message");
     exit(3);
   }
 
   // get ids of tests to be run now
-  buff[msgLen] = 0;
   log_println(5, "Received tests sequence: '%s'", buff);
   if ((strtokbuf = malloc(1024)) == NULL) {
     log_println(0, "Malloc failed!");
@@ -949,7 +967,14 @@ int main(int argc, char *argv[]) {
       exit(2);
     }
 
-    strlcat(resultstr, buff, sizeof(resultstr));
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcat(resultstr, jsonMsgValue, sizeof(resultstr));
+      free(jsonMsgValue);
+    }
+    else {
+      strlcat(resultstr, buff, sizeof(resultstr));
+    }
     log_println(6, "resultstr = '%s'", resultstr);
   }
 

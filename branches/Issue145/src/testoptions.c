@@ -260,6 +260,10 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
     }
   } else if (msgType == MSG_EXTENDED_LOGIN) { /* Case 2 */
     options->json_support = 1;
+    jsonMsgValue = json_read_map_value(msgValue, DEFAULT_KEY);
+    strlcpy(msgValue, jsonMsgValue, sizeof(msgValue));
+    msgLen = strlen(jsonMsgValue);
+    free(jsonMsgValue);
     if (msgLen >= 1 && msgLen <= (CS_VERSION_LENGTH_MAX + 1)) {
       memcpy(options->client_version, msgValue + 1, msgLen - 1);
       log_println(0, "Client version: %s-\n", options->client_version);

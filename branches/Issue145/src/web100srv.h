@@ -316,7 +316,7 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars);
+                      tcp_stat_agent* agent, int count_vars, int jsonSupport);
 
 int CwndDecrease(char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);

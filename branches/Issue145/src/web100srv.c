@@ -86,6 +86,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "strlutils.h"
 #include "heuristics.h"
 #include "tests_srv.h"
+#include "jsonutils.h"
 
 static char lgfn[FILENAME_SIZE];  // log file name
 static char wvfn[FILENAME_SIZE];  // file name of web100-variables list
@@ -778,9 +779,10 @@ void * zombieWorker(void *head_ptr) {
                 tmp_ptr->pid);
 
     // send "keep-alive" SRV_QUEUE message to client and expect a response
-    retcode = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, 
+    retcode = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE,
       SRV_QUEUE_HEARTBEAT_STR,
-      strlen(SRV_QUEUE_HEARTBEAT_STR));
+      strlen(SRV_QUEUE_HEARTBEAT_STR),
+      testopt.json_support, JSON_SINGLE_VALUE);
     log_println(6,
                 "send_msg() returned %d during zombie check on client %d",
                 retcode, tmp_ptr->pid);
@@ -970,12 +972,13 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
-  send_msg(ctlsockfd, MSG_LOGIN, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_LOGIN, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   // initiate test with MSG_LOGIN message.
   log_println(3, "run_test() routine, asking for test_suite = %s",
               test_suite);
-  send_msg(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite));
+  send_json_message(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite),
+                    testopt->json_support, JSON_SINGLE_VALUE);
   /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
      log_println(0, "ERROR: Tests initialization failed (%d)", n);
      return;
@@ -1220,38 +1223,38 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   snprintf(buff, sizeof(buff), "c2sData: %d\nc2sAck: %d\ns2cData: %d\n"
            "s2cAck: %d\n", c2s_linkspeed_data, c2s_linkspeed_ack,
            s2c_linkspeed_data, s2c_linkspeed_ack);
-  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\n"
            "mismatch: %d\nspd: %0.2f\n", half_duplex, link, congestion,
            bad_cable, mismatch, realthruput);
-  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\n"
            "timesec: %0.2f\norder: %0.4f\n", bw_theortcl, packetloss_s2c,
            avgrtt, waitsec, timesec, oo_order);
-  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\n"
            "rwin: %0.4f\nswin: %0.4f\n", rwintime, sendtime, cwndtime, rwin,
            swin);
-  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %"VARtype"\naspd: %0.5f\n"
            "CWND-Limited: %0.2f\n", cwin, rttsec, vars.Sndbuf, aspd, s2c2spd);
-  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n",
            peaks.min, peaks.max, peaks.amount);
-  send_msg(ctlsockfd, MSG_RESULTS, buff, strlen(buff));
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
 
   // Signal end of test results to client
-  send_msg(ctlsockfd, MSG_LOGOUT, "", 0);
+  send_json_message(ctlsockfd, MSG_LOGOUT, "", 0, testopt->json_support, JSON_SINGLE_VALUE);
 
   // Copy collected values into the meta data structures. This section
   // seems most readable, easy to debug here.
@@ -1988,7 +1991,8 @@ mainloop: if (head_ptr == NULL)
                 if (tmp_ptr == NULL)
                   break;
                 if (i == (2 * max_clients)) {
-                  rac = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1);
+                  rac = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1,
+                                          testopt.json_support, JSON_SINGLE_VALUE);
                   log_println(
                       6,
                       "sent 45 sec update message to client %d on fd=%d, "
@@ -1996,7 +2000,8 @@ mainloop: if (head_ptr == NULL)
                       tmp_ptr->pid, tmp_ptr->ctlsockfd, rac);
                 }
                 if (i == (3 * max_clients)) {
-                  rac = send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1);
+                  rac = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1,
+                                          testopt.json_support, JSON_SINGLE_VALUE);
                   log_println(
                       6,
                       "sent 90 sec update message to client %d on fd=%d, "
@@ -2018,9 +2023,10 @@ mainloop: if (head_ptr == NULL)
             while (head_ptr != NULL) {
               /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9933", 4); */
               // indicate server waiting in queue
-              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
+              send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
-		strlen(SRV_QUEUE_SERVER_BUSY_STR));
+		strlen(SRV_QUEUE_SERVER_BUSY_STR),
+		testopt.json_support, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2039,9 +2045,10 @@ mainloop: if (head_ptr == NULL)
                         "clients", head_ptr->pid);
             while (head_ptr != NULL) {
               /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9977", 4); */
-              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
+              send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
-		strlen(SRV_QUEUE_SERVER_BUSY_STR));
+		strlen(SRV_QUEUE_SERVER_BUSY_STR),
+		testopt.json_support, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2075,9 +2082,10 @@ mainloop: if (head_ptr == NULL)
                   head_ptr->pipe, head_ptr->running, head_ptr->ctlsockfd,
                   head_ptr->oldclient, head_ptr->tests);
               // boot the client
-              send_msg(head_ptr->ctlsockfd, SRV_QUEUE, 
+              send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
-		strlen(SRV_QUEUE_SERVER_BUSY_STR));
+		strlen(SRV_QUEUE_SERVER_BUSY_STR),
+		testopt.json_support, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2282,9 +2290,10 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                     0,
                     "Too many clients/mclients (%d) waiting to be served, "
                     "Please try again later.", chld_pid);
-                send_msg(ctlsockfd, SRV_QUEUE, 
+                send_json_message(ctlsockfd, SRV_QUEUE,
 		  SRV_QUEUE_SERVER_BUSY_STR, 
-		  strlen(SRV_QUEUE_SERVER_BUSY_STR));
+		  strlen(SRV_QUEUE_SERVER_BUSY_STR),
+		  testopt.json_support, JSON_SINGLE_VALUE);
                 close(chld_pipe[0]);
                 close(chld_pipe[1]);
                 shutdown(ctlsockfd, SHUT_WR);
@@ -2347,9 +2356,10 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                     3,
                     "queuing disabled and testing in progress, tell client no");
                 /* send_msg(new_child->ctlsockfd, SRV_QUEUE, "9944", 4); */
-                send_msg(new_child->ctlsockfd, SRV_QUEUE, 
+                send_json_message(new_child->ctlsockfd, SRV_QUEUE,
 		  SRV_QUEUE_SERVER_BUSY_STR, 
-		  strlen(SRV_QUEUE_SERVER_BUSY_STR));
+		  strlen(SRV_QUEUE_SERVER_BUSY_STR),
+		  testopt.json_support, JSON_SINGLE_VALUE);
                 close(chld_pipe[1]);
                 shutdown(new_child->ctlsockfd, SHUT_WR);
                 close(new_child->ctlsockfd);
@@ -2407,7 +2417,8 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                     "begin within %d minutes", (waiting - 1), tmp_ptr->pid,
                     (waiting-1));
                 snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-1));
-                send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+                send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr),
+                                  testopt.json_support, JSON_SINGLE_VALUE);
                 continue;
               }
 
@@ -2417,7 +2428,8 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                             "will begin within %d minutes",
                             (waiting-max_clients), mchild->pid, xx);
                 snprintf(tmpstr, sizeof(tmpstr), "%d", xx);
-                send_msg(mchild->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr));
+                send_json_message(mchild->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr),
+                                  testopt.json_support, JSON_SINGLE_VALUE);
                 continue;
               }
 
@@ -2456,8 +2468,8 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                               (waiting-1), tmp_ptr->pid, (waiting-j));
 
                   snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-j));
-                  send_msg(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr,
-                           strlen(tmpstr));
+                  send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr,
+                           strlen(tmpstr), testopt.json_support, JSON_SINGLE_VALUE);
                   tmp_ptr = tmp_ptr->next;
                   j--;
                 }
@@ -2522,7 +2534,8 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 log_println(5, "sending 'GO' signal to client msg='%s'",
                             tmpstr);
                 // test session starts now
-                send_msg(mchild->ctlsockfd, SRV_QUEUE, "0", 1);
+                send_json_message(mchild->ctlsockfd, SRV_QUEUE, "0", 1,
+                                  testopt.json_support, JSON_SINGLE_VALUE);
                 for (i = 0; i < 5; i++) {
                   retcode = write(mchild->pipe, tmpstr, strlen(tmpstr));
                   log_println(6, "write(%d) returned %d, errno=%d",
@@ -2553,7 +2566,8 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                          head_ptr->tests);
                 log_println(5, "sending 'GO' signal to client msg='%s'",
                             tmpstr);
-                send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1);
+                send_json_message(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1,
+                                  testopt.json_support, JSON_SINGLE_VALUE);
                 for (i = 0; i < 5; i++) {
                   retcode = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
                   if ((retcode == -1) && (errno == EINTR))
