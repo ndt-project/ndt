@@ -600,7 +600,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
     ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars);
     web100_snapshot_free(rsnap);
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
     estats_val_data_free(&snap);
 #endif
 
