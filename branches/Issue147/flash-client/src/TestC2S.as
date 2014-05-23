@@ -147,7 +147,11 @@ package  {
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg(
-              "ERROR MSG: " + parseInt(new String(_msg.body), 16));
+              "ERROR MSG: " + parseInt(Main.jsonSupport ?
+                                new String(NDTUtils.readJsonMapValue(
+                                  String(_msg.body),
+                                  NDTUtils.JSON_DEFAULT_KEY))
+                              : new String(_msg.body), 16));
         }
         _c2sTestSuccess = false;
         endTest();
@@ -161,7 +165,11 @@ package  {
       TestResults.appendDebugMsg(
           "Each message of the C2S test has " + _dataToSend.length + " bytes.");
 
-      var c2sPort:int = parseInt(new String(_msg.body));
+      var c2sPort:int = parseInt(Main.jsonSupport ?
+                                   new String(NDTUtils.readJsonMapValue(
+                                     String(_msg.body),
+                                     NDTUtils.JSON_DEFAULT_KEY))
+                                 : new String(_msg.body));
       _c2sSocket = new Socket();
       addC2SSocketEventListeners();
       try {
@@ -267,7 +275,8 @@ package  {
     private function startTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_START message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_START) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(
@@ -380,14 +389,22 @@ package  {
             Main.locale));
         if(_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _c2sTestSuccess = false;
         endTest();
         return;
       }
 
-      var sc2sSpeedStr:String = new String(_msg.body);
+      var sc2sSpeedStr:String = Main.jsonSupport ?
+                                   new String(NDTUtils.readJsonMapValue(
+                                     String(_msg.body),
+                                     NDTUtils.JSON_DEFAULT_KEY))
+                                 : new String(_msg.body);
       var sc2sSpeed:Number = parseFloat(sc2sSpeedStr);
       if (isNaN(sc2sSpeed)) {
         TestResults.appendErrMsg(
@@ -418,7 +435,8 @@ package  {
     private function finalizeTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_FINALIZE message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_FINALIZE) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(
