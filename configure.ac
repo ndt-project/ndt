@@ -233,6 +233,16 @@ else
 	AM_CONDITIONAL(HAVE_PCAP_H, false)
 fi
 
+AC_CHECK_HEADER(jansson.h, [] [b=0])
+if test $b == 0
+then
+	JSONLIB="-ljansson"
+	AC_DEFINE(HAVE_JANSSON_H, 1, [Have JANSSON header file.])
+	AM_CONDITIONAL(HAVE_JANSSON_H, true)
+else
+	AM_CONDITIONAL(HAVE_JANSSON_H, false)
+fi
+
 AC_CHECK_LIB([z], [deflateInit_],
              [
               ZLIB="-lz"
@@ -283,6 +293,7 @@ AC_SUBST(NDTLIBS)
 AC_SUBST(NDTLIBDIR)
 AC_SUBST(NDTINCDIR)
 AC_SUBST(ZLIB)
+AC_SUBST(JSONLIB)
 
 AC_SUBST(TOP_BUILD_DIRS)
 
@@ -355,8 +366,13 @@ echo ""
 
 if test -z "$HAVE_WEB10G_TRUE" && test -n "$HAVE_WEB10G_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
+if test -z "$HAVE_JANSSON_H_TRUE" && test -n "$HAVE_JANSSON_H_FALSE"; then
   SUMMARY_WEB10GSRV="YES"
   SUMMARY_GENPLOT10G="YES"
+else
+  SUMMARY_GENPLOT10G="YES"
+  SUMMARY_WEB10GSRV="NO    (missing jansson headers)"
+fi
 else
   SUMMARY_GENPLOT10G="YES"
   SUMMARY_WEB10GSRV="NO    (missing pcap headers)"
@@ -366,10 +382,19 @@ else
   SUMMARY_GENPLOT10G="NO (missing web10g userland library >=2.0.6.2)"
 fi
 
-SUMMARY_WEB100CLT="YES"
+if test -z "$HAVE_JANSSON_H_TRUE" && test -n "$HAVE_JANSSON_H_FALSE"; then
+  SUMMARY_WEB100CLT="YES"
+else
+  SUMMARY_WEB100CLT="NO    (missing jansson headers)"
+fi
+
 if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
+if test -z "$HAVE_JANSSON_H_TRUE" && test -n "$HAVE_JANSSON_H_FALSE"; then
 SUMMARY_WEB100SRV="YES"
+else
+SUMMARY_WEB100SRV="NO    (missing jansson headers)"
+fi
 else
 SUMMARY_WEB100SRV="NO    (missing pcap headers)"
 fi
@@ -451,3 +476,5 @@ echo "* JAnalyze.jar: ${SUMMARY_JANALYZEJAR}"
 echo "* Admin.class:  ${SUMMARY_ADMINCLASS}"
 echo ""
 echo ""
+
+

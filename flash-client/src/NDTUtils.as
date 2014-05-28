@@ -24,6 +24,8 @@ package  {
   import mx.resources.ResourceManager;
 
   public class NDTUtils {
+    public static const JSON_DEFAULT_KEY:String = "msg";
+
     /**
      * Function that calls a JS function through the ExternalInterface class if
      * it exists by the name specified in the parameter.
@@ -49,8 +51,8 @@ package  {
         // in some cases and this exception is raised.
 
 	// TestResults.appendDebugMsg() calls callExternalFunction
-	// to invoke JS callbacks. Without this check we can 
-	// recurse infinitely. 
+	// to invoke JS callbacks. Without this check we can
+	// recurse infinitely.
 	if (functionName != "appendDebugOutput") {
           TestResults.appendDebugMsg("Failed to call " + functionName + ": "
                                      + e.toString());
@@ -233,6 +235,36 @@ package  {
         }
       }
       return bytesCount;
+    }
+
+    /**
+     * Creates string representing JSON object with single key:value pair
+     * where key is default and value is being taken from parameter.
+     *
+     * @param value null-terminated string containing value of map entry
+     * @return encoded JSON string
+     */
+    public static function createJsonFromSingleValue(value:String):String {
+      return "{\"" + JSON_DEFAULT_KEY + "\": \"" + value + "\"}";
+    }
+
+    /**
+     * Reads value from JSON object represented by jsonText using specific key
+     *
+     * @param jsonText string representing JSON object
+     * @param key by which value should be obtained from JSON map
+     */
+    public static function readJsonMapValue(jsonText:String,
+                                            key:String):String {
+      try {
+        var decodedObj:Object = JSON.parse(jsonText);
+        return decodedObj[key];
+      } catch(e:TypeError) {
+        TestResults.appendErrMsg("Error while trying to read value of " + key
+                                 + "from JSON: " + jsonText + "."
+                                 + " Original message: " + e);
+      }
+      return "";
     }
   }
 }

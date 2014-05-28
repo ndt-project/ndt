@@ -19,6 +19,7 @@
 #include "I2util/util.h"
 #include "runningtest.h"
 #include "strlutils.h"
+#include "jsonutils.h"
 
 
 // Worker thread characteristics used to record snaplog and Cwnd peaks
@@ -215,6 +216,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   char *client_timeout = "Client timeout.";
   char *invalid_test = "Invalid test request.";
   char *invalid_login_msg = "Invalid login message.";
+  char* jsonMsgValue;
 
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
@@ -251,16 +253,23 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
    * into useropt so we'll do that in the fallthrough. 
    */
   if (msgType == MSG_LOGIN) { /* Case 1 */
+    options->json_support = 0;
     if (msgLen != 1) {
       send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
       return (-2);
     }
   } else if (msgType == MSG_EXTENDED_LOGIN) { /* Case 2 */
+    options->json_support = 1;
+    jsonMsgValue = json_read_map_value(msgValue, DEFAULT_KEY);
+    strlcpy(msgValue, jsonMsgValue, sizeof(msgValue));
+    msgLen = strlen(jsonMsgValue);
+    free(jsonMsgValue);
     if (msgLen >= 1 && msgLen <= (CS_VERSION_LENGTH_MAX + 1)) {
       memcpy(options->client_version, msgValue + 1, msgLen - 1);
       log_println(0, "Client version: %s-\n", options->client_version);
     } else {
-      send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
+      send_json_message(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test),
+                        options->json_support, JSON_SINGLE_VALUE);
       return (-2);
     }
   } else { /* Case 3 */
@@ -283,8 +292,8 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
         & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
            | TEST_META))) {
     // message received does not indicate a valid test!
-    send_msg(ctlsockfd, MSG_ERROR, invalid_test_suite, 
-      strlen(invalid_test_suite));
+    send_json_message(ctlsockfd, MSG_ERROR, invalid_test_suite,
+                      strlen(invalid_test_suite), options->json_support, JSON_SINGLE_VALUE);
     return (-3);
   }
   // construct test suite request based on user options received

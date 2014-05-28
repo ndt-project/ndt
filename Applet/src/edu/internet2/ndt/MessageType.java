@@ -16,5 +16,6 @@ public class MessageType {
 	public static final byte MSG_RESULTS = 8;
 	public static final byte MSG_LOGOUT = 9;
 	public static final byte MSG_WAITING = 10;
+    public static final byte MSG_EXTENDED_LOGIN = 11;
 
 }

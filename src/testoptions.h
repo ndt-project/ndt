@@ -24,6 +24,8 @@ typedef struct testoptions {
 
   char client_version[CS_VERSION_LENGTH_MAX + 1]; // client version number.
 
+  int json_support; // indicates if client supports JSON messages
+
   int midopt;  // middlebox test to be perfomed?
   int midsockfd;  // socket file desc for middlebox test
   int midsockport;  // port used for middlebox test

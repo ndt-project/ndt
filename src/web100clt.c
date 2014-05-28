@@ -23,6 +23,7 @@
 #include "test_results_clt.h"
 #include <arpa/inet.h>
 #include <assert.h>
+#include "jsonutils.h"
 
 extern int h_errno;
 
@@ -256,29 +257,54 @@ void testResults(char tests, char *testresult_str, char* host) {
  * Server IP; Client IP.
  * @param midresult_str  String containing test results
  * @param cltsock Used to get address information
+ * @param jsonFormat Indicates if results are saved using JSON format
  */
 
-void middleboxResults(char *midresult_str, int cltsock) {
+void middleboxResults(char *midresult_str, int cltsock, int jsonFormat) {
   char ssip[64], scip[64], *str;
   char csip[64], ccip[64];
   struct sockaddr_storage addr;
   socklen_t addr_size;
   int mss;
   size_t tmpLen;
+  char *jsonMsgValue;
 
-  str = strtok(midresult_str, ";");
-  strlcpy(ssip, str, sizeof(ssip));
-  str = strtok(NULL, ";");
+  if (jsonFormat) {
+    jsonMsgValue = json_read_map_value(midresult_str, SERVER_ADDRESS);
+    strlcpy(ssip, jsonMsgValue, sizeof(ssip));
+    free(jsonMsgValue);
 
-  strlcpy(scip, str, sizeof(scip));
+    jsonMsgValue = json_read_map_value(midresult_str, CLIENT_ADDRESS);
+    strlcpy(scip, jsonMsgValue, sizeof(scip));
+    free(jsonMsgValue);
 
-  str = strtok(NULL, ";");
-  mss = atoi(str);
-  str = strtok(NULL, ";");
-  // changing order to read winsent before winsrecv for issue 61
-  winssent = atoi(str);
-  str = strtok(NULL, ";");
-  winsrecv = atoi(str);
+    jsonMsgValue = json_read_map_value(midresult_str, CUR_MSS);
+    mss = atoi(jsonMsgValue);
+    free(jsonMsgValue);
+
+    jsonMsgValue = json_read_map_value(midresult_str, WIN_SCALE_SENT);
+    winssent = atoi(jsonMsgValue);
+    free(jsonMsgValue);
+
+    jsonMsgValue = json_read_map_value(midresult_str, WIN_SCALE_RCVD);
+    winsrecv = atoi(jsonMsgValue);
+    free(jsonMsgValue);
+  }
+  else {
+    str = strtok(midresult_str, ";");
+    strlcpy(ssip, str, sizeof(ssip));
+    str = strtok(NULL, ";");
+
+    strlcpy(scip, str, sizeof(scip));
+
+    str = strtok(NULL, ";");
+    mss = atoi(str);
+    str = strtok(NULL, ";");
+    // changing order to read winsent before winsrecv for issue 61
+    winssent = atoi(str);
+    str = strtok(NULL, ";");
+    winsrecv = atoi(str);
+  }
 
   /* Get the our local IP address */
   addr_size = sizeof(addr);
@@ -505,9 +531,12 @@ int main(int argc, char *argv[]) {
   int conn_options = 0;  // connection options received from user
   int debug = 0;  // debug flag
   int testId;  // test ID received from server
+  int jsonSupport = 1; // indicates if client should sent messages in JSON format
+  int retry = 0; // flag set after invalid login message is being received
+  char *invalid_login_msg = "Invalid login message.";
   // addresses..
   I2Addr server_addr = NULL;
-  char* ptr;
+  char* ptr, *jsonMsgValue;
 #ifdef AF_INET6
 #define GETOPT_LONG_INET6(x) "46"x
 #else
@@ -651,8 +680,10 @@ int main(int argc, char *argv[]) {
 
   /* The beginning of the protocol */
 
+  buff[0] = tests;
+  strlcpy(buff + 1, VERSION, sizeof(buff) - 1);
   /* write our test suite request by sending a login message */
-  send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
+  send_json_message(ctlSocket, MSG_EXTENDED_LOGIN, buff, strlen(buff), jsonSupport, JSON_SINGLE_VALUE);
   /* read the specially crafted data that kicks off the old clients */
   if (readn(ctlSocket, buff, 13) != 13) {
     printf("Information: The server '%s' does not support this command line "
@@ -675,13 +706,55 @@ int main(int argc, char *argv[]) {
     if (check_msg_type("Logging to server", SRV_QUEUE, msgType, buff,
                        msgLen)) {
       // Any other type of message at this stage is incorrect
+      // If received invalid login message error then try to connect using basic MSG_LOGIN msg
+      if (!retry) {
+        printf("Information: The server '%s' does not support MSG_EXTENDED_LOGIN message. "
+               "Trying to connect using MSG_LOGIN\n", host);
+        retry = 1; // to prevent infinite retrying to connect
+        jsonSupport = 0;
+        if ((server_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
+          printf("Unable to resolve server address\n");
+          exit(-3);
+        }
+        I2AddrSetPort(server_addr, ctlport);
+
+        if ((retcode = CreateConnectSocket(&ctlSocket, NULL, server_addr,
+                                           conn_options, 0))) {
+          printf("Connect() for control socket failed\n");
+          exit(-4);
+        }
+
+        // check and print Address family being used
+        if (I2AddrSAddr(server_addr, 0)->sa_family == AF_INET) {
+         printf("Using IPv4 address\n");
+        } else {
+         printf("Using IPv6 address\n");
+        }
+
+        send_msg(ctlSocket, MSG_LOGIN, &tests, 1);
+        /* read the specially crafted data that kicks off the old clients */
+        if (readn(ctlSocket, buff, 13) != 13) {
+          printf("Information: The server '%s' does not support this command line "
+                 "client\n", host);
+          exit(0);
+        }
+
+        continue;
+      }
+
       exit(2);
+    }
+    buff[msgLen] = 0;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       exit(3);
     }
-    buff[msgLen] = 0;
     if (check_int(buff, &xwait)) {
       log_println(0, "Invalid queue indicator");
       exit(4);
@@ -717,7 +790,7 @@ int main(int argc, char *argv[]) {
     }
     // Signal from the server to see if the client is still alive
     if (xwait == SRV_QUEUE_HEARTBEAT) {
-      send_msg(ctlSocket, MSG_WAITING, &tests, 1);
+      send_json_message(ctlSocket, MSG_WAITING, &tests, 1, jsonSupport, JSON_SINGLE_VALUE);
       continue;
     }
 
@@ -753,6 +826,13 @@ int main(int argc, char *argv[]) {
                      msgLen)) {
     exit(2);
   }
+  buff[msgLen] = 0;
+  if (jsonSupport) {
+    jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+    strlcpy(buff, jsonMsgValue, sizeof(buff));
+    msgLen = strlen(buff);
+    free(jsonMsgValue);
+  }
   if (msgLen <= 0) {
     log_println(0, "Improper message");
     exit(3);
@@ -760,7 +840,6 @@ int main(int argc, char *argv[]) {
 
   // Version compatibility between server-client must be verified
 
-  buff[msgLen] = 0;
   if (buff[0] != 'v') {  // payload doesn't start with a version indicator
     log_println(0, "Incompatible version number");
     exit(4);
@@ -795,13 +874,19 @@ int main(int argc, char *argv[]) {
                      msgLen)) {
     exit(2);
   }
+  buff[msgLen] = 0;
+  if (jsonSupport) {
+    jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+    strlcpy(buff, jsonMsgValue, sizeof(buff));
+    msgLen = strlen(buff);
+    free(jsonMsgValue);
+  }
   if (msgLen <= 0) {
     log_println(0, "Improper message");
     exit(3);
   }
 
   // get ids of tests to be run now
-  buff[msgLen] = 0;
   log_println(5, "Received tests sequence: '%s'", buff);
   if ((strtokbuf = malloc(1024)) == NULL) {
     log_println(0, "Malloc failed!");
@@ -818,32 +903,32 @@ int main(int argc, char *argv[]) {
     switch (testId) {
       case TEST_MID:
         if (test_mid_clt(ctlSocket, tests, host, conn_options, buf_size,
-                         mid_resultstr)) {
+                         mid_resultstr, jsonSupport)) {
           log_println(0, "Middlebox test FAILED!");
           tests &= (~TEST_MID);
         }
         break;
       case TEST_C2S:
-        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size)) {
+        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, jsonSupport)) {
           log_println(0, "C2S throughput test FAILED!");
           tests &= (~TEST_C2S);
         }
         break;
       case TEST_S2C:
         if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
-                         resultstr)) {
+                         resultstr, jsonSupport)) {
           log_println(0, "S2C throughput test FAILED!");
           tests &= (~TEST_S2C);
         }
         break;
       case TEST_SFW:
-        if (test_sfw_clt(ctlSocket, tests, host, conn_options)) {
+        if (test_sfw_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
           log_println(0, "Simple firewall test FAILED!");
           tests &= (~TEST_SFW);
         }
         break;
       case TEST_META:
-        if (test_meta_clt(ctlSocket, tests, host, conn_options)) {
+        if (test_meta_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
           log_println(0, "META test FAILED!");
           tests &= (~TEST_META);
         }
@@ -882,7 +967,14 @@ int main(int argc, char *argv[]) {
       exit(2);
     }
 
-    strlcat(resultstr, buff, sizeof(resultstr));
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcat(resultstr, jsonMsgValue, sizeof(resultstr));
+      free(jsonMsgValue);
+    }
+    else {
+      strlcat(resultstr, buff, sizeof(resultstr));
+    }
     log_println(6, "resultstr = '%s'", resultstr);
   }
 
@@ -892,7 +984,7 @@ int main(int argc, char *argv[]) {
 
   // print middlebox test results
   if (tests & TEST_MID) {
-    middleboxResults(mid_resultstr, ctlSocket);
+    middleboxResults(mid_resultstr, ctlSocket, jsonSupport);
   }
 
   I2AddrFree(server_addr);

@@ -14,6 +14,7 @@ import java.net.Socket;
 public class Protocol {
 	private InputStream _ctlInStream;
 	private OutputStream _ctlOutStream;
+	private boolean jsonSupport = true;
 
 	/**
 	 * Constructor that accepts socket over which to communicate as parameter
@@ -43,6 +44,42 @@ public class Protocol {
 	public void send_msg(byte bParamType, byte bParamToSend) throws IOException {
 		byte[] tab = new byte[] { bParamToSend };
 		send_msg(bParamType, tab);
+	}
+
+	/**
+	 * Send message given its Type and data byte
+	 *
+	 * @param bParamType
+	 *            Control Message Type
+	 * @param bParamToSend
+	 *            Data value to send
+	 * @throws IOException
+	 *             If data cannot be successfully written to the Output Stream
+	 *
+	 * */
+	public void send_json_msg(byte bParamType, byte bParamToSend) throws IOException {
+		byte[] tab = new byte[] { bParamToSend };
+		send_json_msg(bParamType, tab);
+	}
+
+	/**
+	 * Send protocol messages given their type and data byte array
+	 *
+	 * @param bParamType
+	 *            Control Message Type
+	 * @param bParamToSend
+	 *            Data value array to send
+	 * @throws IOException
+	 *             If data cannot be successfully written to the Output Stream
+	 *
+	 * */
+	public void send_json_msg(byte bParamType, byte[] bParamToSend)
+			throws IOException {
+		if (jsonSupport) {
+			send_msg(bParamType, JSONUtils.createJsonObj(bParamToSend));
+		} else {
+			send_msg(bParamType, bParamToSend);
+		}
 	}
 
 	/**
@@ -148,6 +185,10 @@ public class Protocol {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public void setJsonSupport(boolean jsonSupport) {
+		this.jsonSupport = jsonSupport;
 	}
 
 } // end class Protocol

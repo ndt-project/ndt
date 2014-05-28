@@ -44,6 +44,9 @@ package  {
     private static const GET_WEB1001:int = 7;
     private static const GET_WEB1002:int = 8;
     private static const END_TEST:int = 9;
+    private static const THROUGHPUT_VALUE:String = "ThroughputValue";
+    private static const UNSENT_DATA_AMOUNT:String = "UnsentDataAmount";
+    private static const TOTAL_SENT_BYTE:String = "TotalSentByte";
 
     private var _callerObj:NDTPController;
     private var _ctlSocket:Socket;
@@ -150,14 +153,22 @@ package  {
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg(
-              "ERROR MESSAGE : " + parseInt(new String(_msg.body), 16));
+              "ERROR MESSAGE : " + parseInt(Main.jsonSupport ?
+                                     new String(NDTUtils.readJsonMapValue(
+                                       String(_msg.body),
+                                       NDTUtils.JSON_DEFAULT_KEY))
+                                   : new String(_msg.body), 16));
         }
         _s2cTestSuccess = false;
         endTest();
         return;
       }
 
-      var s2cPort:int = parseInt(new String(_msg.body));
+      var s2cPort:int = parseInt(Main.jsonSupport ?
+                                   new String(NDTUtils.readJsonMapValue(
+                                     String(_msg.body),
+                                     NDTUtils.JSON_DEFAULT_KEY))
+                                 : new String(_msg.body));
       _s2cSocket = new Socket();
       addS2CSocketEventListeners();
       try {
@@ -250,7 +261,8 @@ package  {
     private function startTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_START message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_START) {
         // See https://code.google.com/p/ndt/issues/detail?id=105
@@ -359,29 +371,44 @@ package  {
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _s2cTestSuccess = false;
         endTest();
         return;
       }
 
-      var _msgBody:String = new String(_msg.body);
-      var _msgFields:Array = _msgBody.split(" ");
-      if (_msgFields.length != 3) {
-        TestResults.appendErrMsg(
-            ResourceManager.getInstance().getString(
-                NDTConstants.BUNDLE_NAME, "inboundWrongMessage", null,
-                Main.locale)
-            + "Message received: " + _msgBody);
-        _s2cTestSuccess = false;
-        endTest();
-        return;
-      }
+      var _msgBody:String, sc2sSpeed:Number, sSendQueue:int, sBytes:Number;
+      _msgBody = new String(_msg.body);
+      if (Main.jsonSupport) {
+        sc2sSpeed = parseFloat(NDTUtils.readJsonMapValue(_msgBody,
+                                                         THROUGHPUT_VALUE));
+        sSendQueue = parseInt(NDTUtils.readJsonMapValue(_msgBody,
+                                                        UNSENT_DATA_AMOUNT));
+        sBytes = parseFloat(NDTUtils.readJsonMapValue(_msgBody,
+                                                      TOTAL_SENT_BYTE));
+      } else {
+        var _msgFields:Array = _msgBody.split(" ");
+        if (_msgFields.length != 3) {
+          TestResults.appendErrMsg(
+              ResourceManager.getInstance().getString(
+                  NDTConstants.BUNDLE_NAME, "inboundWrongMessage", null,
+                  Main.locale)
+              + "Message received: " + _msgBody);
+          _s2cTestSuccess = false;
+          endTest();
+          return;
+        }
 
-      var sc2sSpeed:Number = parseFloat(_msgFields[0]);
-      var sSendQueue:int = parseInt(_msgFields[1]);
-      var sBytes:Number = parseFloat(_msgFields[2]);
+        sc2sSpeed = parseFloat(_msgFields[0]);
+        sSendQueue = parseInt(_msgFields[1]);
+        sBytes = parseFloat(_msgFields[2]);
+	  }
+
       if (isNaN(sc2sSpeed) || isNaN(sSendQueue) || isNaN(sBytes)) {
         TestResults.appendErrMsg(
             ResourceManager.getInstance().getString(
@@ -414,11 +441,12 @@ package  {
                                  + s2cSpeed.toFixed(2) + " kbps.");
 
       var sendData:ByteArray = new ByteArray();
-      sendData.writeFloat(s2cSpeed);
+      sendData.writeUTFBytes(String(s2cSpeed));
       TestResults.appendDebugMsg(
-          "Sending '" + s2cSpeed + "' back to the server.");
+          "Sending '" + String(s2cSpeed) + "' back to the server.");
 
-      var _msgToSend:Message = new Message(MessageType.TEST_MSG, sendData);
+      var _msgToSend:Message = new Message(MessageType.TEST_MSG, sendData,
+                                           Main.jsonSupport);
       if (!_msgToSend.sendMessage(_ctlSocket)) {
         _s2cTestSuccess = false;
         endTest();
@@ -454,7 +482,9 @@ package  {
       if (!_msg.readHeader(_ctlSocket))
         return;
 
+
       if (_msg.type == MessageType.TEST_FINALIZE) {
+		TestResults.appendDebugMsg("!!" + _msg.type + " " + _msg.length + "\n");
         // All web100 variables have been sent by the server.
         _readTimer.stop();
         _readTimer.removeEventListener(TimerEvent.TIMER, onWeb100ReadTimeout);
@@ -473,14 +503,17 @@ package  {
     private function getWeb100Vars2():void {
       if (!_msg.readBody(_ctlSocket, _msg.length))
         return;
-
       if (_msg.type != MessageType.TEST_MSG) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(
             NDTConstants.BUNDLE_NAME, "inboundWrongMessage", null,
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _readTimer.stop();
         _readTimer.removeEventListener(TimerEvent.TIMER, onWeb100ReadTimeout);
@@ -489,13 +522,19 @@ package  {
         endTest();
         return;
       }
-      _web100VarResult += new String(_msg.body);
+      _web100VarResult += Main.jsonSupport ?
+                            new String(NDTUtils.readJsonMapValue(
+                              String(_msg.body),
+                              NDTUtils.JSON_DEFAULT_KEY))
+                          : new String(_msg.body);
       _testStage = GET_WEB1001;
       if (_ctlSocket.bytesAvailable > 0)
         getWeb100Vars1();
     }
 
     private function endTest():void {
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
       TestResults.ndt_test_results::s2cTestResults = _web100VarResult;
       removeCtlSocketOnReceivedDataListener();
 

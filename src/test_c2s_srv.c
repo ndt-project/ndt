@@ -20,6 +20,7 @@
 #include "protocol.h"
 #include "network.h"
 #include "mrange.h"
+#include "jsonutils.h"
 
 /**
  * Perform the C2S Throughput test. This test intends to measure throughput
@@ -51,7 +52,7 @@
  *          >0 - error code
  *          Error codes:
  *          -1 - Listener socket creation failed
- *          -100 - timeout while waiting for client to connect to serverÕs ephemeral port
+ *          -100 - timeout while waiting for client to connect to serverï¿½s ephemeral port
  * 			-errno - Other specific socket error numbers
  *			-101 - Retries exceeded while waiting for client to connect
  *			-102 - Retries exceeded while waiting for data from connected client
@@ -150,7 +151,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                sizeof(buff),
                "Server (C2S throughput test): CreateListenSocket failed: %s",
                strerror(errno));
-      send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -175,8 +176,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // send TEST_PREPARE message with ephemeral port detail, indicating start
     // of tests
-    if ((msgretvalue = send_msg(ctlsockfd, TEST_PREPARE, buff,
-                                strlen(buff))) < 0) {
+    if ((msgretvalue = send_json_message(ctlsockfd, TEST_PREPARE, buff,
+                                strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE)) < 0) {
       return msgretvalue;
     }
 
@@ -317,7 +318,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sleep(2);
 
     // send empty TEST_START indicating start of the test
-    send_msg(ctlsockfd, TEST_START, "", 0);
+    send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->json_support, JSON_SINGLE_VALUE);
     /* alarm(30); */  // reset alarm() again, this 10 sec test should finish
                       // before this signal is generated.
 
@@ -373,7 +374,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
-    send_msg(ctlsockfd, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
 
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
@@ -440,7 +441,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     }
 
     // An empty TEST_FINALIZE message is sent to conclude the test
-    send_msg(ctlsockfd, TEST_FINALIZE, "", 0);
+    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, testOptions->json_support, JSON_SINGLE_VALUE);
 
     //  Close opened resources for packet capture
     if (getuid() == 0) {
