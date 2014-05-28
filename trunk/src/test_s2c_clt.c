@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle S2C throughput
  * test (client part).
  *
- * Jakub S³awiñski 2006-08-02
+ * Jakub Sï¿½awiï¿½ski 2006-08-02
  * jeremian@poczta.fm
  */
 
@@ -16,9 +16,14 @@
 #include "protocol.h"
 #include "utils.h"
 #include "strlutils.h"
+#include "jsonutils.h"
 
 int ssndqueue, sbytes;
 double spdin, s2cspd;
+
+#define THROUGHPUT_VALUE "ThroughputValue"
+#define UNSENT_DATA_AMOUNT "UnsentDataAmount"
+#define TOTALSENTBYTE "TotalSentByte"
 
 /**
  * S2C throughput test to measure network bandwidth
@@ -29,6 +34,7 @@ double spdin, s2cspd;
  * @param conn_options 	Options to use while connecting to server(for ex, IPV4)
  * @param buf_size  	TCP send/receive buffer size
  * @param result_srv		result obtained from server (containing values of web100 variables)
+ * @param jsonSupport 	Indicates if messages should be sent using JSON format
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
  * 		1: Error receiving protocol message
@@ -40,7 +46,7 @@ double spdin, s2cspd;
  */
 
 int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, char* result_srv) {
+                 int buf_size, char* result_srv, int jsonSupport) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
@@ -52,7 +58,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   double t;
   struct timeval sel_tv;
   fd_set rfd;
-  char* ptr;
+  char* ptr, *jsonMsgValue;
 
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
@@ -75,13 +81,19 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     if (check_msg_type(S2C_TEST_LOG, TEST_PREPARE, msgType, buff, msgLen)) {
       return 2;
     }
+    buff[msgLen] = 0;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+      strlcpy(buff, jsonMsgValue, sizeof(buff));
+      msgLen = strlen(buff);
+      free(jsonMsgValue);
+    }
     // This TEST_PREPARE message is expected to have the port number as message
     // body. Check if this is a valid integral port.
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
     }
-    buff[msgLen] = 0;
     if (check_int(buff, &s2cport)) {
       log_println(0, "Invalid port number");
       return 4;
@@ -183,30 +195,58 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     if (check_msg_type(S2C_TEST_LOG, TEST_MSG, msgType, buff, msgLen)) {
       return 2;  // no other message type expected
     }
+    buff[msgLen] = 0;
     // Is message of valid length, and does it have all the data expected?
     if (msgLen <= 0) {
       log_println(0, "Improper message");
       return 3;
     }
-    buff[msgLen] = 0;
-    ptr = strtok(buff, " ");
-    if (ptr == NULL) {
-      log_println(0, "S2C: Improper message");
-      return 4;
+    if (jsonSupport) {
+      jsonMsgValue = json_read_map_value(buff, THROUGHPUT_VALUE);
+      if (jsonMsgValue == NULL) {
+        log_println(0, "S2C: Improper message");
+        return 4;
+      }
+      s2cspd = atoi(jsonMsgValue);
+      free(jsonMsgValue);
+
+      jsonMsgValue = json_read_map_value(buff, UNSENT_DATA_AMOUNT);
+      if (jsonMsgValue == NULL) {
+        log_println(0, "S2C: Improper message");
+        return 4;
+      }
+      ssndqueue = atoi(jsonMsgValue);
+      free(jsonMsgValue);
+
+      jsonMsgValue = json_read_map_value(buff, TOTALSENTBYTE);
+      if (jsonMsgValue == NULL) {
+        log_println(0, "S2C: Improper message");
+        return 4;
+      }
+      sbytes = atoi(jsonMsgValue);
+      free(jsonMsgValue);
     }
-    s2cspd = atoi(ptr);  // get S->C throughput first
-    ptr = strtok(NULL, " ");
-    if (ptr == NULL) {
-      log_println(0, "S2C: Improper message");
-      return 4;
+    else {
+      ptr = strtok(buff, " ");
+      if (ptr == NULL) {
+        log_println(0, "S2C: Improper message");
+        return 4;
+      }
+      s2cspd = atoi(ptr);  // get S->C throughput first
+      ptr = strtok(NULL, " ");
+      if (ptr == NULL) {
+        log_println(0, "S2C: Improper message");
+        return 4;
+      }
+      ssndqueue = atoi(ptr);  // get amount of unsent data in queue
+      ptr = strtok(NULL, " ");
+      if (ptr == NULL) {
+        log_println(0, "S2C: Improper message");
+        return 4;
+      }
+      sbytes = atoi(ptr);  // finally get total-sent-byte-count
     }
-    ssndqueue = atoi(ptr);  // get amount of unsent data in queue
-    ptr = strtok(NULL, " ");
-    if (ptr == NULL) {
-      log_println(0, "S2C: Improper message");
-      return 4;
-    }
-    sbytes = atoi(ptr);  // finally get total-sent-byte-count
+
     // log_println(0,"S->C received throughput: %f",s2cspd);
     // log results in a convenient units format
     if (spdin < 1000)
@@ -218,7 +258,8 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // send TEST_MSG to server with the client-calculated throughput
     snprintf(buff, sizeof(buff), "%0.0f", spdin);
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
+                      jsonSupport, JSON_SINGLE_VALUE);
 
     // client now expected to receive web100 variables collected by server
 
@@ -243,8 +284,16 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         return 2;
       }
 
-      // hardcoded size of array from main tests
-      strlcat(result_srv, buff, 2 * BUFFSIZE);
+      if (jsonSupport) {
+        jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+        strlcat(result_srv, jsonMsgValue, 2 * BUFFSIZE);
+        free(jsonMsgValue);
+      }
+      else {
+        // hardcoded size of array from main tests
+        strlcat(result_srv, buff, 2 * BUFFSIZE);
+      }
+
     }
     log_println(6, "result_srv = '%s', of len %d", result_srv, msgLen);
     log_println(1, " <------------------------->");

@@ -28,6 +28,7 @@ package {
     public static var server_hostname:String = NDTConstants.SERVER_HOSTNAME;
     public static var client_application:String = NDTConstants.CLIENT_ID;
     public static var ndt_description:String = NDTConstants.NDT_DESCRIPTION;
+    public static var jsonSupport:Boolean = true;
 
     public function Main():void {
       if (stage)

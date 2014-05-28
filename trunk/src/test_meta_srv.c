@@ -18,6 +18,7 @@
 #include "protocol.h"
 #include "utils.h"
 #include "testoptions.h"
+#include "jsonutils.h"
 
 /**
  * Performs the META test.
@@ -44,7 +45,7 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
   struct metaentry *new_entry = NULL;
-  char* value;
+  char* value, *jsonMsgValue;
 
   // protocol validation logs
   enum TEST_ID testids = META;
@@ -59,14 +60,16 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
     protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     // first message exchanged is am empty TEST_PREPARE message
-    j = send_msg(ctlsockfd, TEST_PREPARE, "", 0);
+    j = send_json_message(ctlsockfd, TEST_PREPARE, "", 0,
+                          testOptions->json_support, JSON_SINGLE_VALUE);
     if (j == -1 || j == -2) {  // Cannot write message headers/data
       log_println(6, "META Error!, Test start message not sent!");
       return j;
     }
 
     // Now, transmit an empty TEST_START message
-    if (send_msg(ctlsockfd, TEST_START, "", 0) < 0) {
+    if (send_json_message(ctlsockfd, TEST_START, "", 0,
+                          testOptions->json_support, JSON_SINGLE_VALUE) < 0) {
       log_println(6, "META test - Test-start message failed");
     }
 
@@ -79,7 +82,8 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
         log_println(0, "Protocol error!");
         snprintf(buff, sizeof(buff),
                  "Server (META test): Invalid meta data received");
-        send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+        send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                          testOptions->json_support, JSON_SINGLE_VALUE);
         return 1;
       }
       if (check_msg_type("META test", TEST_MSG, msgType, buff, msgLen)) {
@@ -87,7 +91,8 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
         log_println(0, "Fault, unexpected message received!");
         snprintf(buff, sizeof(buff),
                  "Server (META test): Invalid meta data received");
-        send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+        send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                          testOptions->json_support, JSON_SINGLE_VALUE);
         return 2;
       }
       if (msgLen < 0) {
@@ -95,8 +100,20 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
         log_println(0, "Improper message");
         snprintf(buff, sizeof(buff),
                  "Server (META test): Invalid meta data received");
-        send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+        send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                          testOptions->json_support, JSON_SINGLE_VALUE);
         return 3;
+      }
+
+      buff[msgLen] = 0;
+      if (testOptions->json_support) {
+        jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
+        if (strlen(jsonMsgValue) == 0) {
+          free(jsonMsgValue);
+          break;
+        }
+        strlcpy(buff, jsonMsgValue, sizeof(buff));
+        free(jsonMsgValue);
       }
 
       // Received empty TEST_MSG. All meta_data has been received, and test
@@ -105,13 +122,13 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
         break;
       }
 
-      buff[msgLen] = 0;
       value = index(buff, ':');
       if (value == NULL) {  // key-value separates by ":"
         log_println(0, "Improper message");
         snprintf(buff, sizeof(buff), "Server (META test): "
                  "Invalid meta data received");
-        send_msg(ctlsockfd, MSG_ERROR, buff, strlen(buff));
+        send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                          testOptions->json_support, JSON_SINGLE_VALUE);
         return 4;
       }
       *value = 0;
@@ -153,7 +170,8 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
     new_entry->next = NULL;  // ensure meta list ends here
 
     // Finalize test by sending appropriate message, and setting status
-    if (send_msg(ctlsockfd, TEST_FINALIZE, "", 0) < 0) {
+    if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
+                          testOptions->json_support, JSON_SINGLE_VALUE) < 0) {
       log_println(6, "META test - failed to send finalize message");
     }
 

@@ -33,6 +33,13 @@
 #define PORT3 "3003"
 #define PORT4 "3003"
 
+// keys' names used for storing specific data in JSON format
+#define SERVER_ADDRESS "ServerAddress"
+#define CLIENT_ADDRESS "ClientAddress"
+#define CUR_MSS "CurMSS"
+#define WIN_SCALE_SENT "WinScaleSent"
+#define WIN_SCALE_RCVD "WinScaleRcvd"
+
 // status of tests. Used mainly to log a "textual" explanation using below array
 enum TEST_STATUS_INT {
   TEST_NOT_STARTED, TEST_STARTED, TEST_INPROGRESS, TEST_INCOMPLETE, TEST_ENDED

@@ -31,11 +31,20 @@ package  {
     private var _length:int;
 
     public function Message(
-        type:int=MessageType.UNDEF_TYPE, body:ByteArray=null):void {
+        type:int=MessageType.UNDEF_TYPE, body:ByteArray=null,
+        jsonFormat:Boolean = false):void {
       _type = type;
       _body = new ByteArray();
-      if (body != null)
-        _body.writeBytes(body);
+      if (body != null) {
+        if (jsonFormat) {
+          _body.writeUTFBytes(NDTUtils.createJsonFromSingleValue(
+                              String(body)));
+        } else {
+          _body.writeBytes(body);
+        }
+      } else if(Main.jsonSupport) {
+        _body.writeUTFBytes(NDTUtils.createJsonFromSingleValue(""));
+      }
       _length = _body.length;
     }
 
@@ -90,6 +99,7 @@ package  {
       header[0] = _type;
       header[1] = (_length >> 8);
       header[2] = _length;
+	  
       try {
         socket.writeBytes(header);
       } catch(e:IOError) {

@@ -117,7 +117,11 @@ package  {
             NDTConstants.BUNDLE_NAME, "metaWrongMessage", null, Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _metaTestSuccess = false;
         endTest();
@@ -139,7 +143,8 @@ package  {
     private function startTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_START message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_START) {
         TestResults.appendErrMsg(
@@ -148,7 +153,11 @@ package  {
                 Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg(
-              "ERROR MSG: " + parseInt(new String(_msg.body), 16));
+              "ERROR MSG: " + parseInt(Main.jsonSupport ?
+                                         new String(NDTUtils.readJsonMapValue(
+                                           String(_msg.body),
+                                           NDTUtils.JSON_DEFAULT_KEY))
+                                       : new String(_msg.body), 16));
         }
         _metaTestSuccess = false;
         endTest();
@@ -165,7 +174,8 @@ package  {
 
       bodyToSend.writeUTFBytes(new String(
           NDTConstants.META_CLIENT_OS + ":" + Capabilities.os));
-      var _msg:Message = new Message(MessageType.TEST_MSG, bodyToSend);
+      var _msg:Message = new Message(MessageType.TEST_MSG, bodyToSend,
+                                     Main.jsonSupport);
       if (!_msg.sendMessage(_ctlSocket)) {
         _metaTestSuccess = false;
         endTest();
@@ -176,7 +186,7 @@ package  {
       bodyToSend.writeUTFBytes(new String(
           NDTConstants.META_CLIENT_BROWSER + ":" + UserAgentTools.getBrowser(
               TestResults.ndt_test_results::userAgent)[2]));
-      _msg = new Message(MessageType.TEST_MSG, bodyToSend);
+      _msg = new Message(MessageType.TEST_MSG, bodyToSend, Main.jsonSupport);
       if (!_msg.sendMessage(_ctlSocket)) {
         _metaTestSuccess = false;
         endTest();
@@ -187,7 +197,7 @@ package  {
       bodyToSend.writeUTFBytes(new String(
           NDTConstants.META_CLIENT_VERSION + ":"
           + NDTConstants.CLIENT_VERSION));
-      _msg = new Message(MessageType.TEST_MSG, bodyToSend);
+      _msg = new Message(MessageType.TEST_MSG, bodyToSend, Main.jsonSupport);
       if (!_msg.sendMessage(_ctlSocket)) {
         _metaTestSuccess = false;
         endTest();
@@ -197,7 +207,7 @@ package  {
       bodyToSend.clear();
       bodyToSend.writeUTFBytes(new String(
           NDTConstants.META_CLIENT_APPLICATION + ":" + _clientApplication));
-      _msg = new Message(MessageType.TEST_MSG, bodyToSend);
+      _msg = new Message(MessageType.TEST_MSG, bodyToSend, Main.jsonSupport);
       if (!_msg.sendMessage(_ctlSocket)) {
         _metaTestSuccess = false;
         endTest();
@@ -206,7 +216,8 @@ package  {
 
       // Client can send any number of such meta data in a TEST_MSG format and
       // signal the send of the transmission using an empty TEST_MSG.
-      _msg = new Message(MessageType.TEST_MSG, new ByteArray());
+      _msg = new Message(MessageType.TEST_MSG, new ByteArray(),
+                         Main.jsonSupport);
       if (!_msg.sendMessage(_ctlSocket)) {
         _metaTestSuccess = false;
         endTest();
@@ -224,7 +235,8 @@ package  {
     private function finalizeTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_FINALIZE message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_FINALIZE) {
         TestResults.appendErrMsg(
