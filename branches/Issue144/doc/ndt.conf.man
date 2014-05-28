@@ -1,0 +1,193 @@
+.TH ndt.conf 5 "$Date$"
+." The first line of this file must contains the '"[e][r][t][v] line
+." to tell man to run the appropriate filter "t" for table.
+."
+."	$Id$
+."
+."######################################################################
+."#									#
+."#			   Copyright (C)  2004				#
+."#	     			Internet2				#
+."#			   All Rights Reserved				#
+."#									#
+."######################################################################
+."
+."	File:		ndt.conf.5
+."
+."	Author:		Rich Carlson
+."			Internet2
+."
+."	Date:		Sun May 20 16:01:25 CST 2004
+."
+."	Description:	
+."
+.SH NAME
+ndt.conf \- NDT server side configuration file.
+.SH SYNOPSIS
+.B ndt.conf 
+[\fIoptions\fR] 
+.SH DESCRIPTION
+The \fBNetwork Diagnostic Tool\fR (NDT) is a client/server
+program that provides network configuration and performance testing
+to a users desktop or laptop computer.  The system is composed of a
+client program (\fIcommand line\fR or \fIjava applet\fR) and a pair
+of server programs (a webserver and a testing/analysis engine).  
+.PP
+The \fBNDT\fR server program \fBweb100srv\fR has numerous command line
+options that control functions.  To simplify the process of specifying
+numerous command line options, a static configuration file \fBndt.conf\fR
+may be used to replace the command line options.
+.PP
+A sample \fBndt.conf\fR file is located in the distribution package's
+\fIconf\fR subdirectory.  By
+default, the \fBweb100srv\fR program expects this file to be copied into
+the servers \fI/etc\fR system directory.  The \fI-c\fR option may be used
+to specify an alternate name/location.
+.PP
+The \fBndt.conf\fR file uses a \fBtag\fR and \fBvalue\fR format to specify
+the options.  Each \fBtag\fR name may be abbreviated to the length shown
+in the parenthesis.  Note: that command line options will override or
+change these options.
+.PP
+Some of the \fBtab\fR options are boolean flags or simply increment
+an integer every time they are present.  In these cases the \fBvalue\fR
+parameter is omitted.  The \fBtag\fR and \fBvalue\fR options are:
+.PP 
+\fBadministrator_view\fR (5) - This boolean flag enables the administrator
+view.  This exports the usage statistics to the \fIadmin.html\fR web page
+making them visable to the user community.  Replaces \fI-a\fR option.
+.PP
+\fBdisable_FIFO\fR (5) - This boolean flag allow the administrator
+to disable FIFO queuing.  This causes the \fBweb100srv\fR program
+to stop FIFO queuing of incoming requests.  Without FIFO queuing
+users must manually press the \fIStart\fR button if another client
+is currently being served.  Replaces \fI-q\fR option.
+.PP
+\fBmultiple_clients\fR (5) - This boolean flag allows multiple
+clients to simultaneously run tests to the \fBweb100srv\fR program.
+Note: this may cause congestion on the server's access link.
+Replaces \fI-m\fR option.
+.PP
+\fBrecord_reverse\fR (6) - This boolean flag causes the \fBweb100srv\fR
+program to retrieve and store the \fBWeb100\fR variables while performing
+the client to server throughput test.  Replaces \fI-r\fR option.
+.PP
+\fBsyslog\fR (6) - This boolean flag causes the \fBweb100srv\fR program
+to output log data via the \fBsyslog(3)\fR facility.  The data is a 
+collection of key=value pairs separated by the comma "," character.
+Replaces \fI-s\fR option.
+.PP
+\fBwrite_trace\fR (5) - This boolean flag causes the \fBweb100srv\fR
+program to write a \fBtcpdump(8)\fR trace file to the current working
+directory.  Replaces \fI-t\fR option.
+.PP
+\fBdebug\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should run with debugging set to \fIvalue\fR.  All debugging
+information is sent to \fIstderr(3)\fR.  Multiple levels of debugging
+info are available.  Replaces \fI-d\fR option.
+.PP
+\fBdevice\fR \fIInterface Name\fR (5) - This tag indicates that 
+the default interface is not used to send/receive packets.  This
+is do to the server having multiple network interfaces.  The packet
+dispersion testing will fail if the network interface is not set
+correctly.  Replaces \fI-i\fR option.
+.PP
+\fBlog_file\fR \fIfile_name\fR (3) - This tag indicates that the
+parameter contains the file name/location that should be used to
+log test and results data.  Replaces \fI-l\fR option.
+.PP
+\fBport\fR \fInumber\fR (4) - This tag indicates that the \fBweb100srv\fR
+program should listen for incoming connection on the specified 
+TCP port.  Replaces \fI-p\fR option.
+.PP
+\fBTCP_buffer_size\fR \fIbuffer_value\fR (3) - This tag causes the
+\fBweb100srv\fR program to set the send and receive buffer size
+to the specified value using the \fBsetsockopt(2)\fR function.  Note:
+Web100 autotuning may ignore this value.  Replaces \fI-b\fR option.
+.PP
+\fBvariable_file\fR \fIfile_name\fR (6) - This tag indicates that
+the parameter contains the file name/location of the \fBWeb100\fR
+variable file name.  This file contains a list of all \fBWeb100\fR
+KIS variables used by the \fBweb100srv\fR program.  Replaces
+\fI-f\fR option.
+.PP
+\fBold_mismatch\fR (3) - This boolean flag causes the \fBweb100srv\fR
+program to use old Duplex Mismatch heuristic. Replaces \fI-o\fR option.
+.PP
+\fBlimit\fR \fIvalue\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should use the experimental throughput limiting code with the
+multiplication factor set to \fIvalue\fR. Replaces \fI-y\fR option.
+.PP
+\fBcputime\fR (3) - This boolean flag causes the \fBweb100srv\fR program
+to write cputime trace. Replaces \fI--cputime\fR option.
+.PP
+\fBenableDBlogging\fR (8) - This boolean flag causes the \fBweb100srv\fR
+program to put the test results into the database. Replaces
+\fI--enableDBlogging\fR option.
+.PP
+\fBdbDSN\fR \fIdsn\fR (5) - This tag indicates that the parameter contains
+the DSN to use. Replaces \fI--dbDSN\fR option.
+.PP
+\fBdbUID\fR \fIuid\fR (5) - This tag indicates that the parameter contains
+the UID to use. Replaces \fI--dbUID\fR option.
+.PP
+\fBdbPWD\fR \fIpwd\fR (5) - This tag indicates that the parameter contains
+the PWD to use. Replaces \fI--dbPWD\fR option.
+.PP
+\fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR
+program to analyze the cwnd changes during the S2C test. Replaces
+\fI--avoidsndblockup\fR option.
+.PP
+\fBsnaplog\fR (5) - This boolean flag causes the \fBweb100srv\fR program
+to write the snaplogs. Replaces \fI--snaplog\fR option.
+.PP
+\fBcwnddecrease\fR (5) - This boolean flag causes the \fBweb100srv\fR program
+to avoid send buffers blocking in the S2C test. Replaces \fI--avoidsndblockup\fR
+option.
+.PP
+\fBrefresh\fR \fItime\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should generate the \fIadmin.html\fR web page with the refresh time
+set to \fItime\fR. Replaces \fI-T\fR option.
+.PP
+\fBmrange\fR \fIrange\fR (6) - This tag sets the port range used in multi-test
+mode by the \fBweb100srv\fR program. The range represented by \fIrange\fR is added
+to the free pool. The following format is recognized: \fBmin:max\fR. This will
+result in a range from \fBmin\fR to \fBmax\fR (inclusive in both cases).
+The ranges can be separated by the commas or can be added by the multiple use of
+this tag. Note, that this enables multi-test mode. Replaces \fI--mrange\fR option.
+.PP
+\fBsnapdelay\fR \fImsec\fR (5) - This tag indicates that the \fBweb100srv\fR
+program should write the snaplog every \fImsec\fR milliseconds in the S2C test.
+Replaces \fI--snapdelay\fR option.
+.PP
+\fBmidport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
+program should use the specified TCP \fIport\fR for the Middlebox test.
+Replaces \fI--midport\fR option.
+.PP
+\fBc2sport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
+program should use the specified TCP \fIport\fR for the C2S throughput test.
+Replaces \fI--c2sport\fR option.
+.PP
+\fBs2cport\fR \fIport\fR (7) - This tag indicates that the \fBweb100srv\fR
+program should use the specified TCP \fIport\fR for the S2C throughput test.
+Replaces \fI--s2cport\fR option.
+.PP
+\fBadmin_file\fR \fIfile_name\fR (10) - This tag indicates that the
+parameter contains the file name/location that should be used to
+generate an administrator view web page.  Replaces \fI-A\fR option.
+.PP
+\fBlogfacility\fR \fIfacility_name\fR (11) - This tag indicates that the
+parameter contains the syslog facility name that should be used to log
+via syslog system.  Replaces \fI-S\fR option.
+.SH LIMITATIONS
+The NDT service is continuing to undergo testing and upgrading. 
+Better diagnostic algorithms are being developed to improve the
+accuracy and reliability of this service.
+.SH SEE ALSO
+web100srv(8), tcpdump(8), setsockopt(2) and the \%http://e2epi.internet2.edu/ndt/
+web site.
+.SH ACKNOWLEDGMENTS
+This material is based, in part, on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings, and
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the NSF.
