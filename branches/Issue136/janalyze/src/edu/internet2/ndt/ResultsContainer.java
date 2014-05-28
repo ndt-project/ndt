@@ -364,6 +364,7 @@ public class ResultsContainer {
                          btlneck = "a Gigabit Ethernet subnet";
                      else
                          btlneck = "Retransmissions";
+                     break;
             case 11: btlneck = "an 'OC-48' subnet"; break;
             case 12: btlneck = "a '10 Gigabit Enet' subnet"; break;
             case 13: btlneck = "Retransmissions"; break;

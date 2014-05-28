@@ -10,6 +10,7 @@
 #define SRC_TESTOPTIONS_H_
 
 #include "web100srv.h"
+#include "protocol.h"
 
 #define LISTENER_SOCKET_CREATE_FAILED  -1
 #define SOCKET_CONNECT_TIMEOUT  -100
@@ -20,6 +21,10 @@
 typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
+
+  char client_version[CS_VERSION_LENGTH_MAX + 1]; // client version number.
+
+  int json_support; // indicates if client supports JSON messages
 
   int midopt;  // middlebox test to be perfomed?
   int midsockfd;  // socket file desc for middlebox test

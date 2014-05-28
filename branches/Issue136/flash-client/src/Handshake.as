@@ -40,6 +40,7 @@ package  {
     private var _testsRequestByClient:int;
     // Has the client already received a wait message?
     private var _isNotFirstWaitFlag:Boolean;
+    private static var _loginRetried:Boolean = false;
 
     public function Handshake(ctlSocket:Socket, testsRequestByClient:int,
                               callerObject:NDTPController) {
@@ -52,8 +53,17 @@ package  {
 
     public function run():void {
       var msgBody:ByteArray = new ByteArray();
+      var clientVersion:String = NDTConstants.CLIENT_VERSION;
+
       msgBody.writeByte(_testsRequestByClient);
-      _msg = new Message(MessageType.MSG_LOGIN, msgBody);
+      if (_loginRetried) {
+        _msg = new Message(MessageType.MSG_LOGIN, msgBody, false);
+      } else {
+        msgBody.writeMultiByte(clientVersion, "us-ascii");
+        _msg = new Message(MessageType.MSG_EXTENDED_LOGIN, msgBody,
+                           Main.jsonSupport);
+      }
+
       if (!_msg.sendMessage(_ctlSocket)) {
         failHandshake();
       }
@@ -97,7 +107,7 @@ package  {
     private function kickOldClients():void {
       _msg = new Message();
       if (!_msg.readBody(_ctlSocket, NDTConstants.KICK_OLD_CLIENTS_MSG_LENGTH))
-        return;
+         return;
 
       _msg = new Message();
       _testStage = SRV_QUEUE1;
@@ -129,13 +139,30 @@ package  {
         return;
 
       if (_msg.type != MessageType.SRV_QUEUE) {
-        TestResults.appendErrMsg(ResourceManager.getInstance().getString(
-            NDTConstants.BUNDLE_NAME, "loggingWrongMessage", null,
-            Main.locale));
-        failHandshake();
+        if (!_loginRetried) {
+          removeOnReceivedDataListener();
+          TestResults.appendDebugMsg(ResourceManager.getInstance().getString(
+                                     NDTConstants.BUNDLE_NAME,
+                                     "loggingUsingExtendedMsgFailed", null,
+                                     Main.locale));
+          // try to login using old MSG_LOGIN message
+          _testStage = KICK_CLIENTS;
+          _loginRetried = true;
+          Main.jsonSupport = false;
+          _callerObj.startNDTTest();
+        } else {
+          TestResults.appendErrMsg(ResourceManager.getInstance().getString(
+              NDTConstants.BUNDLE_NAME, "loggingWrongMessage", null,
+              Main.locale));
+          failHandshake();
+		}
       }
 
-      var waitFlagString:String = new String(_msg.body);
+      var waitFlagString:String = Main.jsonSupport ?
+                                  new String(NDTUtils.readJsonMapValue(
+                                    String(_msg.body),
+                                  NDTUtils.JSON_DEFAULT_KEY))
+                                : new String(_msg.body);
       TestResults.appendDebugMsg("Received wait flag = " + waitFlagString);
       var waitFlag:int = parseInt(waitFlagString);
 
@@ -198,7 +225,8 @@ package  {
           // Client should respond with a MSG_WAITING message.
           var _msgBody:ByteArray = new ByteArray();
           _msgBody.writeByte(_testsRequestByClient);
-          _msg = new Message(MessageType.MSG_WAITING, _msgBody);
+          _msg = new Message(MessageType.MSG_WAITING, _msgBody,
+                             Main.jsonSupport);
           if (!_msg.sendMessage(_ctlSocket)) {
             failHandshake();
           }
@@ -242,7 +270,11 @@ package  {
         return;
       }
 
-      var receivedServerVersion:String = new String(_msg.body);
+      var receivedServerVersion:String = Main.jsonSupport ?
+                                         new String(NDTUtils.readJsonMapValue(
+                                           String(_msg.body),
+                                           NDTUtils.JSON_DEFAULT_KEY))
+                                       : new String(_msg.body);
       TestResults.appendDebugMsg("Server version: " + receivedServerVersion);
       // See https://code.google.com/p/ndt/issues/detail?id=104.
       if (receivedServerVersion != NDTConstants.EXPECTED_SERVER_VERSION)
@@ -297,7 +329,11 @@ package  {
         return;
       }
 
-      var confirmedTests:String = new String(_msg.body);
+      var confirmedTests:String = Main.jsonSupport ?
+                                  new String(NDTUtils.readJsonMapValue(
+                                    String(_msg.body),
+                                  NDTUtils.JSON_DEFAULT_KEY))
+                                : new String(_msg.body);
       TestResults.ndt_test_results::testsConfirmedByServer =
           TestType.listToBitwiseOR(confirmedTests);
 

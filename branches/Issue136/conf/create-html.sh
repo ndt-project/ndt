@@ -73,7 +73,7 @@ echo "s/YOURSPEED/$yourspeed/"   >> /tmp/$$
 
 
 if test -f tcpbw100.template ; then
-	TEMPLATE_FLASH=../tcpbw100.template
+	TEMPLATE_FLASH=tcpbw100.template
 elif test -f ../tcpbw100.template ; then
 	TEMPLATE_FLASH=../tcpbw100.template
 fi

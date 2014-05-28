@@ -28,6 +28,7 @@ package {
     public static var server_hostname:String = NDTConstants.SERVER_HOSTNAME;
     public static var client_application:String = NDTConstants.CLIENT_ID;
     public static var ndt_description:String = NDTConstants.NDT_DESCRIPTION;
+    public static var jsonSupport:Boolean = true;
 
     public function Main():void {
       if (stage)
@@ -47,18 +48,18 @@ package {
       // Set the properties of the SWF from HTML tags.
       NDTUtils.initializeFromHTML(this.root.loaderInfo.parameters);
 
-      var frame:NDTPController = new NDTPController(server_hostname,
-                                                    client_application);
+      var frame:NDTPController = NDTPController.getInstance();
 
       stage.showDefaultContextMenu = false;
       if (guiEnabled) {
         gui = new GUI(stage.stageWidth, stage.stageHeight, frame);
         this.addChild(gui);
-      } else {
-        // If guiEnabled compiler flag set to false, start test immediately.
-        frame.startNDTTest();
       }
       NDTUtils.addJSCallbacks();
+    }
+
+    public static function getHost():String {
+      return server_hostname;
     }
   }
 }

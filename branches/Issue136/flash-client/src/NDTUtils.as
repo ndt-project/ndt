@@ -24,6 +24,8 @@ package  {
   import mx.resources.ResourceManager;
 
   public class NDTUtils {
+    public static const JSON_DEFAULT_KEY:String = "msg";
+
     /**
      * Function that calls a JS function through the ExternalInterface class if
      * it exists by the name specified in the parameter.
@@ -47,6 +49,14 @@ package  {
       } catch (e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
+
+	// TestResults.appendDebugMsg() calls callExternalFunction
+	// to invoke JS callbacks. Without this check we can
+	// recurse infinitely.
+	if (functionName != "appendDebugOutput") {
+          TestResults.appendDebugMsg("Failed to call " + functionName + ": "
+                                     + e.toString());
+        }
       }
     }
     /**
@@ -81,6 +91,8 @@ package  {
       } catch(e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
+        TestResults.appendDebugMsg("Failed to get window.navigator.userAgent: "
+                                   + e.toString());
       }
 
       try {
@@ -92,8 +104,8 @@ package  {
             + Main.server_hostname);
         }
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Bad Flash permissions: No "
-          + "access to javascript.");
+        TestResults.appendDebugMsg("Failed to call getNDTServer(): "
+                                   + e.toString());
       }
 
       try {
@@ -107,8 +119,8 @@ package  {
             + Main.client_application);
         }
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Bad Flash permissions: No "
-          + "access to javascript.");
+        TestResults.appendDebugMsg("Failed to call getClientApplication(): "
+                                   + e.toString());
       }
 
       try {
@@ -122,8 +134,8 @@ package  {
             + Main.ndt_description);
         }
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Bad Flash permissions: No "
-          + "access to javascript.");
+        TestResults.appendDebugMsg("Failed to call getNDTDescription(): "
+                                   + e.toString());
       }
     }
 
@@ -160,11 +172,16 @@ package  {
       Security.allowDomain("*");
       try {
         ExternalInterface.addCallback(
+            "run_test", NDTPController.getInstance().startNDTTest);
+        ExternalInterface.addCallback(
+            "get_status", TestResults.getTestStatus);
+        ExternalInterface.addCallback(
             "getDebugOutput", TestResults.getDebugMsg);
         ExternalInterface.addCallback(
-            "getDetails", TestResults.getResultDetails);
+            "get_diagnosis", TestResults.getResultDetails);
         ExternalInterface.addCallback(
-            "getErrors", TestResults.getErrMsg);
+            "get_errmsg", TestResults.getErrStatus);
+        ExternalInterface.addCallback("get_host", Main.getHost);
         ExternalInterface.addCallback(
             "getNDTvar", TestResultsUtils.getNDTVariable);
       } catch (e:Error) {
@@ -218,6 +235,36 @@ package  {
         }
       }
       return bytesCount;
+    }
+
+    /**
+     * Creates string representing JSON object with single key:value pair
+     * where key is default and value is being taken from parameter.
+     *
+     * @param value null-terminated string containing value of map entry
+     * @return encoded JSON string
+     */
+    public static function createJsonFromSingleValue(value:String):String {
+      return "{\"" + JSON_DEFAULT_KEY + "\": \"" + value + "\"}";
+    }
+
+    /**
+     * Reads value from JSON object represented by jsonText using specific key
+     *
+     * @param jsonText string representing JSON object
+     * @param key by which value should be obtained from JSON map
+     */
+    public static function readJsonMapValue(jsonText:String,
+                                            key:String):String {
+      try {
+        var decodedObj:Object = JSON.parse(jsonText);
+        return decodedObj[key];
+      } catch(e:TypeError) {
+        TestResults.appendErrMsg("Error while trying to read value of " + key
+                                 + "from JSON: " + jsonText + "."
+                                 + " Original message: " + e);
+      }
+      return "";
     }
   }
 }

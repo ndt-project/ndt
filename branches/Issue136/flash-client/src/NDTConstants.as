@@ -101,6 +101,7 @@ package  {
     public static const DATA_RATE_OC_48:int = 8;
     public static const DATA_RATE_10G_ETHERNET:int = 9;
 
+    public static const ACCESS_TECH:String = "accessTech";
     public static const ACCESS_TECH_UNKNOWN:String = "Connection type unknown";
     public static const ACCESS_TECH_DIALUP:String = "Dial-up Modem";
     public static const ACCESS_TECH_CABLEDSL:String = "Cable/DSL modem";
@@ -229,6 +230,7 @@ package  {
     public static const CWIN:String = "cwin";
     public static const SPD:String = "spd";
     public static const ASPD:String = "aspd";
+    public static const OPTRCVRBUFF:String = "optimalRcvrBuffer";
   }
 }
 

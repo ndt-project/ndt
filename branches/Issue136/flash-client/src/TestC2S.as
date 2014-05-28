@@ -30,6 +30,8 @@ package  {
    * This class performs the Client-to-Server throughput test.
    */
   public class TestC2S {
+    private const SPEED_UPDATE_TIMER:int = 1000; // ms
+
     // Valid values for _testStage.
     private static const PREPARE_TEST1:int = 0;
     private static const PREPARE_TEST2:int = 1;
@@ -45,12 +47,14 @@ package  {
     private var _c2sTestSuccess:Boolean;
     // Time to send data to server on the C2S socket.
     private var _c2sTestDuration:Number;
+    private var _c2sTestStartTime:Number;
     private var _ctlSocket:Socket;
     private var _c2sSocket:Socket;
     private var _c2sSendCount:int;
     // Bytes not sent from last send operation on the C2S socket.
     private var _c2sBytesNotSent:int;
     private var _c2sTimer:Timer;
+    private var _speedUpdateTimer:Timer;
     private var _dataToSend:ByteArray;
     private var _msg:Message;
     private var _serverHostname:String;
@@ -64,6 +68,7 @@ package  {
 
       _c2sTestSuccess = true;  // Initially the test has not failed.
       _c2sTestDuration = 0;
+      _c2sTestStartTime = 0;
       _dataToSend = new ByteArray();
       _c2sSendCount = 0;
       _c2sBytesNotSent = 0;
@@ -142,7 +147,11 @@ package  {
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg(
-              "ERROR MSG: " + parseInt(new String(_msg.body), 16));
+              "ERROR MSG: " + parseInt(Main.jsonSupport ?
+                                new String(NDTUtils.readJsonMapValue(
+                                  String(_msg.body),
+                                  NDTUtils.JSON_DEFAULT_KEY))
+                              : new String(_msg.body), 16));
         }
         _c2sTestSuccess = false;
         endTest();
@@ -156,7 +165,11 @@ package  {
       TestResults.appendDebugMsg(
           "Each message of the C2S test has " + _dataToSend.length + " bytes.");
 
-      var c2sPort:int = parseInt(new String(_msg.body));
+      var c2sPort:int = parseInt(Main.jsonSupport ?
+                                   new String(NDTUtils.readJsonMapValue(
+                                     String(_msg.body),
+                                     NDTUtils.JSON_DEFAULT_KEY))
+                                 : new String(_msg.body));
       _c2sSocket = new Socket();
       addC2SSocketEventListeners();
       try {
@@ -175,6 +188,8 @@ package  {
 
       _c2sTimer = new Timer(NDTConstants.C2S_DURATION);
       _c2sTimer.addEventListener(TimerEvent.TIMER, onC2STimeout);
+      _speedUpdateTimer = new Timer(SPEED_UPDATE_TIMER);
+      _speedUpdateTimer.addEventListener(TimerEvent.TIMER, onSpeedUpdate);
       _msg = new Message();
       _testStage = START_TEST;
       TestResults.appendDebugMsg("C2S test: START_TEST stage.");
@@ -245,10 +260,23 @@ package  {
       closeC2SSocket();
     }
 
+    private function onSpeedUpdate(e:TimerEvent):void {
+      _c2sTestDuration = getTimer() - _c2sTestStartTime;
+      _c2sBytesNotSent = _c2sSocket.bytesPending;
+      var c2sByteSent:Number = (
+          _c2sSendCount * NDTConstants.PREDEFINED_BUFFER_SIZE
+          + (NDTConstants.PREDEFINED_BUFFER_SIZE - _c2sBytesNotSent));
+
+      TestResults.ndt_test_results::c2sSpeed = (c2sByteSent
+                                                * NDTConstants.BYTES2BITS
+                                                / _c2sTestDuration);
+    }
+
     private function startTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_START message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_START) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(
@@ -267,9 +295,10 @@ package  {
       removeCtlSocketOnReceivedDataListener();
 
       _c2sTimer.start();
+      _speedUpdateTimer.start();
       // Record start time right before it starts sending data, to be as
       // accurate as possible.
-      _c2sTestDuration = getTimer();
+      _c2sTestStartTime = getTimer();
 
       _testStage = SEND_DATA;
       TestResults.appendDebugMsg("C2S test: SEND_DATA stage.");
@@ -288,9 +317,11 @@ package  {
     private function closeC2SSocket():void {
       // Record end time right after it stops sending data, to be as accurate as
       // possible.
-      _c2sTestDuration = getTimer() - _c2sTestDuration;
+      _c2sTestDuration = getTimer() - _c2sTestStartTime;
       TestResults.appendDebugMsg(
           "C2S test lasted " + _c2sTestDuration + " msec.");
+      _speedUpdateTimer.stop();
+      _speedUpdateTimer.removeEventListener(TimerEvent.TIMER, onSpeedUpdate);
       _c2sTimer.stop();
       _c2sTimer.removeEventListener(TimerEvent.TIMER, onC2STimeout);
 
@@ -358,14 +389,22 @@ package  {
             Main.locale));
         if(_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _c2sTestSuccess = false;
         endTest();
         return;
       }
 
-      var sc2sSpeedStr:String = new String(_msg.body);
+      var sc2sSpeedStr:String = Main.jsonSupport ?
+                                   new String(NDTUtils.readJsonMapValue(
+                                     String(_msg.body),
+                                     NDTUtils.JSON_DEFAULT_KEY))
+                                 : new String(_msg.body);
       var sc2sSpeed:Number = parseFloat(sc2sSpeedStr);
       if (isNaN(sc2sSpeed)) {
         TestResults.appendErrMsg(
@@ -396,7 +435,8 @@ package  {
     private function finalizeTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_FINALIZE message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_FINALIZE) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(

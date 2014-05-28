@@ -31,6 +31,7 @@ package  {
   public class TestS2C {
     // Timer for single read operation.
     private const READ_TIMEOUT:int = 15000; // 15sec
+    private const SPEED_UPDATE_TIMER:int = 1000; // ms
 
     // Valid values for _testStage.
     private static const PREPARE_TEST1:int = 0;
@@ -43,21 +44,25 @@ package  {
     private static const GET_WEB1001:int = 7;
     private static const GET_WEB1002:int = 8;
     private static const END_TEST:int = 9;
+    private static const THROUGHPUT_VALUE:String = "ThroughputValue";
+    private static const UNSENT_DATA_AMOUNT:String = "UnsentDataAmount";
+    private static const TOTAL_SENT_BYTE:String = "TotalSentByte";
 
     private var _callerObj:NDTPController;
     private var _ctlSocket:Socket;
     private var _msg:Message;
     private var _readTimer:Timer;
+    private var _speedUpdateTimer:Timer;
     private var _s2cByteCount:int;
     private var _s2cSocket:Socket;
     private var _s2cTimer:Timer;
     // Time to send data to client on the S2C socket.
     private var _s2cTestDuration:Number;
+    private var _s2cTestStartTime:Number;
     private var _s2cTestSuccess:Boolean;
     private var _serverHostname:String;
     private var _testStage:int;
     private var _web100VarResult:String;
-
 
     public function TestS2C(ctlSocket:Socket, serverHostname:String,
                             callerObj:NDTPController) {
@@ -67,6 +72,7 @@ package  {
 
       _s2cTestSuccess = true;  // Initially the test has not failed.
       _s2cTestDuration = 0;
+      _s2cTestStartTime = 0;
       _s2cByteCount = 0;
       _web100VarResult = "";
     }
@@ -147,14 +153,22 @@ package  {
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg(
-              "ERROR MESSAGE : " + parseInt(new String(_msg.body), 16));
+              "ERROR MESSAGE : " + parseInt(Main.jsonSupport ?
+                                     new String(NDTUtils.readJsonMapValue(
+                                       String(_msg.body),
+                                       NDTUtils.JSON_DEFAULT_KEY))
+                                   : new String(_msg.body), 16));
         }
         _s2cTestSuccess = false;
         endTest();
         return;
       }
 
-      var s2cPort:int = parseInt(new String(_msg.body));
+      var s2cPort:int = parseInt(Main.jsonSupport ?
+                                   new String(NDTUtils.readJsonMapValue(
+                                     String(_msg.body),
+                                     NDTUtils.JSON_DEFAULT_KEY))
+                                 : new String(_msg.body));
       _s2cSocket = new Socket();
       addS2CSocketEventListeners();
       try {
@@ -172,6 +186,8 @@ package  {
       }
       _readTimer = new Timer(READ_TIMEOUT);
       _readTimer.addEventListener(TimerEvent.TIMER, onS2CTimeout);
+      _speedUpdateTimer = new Timer(SPEED_UPDATE_TIMER);
+      _speedUpdateTimer.addEventListener(TimerEvent.TIMER, onSpeedUpdate);
       _s2cTimer = new Timer(NDTConstants.S2C_DURATION);
       _s2cTimer.addEventListener(TimerEvent.TIMER, onS2CTimeout);
       _msg = new Message();
@@ -235,10 +251,18 @@ package  {
       receiveData();
     }
 
+    private function onSpeedUpdate(e:TimerEvent):void {
+      _s2cTestDuration = getTimer() - _s2cTestStartTime;
+      TestResults.ndt_test_results::s2cSpeed = _s2cByteCount
+                                               * NDTConstants.BYTES2BITS
+                                               / _s2cTestDuration;
+    }
+
     private function startTest():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
-      // TEST_START message has no body.
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type != MessageType.TEST_START) {
         // See https://code.google.com/p/ndt/issues/detail?id=105
@@ -258,9 +282,10 @@ package  {
 
       _readTimer.start();
       _s2cTimer.start();
+      _speedUpdateTimer.start();
       // Record start time right before it starts receiving data, to be as
       // accurate as possible.
-      _s2cTestDuration = getTimer();
+      _s2cTestStartTime = getTimer();
 
       _testStage = RECEIVE_DATA;
       TestResults.appendDebugMsg("S2C test: RECEIVE_DATA stage.");
@@ -290,9 +315,11 @@ package  {
       // Record end time right after it stops receiving data, to be as accurate
       // as possible.
       _s2cTimer.stop();
-      _s2cTestDuration = getTimer() - _s2cTestDuration;
+      _s2cTestDuration = getTimer() - _s2cTestStartTime;
       TestResults.appendDebugMsg(
           "S2C test lasted " + _s2cTestDuration + " msec.");
+      _speedUpdateTimer.stop();
+      _speedUpdateTimer.removeEventListener(TimerEvent.TIMER, onSpeedUpdate);
       _readTimer.stop();
       _readTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
       _s2cTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
@@ -344,29 +371,44 @@ package  {
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _s2cTestSuccess = false;
         endTest();
         return;
       }
 
-      var _msgBody:String = new String(_msg.body);
-      var _msgFields:Array = _msgBody.split(" ");
-      if (_msgFields.length != 3) {
-        TestResults.appendErrMsg(
-            ResourceManager.getInstance().getString(
-                NDTConstants.BUNDLE_NAME, "inboundWrongMessage", null,
-                Main.locale)
-            + "Message received: " + _msgBody);
-        _s2cTestSuccess = false;
-        endTest();
-        return;
-      }
+      var _msgBody:String, sc2sSpeed:Number, sSendQueue:int, sBytes:Number;
+      _msgBody = new String(_msg.body);
+      if (Main.jsonSupport) {
+        sc2sSpeed = parseFloat(NDTUtils.readJsonMapValue(_msgBody,
+                                                         THROUGHPUT_VALUE));
+        sSendQueue = parseInt(NDTUtils.readJsonMapValue(_msgBody,
+                                                        UNSENT_DATA_AMOUNT));
+        sBytes = parseFloat(NDTUtils.readJsonMapValue(_msgBody,
+                                                      TOTAL_SENT_BYTE));
+      } else {
+        var _msgFields:Array = _msgBody.split(" ");
+        if (_msgFields.length != 3) {
+          TestResults.appendErrMsg(
+              ResourceManager.getInstance().getString(
+                  NDTConstants.BUNDLE_NAME, "inboundWrongMessage", null,
+                  Main.locale)
+              + "Message received: " + _msgBody);
+          _s2cTestSuccess = false;
+          endTest();
+          return;
+        }
 
-      var sc2sSpeed:Number = parseFloat(_msgFields[0]);
-      var sSendQueue:int = parseInt(_msgFields[1]);
-      var sBytes:Number = parseFloat(_msgFields[2]);
+        sc2sSpeed = parseFloat(_msgFields[0]);
+        sSendQueue = parseInt(_msgFields[1]);
+        sBytes = parseFloat(_msgFields[2]);
+	  }
+
       if (isNaN(sc2sSpeed) || isNaN(sSendQueue) || isNaN(sBytes)) {
         TestResults.appendErrMsg(
             ResourceManager.getInstance().getString(
@@ -399,11 +441,12 @@ package  {
                                  + s2cSpeed.toFixed(2) + " kbps.");
 
       var sendData:ByteArray = new ByteArray();
-      sendData.writeFloat(s2cSpeed);
+      sendData.writeUTFBytes(String(s2cSpeed));
       TestResults.appendDebugMsg(
-          "Sending '" + s2cSpeed + "' back to the server.");
+          "Sending '" + String(s2cSpeed) + "' back to the server.");
 
-      var _msgToSend:Message = new Message(MessageType.TEST_MSG, sendData);
+      var _msgToSend:Message = new Message(MessageType.TEST_MSG, sendData,
+                                           Main.jsonSupport);
       if (!_msgToSend.sendMessage(_ctlSocket)) {
         _s2cTestSuccess = false;
         endTest();
@@ -439,7 +482,9 @@ package  {
       if (!_msg.readHeader(_ctlSocket))
         return;
 
+
       if (_msg.type == MessageType.TEST_FINALIZE) {
+		TestResults.appendDebugMsg("!!" + _msg.type + " " + _msg.length + "\n");
         // All web100 variables have been sent by the server.
         _readTimer.stop();
         _readTimer.removeEventListener(TimerEvent.TIMER, onWeb100ReadTimeout);
@@ -458,14 +503,17 @@ package  {
     private function getWeb100Vars2():void {
       if (!_msg.readBody(_ctlSocket, _msg.length))
         return;
-
       if (_msg.type != MessageType.TEST_MSG) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(
             NDTConstants.BUNDLE_NAME, "inboundWrongMessage", null,
             Main.locale));
         if (_msg.type == MessageType.MSG_ERROR) {
           TestResults.appendErrMsg("ERROR MSG: "
-                                   + parseInt(new String(_msg.body), 16));
+                                   + parseInt(Main.jsonSupport ?
+                                       new String(NDTUtils.readJsonMapValue(
+                                         String(_msg.body),
+                                         NDTUtils.JSON_DEFAULT_KEY))
+                                     : new String(_msg.body), 16));
         }
         _readTimer.stop();
         _readTimer.removeEventListener(TimerEvent.TIMER, onWeb100ReadTimeout);
@@ -474,18 +522,23 @@ package  {
         endTest();
         return;
       }
-      _web100VarResult += new String(_msg.body);
+      _web100VarResult += Main.jsonSupport ?
+                            new String(NDTUtils.readJsonMapValue(
+                              String(_msg.body),
+                              NDTUtils.JSON_DEFAULT_KEY))
+                          : new String(_msg.body);
       _testStage = GET_WEB1001;
       if (_ctlSocket.bytesAvailable > 0)
         getWeb100Vars1();
     }
 
     private function endTest():void {
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
       TestResults.ndt_test_results::s2cTestResults = _web100VarResult;
       removeCtlSocketOnReceivedDataListener();
 
       TestResults.appendDebugMsg("S2C test: END_TEST stage.");
-
       if (_s2cTestSuccess)
          TestResults.appendDebugMsg(
              ResourceManager.getInstance().getString(

@@ -19,6 +19,7 @@
 #include "network.h"
 #include "protocol.h"
 #include "utils.h"
+#include "jsonutils.h"
 
 int pkts, lth;
 int sndqueue;
@@ -31,13 +32,14 @@ double spdout, c2sspd;
  * @param tests set of tests to perform
  * @param host  hostname of the server
  * @param conn_options connection options
+ * @param jsonSupport indicates if messages should be send using JSON format
  * @return integer
  * 		 0 = (the test has been finalized)
  *      >0 if protocol interactions were not as expected:
  *     		1: Unable to receive protocol message successfully
  * 			2: Wrong message type received
  */
-int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
+int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options, int jsonSupport) {
   char buff[1024], tmpBuff[512];
   int msgLen, msgType;
   FILE * fp;
@@ -83,7 +85,8 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
     fflush(stdout);
 
     snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_APPLICATION, "cli");
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
+                      jsonSupport, JSON_SINGLE_VALUE);
     // send client os name details
     if ((fp = fopen("/proc/sys/kernel/ostype", "r")) == NULL) {
       log_println(0, "Unable to determine client os type.");
@@ -91,12 +94,14 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
       fscanf(fp, "%s", tmpBuff);
       fclose(fp);
       snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_OS, tmpBuff);
-      send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+      send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
+                        jsonSupport, JSON_SINGLE_VALUE);
     }
 
     // send client browser name
     snprintf(buff, sizeof(buff), "%s:%s", META_BROWSER_OS, "- (web100clt)");
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
+                      jsonSupport, JSON_SINGLE_VALUE);
 
     // send client kernel version
     if ((fp = fopen("/proc/sys/kernel/osrelease", "r")) == NULL) {
@@ -106,16 +111,18 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options) {
       fclose(fp);
       snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_KERNEL_VERSION,
                tmpBuff);
-      send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+      send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
+                        jsonSupport, JSON_SINGLE_VALUE);
     }
 
     // send NDT client version
     snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_VERSION, VERSION);
-    send_msg(ctlSocket, TEST_MSG, buff, strlen(buff));
+    send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
+                      jsonSupport, JSON_SINGLE_VALUE);
 
     // Client can send any number of such meta data in a TEST_MSG
     // .. format, and signal the end of the transmission using an empty TEST_MSG
-    send_msg(ctlSocket, TEST_MSG, "", 0);
+    send_json_message(ctlSocket, TEST_MSG, "", 0, jsonSupport, JSON_SINGLE_VALUE);
 
     printf("Done\n");
 

@@ -30,6 +30,7 @@ package  {
    * the measurement tests and the retrieval of the test results.
    */
   public class NDTPController {
+    private static var _instance:NDTPController = null;
     private const READ_TIMEOUT:int = 10000;  // 10sec
     // Valid values for _testStage.
     private const REMOTE_RESULTS1:int = 0;
@@ -52,10 +53,26 @@ package  {
       _remoteTestResults = ""
     }
 
+    public static function getInstance():NDTPController {
+      if (_instance == null) {
+        _instance = new NDTPController(Main.server_hostname,
+                                       Main.client_application);
+      }
+      return _instance;
+    }
+
     public function startNDTTest():void {
       _currentTest = 0;
+      // socket was once opened so do not clear previous debug messages
+      // and just try to connect again to server using old MSG_LOGIN message
+      if (_ctlSocket) {
+        removeSocketEventListeners();
+      } else {
+        TestResults.clearResults();
+      }
       TestResults.recordStartTime();
       TestResults.ndt_test_results::ndtTestFailed = false;
+      TestResults.ndt_test_results::ndtErrStatus = "Test in progress.";
       TestResults.appendDebugMsg(ResourceManager.getInstance().getString(
               NDTConstants.BUNDLE_NAME, "connectingTo", null, Main.locale)
           + " " + _hostname + " " + ResourceManager.getInstance().getString(
@@ -84,6 +101,14 @@ package  {
       _ctlSocket.addEventListener(IOErrorEvent.IO_ERROR, onIOError);
       _ctlSocket.addEventListener(SecurityErrorEvent.SECURITY_ERROR,
                                   onSecurityError);
+    }
+
+    private function removeSocketEventListeners():void {
+      _ctlSocket.removeEventListener(Event.CONNECT, onConnect);
+      _ctlSocket.removeEventListener(Event.CLOSE, onClose);
+      _ctlSocket.removeEventListener(IOErrorEvent.IO_ERROR, onIOError);
+      _ctlSocket.removeEventListener(SecurityErrorEvent.SECURITY_ERROR,
+                                     onSecurityError);
     }
 
     private function onConnect(e:Event):void {
@@ -186,6 +211,8 @@ package  {
     private function getRemoteResults1():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
+      if (!_msg.readBody(_ctlSocket, _msg.length))
+        return;
 
       if (_msg.type == MessageType.MSG_LOGOUT) {
         // All results obtained.
@@ -205,9 +232,6 @@ package  {
     }
 
     private function getRemoteResults2():void {
-      if (!_msg.readBody(_ctlSocket, _msg.length))
-        return;
-
       if (_msg.type != MessageType.MSG_RESULTS) {
         TestResults.appendErrMsg(ResourceManager.getInstance().getString(
             NDTConstants.BUNDLE_NAME, "resultsWrongMessage", null,
@@ -218,7 +242,11 @@ package  {
         return;
       }
 
-      _remoteTestResults += new String(_msg.body);
+      _remoteTestResults += Main.jsonSupport ?
+                            new String(NDTUtils.readJsonMapValue(
+                              String(_msg.body),
+                              NDTUtils.JSON_DEFAULT_KEY))
+                          : new String(_msg.body);
       _msg = new Message();
       _testStage = REMOTE_RESULTS1;
       if (_ctlSocket.bytesAvailable > 0)
@@ -251,6 +279,11 @@ package  {
             "Client failed to close Control socket. Error" + e);
       }
 
+      if (!TestResults.ndt_test_results::ndtTestFailed) {
+        TestResults.ndt_test_results::ndtErrStatus = "All tests completed OK.";
+      } else {
+        TestResults.ndt_test_results::ndtErrStatus = TestResults.getErrMsg();
+      }
       TestResults.recordEndTime();
       TestResults.ndt_test_results::remoteTestResults += _remoteTestResults;
 

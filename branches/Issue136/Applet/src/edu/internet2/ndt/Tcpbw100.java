@@ -167,7 +167,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	NewFrame _frameWeb100Vars, _frameDetailedStats, _frameOptions;
 	// String s; Unused, commenting out
 	double _dTime;
-        int _s2cspdUpdateTime = 500, _c2sspdUpdateTime = 500; // ms
+	int _s2cspdUpdateTime = 500, _c2sspdUpdateTime = 500; // ms
 	int _iECNEnabled, _iNagleEnabled, MSSSent, MSSRcvd;
 	int _iSACKEnabled, _iTimestampsEnabled, _iWinScaleRcvd, _iWinScaleSent;
 	int _iFastRetran, _iAckPktsOut, _iSmoothedRTT, _iCurrentCwnd, _iMaxCwnd;
@@ -177,7 +177,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	int _iSumRTT, _iCountRTT, _iCurrentMSS, _iTimeouts, _iPktsRetrans;
 	int _iSACKsRcvd, _iDupAcksIn, _iMaxRwinRcvd, _iMaxRwinSent;
 	int _iDataPktsOut, _iRcvbuf, _iSndbuf, _iAckPktsIn;
-        long _iDataBytesOut;
+	long _iDataBytesOut;
 	int _iPktsOut, _iCongestionSignals, _iRcvWinScale;
 	// int _iPkts, _iLength=8192, _iCurrentRTO;
 	int _iPkts, _iLength = NDTConstants.PREDEFINED_BUFFER_SIZE, _iCurrentRTO;
@@ -191,7 +191,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	double _dS2cspd, _dC2sspd, _dSc2sspd, _dSs2cspd;
 	int _iSsndqueue;
 	double _dSbytes;
-        byte[] _yabuff2Write;
+	byte[] _yabuff2Write;
 
 	/**
 	 * Added by Martin Sandsmark, UNINETT AS Internationalization
@@ -253,7 +253,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	// private String pub_CWNDpeaks = ""; // source variable does not exist
 	private int pub_SACKsRcvd = 0;
 	private String pub_osVer = "unknown";
-	private String pub_javaVer = "unknown";
+	private String pub_pluginVer = "unknown";
 	private String pub_host = "unknown";
 	private String pub_osName = "unknown";
 	private String pub_osArch = "unknown";
@@ -265,6 +265,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	private String pub_AccessTech = "unknown";
 	private String pub_natBox = "unknown";
 	private int pub_DupAcksOut = 0;
+	private int pub_DupAcksIn = 0;
 	private Date pub_TimeStamp;
 	private String pub_isReady = new String("no");
 	private String pub_clientIP = "unknown";
@@ -278,6 +279,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	private long pub_bytes = 0;
 	private String _sIsAutoRun;
 	private String _sUserAgent = null;
+	private boolean jsonSupport = true;
+	private boolean retry = false;
 
 	/**
 	 * public static void main for invoking as an Application
@@ -297,9 +300,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 		});
 		applet._bIsApplication = true;
-                if (args.length > 1) {
-                        applet._sClient = args[1];
-                }
+		if (args.length > 1) {
+				applet._sClient = args[1];
+		}
 		frame.getContentPane().add(applet);
 		frame.setSize(700, 320);
 		applet.init();
@@ -358,8 +361,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		return pub_osVer;
 	}
 
-	public String get_javaVer() {
-		return pub_javaVer;
+	public String get_pluginVer() {
+		return pub_pluginVer;
 	}
 
 	public String get_host() {
@@ -417,7 +420,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	}
 
 	public String get_optimalRcvrBuffer() {
-	    	//buffer size in bits
+		//buffer size in bits
 		return Integer.toString(pub_MaxRwinRcvd * NDTConstants.KILO_BITS);
 	}
 
@@ -431,6 +434,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	public String get_DupAcksOut() {
 		return Integer.toString(pub_DupAcksOut);
+	}
+
+	public String get_DupAcksIn() {
+			return Integer.toString(pub_DupAcksIn);
 	}
 
 	public String get_TimeStamp() {
@@ -482,7 +489,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	}
 
 	public String get_instSpeed() {
-	    	//Get speed in bits, hence multiply by 8 for byte->bit conversion
+		//Get speed in bits, hence multiply by 8 for byte->bit conversion
 		return Double.toString((NDTConstants.EIGHT * pub_bytes)
 				/ (System.currentTimeMillis() - pub_time));
 	}
@@ -521,7 +528,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * Set Client->Server fire-wall test results.
 	 *
 	 * @param iParamC2SRes
-	 *            integer indicating C->S test results
+	 *    	    integer indicating C->S test results
 	 * */
 	public void setC2sSFWTestResults(int iParamC2SRes) {
 		this._iC2sSFWResult = iParamC2SRes;
@@ -891,7 +898,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		_chkboxPreferIPv6 = new JCheckBox(
 				_resBundDisplayMsgs.getString("preferIPv6"));
 		_chkboxPreferIPv6.setSelected(true);
-	    _chkboxPreferIPv6.addActionListener(this);
+		_chkboxPreferIPv6.addActionListener(this);
 		// 2. Conduct default tests?
 		_chkboxDefaultTest = new JCheckBox(
 				_resBundDisplayMsgs.getString("defaultTests"));
@@ -1122,10 +1129,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_frameWeb100Vars.setResizable(true);
 			_frameWeb100Vars.setVisible(true);
 
-            if (NDTUtils.isNotEmpty(_txtDiagnosis.getText())) {
-                // enable copy button only if there is details informations
-                _buttonDetailsCopy.setEnabled(true);
-            }
+			if (NDTUtils.isNotEmpty(_txtDiagnosis.getText())) {
+				// enable copy button only if there is details informations
+				_buttonDetailsCopy.setEnabled(true);
+			}
 		}
 		// "More Details" Web100 variables window to be closed
 		else if (source == _buttonDetailsDismiss) {
@@ -1143,8 +1150,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		// "Statistics" copy button functionality
 		else if (source == _buttonStatsCopy) {
-            copy(_txtStatistics);
-        }
+			copy(_txtStatistics);
+		}
 		// Show "statistics" window
 		else if (source == _buttonStatistics) {
 			_frameDetailedStats.setResizable(true);
@@ -1157,7 +1164,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		// prefer IPv6 checkbox
 		else if (source == _chkboxPreferIPv6) {
-            setsHostName(sHostName);
+			setsHostName(sHostName);
 		}
 		// mail to functionality
 		else if (source == _buttonMailTo) {
@@ -1216,33 +1223,31 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		} // end mail-to functionality
 	} // actionPerformed()
 
-    /**
-     * Copy text from JTextarea to clipboard
-     *
-     * @param _txt
-     *            Source copied text to clipboard
-     * */
-    private void copy (JTextArea _txt) {
-        try {
-            Clipboard clipbd = getToolkit().getSystemClipboard();
-            _bCanCopy = true;
-            String sTemp = _txt.getText();
-            StringSelection ssTemp = new StringSelection(sTemp);
-            clipbd.setContents(ssTemp, ssTemp);
-        } catch (SecurityException e) {
-            _bCanCopy = false;
-            // this Exception is only when the client cannot copy
-            // some data, and is acted on by disabling the
-            // copy button.
-            System.err.println(" You may not have some security Permissions. Please confirm");
-        }
-    }
+	/**
+	 * Copy text from JTextarea to clipboard
+	 *
+	 * @param _txt Source copied text to clipboard
+	 * */
+	private void copy (JTextArea _txt) {
+		try {
+			Clipboard clipbd = getToolkit().getSystemClipboard();
+			_bCanCopy = true;
+			String sTemp = _txt.getText();
+			StringSelection ssTemp = new StringSelection(sTemp);
+			clipbd.setContents(ssTemp, ssTemp);
+		} catch (SecurityException e) {
+			_bCanCopy = false;
+			// this Exception is only when the client cannot copy
+			// some data, and is acted on by disabling the
+			// copy button.
+			System.err.println(" You may not have some security Permissions. Please confirm");
+		}
+	}
 
 	/**
 	 * Display current status in Applet window.
 	 *
-	 * @param msg
-	 *            String value of status
+	 * @param msg String value of status
 	 * */
 	public void showStatus(String msg) {
 		if (!_bIsApplication) {
@@ -1263,7 +1268,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
-	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab) These methods
+	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab) These methods
 	 *      indicate more information about IOException
 	 * */
 
@@ -1292,7 +1297,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// as a failure
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1303,14 +1308,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
 			}
 
 			// get port number that server wants client to bind to for this test
-			int midport = Integer.parseInt(new String(msg.getBody()));
+			int midport = parseMsgBodyToInt(new String(msg.getBody()));
 
 			// connect to server using port obtained above
 			Socket midSrvrSockObj = null;
@@ -1377,7 +1382,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 				// msg not received correctly
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1391,7 +1396,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				// get error code
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1405,31 +1410,68 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																			// Double.toString(_dS2cspd*
 																			// 1000);
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
-			paramProtoObj.send_msg(MessageType.TEST_MSG, tmpstr4.getBytes());
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG, tmpstr4.getBytes());
 
 			// Append server address as seen by the client
 			// to the Test Results obtained from server
-			try {
-				_sMidBoxTestResult += midSrvrSockObj.getInetAddress() + ";";
-			} catch (SecurityException e) {
-				System.err
-						.println("Unable to obtain Servers IP addresses: using "
-								+ sHostName);
-				_sErrMsg = "getInetAddress() called failed\n";
-				_sMidBoxTestResult += sHostName + ";";
-				_resultsTxtPane.append(_resBundDisplayMsgs
-						.getString("lookupError") + "\n");
-			}
+			if (jsonSupport) {
+				String sClientSideServerIp;
+				try {
+					// Get Client reported server IP
+					sClientSideServerIp = midSrvrSockObj.getInetAddress() + "";
+				} catch (SecurityException e) {
+					System.err
+							.println("Unable to obtain Servers IP addresses: using "
+									+ sHostName);
+					_sErrMsg = "getInetAddress() called failed\n";
+					sClientSideServerIp = sHostName;
+					_resultsTxtPane.append(_resBundDisplayMsgs
+							.getString("lookupError") + "\n");
+				}
+				int k = sClientSideServerIp.indexOf("/");
+				sClientSideServerIp = sClientSideServerIp.substring(k + 1);
+				_sMidBoxTestResult = JSONUtils.addValueToJsonObj(_sMidBoxTestResult, "ClientSideServerIp", sClientSideServerIp);
 
-			// Append local address to the Test results obtained from server
-			System.err.println("calling in2Socket.getLocalAddress()");
-			try {
-				_sMidBoxTestResult += midSrvrSockObj.getLocalAddress() + ";";
-			} catch (SecurityException e) {
-				System.err
-						.println("Unable to obtain local IP address: using 127.0.0.1");
-				_sErrMsg = "getLocalAddress() call failed\n";
-				_sMidBoxTestResult += NDTConstants.LOOPBACK_ADDRS_STRING + ";";
+
+				// Append local address to the Test results obtained from server
+				System.err.println("calling in2Socket.getLocalAddress()");
+				String sClientSideClientIp;
+				try {
+					sClientSideClientIp = midSrvrSockObj.getLocalAddress() + ";";
+				} catch (SecurityException e) {
+					System.err
+							.println("Unable to obtain local IP address: using 127.0.0.1");
+					_sErrMsg = "getLocalAddress() call failed\n";
+					sClientSideClientIp = NDTConstants.LOOPBACK_ADDRS_STRING + ";";
+				}
+
+				k = sClientSideClientIp.indexOf("/");
+				sClientSideClientIp = sClientSideClientIp.substring(k + 1);
+				_sMidBoxTestResult = JSONUtils.addValueToJsonObj(_sMidBoxTestResult, "ClientSideClientIp", sClientSideClientIp);
+			} else {
+				try {
+					_sMidBoxTestResult += midSrvrSockObj.getInetAddress() + ";";
+				} catch (SecurityException e) {
+					System.err
+							.println("Unable to obtain Servers IP addresses: using "
+									+ sHostName);
+					_sErrMsg = "getInetAddress() called failed\n";
+					_sMidBoxTestResult += sHostName + ";";
+					_resultsTxtPane.append(_resBundDisplayMsgs
+							.getString("lookupError") + "\n");
+				}
+
+
+				// Append local address to the Test results obtained from server
+				System.err.println("calling in2Socket.getLocalAddress()");
+				try {
+					_sMidBoxTestResult += midSrvrSockObj.getLocalAddress() + ";";
+				} catch (SecurityException e) {
+					System.err
+							.println("Unable to obtain local IP address: using 127.0.0.1");
+					_sErrMsg = "getLocalAddress() call failed\n";
+					_sMidBoxTestResult += NDTConstants.LOOPBACK_ADDRS_STRING + ";";
+				}
 			}
 
 			// wrap up test set up
@@ -1440,7 +1482,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Expect TEST_FINALIZE message from server
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1452,7 +1494,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_sErrMsg = _resBundDisplayMsgs.getString("mboxWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1472,14 +1514,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * server. Tests are performed in both directions.
 	 *
 	 * @param protocolObj
-	 *            Protocol Object used for message exchange
+	 *    	    Protocol Object used for message exchange
 	 * @return boolean, true if test was not completed, false if test was
 	 *         completed.
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails. See the @see
 	 *             methods for more information on causes for Exception.
 	 * @see Protocol#recv_msg(Message msgParam)
-	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
+	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab)
 	 *
 	 * */
 	public boolean test_sfw(Protocol protocolObj) throws IOException {
@@ -1499,7 +1541,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Message received in error?
 			if (protocolObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1512,7 +1554,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1526,14 +1568,25 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// single space
 
 			int iSrvPort, iTestTime;
-			try {
-				int k = sMsgBody.indexOf(" ");
-				iSrvPort = Integer.parseInt(sMsgBody.substring(0, k));
-				iTestTime = Integer.parseInt(sMsgBody.substring(k + 1));
-			} catch (Exception e) {
-				_sErrMsg = _resBundDisplayMsgs.getString("sfwWrongMessage")
-						+ "\n";
-				return true;
+			if (jsonSupport) {
+				try {
+					iSrvPort = Integer.parseInt(JSONUtils.getValueFromJsonObj(new String(msg.getBody()), "empheralPortNumber"));
+					iTestTime = Integer.parseInt(JSONUtils.getValueFromJsonObj(new String(msg.getBody()), "testTime"));
+				} catch (Exception e) {
+					_sErrMsg = _resBundDisplayMsgs.getString("sfwWrongMessage")
+							+ "\n";
+					return true;
+				}
+			} else {
+				try {
+					int k = sMsgBody.indexOf(" ");
+					iSrvPort = Integer.parseInt(sMsgBody.substring(0, k));
+					iTestTime = Integer.parseInt(sMsgBody.substring(k + 1));
+				} catch (Exception e) {
+					_sErrMsg = _resBundDisplayMsgs.getString("sfwWrongMessage")
+							+ "\n";
+					return true;
+				}
 			}
 
 			System.out.println("SFW: port=" + iSrvPort);
@@ -1560,7 +1613,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			System.out.println("SFW: oport=" + srvSocket.getLocalPort());
 			// Send TEST_MSG
-			protocolObj.send_msg(MessageType.TEST_MSG,
+			protocolObj.send_json_msg(MessageType.TEST_MSG,
 					Integer.toString(srvSocket.getLocalPort()).getBytes());
 
 			// Expect a TEST_START message from the server
@@ -1569,7 +1622,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																						// receiving
 																						// message
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1578,7 +1631,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_sErrMsg = _resBundDisplayMsgs.getString("sfwWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1598,9 +1651,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						iTestTime * NDTConstants.KILO);
 
 				Protocol sfwCtl = new Protocol(sfwSocket);
+				sfwCtl.setJsonSupport(jsonSupport);
 
 				// send a simple string message over this socket
-				sfwCtl.send_msg(MessageType.TEST_MSG, new String(
+				sfwCtl.send_json_msg(MessageType.TEST_MSG, new String(
 						NDTConstants.SFW_PREDEFINED_TEST_MESSAGE).getBytes());
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -1613,7 +1667,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																						// reading
 																						// Protocol
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1624,7 +1678,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1632,7 +1686,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// This is an integer with value 0/1/2/3 indicating status of a
 			// firewall's presence
-			_iC2sSFWResult = Integer.parseInt(new String(msg.getBody()));
+			_iC2sSFWResult = parseMsgBodyToInt(new String(msg.getBody()));
 
 			// Sleep for some time
 			osfwTest.finalize();
@@ -1643,7 +1697,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																						// reading
 																						// message
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1654,7 +1708,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1682,7 +1736,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
-	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
+	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab)
 	 *
 	 */
 	public boolean test_c2s(Protocol paramProtoObj) throws IOException {
@@ -1706,7 +1760,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// receive/read
 																							// error
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1718,13 +1772,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						.getString("outboundWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
 			}
 			// Server sends port number to bind to in the TEST_PREPARE
-			int iC2sport = Integer.parseInt(new String(msg.getBody()));
+			int iC2sport = parseMsgBodyToInt(new String(msg.getBody()));
 
 			// client connects to this port
 			final Socket outSocket;
@@ -1755,7 +1809,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// reading/receiving
 																							// message
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1766,7 +1820,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						.getString("outboundWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -1779,7 +1833,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				if (c == 'z') {
 					c = '0';
 				}
-                                _yabuff2Write[i] = c++;
+				_yabuff2Write[i] = c++;
 			}
 			System.err.println("******Send buffer size =" + i);
 
@@ -1810,14 +1864,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}.start();
 
-                        Timer c2sspdUpdateTimer = new Timer();
-                        c2sspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
-                            @Override
-                            public void run() {
-                                pub_c2sspd = ((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / NDTConstants.KILO)
-                                        / (System.currentTimeMillis() - _dTime);
-                            }
-                        }, 100, _c2sspdUpdateTime);
+			Timer c2sspdUpdateTimer = new Timer();
+			c2sspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+				@Override
+				public void run() {
+					pub_c2sspd = ((NDTConstants.EIGHT * _iPkts * _yabuff2Write.length) / NDTConstants.KILO)
+							/ (System.currentTimeMillis() - _dTime);
+				}
+			}, 100, _c2sspdUpdateTime);
 
 			// While the 10 s timer ticks, write buffer data into server socket
 			while (true) {
@@ -1844,7 +1898,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				pub_bytes = (_iPkts * _iLength);
 			}
 
-                        c2sspdUpdateTimer.cancel();
+			c2sspdUpdateTimer.cancel();
 			_dTime = System.currentTimeMillis() - _dTime;
 			System.err.println(_dTime + " millisec test completed" + ","
 					+ _yabuff2Write.length + ","+ _iPkts);
@@ -1869,7 +1923,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// reading/receiving
 																							// data
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1880,13 +1934,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						.getString("outboundWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
 			}
 			// Get throughput as calculated by server
-			String tmpstr3 = new String(msg.getBody());
+			String tmpstr3;
+			if (jsonSupport) {
+				tmpstr3 = JSONUtils.getSingleMessage(new String(msg.getBody()));
+			} else {
+				tmpstr3 = new String(msg.getBody());
+			}
+
 			_dSc2sspd = Double.parseDouble(tmpstr3) / NDTConstants.KILO;
 
 			// Print results in the most convenient units (kbps or Mbps)
@@ -1910,7 +1970,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // read/receive
 																							// error
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1921,7 +1981,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						.getString("outboundWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true; // true indicates test incomplete
@@ -1943,7 +2003,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
-	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
+	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab)
 	 *
 	 * */
 	public boolean test_s2c(Protocol paramProtoObj, Socket paramSocketObj)
@@ -1966,7 +2026,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // read/receive
 																							// error
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -1976,13 +2036,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
 			}
 			// get port to bind to for S2C tests
-			int iS2cport = Integer.parseInt(new String(msg.getBody()));
+			int iS2cport = parseMsgBodyToInt(new String(msg.getBody()));
 
 			// Create socket and bind to port as instructed by server
 			Socket inSocket;
@@ -2010,7 +2070,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // erroneous
 																							// read/receive
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -2020,7 +2080,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_sErrMsg = _resBundDisplayMsgs.getString("inboundWrongMessage") + "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -2031,14 +2091,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_dTime = System.currentTimeMillis();
 			pub_time = _dTime;
 
-                        Timer s2cspdUpdateTimer = new Timer();
-                        s2cspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
-                            @Override
-                            public void run() {
-                                pub_s2cspd = ((NDTConstants.EIGHT * pub_bytes) / NDTConstants.KILO)
-                                        / (System.currentTimeMillis() - _dTime);
-                            }
-                        }, 100, _s2cspdUpdateTime);
+			Timer s2cspdUpdateTimer = new Timer();
+			s2cspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
+				@Override
+				public void run() {
+					pub_s2cspd = ((NDTConstants.EIGHT * pub_bytes) / NDTConstants.KILO)
+							/ (System.currentTimeMillis() - _dTime);
+				}
+			}, 100, _s2cspdUpdateTime);
 
 			// read data sent by server
 			try {
@@ -2056,8 +2116,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_sErrMsg = "Server Failed while reading socket data\n";
 				return true;
 			} finally {
-                                s2cspdUpdateTimer.cancel();
-                        }
+					s2cspdUpdateTimer.cancel();
+			}
 
 			// get time duration during which bytes were received
 			_dTime = System.currentTimeMillis() - _dTime;
@@ -2081,7 +2141,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// of
 																							// msg
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -2091,27 +2151,43 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
 			}
 			// get data from payload
-			try {
-				String tmpstr3 = new String(msg.getBody());
-				int k1 = tmpstr3.indexOf(" ");
-				int k2 = tmpstr3.substring(k1 + 1).indexOf(" ");
-				_dSs2cspd = Double.parseDouble(tmpstr3.substring(0, k1))
-						/ NDTConstants.KILO;
-				_iSsndqueue = Integer.parseInt(tmpstr3.substring(k1 + 1)
-						.substring(0, k2));
-				_dSbytes = Double.parseDouble(tmpstr3.substring(k1 + 1)
-						.substring(k2 + 1));
-			} catch (Exception e) {
-				e.printStackTrace();
-				_sErrMsg = _resBundDisplayMsgs.getString("inboundWrongMessage")
-						+ "\n";
-				return true;
+			if (jsonSupport) {
+				try {
+					String tmpstr3 = new String(msg.getBody());
+					_dSs2cspd = Double.parseDouble(JSONUtils.getValueFromJsonObj(tmpstr3, "ThroughputValue"))
+							/ NDTConstants.KILO;
+					_iSsndqueue = Integer.parseInt(JSONUtils.getValueFromJsonObj(tmpstr3, "UnsentDataAmount"));
+					_dSbytes = Double.parseDouble(JSONUtils.getValueFromJsonObj(tmpstr3, "TotalSentByte"));
+				} catch (Exception e) {
+					e.printStackTrace();
+					_sErrMsg = _resBundDisplayMsgs.getString("inboundWrongMessage")
+							+ "\n";
+					return true;
+				}
+			}
+			else {
+				try {
+					String tmpstr3 = new String(msg.getBody());
+					int k1 = tmpstr3.indexOf(" ");
+					int k2 = tmpstr3.substring(k1 + 1).indexOf(" ");
+					_dSs2cspd = Double.parseDouble(tmpstr3.substring(0, k1))
+							/ NDTConstants.KILO;
+					_iSsndqueue = Integer.parseInt(tmpstr3.substring(k1 + 1)
+							.substring(0, k2));
+					_dSbytes = Double.parseDouble(tmpstr3.substring(k1 + 1)
+							.substring(k2 + 1));
+				} catch (Exception e) {
+					e.printStackTrace();
+					_sErrMsg = _resBundDisplayMsgs.getString("inboundWrongMessage")
+							+ "\n";
+					return true;
+				}
 			}
 
 			// Represent throughput using optimal units (kbps / mbps)
@@ -2141,7 +2217,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			buff = Double.toString(_dS2cspd * NDTConstants.KILO).getBytes();
 			String tmpstr4 = new String(buff, 0, buff.length);
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
-			paramProtoObj.send_msg(MessageType.TEST_MSG, buff);
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG, buff);
 
 			// get web100 variables from server
 			_sTestResults = "";
@@ -2159,7 +2235,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																									// correctly
 						_sErrMsg = _resBundDisplayMsgs
 								.getString("protocolError")
-								+ Integer.parseInt(new String(msg.getBody()),
+								+ parseMsgBodyToInt(new String(msg.getBody()),
 										16) + " instead\n";
 						return true;
 					}
@@ -2176,14 +2252,18 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								.getString("inboundWrongMessage") + "\n";
 						if (msg.getType() == MessageType.MSG_ERROR) {
 							_sErrMsg += "ERROR MSG: "
-									+ Integer.parseInt(
+									+ parseMsgBodyToInt(
 											new String(msg.getBody()), 16)
 									+ "\n";
 						}
 						return true;
 					}
 					// Get all web100 variables as name-value string pairs
-					_sTestResults += new String(msg.getBody());
+					if (jsonSupport) {
+						_sTestResults += JSONUtils.getSingleMessage(new String(msg.getBody()));
+					} else {
+						_sTestResults += new String(msg.getBody());
+					}
 					i++;
 				} // end for
 			} catch (IOException ioExcep) {
@@ -2211,7 +2291,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
-	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab) These methods
+	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab) These methods
 	 *      indicate more information about IOException
 	 * */
 	public boolean test_meta(Protocol paramProtoObj, String application) throws IOException {
@@ -2234,7 +2314,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// received
 																							// correctly
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -2244,7 +2324,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ "\n";
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -2257,7 +2337,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// read/received
 																							// correctly
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -2270,7 +2350,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -2283,24 +2363,24 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Note that there are length constraints to keys- values: 64/256
 			// characters respectively
 			System.err.println("USERAGENT " + getUserAgent());
-			paramProtoObj.send_msg(MessageType.TEST_MSG,
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG,
 					(NDTConstants.META_CLIENT_OS + ":" + System
 							.getProperty("os.name")).getBytes());
-			paramProtoObj.send_msg(MessageType.TEST_MSG,
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG,
 					(NDTConstants.META_BROWSER_OS + ":" + UserAgentTools
 							.getBrowser(getUserAgent())[2]).getBytes());
-			paramProtoObj.send_msg(MessageType.TEST_MSG,
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG,
 					(NDTConstants.META_CLIENT_KERNEL_VERSION + ":" + System
 							.getProperty("os.version")).getBytes());
-			paramProtoObj.send_msg(MessageType.TEST_MSG,
-                                               (NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
-			paramProtoObj.send_msg(MessageType.TEST_MSG,
-                                               (NDTConstants.META_CLIENT_APPLICATION + ":" + application) .getBytes());
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG,
+					(NDTConstants.META_CLIENT_VERSION + ":" + NDTConstants.VERSION).getBytes());
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG,
+					(NDTConstants.META_CLIENT_APPLICATION + ":" + application) .getBytes());
 
 			// Client can send any number of such meta data in a TEST_MSG
 			// format, and signal
 			// the end of the transmission using an empty TEST_MSG
-			paramProtoObj.send_msg(MessageType.TEST_MSG, new byte[0]);
+			paramProtoObj.send_json_msg(MessageType.TEST_MSG, new byte[0]);
 
 			// The server now closes the META test session by sending a
 			// TEST_FINALIZE message
@@ -2311,7 +2391,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																							// read/received
 																							// properly
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				return true;
 			}
@@ -2321,7 +2401,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				_sErrMsg = _resBundDisplayMsgs.getString("metaWrongMessage");
 				if (msg.getType() == MessageType.MSG_ERROR) {
 					_sErrMsg += "ERROR MSG: "
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ "\n";
 				}
 				return true;
@@ -2347,7 +2427,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @throws IOException
 	 *             when sending/receiving messages from server fails
 	 * @see Protocol#recv_msg(Message msgParam)
-	 * @see Protocol#send_msg(byte bParamType, byte[] baParamTab)
+	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab)
 	 *
 	 */
 	public void dottcp(StatusPanel sPanel) throws IOException {
@@ -2437,8 +2517,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// write our test suite request by sending a login message
 		// _yTests indicates the requested test-suite
+		byte [] send = new byte[NDTConstants.VERSION.length()+1];
+		send[0] = _yTests;
+		System.arraycopy(NDTConstants.VERSION.getBytes(), 0, send, 1, NDTConstants.VERSION.length());
 
-		protocolObj.send_msg(MessageType.MSG_LOGIN, _yTests);
+		protocolObj.send_json_msg(MessageType.MSG_EXTENDED_LOGIN, send);
 
 		// read the specially crafted data that kicks off the old clients
 		if (protocolObj.readn(msg, 13) != 13) {
@@ -2455,7 +2538,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// session starts now, return
 			if (protocolObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 				_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-						+ Integer.parseInt(new String(msg.getBody()), 16)
+						+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 						+ " instead\n";
 				_bFailed = true;
 				return;
@@ -2467,15 +2550,67 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// below.
 			// Any other type of message at this stage is incorrect
 			if (msg.getType() != MessageType.SRV_QUEUE) {
-				_sErrMsg = _resBundDisplayMsgs.getString("loggingWrongMessage")
-						+ "\n";
-				_bFailed = true;
-				return;
+				if (!retry && !new String(msg.getBody()).equals("Invalid login message.")) {
+					jsonSupport = false;
+					retry = true;
+					try {
+
+						// RAC Debug message
+						_resultsTxtPane.append(_resBundDisplayMsgs
+								.getString("unsupportedMsgExtendedLogin")
+								+ "\n");
+						// create socket to host specified by user and the default port
+						ctlSocket = new Socket(hostAddress, ctlport);
+					} catch (UnknownHostException e) {
+						System.err.println("Don't know about host: " + sHostName);
+						_sErrMsg = _resBundDisplayMsgs.getString("unknownServer") + "\n";
+						_bFailed = true;
+						return;
+					} catch (IOException e) {
+						System.err.println("Couldn't get the connection to: " + sHostName
+								+ " " + ctlport);
+						_sErrMsg = _resBundDisplayMsgs.getString("serverNotRunning") + " ("
+								+ sHostName + ":" + ctlport + ")\n";
+						_bFailed = true;
+						return;
+					}
+
+					protocolObj = new Protocol(ctlSocket);
+					protocolObj.setJsonSupport(false);
+					// The beginning of the protocol
+
+					// Determine, and indicate to client about Inet6/4 address being used
+					if (ctlSocket.getInetAddress() instanceof Inet6Address) {
+						_resultsTxtPane.append(_resBundDisplayMsgs.getString("connected")
+								+ " " + sHostName
+								+ _resBundDisplayMsgs.getString("usingIpv6") + "\n");
+					} else {
+						_resultsTxtPane.append(_resBundDisplayMsgs.getString("connected")
+								+ " " + sHostName
+								+ _resBundDisplayMsgs.getString("usingIpv4") + "\n");
+					}
+
+					protocolObj.send_msg(MessageType.MSG_LOGIN, _yTests);
+
+
+					if (protocolObj.readn(msg, 13) != 13) {
+						_sErrMsg = _resBundDisplayMsgs.getString("unsupportedClient")
+								+ "\n";
+						_bFailed = true;
+						return;
+					}
+					continue;
+				} else {
+					_sErrMsg = _resBundDisplayMsgs.getString("loggingWrongMessage")
+							+ "\n";
+					_bFailed = true;
+					return;
+				}
 			}
 
 			// Get wait flag value
 			String tmpstr3 = new String(msg.getBody());
-			wait = Integer.parseInt(tmpstr3);
+			wait = parseMsgBodyToInt(tmpstr3);
 			System.out.println("wait flag received = " + wait);
 
 			if (wait == NDTConstants.SRV_QUEUE_TEST_STARTS_NOW) { // SRV_QUEUE message received indicating
@@ -2484,12 +2619,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				break;
 			}
 
-            if (wait == NDTConstants.SRV_QUEUE_SERVER_FAULT) {
-                _sErrMsg = _resBundDisplayMsgs.getString("serverFault")
-                        + "\n";
-                _bFailed = true;
-                return;
-            }
+			if (wait == NDTConstants.SRV_QUEUE_SERVER_FAULT) {
+				_sErrMsg = _resBundDisplayMsgs.getString("serverFault")
+						+ "\n";
+				_bFailed = true;
+				return;
+			}
 
 			if (wait == NDTConstants.SRV_QUEUE_SERVER_BUSY) {
 				if (iServerWaitFlag == 0) { // First message from server,
@@ -2521,7 +2656,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 				// Client has to respond with a "MSG_WAITING" to such heart-beat
 				// messages from server
-				protocolObj.send_msg(MessageType.MSG_WAITING, _yTests);
+				protocolObj.send_json_msg(MessageType.MSG_WAITING, _yTests);
 				continue;
 			}
 
@@ -2550,7 +2685,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 																					// protocol
 																					// error
 			_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-					+ Integer.parseInt(new String(msg.getBody()), 16)
+					+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 					+ " instead\n";
 			_bFailed = true;
 			return;
@@ -2566,7 +2701,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 
 		// Version compatibility between server-client must be verified
-		String vVersion = new String(msg.getBody());
+		String vVersion;
+		if (jsonSupport) {
+			vVersion = JSONUtils.getSingleMessage(new String(msg.getBody()));
+		} else {
+			vVersion = new String(msg.getBody());
+		}
+
 		if (!vVersion.startsWith("v")) {
 			_sErrMsg = _resBundDisplayMsgs.getString("incompatibleVersion");
 			_bFailed = true;
@@ -2574,18 +2715,18 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		System.out.println("Server version: " + vVersion.substring(1));
 
-        if (vVersion.endsWith("Web10G") || vVersion.endsWith("Web100")) {
-            if (!vVersion.substring(1, vVersion.lastIndexOf('-')).equals(NDTConstants.VERSION)) {
-                _resultsTxtPane.append(_resBundDisplayMsgs
-                        .getString("diffrentVersion") + " (" + vVersion.substring(1, vVersion.lastIndexOf('-')) + ")\n");
-                System.out.println("WARNING: NDT server has different version number (" + vVersion.substring(1) + ")");
-            }
-        }
-        else if (!vVersion.substring(1).equals(NDTConstants.VERSION)) {
-            _resultsTxtPane.append(_resBundDisplayMsgs
-                    .getString("diffrentVersion") + " (" + vVersion.substring(1) + ")\n");
-            System.out.println("WARNING: NDT server has different version number (" + vVersion.substring(1) + ")");
-        }
+		if (vVersion.endsWith("Web10G") || vVersion.endsWith("Web100")) {
+			if (!vVersion.substring(1, vVersion.lastIndexOf('-')).equals(NDTConstants.VERSION)) {
+				_resultsTxtPane.append(_resBundDisplayMsgs
+						.getString("diffrentVersion") + " (" + vVersion.substring(1, vVersion.lastIndexOf('-')) + ")\n");
+				System.out.println("WARNING: NDT server has different version number (" + vVersion.substring(1) + ")");
+			}
+		}
+		else if (!vVersion.substring(1).equals(NDTConstants.VERSION)) {
+			_resultsTxtPane.append(_resBundDisplayMsgs
+					.getString("diffrentVersion") + " (" + vVersion.substring(1) + ")\n");
+			System.out.println("WARNING: NDT server has different version number (" + vVersion.substring(1) + ")");
+		}
 
 		// If we have connected to a Web10G server rebrand ourselves as such
 		_sServerType = vVersion.endsWith("Web10G") ? "web10g" : "web100";
@@ -2602,7 +2743,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// requested by the client earlier
 		if (protocolObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 			_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-					+ Integer.parseInt(new String(msg.getBody()), 16)
+					+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 					+ " instead\n";
 			_bFailed = true;
 			return;
@@ -2618,8 +2759,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 
 		// get ids of tests to be run now
-		StringTokenizer tokenizer = new StringTokenizer(new String(
-				msg.getBody()), " ");
+		String tmpstr;
+		if (jsonSupport) {
+			tmpstr = JSONUtils.getSingleMessage(new String(msg.getBody()));
+		} else {
+			tmpstr = new String(msg.getBody());
+		}
+		StringTokenizer tokenizer = new StringTokenizer(tmpstr, " ");
 
 		// Run all tests requested, based on the ID. In each case, if tests
 		// cannot be successfully run,
@@ -2627,7 +2773,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		while (tokenizer.hasMoreTokens()) {
 			if (sPanel.wantToStop()) { // user has indicated decision to stop
 										// tests from GUI
-				protocolObj.send_msg(MessageType.MSG_ERROR,
+				protocolObj.send_json_msg(MessageType.MSG_ERROR,
 						"Manually stopped by the user".getBytes());
 				protocolObj.close();
 				ctlSocket.close();
@@ -2692,7 +2838,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		if (sPanel.wantToStop()) { // user has indicated decision to stop tests
 									// from GUI
-			protocolObj.send_msg(MessageType.MSG_ERROR,
+			protocolObj.send_json_msg(MessageType.MSG_ERROR,
 					"Manually stopped by the user".getBytes());
 			protocolObj.close();
 			ctlSocket.close();
@@ -2709,7 +2855,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			for (;;) {
 				if (protocolObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) {
 					_sErrMsg = _resBundDisplayMsgs.getString("protocolError")
-							+ Integer.parseInt(new String(msg.getBody()), 16)
+							+ parseMsgBodyToInt(new String(msg.getBody()), 16)
 							+ " instead\n";
 					_bFailed = true;
 					return;
@@ -2727,7 +2873,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					_bFailed = true;
 					return;
 				}
-				_sTestResults += new String(msg.getBody());
+				if (jsonSupport) {
+					_sTestResults += JSONUtils.getSingleMessage(new String(msg.getBody()));
+				} else {
+					_sTestResults += new String(msg.getBody());
+				}
 				i++;
 			}
 		} catch (IOException e) {
@@ -2807,54 +2957,54 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		String sSysvar, sStrval;
 		int iSysval, iZero = 0; // iBwdelay, iMinwin; // commented out unused
 								// variables
-        double dSysval2, j;
-        long lSysval3;
-        String sOsName, sOsArch, sOsVer, sJavaVer, sJavaVendor, sClient;
+		double dSysval2, j;
+		long lSysval3;
+		String sOsName, sOsArch, sOsVer, sJavaVer, sJavaVendor, sClient;
 
-        // extract key-value pair results
+		// extract key-value pair results
 
-        tokens = new StringTokenizer(sTestResParam);
-        sSysvar = null;
-        sStrval = null;
-        while (tokens.hasMoreTokens()) {
-            if (++i % 2 == 1) {
-                sSysvar = tokens.nextToken();
-            } else {
-                sStrval = tokens.nextToken();
-                _txtDiagnosis.append(sSysvar + " " + sStrval + "\n");
-                _sEmailText += sSysvar + " " + sStrval + "\n%0A";
+		tokens = new StringTokenizer(sTestResParam);
+		sSysvar = null;
+		sStrval = null;
+		while (tokens.hasMoreTokens()) {
+			if (++i % 2 == 1) {
+				sSysvar = tokens.nextToken();
+			} else {
+				sStrval = tokens.nextToken();
+				_txtDiagnosis.append(sSysvar + " " + sStrval + "\n");
+				_sEmailText += sSysvar + " " + sStrval + "\n%0A";
 
-                //check if it's save anywhere after parse
-                if (isValueSave(sSysvar)) {
-                    if (sSysvar.equals("DataBytesOut:")) {
-                        // long
-                        try{
-                            lSysval3 = Long.parseLong(sStrval);
-                        } catch (Exception e) {
-                            System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
-                            lSysval3 = -1;
-                        }
-                        // save value into a key value expected by us
-                        save_long_values(sSysvar, lSysval3);
-                    }
-                    else if (sStrval.indexOf(".") == -1) { // no decimal point, hence
-                        // integer
-                        try{
-                            iSysval = Integer.parseInt(sStrval);
-                            // If it fails as an int it's probably to big since the values are often unsigned
-                        } catch (Exception e) {
-                            System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
-                            iSysval = -1;
-                        }
-                        // save value into a key value expected by us
-                        save_int_values(sSysvar, iSysval);
-                    } else { // if not integer, save as double
-                        dSysval2 = Double.valueOf(sStrval).doubleValue();
-                        save_dbl_values(sSysvar, dSysval2);
-                    }
-                }
-            }
-        }
+				//check if it's save anywhere after parse
+				if (isValueSave(sSysvar)) {
+					if (sSysvar.equals("DataBytesOut:")) {
+						// long
+						try{
+							lSysval3 = Long.parseLong(sStrval);
+						} catch (Exception e) {
+							System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
+							lSysval3 = -1;
+						}
+						// save value into a key value expected by us
+						save_long_values(sSysvar, lSysval3);
+					}
+					else if (sStrval.indexOf(".") == -1) { // no decimal point, hence
+						// integer
+						try{
+							iSysval = Integer.parseInt(sStrval);
+							// If it fails as an int it's probably to big since the values are often unsigned
+						} catch (Exception e) {
+							System.out.println("Exception occured reading a web100 var " + sSysvar + " - " + e);
+							iSysval = -1;
+						}
+						// save value into a key value expected by us
+						save_int_values(sSysvar, iSysval);
+					} else { // if not integer, save as double
+						dSysval2 = Double.valueOf(sStrval).doubleValue();
+						save_dbl_values(sSysvar, dSysval2);
+					}
+				}
+			}
+		}
 
 		// Grab some client details from the Applet environment
 		sOsName = System.getProperty("os.name");
@@ -2867,7 +3017,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		pub_osVer = sOsVer;
 
 		sJavaVer = System.getProperty("java.version");
-		pub_javaVer = sJavaVer;
+		pub_pluginVer = sJavaVer;
 
 		sJavaVendor = System.getProperty("java.vendor");
 
@@ -3069,8 +3219,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 				if (((2 * rwin) / rttsec) < mylink) {  // multiply by 2 to counter round-trip
 
-				    	// link speed is in Mbps. Convert it back to kbps (*1000),
-				    	// and bytes (/8)
+					// link speed is in Mbps. Convert it back to kbps (*1000),
+					// and bytes (/8)
 					j = (float) ((mylink * avgrtt) * NDTConstants.KILO)
 							/ NDTConstants.EIGHT / NDTConstants.KILO_BITS;
 					if (j > (float) _iMaxRwinRcvd) {
@@ -3432,7 +3582,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						+ NDTUtils.prtdbl(sendtime * NDTConstants.PERCENTAGE)
 						+ _resBundDisplayMsgs.getString("pctOfTime") + ".\n%0A";
 				if ((2 * (swin / rttsec)) < mylink) {
-				    	// divide by 2 to counter round-trip
+					// divide by 2 to counter round-trip
 					_txtStatistics.append("  "
 							+ _resBundDisplayMsgs.getString("incrTxBuf") + " ("
 							+ NDTUtils.prtdbl(_iSndbuf / (2 * NDTConstants.KILO_BITS)) + " KB) "
@@ -3442,9 +3592,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			// Is the connection network limited?
-                        // If the congestion window is limited more than 0.5%
-                        // of the time, NDT claims the connection is network
-                        // limited.
+			// If the congestion window is limited more than 0.5%
+			// of the time, NDT claims the connection is network
+			// limited.
 			if (cwndtime > .005) {
 				_txtStatistics.append(_resBundDisplayMsgs
 						.getString("thisConnIs")
@@ -3461,11 +3611,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 
 			// Is the loss excessive?
-                        // If the link speed is less than a T3, and loss
-                        // is greater than 1 percent, loss is determined
-                        // to be excessive.
+			// If the link speed is less than a T3, and loss
+			// is greater than 1 percent, loss is determined
+			// to be excessive.
 			if ((spd < 4) && (loss > .01)) {
-			    	_txtStatistics.append(_resBundDisplayMsgs.getString("excLoss")
+				_txtStatistics.append(_resBundDisplayMsgs.getString("excLoss")
 						+ "\n");
 			}
 
@@ -3506,11 +3656,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			_txtStatistics.append("RFC 1323 Window Scaling: ");
 			if (_iMaxRwinRcvd < NDTConstants.TCP_MAX_RECV_WIN_SIZE)
-				_iWinScaleRcvd = 0; //Max rec window size lesser than TCP's max value,
-						    // so, no scaling requested
-                                                    // According to RFC1323, Section 2.3 the max valid value of _iWinScaleRcvd is 14.
-                                                    // Unclear why NDT uses 20 for this, but leaving for now in case this is a web100
-                                                    // error value of some kind. (Revisit after Methodology document written.)
+				_iWinScaleRcvd = 0;	//Max rec window size lesser than TCP's max value,
+									// so, no scaling requested
+									// According to RFC1323, Section 2.3 the max valid value of _iWinScaleRcvd is 14.
+									// Unclear why NDT uses 20 for this, but leaving for now in case this is a web100
+									// error value of some kind. (Revisit after Methodology document written.)
 			if ((_iWinScaleRcvd == 0) || (_iWinScaleRcvd > 20))
 				_txtStatistics.append(_resBundDisplayMsgs.getString("off")
 						+ "\n");
@@ -3668,45 +3818,54 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 */
 
 	public void middleboxResults(String sMidBoxTestResParam) {
-		StringTokenizer tokens;
-		int k;
-
-		tokens = new StringTokenizer(sMidBoxTestResParam, ";");
-		String sServerIp = tokens.nextToken();
-		String sClientIp = tokens.nextToken();
-
-		// Fix for JS API not reporting NAT'd IPs correctly
-		// Assign client and server IP addresses for JA API
-		// based on public, not local IP.
-		pub_clientIP = sClientIp;
-
-		int iMss = Integer.parseInt(tokens.nextToken());
+		String sServerIp;
+		String sClientIp;
+		int iMss;
 		// changing order for issue 61
-		int iWinsSent = Integer.parseInt(tokens.nextToken());
-		int iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but retaining
+		int iWinsSent;
+		int iWinsRecv; // unused, but retaining
+		String sClientSideServerIp;
+		String sClientSideClientIp;
 
-                // for compatibility with older servers
-        	// which does not sent SumRTT,CountRTT and MaxRwinRcvd values
-        	if (tokens.countTokens() > 2) {
-            		_iSumRTT = Integer.parseInt(tokens.nextToken());
-            		_iCountRTT = Integer.parseInt(tokens.nextToken());
-            		_iMaxRwinRcvd = Integer.parseInt(tokens.nextToken());
+		if (jsonSupport) {
+			sServerIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ServerAddress");
+			sClientIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientAddress");
+			iMss = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "CurMSS"));
+			iWinsSent = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "WinScaleSent"));
+			iWinsRecv = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "WinScaleRcvd"));
+			sClientSideServerIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientSideServerIp");
+			sClientSideClientIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientSideClientIp");
+            _iSumRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "SumRTT"));
+            _iCountRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "CountRTT"));
+            _iMaxRwinRcvd = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "MaxRwinRcvd"));
 
-		    	// calculate avgrtt and PC buffer imposed throughput limit
-		    	pub_avgrtt = (double) _iSumRTT / _iCountRTT;
-		    	rwin = _iMaxRwinRcvd * NDTConstants.EIGHT / NDTConstants.KILO_BITS / NDTConstants.KILO_BITS;
-		    	rttsec = pub_avgrtt / NDTConstants.KILO;
-        	}
+            // calculate avgrtt and PC buffer imposed throughput limit
+            pub_avgrtt = (double) _iSumRTT / _iCountRTT;
+            rwin = _iMaxRwinRcvd * NDTConstants.EIGHT / NDTConstants.KILO_BITS / NDTConstants.KILO_BITS;
+            rttsec = pub_avgrtt / NDTConstants.KILO;
+		} else {
+			StringTokenizer tokens;
+			int k;
 
-		// Get Client reported server IP
-		String sClientSideServerIp = tokens.nextToken();
-		k = sClientSideServerIp.indexOf("/");
-		sClientSideServerIp = sClientSideServerIp.substring(k + 1);
+			tokens = new StringTokenizer(sMidBoxTestResParam, ";");
+			sServerIp = tokens.nextToken();
+			sClientIp = tokens.nextToken();
 
-		// get client side IP
-		String sClientSideClientIp = tokens.nextToken();
-		k = sClientSideClientIp.indexOf("/");
-		sClientSideClientIp = sClientSideClientIp.substring(k + 1);
+			iMss = Integer.parseInt(tokens.nextToken());
+			// changing order for issue 61
+			iWinsSent = Integer.parseInt(tokens.nextToken());
+			iWinsRecv = Integer.parseInt(tokens.nextToken()); // unused, but retaining
+
+			// Get Client reported server IP
+			sClientSideServerIp = tokens.nextToken();
+			k = sClientSideServerIp.indexOf("/");
+			sClientSideServerIp = sClientSideServerIp.substring(k + 1);
+
+			// get client side IP
+			sClientSideClientIp = tokens.nextToken();
+			k = sClientSideClientIp.indexOf("/");
+			sClientSideClientIp = sClientSideClientIp.substring(k + 1);
+		}
 
 		// MSS = 1456 = Ethernet MTU = 1500 - 24 -20 (bytes of IP header) =
 		// 1456, thus preserved
@@ -3835,19 +3994,19 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			aspd = dSysvalParam;
 	} // save_dbl_values()
 
-    /**
-     * Method to save long values of various "keys" from the the test results
-     * string into corresponding long datatypes.
-     *
-     * @param sSysvarParam
-     *            key name string
-     * @param lSysvalParam
-     *            Value for this key name
-     */
-    public void save_long_values(String sSysvarParam, long lSysvalParam) {
-        if (sSysvarParam.equals("DataBytesOut:"))
-            _iDataBytesOut = lSysvalParam;
-    }
+	/**
+	 * Method to save long values of various "keys" from the the test results
+	 * string into corresponding long datatypes.
+	 *
+	 * @param sSysvarParam
+	 *            key name string
+	 * @param lSysvalParam
+	 *            Value for this key name
+	 */
+	public void save_long_values(String sSysvarParam, long lSysvalParam) {
+		if (sSysvarParam.equals("DataBytesOut:"))
+			_iDataBytesOut = lSysvalParam;
+	}
 
 	/**
 	 * Method to save integer values of various "keys" from the the test results
@@ -3893,8 +4052,10 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		else if (sSysvarParam.equals("SACKsRcvd:")) {
 			_iSACKsRcvd = iSysvalParam;
 			pub_SACKsRcvd = _iSACKsRcvd;
-		} else if (sSysvarParam.equals("DupAcksIn:"))
+		} else if (sSysvarParam.equals("DupAcksIn:")) {
 			_iDupAcksIn = iSysvalParam;
+			pub_DupAcksIn = _iDupAcksIn;
+		}
 		else if (sSysvarParam.equals("MaxRwinRcvd:")) {
 			_iMaxRwinRcvd = iSysvalParam;
 			pub_MaxRwinRcvd = _iMaxRwinRcvd;
@@ -3978,157 +4139,157 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 	} // save_int_values()
 
-    /**
-     * Method check, if values of various "keys" from the the test results
-     * string is save by save_int_values(), save_dbl_values() or save_long_values()
-     * after parse to int/double/long
-     *
-     * @param sSysvarParam
-     *            String key name
-     * */
-    private boolean isValueSave(String sSysvarParam) {
-        //is_save_int_values
-        if (sSysvarParam.equals("MSSSent:"))
-            return true;
-        else if (sSysvarParam.equals("MSSRcvd:"))
-            return true;
-        else if (sSysvarParam.equals("ECNEnabled:"))
-            return true;
-        else if (sSysvarParam.equals("NagleEnabled:"))
-            return true;
-        else if (sSysvarParam.equals("SACKEnabled:"))
-            return true;
-        else if (sSysvarParam.equals("TimestampsEnabled:"))
-            return true;
-        else if (sSysvarParam.equals("WinScaleRcvd:"))
-            return true;
-        else if (sSysvarParam.equals("WinScaleSent:"))
-            return true;
-        else if (sSysvarParam.equals("SumRTT:"))
-            return true;
-        else if (sSysvarParam.equals("CountRTT:"))
-            return true;
-        else if (sSysvarParam.equals("CurMSS:"))
-            return true;
-        else if (sSysvarParam.equals("Timeouts:"))
-            return true;
-        else if (sSysvarParam.equals("PktsRetrans:"))
-            return true;
-        else if (sSysvarParam.equals("SACKsRcvd:"))
-            return true;
-        else if (sSysvarParam.equals("DupAcksIn:"))
-            return true;
-        else if (sSysvarParam.equals("MaxRwinRcvd:"))
-            return true;
-        else if (sSysvarParam.equals("MaxRwinSent:"))
-            return true;
-        else if (sSysvarParam.equals("Sndbuf:"))
-            return true;
-        else if (sSysvarParam.equals("X_Rcvbuf:"))
-            return true;
-        else if (sSysvarParam.equals("DataPktsOut:"))
-            return true;
-        else if (sSysvarParam.equals("FastRetran:"))
-            return true;
-        else if (sSysvarParam.equals("AckPktsOut:"))
-            return true;
-        else if (sSysvarParam.equals("SmoothedRTT:"))
-            return true;
-        else if (sSysvarParam.equals("CurCwnd:"))
-            return true;
-        else if (sSysvarParam.equals("MaxCwnd:"))
-            return true;
-        else if (sSysvarParam.equals("SndLimTimeRwin:"))
-            return true;
-        else if (sSysvarParam.equals("SndLimTimeCwnd:"))
-            return true;
-        else if (sSysvarParam.equals("SndLimTimeSender:"))
-            return true;
-        else if (sSysvarParam.equals("AckPktsIn:"))
-            return true;
-        else if (sSysvarParam.equals("SndLimTransRwin:"))
-            return true;
-        else if (sSysvarParam.equals("SndLimTransCwnd:"))
-            return true;
-        else if (sSysvarParam.equals("SndLimTransSender:"))
-            return true;
-        else if (sSysvarParam.equals("MaxSsthresh:"))
-            return true;
-        else if (sSysvarParam.equals("CurRTO:"))
-            return true;
-        else if (sSysvarParam.equals("MaxRTO:"))
-            return true;
-        else if (sSysvarParam.equals("MinRTO:"))
-            return true;
-        else if (sSysvarParam.equals("MinRTT:"))
-            return true;
-        else if (sSysvarParam.equals("MaxRTT:"))
-            return true;
-        else if (sSysvarParam.equals("CurRwinRcvd:"))
-            return true;
-        else if (sSysvarParam.equals("Timeouts:"))
-            return true;
-        else if (sSysvarParam.equals("c2sData:"))
-            return true;
-        else if (sSysvarParam.equals("c2sAck:"))
-            return true;
-        else if (sSysvarParam.equals("s2cData:"))
-            return true;
-        else if (sSysvarParam.equals("s2cAck:"))
-            return true;
-        else if (sSysvarParam.equals("PktsOut:"))
-            return true;
-        else if (sSysvarParam.equals("mismatch:"))
-            return true;
-        else if (sSysvarParam.equals("congestion:"))
-            return true;
-        else if (sSysvarParam.equals("bad_cable:"))
-            return true;
-        else if (sSysvarParam.equals("half_duplex:"))
-            return true;
-        else if (sSysvarParam.equals("CongestionSignals:"))
-            return true;
-        else if (sSysvarParam.equals("RcvWinScale:"))
-            return true;
-            //is_save_long_values
-        else if (sSysvarParam.equals("DataBytesOut:"))
-            return true;
-            //is_save_dbl_values
-        else if (sSysvarParam.equals("bw:"))
-            return true;
-        else if (sSysvarParam.equals("loss:"))
-            return true;
-        else if (sSysvarParam.equals("avgrtt:"))
-            return true;
-        else if (sSysvarParam.equals("waitsec:"))
-            return true;
-        else if (sSysvarParam.equals("timesec:"))
-            return true;
-        else if (sSysvarParam.equals("order:"))
-            return true;
-        else if (sSysvarParam.equals("rwintime:"))
-            return true;
-        else if (sSysvarParam.equals("sendtime:"))
-            return true;
-        else if (sSysvarParam.equals("cwndtime:"))
-            return true;
-        else if (sSysvarParam.equals("rttsec:"))
-            return true;
-        else if (sSysvarParam.equals("rwin:"))
-            return true;
-        else if (sSysvarParam.equals("swin:"))
-            return true;
-        else if (sSysvarParam.equals("cwin:"))
-            return true;
-        else if (sSysvarParam.equals("spd:"))
-            return true;
-        else if (sSysvarParam.equals("aspd:"))
-            return true;
+	/**
+	 * Method check, if values of various "keys" from the the test results
+	 * string is save by save_int_values(), save_dbl_values() or save_long_values()
+	 * after parse to int/double/long
+	 *
+	 * @param sSysvarParam
+	 *            String key name
+	 * */
+	private boolean isValueSave(String sSysvarParam) {
+		//is_save_int_values
+		if (sSysvarParam.equals("MSSSent:"))
+			return true;
+		else if (sSysvarParam.equals("MSSRcvd:"))
+			return true;
+		else if (sSysvarParam.equals("ECNEnabled:"))
+			return true;
+		else if (sSysvarParam.equals("NagleEnabled:"))
+			return true;
+		else if (sSysvarParam.equals("SACKEnabled:"))
+			return true;
+		else if (sSysvarParam.equals("TimestampsEnabled:"))
+			return true;
+		else if (sSysvarParam.equals("WinScaleRcvd:"))
+			return true;
+		else if (sSysvarParam.equals("WinScaleSent:"))
+			return true;
+		else if (sSysvarParam.equals("SumRTT:"))
+			return true;
+		else if (sSysvarParam.equals("CountRTT:"))
+			return true;
+		else if (sSysvarParam.equals("CurMSS:"))
+			return true;
+		else if (sSysvarParam.equals("Timeouts:"))
+			return true;
+		else if (sSysvarParam.equals("PktsRetrans:"))
+			return true;
+		else if (sSysvarParam.equals("SACKsRcvd:"))
+			return true;
+		else if (sSysvarParam.equals("DupAcksIn:"))
+			return true;
+		else if (sSysvarParam.equals("MaxRwinRcvd:"))
+			return true;
+		else if (sSysvarParam.equals("MaxRwinSent:"))
+			return true;
+		else if (sSysvarParam.equals("Sndbuf:"))
+			return true;
+		else if (sSysvarParam.equals("X_Rcvbuf:"))
+			return true;
+		else if (sSysvarParam.equals("DataPktsOut:"))
+			return true;
+		else if (sSysvarParam.equals("FastRetran:"))
+			return true;
+		else if (sSysvarParam.equals("AckPktsOut:"))
+			return true;
+		else if (sSysvarParam.equals("SmoothedRTT:"))
+			return true;
+		else if (sSysvarParam.equals("CurCwnd:"))
+			return true;
+		else if (sSysvarParam.equals("MaxCwnd:"))
+			return true;
+		else if (sSysvarParam.equals("SndLimTimeRwin:"))
+			return true;
+		else if (sSysvarParam.equals("SndLimTimeCwnd:"))
+			return true;
+		else if (sSysvarParam.equals("SndLimTimeSender:"))
+			return true;
+		else if (sSysvarParam.equals("AckPktsIn:"))
+			return true;
+		else if (sSysvarParam.equals("SndLimTransRwin:"))
+			return true;
+		else if (sSysvarParam.equals("SndLimTransCwnd:"))
+			return true;
+		else if (sSysvarParam.equals("SndLimTransSender:"))
+			return true;
+		else if (sSysvarParam.equals("MaxSsthresh:"))
+			return true;
+		else if (sSysvarParam.equals("CurRTO:"))
+			return true;
+		else if (sSysvarParam.equals("MaxRTO:"))
+			return true;
+		else if (sSysvarParam.equals("MinRTO:"))
+			return true;
+		else if (sSysvarParam.equals("MinRTT:"))
+			return true;
+		else if (sSysvarParam.equals("MaxRTT:"))
+			return true;
+		else if (sSysvarParam.equals("CurRwinRcvd:"))
+			return true;
+		else if (sSysvarParam.equals("Timeouts:"))
+			return true;
+		else if (sSysvarParam.equals("c2sData:"))
+			return true;
+		else if (sSysvarParam.equals("c2sAck:"))
+			return true;
+		else if (sSysvarParam.equals("s2cData:"))
+			return true;
+		else if (sSysvarParam.equals("s2cAck:"))
+			return true;
+		else if (sSysvarParam.equals("PktsOut:"))
+			return true;
+		else if (sSysvarParam.equals("mismatch:"))
+			return true;
+		else if (sSysvarParam.equals("congestion:"))
+			return true;
+		else if (sSysvarParam.equals("bad_cable:"))
+			return true;
+		else if (sSysvarParam.equals("half_duplex:"))
+			return true;
+		else if (sSysvarParam.equals("CongestionSignals:"))
+			return true;
+		else if (sSysvarParam.equals("RcvWinScale:"))
+			return true;
+			//is_save_long_values
+		else if (sSysvarParam.equals("DataBytesOut:"))
+			return true;
+			//is_save_dbl_values
+		else if (sSysvarParam.equals("bw:"))
+			return true;
+		else if (sSysvarParam.equals("loss:"))
+			return true;
+		else if (sSysvarParam.equals("avgrtt:"))
+			return true;
+		else if (sSysvarParam.equals("waitsec:"))
+			return true;
+		else if (sSysvarParam.equals("timesec:"))
+			return true;
+		else if (sSysvarParam.equals("order:"))
+			return true;
+		else if (sSysvarParam.equals("rwintime:"))
+			return true;
+		else if (sSysvarParam.equals("sendtime:"))
+			return true;
+		else if (sSysvarParam.equals("cwndtime:"))
+			return true;
+		else if (sSysvarParam.equals("rttsec:"))
+			return true;
+		else if (sSysvarParam.equals("rwin:"))
+			return true;
+		else if (sSysvarParam.equals("swin:"))
+			return true;
+		else if (sSysvarParam.equals("cwin:"))
+			return true;
+		else if (sSysvarParam.equals("spd:"))
+			return true;
+		else if (sSysvarParam.equals("aspd:"))
+			return true;
 
-        return false;
-    }
+		return false;
+	}
 
-    /**
+	/**
 	 * Utility method to get parameter value.
 	 *
 	 * @param paramStrName
@@ -4144,29 +4305,109 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	private void setsHostName(String sHostName) {
 		this.sHostName = sHostName;
-        InetAddress[] addresses;
-        InetAddress found = null;
+		InetAddress[] addresses;
+		InetAddress found = null;
 
-        try {
-            addresses = InetAddress.getAllByName(sHostName);
+		try {
+			addresses = InetAddress.getAllByName(sHostName);
 
-            if (_chkboxPreferIPv6.isSelected()) {
-                for(int k = 0; k < addresses.length; ++k) {
-                    if (addresses[k] instanceof Inet6Address) {
-                        found = addresses[k];
-                        break;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException(e);
-        }
+			if (_chkboxPreferIPv6.isSelected()) {
+				for(int k = 0; k < addresses.length; ++k) {
+					if (addresses[k] instanceof Inet6Address) {
+						found = addresses[k];
+						break;
+					}
+				}
+			}
+		} catch (Exception e) {
+			throw new IllegalArgumentException(e);
+		}
 
-        if (null != found) {
-            this.hostAddress = found;
-        } else if (addresses.length > 0) {
-            this.hostAddress = addresses[0];
-        }
-    }
+		if (null != found) {
+			this.hostAddress = found;
+		} else if (addresses.length > 0) {
+			this.hostAddress = addresses[0];
+		}
+	}
+
+	/**
+	 * Function that returns a variable corresponding to the parameter passed to
+	 * it as a request.
+	 * @param {String} The parameter which the caller is seeking.
+	 * @return {String} The value of the desired parameter.
+	 */
+	public String getNDTvar(String varName) {
+		if (varName.equals("ClientToServerSpeed"))
+			return get_c2sspd();
+		else if (varName.equals("ServerToClientSpeed"))
+			return get_s2cspd();
+		else if (varName.equals("Jitter"))
+			return get_jitter();
+		else if (varName.equals("OperatingSystem"))
+			return get_osName() + " " + get_osVer();
+		else if (varName.equals("PluginVersion"))
+			return get_pluginVer();
+		else if (varName.equals("OsArchitecture"))
+			return get_osArch();
+		else if (varName.equals(NDTConstants.AVGRTT))
+			return get_avgrtt();
+		else if (varName.equals(NDTConstants.CURRWINRCVD))
+			return get_CurRwinRcvd();
+		else if (varName.equals(NDTConstants.MAXRWINRCVD))
+			return get_MaxRwinRcvd();
+		else if (varName.equals(NDTConstants.LOSS))
+			return get_loss();
+		else if (varName.equals(NDTConstants.MINRTT))
+			return get_Ping();
+		else if (varName.equals(NDTConstants.MAXRTT))
+			return get_MaxRTT();
+		else if (varName.equals(NDTConstants.WAITSEC))
+			return get_WaitSec();
+		else if (varName.equals(NDTConstants.CURRTO))
+			return get_CurRTO();
+		else if (varName.equals(NDTConstants.SACKSRCVD))
+			return get_SACKsRcvd();
+		else if (varName.equals(NDTConstants.MISMATCH))
+			return get_mismatch();
+		else if (varName.equals(NDTConstants.BAD_CABLE))
+			return get_Bad_cable();
+		else if (varName.equals(NDTConstants.CONGESTION))
+			return get_congestion();
+		else if (varName.equals(NDTConstants.CWNDTIME))
+			return get_cwndtime();
+		else if (varName.equals(NDTConstants.RWINTIME))
+			return get_rcvrLimiting();
+		else if (varName.equals(NDTConstants.OPTRCVRBUFF))
+			return get_optimalRcvrBuffer();
+		else if (varName.equals(NDTConstants.ACCESS_TECH))
+			return get_AccessTech();
+		else if (varName.equals(NDTConstants.DUPACKSIN))
+			return get_DupAcksIn();
+		else
+			return null;
+	}
+
+	/**
+	 * Function that parse String to Integer
+	 * @param {String} Value to parse.
+	 * @return {int} The parsed value.
+	 */
+	private int parseMsgBodyToInt(String msg) {
+		return parseMsgBodyToInt(msg, 10);
+	}
+
+	/**
+	 * Function that parse String to Integer
+	 * @param {String} Value to parse.
+	 * @param {int}  the radix to be used while parsing
+	 * @return {int} The parsed value.
+	 */
+	private int parseMsgBodyToInt(String msg, int radix) {
+		if (jsonSupport) {
+			return Integer.parseInt(JSONUtils.getSingleMessage(msg), radix);
+		} else {
+			return Integer.parseInt(msg, radix);
+		}
+	}
 
 } // class: Tcpbw100

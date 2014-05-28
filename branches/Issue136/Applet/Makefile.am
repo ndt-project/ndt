@@ -17,13 +17,17 @@
 
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV =
-NDTGCJFLAGS = -d bin -sourcepath src
+jsonlib = lib/json-smart-1.1.1.jar
+NDTGCJFLAGS = -d bin -sourcepath src -cp src/edu/internet2/ndt/$(jsonlib)
 NDTJARSIGNERFLAG = -keystore
 TEMPDIRS = bin dist
 
 ndtdir = $(prefix)/ndt
+jsonlibdir = $(ndtdir)/lib
 
-ndt_DATA	= dist/Tcpbw100.jar
+ndt_DATA = dist/Tcpbw100.jar
+jsonlib_DATA = dist/$(jsonlib)
+
 Tcpbw100dir = $(ndtdir)
 
 noinst_PROGRAMS = Tcpbw100.jar
@@ -34,8 +38,7 @@ Tcpbw100_jar_SOURCES	= src/edu/internet2/ndt/Tcpbw100.java src/edu/internet2/ndt
 				src/edu/internet2/ndt/UserAgentTools.java src/edu/internet2/ndt/NDTConstants.java \
 				src/edu/internet2/ndt/OsfwWorker.java src/edu/internet2/ndt/NewFrame.java \
 				src/edu/internet2/ndt/ResultsTextPane.java src/edu/internet2/ndt/MessageType.java \
-				src/edu/internet2/ndt/NDTUtils.java
-
+				src/edu/internet2/ndt/NDTUtils.java src/edu/internet2/ndt/JSONUtils.java
 Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
 	@rm -f Tcpbw100$(EXEEXT)
 	@if test ! -s "classTcpbw100.stamp"; then \
@@ -88,8 +91,10 @@ OsfwWorker.class: NDTConstants.class Message.class Protocol.class
 Tcpbw100.jar:	$(TEMPDIRS) all.class
 	cp -r src/edu/internet2/ndt/locale  bin/edu/internet2/ndt/
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/Tcpbw100.jar -C bin .
+	cp -r src/edu/internet2/ndt/lib  dist
 	if test -n "$(CERTIFICATE_FILE)"; then \
 		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) $(ndt_DATA) $(ALIAS); \
+		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) dist/$(jsonlib) $(ALIAS); \
 	else :; fi
 	echo timestamp > classTcpbw100.stamp
 
