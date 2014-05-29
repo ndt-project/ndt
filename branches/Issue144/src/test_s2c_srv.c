@@ -26,6 +26,79 @@
 extern pthread_mutex_t mainmutex;
 extern pthread_cond_t maincond;
 
+extern int errno;
+
+int matchGetRequest(int s, char *m) {
+#define MATCH_SENTINEL "\x01"
+  char *match_sentinel = MATCH_SENTINEL;
+  char *match = NULL;
+  char eohmatch[] = "\r\n\r\n" MATCH_SENTINEL;
+  char *eohmatch_status = NULL;
+  char *match_status = NULL;
+  char r;
+  int didMatch = 0;
+  int iterator = 0;
+
+  match = (char*)malloc(strlen(m) + 2);
+  memset(match, 0, strlen(m) + 2);
+  strcpy(match, m);
+  strcat(match, match_sentinel);
+
+  match_status = match;
+  eohmatch_status = eohmatch;
+
+  while (read(s, &r, 1) > 0) {
+
+    /* 
+     * Pre-emptively cycle to the beginning if there is a 
+     * mismatch. 
+     */
+    if (*match_status != r) 
+      match_status = match;
+    if (*eohmatch_status != r)
+      eohmatch_status = eohmatch;
+
+    /*
+     * Check for a continuing match!
+     */
+    if (*match_status == r)
+      match_status++;
+    if (*eohmatch_status == r)
+      eohmatch_status++;
+
+    /* 
+     * Check for match completion.
+     */
+    if (*match_status == *match_sentinel) {
+      didMatch = 1;
+      break;
+    }
+    if (*eohmatch_status == *match_sentinel) {
+      break;
+    }
+
+    iterator++;
+  }
+  free(match);
+
+  /*
+   * read the rest of the header, if necessary.
+   */
+  int flags = fcntl(s, F_GETFL, 0);
+  fcntl(s, F_SETFL, flags | O_NONBLOCK);
+  do {
+    int jr = read(s, &r, 1);
+    if (jr < 0 && errno == EAGAIN) {
+      break;
+    }
+  }
+  while (1);
+  fcntl(s, F_SETFL, flags);
+
+  return didMatch;
+}
+
+
 const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 
 /**
@@ -118,6 +191,25 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int sndqueue;
   struct sigaction new, old;
   char* jsonMsgValue;
+  int isUrlClient = 0;
+  int haveSentUrlHttpHeader = 0;
+  char urlHttpHeader[] = "HTTP/1.0 200 OK\r\n"
+  "Date: Fri, 40 Mar 2014 16:32:34 GMT\r\n"
+  "Connection: close\r\nExpires: -1\r\n\r\n";
+  char urlPolicy[] = "HTTP/1.0 200 OK\r\n"
+  "Content-Type: text/xml\r\n"
+  "Date: Fri, 40 Mar 2014 16:32:34 GMT\r\n"
+  "Connection: close\r\n"
+  "Expires: -1\r\n\r\n"
+  "<?xml version=\"1.0\"?>"
+  "<!DOCTYPE cross-domain-policy SYSTEM "
+  "\"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">"
+  "<cross-domain-policy>"
+  "<site-control permitted-cross-domain-policies=\"master-only\"/>"
+  "<allow-access-from domain=\"*\" to-ports=\"*\" secure=\"false\"/>"
+  "<allow-http-request-headers-from domain=\"*\" headers=\"*\"/>"
+  "</cross-domain-policy>";
+ 
 
   pthread_t workerThreadId;
   int nextseqtosend = 0, lastunackedseq = 0;
@@ -139,6 +231,10 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   wait_sig = 0;
 
   log_println(0, "test client version: %s", testOptions->client_version);
+ 
+  if (!strncmp(testOptions->client_version, "v1.0.0.0-url", 12)) {
+    isUrlClient = 1;
+  }
 
   // Determine port to be used. Compute based on options set earlier
   // by reading from config file, or use default port2 (3003)
@@ -261,6 +357,12 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        if (xmitsfd > 0) {
          log_println(6, "accept() for %d completed",
                      testOptions->child0);
+         char cdGetRequest[] = "GET /crossdomain.xml";
+         if (isUrlClient && matchGetRequest(xmitsfd, cdGetRequest)) {
+           writen(xmitsfd, urlPolicy, strlen(urlPolicy));
+           close(xmitsfd);
+           continue;
+         }
          procstatusenum = PROCESS_STARTED;
          proctypeenum = CONNECT_TYPE;
          protolog_procstatus(testOptions->child0, testids, proctypeenum,
@@ -452,7 +554,18 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         }
 
         // attempt to write random data into the client socket
-        n = write(xmitsfd, buff, RECLTH);
+        /*
+         * On the first pass through, send a 
+         * HTTP header.
+         */
+        if (isUrlClient && !haveSentUrlHttpHeader) {
+          n = write(xmitsfd, urlHttpHeader, strlen(urlHttpHeader));
+          haveSentUrlHttpHeader = 1;
+        } else {
+          // attempt to write random data into the client socket
+          n = write(xmitsfd, buff, RECLTH);
+        }
+
         // socket interrupted, continue attempting to write
         if ((n == -1) && (errno == EINTR))
           continue;
@@ -594,10 +707,10 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
     web100_snapshot_free(tsnap);
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
     web100_snapshot_free(rsnap);
 #elif USE_WEB10G
     ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);

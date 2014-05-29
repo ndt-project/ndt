@@ -31,7 +31,7 @@
     </define>
     <define append="true">
       <name>CONFIG::clientVersion</name>
-      <value>"v1.0.0.0"</value>
+      <value>"v1.0.0.0-url"</value>
     </define>
     <verbose-stacktraces>true</verbose-stacktraces>
     <!-- The locales to compile into the application-->
