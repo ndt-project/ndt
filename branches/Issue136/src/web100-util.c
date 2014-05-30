@@ -268,6 +268,9 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     }
 #endif
 
+  strlcat(results_keys, "CurMSS;", results_keys_strlen);
+  strlcat(results_values, line, results_strlen);
+
   log_println(3, "");
   log_println(0, "Sending %d Byte packets over the network, and data=%s",
               currentMSSval, line);
