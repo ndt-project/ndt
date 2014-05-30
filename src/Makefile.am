@@ -68,8 +68,8 @@ analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 
 if BUILD_FAKEWWW
 fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
-                  runningtest.c ndtptestconstants.c strlutils.c
-fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB)
+                  runningtest.c ndtptestconstants.c strlutils.c jsonutils.c
+fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB) $(JSONLIB)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 endif
 
