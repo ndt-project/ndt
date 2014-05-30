@@ -448,6 +448,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		return result;
 	}
 
+	// get PC buffer imposed throughput limit
+	public String get_PcBuffSpdLimit() {
+	       return Double.toString(rwin / rttsec);
+	}
+
 	// commenting out unused method, but not removing in case of future use
 	/*
 	 * public String isReady() {
@@ -3806,8 +3811,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * to known values and writes out the specific results.
 	 *
 	 * server data is ordered as: Server IP; Client IP; CurrentMSS;
-	 * WinScaleSent; WinScaleRcvd; Client then adds Server IP; Client IP.
-	 *
+	 * WinScaleSent; WinScaleRcvd; SumRTT; CountRTT; MaxRwinRcvd; Client then adds Server IP; Client IP.
+     *
 	 * @param sMidBoxTestResParam
 	 *            String Middlebox results
 	 */
@@ -3830,6 +3835,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			iWinsRecv = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "WinScaleRcvd"));
 			sClientSideServerIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientSideServerIp");
 			sClientSideClientIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientSideClientIp");
+            _iSumRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "SumRTT"));
+            _iCountRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "CountRTT"));
+            _iMaxRwinRcvd = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "MaxRwinRcvd"));
+
+            // calculate avgrtt and PC buffer imposed throughput limit
+            pub_avgrtt = (double) _iSumRTT / _iCountRTT;
+            rwin = _iMaxRwinRcvd * NDTConstants.EIGHT / NDTConstants.KILO_BITS / NDTConstants.KILO_BITS;
+            rttsec = pub_avgrtt / NDTConstants.KILO;
 		} else {
 			StringTokenizer tokens;
 			int k;
