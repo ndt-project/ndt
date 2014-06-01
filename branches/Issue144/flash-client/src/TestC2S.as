@@ -41,8 +41,9 @@ package  {
     private static const COMPUTE_THROUGHPUT:int = 5;
     private static const COMPARE_SERVER1:int = 6;
     private static const COMPARE_SERVER2:int = 7;
-    private static const FINALIZE_TEST:int = 8;
-    private static const END_TEST:int = 9;
+    private static const FINALIZE_TEST1:int = 8;
+    private static const FINALIZE_TEST2:int = 9;
+    private static const END_TEST:int = 10;
 
     private var _callerObj:NDTPController;
     private var _c2sTestSuccess:Boolean;
@@ -120,7 +121,9 @@ package  {
                               break;
         case COMPARE_SERVER2: compareWithServer2();
                               break;
-        case FINALIZE_TEST:   finalizeTest();
+        case FINALIZE_TEST1:  finalizeTest1();
+                              break;
+        case FINALIZE_TEST2:  finalizeTest2();
                               break;
         case END_TEST:        endTest();
                               break;
@@ -249,8 +252,6 @@ package  {
     }
 
     private function onC2SProgress(e:OutputProgressEvent):void {
-      if (_c2sSocket.bytesPending == 0)
-        _c2sSendCount++;
       if (_c2sSocket.connected) {
         sendData();
       } else {
@@ -323,6 +324,7 @@ package  {
     */
     private function sendData():void {
       _c2sSocket.writeBytes(_dataToSend, 0, _dataToSend.length);
+      _c2sSendCount++;
       _c2sSocket.flush();
     }
 
@@ -355,6 +357,7 @@ package  {
 
     private function calculateThroughput():void {
       TestResults.appendDebugMsg("C2S test: COMPUTE_THROUGHPUT stage.");
+      TestResults.appendDebugMsg("C2S test: _c2sBytesNotSent: " + _c2sBytesNotSent);
 
       var c2sByteSent:Number = (
           _c2sSendCount * NDTConstants.PREDEFINED_BUFFER_SIZE
@@ -434,19 +437,29 @@ package  {
                                  + sc2sSpeed.toFixed(2) + " kbps");
 
       _msg = new Message();
-      _testStage = FINALIZE_TEST;
+      _testStage = FINALIZE_TEST1;
       TestResults.appendDebugMsg("C2S test: FINALIZE_TEST stage.");
       if(_ctlSocket.bytesAvailable > 0)
         // If COMPARE_SERVER and TEST_FINALIZE messages arrive together at the
         // client, they trigger a single ProgressEvent.SOCKET_DATA event. In
         // such case, it's necessary to explicitly call the following function
         // to move to the next step.
-        finalizeTest();
+        finalizeTest1();
     }
 
-    private function finalizeTest():void {
+    private function finalizeTest1():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
+      _testStage = FINALIZE_TEST2;
+      if (_ctlSocket.bytesAvailable > 0)
+        // In case header and body have arrive together at the client, they
+        // trigger a single ProgressEvent.SOCKET_DATA event. In such case,
+        // it's necessary to explicitly call the following function to move to
+        // the next step.
+        finalizeTest2();
+    }
+
+    private function finalizeTest2():void {
       if (!_msg.readBody(_ctlSocket, _msg.length))
         return;
 
