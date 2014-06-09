@@ -169,7 +169,7 @@ function setPhase(phase) {
       document.getElementById('latency').innerHTML = averageRoundTrip().toPrecision(2); 
       document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
       document.getElementById("test-details").innerHTML = testDetails();
-      document.getElementById("test-advanced").innerHTML = testDiagnosis();
+      document.getElementById("test-advanced").appendChild(testDiagnosis());
 
       showPage('results');
       break;
@@ -333,8 +333,49 @@ function testStatus() {
 }
 
 function testDiagnosis() {
-  if (simulate) return "Test diagnosis";
-  return testNDT().get_diagnosis();
+  var div = document.createElement("div");
+  
+  if (simulate) {
+    div.innerHTML = "Test diagnosis";
+    return div;
+  }
+
+  var diagnosisArray = testNDT().get_diagnosis().split('\n');
+  var txt = '';
+  var table;
+  var isTable = false;
+
+  diagnosisArray.forEach(
+    function addRow(value) { 
+      if (isTable) {
+        rowArray = value.split(':');
+        if (rowArray.length>1) {
+          var row = table.insertRow(-1);
+          rowArray.forEach(
+            function addCell(cellValue, idx) { 
+              var cell =row.insertCell(idx);
+              cell.innerHTML = cellValue;
+            }
+          );
+        } else { 
+          isTable = false;
+          txt = txt + value;
+        }		
+      } else {  
+        if (value.indexOf('=== Results sent by the server ===') != -1) { 
+          table = document.createElement("table");
+          isTable = true;
+        } else {
+          txt = txt + value + "\n";
+        }
+      }
+    }
+  );
+  txt = txt + "=== Results sent by the server ===";
+  div.innerHTML = txt;
+  div.appendChild(table);
+
+  return div;
 }
 
 function testError() {
