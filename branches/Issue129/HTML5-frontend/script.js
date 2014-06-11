@@ -28,16 +28,18 @@ var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
 
-// Stats from the previous test, for retesting
-var lastUploadSpeed = false;
+// Gauges used for showing download/upload speed
+var downloadGauge, uploadGauge;
+var gaugeUpdateInterval;
+var gaugeMaxValue = 100; // Mb/s
 
 
 // PRIMARY METHODS
 
 function initializeTest() {
 
-  // Test throbber
-  initializeThrobber();
+  // Initialize gauges
+  initializeGauges();
 
   // Initialize start buttons
   $('.start.button').click(startTest);
@@ -55,7 +57,8 @@ function initializeTest() {
 function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
-  showPage('test');
+  showPage('test', resetGauges);
+  document.getElementById('rttValue').innerHTML = "";
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
   testNDT().run_test();
@@ -73,6 +76,7 @@ function simulateTest() {
 
 function monitorTest() {
   var message = testError();
+  var currentStatus = testStatus();
 
   /*
   var currentStatus = testStatus();
@@ -89,22 +93,15 @@ function monitorTest() {
     setPhase(PHASE_RESULTS);
     return true;
   }
-
-  var uploadTestComplete = false;
-  if (currentPhase == PHASE_UPLOAD) {
-    if (lastUploadSpeed != false) {
-      uploadTestComplete = lastUploadSpeed != uploadSpeed(true);
-    }
-    else {
-      uploadTestComplete = uploadSpeed(true) > 0;
-    }
-    if (uploadTestComplete) {
-      lastUploadSpeed = uploadSpeed(true);
-      debug("Upload speed is " + uploadSpeed(true));
-      setPhase(PHASE_DOWNLOAD);
-    }
+  if (currentStatus.match(/Outbound/) && currentPhase < PHASE_UPLOAD) {
+    setPhase(PHASE_UPLOAD);
   }
-  if (!remoteServer().match(/ndt/) && currentPhase == PHASE_PREPARING) {
+  if (currentStatus.match(/Inbound/) && currentPhase < PHASE_DOWNLOAD) {
+    setPhase(PHASE_DOWNLOAD);
+  }
+
+  if (!currentStatus.match(/Middleboxes/) && !currentStatus.match(/notStarted/) 
+        && !remoteServer().match(/ndt/) && currentPhase == PHASE_PREPARING) {
     debug("Remote server is " + remoteServer());
     setPhase(PHASE_UPLOAD);
   }
@@ -127,42 +124,71 @@ function setPhase(phase) {
       break;
 
     case PHASE_PREPARING:
+      uploadGauge.setValue(0);
+      downloadGauge.setValue(0);
       debug("PREPARING TEST");
 
       $('#loading').show();
       $('#upload').hide();
       $('#download').hide();
 
-      showPage('test', startThrobber);
+      showPage('test', resetGauges);
       break;
 
     case PHASE_UPLOAD:
+      var pcBuffSpdLimit, rtt, gaugeConfig = [];
       debug("UPLOAD TEST");
 
-      $("#test .remote.location .address").get(0).innerHTML = remoteServer();
+      pcBuffSpdLimit = speedLimit();
+      rtt = averageRoundTrip();
 
-      stopThrobber();
-      $('#loading').fadeOut(transitionSpeed, function(){
-        $('#upload').fadeIn(transitionSpeed, function(){
-          startBar('upload');
+      if (isNaN(rtt)) {
+        document.getElementById("rttValue").innerHTML = "n/a";
+      } else {
+        document.getElementById("rttValue").innerHTML = rtt.toFixed(2).concat(" ms");
+      }
+
+      if (!isNaN(pcBuffSpdLimit)) {
+        if (pcBuffSpdLimit > gaugeMaxValue) {
+          pcBuffSpdLimit = gaugeMaxValue; 
+        }
+        gaugeConfig.push({
+          from: 0,   to: pcBuffSpdLimit, color: 'rgb(0, 255, 0)'
         });
-      });
+
+        gaugeConfig.push({
+          from: pcBuffSpdLimit, to: gaugeMaxValue, color: 'rgb(255, 0, 0)'
+        });
+
+        uploadGauge.updateConfig({ 
+          highlights: gaugeConfig
+        });
+
+        downloadGauge.updateConfig({ 
+          highlights: gaugeConfig
+        });
+      }
+
+      $('#loading').hide();
+      $('#upload').show();
+
+      gaugeUpdateInterval = setInterval(function(){
+        updateGaugeValue();
+      },1000);
+
+      $("#test .remote.location .address").get(0).innerHTML = remoteServer();
       break;
 
     case PHASE_DOWNLOAD:
       debug("DOWNLOAD TEST");
-      stopBar('upload');
-      $('#upload').fadeOut(transitionSpeed, function(){
-        $('#download').fadeIn(transitionSpeed, function(){
-          startBar('download');
-        });
-      });
+
+      $('#upload').hide();
+      $('#download').show();
       break;
 
     case PHASE_RESULTS:
       debug("SHOW RESULTS");
       debug('Testing complete');
-      stopBar('download');
 
       document.getElementById('upload-speed').innerHTML = uploadSpeed().toPrecision(2); 
       document.getElementById('download-speed').innerHTML = downloadSpeed().toPrecision(2); 
@@ -225,102 +251,70 @@ function showResultsPage(page) {
 }
 
 
+// GAUGE
 
-// THROBBER 
+function initializeGauges() {
+  var gaugeValues = [];
 
-var throbberPos = -1;
-var throbberSpeed = 500;
-
-function initializeThrobber() {
-  var dot;
-  var b = bar('loading');
-  for (var i=0, len=8; i < len; i++) {
-    dot = document.createElement('div');
-    dot.className = 'dot';
-    dot.style.left = (i * 80) + "px";
-    dot.style.display = "none";
-    b.appendChild(dot);
+  for (var i=0; i<=10; i++) {
+    gaugeValues.push(0.1 * gaugeMaxValue * i);
   }
-}
+  uploadGauge = new Gauge({
+    renderTo    : 'uploadGauge',
+    width       : 270,
+    height      : 270,
+    units       : 'Mb/s',
+    title       : "Upload",
+    minValue    : 0,
+    maxValue    : gaugeMaxValue,
+    majorTicks  : gaugeValues,
+    highlights  : [{ from: 0, to: gaugeMaxValue, color: 'rgb(0, 255, 0)' }]
+  });;
 
-function startThrobber() {
-  debug('Start throbber');
-  throbberPos = -1;
-  advanceThrobber();
-}
-
-function advanceThrobber() {
-  if (throbberPos >= 0) {
-    $("#loading .dot:eq(" + throbberPos + ")").fadeOut(throbberSpeed);
+  gaugeValues = [];
+  for (var i=0; i<=10; i++) {
+    gaugeValues.push(0.1 * gaugeMaxValue * i);
   }
-  incrementThrobber();
-  $("#loading .dot:eq(" + throbberPos + ")").fadeIn(throbberSpeed, advanceThrobber);
+  downloadGauge = new Gauge({
+    renderTo    : 'downloadGauge',
+    width       : 270,
+    height      : 270,
+    units       : 'Mb/s',
+    title       : "Download",
+    minValue    : 0,
+    maxValue    : gaugeMaxValue,
+    majorTicks  : gaugeValues,
+    highlights  : [{ from: 0, to: gaugeMaxValue, color: 'rgb(0, 255, 0)' }]
+  });;
 }
 
-function incrementThrobber() {
-  var len = $("#loading .dot").size();
-  throbberPos++;
-  if (throbberPos >= len) throbberPos = 0;
+function resetGauges() {
+  var gaugeConfig = [];
+
+  gaugeConfig.push({
+    from: 0, to: gaugeMaxValue, color: 'rgb(0, 255, 0)'
+  });  
+
+  uploadGauge.updateConfig({
+    highlights: gaugeConfig
+  });
+  uploadGauge.setValue(0);
+
+  downloadGauge.updateConfig({ 
+    highlights: gaugeConfig
+  });
+  downloadGauge.setValue(0);
 }
 
-function stopThrobber() {
-  debug('Stop throbber');
-  $("#loading .dot").stop(true).fadeOut(throbberSpeed);
+function updateGaugeValue() {
+  if (currentPhase == PHASE_UPLOAD) {
+    uploadGauge.setValue(uploadSpeed(true));
+  } else if (currentPhase == PHASE_DOWNLOAD) {
+    downloadGauge.setValue(downloadSpeed());
+  } else {
+    clearInterval(gaugeUpdateInterval);  
+  }   
 }
-
-// Upload/download animations
-
-var barSpeed = 3000;
-
-function bar(test) {
-  return $(".progress-bar", document.getElementById(test)).get(0);
-}
-
-function startBar(test) {
-  addSegment(test);
-}
-
-function stopBar(test) {
-  $(".segment", bar(test)).stop(true).fadeOut();
-}
-
-function addSegment(test) {
-  var seg = newSegment(test);
-  seg.style.left = test == "upload" ? "640px" : "-640px";
-  var b = bar(test); 
-  b.appendChild(seg);
-  $(seg).animate({ left: "0" }, barSpeed, 'linear', removeSegment);
-}
-
-function removeSegment() {
-  var test = $(this).parents(".test").get(0).id;
-  var pos = test == "upload" ? "-640" : "640";
-  $(this).animate({ left: pos }, barSpeed, 'linear', deleteSegment);
-  addSegment(test);
-}
-
-function deleteSegment() {
-  var test = $(this).parents(".test").get(0).id;
-  bar(test).removeChild(this);
-}
-  
-function newSegment() {
-  var seg = document.createElement('div'), dot = null;
-  seg.className = 'segment';
-  /*
-  for (var i=0, len=8; i < len; i++) {
-    dot = document.createElement('div');
-    dot.className = 'dot';
-    dot.style.left = (i * 80) + "px";
-    seg.appendChild(dot);
-  }
-  */
-  return seg;
-}
-
-
-
-
 
 // TESTING JAVA/FLASH CLIENT
 
@@ -365,6 +359,11 @@ function averageRoundTrip() {
 function jitter() {
   if (simulate) return 0;
   return parseFloat(testNDT().getNDTvar("Jitter"));
+}
+
+function speedLimit() {
+  if (simulate) return 0;
+  return parseFloat(testNDT().get_PcBuffSpdLimit());
 }
 
 function testDetails() {

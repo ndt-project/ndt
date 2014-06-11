@@ -1505,6 +1505,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					.append(_resBundDisplayMsgs.getString("done") + "\n");
 			_txtStatistics.append(_resBundDisplayMsgs.getString("done") + "\n");
 			_sEmailText += _resBundDisplayMsgs.getString("done") + "\n%0A";
+
+			// interpret results
+			middleboxResults(_sMidBoxTestResult);
 		}
 		return false;
 	}
