@@ -18,6 +18,19 @@
 #include "web100srv.h"
 #include "jsonutils.h"
 
+#if USE_WEB100
+#include <web100.h>
+#endif
+#if USE_WEB10G
+#include <estats.h>
+#endif
+
+static struct web100_variables {
+  int defined;
+  char name[256];  // key
+  char value[256];  // value
+} web_vars[WEB100_VARS];
+
 struct tcp_name {
   char* web100_name;
   char* web10g_name;
@@ -102,7 +115,7 @@ static struct tcp_name tcp_names[] = {
  * @return integer indicating number of web100 variables read
  * 		or indicating failure of initialization
  */
-int tcp_stat_init(char *VarFileName) {
+int tcp_stats_init(char *VarFileName) {
 #if USE_WEB100
   FILE * fp;
   char line[256], trimmedline[256];
@@ -127,8 +140,10 @@ int tcp_stat_init(char *VarFileName) {
     trim(line, strlen(line), trimmedline, sizeof(trimmedline));
     strlcpy(web_vars[count_vars].name, trimmedline,
             sizeof(web_vars[count_vars].name));
+    web_vars[count_vars].defined = 1;
     count_vars++;
   }
+  web_vars[count_vars].defined = 0;
   fclose(fp);
   log_println(1, "web100_init() read %d variables from file", count_vars);
 
@@ -159,16 +174,6 @@ int tcp_stat_init(char *VarFileName) {
  */
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn, char *results_keys,
 						size_t results_keys_strlen, char *results_values, size_t results_strlen) {
-#if USE_WEB100
-  web100_var* var;
-  web100_group* group;
-  web100_snapshot* snap;
-  web100_var* LimCwnd;
-#elif USE_WEB10G
-  struct estats_val value;
-  estats_val_data* data = NULL;
-#endif
-
   char buff[8192], line[256];
   char* sndbuff;
   int i, j, k, currentMSSval = 0;
@@ -181,6 +186,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   u_int32_t limcwnd_val;
   struct sockaddr_storage saddr;
   socklen_t saddr_size;
+  tcp_stat_group *group;
+  tcp_stat_snap *snap;
 
   // middlebox test results
   static char vars[][255] = {"WinScaleSent", "WinScaleRcvd", "SumRTT", "CountRTT", "MaxRwinRcvd" };
@@ -243,33 +250,11 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   strlcat(results_values, line, results_strlen);
 
   // get current MSS value
-#if USE_WEB100
-    // read web100_group and web100_var of CurMSS into group and var
-    web100_agent_find_var_and_group(agent, "CurMSS", &group, &var);
-    // read variable value from web100 connection
-    web100_raw_read(var, cn, buff);
-
-    // get current MSS in textual format and append to results
-
-    // get current MSS value and append to "results"
-      currentMSSval = atoi(
-          web100_value_to_text(web100_get_var_type(var), buff));
-    snprintf(line, sizeof(line), "%s;",
-          web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_WEB10G
-    int type;
-    type = web10g_get_val(agent, cn, "CurMSS", &value);
-    if (type == -1) {
-      log_println(0, "Middlebox: Failed to read the value of CurMSS");
-      return;
-    } else {
-        currentMSSval = value.uv32;
-      snprintf(line, sizeof(line), "%u;", value.uv32);
-    }
-#endif
+  tcp_stats_read_var(agent, cn, "CurMSS", buff, sizeof(buff));
+  currentMSSval = atoi(buff);
 
   strlcat(results_keys, "CurMSS;", results_keys_strlen);
-  strlcat(results_values, line, results_strlen);
+  strlcat(results_values, buff, results_strlen);
 
   log_println(3, "");
   log_println(0, "Sending %d Byte packets over the network, and data=%s",
@@ -283,16 +268,7 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
    */
 
   limcwnd_val = 2 * currentMSSval;
-
-#if USE_WEB100
-  // get web100_var and web100_group
-  web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
-
-  // set TCP CWND web100 variable to twice the current MSS Value
-  web100_raw_write(LimCwnd, cn, &limcwnd_val);
-#elif USE_WEB10G
-  estats_write_var("LimCwnd", (uint32_t)limcwnd_val, cn, agent);
-#endif
+  tcp_stats_set_cwnd(agent, cn, limcwnd_val);
 
   log_println(5, "Setting Cwnd Limit to %d octets", limcwnd_val);
 
@@ -317,13 +293,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     sndbuff[j] = (k++ & 0x7f);
   }
 
-#if USE_WEB100
-  // get web100 group with name "read"
-  group = web100_group_find(agent, "read");
-  snap = web100_snapshot_alloc(group, cn);
-#elif USE_WEB10G
-  estats_val_data_new(&data);
-#endif
+  group = tcp_stats_get_group(agent, "read");
+  snap = tcp_stats_init_snapshot(agent, cn, group);
 
   FD_ZERO(&wfd);
   FD_SET(sock, &wfd);
@@ -333,24 +304,15 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     if ((ret == -1) && (errno == EINTR)) /* a signal arrived, ignore it */
       continue;
 
-#if USE_WEB100
-    web100_snap(snap);
+    tcp_stats_take_snapshot(agent, cn, snap);
 
     // get next sequence # to be sent
-    web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-    web100_snap_read(var, snap, line);
-    SndMax = atoi(web100_value_to_text(web100_get_var_type(var), line));
+    tcp_stats_snap_read_var(agent, snap, "SndNxt", tmpstr, sizeof(tmpstr));
+    SndMax = atoi(tmpstr);
+
     // get oldest un-acked sequence number
-    web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-    web100_snap_read(var, snap, line);
-    SndUna = atoi(web100_value_to_text(web100_get_var_type(var), line));
-#elif USE_WEB10G
-    estats_read_vars(data, cn, agent);
-    web10g_find_val(data, "SndNxt", &value);
-    SndMax = value.uv32;
-    web10g_find_val(data, "SndUna", &value);
-    SndUna = value.uv32;
-#endif
+    tcp_stats_snap_read_var(agent, snap, "SndUna", tmpstr, sizeof(tmpstr));
+    SndUna = atoi(tmpstr);
 
     // stop sending data if (buf size * 16) <
     // [ (Next Sequence # To Be Sent) - (Oldest Unacknowledged Sequence #) - 1 ]
@@ -369,24 +331,12 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
 
   // get web100 values for the middlebox test result group
   for (i = 0; i < sizeof(vars) / sizeof(vars[0]); i++) {
-#if USE_WEB100
-    // read web100_group and web100_var of vars[i] into group and var
-    web100_agent_find_var_and_group(agent, vars[i], &group, &var);
-    // read variable value from web100 connection
-    web100_raw_read(var, cn, buff);
-
-    snprintf(line, sizeof(line), "%s;",
-          web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_WEB10G
-    int type;
-    type = web10g_get_val(agent, cn, vars[i], &value);
-    if (type == -1) {
+    if (tcp_stats_read_var(agent, cn, vars[i], buff, sizeof(buff)) != 0) {
       log_println(0, "Middlebox: Failed to read the value of %s", vars[i]);
       return;
-    } else {
-      snprintf(line, sizeof(line), "%u;", value.uv32);
     }
-#endif
+
+    snprintf(line, sizeof(line), "%s;", buff);
 
     if (strcmp(line, "4294967295;") == 0)
       snprintf(line, sizeof(line), "%d;", -1);
@@ -399,16 +349,9 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   }
 
 
-#if USE_WEB100
-  log_println(5, "Finished with web100_middlebox() routine snap-0x%x, "
-              "sndbuff=%x0x", snap, sndbuff);
-  web100_snapshot_free(snap);
-#elif USE_WEB10G
-
-  estats_val_data_free(&data);
-  log_println(5, "Finished with web10g_middlebox() routine, "
-              "sndbuff=%x0x", sndbuff);
-#endif
+  log_println(5, "Finished with middlebox() routine, "
+                  "sndbuff=%x0x", sndbuff);
+  tcp_stats_free_snapshot(snap);
   /* free(sndbuff); */
 }
 
@@ -418,18 +361,12 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
  * @param sock integer socket file descriptor
  * @param agent pointer to a tcp_stat_agent
  * @param cn A tcp_stat_connection
- * @param count_vars integer number of tcp_stat_vars to get value of
  *
  */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
-                            tcp_stat_connection cn, int count_vars) {
-#if USE_WEB100
-  web100_var* var = NULL;
-  web100_group* group = NULL;
-#elif USE_WEB10G
-  estats_val_data* data = NULL;
-  estats_error* err = NULL;
-#endif
+                            tcp_stat_connection cn) {
+  socklen_t len;
+  struct sockaddr_storage addr;
   int i;
   char buf[32], line[256], *ctime();
   FILE * fp;
@@ -444,75 +381,29 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
   // get values for group, var of IP Address of the Remote host's side of
   // connection
 
-#if USE_WEB100
-  web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
-  web100_raw_read(var, cn, buf);
-  snprintf(line, sizeof(line), "%s;",
-           web100_value_to_text(web100_get_var_type(var), buf));
-#elif USE_WEB10G
-  web10g_get_remote_addr(agent, cn, buf, sizeof(buf));
+  len = sizeof(addr);
+  getpeername(sock, (struct sockaddr*)&addr, &len);
+  addr2a(&addr, buf, sizeof(buf));
   snprintf(line, sizeof(line), "%s;", buf);
-#endif
   // write remote address to log file
   if (fp)
     fprintf(fp, "%s", line);
 
   // get values for other web100 variables and write to the log file
 
-#if USE_WEB100
-  int ok = 1;
-  for (i = 0; i < count_vars; i++) {
-    if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
-                                         &var)) != WEB100_ERR_SUCCESS) {
+  for (i = 0; web_vars[i].defined; i++) {
+    char buf[1024];
+    if (tcp_stats_read_var(agent, cn, web_vars[i].name, buf, sizeof(buf)) != 0) {
       log_println(1, "Variable %d (%s) not found in KIS", i,
                   web_vars[i].name);
-      ok = 0;
       continue;
     }
 
-    if (cn == NULL) {
-      fprintf(
-          stderr,
-          "Web100_get_data_recv() failed, return to testing routine\n");
-      return;
-    }
-
-    if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-      if (get_debuglvl() > 9)
-        web100_perror("web100_raw_read()");
-      continue;
-    }
-    if (ok == 1) {
-      snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
-               web100_value_to_text(web100_get_var_type(var), buf));
-      if (fp)
-        fprintf(fp, "%d;", (int32_t) atoi(web_vars[i].value));
-      log_println(9, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
-    }
-    ok = 1;
-  }
-#elif USE_WEB10G
-  estats_val_data_new(&data);
-  estats_read_vars(data, cn, agent);
-
-  // Loop through all the web10g variables and write to file/log_print them
-  for (i = 0; i < data->length; i++) {
-    if (data->val[i].masked) continue;
-    char * str = NULL;
-
-    if ((err = estats_val_as_string(&str, &data->val[i], estats_var_array[i].valtype)) != NULL) {
-      log_println(0, "Error: tcp_stat_get_data_recv - estats_val_as_string");
-      estats_error_print(stderr, err);
-      estats_error_free(&err);
-      continue;
-    }
+    snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s", buf);
     if (fp)
-      fprintf(fp, "%s;", str);
-    log_println(9, "%s: %s", estats_var_array[i].name, estats_read_vars);
+      fprintf(fp, "%d;", (int32_t) atoi(web_vars[i].value));
+    log_println(9, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
   }
-
-  estats_val_data_free(&data);
-#endif
 
   // close file pointers after web100 variables have been fetched
   if (fp) {
@@ -595,7 +486,7 @@ static void print_10gvar_renamed(const char * old_name,
  *
  */
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars, int jsonSupport) {
+                      tcp_stat_agent* agent, int jsonSupport) {
   char line[256];
 #if USE_WEB100
   int i;
@@ -606,7 +497,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
   assert(snap);
   assert(agent);
 
-  for (i = 0; i < count_vars; i++) {
+  for (i = 0; i < web_vars[i].defined; i++) {
     if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
                                          &var)) != WEB100_ERR_SUCCESS) {
       log_println(9, "Variable %d (%s) not found in KIS: ", i,
@@ -812,60 +703,12 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
 #endif
 }
 
-#if USE_WEB100
-/**
- * Calculate Web100 based Round-Trip Time (RTT) value.
- *
- * "SumRTT" = sum of all sampled round trip times.
- * "CountRTT" = count of samples in SumRTT.
- * Thus, sumRTT/CountRTT = RTT
- * @param ctlsock integer socket file descriptor indicating data recipient
- * @param agent pointer to a web100_agent
- * @param cn pointer to web100_connection
- * @return positive integral round trip time in milliseconds on success,
- * 		   negative integer error code if failure.
- * 		Error codes :
- * 				 -10 if web100-connection is null.
- * 				 -24 Cannot find CountRTT or SumRTT web100_variable's var/group.
- * 				 -25 cannot read the value of the countRTT or SumRTT web100_variable.
- *
- *
- */
-int web100_rtt(int sock, web100_agent* agent, web100_connection* cn) {
-  web100_var* var;
-  char buf[32];
-  web100_group* group;
-  double count, sum;
-
-  if (cn == NULL)
-    return (-10);
-
-  if ((web100_agent_find_var_and_group(agent, "CountRTT", &group, &var))
-      != WEB100_ERR_SUCCESS)
-    return (-24);
-  if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    return (-25);
-  }
-  count = atoi(web100_value_to_text(web100_get_var_type(var), buf));
-
-  if ((web100_agent_find_var_and_group(agent, "SumRTT", &group, &var))
-      != WEB100_ERR_SUCCESS)
-    return (-24);
-  if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    return (-25);
-  }
-  sum = atoi(web100_value_to_text(web100_get_var_type(var), buf));
-  return (sum / count);
-}
-#endif
-
 /**
  * Check if the "Auto Tune Send Buffer" and "Auto Tune Receive Buffer" options
  * are enabled and return status on each
  *
  * @param sock integer socket file descriptor indicating data recipient
  * @param agent pointer to a web100_agent
- * @param cn pointer to web100_connection
  * @return On successful fetch of required web100_variables, integers:
  *  				0x01 if "Autotune send buffer" is not enabled
  *  				0x02 if "Autotune receive buffer" is not enabled
@@ -876,13 +719,15 @@ int web100_rtt(int sock, web100_agent* agent, web100_connection* cn) {
  * 					23 cannot read the value of the X_SBufMode or X_RBufMode web100_variable.
  */
 
-int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn) {
+int tcp_stats_autotune_enabled(tcp_stat_agent *agent, int sock) {
 #if USE_WEB100
   web100_var* var;
   char buf[32];
   web100_group* group;
+  web100_connection *cn;
   int i, j = 0;
 
+  cn = tcp_stats_connection_from_socket(agent, sock);
   if (cn == NULL)
     return (10);
 
@@ -924,114 +769,19 @@ int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn) {
 #endif
 }
 
-#if USE_WEB100
 /**
- * Check if the "Auto Tune Send Buffer" and "Auto Tune Receive Buffer" options
- * are enabled. If not, scale the Send window or receive window sizes based on the
- * scaling factors negotiated. Scaling factor sndWinScale is used to set used to set "LimCwnd"
- * (maximum size, in bytes, of the congestion window that may be used)
- * and RcvWindowScale is used to set "LimRwin"( maximum receive window size, in bytes, that may be advertised).
- *
- * This function seems unused currently.
- *
- * @param sock integer socket file descriptor indicating data recipient
- * @param agent pointer to a web100_agent
- * @param cn pointer to web100_connection
- * @return Integer, 0 on success
- *  	  If failure, error codes :
- *  				10 - web100-connection is null.
- *  				22 - Cannot find LimCwnd web100 variable's var/group data.
- *  				23 - Cannot find LimRwin web100 variable's var/group data
- * 					24 - cannot find SndWinScale web100 variable's var/group data.
- * 					25 - cannot read the value of the SndWinScale web100 variable.
- * 					34 - cannot find RcvWinScale web100 variable's var/group data.
- * 					35 - cannot read value of RcvWinScale web100 variable.
- *
- */
-int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
-                     int autotune) {
-  web100_var* var;
-  char buf[32];
-  web100_group* group;
-  int buff;
-  int sScale, rScale;
-
-  if (cn == NULL)
-    return (10);
-
-  // get Window scale used by the sender to decode snd.wnd
-  if ((web100_agent_find_var_and_group(agent, "SndWinScale", &group, &var))
-      != WEB100_ERR_SUCCESS)
-    return (24);
-  if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    return (25);
-  }
-  sScale = atoi(web100_value_to_text(web100_get_var_type(var), buf));
-  if (sScale > 15)  // define constant for 15
-    sScale = 0;
-
-  // get Window scale used by the sender to decode seg.wnd
-  if ((web100_agent_find_var_and_group(agent, "RcvWinScale", &group, &var))
-      != WEB100_ERR_SUCCESS)
-    return (34);
-  if ((web100_raw_read(var, cn, buf)) != WEB100_ERR_SUCCESS) {
-    return (35);
-  }
-  rScale = atoi(web100_value_to_text(web100_get_var_type(var), buf));
-  if (rScale > 15)
-    rScale = 0;
-
-  if ((sScale > 0) && (rScale > 0)) {
-    // 64k( max TCP rcv window)
-    buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << sScale;
-    if (autotune & 0x01) {  // autotune send buffer is not enabled
-      if ((web100_agent_find_var_and_group(agent, "LimCwnd", &group, &var))
-          != WEB100_ERR_SUCCESS)
-        return (22);
-      // attempt writing variable value, log failure
-      if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
-        log_println(4,
-                    "Web100_raw_write(LimCwnd) failed with errorno=%d",
-                    errno);
-        return (23);
-      }
-    }
-    buff = (MAX_TCP_WIN_BYTES * KILO_BITS) << rScale;
-
-    if (autotune & 0x02) {  // autotune receive buffer is not enabled
-      if ((web100_agent_find_var_and_group(agent, "LimRwin", &group, &var))
-          != WEB100_ERR_SUCCESS)
-        return (22);
-      if ((web100_raw_write(var, cn, &buff)) != WEB100_ERR_SUCCESS) {
-        log_println(4,
-                    "Web100_raw_write(LimRwin) failed with errorno=%d",
-                    errno);
-        return (23);
-      }
-    }
-  }
-
-  return (0);
-}
-#endif
-
-/**
- * @param sock integer socket file descriptor indicating data recipient
  * @param tcp_vars to local copies of tcp_stat variables
  * @return integer 0
  */
-int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
+int tcp_stat_logvars(struct tcp_vars* vars) {
 #if USE_WEB100
   int a, b;
   for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
     const char* web100_name = tcp_names[a].web100_name;
     if (web100_name == NULL)
       continue;
-  int PktsIn = -1;
-  int DataPktsIn = -1;
-  int has_AckPktsIn = 0;
 
-    for (b = 0; b < count_vars; b++) {
+    for (b = 0; web_vars[b].defined; b++) {
       if (strcmp(web_vars[b].name, web100_name) == 0) {
         tcp_stat_var* var = &((tcp_stat_var *)vars)[a];
         *var = atoi(web_vars[b].value);
@@ -1039,7 +789,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
         break;
       }
     }
-    if (b == count_vars) {
+    if (web_vars[b].defined == 0) {
       log_println(1, "WARNING: Failed to find Web100 var %s", web100_name);
     }
   }
@@ -1101,83 +851,34 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
  * @return Integer, 0 on success, -1 on failure
  */
 
-int CwndDecrease(char* logname, u_int32_t *dec_cnt,
+int CwndDecrease(SnapResults *results, u_int32_t *dec_cnt,
                  u_int32_t *same_cnt, u_int32_t *inc_cnt) {
-#if USE_WEB100
-  web100_var* var;
-  char buff[256];
-  web100_snapshot* snap;
-  int s1, s2, cnt, rt;
-  web100_log* log;
-  web100_group* group;
-  web100_agent* agnt;
-#elif USE_WEB10G
-  estats_val var;
-  char buff[256];
-  estats_val_data* snap;
-  int s1, s2, cnt, rt;
-  estats_record* log;
-#endif
-
-#if USE_WEB100
-  // open snaplog file to read values
-  if ((log = web100_log_open_read(logname)) == NULL)
-    return (0);
-  if ((snap = web100_snapshot_alloc_from_log(log)) == NULL)
-    return (-1);
-  if ((agnt = web100_get_log_agent(log)) == NULL)
-    return (-1);
-  if ((group = web100_get_log_group(log)) == NULL)
-    return (-1);
-
-  // Find current values of the congestion window
-  if (web100_agent_find_var_and_group(agnt, "CurCwnd", &group, &var)
-      != WEB100_ERR_SUCCESS)
-    return (-1);
-#elif USE_WEB10G
-  estats_record_open(&log, logname, "r");
-#endif
+  int i;
+  int s1, s2, cnt;
+  char buf[1024];
 
   s2 = 0;
   cnt = 0;
 
-  // get values and update counts
-#if USE_WEB100
-  while (web100_snap_from_log(snap, log) == 0) {
-#elif USE_WEB10G
-  while (estats_record_read_data(&snap, log) == NULL) {
-#endif
-    if (cnt++ == 0)
+  for(i = 0; i < results->collected; i++) {
+    tcp_stat_snap *snap = results->snapshots[i];
+    if (cnt++ == 0) {
       continue;
+    }
     s1 = s2;
     // Parse snapshot, returning variable values
-#if USE_WEB100
-    rt = web100_snap_read(var, snap, buff);
-    s2 = atoi(web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_WEB10G
-    rt = web10g_find_val(snap, "CurCwnd", &var);
-    s2 = var.uv32;
-#endif
+    if (tcp_stats_snap_read_var(results->agent, snap, "CurCwnd", buf, sizeof(buf)) != 0) {
+     continue;
+    }
+
+    s2 = atoi(buf);
 
     if (cnt < 20) {
-#if USE_WEB100
-      log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt,
-                  (char*) var);
+      log_println(7, "Reading snaplog %p (%d), var = %s", snap, cnt, buf);
       log_println(
           7,
-          "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d (%s), dec-cnt=%d",
-          rt, s1, s2,
-          web100_value_to_text(web100_get_var_type(var), buff),
-          *dec_cnt);
-#elif USE_WEB10G
-      log_println(7, "Reading snaplog %p (%d), var = %"PRIu64, snap, cnt,
-                     var.uv64);
-      log_println(
-          7,
-          "Checking for Cwnd decreases. rt=%d, s1=%d, s2=%d, dec-cnt=%d",
-          rt, s1, s2,
-          *dec_cnt);
-#endif
+          "Checking for Cwnd decreases. s1=%d, s2=%d, dec-cnt=%d",
+          s1, s2, *dec_cnt);
     }
     if (s2 < s1)
       (*dec_cnt)++;
@@ -1185,22 +886,8 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
       (*same_cnt)++;
     if (s2 > s1)
       (*inc_cnt)++;
-
-#if USE_WEB100
-    if (rt != WEB100_ERR_SUCCESS)
-      break;
-#elif USE_WEB10G
-    estats_val_data_free(&snap);
-    if (rt != -1)
-      break;
-#endif
   }
-#if USE_WEB100
-  web100_snapshot_free(snap);
-  web100_log_close_read(log);
-#elif USE_WEB10G
-  estats_record_close(&log);
-#endif
+
   log_println(
       2,
       "-=-=-=- CWND window report: increases = %d, decreases = %d, "
@@ -1209,192 +896,224 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
   return (0);
 }
 
+int tcp_stats_read_var(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize) {
 #if USE_WEB100
-/**
- * Generate TCP/IP checksum for our packet
- *
- * @param buff pointer to buffer
- * @param nwords integer length (in bytes) of the header
- * @return unsigned short checksum
- */
-unsigned short csum(unsigned short *buff, int nwords) {
-  /* generate a TCP/IP checksum for our packet */
-
-  register int sum = 0;
-  u_short answer = 0;
-  register u_short *w = buff;
-  register int nleft = nwords;
-
-  // make 16 bit words out of every couple of 8 bit words and
-  // add up
-  while (nleft > 1) {
-    sum += *w++;
-    nleft -= 2;
-  }
-
-  if (nleft == 1) {
-    *(u_char *) (&answer) = *(u_char *) w;
-    sum += answer;
-  }
-
-  // form 16 bit words, add and store
-  sum = (sum >> 16) + (sum & 0xffff);
-  // then add carries to the sume
-  sum += (sum >> 16);
-
-  // 1s complement of the above yields checksum
-  answer = ~sum;
-  return (answer);
-}
-
-/**
- * Try to close out connections in an unexpected or erroneous state.
- *
- * This function seems unused currently.
- *
- * @return integer, 0 if kill succeeded, and
- * 	  -1 if kill failed or there was nothing to kill
- */
-int KillHung(void) {
-  web100_agent *agent;
   web100_group *group;
-  web100_var *state, *var;
-  web100_connection *conn;
-  int cid, one = 1, hung = 0;
-  int sd;
-  char *pkt, buff[64];
-  struct in_addr src, dst;
-  struct iphdr *ip = NULL;
-  struct tcphdr *tcp;
-  struct sockaddr_in sin;
-  struct pseudo_hdr *phdr;
+  web100_var* var;
+  char tmp[1024];
+  char *tmpstr;
 
-  if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL, NULL)) == NULL) {
-    web100_perror("web100_attach");
-    return (-1);
+  // read web100_group and web100_var of vars[i] into group and var
+  web100_agent_find_var_and_group(agent, var_name, &group, &var);
+  // read variable value from web100 connection
+  web100_raw_read(var, conn, tmp);
+  tmpstr = web100_value_to_text(web100_get_var_type(var), tmp);
+  strlcpy(buf, tmpstr, bufsize);
+#elif USE_WEB10G
+  struct estats_val value;
+  int type;
+
+  type = web10g_get_val(agent, conn, var_name, &value);
+  if (type == -1) {
+    return -1;
   }
 
-  group = web100_group_head(agent);
-  conn = web100_connection_head(agent);
-
-  while (conn) {
-    cid = web100_get_connection_cid(conn);
-    web100_agent_find_var_and_group(agent, "State", &group, &state);
-    web100_raw_read(state, conn, buff);
-    if (atoi(web100_value_to_text(web100_get_var_type(state), buff)) == 9) {
-      /* Connection is in Last_Ack state, and probably stuck, so generate and
-         send a FIN packet to the remote client.  This should force the connection
-         to close
-         */
-
-      log_println(3, "Connection %d was found in LastAck state", cid);
-      sin.sin_family = AF_INET;
-
-      pkt = malloc(sizeof(struct iphdr) + sizeof(struct tcphdr) + 24);
-      memset(pkt, 0, (24 + sizeof(struct iphdr) + sizeof(struct tcphdr)));
-      sd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
-      ip = (struct iphdr *) pkt;
-      tcp = (struct tcphdr *) (pkt + sizeof(struct iphdr));
-      phdr = (struct pseudo_hdr *) (pkt + sizeof(struct iphdr)
-                                    - sizeof(struct pseudo_hdr));
-
-      /* Build the TCP packet first, along with the pseudo header, the later
-       * the IP header build process will overwrite the pseudo header fields
-       */
-
-      web100_agent_find_var_and_group(agent, "LocalAddress", &group,
-                                      &var);
-      web100_raw_read(var, conn, buff);
-      log_println(3, "LocalAddress: '%s'",
-                  web100_value_to_text(web100_get_var_type(var), buff));
-      dst.s_addr = inet_addr(
-          web100_value_to_text(web100_get_var_type(var), buff));
-      web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
-      web100_raw_read(var, conn, buff);
-      src.s_addr = inet_addr(
-          web100_value_to_text(web100_get_var_type(var), buff));
-      log_println(3, "RemAddress: '%s'",
-                  web100_value_to_text(web100_get_var_type(var), buff));
-
-      phdr->protocol = IPPROTO_TCP;
-      phdr->len = htons(sizeof(struct tcphdr) / 4);
-      phdr->s_addr = src.s_addr;
-      phdr->d_addr = dst.s_addr;
-
-      web100_agent_find_var_and_group(agent, "LocalPort", &group, &var);
-      web100_raw_read(var, conn, buff);
-      tcp->dest = htons(
-          atoi(web100_value_to_text(web100_get_var_type(var), buff)));
-      log_println(3, "LocalPort: '%s'",
-                  web100_value_to_text(web100_get_var_type(var), buff));
-      web100_agent_find_var_and_group(agent, "RemPort", &group, &var);
-      web100_raw_read(var, conn, buff);
-      tcp->source = htons(
-          atoi(web100_value_to_text(web100_get_var_type(var), buff)));
-      log_println(3, "RemPort: '%s'",
-                  web100_value_to_text(web100_get_var_type(var), buff));
-      sin.sin_port = tcp->dest;
-
-      web100_agent_find_var_and_group(agent, "RcvNxt", &group, &var);
-      web100_raw_read(var, conn, buff);
-      tcp->seq = htonl(
-          atoll(
-              web100_value_to_text(web100_get_var_type(var),
-                                   buff)));
-      log_println(3, "Seq No. (RcvNxt): '%s'",
-                  web100_value_to_text(web100_get_var_type(var), buff));
-      web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-      web100_raw_read(var, conn, buff);
-      tcp->ack_seq = htonl(
-          atoll(
-              web100_value_to_text(web100_get_var_type(var),
-                                   buff)));
-      log_println(3, "Ack No. (SndNxt): '%s'",
-                  web100_value_to_text(web100_get_var_type(var), buff));
-
-      tcp->window = 0x7fff;
-      tcp->res1 = 0;
-      tcp->doff = sizeof(struct tcphdr) / 4;
-      /* tcp->syn = 1; */
-      tcp->rst = 1;
-      tcp->ack = 1;
-      /* tcp->fin = 1; */
-      tcp->urg_ptr = 0;
-      tcp->check = csum((unsigned short *) phdr,
-                        sizeof(struct tcphdr) + sizeof(struct pseudo_hdr));
-
-      bzero(pkt, sizeof(struct iphdr));
-      ip->ihl = 5;
-      ip->version = 4;
-      ip->tos = 0;
-      ip->tot_len = sizeof(struct iphdr) + sizeof(struct tcphdr);
-      ip->id = htons(31890);
-      ip->frag_off = htons(IP_DF);
-      ip->ttl = IPDEFTTL;
-      ip->protocol = IPPROTO_TCP; /* TCP packet */
-      ip->saddr = src.s_addr;
-      ip->daddr = dst.s_addr;
-      sin.sin_addr.s_addr = dst.s_addr;
-
-      ip->check = csum((unsigned short *) pkt, sizeof(struct iphdr));
-
-      if (setsockopt(sd, IPPROTO_IP, IP_HDRINCL, &one, sizeof(one)) < 0)
-        return (-1);
-
-      sendto(sd, (char *) pkt, 40, 0, (struct sockaddr *) &sin,
-             sizeof(sin));
-
-      hung = 1;
-    }
-    // returns the next connection in the sequence
-    conn = web100_connection_next(conn);
-  }
-
-  // close and free allocated agent
-  web100_detach(agent);
-  /* free(pkt); */
-  if (hung == 0)
-    return (-1);
-  return (0);
-}
+  snprintf(buf, bufsize, "%u", value.uv32);
 #endif
+
+  return 0;
+}
+
+ int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name, char *buf, int bufsize) {
+ #if USE_WEB100
+   web100_group* group;
+   web100_var* var;
+   char tmpstr[256];
+
+   web100_agent_find_var_and_group(agent, var_name, &group, &var);
+   web100_snap_read(var, snap, tmpstr);
+   snprintf(buf, bufsize, "%s", web100_value_to_text(web100_get_var_type(var), tmpstr));
+ #elif USE_WEB10G
+   struct estats_val value;
+
+   web10g_find_val(snap, var_name, &value);
+   snprintf(buf, bufsize, "%u", value.uv32);
+ #endif
+ }
+
+tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock) {
+    tcp_stat_connection retval;
+
+#if USE_WEB100
+  retval = web100_connection_from_socket(agent, sock);
+#elif USE_WEB10G
+  retval = web10g_connection_from_socket(agent, sock);
+  if (retval == -1)
+    retval = NULL;
+#endif
+  return retval;
+}
+
+ void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd) {
+ #if USE_WEB100
+   web100_var* LimCwnd;
+   web100_group* group;
+
+   // get web100_var and web100_group
+   web100_agent_find_var_and_group(agent, "LimCwnd", &group, &LimCwnd);
+
+   // set TCP CWND web100 variable to twice the current MSS Value
+   web100_raw_write(LimCwnd, cn, &cwnd);
+ #elif USE_WEB10G
+   estats_write_var("LimCwnd", (uint32_t)cwnd, cn, agent);
+ #endif
+ }
+
+tcp_stat_agent *tcp_stats_init_agent() {
+ tcp_stat_agent *agent;
+
+#if USE_WEB100
+  if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL,
+                             NULL)) == NULL) {
+    web100_perror("web100_attach");
+    return NULL;
+  }
+#elif USE_WEB10G
+  if (estats_nl_client_init(&agent) != NULL) {
+    log_println(0,
+                  "Error: estats_client_init failed."
+                  "Unable to use web10g.");
+    return NULL;
+  }
+#endif
+  return agent;
+}
+
+void tcp_stats_free_agent(tcp_stat_agent *agent) {
+#if USE_WEB100
+  web100_detach(agent);
+#elif USE_WEB10G
+  estats_nl_client_destroy(&agent);
+#endif
+  return;
+}
+
+tcp_stat_group *tcp_stats_get_group(tcp_stat_agent *agent, char *group_name) {
+    tcp_stat_group *retval;
+
+#if USE_WEB100
+  retval = web100_group_find(agent, group_name);
+#elif USE_WEB10G
+  retval = NULL;
+#endif
+
+ return retval;
+}
+
+tcp_stat_snap *tcp_stats_init_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group *group) {
+    tcp_stat_snap *retval;
+
+#if USE_WEB100
+  retval = web100_snapshot_alloc(group, conn);
+#elif USE_WEB10G
+  estats_val_data_new(&retval);
+#endif
+
+  return retval;
+}
+
+void tcp_stats_take_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_snap *snap) {
+#if USE_WEB100
+  web100_snap(snap);
+#elif USE_WEB10G
+  estats_read_vars(snap, conn, agent);
+#endif
+  return;
+}
+
+void tcp_stats_free_snapshot(tcp_stat_snap *snap) {
+#if USE_WEB100
+  web100_snapshot_free(snap);
+#elif USE_WEB10G
+  estats_val_data_free(&snap);
+#endif
+}
+
+tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group, char *mode) {
+    tcp_stat_log *retval;
+
+#if USE_WEB100
+    if (strcmp(mode, "w") == 0) {
+      retval = web100_log_open_write(filename, conn, group);
+    }
+    else if (strcmp(mode, "r") == 0) {
+      retval = web100_log_open_read(filename);
+    }
+    else {
+      retval = NULL;
+    }
+#elif USE_WEB10G
+  estats_record_open(&retval, filename, mode);
+#endif
+
+  return retval;
+}
+
+int tcp_stats_read_snapshot(tcp_stat_snap **snap, tcp_stat_log *log) {
+  int retval;
+
+#if USE_WEB100
+  if (*snap == NULL)
+    if ((*snap = web100_snapshot_alloc_from_log(log)) == NULL)
+      return (-1);
+
+  retval = web100_snap_from_log(*snap, log);
+#elif USE_WEB10G
+  retval = estats_record_read_data(snap, log);
+#endif
+
+ return retval;
+}
+
+void tcp_stats_close_log(tcp_stat_log *log) {
+#if USE_WEB100
+  web100_log_close_write(log);
+#else
+  estats_record_close(log);
+#endif
+  return;
+}
+
+void tcp_stats_write_snapshot(tcp_stat_log *log, tcp_stat_snap *snap) {
+#if USE_WEB100
+  web100_log_write(log, snap);
+#elif USE_WEB10G
+  estats_record_write_data(log, snap);
+#endif
+ return;
+}
+
+void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit) {
+    uint32_t limrwin_val;
+
+#if USE_WEB100
+  web100_var *LimRwin, *yar;
+  char yuff[24];
+
+  web100_agent_find_var_and_group(agent, "CurMSS", &group, &yar);
+  web100_raw_read(yar, conn, yuff);
+  limrwin_val = limit
+       * (atoi(
+           web100_value_to_text(web100_get_var_type(yar),
+                                yuff)));
+  web100_agent_find_var_and_group(agent, "LimRwin", &group,
+                                   &LimRwin);
+  web100_raw_write(LimRwin, conn, &limrwin_val);
+#elif USE_WEB10G
+  struct estats_val yar;
+  web10g_get_val(agent, conn, "CurMSS", &yar);
+  limrwin_val = limit * yar.uv32;
+  estats_write_var("LimRwin", limrwin_val, conn, agent);
+#endif
+  return;
+}

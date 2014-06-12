@@ -23,9 +23,6 @@
 #include "mrange.h"
 #include "jsonutils.h"
 
-extern pthread_mutex_t mainmutex;
-extern pthread_cond_t maincond;
-
 const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 
 /**
@@ -54,8 +51,6 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  * @param options Test Option variables
  * @param spds[][] speed check array
  * @param spd_index  index used for speed check array
- * @param count_vars count of web100 variables
- * @param peaks Cwnd peaks structure pointer
  *
  * @return 0 - success,
  *         >0 - error code.
@@ -73,7 +68,7 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
-             int* spd_index, int count_vars, CwndPeaks* peaks) {
+             int* spd_index, SnapResults **snap_results) {
 #if USE_WEB100
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -82,13 +77,9 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   web100_snapshot* rsnap = NULL;
   web100_group* tgroup;
   web100_group* rgroup;
-  web100_var* var;
-#elif USE_WEB10G
-  estats_val_data* snap;
 #endif
   tcp_stat_connection conn;
   /* Just a holder for web10g */
-  tcp_stat_group* group = NULL;
   /* Pipe that handles returning packet pair timing */
   int mon_pipe[2];
   int ret;  // ctrl protocol read/write return status
@@ -119,7 +110,10 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   struct sigaction new, old;
   char* jsonMsgValue;
 
-  pthread_t workerThreadId;
+  SnapWorker *snap_worker;
+
+  tcp_stat_group *group;
+  tcp_stat_snap *snap;
   int nextseqtosend = 0, lastunackedseq = 0;
   int drainingqueuecount = 0, bufctlrnewdata = 0;
 
@@ -128,14 +122,6 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   enum TEST_ID testids = S2C;
   enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
-  char snaplogsuffix[256] = "s2c_snaplog";
-
-  SnapArgs snapArgs;
-  snapArgs.snap = NULL;
-#if USE_WEB100
-  snapArgs.log = NULL;
-#endif
-  snapArgs.delay = options->snapDelay;
   wait_sig = 0;
 
   log_println(0, "test client version: %s", testOptions->client_version);
@@ -290,7 +276,10 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        }
     }
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
-    conn = tcp_stat_connection_from_socket(agent, xmitsfd);
+
+    conn = tcp_stats_connection_from_socket(agent, xmitsfd);
+    group = tcp_stats_get_group(agent, "read");
+    snap = tcp_stats_init_snapshot(agent, conn, group);
 
     // set up packet capture. The data collected is used for bottleneck link
     // calculations
@@ -342,13 +331,10 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       }
 
       /* experimental code, delete when finished */
-      setCwndlimit(conn, group, agent, options);
+      if (options->limit > 0) {
+        tcp_stats_set_cwnd_limit(agent, conn, group, options->limit);
+      }
       /* End of test code */
-
-      // create directory to write web100 snaplog trace
-      create_client_logdir((struct sockaddr *) &cli_addr, clilen,
-                           options->s2c_logname, sizeof(options->s2c_logname),
-                           snaplogsuffix, sizeof(snaplogsuffix));
 
       /* Kludge way of nuking Linux route cache.  This should be done
        * using the sysctl interface.
@@ -390,17 +376,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       // Write snap logs if option is enabled. update meta log to point to
       // this snaplog
 
-      // If snaplog option is enabled, save snaplog details in meta file
-      if (options->snaplog) {
-        memcpy(meta.s2c_snaplog, snaplogsuffix, strlen(snaplogsuffix));
-      }
-      // get web100 snapshot and also log it based on options
-      /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
-        &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
-        conn, group);*///new file changes
-      start_snap_worker(&snapArgs, agent, peaks, options->snaplog,
-                        &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
-                        conn, group);
+      snap_worker = start_snap_worker(agent, group, conn, options->snapDelay, 10);
 
       /* alarm(20); */
       tmptime = secs();  // current time
@@ -412,32 +388,18 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         // Increment total attempts at sending-> buffer control
         bufctrlattempts++;
         if (options->avoidSndBlockUp) {  // Do not block send buffers
-          pthread_mutex_lock(&mainmutex);
+          tcp_stats_take_snapshot(agent, conn, snap);
 
           // get details of next sequence # to be sent and fetch value from
           // snap file
-#if USE_WEB100
-          web100_agent_find_var_and_group(agent, "SndNxt", &group,
-                                          &var);
-          web100_snap_read(var, snapArgs.snap, tmpstr);
-          nextseqtosend = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   tmpstr));
+
+          // get next sequence # to be sent
+          tcp_stats_snap_read_var(agent, snap, "SndNxt", tmpstr, sizeof(tmpstr));
+          nextseqtosend = atoi(tmpstr);
+
           // get oldest un-acked sequence number
-          web100_agent_find_var_and_group(agent, "SndUna", &group,
-                                          &var);
-          web100_snap_read(var, snapArgs.snap, tmpstr);
-          lastunackedseq = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   tmpstr));
-#elif USE_WEB10G
-          struct estats_val value;
-          web10g_find_val(snapArgs.snap, "SndNxt", &value);
-          nextseqtosend = value.uv32;
-          web10g_find_val(snapArgs.snap, "SndUna", &value);
-          lastunackedseq = value.uv32;
-#endif
-          pthread_mutex_unlock(&mainmutex);
+          tcp_stats_snap_read_var(agent, snap, "SndUna", tmpstr, sizeof(tmpstr));
+          lastunackedseq = atoi(tmpstr);
 
           // Temporarily stop sending data if you sense that the buffer is
           // overwhelmed
@@ -480,7 +442,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       x2cspd = (8.e-3 * bytes_written) / tx_duration;
 
       // Release semaphore, and close snaplog file.  finalize other data
-      stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
+      *snap_results = stop_snap_worker(snap_worker);
 
       // send the x2cspd to the client
       memset(buff, 0, sizeof(buff));
@@ -594,13 +556,13 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent);
     web100_snapshot_free(tsnap);
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars);
+    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent);
     web100_snapshot_free(rsnap);
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
+    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, testOptions->json_support);
     estats_val_data_free(&snap);
 #endif
 
@@ -674,6 +636,30 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
     // log protocol validation logs
     teststatuses = TEST_ENDED;
     protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
+
+    // save the snapshots
+    if (options->snaplog) {
+      int i;
+      char namesuffix[256] = "s2c_snaplog";
+      tcp_stat_log *log;
+
+      // Create C->S snaplog directories, and perform some initialization based on
+      // options
+      create_client_logdir((struct sockaddr *) &cli_addr, clilen,
+                           options->s2c_logname, sizeof(options->s2c_logname),
+                           namesuffix,
+                           sizeof(namesuffix));
+
+      memcpy(meta.s2c_snaplog, namesuffix, strlen(namesuffix));
+
+      log = tcp_stats_open_log(options->s2c_logname, (*snap_results)->conn, (*snap_results)->group, "w");
+
+      for(i = 0; i < (*snap_results)->collected; i++) {
+        tcp_stats_write_snapshot(log, (*snap_results)->snapshots[i]);
+      }
+
+      tcp_stats_close_log(log);
+   }
 
     setCurrentTest(TEST_NONE);
   }

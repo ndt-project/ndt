@@ -113,14 +113,6 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       strlcpy(listenmidport, "0", sizeof(listenmidport));
     }
 
-    /*  RAC debug  */
-    /*
-       if (KillHung() == 0)
-       log_println(5, "KillHung() returned 0, should have tried to kill off some LastAck process");
-       else
-       log_println(5, "KillHung(): returned non-0 response, nothing to kill or kill failed");
-       */
-
     while (midsrv_addr == NULL) {
       // attempt to bind to a new port and obtain address structure with
       // details of listening port
@@ -132,13 +124,6 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                   mrange_next(listenmidport, sizeof(listenmidport)) :
                   listenmidport,
               conn_options, 0);
-      if (midsrv_addr == NULL) {
-        /*
-           log_println(5, " Calling KillHung() because midsrv_address failed to bind");
-           if (KillHung() == 0)
-           continue;
-           */
-      }
       if (strcmp(listenmidport, "0") == 0) {
         log_println(0, "WARNING: ephemeral port number was bound");
         break;
@@ -236,11 +221,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
 
     buff[0] = '\0';
     // get tcp_stat connection data
-#if USE_WEB100
-    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == NULL) {
-#elif USE_WEB10G
-    if ((conn = tcp_stat_connection_from_socket(agent, midsfd)) == -1) {
-#endif
+    if ((conn = tcp_stats_connection_from_socket(agent, midsfd)) == NULL) {
       log_println(
           0,
           "!!!!!!!!!!!  test_mid() failed to get "TCP_STAT_NAME

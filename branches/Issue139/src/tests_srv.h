@@ -9,18 +9,19 @@
 #ifndef SRC_TESTS_SRV_H_
 #define SRC_TESTS_SRV_H_
 
+#include "snap_worker.h"
 #include "testoptions.h"
 
 int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
-             int count_vars, char spds[4][256], int* spd_index);
+             char spds[4][256], int* spd_index, SnapResults **snap_results);
 
 // S2C test
 int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
-             int* spd_index, int count_vars, CwndPeaks* peaks);
+             int* spd_index, SnapResults **snap_results);
 
 // the middlebox test
 int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,

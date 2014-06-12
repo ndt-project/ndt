@@ -19,23 +19,9 @@
 #include "I2util/util.h"
 #include "runningtest.h"
 #include "strlutils.h"
+#include "web100srv.h"
+#include "snap_worker.h"
 #include "jsonutils.h"
-
-
-// Worker thread characteristics used to record snaplog and Cwnd peaks
-typedef struct workerArgs {
-  SnapArgs* snapArgs;  // snapArgs struct pointer
-  tcp_stat_agent* agent;  // tcp_stat agent pointer
-  CwndPeaks* peaks;  // data indicating Cwnd values
-  int writeSnap;  // enable writing snaplog
-} WorkerArgs;
-
-int workerLoop = 0;
-pthread_mutex_t mainmutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t maincond = PTHREAD_COND_INITIALIZER;
-static int slowStart = 1;
-static int prevCWNDval = -1;
-static int decreasing = 0;
 
 /**
  * Count the CWND peaks from a snapshot and record the minimal and maximum one.
@@ -45,54 +31,50 @@ static int decreasing = 0;
  * @param peaks Structure containing CWND peaks information
  * @param snap Web100 snapshot structure
  */
-void findCwndPeaks(tcp_stat_agent* agent, CwndPeaks* peaks,
-                   tcp_stat_snap* snap) {
-  int CurCwnd;
-#if USE_WEB100
-  web100_group* group;
-  web100_var* var;
-  char tmpstr[256];
-#elif USE_WEB10G
-  struct estats_val value;
-#endif
+void findCwndPeaks(SnapResults *results, CwndPeaks *peaks) {
+  char buf[128];
+  int i;
+  int slowStart = 1;
+  int prevCWNDval = -1;
+  int decreasing = 0;
 
-#if USE_WEB100
-  web100_agent_find_var_and_group(agent, "CurCwnd", &group, &var);
-  web100_snap_read(var, snap, tmpstr);
-  CurCwnd = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
-#elif USE_WEB10G
-  web10g_find_val(snap, "CurCwnd", &value);
-  CurCwnd = value.uv32;
-#endif
+  for(i = 0; i < results->collected; i++) {
+    tcp_stat_snap *snap = results->snapshots[i];
+    int CurCwnd;
 
-  if (slowStart) {
-    if (CurCwnd < prevCWNDval) {
-      slowStart = 0;
-      peaks->max = prevCWNDval;
-      peaks->amount = 1;
-      decreasing = 1;
-    }
-  } else {
-    // current congestion window < previous value, so, decreasing
-    if (CurCwnd < prevCWNDval) {
-      // update values based on actual values
-      if (prevCWNDval > peaks->max) {
+    tcp_stats_snap_read_var(results->agent, snap, "CurCwnd", buf, sizeof(buf));
+
+    CurCwnd = atoi(buf);
+
+    if (slowStart) {
+      if (CurCwnd < prevCWNDval || prevCWNDval == -1) {
+        slowStart = 0;
         peaks->max = prevCWNDval;
+        peaks->amount = 1;
+        decreasing = 1;
       }
-      if (!decreasing) {
-        peaks->amount += 1;
+    } else {
+      // current congestion window < previous value, so, decreasing
+      if (CurCwnd < prevCWNDval || prevCWNDval == -1) {
+        // update values based on actual values
+        if (prevCWNDval > peaks->max) {
+          peaks->max = prevCWNDval;
+        }
+        if (!decreasing) {
+          peaks->amount += 1;
+        }
+        decreasing = 1;
+        // current congestion window size > previous value,
+      } else if (CurCwnd > prevCWNDval) {
+        // not decreasing.
+        if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
+          peaks->min = prevCWNDval;
+        }
+        decreasing = 0;
       }
-      decreasing = 1;
-      // current congestion window size > previous value,
-    } else if (CurCwnd > prevCWNDval) {
-      // not decreasing.
-      if ((peaks->min == -1) || (prevCWNDval < peaks->min)) {
-        peaks->min = prevCWNDval;
-      }
-      decreasing = 0;
+      prevCWNDval = CurCwnd;
     }
   }
-  prevCWNDval = CurCwnd;
 }
 
 /**
@@ -114,62 +96,6 @@ void catch_s2c_alrm(int signo) {
  * @param arg pointer to the snapshot structure
  * @return void pointer null
  */
-
-void*
-snapWorker(void* arg) {
-  /* WARNING void* arg (workerArgs) is on the stack of the function below and
-   * doesn't exist forever. */
-  WorkerArgs *workerArgs = (WorkerArgs*) arg;
-  SnapArgs *snapArgs = workerArgs->snapArgs;
-  tcp_stat_agent* agent = workerArgs->agent;
-  CwndPeaks* peaks = workerArgs->peaks;
-  int writeSnap = workerArgs->writeSnap;
-
-  // snap log written into every "delay" milliseconds
-  double delay = ((double) snapArgs->delay) / 1000.0;
-
-  while (1) {
-    pthread_mutex_lock(&mainmutex);
-    if (workerLoop) {
-      pthread_mutex_unlock(&mainmutex);
-      pthread_cond_broadcast(&maincond);
-      break;
-    }
-    pthread_mutex_unlock(&mainmutex);
-    mysleep(0.01);
-  }
-
-  // Find Congestion window peaks from a web_100 snapshot, if enabled
-  // Write snap log , if enabled, all in a synchronous manner.
-  while (1) {
-    pthread_mutex_lock(&mainmutex);
-    if (!workerLoop) {
-      pthread_mutex_unlock(&mainmutex);
-      break;
-    }
-#if USE_WEB100
-    web100_snap(snapArgs->snap);
-    if (peaks) {
-      findCwndPeaks(agent, peaks, snapArgs->snap);
-    }
-    if (writeSnap) {
-      web100_log_write(snapArgs->log, snapArgs->snap);
-    }
-#elif USE_WEB10G
-    estats_read_vars(snapArgs->snap, snapArgs->conn, agent);
-    if (peaks) {
-      findCwndPeaks(agent, peaks, snapArgs->snap);
-    }
-    if (writeSnap) {
-      estats_record_write_data(snapArgs->log, snapArgs->snap);
-    }
-#endif
-    pthread_mutex_unlock(&mainmutex);
-    mysleep(delay);
-  }
-
-  return NULL;
-}
 
 /**
  * Adds test id to the test suite
@@ -315,114 +241,6 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   return useropt;
 }
 
-/** Method to start snap worker thread that collects snap logs
- * @param snaparg object
- * @param tcp_stat_agent Agent
- * @param snaplogenabled Is snap logging enabled?
- * @param workerlooparg integer used to syncronize writing/reading from snaplog/tcp_stat snapshot
- * @param wrkrthreadidarg Thread Id of workera
- * @param metafilevariablename Which variable of the meta file gets assigned the snaplog name (unused now)
- * @param metafilename	value of metafile name
- * @param tcp_stat_connection connection pointer
- * @param tcp_stat_group group web100_group pointer
- */
-void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
-                       CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group) {
-  FILE *fplocal;
-
-  WorkerArgs workerArgs;
-  workerArgs.snapArgs = snaparg;
-  workerArgs.agent = agentarg;
-  workerArgs.peaks = peaks;
-  workerArgs.writeSnap = snaplogenabled;
-
-#if USE_WEB100
-  group = web100_group_find(agentarg, "read");
-  snaparg->snap = web100_snapshot_alloc(group, conn);
-#elif USE_WEB10G
-  snaparg->conn = conn;
-  estats_val_data_new(&snaparg->snap);
-#endif
-
-  if (snaplogenabled) {
-    // memcpy(metafilevariablename, metafilename, strlen(metafilename));
-    // The above could have been here, except for a caveat: metafile stores
-    // just the file name, but full filename is needed to open the log file
-
-    fplocal = fopen(get_logfile(), "a");
-
-#if USE_WEB100
-    snaparg->log = web100_log_open_write(metafilename, conn, group);
-#elif USE_WEB10G
-    estats_record_open(&snaparg->log, metafilename, "w");
-#endif
-    if (fplocal == NULL) {
-      log_println(
-          0,
-          "Unable to open log file '%s', continuing on without logging",
-          get_logfile());
-    } else {
-      log_println(0, "Snaplog file: %s\n", metafilename);
-      fprintf(fplocal, "Snaplog file: %s\n", metafilename);
-      fclose(fplocal);
-    }
-  }
-
-  if (pthread_create(wrkrthreadidarg, NULL, snapWorker,
-                     (void*) &workerArgs)) {
-    log_println(0, "Cannot create worker thread for writing snap log!");
-    *wrkrthreadidarg = 0;
-  }
-
-  pthread_mutex_lock(&mainmutex);
-  workerLoop= 1;
-  // obtain web100 snap into "snaparg.snap"
-#if USE_WEB100
-  web100_snap(snaparg->snap);
-  if (snaplogenabled) {
-    web100_log_write(snaparg->log, snaparg->snap);
-  }
-#elif USE_WEB10G
-  estats_read_vars(snaparg->snap, conn, agentarg);
-  if (snaplogenabled) {
-    estats_record_write_data(snaparg->log, snaparg->snap);
-  }
-#endif
-  pthread_cond_wait(&maincond, &mainmutex);
-  pthread_mutex_unlock(&mainmutex);
-}
-
-/**
- * Stop snapWorker
- * @param workerThreadId Worker Thread's ID
- * @param snaplogenabled boolean indication whether snap logging is enabled
- * @param snapArgs_ptr  pointer to a snapArgs object
- * */
-void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
-                      SnapArgs* snapArgs_ptr) {
-  if (*workerThreadId) {
-    pthread_mutex_lock(&mainmutex);
-    workerLoop = 0;
-    pthread_mutex_unlock(&mainmutex);
-    pthread_join(*workerThreadId, NULL);
-  }
-  // close writing snaplog, if snaplog recording is enabled
-#if USE_WEB100
-  if (snaplogenabled) {
-    web100_log_close_write(snapArgs_ptr->log);
-  }
-  web100_snapshot_free(snapArgs_ptr->snap);
-#elif USE_WEB10G
-  if (snaplogenabled) {
-    estats_record_close(&snapArgs_ptr->log);
-  }
-  estats_val_data_free(&snapArgs_ptr->snap);
-#endif
-}
-
 /**
  * Start packet tracing for this client
  * @param socketfdarg socket file descriptor to initialize packet trace from
@@ -498,61 +316,6 @@ void stop_packet_trace(int *monpipe_arr) {
   }
   close(monpipe_arr[0]);
   close(monpipe_arr[1]);
-}
-
-/**
- * Set Cwnd limit
- * @param connarg tcp_stat_connection pointer
- * @param group_arg tcp_stat group pointer
- * @param agentarg tcp_stat agent pointer
- * */
-void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
-                  tcp_stat_agent* agentarg, Options* optionsarg) {
-#if USE_WEB100
-  web100_var *LimRwin, *yar;
-#elif USE_WEB10G
-  struct estats_val yar;
-#endif
-
-  u_int32_t limrwin_val;
-
-  if (optionsarg->limit > 0) {
-    log_print(1, "Setting Cwnd limit - ");
-
-#if USE_WEB100
-    if (connarg != NULL) {
-      log_println(1,
-                  "Got web100 connection pointer for recvsfd socket\n");
-      char yuff[32];
-      web100_agent_find_var_and_group(agentarg, "CurMSS", &grouparg,
-                                      &yar);
-      web100_raw_read(yar, connarg, yuff);
-      log_println(1, "MSS = %s, multiplication factor = %d",
-                  web100_value_to_text(web100_get_var_type(yar), yuff),
-                  optionsarg->limit);
-      limrwin_val = optionsarg->limit
-          * (atoi(
-              web100_value_to_text(web100_get_var_type(yar),
-                                   yuff)));
-      web100_agent_find_var_and_group(agentarg, "LimRwin", &grouparg,
-                                      &LimRwin);
-      log_print(1, "now write %d to limit the Receive window",
-                limrwin_val);
-      web100_raw_write(LimRwin, connarg, &limrwin_val);
-#elif USE_WEB10G
-    if (connarg != -1) {
-      log_println(1,
-                  "Got web10g connection for recvsfd socket\n");
-      web10g_get_val(agentarg, connarg, "CurMSS", &yar);
-      log_println(1, "MSS = %s, multiplication factor = %d",
-                  yar.uv32, optionsarg->limit);
-      limrwin_val = optionsarg->limit * yar.uv32;
-      log_print(1, "now write %d to limit the Receive window", limrwin_val);
-      estats_write_var("LimRwin", limrwin_val, connarg, agentarg);
-#endif
-      log_println(1, "  ---  Done");
-    }
-  }
 }
 
 /**

@@ -112,7 +112,6 @@ void finalize_sfw(int ctlsockfd, int jsonSupport) {
 /**
  * Performs the server part of the Simple firewall test.
  * @param ctlsockfd Client control socket descriptor
- * @param agent web100_agent
  * @param options The test options
  * @param conn_options The connection options
  * @returns Integer with values:
@@ -124,8 +123,7 @@ void finalize_sfw(int ctlsockfd, int jsonSupport) {
  *			5 - Unable to resolve client address
  */
 
-int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
-                 int conn_options) {
+int test_sfw_srv(int ctlsockfd, TestOptions* options, int conn_options) {
   char buff[BUFFSIZE + 1];
   I2Addr sfwsrv_addr = NULL;
   int sfwsockfd, sfwsockport, sockfd, sfwport;
@@ -135,16 +133,6 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
   struct timeval sel_tv;
   int msgLen, msgType;
   char* jsonMsgValue;
-
-#if USE_WEB100
-  web100_var* var;
-  web100_connection* cn;
-  web100_group* group;
-#elif USE_WEB10G
-  struct estats_val value;
-  int cn;
-#endif
-  int maxRTT, maxRTO;
   char hostname[256];
   int rc;
 
@@ -180,56 +168,6 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     sfwsockfd = I2AddrFD(sfwsrv_addr);
     sfwsockport = I2AddrPort(sfwsrv_addr);
     log_println(1, "  -- port: %d", sfwsockport);
-
-    cn = tcp_stat_connection_from_socket(agent, ctlsockfd);
-    if (cn) {
-      // Get remote end's address
-      memset(hostname, 0, sizeof(hostname));
-
-#if USE_WEB100
-      web100_agent_find_var_and_group(agent, "RemAddress", &group, &var);
-      web100_raw_read(var, cn, buff);
-      // strncpy(hostname, web100_value_to_text(web100_get_var_type(var), buff),
-      //         255);
-      strlcpy(hostname, web100_value_to_text(web100_get_var_type(var), buff),
-              sizeof(hostname));
-#elif USE_WEB10G
-      web10g_get_remote_addr(agent, cn, hostname, sizeof(hostname));
-#endif
-
-      // Determine test time in seconds.
-      // test-time = max(round trip time, timeout) > 3 ? 3 : 1
-
-#if USE_WEB100
-      web100_agent_find_var_and_group(agent, "MaxRTT", &group, &var);
-      web100_raw_read(var, cn, buff);
-      maxRTT = atoi(web100_value_to_text(web100_get_var_type(var), buff));
-      web100_agent_find_var_and_group(agent, "MaxRTO", &group, &var);
-      web100_raw_read(var, cn, buff);
-      maxRTO = atoi(web100_value_to_text(web100_get_var_type(var), buff));
-#elif USE_WEB10G
-      web10g_get_val(agent, cn, "MaxRTT", &value);
-      maxRTT = value.uv32;
-      web10g_get_val(agent, cn, "MaxRTO", &value);
-      maxRTO = value.uv32;
-#endif
-
-      if (maxRTT > maxRTO)
-        maxRTO = maxRTT;
-      if ((((double) maxRTO) / 1000.0) > 3.0)
-        /* `testTime = (((double) maxRTO) / 1000.0) * 4 ; */
-        testTime = 3;
-      else
-        testTime = 1;
-    } else {
-      log_println(0, "Simple firewall test: Cannot find connection");
-      snprintf(buff, sizeof(buff), "Server (Simple firewall test): "
-               "Cannot find connection");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->json_support, JSON_SINGLE_VALUE);
-      I2AddrFree(sfwsrv_addr);
-      return -1;
-    }
     log_println(1, "  -- SFW time: %d", testTime);
 
     // try sending TEST_PREPARE msg with ephemeral port number to client.
@@ -298,6 +236,11 @@ int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       I2AddrFree(sfwsrv_addr);
       return 4;
     }
+
+    clilen = sizeof(cli_addr);
+    getpeername(ctlsockfd, (struct sockaddr*)&cli_addr, &clilen);
+
+    addr2a(&cli_addr, hostname, sizeof(hostname));
 
     // Get node, port(if present) and other details of client end.
     // If not able to resolve it, the test cannot proceed to the "throughput"

@@ -93,13 +93,35 @@
 /* Location of default config file */
 #define CONFIGFILE  "/etc/ndt.conf"
 
-/* hard-coded port values */
-/*
-#define PORT  "3001"
-#define PORT2 "3002"
-#define PORT3 "3003"
-#define PORT4 "3003"
-*/
+#if USE_WEB10G
+#define TCP_STAT_NAME "Web10G"
+typedef struct estats_nl_client tcp_stat_agent;
+typedef int tcp_stat_connection;
+typedef struct estats_val_data tcp_stat_snap;
+/* Not relevent to web10g */
+typedef void tcp_stat_group;
+/* Log currently unimplemented in web10g */
+typedef estats_record tcp_stat_log;
+
+/* Extra Web10G functions web10g-util.c */
+int web10g_find_val(const tcp_stat_snap* data, const char* name,
+                                  struct estats_val* value);
+int web10g_get_val(tcp_stat_agent* client, tcp_stat_connection conn,
+                        const char* name, struct estats_val* value);
+int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd);
+int web10g_get_remote_addr(tcp_stat_agent* client,
+                        tcp_stat_connection conn, char* out, int size);
+
+#elif USE_WEB100
+#define TCP_STAT_NAME "Web100"
+typedef web100_agent tcp_stat_agent;
+typedef web100_connection* tcp_stat_connection;
+typedef web100_snapshot tcp_stat_snap;
+/* Group only relevent to web100 */
+typedef web100_group tcp_stat_group;
+typedef web100_log tcp_stat_log;
+
+#endif
 
 // Congestion window peak information
 typedef struct CwndPeaks {
@@ -169,11 +191,6 @@ struct spdpair {
                      // and prior value)
   u_int32_t totalcount;  // total number of valid speed data bins
 };
-
-struct web100_variables {
-  char name[256];  // key
-  char value[256];  // value
-} web_vars[WEB100_VARS];
 
 struct pseudo_hdr {  /* used to compute TCP checksum */
   uint64_t s_addr;  // source addr
@@ -259,6 +276,17 @@ struct tcp_vars {
   tcp_stat_var ThruBytesAcked;
 };
 
+typedef struct SnapResults {
+  tcp_stat_agent *agent;
+  tcp_stat_group *group;
+  tcp_stat_connection conn;
+
+  tcp_stat_snap **snapshots;
+
+  int allocated;
+  int collected;
+} SnapResults;
+
 /* web100-pcap */
 #ifdef HAVE_LIBPCAP
 void init_vars(struct spdpair *cur);
@@ -275,52 +303,39 @@ void force_breakloop();
 
 void get_iflist(void);
 
-#if USE_WEB10G
-#define TCP_STAT_NAME "Web10G"
-typedef struct estats_nl_client tcp_stat_agent;
-typedef int tcp_stat_connection;
-typedef struct estats_val_data tcp_stat_snap;
-/* Not relevent to web10g */
-typedef void tcp_stat_group;
-/* Log currently unimplemented in web10g */
-typedef estats_record tcp_stat_log;
-#define tcp_stat_connection_from_socket web10g_connection_from_socket
+// Generic functions that, at compile-time, reads either from web10g or web100
+int tcp_stats_init(char *VarFileName);
+tcp_stat_agent *tcp_stats_init_agent();
+void tcp_stats_free_agent(tcp_stat_agent *agent);
+int tcp_stats_snap_read_var(tcp_stat_agent *agent, tcp_stat_snap *snap, const char *var_name, char *buf, int bufsize);
+tcp_stat_connection tcp_stats_connection_from_socket(tcp_stat_agent *agent, int sock);
+void tcp_stats_set_cwnd(tcp_stat_agent *agent, tcp_stat_connection cn, uint32_t cwnd);
 
-/* Extra Web10G functions web10g-util.c */
-int web10g_find_val(const tcp_stat_snap* data, const char* name,
-                                  struct estats_val* value);
-int web10g_get_val(tcp_stat_agent* client, tcp_stat_connection conn,
-                        const char* name, struct estats_val* value);
-int web10g_connection_from_socket(tcp_stat_agent* client, int sockfd);
-int web10g_get_remote_addr(tcp_stat_agent* client,
-                        tcp_stat_connection conn, char* out, int size);
+tcp_stat_group *tcp_stats_get_group(tcp_stat_agent *agent, char *group_name);
 
-#elif USE_WEB100
-#define TCP_STAT_NAME "Web100"
-typedef web100_agent tcp_stat_agent;
-typedef web100_connection* tcp_stat_connection;
-typedef web100_snapshot tcp_stat_snap;
-/* Group only relevent to web100 */
-typedef web100_group tcp_stat_group;
-typedef web100_log tcp_stat_log;
-#define tcp_stat_connection_from_socket web100_connection_from_socket
+tcp_stat_snap *tcp_stats_init_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group *group);
+void tcp_stats_take_snapshot(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_snap *snap);
+int tcp_stats_read_snapshot(tcp_stat_snap **snap, tcp_stat_log *log);
+void tcp_stats_write_snapshot(tcp_stat_log *log, tcp_stat_snap *snap);
+void tcp_stats_free_snapshot(tcp_stat_snap *snap);
 
-#endif
+tcp_stat_log *tcp_stats_open_log(char *filename, tcp_stat_connection conn, tcp_stat_group *group, char *mode);
+void tcp_stats_close_log(tcp_stat_log *log);
 
-int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn);
-int tcp_stat_init(char *VarFileName);
+int tcp_stats_autotune_enabled(tcp_stat_agent *agent, int sock);
+void tcp_stats_set_cwnd_limit(tcp_stat_agent *agent, tcp_stat_connection conn, tcp_stat_group* group, uint32_t limit);
+
+int tcp_stats_read_var(tcp_stat_agent *agent, tcp_stat_connection conn, const char *var_name, char *buf, int bufsize);
+
 void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn, char *results_keys,
                         size_t results_keys_strlen, char *results_values, size_t results_strlen);
-int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
-                   int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
-                            tcp_stat_connection cn, int count_vars);
+                            tcp_stat_connection cn);
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars, int jsonSupport);
+                      tcp_stat_agent* agent, int jsonSupport);
 
-int CwndDecrease(char* logname,
-                 u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
-int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
+int CwndDecrease(SnapResults *results, u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
+int tcp_stat_logvars(struct tcp_vars* vars);
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);

@@ -85,6 +85,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "runningtest.h"
 #include "strlutils.h"
 #include "heuristics.h"
+#include "snap_worker.h"
 #include "tests_srv.h"
 #include "jsonutils.h"
 
@@ -101,7 +102,6 @@ static char dbPWDbuf[256];  // DB Password
 
 // list of global variables used throughout this program.
 static int window = 64000;  // TCP buffer size
-static int count_vars = 0;
 int dumptrace = 0;
 static int usesyslog = 0;
 static int multiple = 0;
@@ -536,7 +536,7 @@ void cleanup(int signo) {
 
     case SIGHUP:
       /* Initialize Web100 structures */
-      count_vars = tcp_stat_init(VarFileName);
+      tcp_stats_init(VarFileName);
 
       /* The administrator view automatically generates a usage page for the
        * NDT server.  This page is then accessable to the general public.
@@ -884,11 +884,6 @@ cputimeWorker(void* arg) {
 
 int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
              char *test_suite) {
-#if USE_WEB100
-  tcp_stat_connection conn = NULL;
-#elif USE_WEB10G
-  tcp_stat_connection conn = -1;
-#endif
   char date[32];  // date indicator
   char spds[4][256];  // speed "bin" array containing counters for speeds
   char logstr1[4096], logstr2[1024];  // log
@@ -922,6 +917,8 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   u_int32_t dec_cnt, same_cnt, inc_cnt;
   int timeout, dupack;
   // int ifspeed;
+
+  SnapResults *c2s_snap_results, *s2c_snap_results;
 
   time_t stime;
 
@@ -967,8 +964,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   spd_index = 0;
 
   // obtain web100 connection and check auto-tune status
-  conn = tcp_stat_connection_from_socket(agent, ctlsockfd);
-  autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
+  autotune = tcp_stats_autotune_enabled(agent, ctlsockfd);
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
@@ -979,11 +975,6 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
               test_suite);
   send_json_message(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite),
                     testopt->json_support, JSON_SINGLE_VALUE);
-  /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
-     log_println(0, "ERROR: Tests initialization failed (%d)", n);
-     return;
-     }
-     */
 
   log_println(1, "Starting test suite:");
   if (testopt->midopt) {
@@ -1016,7 +1007,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   /*  alarm(20); */
   log_println(6, "Starting simple firewall test");
-  if ((ret = test_sfw_srv(ctlsockfd, agent, &*testopt, conn_options)) != 0) {
+  if ((ret = test_sfw_srv(ctlsockfd, &*testopt, conn_options)) != 0) {
     if (ret < 0)
       log_println(6, "SFW test failed with rc=%d", ret);
   }
@@ -1025,7 +1016,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, count_vars, spds, &spd_index)) != 0) {
+                      record_reverse, spds, &spd_index, &c2s_snap_results)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -1037,7 +1028,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks)) != 0) {
+                      &spd_index, &s2c_snap_results)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -1056,6 +1047,9 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(4, "Finished testing C2S = %0.2f Mbps, S2C = %0.2f Mbps",
               c2sspd / 1000, s2cspd / 1000);
 
+  // Calculate the cwnd peaks from the server-side sending data
+  findCwndPeaks(s2c_snap_results, &peaks);
+
   // Determine link speed
   calc_linkspeed(spds, spd_index, &c2s_linkspeed_data, &c2s_linkspeed_ack,
                  &s2c_linkspeed_data, &s2c_linkspeed_ack, runave, &dec_cnt,
@@ -1065,14 +1059,14 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   // ...determine number of times congestion window has been changed
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(s2c_snap_results, &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }
 
   // ...other variables
   memset(&vars, 0xFF, sizeof(vars));
-  tcp_stat_logvars(&vars, count_vars);
+  tcp_stat_logvars(&vars);
 
   // end getting web100 variable values
   /* if (rc == 0) { */
@@ -1839,8 +1833,8 @@ int main(int argc, char** argv) {
   log_println(1, "server ready on port %s (family %d)", port, meta.family);
 
   // Initialize tcp_stat structures
-  count_vars = tcp_stat_init(VarFileName);
-  if (count_vars == -1) {
+  tcp_stats_init(VarFileName);
+  if (tcp_stats_init(VarFileName) == 0) {
     log_println(0, "No Web100 variables file found, terminating program");
     exit(-5);
   }
@@ -2595,20 +2589,11 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                           "pid=%d", chld_pipe[0], chld_pipe[1], chld_pid);
               close(listenfd);
               close(chld_pipe[1]);
-#if USE_WEB100
-              if ((agent = web100_attach(WEB100_AGENT_TYPE_LOCAL,
-                                         NULL)) == NULL) {
-                web100_perror("web100_attach");
+
+              if ((agent = tcp_stats_init_agent()) == NULL) {
+                log_println(0, "Unable to initialize TCP stats collection");
                 return 1;
               }
-#elif USE_WEB10G
-              if (estats_nl_client_init(&agent) != NULL) {
-                log_println(0,
-                              "Error: estats_client_init failed."
-                              "Unable to use web10g.");
-                return 1;
-              }
-#endif
 
               // This is the child process from the above fork().  The parent
               //  is in control, and will send this child a signal when it gets
@@ -2732,11 +2717,9 @@ sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
                 child_sig(0);
               }
               close(ctlsockfd);
-#if USE_WEB100
-              web100_detach(agent);
-#elif USE_WEB10G
-              estats_nl_client_destroy(&agent);
-#endif
+
+              tcp_stats_free_agent(agent);
+
               // log_free(); // Don't free the log we use it all the time
               // log_println()
               // Also makes valgrind angry
