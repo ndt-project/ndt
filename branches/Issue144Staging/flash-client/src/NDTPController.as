@@ -23,6 +23,7 @@ package  {
   import flash.system.Security;
   import flash.utils.Timer;
   import mx.resources.ResourceManager;
+  import flash.external.ExternalInterface;
 
   /**
    * This class creates (and closes) the Control socket with the server and
@@ -70,6 +71,13 @@ package  {
       } else {
         TestResults.clearResults();
       }
+
+      var js_server_hostname:String = NDTUtils.hostnameFromJS();
+      if (js_server_hostname) {
+        Main.server_hostname = js_server_hostname;
+        _hostname = Main.server_hostname;
+      }
+
       TestResults.recordStartTime();
       TestResults.ndt_test_results::ndtTestFailed = false;
       TestResults.ndt_test_results::ndtErrStatus = "Test in progress.";

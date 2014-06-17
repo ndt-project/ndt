@@ -59,6 +59,29 @@ package  {
         }
       }
     }
+
+    /**
+     * Function that initializes the NDT server variable.
+     */
+    public static function hostnameFromJS():String {
+      try {
+        var js_server_hostname:String = ExternalInterface.call("getNDTServer");
+        if (js_server_hostname) {
+          TestResults.appendDebugMsg(
+            "Initialized server from JavaScript. Server hostname:"
+            + Main.server_hostname);
+        } else {
+	  js_server_hostname = null;
+	}
+	return js_server_hostname;
+      } catch(e:Error) {
+        TestResults.appendDebugMsg("Failed to call getNDTServer(): "
+                                   + e.toString());
+        return null;
+      }
+      return null;
+    }
+
     /**
      * Function that reads the HTML parameter tags for the SWF file and
      * initializes the variables in the SWF accordingly.
@@ -95,17 +118,9 @@ package  {
                                    + e.toString());
       }
 
-      try {
-        var js_server_hostname:String = ExternalInterface.call("getNDTServer");
-        if (js_server_hostname) {
-          Main.server_hostname = js_server_hostname;
-          TestResults.appendDebugMsg(
-            "Initialized server from JavaScript. Server hostname:"
-            + Main.server_hostname);
-        }
-      } catch(e:Error) {
-        TestResults.appendDebugMsg("Failed to call getNDTServer(): "
-                                   + e.toString());
+      var js_server_hostname:String = hostnameFromJS();
+      if (js_server_hostname) {
+        Main.server_hostname = js_server_hostname;
       }
 
       try {
