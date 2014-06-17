@@ -211,7 +211,6 @@ package  {
       _s2cSocket.addEventListener(IOErrorEvent.IO_ERROR, onS2CError);
       _s2cSocket.addEventListener(SecurityErrorEvent.SECURITY_ERROR,
                                  onS2CSecError);
-      _s2cSocket.addEventListener(ProgressEvent.SOCKET_DATA, onS2CReceivedData);
     }
 
     private function removeS2CSocketEventListeners():void {
@@ -220,8 +219,6 @@ package  {
       _s2cSocket.removeEventListener(IOErrorEvent.IO_ERROR, onS2CError);
       _s2cSocket.removeEventListener(SecurityErrorEvent.SECURITY_ERROR,
                                      onS2CSecError);
-      _s2cSocket.removeEventListener(ProgressEvent.SOCKET_DATA,
-                                     onS2CReceivedData);
     }
 
     private function onS2CConnect(e:Event):void {
@@ -247,14 +244,8 @@ package  {
       endTest();
     }
 
-    private function onS2CReceivedData(e:ProgressEvent):void {
-      _readTimer.stop();
-      _readTimer.reset();
-      _readTimer.start();
-      receiveData();
-    }
-
     private function onSpeedUpdate(e:TimerEvent):void {
+      _s2cByteCount = _s2cSocket.bytesAvailable;
       _s2cTestDuration = getTimer() - _s2cTestStartTime;
       TestResults.ndt_test_results::s2cSpeed = _s2cByteCount
                                                * NDTConstants.BYTES2BITS
@@ -302,26 +293,11 @@ package  {
 
       _testStage = RECEIVE_DATA;
       TestResults.appendDebugMsg("S2C test: RECEIVE_DATA stage.");
-      if (_s2cSocket.bytesAvailable > 0)
-        receiveData();
     }
 
     private function onS2CTimeout(e:TimerEvent):void {
       TestResults.appendDebugMsg("Timeout for receiving data on S2C socket.");
       closeS2CSocket();
-    }
-
-    /**
-     * Function that is called repeatedly by the S2C socket response listener
-     * for the duration of the test. It processes and keeps track of the total
-     * bytes received from the server. The test only goes past this stage if:
-     * 1. All data was successfully received and the server closed the socket.
-     * 2. A read timeout occured on S2C socket.
-     * 3. More than NDTConstants.S2C_DURATION seconds have passed since the
-     *    beginning of the test.
-     */
-    private function receiveData():void {
-      _s2cByteCount += NDTUtils.readAllBytesAndDiscard(_s2cSocket);
     }
 
     private function closeS2CSocket():void {
@@ -337,8 +313,7 @@ package  {
       _readTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
       _s2cTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
 
-      if (_s2cSocket.connected)
-        _s2cByteCount += _s2cSocket.bytesAvailable;
+      _s2cByteCount = _s2cSocket.bytesAvailable;
 
       removeCtlSocketOnReceivedDataListener();
       try {
