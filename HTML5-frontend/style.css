@@ -66,6 +66,9 @@ h2 em {
   font-style: normal;
   color: white;
 }
+h2.centered {
+  text-align:center;
+}
 h3 {
   font-size: 36px;
 }
@@ -131,10 +134,10 @@ body.initializing .page .status {
   width: 640px;
   position: absolute;
   left: 40px;
-  top: 320px;
+  top: 400px;
   color: white;
-  font-size: 48px;
-  line-height: 48px;
+  font-size: 32px;
+  line-height: 32px;
 }
 #test .location {
   position: absolute;
@@ -154,32 +157,35 @@ body.initializing .page .status {
   font: bold 13px/13px verdana, helvetica, arial, sans-serif;
 }
 
-.progress-bar {
+#uploadGauge {
   position: absolute;
   left: 40px;
   top: 120px;
-  width: 640px;
-  height: 160px;
   overflow: hidden;
 }
-.progress-bar .segment {
-  width: 100%;
-  height: 160px;
+
+#downloadGauge {
   position: absolute;
-}
-#upload .progress-bar .segment {
-  background-image: url(images/progress-bar-left.png);
-}
-#download .progress-bar .segment {
-  background-image: url(images/progress-bar-right.png);
-}
-.progress-bar .dot {
-  position: absolute;
-  width: 50px;
-  height: 160px;
-  background-color: white;
+  left: 380px;
+  top: 120px;
+  overflow: hidden;
 }
 
+#rtt {
+  position: absolute;
+  left: 320px;
+  top: 320px;
+  color: white;
+  font: bold 20px/20px verdana, helvetica, arial, sans-serif;
+}
+
+#rttValue {
+  position: relative;
+  text-align: center;   
+  left: -30px;
+  width: 100px;
+  color: black;
+}
 
 /* Test results */
 
