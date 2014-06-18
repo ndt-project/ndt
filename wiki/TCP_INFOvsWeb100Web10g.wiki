@@ -1,4 +1,4 @@
-#summary One-sentence summary of this page.
+#summary Investigate the possible use of TCP_INFO instead of web100/web10g.
 
 = Introduction =
 Investigate the possible use of TCP_INFO instead of web100/web10g.
@@ -121,4 +121,3 @@ inet_connection_sock structure is in:
 }}}
 
 = Comparison with Web100/Web10g =
-
