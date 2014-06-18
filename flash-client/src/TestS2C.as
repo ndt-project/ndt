@@ -484,7 +484,6 @@ package  {
 
 
       if (_msg.type == MessageType.TEST_FINALIZE) {
-		TestResults.appendDebugMsg("!!" + _msg.type + " " + _msg.length + "\n");
         // All web100 variables have been sent by the server.
         _readTimer.stop();
         _readTimer.removeEventListener(TimerEvent.TIMER, onWeb100ReadTimeout);
