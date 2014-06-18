@@ -53,6 +53,11 @@ package  {
              ndtVariables[NDTConstants.MINRTT];
     }
 
+    public static function getPcLimit():Number {
+      return ndtVariables[NDTConstants.RWIN]
+                            / ndtVariables[NDTConstants.RTTSEC];	    
+    }
+
     public static function get duration():Number {
       return _ndtTestEndTime - _ndtTestStartTime;
     }

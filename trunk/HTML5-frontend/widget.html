@@ -8,6 +8,7 @@
     <link type="text/css" rel="stylesheet" href="ie.css">
     <![endif]-->
     <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
+    <script type="text/javascript" src="gauge.min.js"></script>
     <script type="text/javascript" src="script.js"></script>
     <script type="text/javascript">
     var simulate = false;
@@ -36,17 +37,20 @@
   <div id="test" class="page">
     
     <div id="loading">
-      <h2>Preparing your tests...</h2>
-      <div class="progress-bar"></div>
+      <h2 class="centered">Preparing your tests...</h2>
     </div>
     <div id="upload" class="test">
-      <h2>Now testing <em>your upload speed</em></h2>
-      <div class="progress-bar"></div>
+      <h2 class="centered">Now testing <em>your upload speed</em></h2>
     </div>
     <div id="download" class="test">
-      <h2>Now testing <em>your download speed</em></h2>
-      <div class="progress-bar"></div>
+      <h2 class="centered">Now testing <em>your download speed</em></h2>      
     </div>
+
+    <canvas id="uploadGauge"></canvas>
+    <div id="rtt">RTT
+      <div id="rttValue"></div>
+    </div>
+    <canvas id="downloadGauge"></canvas>
 
     <div class="locations">
       <div class="local location">

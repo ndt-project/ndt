@@ -183,6 +183,8 @@ package  {
             "get_errmsg", TestResults.getErrStatus);
         ExternalInterface.addCallback("get_host", Main.getHost);
         ExternalInterface.addCallback(
+            "get_PcBuffSpdLimit", TestResults.getPcLimit);
+        ExternalInterface.addCallback(
             "getNDTvar", TestResultsUtils.getNDTVariable);
       } catch (e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
