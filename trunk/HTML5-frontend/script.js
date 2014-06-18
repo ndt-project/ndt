@@ -373,40 +373,40 @@ function testDetails() {
   var a = testNDT();
   var d = '';
 
-  d += "Your system: " + a.getNDTvar("OperatingSystem") + "<br>";
-  d += "Plugin version: " + a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>";
+  d += "Your system: " + a.getNDTvar("OperatingSystem").bold() + "<br>";
+  d += "Plugin version: " + (a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>").bold();
 
   d += "<br>";
 
-  d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd") + " current, " + a.getNDTvar("MaxRwinRcvd") + " maximum<br>";
-  d += a.getNDTvar("loss") + " packets lost during test<br>";
-  d += "Round trip time: " + a.getNDTvar("MinRTT") + " msec (minimum), " + a.getNDTvar("MaxRTT") + " msec (maximum), " + a.getNDTvar("avgrtt") + " msec (average)<br>";
-  d += "Jitter: " + a.getNDTvar("Jitter") + " msec<br>";
-  d += a.getNDTvar("waitsec") + " seconds spend waiting following a timeout<br>";
-  d += "TCP time-out counter: " + a.getNDTvar("CurRTO") + "<br>";
-  d += a.getNDTvar("SACKsRcvd") + " selective acknowledgement packets received<br>";
+  d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd").bold() + " current, " + a.getNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
+  d += a.getNDTvar("loss").bold() + " packets lost during test<br>";
+  d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), " + a.getNDTvar("avgrtt").bold() + " msec (average)<br>";
+  d += "Jitter: " + a.getNDTvar("Jitter").bold() + " msec<br>";
+  d += a.getNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
+  d += "TCP time-out counter: " + a.getNDTvar("CurRTO").bold() + "<br>";
+  d += a.getNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
 
   d += "<br>";
 
   if (a.getNDTvar("mismatch") == "yes") {
-    d += "A duplex mismatch condition was detected.<br>";
+    d += "A duplex mismatch condition was detected.<br>".fontcolor("red").bold();
   }
   else {
-    d += "No duplex mismatch condition was detected.<br>";
+    d += "No duplex mismatch condition was detected.<br>".fontcolor("green");
   }
 
   if (a.getNDTvar("bad_cable") == "yes") {
-    d += "The test detected a cable fault.<br>";
+    d += "The test detected a cable fault.<br>".fontcolor("red").bold();
   }
   else {
-    d += "The test did not detect a cable fault.<br>";
+    d += "The test did not detect a cable fault.<br>".fontcolor("green");
   }
 
   if (a.getNDTvar("congestion") == "yes") {
-    d += "Network congestion may be limiting the connection.<br>";
+    d += "Network congestion may be limiting the connection.<br>".fontcolor("red").bold();
   }
   else {
-    d += "No network congestion was detected.<br>";
+    d += "No network congestion was detected.<br>".fontcolor("green");
   }
 
   /*if (a.get_natStatus() == "yes") {
@@ -418,11 +418,11 @@ function testDetails() {
 
   d += "<br>";
 
-  d += a.getNDTvar("cwndtime") + "% of the time was not spent in a receiver limited or sender limited state.<br>";
-  d += a.getNDTvar("rwintime") + "% of the time the connection is limited by the client machine's receive buffer.<br>";
-  d += "Optimal receive buffer: " + a.getNDTvar("optimalRcvrBuffer") + " bytes<br>";
-  d += "Bottleneck link: " + a.getNDTvar("accessTech") + "<br>";
-  d += a.getNDTvar("DupAcksIn") + " duplicate ACKs set<br>";
+  d += a.getNDTvar("cwndtime").bold() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
+  d += a.getNDTvar("rwintime").bold() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
+  d += "Optimal receive buffer: " + a.getNDTvar("optimalRcvrBuffer").bold() + " bytes<br>";
+  d += "Bottleneck link: " + a.getNDTvar("accessTech").bold() + "<br>";
+  d += a.getNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
 
   return d;
 }
