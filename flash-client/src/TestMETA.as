@@ -27,10 +27,12 @@ package  {
     // Valid values for _testStage.
     private static const PREPARE_TEST1:int = 0;
     private static const PREPARE_TEST2:int = 1;
-    private static const START_TEST:int    = 2;
-    private static const SEND_DATA:int     = 3;
-    private static const FINALIZE_TEST:int = 4;
-    private static const END_TEST:int  = 5;
+    private static const START_TEST1:int    = 2;
+    private static const START_TEST2:int    = 3;
+    private static const SEND_DATA:int     = 4;
+    private static const FINALIZE_TEST1:int = 5;
+    private static const FINALIZE_TEST2:int = 6;
+    private static const END_TEST:int  = 7;
 
     private var _callerObj:NDTPController;
     private var _ctlSocket:Socket;
@@ -86,9 +88,13 @@ package  {
                             break;
         case PREPARE_TEST2: prepareTest2();
                             break;
-        case START_TEST:    startTest();
+        case START_TEST1:   startTest1();
                             break;
-        case FINALIZE_TEST: finalizeTest();
+        case START_TEST2:   startTest2();
+                            break;
+        case FINALIZE_TEST1:finalizeTest1();
+                            break;
+        case FINALIZE_TEST2:finalizeTest2();
                             break;
         case END_TEST:      endTest();
                             break;
@@ -129,7 +135,7 @@ package  {
       }
 
       _msg = new Message();
-      _testStage = START_TEST;
+      _testStage = START_TEST1;
       TestResults.appendDebugMsg("META test: START_TEST stage.");
 
       if (_ctlSocket.bytesAvailable > 0)
@@ -137,12 +143,22 @@ package  {
         // they trigger a single ProgressEvent.SOCKET_DATA event. In such case,
         // it's necessary to explicitly call the following function to  move to
         // the next step.
-        startTest();
+        startTest1();
     }
 
-    private function startTest():void {
+    private function startTest1():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
+      _testStage = START_TEST2;
+      if (_ctlSocket.bytesAvailable > 0)
+        // In case header and body have arrive together at the client, they
+        // trigger a single ProgressEvent.SOCKET_DATA event. In such case,
+        // it's necessary to explicitly call the following function to move to
+        // the next step.
+        startTest2();
+    }
+
+    private function startTest2():void {
       if (!_msg.readBody(_ctlSocket, _msg.length))
         return;
 
@@ -224,17 +240,29 @@ package  {
         return;
       }
 
-      _testStage = FINALIZE_TEST;
+      _msg = new Message();
+      _testStage = FINALIZE_TEST1;
       TestResults.appendDebugMsg("META test: FINALIZE_TEST stage.");
       // The following check is probably not necessary. Added anyway, in case
       // the TEST_FINALIZE message does not trigger onReceivedData.
       if (_ctlSocket.bytesAvailable > 0)
-        finalizeTest();
+        finalizeTest1();
     }
 
-    private function finalizeTest():void {
+    private function finalizeTest1():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
+      _testStage = FINALIZE_TEST2;
+      if (_ctlSocket.bytesAvailable > 0)
+        // In case header and body have arrive together at the client, they
+        // trigger a single ProgressEvent.SOCKET_DATA event. In such case,
+        // it's necessary to explicitly call the following function to move to
+        // the next step.
+        finalizeTest2();
+    }
+
+
+    private function finalizeTest2():void {
       if (!_msg.readBody(_ctlSocket, _msg.length))
         return;
 

@@ -36,14 +36,15 @@ package  {
     // Valid values for _testStage.
     private static const PREPARE_TEST1:int = 0;
     private static const PREPARE_TEST2:int = 1;
-    private static const START_TEST:int = 2;
-    private static const RECEIVE_DATA:int = 3;
-    private static const COMPARE_SERVER1:int = 4;
-    private static const COMPARE_SERVER2:int = 5;
-    private static const COMPUTE_THROUGHPUT:int = 6;
-    private static const GET_WEB1001:int = 7;
-    private static const GET_WEB1002:int = 8;
-    private static const END_TEST:int = 9;
+    private static const START_TEST1:int = 2;
+    private static const START_TEST2:int = 3;
+    private static const RECEIVE_DATA:int = 4;
+    private static const COMPARE_SERVER1:int = 5;
+    private static const COMPARE_SERVER2:int = 6;
+    private static const COMPUTE_THROUGHPUT:int = 7;
+    private static const GET_WEB1001:int = 8;
+    private static const GET_WEB1002:int = 9;
+    private static const END_TEST:int = 10;
     private static const THROUGHPUT_VALUE:String = "ThroughputValue";
     private static const UNSENT_DATA_AMOUNT:String = "UnsentDataAmount";
     private static const TOTAL_SENT_BYTE:String = "TotalSentByte";
@@ -115,7 +116,9 @@ package  {
                               break;
         case PREPARE_TEST2:   prepareTest2();
                               break;
-        case START_TEST:      startTest();
+        case START_TEST1:     startTest1();
+                              break;
+        case START_TEST2:     startTest2();
                               break;
         case COMPARE_SERVER1: compareWithServer1();
                               break;
@@ -191,7 +194,7 @@ package  {
       _s2cTimer = new Timer(NDTConstants.S2C_DURATION);
       _s2cTimer.addEventListener(TimerEvent.TIMER, onS2CTimeout);
       _msg = new Message();
-      _testStage = START_TEST;
+      _testStage = START_TEST1;
       TestResults.appendDebugMsg("S2C test: START_TEST stage.");
 
       if (_ctlSocket.bytesAvailable > 0)
@@ -199,7 +202,7 @@ package  {
         // they trigger a single ProgressEvent.SOCKET_DATA event. In such case,
         // it's necessary to explicitly call the following function to move to
         // the next step.
-        startTest();
+        startTest1();
     }
 
     private function addS2CSocketEventListeners():void {
@@ -208,7 +211,6 @@ package  {
       _s2cSocket.addEventListener(IOErrorEvent.IO_ERROR, onS2CError);
       _s2cSocket.addEventListener(SecurityErrorEvent.SECURITY_ERROR,
                                  onS2CSecError);
-      _s2cSocket.addEventListener(ProgressEvent.SOCKET_DATA, onS2CReceivedData);
     }
 
     private function removeS2CSocketEventListeners():void {
@@ -217,8 +219,6 @@ package  {
       _s2cSocket.removeEventListener(IOErrorEvent.IO_ERROR, onS2CError);
       _s2cSocket.removeEventListener(SecurityErrorEvent.SECURITY_ERROR,
                                      onS2CSecError);
-      _s2cSocket.removeEventListener(ProgressEvent.SOCKET_DATA,
-                                     onS2CReceivedData);
     }
 
     private function onS2CConnect(e:Event):void {
@@ -244,23 +244,27 @@ package  {
       endTest();
     }
 
-    private function onS2CReceivedData(e:ProgressEvent):void {
-      _readTimer.stop();
-      _readTimer.reset();
-      _readTimer.start();
-      receiveData();
-    }
-
     private function onSpeedUpdate(e:TimerEvent):void {
+      _s2cByteCount = _s2cSocket.bytesAvailable;
       _s2cTestDuration = getTimer() - _s2cTestStartTime;
       TestResults.ndt_test_results::s2cSpeed = _s2cByteCount
                                                * NDTConstants.BYTES2BITS
                                                / _s2cTestDuration;
     }
 
-    private function startTest():void {
+    private function startTest1():void {
       if (!_msg.readHeader(_ctlSocket))
         return;
+      _testStage = START_TEST2;
+      if (_ctlSocket.bytesAvailable > 0)
+        // In case header and body have arrive together at the client, they
+        // trigger a single ProgressEvent.SOCKET_DATA event. In such case,
+        // it's necessary to explicitly call the following function to move to
+        // the next step.
+        startTest2();
+    }
+
+    private function startTest2():void {
       if (!_msg.readBody(_ctlSocket, _msg.length))
         return;
 
@@ -289,26 +293,11 @@ package  {
 
       _testStage = RECEIVE_DATA;
       TestResults.appendDebugMsg("S2C test: RECEIVE_DATA stage.");
-      if (_s2cSocket.bytesAvailable > 0)
-        receiveData();
     }
 
     private function onS2CTimeout(e:TimerEvent):void {
       TestResults.appendDebugMsg("Timeout for receiving data on S2C socket.");
       closeS2CSocket();
-    }
-
-    /**
-     * Function that is called repeatedly by the S2C socket response listener
-     * for the duration of the test. It processes and keeps track of the total
-     * bytes received from the server. The test only goes past this stage if:
-     * 1. All data was successfully received and the server closed the socket.
-     * 2. A read timeout occured on S2C socket.
-     * 3. More than NDTConstants.S2C_DURATION seconds have passed since the
-     *    beginning of the test.
-     */
-    private function receiveData():void {
-      _s2cByteCount += NDTUtils.readAllBytesAndDiscard(_s2cSocket);
     }
 
     private function closeS2CSocket():void {
@@ -324,8 +313,7 @@ package  {
       _readTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
       _s2cTimer.removeEventListener(TimerEvent.TIMER, onS2CTimeout);
 
-      if (_s2cSocket.connected)
-        _s2cByteCount += _s2cSocket.bytesAvailable;
+      _s2cByteCount = _s2cSocket.bytesAvailable;
 
       removeCtlSocketOnReceivedDataListener();
       try {
