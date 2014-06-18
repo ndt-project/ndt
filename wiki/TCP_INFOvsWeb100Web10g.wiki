@@ -1,0 +1,124 @@
+#summary One-sentence summary of this page.
+
+= Introduction =
+Investigate the possible use of TCP_INFO instead of web100/web10g.
+
+
+= Details about TCP_INFO =
+==Structure of TCP_INFO:==
+{{{
+struct tcp_info
+{
+u_int8_t	tcpi_state; 
+u_int8_t	tcpi_ca_state;
+u_int8_t	tcpi_retransmits;
+u_int8_t	tcpi_probes;
+u_int8_t	tcpi_backoff;
+u_int8_t	tcpi_options;
+u_int8_t	tcpi_snd_wscale : 4, tcpi_rcv_wscale : 4;
+
+u_int32_t	tcpi_rto;
+u_int32_t	tcpi_ato;
+u_int32_t	tcpi_snd_mss;
+u_int32_t	tcpi_rcv_mss;
+
+u_int32_t	tcpi_unacked;
+u_int32_t	tcpi_sacked;
+u_int32_t	tcpi_lost;
+u_int32_t	tcpi_retrans;
+u_int32_t	tcpi_fackets;
+
+/* Times. */
+u_int32_t	tcpi_last_data_sent;
+u_int32_t	tcpi_last_ack_sent;	/* Not remembered, sorry.  */
+u_int32_t	tcpi_last_data_recv;
+u_int32_t	tcpi_last_ack_recv;
+
+/* Metrics. */
+u_int32_t	tcpi_pmtu;
+u_int32_t	tcpi_rcv_ssthresh;
+u_int32_t	tcpi_rtt;
+u_int32_t	tcpi_rttvar;
+u_int32_t	tcpi_snd_ssthresh;
+u_int32_t	tcpi_snd_cwnd;
+u_int32_t	tcpi_advmss;
+u_int32_t	tcpi_reordering;
+};
+}}}
+You can find this structure in:
+{{{
+/usr/include/netinet/tcp.h
+}}}
+
+==Description of variables:==
+{{{
+tcpi_state;	/* Possible value:
+		TCP_ESTABLISHED = 1,
+		TCP_SYN_SENT,
+		TCP_SYN_RECV,
+		TCP_FIN_WAIT1,
+		TCP_FIN_WAIT2,
+		TCP_TIME_WAIT,
+		TCP_CLOSE,
+		TCP_CLOSE_WAIT,
+		TCP_LAST_ACK,
+		TCP_LISTEN,
+		TCP_CLOSING */
+
+tcpi_ca_state;	/* Congestion control state */
+tcpi_retransmits;	/* Number of unrecovered [RTO] timeouts */
+tcpi_probes;	/* Unanswered 0 window probes */
+tcpi_backoff;	/* Backoff */
+tcpi_options;	
+tcpi_snd_wscale	/* Window scaling received from sender */
+tcpi_rcv_wscale	/*Window scaling to send to receiver*/
+tcpi_rto;	/* Retransmit timeout */
+tcpi_ato;	/* Predicted tick of soft clock */
+tcpi_snd_mss;	/* Cached effective mss, not including SACKS*/
+tcpi_rcv_mss;	/* MSS used for delayed ACK decisions */
+	
+tcpi_unacked;	/* Packets which are "in flight" */
+tcpi_sacked;	/* SACK'd packets */
+tcpi_lost;	/* Lost packets */
+tcpi_retrans;	/* Retransmitted packets out */
+tcpi_fackets;	/* FACK'd packets */
+	
+tcpi_last_data_sent;	/* now – lsndtime (lsndtime → timestamp of last sent data packet (for restart window)) */
+tcpi_last_ack_sent;	/* Not remembered, sorry.  */
+tcpi_last_data_recv;	/* now – isck_ack.lrcvtime (isck_ack ->Delayed ACK control data; lrcvtime → timestamp of last received data packet) */
+tcpi_last_ack_recv;	/* now - rcv_tstamp  (rcv_tstamp → timestamp of last received ACK (for keepalives)) */
+	
+tcpi_pmtu;	/* Last pmtu seen by socket (Path Maximum Transmission Unit) */
+tcpi_rcv_ssthresh;	/* slow start size threshold for  receiving (Current window clamp) */
+tcpi_rtt;	/* Smoothed Round Trip Time (SRTT) */
+tcpi_rttvar;	/* Medium deviation */
+tcpi_snd_ssthresh;	/* Slow start size threshold for sending */
+tcpi_snd_cwnd;	/* Sending congestion window */
+tcpi_advmss;	/* Advertised Maximum Segment Size (MSS) */
+tcpi_reordering;	/* Indicates the amount of reordering. Packet reordering metric */
+	
+tcpi_rcv_rtt;	/* Receiver side RTT estimation */
+tcpi_rcv_space;	/* Receiver queue space */
+	
+tcpi_total_retrans;	/* Total retransmits for entire connection */
+}}}
+
+==Useful information about the TCP_INFO:==
+TCP_INFO structure is filled in the tcp_get_info() function.You can find it in kernel source: 
+{{{
+/lib/modules/`uname -r`/build/net/ipv4/tcp.c 
+}}}
+Most of the data is copied from tcp_sock and inet_connection_sock structure.<br>
+tcp_sock struct you can find in:
+{{{
+/lib/modules/`uname -r`/build/include/linux/tcp.h
+or
+/lib/modules/`uname -r`/build/include/net/tcp.h
+}}}
+inet_connection_sock structure is in:
+{{{
+/lib/modules/`uname -r`/build/include/net/inet_connection_sock.h
+}}}
+
+= Comparison with Web100/Web10g =
+
