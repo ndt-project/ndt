@@ -109,4 +109,5 @@ EXTRA_DIST = MANIFEST.MF src/edu/internet2/ndt/locale/Tcpbw100_msgs_ca_ES.proper
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_fr_FR.properties \
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_ru_RU.properties \
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_pt_BR.properties \
-			src/edu/internet2/ndt/locale/Tcpbw100_msgs_el_GR.properties
+			src/edu/internet2/ndt/locale/Tcpbw100_msgs_el_GR.properties \
+			src/edu/internet2/ndt/lib/json-smart-1.1.1.jar
