@@ -2966,6 +2966,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		tokens = new StringTokenizer(sTestResParam);
 		sSysvar = null;
 		sStrval = null;
+		_txtDiagnosis.append("=== Results sent by the server ===\n");
 		while (tokens.hasMoreTokens()) {
 			if (++i % 2 == 1) {
 				sSysvar = tokens.nextToken();
