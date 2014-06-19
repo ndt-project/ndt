@@ -1,0 +1,13 @@
+--- unpatched/ndt-3.6.2b/Applet/Tcpbw100.java	2010-04-12 16:02:45.000000000 -0700
++++ ndt-3.6.2b/Applet/Tcpbw100.java	2010-05-05 19:10:40.000000000 -0700
+@@ -2264,6 +2264,10 @@ class MyTextPane extends JTextPane
+       catch (UnknownHostException e) {
+         preserved = scip.equals(ccip);
+       }
++      catch (SecurityException e ) {
++        preserved = scip.equals(ccip);
++      }
++
+ 			if (preserved)
+ 				statistics.append(messages.getString("clientIpPreserved") + "\n");
+ 			else {
