@@ -72,9 +72,9 @@ We can look at the NDT architecture in two different ways:
 A brief description of each of the NDT components can be found in the following table. All sources locations are relative to the root of the checked out sources from the code repository.
 
 || *Component* || *Type* || *Description* || *Sources Location* ||
-|| *web100clt* || Client Tools || The NDT Client application (used from command line). || *src* <br/><br/> {{{web100clt.c test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c test_results_clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c strlutils.c}}} ||
-|| *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. || *Applet* <br/><br/> {{{Tcpbw100.java StatusPanel.java Protocol.java Message.java UserAgentTools.java NDTConstants.java OsfwWorker.java NewFrame.java ResultsTextPane.java MessageType.java NDTUtils.java}}}||
-|| *web100srv* || Server Tools || The NDT Server application. || *src* <br/><br/> {{{web100srv.c test_sfw_srv.c test_meta_srv.c test_c2s_srv.c test_s2c_srv.c test_mid_srv.c heuristics.c web100-util.c web100-pcap.c web100-admin.c runningtest.c network.c protocol.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c ndt_odbc.c strlutils.c}}} ||
+|| *web100clt* || Client Tools || The NDT Client application (used from command line). || *src* <br/><br/> {{{web100clt.c test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c test_results_clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c strlutils.c jsonutils.c}}} ||
+|| *Tcpbw100.jar* || Server/Client Tools || The Java Applet-based client that requires JVM browser plugin installed at the client machine. || *Applet* <br/><br/> {{{Tcpbw100.java StatusPanel.java Protocol.java Message.java UserAgentTools.java NDTConstants.java OsfwWorker.java NewFrame.java ResultsTextPane.java MessageType.java NDTUtils.java JSONUtils.java }}}||
+|| *web100srv* || Server Tools || The NDT Server application. || *src* <br/><br/> {{{web100srv.c test_sfw_srv.c test_meta_srv.c test_c2s_srv.c test_s2c_srv.c test_mid_srv.c heuristics.c web100-util.c web100-pcap.c web100-admin.c runningtest.c network.c protocol.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c ndt_odbc.c strlutils.c jsonutils.c}}} ||
 || analyze || Administrative Tools || Console based utility application that can look through the NDT log files and display the old test results. || *src* <br/><br/> {{{analyze.c usage.c logging.c}}} ||
 || viewtrace || Administrative Tools || Console based utility application that can read [NDTDataFormat#tcpdump_trace tcpdump trace] files to perform packet pair timings to determine [NDTTestMethodology#Bottleneck_Link_Detection what type of bottleneck link exists] on the analyzed path. || *src* <br/><br/> {{{viewtrace.c usage.c logging.c utils.c}}} ||
 || genplot || Administrative Tools || Console based utility that can read [NDTDataFormat#web100_snaplog_trace Web100 snaplog trace] files and generate xplot graphs from the obtained Web100 variables. || *src* <br/><br/> {{{genplot.c usage.c}}} ||
@@ -153,6 +153,7 @@ NDT makes use of a number of third-party components:
 || Library || Required To Build Client? || Required To Run Client? || Required To Build Server? || Required To Run Server? ||
 || Web100 Kernel Modifications || No || No || No || Yes ||
 || Web100 Library || No || No || Yes || Yes ||
+|| Jansson library || Yes (C client only) || Yes (C client only) || Yes || Yes ||
 || pcap library || No || No || Yes || Yes ||
 || !I2Util library || Yes (C Client Only) || No || Yes || No ||
 || zlib library || No || No || No (compression of test results will be disabled) || No ||
@@ -197,6 +198,10 @@ The command:
 
 will return several files if the libraries are installed. If they are not installed, obtain the installation package from your favorite mirror site or download and install the source from the [http://www.tcpdump.org] web site.
 
+==== Jansson library ====
+
+The Jansson library is used by NDT server and C-client to encode/decode messages using JSON format. The source code can be obtained from {{{http://www.digip.org/jansson}}}.
+
 ==== !I2Util library ====
 
 The !I2Util library is already included in the newest tar package from the NDT download page ({{{http://code.google.com/p/ndt/downloads}}}).
@@ -231,11 +236,12 @@ Once all the pre-requisites are installed, the admin is now ready to create the 
 
 *** Client Tools - complete
 * web100clt:    YES
+* Tcpbw100.jar: YES
+* flash-client: YES
 
 *** Server Tools - complete
 * fakewww:      YES
 * web100srv:    YES
-* Tcpbw100.jar: YES
 
 *** Administrative Tools - complete
 * analyze:      YES
