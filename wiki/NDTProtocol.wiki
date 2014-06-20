@@ -1,6 +1,6 @@
 #summary Description of the NDT Protocol
 
-= Network Diagnostic Tool Protocol (NDTP Version 3.6.4) =
+= Network Diagnostic Tool Protocol (NDTP Version 3.7.0) =
 
 == Abstract == 
 
@@ -64,6 +64,10 @@ The NDTP-Control messages are transmitted before the NDTP-Tests sessions are act
 
 All multi-byte quantities defined in this document are represented as unsigned integers in a network byte order unless specified otherwise. All single byte charactor quantities are US-ASCII encoded unless specified otherwise. C style character syntax is used in this document to represent US-ASCII encodings for values. i.e. '2' represents US-ASCII value for the charactor numeral two which is hex 32 or decimal 50 and not the integer value two. All multiple byte *string* quantities are US-ASCII encoded unless otherwise specified. The term octet is used when describing bytes in the wire-format of the messages to be more consistent with RFC style language.
 
+=== Protocol messages format ===
+As of version 3.7.0 messages are transmitted using JSON format. However to support older clients which does not use this, NDT server first recognizes if client supports such encoding (that is if client sent MSG_EXTENDED_LOGIN message) and if not, then messages aren't converted to JSON.
+JSON messages use map object so that specific values can be obtained using specific key (<font color="red">IMPORTANT: if not specified otherwise then its default value is "msg"</font>).
+
 == NDTP-Control ==
 
 The type of each NDTP-Control message can be found after reading the first octet. The length of each NDTP-Control message can be computed upon reading its fixed-size part. No message is shorter than 3 octets.
@@ -83,7 +87,7 @@ The NDTP-Control currently defines the following types of messages:
 || *Symbolic name* || *Byte integer value* || *Description* ||
 || COMM_FAILURE || 0 || Notification about communication link failure. ||
 || SRV_QUEUE || 1 || Message used to the Clients' queue management ||
-|| MSG_LOGIN || 2 || Used during initialization to negotiate the NDT version and the test suite ||
+|| MSG_LOGIN || 2 || Used during initialization to negotiate the NDT version and the test suite. <font color="red">As of version 3.7.0 this type of message is deprecated and kept only for backward compatibility, newer clients should use MSG_EXTENDED_LOGIN message instead, see below)</font> ||
 || TEST_PREPARE || 3 || Used to send all information needed for a particular test (i.e. port numbers, test time, etc.) ||
 || TEST_START || 4 || Message used to start a specific test ||
 || TEST_MSG || 5 || Used during tests to communicate between the Client and the Server ||
@@ -92,6 +96,7 @@ The NDTP-Control currently defines the following types of messages:
 || MSG_RESULTS || 8 || Contains a final test sessions' results ||
 || MSG_LOGOUT || 9 || This is the last message send by the Server after MSG_RESULTS messages. The Server SHOULD close the NDTP-Control connection after sending this message. ||
 || MSG_WAITING || 10 || Message from the Client to notify the Server that the Client is still alive ||
+|| MSG_EXTENDED_LOGIN || 11 || Extended version of MSG_LOGIN message (contains additional client version info and indicates that server and client will use JSON format for message encoding) ||
 
 === Protocol description ===
 
@@ -99,11 +104,11 @@ The NDTP-Control currently defines the following types of messages:
 
 Before the Client can start the test session, it has to establish a connection to the Server.
 
-First, the Client opens a TCP connection to the Server on a well-known port 3001 and sends a LOGIN message:
+First, the Client opens a TCP connection to the Server on a well-known port 3001 and sends an EXTENDED_LOGIN message:
 
-http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/4.%20Server%20on%20a%20well-known%20port%203001%20and%20sends%20a%20LOGIN%20message.png
+http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/EXTENDED_LOGIN_MESSAGE.png
 
-Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite. The Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
+Where TESTS is a bitwise OR of the tests' ids that should be run in a requested test-suite and subsequent bytes are client version number in US-ASCII. The Tests' ids are defined in the [NDTProtocol#NDTP-Tests NDTP-Tests] section.
 
 All Clients MUST always request the TEST_STATUS (16 (1L << 4)) test in order to notify the Server that they support the MSG_WAITING messages introduced in the NDT v3.5.5.
 
@@ -225,12 +230,27 @@ When the test is over, the Server MUST send its results encoded as strings in a 
 || CurMSS || The current maximum segment size (MSS), in octets.||
 || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
 || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
+|| SumRTT || The sum of all sampled round trip times ||
+|| CountRTT || The number of round trip time samples ||
+|| MaxRwinRcvd || The maximum window advertisement received, in octets. ||
 
 The above variables can be obtained by using a [http://www.web100.org/ web100] project. All available web100 data variables are described in [NDTProtocol#Appendix_A._web100_variables Appendix A].
 
 The whole TEST_MSG message sent to the Client looks as following:
 
 http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/12.%20TEST_MSG%20message%20to%20Client.png
+
+where results are encoded using JSON map with following entries:
+
+|| *JSON map's key* || *Variable* ||
+|| ServerAddress || server address ||
+|| ClientAddress || client address visible from server ||
+|| CurMSS || current MSS value ||
+|| WinScaleSent || WinScaleSent ||
+|| WinScaleRcvd || WinScaleRcvd ||
+|| SumRTT || SumRTT ||
+|| CountRTT || CountRTT ||
+|| MaxRwinRcvd || MaxRwinRcvd ||
 
 Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in a TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
@@ -255,9 +275,10 @@ As a first step the Server MUST bind the ephemeral port and send a TEST_PREPARE 
 
 http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/15.%20TEST_PREPARE%20message%20containing%20this%20port%20number%20and%20test%20time%20%28in%20seconds%29%20to%20the%20Client.png
 
-The port number and the test time MUST be encoded as strings and separated by a single space. For example the whole message will look as following:
-
-http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/ndt_15b.png
+The port number and the test time are encoded using JSON format as follows:
+|| *JSON map's key* || *Variable* ||
+|| empheralPortNumber || port number ||
+|| testTime || test time ||
 
 Next, the Client MUST bind the ephemeral port and send a TEST_MSG message containing only this port number to the Server using the NDTP-Control connection. The port number MUST be encoded as string.
 
@@ -359,7 +380,12 @@ The Server's TEST_MSG message looks as following:
 
 http://ndt.googlecode.com/svn/wiki/NDTProtocol.images/23.%20overall%20number%20of%20sent%20bytes%20%28encoded%20as%20string%20in%20float%20format%29%20in%20the%20TEST_MSG%20message.png
 
-All these values MUST be separated by spaces.
+where results are encoded using JSON map with following entries:
+
+|| *JSON map's key* || *Variable* ||
+|| ThroughputValue || throughput calculated by server ||
+|| UnsentDataAmount || unsent byte count ||
+|| TotalSentByte || total sent byte count to client ||
 
 Next, the Client MUST send to the Server its calculated throughput value encoded as string (float format) in the TEST_MSG message using the NDTP-Control connection. The throughput value MUST be calculated using the following formula:
 {{{
