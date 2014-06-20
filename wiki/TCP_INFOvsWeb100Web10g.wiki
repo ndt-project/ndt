@@ -121,3 +121,36 @@ inet_connection_sock structure is in:
 }}}
 
 = Comparison with Web100/Web10g =
+first column: variables get by UI<br>
+second column: equivalent variables in Web100/10g or how it's calculated<br>
+third column: equivalent variables in TCP_INFO<br>
+
+|| UI 		|| Web100/10g variables || TCP_INFO ||
+|| status 	||	-	||	-	||
+|| diagnosis	||  		||		||
+|| errmsg 	||	- 	||	-	||
+|| host 	|| 	-	||	-	||
+|| ClientToServerSpeed 	|| 	-	||	-	||
+|| ServerToClientSpeed 	|| 	-	||	-	||
+|| avgrtt 	|| SumRTT / CountRTT || tcpi_rtt? ||
+|| Jitter 	|| MaxRTT – MinRTT || tcpi_rttvar? ||
+|| CurRwinRcvd || CurRwinRcvd	||		||
+|| MaxRwinRcvd || MaxRwinRcvd	||		||
+|| loss || CongestionSignals / PktsOut || tcpi_lost ||
+|| MinRTT || MinRTT	 	|| 	- 	||
+|| MaxRTT || MaxRTT	 	|| 	- 	||
+|| Waitsec || (CurRTO `*` Timeouts) / 1000 ||	||	
+|| CurRTO 	|| CurRTO	||		||
+|| SACKsRcvd 	|| SACKsRcvd	|| tcpi_sacked 	||
+|| cwndtime 	|| SndLimTimeCwnd / (SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender)		||		||	
+|| rwintime 	|| SndLimTimeRwin  / (SndLimTimeRwin + SndLimTimeCwnd + SndLimTimeSender)		||		||
+|| optimalRcvrBuffer || MaxRwinRcvd `*` KILO_BITS|| 	||
+|| DupAcksIn || DupAcksIn	|| 		||
+
+<br>	
+=== Web100/10g variables used in tests: ===
+|| middlebox || CurMss, WinScaleSent, WinScaleRcvd, SumRTT, CountRTT, MaxRwinRcvd ||
+|| sfw || MaxRTT, MaxRTO ||
+
+<br>
+In server are also test for wireless link and DSL/Cable modem link which is dependent from SndLimTransRwin, SndLimTransCwnd and SndLimTransSender variables (and more).
