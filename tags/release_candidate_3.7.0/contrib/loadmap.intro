@@ -1,0 +1,283 @@
+Delivered-To: rcarlson@internet2.edu
+Received: from localhost (localhost [127.0.0.1])
+	by basie.internet2.edu (Postfix) with ESMTP id EE71C47DB7
+	for <rcarlson@internet2.edu>; Fri, 18 Aug 2006 12:27:55 -0400 (EDT)
+Received: from basie.internet2.edu ([127.0.0.1])
+ by localhost (basie.internet2.edu [127.0.0.1]) (amavisd-new, port 10024)
+ with ESMTP id 21857-08 for <rcarlson@internet2.edu>;
+ Fri, 18 Aug 2006 12:27:55 -0400 (EDT)
+Received: from lennier.cc.vt.edu (lennier.cc.vt.edu [198.82.162.213])
+	by basie.internet2.edu (Postfix) with ESMTP id E9A9D47DCB
+	for <rcarlson@internet2.edu>; Fri, 18 Aug 2006 12:27:54 -0400 (EDT)
+Received: from zidane.cc.vt.edu (IDENT:mirapoint@evil-zidane.cc.vt.edu [10.1.1.13])
+	by lennier.cc.vt.edu (8.12.11.20060308/8.12.11) with ESMTP id k7IGK00T027366
+	for <rcarlson@internet2.edu>; Fri, 18 Aug 2006 12:27:51 -0400
+Received: from ECGIS1 (hc652a8fa.dhcp.vt.edu [198.82.168.250])
+	by zidane.cc.vt.edu (MOS 3.8.0-FCS)
+	with ESMTP id FYE63163;
+	Fri, 18 Aug 2006 12:27:45 -0400 (EDT)
+From: "Seth Peery" <sspeery@vt.edu>
+To: "'Richard Carlson'" <rcarlson@internet2.edu>
+Cc: "'Jean Plymale'" <vplymale@vt.edu>
+Subject: RE: NDT Administrative Page
+Date: Fri, 18 Aug 2006 12:27:43 -0400
+Organization: Virginia Tech
+Message-ID: <000701c6c2e3$3c7875d0$faa852c6@ECGIS1>
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+	boundary="----=_NextPart_000_0008_01C6C2C1.B566D5D0"
+X-Priority: 3 (Normal)
+X-MSMail-Priority: Normal
+X-Mailer: Microsoft Outlook, Build 10.0.2627
+X-MIMEOLE: Produced By Microsoft MimeOLE V6.00.2900.2962
+Importance: Normal
+In-Reply-To: <6.2.0.14.2.20060816092042.04098280@mail.internet2.edu>
+X-Junkmail-Info: ALL_TRUSTED,LINES_OF_YELLING,WEIRD_PORT
+X-Junkmail-Status: score=16/70, host=zidane.cc.vt.edu
+X-Virus-Scanned: by mail.internet2.edu virus scanner
+Status:  O
+
+Richard,
+
+It's likewise a pleasure to virtually meet you.  I must say I admire the
+great work you've done with NDT - even more so since I've read most of
+its source code!
+
+I can assure you that the work I did to make NDT play nicely with the
+Google Map mashup is quite trivial compared to the NDT project.  Note
+that I made no changes to the server component - only the client
+(Tcpbw100.java).  Allow me to provide a bit of background information to
+help explain why (besides my own curiosity!) we started messing with the
+internals of NDT.  I've attached the source code (Tcpbw100.java) with my
+changes prominently indicated with banner comments.   During the course
+of what will probably turn out to be a long-winded discussion of the
+life story of my NDT changes, I'll introduce each change in context.
+
+It began when my boss requested that I develop some kind of application
+that would enable members of the local Blacksburg community to
+collectively create a map of Internet connection speeds.  She had seen
+frappr.com and wanted us to model something after that.  For the first
+version of the site, which I had hosted on one of the Linux boxen on my
+desk, I simply pointed the user to DSLReports.com and instructed them to
+copy/paste their test results from that site to the data input form on
+our site.  But it was when I figured out how to automatically transfer
+the lat/long from a point on the Google Map to the web form that I got
+to thinking, "gee, wouldn't it be nice to be able to seamlessly
+integrate a speed test of our own?"  I looked at NDT early on, but
+figured it was overkill for what we needed (just an upstream and
+downstream speed); also, the fact that NDT required a kernel
+modification as a prerequisite made it seem prohibitive to just play
+around with (although once I learned how to do it later on, it would
+seem retrospectively that this was a non-issue!).  Anyway, we continued
+shopping around for a "quick and dirty" test that could be integrated
+into our site.  I certainly did not have the time to write my own from
+scratch.  We met with Eric Brown, in our Network Engineering group
+(another unit of the IT division here at VT, of which I am also a
+member) who again recommended NDT.  Eric, whom you may know, is going to
+roll out a production version of NDT this fall to enable students to
+troubleshoot their connections when they make a service call to the
+Operations Center.  Anyway, Eric brought us back around to the idea of
+using NDT, and re-affirmed what I had already guessed - that NDT is the
+de facto standard for open-source testing of Internet connections,
+especially in research-oriented settings like our own.  
+
+So, I resolved to have a working NDT installation within a few weeks.
+However, by this time, our webmaster had taken control over the look and
+feel of the site interface, and had moved it over to Virginia Tech's
+centralized hosting server.  Now, as you know, the NDT client applet
+expects to be able to find its server component on the same box from
+whence it came.  This was clearly not going to be a possibility for us,
+since I couldn't install web100srv on the central hosting server, and I
+definitely wouldn't be allowed to install a kernel patch!  So, my first
+real task was figuring out how to point the NDT client applet to an
+instance of web100srv on some other machine besides its webserver.  I
+found the 'host' variable easily enough:
+		String host = getCodeBase().getHost()
+... and figured I could just change this to something hard-coded for
+testing, such as:
+		String host = "miranda.ctd.anl.gov"
+
+Now, it's been a year or so since I did any serious Java development (I
+do mostly Python, PHP, VBA stuff these days for GIS programming), but it
+didn't take me too long to realize I'd run up against one of the
+limitations of the Java applet security model.  So, as a rather ugly
+hack, I circumvented this by using jarsigner to create a local keystore
+and self-signing the applet, thus enabling it to establish a socket on
+port 3001 with a server outside its domain.  That was the first real
+substantial change.  Shortly thereafter, I changed the code again to
+allow me to point the applet to my server of choice using a parameter
+called 'testingserver' in the <APPLET> tag, thus allowing me to make the
+change without a recompile.  
+
+/***********************************************************************
+**
+ * Added by Seth Peery, 2006-05-17
+ * Instead of using the getCodeBase().getHost() value for the testing
+server,
+ * which assumes this applet is being served from the web100srv server,
+ * use a parameter provided in the APPLET tag.
+ * Note that for this to work the applet must be signed because you are
+ * potentially accessing a server outside the source domain.
+*/
+                //String host = getCodeBase().getHost();
+
+		// Previously, we used hardcoded server names; 
+		// we have since migrated to APPLET parameter tags.
+		//String host = "miranda.ctd.anl.gov";
+
+                host = getParameter("testingServer");
+                results.append("Running speed test from host:
+"+host+"\n");
+/***********************************************************************
+*/
+(lines 225-241)
+
+
+Once I was able to serve the NDT client from Server X and tell it to
+talk to the web100srv instance on server Y, my next task was to figure
+out how to seamlessly integrate it with our website.  (During this
+period, we had no NDT server of our own running, so I was mooching off
+of Argonne's 'miranda' server to run the tests).  Initially I wanted the
+applet to push its results out to the page containing the applet, and
+while I found a possible way to do this using JSObject, I was put off by
+what I interpreted to be a need for users to download the Java plug-in
+for their browser.  So, I opted for a less "seamless" but still
+functional approach: let the Javascript in the page reach into the
+applet and grab the values for spdin and spdout (now s2cspd and c2sspd)
+once the test had completed.  To do this, I simply created Public String
+variables for upstream and downstream speed, and then copied the values
+of the string representations of the test results into them.  This
+happens here:
+
+/***********************************************************************
+**
+ * Added by Seth Peery on 2006-08-04
+ * Adds public variables to store upstream and downstream speeds in kbps
+ */
+        public String downstream = "No data";
+        public String upstream = "No data";
+        public String host = "127.0.0.1";
+/***********************************************************************
+*
+(lines 111-118)
+
+
+
+...and here...
+
+
+
+/***********************************************************************
+**
+ * Added by Seth Peery, 2006-08-04
+ * Write string representation of upstream speed to public String
+upstream
+ */
+                upstream = ""+(prtdbl(c2sspd*1000));
+/***********************************************************************
+*/
+(lines 484-489)
+
+
+
+...and here...
+
+
+
+/***********************************************************************
+**
+ * Added by Seth Peery, 2006-08-04
+ * Write string representation of downstream speed to public String
+upstream
+ */
+                downstream = ""+(prtdbl(s2cspd*1000));
+/***********************************************************************
+*/
+(lines 571-576)
+
+
+
+So, once the user clicks the "Return to Map" button in speedtest.htm
+(the page that contains the applet, which is called from
+broadbandmap.php), the following Javascript sends the test results into
+the readonly fields in the web form:
+
+function pastebackresults (){
+
+window.opener.document.getElementById("addyourself").downstream_bw.value
+= NDT.downstream;
+
+window.opener.document.getElementById("addyourself").upstream_bw.value =
+NDT.upstream;
+
+window.opener.document.getElementById("addyourself").testingserver.value
+= NDT.host;
+
+window.close();
+}
+
+(indentation removed for e-mail page break readability)
+
+
+As I said, pretty trivial stuff.  There were a few other very minor
+changes to the NDT client code, which I've marked clearly and copied
+below.  First, we added our own message to the applet window so folks
+wouldn't confuse our application with the "real thing".  Also, my boss
+requested that I disable the "Report Problems"  functionality so we
+wouldn't get e-mailed complaints about the service offered by the
+various private providers.  
+
+
+/***********************************************************************
+**
+ * Changed by Seth Peery on 2006-08-07
+ * Added the '3' parameter in the TextArea() constructor call to 
+ * enable text wrapping.
+*/
+		results = new TextArea("TCP/Web100 Network Diagnostic
+Tool v5.3.5a\n",15,70,3);
+/***********************************************************************
+*/
+(lines 137-143)
+
+
+
+/***********************************************************************
+**
+ * Added by Seth Peery on 2006-08-04
+ * Adds our custom message to the applet window 
+ */
+results.append("\nThis is a modified version of the original NDT applet,
+incorporating minor changes made by the Virginia Tech eCorridors Program
+to integrate its output with the Community Broadband Map.\nNOTE: results
+for dial-up connections may be inaccurate.\n");
+/***********************************************************************
+*/
+(lines 150-155)
+
+
+
+/***********************************************************************
+**
+* Changed by Seth Peery on 2006-08-04
+* Change values here to remove buttons from the applet.
+* Note that these lines are relocated from above. 
+*/
+        //      mPanel.add(mailTo);
+                mPanel.add(deTails);
+                mPanel.add(sTatistics);
+/***********************************************************************
+*/
+(lines 172-180)
+
+
+Finally (and this may have been an issue with the previous version of
+NDT), we were getting some pretty strange results for dial-up
+connections (some of them in excess of 100Kbps, which is theoretically
+and practically impossible).  I had been meaning to submit this to
+ndt-users as a possible bug report, but for the time being had just
+stuck a disclaimer in the applet text.  Interestingly, with the new
+version of NDT (and now that we have our own web100srv machine up and
+running), results for dial-up connections are much more reasonable.  If
+you have any thoughts on what might be (might have been) causing this,
+I'd be interested to learn about it).
