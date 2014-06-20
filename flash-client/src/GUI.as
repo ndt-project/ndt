@@ -171,8 +171,10 @@ package  {
     }
 
     public function updateProgressText(completed:int, total:int):void {
-      _progressText.text = "Completed " + completed + " of "
-                           + total + " tests";
+      if (_progressText) {
+        _progressText.text = "Completed " + completed + " of "
+                             + total + " tests";
+      }
     }
 
     private function hideInitialScreen():void {
@@ -212,8 +214,10 @@ package  {
      * Add text to the console while the NDT test is running.
      */
     public function addConsoleOutput(text:String):void {
-      _consoleText.htmlText += text;
-      _consoleText.scrollV++;
+      if (_consoleText) { 
+	_consoleText.htmlText += text;
+	_consoleText.scrollV++;
+      }
     }
 
     private function hideConsoleScreen():void {
@@ -377,8 +381,10 @@ package  {
 
     private function clickRestart(e:MouseEvent):void {
       hideResultsScreen();
-      _consoleText.text = "";
-      this.addChild(_consoleText);
+      if (_consoleText) {
+        _consoleText.text = "";
+        this.addChild(_consoleText);
+      }
       _callerObj.startNDTTest();
     }
 
