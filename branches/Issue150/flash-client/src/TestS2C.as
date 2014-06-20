@@ -256,12 +256,16 @@ package  {
       if (!_msg.readHeader(_ctlSocket))
         return;
       _testStage = START_TEST2;
-      if (_ctlSocket.bytesAvailable > 0)
+      if ( (!_msg.length) || (_ctlSocket.bytesAvailable > 0) ) {
         // In case header and body have arrive together at the client, they
         // trigger a single ProgressEvent.SOCKET_DATA event. In such case,
         // it's necessary to explicitly call the following function to move to
         // the next step.
+
+        // This case also handles non-extended login TEST_START messages
+        // that have a 0-length body.
         startTest2();
+      }
     }
 
     private function startTest2():void {
