@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: lib/json-smart-1.1.1.jar
+Created-By: My own fingers
+Main-Class: edu.internet2.ndt.Tcpbw100

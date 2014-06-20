@@ -1,0 +1,387 @@
+<html>
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=windows-1252">
+<meta name=Generator content="Microsoft Word 10 (filtered)">
+<title>Network Diagnostic Tester</title>
+
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:purple;
+	text-decoration:underline;}
+p
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman";}
+pre
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:10.0pt;
+	font-family:"Courier New";}
+@page Section1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.25in 1.0in 1.25in;}
+div.Section1
+	{page:Section1;}
+ /* List Definitions */
+ ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+
+</head>
+
+<body lang=EN-US link=blue vlink=purple>
+
+<div class=Section1>
+
+<p class=MsoNormal>Network Diagnostic Tester                                                                   NDT</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Overview</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>NDT version 3.0.10</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><a href="http://e2epi.internet2.edu/ndt">http://e2epi.internet2.edu/ndt</a></p>
+
+<p class=MsoNormal>The Network Diagnostic Tester (NDT) is a client/server
+program that provides network configuration and performance testing to a users
+desktop or laptop computer.  The system is composed of a client program
+(command line or java applet) and a pair of server programs (a webserver and a
+testing/analysis engine).  Both command line and web based clients communicate
+with a Web100 enhanced server to perform these diagnostic functions. 
+Multi-level results allow novice and expert users to view and understand the
+test results.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Several studies have shown that the majority of network
+performance problems occur in or near the users’ desktop/laptop computer. 
+These problems include, but are not limited to, duplex mismatch conditions on
+Ethernet/FastEthernet links, incorrectly set TCP buffers in the user’s
+computer, or problems with the local network infrastructure.  The NDT is designed
+to quickly and easily identify a specific set of conditions that are known to
+impact network performance.  A multi-level series of plain language messages,
+suitable for novice users, and detailed test results, suitable for a network
+engineer, are generated and available to the user.  Finally, the test results
+may be easily emailed to the appropriate administrator to assist in the problem
+resolution phase.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>The NDT consists of several components.  Both client and
+server processes are used to perform a specific set of tests.  The server
+processes include a basic web browser (fakewww) to handle incoming web based
+client requests.  The server also runs a second process (web100srv) that
+performs the specific tests needed to determine what problems, if any, exist. 
+The web100srv process then analyzes the test results and returns these results
+to the client.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Both command line (web100clt) and Web based (java applet)
+based clients are included in the NDT package.  The command line client
+(web100clt) can be compiled and manually downloaded onto numerous client
+computers.  The web based client uses a java applet to automate the testing
+process.  This applet is downloaded when the web server is accessed, removing
+the restriction to manually pre-load the software onto the client computer. 
+This approach allows system administrators to pre-load the command line client
+onto their main server class computers while allowing the vast majority of
+users to automatically load the web based client on an as needed bases.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>Features</b>:</p>
+
+<p class=MsoNormal>Simple web server process eliminates the need for a full
+blown web server</p>
+
+<p class=MsoNormal>Throughput measurements reported in both directions</p>
+
+<p class=MsoNormal>Web100 data extracted to analyze the test results</p>
+
+<p class=MsoNormal>Web based java applet allows testing from any client</p>
+
+<p class=MsoNormal>Command line tool allows testing from remote locations</p>
+
+<p class=MsoNormal>Multi-level results tailored to novice and expert users</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>Requirements</b>:</p>
+
+<p class=MsoNormal>Linux Operation System</p>
+
+<p class=MsoNormal>Web100 patched kernel</p>
+
+<p class=MsoNormal>Web100 user library</p>
+
+<p class=MsoNormal>pcap library</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>Supported Systems</b>:</p>
+
+<p class=MsoNormal>The NDT server process requires a Web100 enhanced kernel to
+gather the necessary details to analyze the tests.  The Web100 kernel patches
+require specific version of the Linux 2.4.x kernel.  See <a
+href="http://www.web100.org/">http://www.web100.org</a> for more details.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>The client processes, both command line and java applet,
+will operate on any *nix or Windows operating system.  The command line client
+process requires that the user/administrator download, build, and install the
+web100clt program.  See the below for details.  The Java applet requires that
+the users desktop/laptop contain the Java Run Time Virtual Machine.  This
+software can be downloaded and installed from the Sun Systems <a
+href="http://java.sun.com/">http://java.sun.com</a> web site.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b> Building the Application</b>:</p>
+
+<p class=MsoNormal>The <i>NDT</i> software uses the <i>gnu autoconf</i> tools
+to configure the build process. <i>NDT</i> is distributed with a pre-built <b>configure</b>
+script so the actual <i>autoconf</i> tools should not be needed on the target
+system. (Although, <b>gnumake</b> may be required...) The <b>configure</b>
+script can be run with the <i>--help</i> option to determine the full set of
+configurable options. </p>
+
+<p><b>A basic build procedure would be</b>: </p>
+
+<pre>% tar -xvzf ndt-$VERS.tar.gz</pre><pre>% cd ndt-$VERS</pre><pre>&nbsp; #  use the –prefix={path} option if you don't like the default</pre><pre>&nbsp; #&nbsp;&nbsp;installation directory (/usr/local/)</pre><pre>% ./configure</pre><pre>% make</pre><pre>% make install</pre>
+
+<p class=MsoNormal>Please report any build problems to <a
+href="mailto:rcarlson@internet2.edu">rcarlson@internet2.edu</a></p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>The command line client needs to be built for each Operating
+system it will be used on.  At the present time this client has successfully
+been build on Linux 2.4.x, FreeBSD, and Windows XP (using cygwin).  The build
+procedure is:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<pre>% tar -xvzf ndt-$VERS.tar.gz</pre><pre>% cd ndt-$VERS</pre><pre>&nbsp; #  use the –prefix={path} option if you don't like the default</pre><pre>&nbsp; #&nbsp;&nbsp;installation directory (/usr/local/)</pre><pre>% ./configure</pre><pre>% cd src</pre><pre>% make web100clt</pre><pre>% cp web100clt /usr/local/bin</pre><pre>  #  copy the client program to your favorite location</pre>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>Configuring the web100srv program</b>:</p>
+
+<p class=MsoNormal>The web100srv program uses numerous options to control it’s
+behavior.  The web100srv.1 man page describes each of these options.  Options
+may be entered on the command line, or a configuration file may be used
+instead.  The default configuration file is /etc/ndt.conf, but this may be
+changed by using the ‘-c fn’ option.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>ndt.conf</p>
+
+<p class=MsoNormal>This file contains a set of keyword value pairs that
+describe each option.  A sample version of the file is included in the NDT
+package conf directory.  See the ndt-conf.1 man file for more details.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Running the server programs</p>
+
+<p class=MsoNormal>The NDT package comes with a simple start script (start.ndt)
+that can be used to start both server processes.  In cases where this is not
+usable, each process may be manually started.</p>
+
+<p class=MsoNormal> </p>
+
+<p class=MsoNormal>The fakewww process handles communications with the client’s
+web browser.  It has a list of files that is can return to the client, all
+other request are ignored and a 404 error page is returned instead.  When run
+in federated mode, the fakewww process also handles the server discovery
+process.  See the fakewww.1 man page for more details.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>To manually start the fakewww process:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>% /usr/loca/sbin/fakewww –l /path/to/log/file &gt;&amp;
+/dev/null &amp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>To see all the available options:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>% /usr/loca/sbin/fakewww –h</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>The web100srv process handles testing between the client and
+server.  It also analyzes the test results and returns these results to the
+client for display.  The server uses three (3) TCP ports for these tests, one
+port is used to exchange control information between the client and server. 
+The other two (2) ports are used to exchange test traffic both to and from the
+server.  The web100srv program also supports a configuration file, allowing
+options to be pre-defined.  See the web100srv.1 man page for more details.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>To manually start the web100srv process:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>% /usr/local/sbin/web100srv –a &gt;&amp; /dev/null &amp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>To see all available options:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>% /usr/local/sbin/web100srv –h</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Running the Client programs</p>
+
+<p class=MsoNormal>The web100clt program must be built for your particular
+Operating System.  The simplest way to do this is to download and unpack the
+tar file, run the ‘configure’ program, and then ‘cd’ to the ‘src’ sub-directory
+and run the ‘make web100clt’ command.  Then manually copy this file to your
+favorite location.  The web100clt program conOnce this file is built you can
+connect to a server using the command:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>% web100clt server.domain.name</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>To see all available options:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>% web100clt –h</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Tne Java Applet (Tcpbw100.jar) is downloaded automatically
+when you access a specific NDT server.  Once the download is complete the
+applet is ready for testing.  The user must press the ‘Start’ button to begin a
+test.  Once a test is complete, the ‘Statistics’, ‘More Details’ and ‘Report
+Problem’ buttons are activated.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>At the conclusion of the test, the main applet page shows
+the basic throughput results, both to and from the client, and a simple
+statement of what link technology may limit the throughput.  Link types range
+from Dial-up to 10 Gbps.  See the web100srv.1 man page for more details. 
+Finally if warranted a ‘Warning’ or ‘Information’ messages may be printed.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>The ‘Statistics’ page allows access to intermediate level
+details.  These details include:</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>The results of 5 specific configuration tests performed by
+     the NDT</li>
+ <li class=MsoNormal>The clients OS and Java information</li>
+ <li class=MsoNormal>Several performance details including round trip time
+     (RTT), Packet size (MSS), and loss statistics (Retransmissions, duplicate
+     ACKs, SACKs, and out-of-order delivery)</li>
+ <li class=MsoNormal>The percentage of time the server was receive buffer
+     limited, send buffer limited, or limited by the congestion window</li>
+ <li class=MsoNormal>The various TCP options that were negotiated between the
+     client and server (SACK, Nagle, ECN, Time stamps, Window Scaling)</li>
+ <li class=MsoNormal>The results of the middlebox tests (MSS modification and
+     NAT detection)</li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>The ‘More Details’ page allows access to expert level
+details including:</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>The raw web100 variables gathered on the server</li>
+ <li class=MsoNormal>The analysis results calculated by the server</li>
+ <li class=MsoNormal>The variables, and conditions, used by specific detection
+     algorithms</li>
+ <li class=MsoNormal>The bandwidth*delay product for the
+     send/receive/congestion window buffers</li>
+ <li class=MsoNormal>The theoretical throughput available to this client based on
+     the Mathis et.al. formula</li>
+ <li class=MsoNormal>The results of the link detection algorithm</li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>Mailing lists</b>:</p>
+
+<p class=MsoNormal>The main NDT discussion list is located at <a
+href="mailto:ndt@anl.gov">ndt@anl.gov</a></p>
+
+<p class=MsoNormal>Subscribe to this list by sending email to <a
+href="mailto:majordomo@anl.gov">majordomo@anl.gov</a> with ‘Subscribe NDT’ in
+the body of the email message.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>Author</b>:</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Richard Carlson</p>
+
+<p class=MsoNormal>Internet2</p>
+
+<p class=MsoNormal><a href="mailto:rcarlson@internet2.edu">rcarlson@internet2.edu</a></p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+</div>
+
+</body>
+
+</html>
