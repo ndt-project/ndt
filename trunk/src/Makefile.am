@@ -100,13 +100,13 @@ tr_mkmap_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 tr_mkmap_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 
 install-ln:
-	@if test -f "$(prefix)/sbin/web100srv" && test ! -L "$(prefix)/sbin/ndtd"; then \
-		echo '(cd $(prefix)/sbin && $(LN_S) web100srv ndtd )' ; \
-		(cd $(prefix)/sbin && $(LN_S) web100srv ndtd ); \
+	@if test -f "$(DESTDIR)$(prefix)/sbin/web100srv" && test ! -L "$(DESTDIR)$(prefix)/sbin/ndtd"; then \
+		echo '(cd $(DESTDIR)$(prefix)/sbin && $(LN_S) web100srv ndtd )' ; \
+		(cd $(DESTDIR)$(prefix)/sbin && $(LN_S) web100srv ndtd ); \
 	else :; fi
-	@if test -f "$(prefix)/bin/web100clt" && test ! -L "$(prefix)/bin/ndtclt"; then \
-		echo '(cd $(prefix)/bin && $(LN_S) web100clt ndtclt )' ; \
-		(cd $(prefix)/bin && $(LN_S) web100clt ndtclt ); \
+	@if test -f "$(DESTDIR)$(prefix)/bin/web100clt" && test ! -L "$(DESTDIR)$(prefix)/bin/ndtclt"; then \
+		echo '(cd $(DESTDIR)$(prefix)/bin && $(LN_S) web100clt ndtclt )' ; \
+		(cd $(DESTDIR)$(prefix)/bin && $(LN_S) web100clt ndtclt ); \
 	else :; fi
 
 

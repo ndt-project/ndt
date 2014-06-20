@@ -149,14 +149,15 @@ I2UTILINCS=""
 if test "$with_I2util" != "no"; then
 	# first, check for directory given.
 	if test "$with_I2util" != "yes"; then
-		I2util_dir=`dirname $with_I2util`
+		I2util_dir=${with_I2util}
 		case $I2util_dir in
 			/*) ;; # already an absolute path
 			*) I2util_dir="`pwd`/$I2util_dir" ;;
 		esac
-		I2UTILINCS="-I$I2util_dir/include $I2UTILINCS"
-		I2UTILLDFLAGS="-L$I2util_dir/lib $I2UTILLDFLAGS"
-		I2UTILLIBDEPS="$I2util_dir/lib/libI2util.a"
+		I2util_include_dir=`dirname $with_I2util`/include
+		I2UTILINCS="-I$I2util_include_dir $I2UTILINCS"
+		I2UTILLDFLAGS="-L$I2util_dir $I2UTILLDFLAGS"
+		I2UTILLIBDEPS="$I2util_dir/libI2util.a"
 	# now, check for sub-build/sub-configure
 	elif test -d I2util/I2util; then
 		AC_CONFIG_SUBDIRS(I2util)
