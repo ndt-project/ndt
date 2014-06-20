@@ -56,6 +56,9 @@ The general test workflow is as follows:
     || CurMSS || The current maximum segment size (MSS), in octets.||
     || !WinScaleSent || The value of the transmitted window scale option if one was sent; otherwise, a value of -1. ||
     || !WinScaleRcvd || The value of the received window scale option if one was received; otherwise, a value of -1. ||
+    || SumRTT || The sum of all sampled round trip times ||
+    || CountRTT || The number of round trip time samples ||
+    || MaxRwinRcvd || The maximum window advertisement received, in octets. ||
  # After the client has received the results, it sends its calculated throughput value to the server. The throughput value is calculated by taking the received bytes over the duration of the test. This value, in Bps, is then converted to kbps. This can be shown by the following formula:
     {{{
     THROUGHPUT_VALUE = (RECEIVED_BYTES / TEST_DURATION_SECONDS) * 8 / 1000
