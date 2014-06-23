@@ -73,7 +73,7 @@ char *okfile[] = { "/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
   "/Tcpbw100$3.class", "/Tcpbw100$OsfwWorker.class",
   "/Tcpbw100$Message.class", "/Tcpbw100$StatusPanel$1.class",
   "/Tcpbw100$clsFrame$1.class", "/Tcpbw100$TestWorker.class",
-  "/crossdomain.xml", 0 };
+  "/lib/json-simple-1.1.1.jar", "/crossdomain.xml", 0 };
 
 typedef struct allowed {
   char* filename;

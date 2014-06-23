@@ -17,8 +17,8 @@
 
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV =
-jsonlib = lib/json-smart-1.1.1.jar
-NDTGCJFLAGS = -d bin -sourcepath src -cp src/edu/internet2/ndt/$(jsonlib)
+jsonlib = lib/json-simple-1.1.1.jar
+NDTGCJFLAGS = -d bin -sourcepath src -cp $(jsonlib)
 NDTJARSIGNERFLAG = -keystore
 TEMPDIRS = bin dist
 
@@ -89,9 +89,11 @@ OsfwWorker.class: NDTConstants.class Message.class Protocol.class
 	
 #Include all classes into jar
 Tcpbw100.jar:	$(TEMPDIRS) all.class
-	cp -r src/edu/internet2/ndt/locale  bin/edu/internet2/ndt/
+	mkdir -p bin/edu/internet2/ndt/locale
+	cp -r src/edu/internet2/ndt/locale/*  bin/edu/internet2/ndt/locale
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/Tcpbw100.jar -C bin .
-	cp -r src/edu/internet2/ndt/lib  dist
+	mkdir -p dist/lib
+	cp -r lib/*  dist/lib
 	if test -n "$(CERTIFICATE_FILE)"; then \
 		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) $(ndt_DATA) $(ALIAS); \
 		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) dist/$(jsonlib) $(ALIAS); \
@@ -110,4 +112,4 @@ EXTRA_DIST = MANIFEST.MF src/edu/internet2/ndt/locale/Tcpbw100_msgs_ca_ES.proper
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_ru_RU.properties \
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_pt_BR.properties \
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_el_GR.properties \
-			src/edu/internet2/ndt/lib/json-smart-1.1.1.jar
+			$(jsonlib)
