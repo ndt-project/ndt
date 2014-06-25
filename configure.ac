@@ -78,11 +78,35 @@ else
     AC_MSG_RESULT(yes)
 fi
 
-# Enabling/disabling java client build
-AC_ARG_ENABLE(java, [  --enable-java=[yes/no] turn on java applet build
-              [default=yes]],, enable_java=yes)
+AC_ARG_WITH([java],
+  [AS_HELP_STRING([--with-java],
+    [Enable java client @<:@default=auto@:>@ (yes/no/precompiled/auto)])],
+  [],
+  [with_java=auto])
 
-if test "x$enable_java" != "xno"; then
+if test "x$with_java" == "xauto"; then
+    AC_CHECK_PROGS(JAVAC, javac)
+    if test -n "$JAVAC"; then
+        with_java=yes
+    else
+        with_java=precompiled
+    fi
+fi
+
+if test "x$with_java" == "xyes"; then
+    AC_CHECK_PROGS(JAVAC, javac)
+    if test -z "$JAVAC"; then
+      AC_MSG_FAILURE([javac required to rebuild java applet but not available])
+    fi
+fi
+
+if test "x$with_java" != "xno"; then
+	AM_CONDITIONAL(INCLUDE_APPLET, true)
+else
+	AM_CONDITIONAL(INCLUDE_APPLET, false)
+fi
+
+if test "x$with_java" != "xprecompiled"; then
 	AM_CONDITIONAL(BUILD_APPLET, true)
 else
 	AM_CONDITIONAL(BUILD_APPLET, false)
@@ -419,17 +443,17 @@ SUMMARY_TRMKMAP="NO    (missing web100 library)"
 SUMMARY_GENPLOT="NO    (missing web100 library)"
 fi
 
+if test "x$with_java" == "xno"; then
+SUMMARY_TCPBW100JAR="NO"
+else
+SUMMARY_TCPBW100JAR="YES"
+fi
+
 if test -z "$HAVE_GCJ_TRUE" && test -n "$HAVE_GCJ_FALSE"; then
 SUMMARY_ADMINCLASS="YES"
-if test "x$enable_java" != "xno"; then
-SUMMARY_TCPBW100JAR="YES"
-else
-SUMMARY_TCPBW100JAR="NO    (disabled by user)"
-fi
 SUMMARY_JANALYZEJAR="YES"
 else
 SUMMARY_ADMINCLASS="NO    (missing java compiler)"
-SUMMARY_TCPBW100JAR="NO    (missing java compiler)"
 SUMMARY_JANALYZEJAR="NO    (missing java compiler)"
 fi
 

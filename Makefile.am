@@ -19,7 +19,7 @@
 SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
 if HAVE_GCJ
 SUBDIRS += Admin janalyze
-if BUILD_APPLET
+if INCLUDE_APPLET
 SUBDIRS += Applet
 endif
 if HAVE_MXMLC

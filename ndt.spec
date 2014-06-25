@@ -18,12 +18,6 @@ BuildRequires:  mysql-connector-odbc, unixODBC-devel, zlib-devel
 BuildRequires:  jansson-devel
 BuildRequires:  gcc
 
-%if 0%{?fedora} >= 8
-BuildRequires:  java-1.5.0-gcj-devel
-%else
-BuildRequires:  java-1.6.0-openjdk-devel
-%endif
-
 %description
 The Network Diagnostic Tool (NDT) is a client/server program that provides
 network configuration and performance testing to a users desktop or laptop
@@ -56,9 +50,9 @@ NDT server that enables end users to run performance tests
 
 %build
 %if "%{?CERT_FILE}" == ""
-%configure --with-I2util=%{_libdir} --with-fakewww
+%configure --with-I2util=%{_libdir} --enable-fakewww --with-java=precompiled
 %else
-%configure --with-I2util=%{_libdir} --with-fakewww --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}"
+%configure --with-I2util=%{_libdir} --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}"
 %endif
 
 #make %{?_smp_mflags}

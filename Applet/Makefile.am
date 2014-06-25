@@ -32,68 +32,46 @@ Tcpbw100dir = $(ndtdir)
 
 noinst_PROGRAMS = Tcpbw100.jar
 
-Tcpbw100_JAVA	= src/edu/internet2/ndt/Tcpbw100.java
 Tcpbw100_jar_SOURCES	= src/edu/internet2/ndt/Tcpbw100.java src/edu/internet2/ndt/StatusPanel.java \
 				src/edu/internet2/ndt/Protocol.java src/edu/internet2/ndt/Message.java \
 				src/edu/internet2/ndt/UserAgentTools.java src/edu/internet2/ndt/NDTConstants.java \
 				src/edu/internet2/ndt/OsfwWorker.java src/edu/internet2/ndt/NewFrame.java \
 				src/edu/internet2/ndt/ResultsTextPane.java src/edu/internet2/ndt/MessageType.java \
 				src/edu/internet2/ndt/NDTUtils.java src/edu/internet2/ndt/JSONUtils.java
-Tcpbw100$(EXEEXT): $(Tcpbw100_OBJECTS) $(Tcpbw100_DEPENDENCIES)
-	@rm -f Tcpbw100$(EXEEXT)
-	@if test ! -s "classTcpbw100.stamp"; then \
-	    $(GCJLINK) $(Tcpbw100_LDFLAGS) $(Tcpbw100_OBJECTS) $(Tcpbw100_LDADD) $(LIBS); \
-	    echo timestamp > classTcpbw100.stamp; \
-	else :; fi
-
-#classTcpbw100stamp: $(Tcpbw100_JAVA)
-#	if test -n "$?"; then \
-#	    echo '$(GCJ) $(NDTGCJFLAGS) $?' ; \
-#	    $(GCJ) $(NDTGCJFLAGS) $?; \
-#	else :; fi
-#	echo timestamp > classTcpbw100.stamp
-
-classTcpbw100stamp: $(Tcpbw100_jar_SOURCES)
-	if test -n "$?"; then \
-	    echo '$(GCJ) $(NDTGCJFLAGS) $?' ; \
-	    $(GCJ) $(NDTGCJFLAGS) $?; \
-	else :; fi
-	echo timestamp > classTcpbw100.stamp
-
 bin:
 	mkdir -p bin
 
 dist:
 	mkdir -p dist
 
-#Tcpbw100.class: $(Tcpbw100_JAVA)
-#	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_JAVA)
-
-#Tcpbw100.jar:	Tcpbw100.class
-#	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF Tcpbw100.jar Tcpbw100*.class Tcpbw100*.properties
-#	echo timestamp > classTcpbw100.stamp
-#All classes to be compiled into their corresponding class files
 .java.class:
+if BUILD_APPLET
 	$(GCJ) $(NDTGCJFLAGS) $<
+else
+	touch $<
+endif
 
 #All classes to be compiled into their corresponding class files
 all.class: $(Tcpbw100_jar_SOURCES:.java=.class)
-#
-#	$(GCJ) $(NDTGCJFLAGS) $(Tcpbw100_jar_SOURCES)
 
 #dependency management
 Tcpbw100.class: StatusPanel.class Protocol.class Message.class UserAgentTools.class NDTConstants.class OsfwWorker.class NewFrame.class ResultsTextPane.class MessageType.class NDTUtils.class
 Protocol.class: Message.class
 OsfwWorker.class: NDTConstants.class Message.class Protocol.class
 
-	
 #Include all classes into jar
 Tcpbw100.jar:	$(TEMPDIRS) all.class
+if BUILD_APPLET
 	mkdir -p bin/edu/internet2/ndt/locale
 	cp -r src/edu/internet2/ndt/locale/*  bin/edu/internet2/ndt/locale
 	$(NDTJAR) $(NDTJARFLAG) MANIFEST.MF dist/Tcpbw100.jar -C bin .
 	mkdir -p dist/lib
 	cp -r lib/*  dist/lib
+else
+	mkdir -p dist/lib
+	cp -r precompiled/lib/*  dist/lib
+	cp -r precompiled/Tcpbw100.jar  dist
+endif
 	if test -n "$(CERTIFICATE_FILE)"; then \
 		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) $(ndt_DATA) $(ALIAS); \
 		$(NDTJARSIGNER) $(NDTJARSIGNERFLAG) $(CERTIFICATE_FILE) dist/$(jsonlib) $(ALIAS); \
@@ -112,4 +90,4 @@ EXTRA_DIST = MANIFEST.MF src/edu/internet2/ndt/locale/Tcpbw100_msgs_ca_ES.proper
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_ru_RU.properties \
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_pt_BR.properties \
 			src/edu/internet2/ndt/locale/Tcpbw100_msgs_el_GR.properties \
-			$(jsonlib)
+			$(jsonlib) precompiled/$(jsonlib) precompiled/Tcpbw100.jar
