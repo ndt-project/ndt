@@ -17,11 +17,13 @@
 #
 
 SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
-if HAVE_GCJ
-SUBDIRS += Admin janalyze
+
 if INCLUDE_APPLET
 SUBDIRS += Applet
 endif
+
+if HAVE_GCJ
+SUBDIRS += Admin janalyze
 if HAVE_MXMLC
 if BUILD_FLASH_CLT
 SUBDIRS += flash-client
