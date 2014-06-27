@@ -16,5 +16,5 @@
 #	Description:	constructing ndt conf files from templates
 #		This doesn't really do this yet - it just provides
 #		examples.
-noinst_DATA	= ndt.conf create-html.sh start.ndt ndt autostart.sh ndt-init ndt-logrotate ndt-sysconfig tcpbw100.default.html
+noinst_DATA	= ndt.conf create-html.sh start.ndt ndt autostart.sh ndt-init ndt-logrotate ndt-sysconfig tcpbw100.default.html ndt-apache.conf manage_fakewww_usage
 EXTRA_DIST	= $(noinst_DATA)
