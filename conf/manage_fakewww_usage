@@ -1,0 +1,33 @@
+#!/bin/bash
+#
+# Enable or disable fakewww usage
+#
+
+
+COMMAND=$1
+
+if [ "$COMMAND" != "enable" -a "$COMMAND" != "disable" ]; then
+    echo "Acceptable fakewww options are 'enable' and 'disable'"
+    exit -1
+fi
+
+VALUE=0
+if [ "$COMMAND" == "enable" ]; then
+    VALUE=1
+fi
+
+RESTART_SERVICE=0
+
+service ndt status &> /dev/null
+if [ $? == 0 ]; then
+    RESTART_SERVICE=1
+    service ndt stop
+fi
+
+sed -i "s|^USE_FAKEWWW.*|USE_FAKEWWW='${VALUE}'|" /etc/sysconfig/ndt
+
+if [ $RESTART_SERVICE == 1 ]; then
+    service ndt start
+fi
+
+exit 0

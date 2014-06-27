@@ -41,9 +41,18 @@ Group: Applications/Network
 Requires: I2util, chkconfig, initscripts, shadow-utils, coreutils
 Requires: web100_userland, libpcap
 Requires: jansson
+
 %description server
 NDT server that enables end users to run performance tests
 
+%package server-apache
+Summary: NDT server apache configuration
+Group: Applications/Network
+Requires: httpd, ndt-server
+
+%description server-apache
+Removes NDT's usage of fakewww, and uses Apache to serve NDT's web page and
+Java applet.
 
 %prep
 %setup -q -n %{name}-%{version}%{?rc_tag}
@@ -63,9 +72,12 @@ rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
 
 %{__install} -D -m 0755 conf/ndt-init %{buildroot}%{_initrddir}/%{name}
+%{__install} -D -m 0755 conf/ndt-apache.conf %{buildroot}%{_sysconfdir}/httpd/conf.d/%{name}.conf
 %{__install} -D -m 0644 conf/ndt-sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}
 %{__install} -D -m 0644 conf/ndt-logrotate %{buildroot}%{_sysconfdir}/logrotate.d/%{name}
 %{__install} -D -m 0755 conf/tcpbw100.default.html %{buildroot}%{_prefix}/%{name}/tcpbw100.html
+
+%{__install} -D -m 0755 conf/manage_fakewww_usage %{buildroot}%{_prefix}/%{name}/manage_fakewww_usage
 
 %{__mkdir} -p %{buildroot}%{_localstatedir}/lib/%{name}
 %{__mkdir} -p %{buildroot}%{_localstatedir}/log/%{name}
@@ -85,6 +97,12 @@ if [ $1 = 0 ]; then
 	/sbin/service ndt stop > /dev/null 2>&1 || :
 	/sbin/chkconfig --del %{name} || :
 fi
+
+%post server-apache
+%{_prefix}/%{name}/manage_fakewww_usage disable
+
+%preun server-apache
+%{_prefix}/%{name}/manage_fakewww_usage enable
 
 %files
 
@@ -108,6 +126,9 @@ fi
 %{_bindir}/genplot
 %{_bindir}/tr-mkmap
 %{_bindir}/viewtrace
+
+%files server-apache
+%{_sysconfdir}/httpd/conf.d/%{name}.conf
 
 %files client
 %defattr(-,root,root,-)
