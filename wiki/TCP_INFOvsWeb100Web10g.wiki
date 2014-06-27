@@ -154,3 +154,11 @@ third column: equivalent variables in TCP_INFO<br>
 
 <br>
 In server are also test for wireless link and DSL/Cable modem link which is dependent from SndLimTransRwin, SndLimTransCwnd and SndLimTransSender variables (and more).
+
+== Function work without Web100/10g ==
+  # C2S throughput test<br>
+  # S2C throughput test<br>
+  # Detect S2C & C2S throughput test: Packet queuing<br>
+  # Simple firewall test (after little change in calculate testTime)<br>
+  # Connection type (in client)<br>
+Rest is depend from Web100/10g specific variables.
