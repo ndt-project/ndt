@@ -16,6 +16,7 @@ package {
   import flash.display.Sprite;
   import flash.events.Event;
   import mx.resources.ResourceBundle;
+  import mx.utils.URLUtil;
   /**
    * @author Anant Subramanian
    */
@@ -44,6 +45,10 @@ package {
      */
     private function init(e:Event = null):void {
       removeEventListener(Event.ADDED_TO_STAGE, init);
+      var selfUrl:String = URLUtil.getServerName(this.loaderInfo.url);
+      if (selfUrl) {
+        server_hostname = selfUrl;
+      }
 
       // Set the properties of the SWF from HTML tags.
       NDTUtils.initializeFromHTML(this.root.loaderInfo.parameters);
