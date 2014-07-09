@@ -1,0 +1,10 @@
+/var/log/ndt/*log {
+    weekly
+    rotate 4
+    missingok
+    notifempty
+    sharedscripts
+    postrotate
+        /sbin/service ndt restart > /dev/null 2>/dev/null || true
+    endscript
+}
