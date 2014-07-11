@@ -162,6 +162,7 @@ package  {
     public static const HTML_LOCALE:String = "Locale";
     public static const HTML_USERAGENT:String = "UserAgentString";
     public static const HTML_SERVER_HOSTNAME:String = "ServerHostname";
+    public static const HTML_JS_CALLBACK_PREFIX:String = "JSCallbackObject";
 
     // Names of NDT variables sent by the server.
     public static const MSSSENT:String = "MSSSent";

@@ -30,6 +30,7 @@ package {
     public static var client_application:String = NDTConstants.CLIENT_ID;
     public static var ndt_description:String = NDTConstants.NDT_DESCRIPTION;
     public static var jsonSupport:Boolean = true;
+    public static var js_callback_prefix:String = null;
 
     public function Main():void {
       if (stage)
