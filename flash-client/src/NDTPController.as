@@ -76,6 +76,8 @@ package  {
       if (js_server_hostname) {
         Main.server_hostname = js_server_hostname;
         _hostname = Main.server_hostname;
+      } else if (Main.server_hostname) {
+		_hostname = Main.server_hostname;
       }
 
       TestResults.recordStartTime();
