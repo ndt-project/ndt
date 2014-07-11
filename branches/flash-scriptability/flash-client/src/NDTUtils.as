@@ -34,16 +34,24 @@ package  {
      *     pass to the JS function
      */
     public static function callExternalFunction(
-        functionName:String, ... args):void {
+        functionName:String, ... args):String {
       if (!ExternalInterface.available)
-        return;
+        return null;
+      var prefix:String = "";
+      var result:String = null;
+      if (Main.js_callback_prefix) {
+        prefix = Main.js_callback_prefix + ".";
+      }
       try {
         switch (args.length) {
-          case 0: ExternalInterface.call(functionName);
+          case 0: result = ExternalInterface.call(prefix + functionName);
                   break;
-          case 1: ExternalInterface.call(functionName, args[0]);
+          case 1: result = ExternalInterface.call(prefix + functionName, 
+	    args[0]);
                   break;
-          case 2: ExternalInterface.call(functionName, args[0], args[1]);
+          case 2: result = ExternalInterface.call(prefix + functionName, 
+	    args[0], 
+	    args[1]);
                   break;
         }
       } catch (e:Error) {
@@ -54,14 +62,16 @@ package  {
 	// to invoke JS callbacks. Without this check we can
 	// recurse infinitely.
 	if (functionName != "appendDebugOutput") {
-          TestResults.appendDebugMsg("Failed to call " + functionName + ": "
+          TestResults.appendDebugMsg("Failed to call "+(prefix+functionName)+":"
                                      + e.toString());
         }
       }
+      return result;
     }
  
     /**
-     * Function that initializes the NDT server variable set directly through JS.
+     * Function that exposes the functionality of setting
+     * the NDT server variable directly through JS.
      */
     public static function setHost(hostname:String):String {
         var js_server_hostname:String = hostname;
@@ -81,7 +91,7 @@ package  {
      */
     public static function hostnameFromJS():String {
       try {
-        var js_server_hostname:String = ExternalInterface.call("getNDTServer");
+        var js_server_hostname:String = callExternalFunction("getNDTServer");
         if (js_server_hostname) {
           TestResults.appendDebugMsg(
             "Initialized server from JavaScript. Server hostname:"
@@ -118,6 +128,13 @@ package  {
       }
       // else keep the default value (NDTConstants.SERVER_HOSTNAME).
 
+      if (NDTConstants.HTML_JS_CALLBACK_PREFIX in paramObject) {
+        Main.js_callback_prefix =
+	  paramObject[NDTConstants.HTML_JS_CALLBACK_PREFIX];
+        TestResults.appendDebugMsg("Initialized JS object from HTML. Object: "
+                                   + Main.js_callback_prefix);
+      }
+
       if (!ExternalInterface.available)
         return;
 
@@ -141,7 +158,7 @@ package  {
 
       try {
         var js_client_application:String =
-	  ExternalInterface.call("getClientApplication");
+	  callExternalFunction("getClientApplication");
         if (js_client_application) {
           Main.client_application = js_client_application;
           TestResults.appendDebugMsg(
@@ -155,8 +172,7 @@ package  {
       }
 
       try {
-        var ndt_description:String =
-	  ExternalInterface.call("getNDTDescription");
+        var ndt_description:String = callExternalFunction("getNDTDescription");
         if (ndt_description) {
           Main.ndt_description = ndt_description;
           TestResults.appendDebugMsg(
