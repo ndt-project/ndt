@@ -305,7 +305,7 @@ package  {
             	NDTConstants.BUNDLE_NAME, "metaFailed", null, Main.locale)
              + "</font>");
 
-      TestResults.ndt_test_results::ndtTestStatus = "done";
+      TestResults.ndt_test_results::ndtTestStatus = "submittedMetaInformation";
       NDTUtils.callExternalFunction(
           "testCompleted", "Meta", (!_metaTestSuccess).toString());
 

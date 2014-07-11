@@ -87,7 +87,7 @@ package  {
       TestResults.appendDebugMsg(ResourceManager.getInstance().getString(
           NDTConstants.BUNDLE_NAME, "runningOutboundTest", null,
           Main.locale));
-      TestResults.ndt_test_results::ndtTestStatus = "runningOutboundTest";
+      TestResults.ndt_test_results::ndtTestStatus = "preparingOutboundTest";
 
       addCtlSocketOnReceivedDataListener();
       _msg = new Message();
@@ -316,6 +316,7 @@ package  {
       // Record start time right before it starts sending data, to be as
       // accurate as possible.
       _c2sTestStartTime = getTimer();
+      TestResults.ndt_test_results::ndtTestStatus = "runningOutboundTest";
 
       _testStage = SEND_DATA;
       TestResults.appendDebugMsg("C2S test: SEND_DATA stage.");
@@ -503,7 +504,7 @@ package  {
                   null, Main.locale)
             + "</font>");
       TestResults.ndt_test_results::c2sTestSuccess = _c2sTestSuccess;
-      TestResults.ndt_test_results::ndtTestStatus = "done";
+      TestResults.ndt_test_results::ndtTestStatus = "finishedOutboundTest";
       NDTUtils.callExternalFunction("testCompleted", "ClientToServerThroughput",
                                     (!_c2sTestSuccess).toString());
 
