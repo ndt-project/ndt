@@ -59,6 +59,22 @@ package  {
         }
       }
     }
+ 
+    /**
+     * Function that initializes the NDT server variable set directly through JS.
+     */
+    public static function setHost(hostname:String):String {
+        var js_server_hostname:String = hostname;
+        if (js_server_hostname) {
+          Main.server_hostname = js_server_hostname;
+          TestResults.appendDebugMsg(
+            "Initialized server from JavaScript. Server hostname:"
+            + Main.server_hostname);
+        } else {
+          js_server_hostname = null;
+	}
+        return js_server_hostname;
+    }
 
     /**
      * Function that initializes the NDT server variable.
@@ -201,6 +217,8 @@ package  {
             "get_PcBuffSpdLimit", TestResults.getPcLimit);
         ExternalInterface.addCallback(
             "getNDTvar", TestResultsUtils.getNDTVariable);
+        ExternalInterface.addCallback(
+            "set_host", NDTUtils.setHost);
       } catch (e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
