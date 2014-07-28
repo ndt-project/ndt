@@ -162,3 +162,6 @@ In server are also test for wireless link and DSL/Cable modem link which is depe
   # Simple firewall test (after little change in calculate testTime)<br>
   # Connection type (in client)<br>
 Rest is depend from Web100/10g specific variables.
+
+=== Graph of the variables ===
+http://ndt.googlecode.com/svn/wiki/TCP_INFOvsWeb100Web10g.images/graph.jpg
