@@ -165,3 +165,5 @@ Rest is depend from Web100/10g specific variables.
 
 === Graph of the variables ===
 http://ndt.googlecode.com/svn/wiki/TCP_INFOvsWeb100Web10g.images/graph.jpg
+
+[http://ndt.googlecode.com/svn/wiki/TCP_INFOvsWeb100Web10g.images/graph.jpg Download graph]
