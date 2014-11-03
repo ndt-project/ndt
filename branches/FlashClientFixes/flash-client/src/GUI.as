@@ -25,6 +25,8 @@ package  {
   import flash.display.DisplayObjectContainer;
   import flash.display.DisplayObject;
   import flash.filters.BlurFilter;
+  import flash.desktop.Clipboard;
+  import flash.desktop.ClipboardFormats;
   import spark.effects.*;
 
   /**
@@ -54,6 +56,7 @@ package  {
     private var _debugButton:NDTButton;
     private var _activeButton:NDTButton;
     private var _restartButton:Sprite;
+    private var _copyButton:Sprite;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -170,6 +173,11 @@ package  {
       _callerObj.startNDTTest();
     }
 
+    private function clickCopy(e:MouseEvent):void {
+      Clipboard.generalClipboard.clear();
+      Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, _resultsTextField.text);
+    }
+
     public function updateProgressText(completed:int, total:int):void {
       if (_progressText) {
         _progressText.text = "Completed " + completed + " of "
@@ -250,6 +258,7 @@ package  {
       if (CONFIG::debug)
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
 	  _restartButton = new NDTButton("RESTART", 18, 30, 0.25);
+      _copyButton = new NDTButton("Copy log \nto Clipboard", 12, 35, 0.25);
 
       var verticalMargin:Number = _stageHeight / 5;
       if (CONFIG::debug)
@@ -260,11 +269,13 @@ package  {
         _debugButton.y = _detailsButton.y + verticalMargin;
       _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
                                        : _detailsButton.y + verticalMargin;
+      _copyButton.y = _restartButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       if (_debugButton)
         _debugButton.x += _debugButton.width / 2;
       _restartButton.x += _restartButton.width / 2;
+      _copyButton.x += _copyButton.width / 2;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
@@ -277,18 +288,21 @@ package  {
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _copyButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _copyButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
+      _copyButton.addEventListener(MouseEvent.CLICK, clickCopy);
 
       changeActiveButton(_resultsButton);
       setSummaryResultText();
@@ -363,12 +377,14 @@ package  {
 
     private function clickResults(e:MouseEvent):void {
       changeActiveButton(NDTButton(e.target));
+      hideCopyButton();
       _resultsTextField.htmlText = _summaryResultText;
       _resultsTextField.scrollV = 0;
     }
 
     private function clickDetails(e:MouseEvent):void {
       changeActiveButton(NDTButton(e.target));
+      showCopyButton();
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getResultDetails();
       _resultsTextField.scrollV = 0;
@@ -376,6 +392,7 @@ package  {
 
     private function clickDebug(e:MouseEvent):void {
       changeActiveButton(NDTButton(e.target));
+      showCopyButton();
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getDebugMsg();
       _resultsTextField.scrollV = 0;
@@ -395,6 +412,16 @@ package  {
         _activeButton.setInactive();
       target.setActive();
       _activeButton = target;
+    }
+
+    private function showCopyButton():void {
+      if (!this.contains(_copyButton))
+        this.addChild(_copyButton);
+    }
+
+    private function hideCopyButton():void {
+      if (this.contains(_copyButton))
+        this.removeChild(_copyButton);
     }
   }
 }
