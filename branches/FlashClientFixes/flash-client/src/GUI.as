@@ -256,12 +256,14 @@ package  {
         verticalMargin = _stageHeight / 6;
       _resultsButton.y = verticalMargin;
       _detailsButton.y = _resultsButton.y + verticalMargin;
-      _debugButton.y = _detailsButton.y + verticalMargin;
+      if (_debugButton)
+        _debugButton.y = _detailsButton.y + verticalMargin;
       _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
                                        : _detailsButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
-      _debugButton.x += _debugButton.width / 2;
+      if (_debugButton)
+        _debugButton.x += _debugButton.width / 2;
       _restartButton.x += _restartButton.width / 2;
 
       this.addChild(_resultsButton);
