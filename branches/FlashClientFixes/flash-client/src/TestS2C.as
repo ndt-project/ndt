@@ -84,7 +84,7 @@ package  {
               NDTConstants.BUNDLE_NAME, "startingTest", null, Main.locale) +
           ResourceManager.getInstance().getString(
               NDTConstants.BUNDLE_NAME, "s2cThroughput", null, Main.locale))
-      NDTUtils.callExternalFunction("startTested", "ServerToClientThroughput");
+      NDTUtils.callExternalFunction("testStarted", "ServerToClientThroughput");
       TestResults.appendDebugMsg("S2C test: PREPARE_TEST stage.");
       TestResults.appendDebugMsg(
         ResourceManager.getInstance().getString(
