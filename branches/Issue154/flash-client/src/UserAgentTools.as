@@ -20,6 +20,7 @@
 package  {
   import mx.resources.ResourceManager;
   import mx.utils.StringUtil;
+  import flash.system.Capabilities;
   /**
    * This class is use to obtain information about who is accessing a web-server.
    * When a web browser accesses a web-server, it usually transmits a "User-Agent"
@@ -274,6 +275,17 @@ package  {
       } else
         return ["?", "?", "?"];
       return res;
+    }
+    public static function goodRuntimeCheck(userAgent:String):Boolean {
+       if (getBrowser(userAgent)[1] == 'KHTML(Chrome)') {
+         return true;
+       }
+       var os:String = flash.system.Capabilities.os.substr(0, 3);
+       if (os == "Win") {
+         return true;
+       }
+       else 
+         return false;
     }
   }
 }
