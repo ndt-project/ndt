@@ -1,0 +1,199 @@
+The Network Diagnostic Tool (NDT) client/server program consists of
+several components.  It also relies on 2 external system libraries
+and the Web100 Kernel Instrumentation Kit (KIS).  This document describes
+the steps you need to take to install and use this tool.
+
+1. Download and install the Web100 Kernel patch file from
+http://www.web100.org.  There are specific kernel patches for each
+web100 supported Linux kernel.  All versions of the web100 kernel
+patch for Linux 2.4.x and 2.6.x have been tests.  Follow the Web100
+installation instructions to build and install this new kernel.
+
+Note:  After you build the new kernel, you need to reboot the system.
+If the reboot fails, here are some things to check.
+
+  a) the boot process hangs with a PANIC message saying the root
+     file system can not be found.  Most likely this is because
+     the initd process could not find the SCSI hard drive.  The
+     solution is to build RAM disk support AND Initial RAM disk
+     support into the kernel.  To do this for a 2.6.x kernel enter
+     the Device Drivers / Block devices sub-menu and look for the
+     RAM disk support menu item.  Press the space bar twice so the
+     line will now read
+	<*> RAM disk support
+     This will cause 3 more lines to appear.  Accept the default 
+     values for "Default number of RAM disks" and "Default RAM
+     disk size (kbytes)".  Then enable the initrd support so the
+     menu item will read
+	[*] Initial RAM disk (initrd) support
+     Exit back to the main menu, and follow the make; make install
+     procedures to rebuild the kernel.
+
+  b) The boot process could also fail if any lodable modules are not
+     built or installed.  Use the "lsmod" command to see if you what
+     modules you are currently using.  Then go through the kernel 
+     configuration menu to ensure that you have built and installed
+     the new module.  A common issue is to have a SCSI hard disk
+     controller card that did not get built with your new kernel.
+     Note that the company that gave/sold you your installation disk
+     has pre-built almost all the modules so that's why it booted.
+     You can do the same, or hunt through the menus and build only
+     what you need.
+
+2. Download and install the Web100 Userland library file from
+http://www.web100.org.  You should be able to use any version
+of the userland library for this tool. Follow the Web100 instructions
+to build and install this library.
+
+3. Add "/usr/local/lib" to the /etc/ld.so.conf file and rebuild the
+dynamic linker run-time bindings.  This NDT tools uses the Web100
+userland library installed in the previous step.  The default installation
+puts this library in the /usr/local/lib director.  You must make this
+location known to the dynamic linker.  The following commands will
+perform this function
+
+	# echo /usr/local/lib >> /etc/ld.so.conf
+	#/sbin/ldconfig
+
+	An alternate solution is to create/modify the users
+	LD_LIBRARY_PATH environment variable to include the
+	/usr/local/lib directory
+
+3.a. Some of the later Red Hat Fedora Core distributions, and maybe
+other distributions have changed the way dynamic libraries are added
+to the system.  An alternate approach to the procedure outline in
+step 3 is.  
+
+	# grep -i include /etc/ld.so.conf
+    If this command returns the line "include ls.so.conf.d/*.conf" 
+    then you have a newer distribution.  You should then execute
+    the following commands.  (Note: only do this if you do NOT
+    follow the steps outlined above.)
+
+	# echo /usr/local/lib > /etc/ld.so.conf.d/web100.conf
+	# /sbin/ldconfig
+
+4. Obtain and install the libpcap.so libraries.  The NDT server
+program performs packet level timings to determine what the path's
+bottleneck link is.  This function uses the packet capture facilities
+found in the libpcap library.  These library routines may be obtained
+from the http://www.tcpdump.org/ web site or .rpm files may be downloaded
+from your favorite Linux mirror site.
+
+5. Download and install the Java Software Development kit from Sun
+Microsystems (http://java.sun.com/j2se/index.jsp).  At the present
+time sdk version 1.2.2, 1.3.1_09, and 1.4.2 have successfully been 
+used.  Once this SDK package is installed, add the java bin directory
+to your path.  For example if the 1.4.2 SDK package was installed into the 
+/usr/local/pkg directory then add the string ":/usr/local/pkg/j2sdk_nb//j2sdk1.4.2/bin"
+to your path variable (contact your sysadmin for help if you are
+unfamiliar with changing your path variable.).
+
+6. Unpack the NDT tarball (ndt-x.y.z.tar.gz) you downloaded. 
+This will create the ndt-x.y.z directory and all the NDT files listed
+in the FILES file.  
+
+As of April 2004, the NDT distribution has been converted to the GNU
+automake system.  This means that pre-built program are no longer
+available.  Instead the following steps will create the executable
+programs and install everything you need to start the tools.
+
+	a. cd to the ndt-x.y.z directory (for example %cd ndt-3.0.9)
+	b. run the "./configure" command 
+	c. run the "make" command
+	d. run the "make install" command
+	e. run the "./conf/create-html.sh" command
+	f. run the "./conf/autostart.sh" command
+
+By default, the files are installed in the /usr/local/sbin, /usr/local/bin,
+and /usr/local/ndt directories.  The base directory can be changed by
+providing the prefix option to the configure command.  The create-html.sh
+command automates the process of tailoring the tcpbw100.html file, making 
+it easier to setup a new server.
+
+7. Optional: start the fakewww program to handle incoming test requests. 
+This utility is provided to allow you to run a server without the need for
+a full blown web server.  By default this fakewww program listening for
+incoming connections on port 7123.  A command line option may be used
+to change the port number.  The fakewww utility does not need root authority
+if the port number is greater than 1023.  You may also use a full function
+web server and skip this step.  (Note, if you use a full function web server
+you will not be able to run the NDT service in Federated mode.)
+
+8. Start the web100 server program.  This program uses the libpcap
+library to perform packet level connection statistics.  This requires
+that the web100srv program run as root.  (Note: this is a change from NDT
+versions released before 3/14/03.)  The web100srv program has several
+options, run "web100srv -h"  for a complete list.  Also note: that this
+process uses port 3001, 3002, and 3003 to communicate with the Java applet
+on the client's desktop.  You may need to configure your local network
+infrastructure to allow traffic on these 3 ports.
+
+The NDT is now setup and ready to operate.  To test, point your web browser
+to your server and press the 'start' button when the applet finishes loading.
+
+
+9. Oops, it didn't work!  In some cases you can complete all the listed steps
+but the NDT server still doesn't work.   Here are some things you can try.
+
+	a. Look at the Linux firewall program "/sbin/iptables --list".
+	   The NDT package requires TCP ports 7123, 3001, 3002, & 3003 
+	   open to operate.  If you are using iptables then add the following
+	   4 lines to the /etc/sysconfig/iptables file
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 7123 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 3001 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 3002 -j ACCEPT
+-A RH-Firewall-1-INPUT -m state --state NEW -m tcp -p tcp --dport 3003 -j ACCEPT
+
+	b. Check for a site firewall.  Be sure and open up TCP ports 7123 
+	   and 3001-3003 at your site border.
+
+	c. Make sure the server processes are running.  Run the "ps auxw" 
+	   command and look for the web100srv and fakewww server process.
+	   If they are present look in the /usr/local/ndt/web100srv.log file
+	   to see if any errors occurred.  As a last resort you can run the
+	   server process with the -d option to capture more debug info.
+
+	d. Well, things worked but the speeds are very asymmeteric.  You 
+	   get low speeds on the client -> server test, and much faster
+	   in the opposite direction.  Most likely this is a buffer tuning
+	   problem on your NDT server.  Add the following lines to your
+	   /etc/sysctl.conf file and then run the command "/sbin/sysctl -p".
+
+	   # These commands set the default and max values for memory usage
+		# TCP Tuning data added 7/28/05 RAC
+		# increase Linux TCP buffer limits
+		net.core.rmem_max = 33554432 
+		net.core.wmem_max = 33554432
+		net.core.rmem_default = 65536
+		net.core.wmem_default = 65536
+
+	   # These commands set the min, default, and max values for TCP buffers
+	   # Autotuning will allow the buffer to start at the default value and 
+	   # grow up to the max (16 MB in this case)
+		# increase Linux autotuning TCP buffer limits
+		net.ipv4.tcp_rmem = 4096 87380 16777216 
+		net.ipv4.tcp_wmem = 4096 65535 16777216
+
+	   # This command allows the server to send/receive the ECN bits in
+	   # the TCP header.  You can leave this off.
+		# Turn on Explicit Congestion Notification (ECN) processing
+		net.ipv4.tcp_ecn = 1
+
+
+Questions and comments should be directed to Rich Carlson (Internet2) at
+<RCarlson@internet2.edu>.  
+
+There are also 2 email lists that you can join to learn more about NDT.
+Go to the Internet2 E2E web page http://e2epi.internet2.edu/ndt/ and
+follow the Links to the ndt-announce and/or ndt-users lists.  Then
+press the subscribe button and fill in the requested information
+
+https://mail.internet2.edu/wws/info/ndt-users
+NDT-Users is a general discussion list where users can ask questions
+and share experiences.
+
+https://mail.internet2.edu/wws/info/ndt-announce
+NDT-Announce is where I send announcements about new releases of the
+NDT package.
+

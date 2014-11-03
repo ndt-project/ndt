@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Class-Path: lib/json-simple-1.1.1.jar
+Created-By: Rich Carlson
+Main-Class: edu.internet2.ndt.Tcpbw100
+Permissions: sandbox
