@@ -72,11 +72,34 @@ package  {
         TestResults.clearResults();
       }
 
-      var js_server_hostname:String = NDTUtils.hostnameFromJS();
+      var hostnameQueryFn:String = "getNDTServer";
+      if (Main.bad_runtime_action != NDTConstants.ENV_OK) {
+        TestResults.appendDebugMsg("Download-limited Flash Runtime detected");
+        if (Main.bad_runtime_action == NDTConstants.BAD_ENV_WARN_AND_LIMIT) {
+          hostnameQueryFn = "getFallbackNDTServer"
+          TestResults.appendDebugMsg("Reverting to fallback " 
+              + "test server due to bad flash runtime");
+        }
+        if (Main.bad_runtime_action == NDTConstants.BAD_ENV_ERROR) {
+          failNDTTest();
+          TestResults.appendErrMsg(NDTConstants.BAD_ENV_MESG);
+          return;
+        }
+      }
+
+      var js_server_hostname:String = NDTUtils.hostnameFromJS(hostnameQueryFn);
       if (js_server_hostname) {
         Main.server_hostname = js_server_hostname;
         _hostname = Main.server_hostname;
-      }
+      } else if (Main.bad_runtime_action == NDTConstants.BAD_ENV_WARN_AND_LIMIT) {
+	  TestResults.appendErrMsg("This Flash runtime is download-limited, client is "
+	    + "set to restrict limited runtimes to fallback servers only, and no "
+	    + "getFallbackNDTServer JavaScript function was defined.");
+	  failNDTTest();
+	  return;
+      } else if (Main.server_hostname) {
+		_hostname = Main.server_hostname;
+        }
 
       TestResults.recordStartTime();
       TestResults.ndt_test_results::ndtTestFailed = false;
