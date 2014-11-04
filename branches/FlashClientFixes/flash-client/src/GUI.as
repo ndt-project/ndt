@@ -57,6 +57,8 @@ package  {
     private var _activeButton:NDTButton;
     private var _restartButton:Sprite;
     private var _copyButton:Sprite;
+    private var _yesButton:Sprite;
+    private var _noButton:Sprite;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -204,18 +206,24 @@ package  {
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _yesButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _noButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _yesButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _noButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
+      _yesButton.removeEventListener(MouseEvent.CLICK, clickYes);
+      _noButton.removeEventListener(MouseEvent.CLICK, clickNo);
     }
 
     /**
@@ -259,6 +267,8 @@ package  {
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
 	  _restartButton = new NDTButton("RESTART", 18, 30, 0.25);
       _copyButton = new NDTButton("Copy log \nto Clipboard", 12, 35, 0.25);
+      _yesButton = new NDTButton("YES", 18, 30, 0.25);
+      _noButton = new NDTButton("NO", 18, 30, 0.25);
 
       var verticalMargin:Number = _stageHeight / 5;
       if (CONFIG::debug)
@@ -270,12 +280,16 @@ package  {
       _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
                                        : _detailsButton.y + verticalMargin;
       _copyButton.y = _restartButton.y + verticalMargin;
+      _yesButton.y = _stageHeight / 2 - verticalMargin;
+      _noButton.y = _yesButton.y + verticalMargin;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       if (_debugButton)
         _debugButton.x += _debugButton.width / 2;
       _restartButton.x += _restartButton.width / 2;
       _copyButton.x += _copyButton.width / 2;
+      _yesButton.x = 0.6 * _stageWidth;
+      _noButton.x = _yesButton.x;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
@@ -289,6 +303,8 @@ package  {
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _copyButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _yesButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _noButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
@@ -296,6 +312,8 @@ package  {
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _copyButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _yesButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _noButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
@@ -303,6 +321,8 @@ package  {
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
       _copyButton.addEventListener(MouseEvent.CLICK, clickCopy);
+      _yesButton.addEventListener(MouseEvent.CLICK, clickYes);
+      _noButton.addEventListener(MouseEvent.CLICK, clickNo);
 
       changeActiveButton(_resultsButton);
       setSummaryResultText();
@@ -376,7 +396,7 @@ package  {
     }
 
     private function clickResults(e:MouseEvent):void {
-      changeActiveButton(NDTButton(e.target));
+      changeActiveButton(_resultsButton);
       hideCopyButton();
       _resultsTextField.htmlText = _summaryResultText;
       _resultsTextField.scrollV = 0;
@@ -399,15 +419,34 @@ package  {
     }
 
     private function clickRestart(e:MouseEvent):void {
+      changeActiveButton(NDTButton(e.target));
+      hideCopyButton();
+      _resultsTextField.htmlText = "<font size=\"16\"><b>"
+                                   + "\nRestarting test will clear all current results. Are you sure you want to continue? </b></font>";
+      _resultsTextField.scrollV = 0;		   
+      if (!this.contains(_yesButton))
+        this.addChild(_yesButton);
+      if (!this.contains(_noButton))
+        this.addChild(_noButton);
+    }
+
+    private function clickYes(e:MouseEvent):void {
       hideResultsScreen();
       if (_consoleText) {
         _consoleText.text = "";
         this.addChild(_consoleText);
       }
-      _callerObj.startNDTTest();
+      _callerObj.startNDTTest();      		
+    }
+
+    private function clickNo(e:MouseEvent):void {
+      cancelRestart();
+      clickResults(null);
     }
 
     private function changeActiveButton(target:NDTButton):void {
+      if (_activeButton == _restartButton)
+        cancelRestart();
       if (_activeButton)
         _activeButton.setInactive();
       target.setActive();
@@ -422,6 +461,13 @@ package  {
     private function hideCopyButton():void {
       if (this.contains(_copyButton))
         this.removeChild(_copyButton);
+    }
+
+    private function cancelRestart():void {
+      if (this.contains(_yesButton))
+        this.removeChild(_yesButton);
+      if (this.contains(_noButton))
+	    this.removeChild(_noButton);
     }
   }
 }
