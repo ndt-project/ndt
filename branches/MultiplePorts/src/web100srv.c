@@ -1340,7 +1340,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%"VARtype",%"VARtype",%"
            VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
            VARtype",%"VARtype",%"VARtype",",
-           (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
+           (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars[0].Timeouts,
            vars[0].SumRTT, vars[0].CountRTT, vars[0].PktsRetrans, vars[0].FastRetran,
            vars[0].DataPktsOut, vars[0].AckPktsOut, vars[0].CurrentMSS, vars[0].DupAcksIn,
            vars[0].AckPktsIn);

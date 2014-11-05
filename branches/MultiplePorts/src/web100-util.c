@@ -106,7 +106,7 @@ int tcp_stat_init(char *VarFileName) {
 #if USE_WEB100
   FILE * fp;
   char line[256], trimmedline[256];
-  int count_vars = 0;
+  int count_vars = 0, i;
 
   assert(VarFileName);
 
@@ -746,28 +746,28 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int c
     }
 
     /* PktsRetrans -> SegsRetrans */
-    print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* DataPktsOut -> DataSegsOut */
-    print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* MaxCwnd -> MAX(MaxSsCwnd, MaxCaCwnd) */
-    print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* SndLimTimeSender -> SndLimTimeSnd */
-    print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* DataBytesOut -> DataOctetsOut */
-    print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* SndLimTransSender -> SndLimTransSnd */
-    print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* PktsOut -> SegsOut */
-    print_10gvar_renamed("SegsOut", "PktsOut", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("SegsOut", "PktsOut", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* CongestionSignals -> CongSignals */
-    print_10gvar_renamed("CongSignals", "CongestionSignals", snap[t], line, sizeof(line), ctlsock);
+    print_10gvar_renamed("CongSignals", "CongestionSignals", snap[t], line, sizeof(line), ctlsock, jsonSupport);
 
     /* RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1 */
     type = web10g_find_val(snap[t], "WinScaleSent", &val);

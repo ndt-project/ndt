@@ -73,7 +73,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int threadsNum = 1;
   int activeThreads = 1;
 
-  struct sockaddr_storage cli_addr;
+  struct sockaddr_storage cli_addr[7];
 
   socklen_t clilen;
   char tmpstr[256];  // string array used for all sorts of temp storage purposes
@@ -173,9 +173,6 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                           options->uthroughputsnaps ? "true" : "false", options->usnapsdelay, options->usnapsoffset);
       log_println(1, "  -- c2s ext -- number of threads: %d", options->uthreadsnum);
     }
- 
- 
-169
 #endif
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;

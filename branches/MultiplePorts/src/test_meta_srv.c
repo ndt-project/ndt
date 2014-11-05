@@ -49,7 +49,7 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
   struct metaentry *new_entry = NULL;
-  char* value;
+  char* value, *jsonMsgValue;
 
   // protocol validation logs
   enum TEST_ID testids = META;
