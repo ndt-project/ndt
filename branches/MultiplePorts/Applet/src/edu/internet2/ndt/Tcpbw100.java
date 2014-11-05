@@ -88,7 +88,10 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
@@ -216,14 +219,18 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	boolean _bIsApplication = false;
 	boolean _bTestInProgress = false;
+	boolean _bSupportExtTests = false;
 	String sHostName = null;
 	InetAddress hostAddress = null;
 	String _sTestResults, _sMidBoxTestResult;
 	byte _yTests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S
 			| NDTConstants.TEST_S2C | NDTConstants.TEST_SFW
-			| NDTConstants.TEST_STATUS | NDTConstants.TEST_META;
+			| NDTConstants.TEST_STATUS | NDTConstants.TEST_META
+			| NDTConstants.TEST_EXT;
 	int _iC2sSFWResult = NDTConstants.SFW_NOTTESTED;
 	int _iS2cSFWResult = NDTConstants.SFW_NOTTESTED;
+
+	ThroughputSnapshot _uThroughputSnapshots, _dThroughputSnapshots;
 
 	/*************************************************************************
 	 * JavaScript access API extension Added by Seth Peery and Gregory Wilson,
@@ -450,7 +457,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	// get PC buffer imposed throughput limit
 	public String get_PcBuffSpdLimit() {
-	       return Double.toString(rwin / rttsec);
+		   return Double.toString(rwin / rttsec);
 	}
 
 	// commenting out unused method, but not removing in case of future use
@@ -1748,17 +1755,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// Initialise for 64 Kb
 		_yabuff2Write = new byte[64 * NDTConstants.KILO_BITS];
 		Message msg = new Message();
+		boolean bThroughputsnaps;
+		final int iTestDuration;
+		int iSnapsdelay, iSnapsoffset, iThreadsnum;
 		// start C2S throughput tests
 		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
-			showStatus(_resBundDisplayMsgs.getString("outboundTest"));
-			_resultsTxtPane.append(_resBundDisplayMsgs
-					.getString("runningOutboundTest") + " ");
-			_txtStatistics.append(_resBundDisplayMsgs
-					.getString("runningOutboundTest") + " ");
-			_sEmailText += _resBundDisplayMsgs.getString("runningOutboundTest")
-					+ " ";
-			pub_status = "runningOutboundTest";
-
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // msg
 																							// receive/read
 																							// error
@@ -1781,30 +1782,58 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				return true;
 			}
 			// Server sends port number to bind to in the TEST_PREPARE
-			int iC2sport = parseMsgBodyToInt(new String(msg.getBody()));
+			String[] sMsgBody = new String(msg.getBody()).split(" ");
+			int iC2sport = Integer.parseInt(sMsgBody[0]);
+
+			if (_bSupportExtTests) {
+				iTestDuration = Integer.parseInt(sMsgBody[1]);
+				bThroughputsnaps = Integer.parseInt(sMsgBody[2]) == 1;
+				iSnapsdelay = Integer.parseInt(sMsgBody[3]);
+				iSnapsoffset = Integer.parseInt(sMsgBody[4]);
+				iThreadsnum = Integer.parseInt(sMsgBody[5]);
+			} else {
+				iTestDuration = 10000;
+				bThroughputsnaps = false;
+				iSnapsdelay = 5000;
+				iSnapsoffset = 1000;
+				iThreadsnum = 1;
+			}
+
+			showStatus(_resBundDisplayMsgs.getString("outboundTest"));
+			String sMessage = _resBundDisplayMsgs.getString("running")
+					+ " "
+					+ iTestDuration / 1000
+					+ " "
+					+ _resBundDisplayMsgs.getString("runningOutboundTest")
+					+ " ";
+
+			_resultsTxtPane.append(sMessage);
+			_txtStatistics.append(sMessage);
+			_sEmailText += sMessage;
+			pub_status = "runningOutboundTest";
 
 			// client connects to this port
-			final Socket outSocket;
-			try {
-				outSocket = new Socket(hostAddress, iC2sport);
-			} catch (UnknownHostException e) {
-				System.err.println("Don't know about host: " + sHostName);
-				_sErrMsg = _resBundDisplayMsgs.getString("unknownServer")
-						+ "\n";
-				return true;
-			} catch (IOException e) {
-				System.err.println("Couldn't get 2nd connection to: "
-						+ sHostName);
-				_sErrMsg = _resBundDisplayMsgs.getString("serverBusy15s")
-						+ "\n";
-				return true;
+			List outSockets = new ArrayList(iThreadsnum);
+
+			for (int i = 0; i < iThreadsnum; ++i) {
+				try {
+					outSockets.add(new Socket(hostAddress, iC2sport));
+				} catch (UnknownHostException e) {
+					System.err.println("Don't know about host: " + sHostName);
+					_sErrMsg = _resBundDisplayMsgs.getString("unknownServer")
+							+ "\n";
+					return true;
+				} catch (IOException e) {
+					System.err.println("Couldn't get 2nd connection to: "
+							+ sHostName);
+					_sErrMsg = _resBundDisplayMsgs.getString("serverBusy15s")
+							+ "\n";
+					return true;
+				}
 			}
 
 			// Get server IP address from the outSocket.
-			pub_host = outSocket.getInetAddress().getHostAddress().toString();
-
-			// Get output Stream from socket to write data into
-			final OutputStream outStream = outSocket.getOutputStream();
+			pub_host = hostAddress.getHostAddress();
 
 			// wait here for signal from server application
 			// This signal tells the client to start pumping out data
@@ -1831,41 +1860,34 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Fill buffer upto NDTConstants.PREDEFNED_BUFFER_SIZE packets
 			byte c = '0';
-			int i;
-			for (i = 0; i < _iLength; i++) {
+			for (int i = 0; i < _iLength; i++) {
 				if (c == 'z') {
 					c = '0';
 				}
 				_yabuff2Write[i] = c++;
 			}
-			System.err.println("******Send buffer size =" + i);
+
+			System.err.println("******Send buffer size = " + _iLength);
 
 			_iPkts = 0;
 			_dTime = System.currentTimeMillis();
 			pub_time = _dTime;
 
-			// sleep for 10 s
-			new Thread() {
+			Thread[] threads = new Thread[iThreadsnum];
 
-				public void run() {
-					try {
-						Thread.sleep(10000);
-					} catch (InterruptedException e) {
-						System.err.println("Thread interrupted : " + e);
-						// Thread was interrupted while timing 10 seconds
-						// of the C->S test. So, streaming 10 seconds of data may not be complete.
-						// But, the throughput is correctly calculated based on the number of packets
-						// that were actually sent
+			for (int i = 0; i < iThreadsnum; ++i) {
+				final Socket outSocket = (Socket) outSockets.get(i);
 
-					}
-					try {
-						outStream.close();
-						outSocket.close();
-					} catch (IOException e) {
-						System.err.println("Caught IOException while closing stream after thread interrupted : " + e);
-					}
-				}
-			}.start();
+				C2SWriterWorker worker = new C2SWriterWorker(
+					i, outSocket, yabuff2Write, iTestDuration
+				);
+
+				threads[i] = new Thread(worker);
+			}
+
+			for (int i = 0; i < iThreadsnum; ++i) {
+				threads[i].start();
+			}
 
 			Timer c2sspdUpdateTimer = new Timer();
 			c2sspdUpdateTimer.scheduleAtFixedRate(new TimerTask() {
@@ -1876,30 +1898,16 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}, 100, _c2sspdUpdateTime);
 
-			// While the 10 s timer ticks, write buffer data into server socket
-			while (true) {
-				// System.err.println("Send pkt = " + pkts + "; at " +
-				// System.currentTimeMillis());
+			for (int i = 0; i < iThreadsnum; ++i) {
 				try {
-					outStream.write(_yabuff2Write, 0, _yabuff2Write.length);
-				} catch (SocketException e) {
-					System.out.println("SocketException while writing to server" + e);
-					break;
+					threads[i].join();
+				} catch (InterruptedException e) {
+					System.err.println("InterruptedException while waiting for threads: " + e);
 				}
-				// catch (InterruptedIOException iioe) {
-				catch (IOException ioe) {
-					System.out.println("Client socket timed out");
-					break;
-				}
-				// In both cases above, thread was interrupted while timing 10 seconds
-				// of the C->S test. So, streaming 10 seconds of data may not be complete.
-				// But, the throughput is correctly calculated based on the number of packets
-				// that were actually sent
-
-				_iPkts++;
-				// number of bytes sent = (num of iterations) X (buffer size)
-				pub_bytes = (_iPkts * _iLength);
 			}
+
+			// number of bytes sent = (num of iterations) X (buffer size)
+			pub_bytes = (_iPkts * _iLength);
 
 			c2sspdUpdateTimer.cancel();
 			_dTime = System.currentTimeMillis() - _dTime;
@@ -1950,7 +1958,24 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				tmpstr3 = new String(msg.getBody());
 			}
 
-			_dSc2sspd = Double.parseDouble(tmpstr3) / NDTConstants.KILO;
+			sMsgBody = new String(msg.getBody()).split(" ");
+			_dSc2sspd = Double.parseDouble(sMsgBody[0]) / NDTConstants.KILO;
+			ThroughputSnapshot lastThroughputSnapshot = null;
+
+			if (bThroughputsnaps) {
+				for (int i = 1; i < sMsgBody.length; i += 2) {
+					if (lastThroughputSnapshot != null) {
+						lastThroughputSnapshot.next = new ThroughputSnapshot();
+						lastThroughputSnapshot = lastThroughputSnapshot.next;
+					} else {
+						_uThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
+					}
+ 
+					lastThroughputSnapshot.next = null;
+					lastThroughputSnapshot.time = Double.parseDouble(sMsgBody[i]);
+					lastThroughputSnapshot.throughput = Double.parseDouble(sMsgBody[i+1]);
+				}
+			}
 
 			// Print results in the most convenient units (kbps or Mbps)
 			if (_dSc2sspd < 1.0) {
@@ -2014,17 +2039,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		// byte buff[] = new byte[8192];
 		byte buff[] = new byte[NDTConstants.PREDEFINED_BUFFER_SIZE];
 		Message msg = new Message();
+		boolean bThroughputsnaps;
+		final int iTestDuration;
+		int iSnapsdelay, iSnapsoffset, iThreadsnum;
+
 		// start S2C tests
 		if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
-			showStatus(_resBundDisplayMsgs.getString("inboundTest"));
-			_resultsTxtPane.append(_resBundDisplayMsgs
-					.getString("runningInboundTest") + " ");
-			_txtStatistics.append(_resBundDisplayMsgs
-					.getString("runningInboundTest") + " ");
-			_sEmailText += _resBundDisplayMsgs.getString("runningInboundTest")
-					+ " ";
-			pub_status = "runningInboundTest";
-
 			// Server sends TEST_PREPARE with port to bind to as message body
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // read/receive
 																							// error
@@ -2045,27 +2065,56 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				return true;
 			}
 			// get port to bind to for S2C tests
-			int iS2cport = parseMsgBodyToInt(new String(msg.getBody()));
-
-			// Create socket and bind to port as instructed by server
-			Socket inSocket;
-			try {
-				inSocket = new Socket(hostAddress, iS2cport);
-			} catch (UnknownHostException e) {
-				System.err.println("Don't know about host: " + sHostName);
-				_sErrMsg = "unknown server\n";
-				return true;
-			} catch (IOException e) {
-				System.err.println("Couldn't get 3rd connection to: "
-						+ sHostName);
-				_sErrMsg = "Server Failed while receiving data\n";
-				return true;
+			String[] sMsgBody = new String(msg.getBody()).split(" ");
+			int iS2cport = Integer.parseInt(sMsgBody[0]);
+ 
+			if (_bSupportExtTests) {
+				iTestDuration = Integer.parseInt(sMsgBody[1]);
+				bThroughputsnaps = Integer.parseInt(sMsgBody[2]) == 1;
+				iSnapsdelay = Integer.parseInt(sMsgBody[3]);
+				iSnapsoffset = Integer.parseInt(sMsgBody[4]);
+				iThreadsnum = Integer.parseInt(sMsgBody[5]);
+			} else {
+				iTestDuration = 10000;
+				bThroughputsnaps = false;
+				iSnapsdelay = 5000;
+				iSnapsoffset = 1000; 
+				iThreadsnum = 1;
 			}
 
-			// Get input stream to read bytes from socket
-			InputStream srvin = inSocket.getInputStream();
-			long iBitCount = 0;
-			int inlth;
+			showStatus(_resBundDisplayMsgs.getString("inboundTest"));
+			String sMessage = _resBundDisplayMsgs.getString("running")
+					+ " "
+					+ iTestDuration / 1000
+					+ " "
+					+ _resBundDisplayMsgs.getString("runningInboundTest")
+					+ " ";
+ 
+			_resultsTxtPane.append(sMessage);
+			_txtStatistics.append(sMessage);
+			_sEmailText += sMessage;
+			pub_status = "runningInboundTest";
+
+			// Create socket and bind to port as instructed by server
+			List inSockets = new ArrayList(iThreadsnum);
+
+			for (int i = 0; i < iThreadsnum; ++i) {
+				try {
+					Socket socket = new Socket(hostAddress, iS2cport);
+					socket.setSoTimeout(iTestDuration + 5000);
+ 
+					inSockets.add(socket);
+				} catch (UnknownHostException e) {
+					System.err.println("Don't know about host: " + sHostName);
+					_sErrMsg = "unknown server\n";
+					return true; 
+				} catch (IOException e) {
+					System.err.println("Couldn't get 3rd connection to: "
+							+ sHostName);
+					_sErrMsg = "Server Failed while receiving data\n";
+					return true;
+				}
+			}
 
 			// wait here for signal from server application
 
@@ -2089,8 +2138,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				return true;
 			}
 
-			// Set socket timeout to 15 seconds
-			inSocket.setSoTimeout(15000);
+			long iBitCount = 0;
+			int inlth;
+
 			_dTime = System.currentTimeMillis();
 			pub_time = _dTime;
 
@@ -2103,17 +2153,54 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}, 100, _s2cspdUpdateTime);
 
-			// read data sent by server
+			ThroughputSnapshot lastThroughputSnapshot = null;
+			double throughputSnapshotTime = _dTime + iSnapsoffset;
+			boolean[] activeThreads = new boolean[iThreadsnum];
+			int numberOfActiveThreads = iThreadsnum;
+			int idx = 0;
+
+ 			Arrays.fill(activeThreads, true);
+
 			try {
-				while ((inlth = srvin.read(buff, 0, buff.length)) > 0) {
-					iBitCount += inlth; // increment bit count
-					pub_bytes = iBitCount;
-					if ((System.currentTimeMillis() - _dTime) > 14500) {
-						break;
+				while (numberOfActiveThreads > 0) {
+					if (bThroughputsnaps && System.currentTimeMillis() > throughputSnapshotTime) {
+						if (lastThroughputSnapshot != null) {
+							lastThroughputSnapshot.next = new ThroughputSnapshot();
+							lastThroughputSnapshot = lastThroughputSnapshot.next;
+						} else {
+							_dThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
+						}
+
+						lastThroughputSnapshot.next = null;
+						lastThroughputSnapshot.time = (System.currentTimeMillis() - _dTime) / 1000;
+						lastThroughputSnapshot.throughput = ((NDTConstants.EIGHT * iBitCount) / NDTConstants.KILO) / lastThroughputSnapshot.time;
+						throughputSnapshotTime += iSnapsdelay;
+					}
+
+					if (activeThreads[idx]) {
+						Socket socket = (Socket) inSockets.get(idx);
+						InputStream stream = socket.getInputStream();
+
+						inlth = stream.read(buff, 0, buff.length);
+
+						if (inlth <= 0) {
+							--numberOfActiveThreads;
+							activeThreads[idx] = false;
+ 
+							stream.close();
+							socket.close();
+						} else {
+							iBitCount += inlth;
+						}
+					}
+
+					++idx;
+
+					if (idx >= iThreadsnum) {
+						idx = 0;
 					}
 				}
 			} catch (IOException ioExcep) {
-				// new addition to handle Exception
 				System.err.println("Couldn't perform s2c testing to: "
 						+ sHostName + ":" + ioExcep);
 				_sErrMsg = "Server Failed while reading socket data\n";
@@ -2121,6 +2208,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			} finally {
 					s2cspdUpdateTimer.cancel();
 			}
+
+			pub_bytes = iBitCount;
 
 			// get time duration during which bytes were received
 			_dTime = System.currentTimeMillis() - _dTime;
@@ -2211,14 +2300,25 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			pub_s2cspd = _dS2cspd;
 			pub_status = "done";
 
-			// Perform wrap-up activities for test
-			srvin.close();
-			inSocket.close();
-
 			// Client has to send its throughput to server inside a TEST_MSG
 			// message
-			buff = Double.toString(_dS2cspd * NDTConstants.KILO).getBytes();
-			String tmpstr4 = new String(buff, 0, buff.length);
+			StringBuilder sb = new StringBuilder(Double.toString(_dS2cspd * NDTConstants.KILO));
+
+			if (_dThroughputSnapshots != null) {
+				ThroughputSnapshot snapshotsPtr = _dThroughputSnapshots;
+
+				while (snapshotsPtr != null) {
+					sb.append(" ")
+						.append(NDTUtils.prtdbl(snapshotsPtr.time))
+						.append(" ")
+						.append(NDTUtils.prtdbl(snapshotsPtr.throughput));
+					snapshotsPtr = snapshotsPtr.next;
+				}
+			}
+
+			String tmpstr4 = sb.toString();	
+			buff = tmpstr4.getBytes();
+
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
 			paramProtoObj.send_json_msg(MessageType.TEST_MSG, buff);
 
@@ -2733,6 +2833,11 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// If we have connected to a Web10G server rebrand ourselves as such
 		_sServerType = vVersion.endsWith("Web10G") ? "web10g" : "web100";
+		_bSupportExtTests = vVersion.contains("-et");
+
+		 if (_bSupportExtTests) {
+			_resultsTxtPane.append(_resBundDisplayMsgs.getString("extTestSupported") + "\n\n");
+		}
 
 		// Only create the windows once we have connected to the server so this works
 		createDiagnoseWindow();
@@ -2769,6 +2874,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			tmpstr = new String(msg.getBody());
 		}
 		StringTokenizer tokenizer = new StringTokenizer(tmpstr, " ");
+
+		// If the server does not support TEST_EXT it can send an invalid test sequence
+		// (redundant number at the beginning)
+		if (!_bSupportExtTests && tokenizer.hasMoreTokens()) {
+			tokenizer.nextToken();
+		}
 
 		// Run all tests requested, based on the ID. In each case, if tests
 		// cannot be successfully run,
@@ -3493,6 +3604,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			// Add Packet queuing details found during C2S throughput test to
 			// the statistics pane. Data is displayed as a percentage
+			ThroughputSnapshot snapshot;
 
 			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 				if (_dC2sspd > _dSc2sspd) {
@@ -3512,6 +3624,33 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ ": "
 								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dC2sspd - _dSc2sspd)
 										/ _dC2sspd) + "%\n");
+					}
+				}
+
+				if (_uThroughputSnapshots != null) {
+					snapshot = _uThroughputSnapshots;
+ 
+					_txtStatistics.append("---"
+							+ _resBundDisplayMsgs.getString("c2sThroughputSnapshots")
+							+ ":\n"
+					);
+ 
+					while (snapshot != null) {
+						_txtStatistics.append("    * "
+								+_resBundDisplayMsgs.getString("testDuration")
+								+ ": "
+								+ NDTUtils.prtdbl(snapshot.time)
+								+ " "
+								+ _resBundDisplayMsgs.getString("secs")
+								+ ", "
+								+ _resBundDisplayMsgs.getString("throughput")
+								+ ": "
+								+ NDTUtils.prtdbl(snapshot.throughput)
+								+ " "
+								+ _resBundDisplayMsgs.getString("kbps")
+								+ "\n");
+ 
+						snapshot = snapshot.next;
 					}
 				}
 			}
@@ -3537,6 +3676,33 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ ": "
 								+ NDTUtils.prtdbl(NDTConstants.PERCENTAGE * (_dSs2cspd - _dS2cspd)
 										/ _dSs2cspd) + "%\n");
+					}
+				}
+
+				if (_dThroughputSnapshots != null) {
+					snapshot = _dThroughputSnapshots;
+ 
+					_txtStatistics.append("---"
+							+ _resBundDisplayMsgs.getString("s2cThroughputSnapshots")
+							+ ":\n"
+					);
+ 
+					while (snapshot != null) {
+						_txtStatistics.append("    * "
+								+_resBundDisplayMsgs.getString("testDuration")
+								+ ": "
+								+ NDTUtils.prtdbl(snapshot.time)
+								+ " "
+								+ _resBundDisplayMsgs.getString("secs")
+								+ ", "
+								+ _resBundDisplayMsgs.getString("throughput")
+								+ ": "
+								+ NDTUtils.prtdbl(snapshot.throughput)
+								+ " "
+								+ _resBundDisplayMsgs.getString("kbps")
+								+ "\n");
+ 
+						snapshot = snapshot.next;
 					}
 				}
 			}
@@ -3816,7 +3982,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 *
 	 * server data is ordered as: Server IP; Client IP; CurrentMSS;
 	 * WinScaleSent; WinScaleRcvd; SumRTT; CountRTT; MaxRwinRcvd; Client then adds Server IP; Client IP.
-     *
+	 *
 	 * @param sMidBoxTestResParam
 	 *            String Middlebox results
 	 */
@@ -3839,14 +4005,14 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			iWinsRecv = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "WinScaleRcvd"));
 			sClientSideServerIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientSideServerIp");
 			sClientSideClientIp = JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "ClientSideClientIp");
-            _iSumRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "SumRTT"));
-            _iCountRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "CountRTT"));
-            _iMaxRwinRcvd = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "MaxRwinRcvd"));
+			_iSumRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "SumRTT"));
+			_iCountRTT = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "CountRTT"));
+			_iMaxRwinRcvd = Integer.parseInt(JSONUtils.getValueFromJsonObj(sMidBoxTestResParam, "MaxRwinRcvd"));
 
-            // calculate avgrtt and PC buffer imposed throughput limit
-            pub_avgrtt = (double) _iSumRTT / _iCountRTT;
-            rwin = _iMaxRwinRcvd * NDTConstants.EIGHT / NDTConstants.KILO_BITS / NDTConstants.KILO_BITS;
-            rttsec = pub_avgrtt / NDTConstants.KILO;
+			// calculate avgrtt and PC buffer imposed throughput limit
+			pub_avgrtt = (double) _iSumRTT / _iCountRTT;
+			rwin = _iMaxRwinRcvd * NDTConstants.EIGHT / NDTConstants.KILO_BITS / NDTConstants.KILO_BITS;
+			rttsec = pub_avgrtt / NDTConstants.KILO;
 		} else {
 			StringTokenizer tokens;
 			int k;
@@ -4412,6 +4578,65 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		} else {
 			return Integer.parseInt(msg, radix);
 		}
+	}
+
+	private class C2SWriterWorker implements Runnable {
+		private int id;
+		private Socket socket;
+		private OutputStream stream;
+		private byte[] buff;
+		private long duration;
+
+		private C2SWriterWorker(int id, Socket socket, byte[] buff, long duration)
+				throws IOException {
+			this.id = id;
+			this.socket = socket;
+			this.buff = buff;
+			this.duration = duration;
+
+			this.stream = socket.getOutputStream();
+
+			System.err.println("C2SWriterWorker: " + id);
+		}
+
+		public void run() {
+			long current = System.currentTimeMillis();
+			long stopTime = current + duration;
+			int threadPackets = 0;
+
+			while (current < stopTime) {
+				try {
+					stream.write(buff, 0, _iLength);
+				} catch (SocketException e) {
+					System.out.println("SocketException while writing to server" + e);
+					break;
+				}
+				catch (IOException ioe) {
+					System.out.println("Client socket timed out");
+					break;
+				}
+
+				threadPackets++;
+				current = System.currentTimeMillis();
+			}
+
+			if (id == 0) {
+				_iPkts = threadPackets;
+			}
+
+			try {
+				stream.close();
+				socket.close();
+			} catch (IOException e) {
+				System.err.println("Caught IOException while closing stream: " + e);
+			}
+		}
+	}
+
+	private class ThroughputSnapshot {
+		private double time;
+		private double throughput;
+		private ThroughputSnapshot next;
 	}
 
 } // class: Tcpbw100

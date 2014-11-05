@@ -110,16 +110,24 @@ typedef struct CwndPeaks {
 
 // Options to run test with
 typedef struct options {
-  u_int32_t limit;  // used to calculate receive window limit
-  int snapDelay;  // Frequency of snap log collection in milliseconds
-                  // (i.e logged every snapDelay ms)
-  char avoidSndBlockUp;  // flag set to indicate avoiding  send buffer
-                         // blocking in the S2C test
-  char snaplog;  // enable collecting snap log
-  char cwndDecrease;  // enable analysis of the cwnd changes (S2C test)
-  char s2c_logname[256];  // S2C log file name - size changed to 256
-  char c2s_logname[256];  // C2S log file name - size changed to 256
-  int compress;  // enable compressing log files
+  u_int32_t limit;       // used to calculate receive window limit
+  int snapDelay;         // frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
+  char avoidSndBlockUp;  // flag set to indicate avoiding send buffer blocking in the S2C test
+  char snaplog;          // enable collecting snap log
+  char cwndDecrease;     // enable analysis of the cwnd changes (S2C test)
+  char s2c_logname[256]; // S2C log file name - size changed to 256
+  char c2s_logname[256]; // C2S log file name - size changed to 256
+  int compress;          // enable compressing log files
+  int uduration;         // upload test duration
+  char uthroughputsnaps; // enable the throughput snapshots for upload test writing
+  int usnapsdelay;       // specify the delay in the throughput snapshots thread for upload test
+  int usnapsoffset;      // specify the initial offset in the throughput snapshots thread for upload test
+  int uthreadsnum;       // specify the number of threads (parallel TCP connections) for upload test
+  int dduration;         // download test duration
+  char dthroughputsnaps; // enable the throughput snapshots for download test writing
+  int dsnapsdelay;       // specify the delay in the throughput snapshots thread for download test
+  int dsnapsoffset;      // specify the initial offset in the throughput snapshots thread for download test
+  int dthreadsnum;       // specify the number of threads (parallel TCP connections) for download test
 } Options;
 
 typedef struct portpair {
@@ -173,7 +181,7 @@ struct spdpair {
 struct web100_variables {
   char name[256];  // key
   char value[256];  // value
-} web_vars[WEB100_VARS];
+} web_vars[7][WEB100_VARS];
 
 struct pseudo_hdr {  /* used to compute TCP checksum */
   uint64_t s_addr;  // source addr
@@ -267,7 +275,7 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2,
                    int port3);
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, const char* direction, int compress);
+                   PortPair* pair, const char* direction, int expectedTestTime);
 void force_breakloop();
 #endif
 
@@ -315,12 +323,16 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                    int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
-int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap* snap, int* testsock, int threadsNum, int ctlsock,
                       tcp_stat_agent* agent, int count_vars, int jsonSupport);
 
 int CwndDecrease(char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
-int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
+int tcp_stat_logvars(struct tcp_vars* vars, int connId, int count_vars);
+
+void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars);
+
+void tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.dthreadsnum : 1, vars);
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);

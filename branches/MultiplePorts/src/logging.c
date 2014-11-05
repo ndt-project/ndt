@@ -1062,6 +1062,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
     fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_snaplog);
     fprintf(fp, "s2c_ndttrace file: %s\n", meta.s2c_ndttrace);
     fprintf(fp, "cputime file: %s\n", meta.CPU_time);
+    fprintf(fp, "web values file: %s\n", meta.web_variables_log);
     fprintf(fp, "server IP address: %s\n", meta.server_ip);
     fprintf(fp, "server hostname: %s\n", meta.server_name);
     fprintf(fp, "server kernel version: %s\n", meta.server_os);
@@ -1079,6 +1080,22 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
         entry = entry->next;
       }
     }
+#ifdef EXTTESTS_ENABLED
+    if (uThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = uThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        fprintf(fp, "c2s.throughput.snapshot.%0.2f: %f\n", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
+      }
+    }
+    if (dThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = dThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        fprintf(fp, "s2c.throughput.snapshot.%0.2f: %f\n", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
+      }
+    }
+#endif
     fclose(fp);
   }
 }

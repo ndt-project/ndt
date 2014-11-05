@@ -20,26 +20,26 @@ public class NDTConstants {
 	public static final String META_BROWSER_OS = "client.browser.name";
 	public static final String META_CLIENT_KERNEL_VERSION = "client.kernel.version";
 	public static final String META_CLIENT_VERSION = "client.version";
-        public static final String META_CLIENT_APPLICATION = "client.application";
+		public static final String META_CLIENT_APPLICATION = "client.application";
 
-        // Section: NDT Variables sent by server
-        public static final String AVGRTT = "avgrtt";
-        public static final String CURRWINRCVD = "CurRwinRcvd";
-        public static final String MAXRWINRCVD = "MaxRwinRcvd";
-        public static final String LOSS = "loss";
-        public static final String MINRTT = "MinRTT";
-        public static final String MAXRTT = "MaxRTT";
-        public static final String WAITSEC = "waitsec";
-        public static final String CURRTO = "CurRTO";
-        public static final String SACKSRCVD = "SACKsRcvd";
-        public static final String MISMATCH = "mismatch";
-        public static final String BAD_CABLE = "bad_cable";
-        public static final String CONGESTION = "congestion";
-        public static final String CWNDTIME = "cwndtime";
-        public static final String RWINTIME = "rwintime";
-        public static final String OPTRCVRBUFF = "optimalRcvrBuffer";
-        public static final String ACCESS_TECH = "accessTech";
-        public static final String DUPACKSIN = "DupAcksIn";
+		// Section: NDT Variables sent by server
+		public static final String AVGRTT = "avgrtt";
+		public static final String CURRWINRCVD = "CurRwinRcvd";
+		public static final String MAXRWINRCVD = "MaxRwinRcvd";
+		public static final String LOSS = "loss";
+		public static final String MINRTT = "MinRTT";
+		public static final String MAXRTT = "MaxRTT";
+		public static final String WAITSEC = "waitsec";
+		public static final String CURRTO = "CurRTO";
+		public static final String SACKSRCVD = "SACKsRcvd";
+		public static final String MISMATCH = "mismatch";
+		public static final String BAD_CABLE = "bad_cable";
+		public static final String CONGESTION = "congestion";
+		public static final String CWNDTIME = "cwndtime";
+		public static final String RWINTIME = "rwintime";
+		public static final String OPTRCVRBUFF = "optimalRcvrBuffer";
+		public static final String ACCESS_TECH = "accessTech";
+		public static final String DUPACKSIN = "DupAcksIn";
 
 	/*
 	 * TODO for a later release: Version could be moved to some "configurable"
@@ -56,6 +56,7 @@ public class NDTConstants {
 	public static final byte TEST_SFW = (1 << 3);
 	public static final byte TEST_STATUS = (1 << 4);
 	public static final byte TEST_META = (1 << 5);
+	public static final byte TEST_EXT = (1 << 6);
 
 	// Section: Firewall test status
 	public static final int SFW_NOTTESTED = 0;
@@ -149,7 +150,7 @@ public class NDTConstants {
 	public static final int KILO = 1000; // Used in conversions from seconds->mS,
 	public static final int KILO_BITS = 1024;// Used in kilobits->bits conversions
 	public static final double EIGHT = 8.0; // Used in octal number, conversions from Bytes-> bits etc
-        // EIGHT is a double to minimize overflow when converting.
+		// EIGHT is a double to minimize overflow when converting.
 
 	// Section: Duplex mismatch conditions
 	public static final int DUPLEX_OK_INDICATOR = 0;
@@ -183,7 +184,7 @@ public class NDTConstants {
 	 * Initializes a few constants
 	 * 
 	 * @param paramLocale
-	 *            local Locale object
+	 *			local Locale object
 	 * */
 	public static void initConstants(Locale paramLocale) {
 		try {
@@ -202,9 +203,9 @@ public class NDTConstants {
 	 * Initializes a few constants
 	 * 
 	 * @param paramStrLang
-	 *            local Language String
+	 *			local Language String
 	 * @param paramStrCountry
-	 *            local country String
+	 *			local country String
 	 * */
 	public static void initConstants(String paramStrLang, String paramStrCountry) {
 		try {
@@ -222,7 +223,7 @@ public class NDTConstants {
 	 * Getter method for to fetch from resourceBundle
 	 * 
 	 * @param paramStrName
-	 *            name of parameter to be fetched
+	 *			name of parameter to be fetched
 	 * @return Value of parameter input
 	 */
 	public static String getMessageString(String paramStrName) {

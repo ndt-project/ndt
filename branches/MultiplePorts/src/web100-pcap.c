@@ -696,12 +696,12 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
  * @param device devive detail string
  * @param pair PortPair strcuture
  * @param direction string indicating C2S/S2c test
- * @param compress Option indicating whether log files (here, ndttrace) needs to be compressed. Unused here.
+ * @param expectedTestTime expected test time duration + 50seconds
  */
 
 void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, const char *direction, int compress) {
+                   PortPair* pair, const char *direction, int expectedTestTime) {
   char cmdbuf[256], dir[256];
   pcap_handler printer;
   u_char * pcap_userdata = (u_char*) pair;
@@ -964,7 +964,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
   }
 
   /* kill process off if parent doesn't send a signal. */
-  alarm(60);
+  alarm(50 + expectedTestTime);
 
   if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {
     log_println(5, "pcap_loop exited %s", pcap_geterr(pd));

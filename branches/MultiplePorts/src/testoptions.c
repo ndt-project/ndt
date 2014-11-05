@@ -289,7 +289,10 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   // set_protologfile(get_remotehost(), protologlocalarr);
 
   if (!(useropt
-        & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
+        & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS     
+#ifdef EXTTESTS_ENABLED
+           | TEST_EXT
+#endif
            | TEST_META))) {
     // message received does not indicate a valid test!
     send_json_message(ctlsockfd, MSG_ERROR, invalid_test_suite,
@@ -421,62 +424,6 @@ void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
   }
   estats_val_data_free(&snapArgs_ptr->snap);
 #endif
-}
-
-/**
- * Start packet tracing for this client
- * @param socketfdarg socket file descriptor to initialize packet trace from
- * @param socketfdarg socket file descriptor to close
- * @param childpid pid resulting from fork()
- * @param imonarg int array of socket fd from pipe
- * @param cliaddrarg sock_addr used to determine client IP
- * @param clilenarg socket length
- * @param device device type
- * @param pairarg portpair struct instance
- * @param testindicator string indicating C2S/S2c test
- * @param iscompressionenabled  is compression enabled  (for log files)?
- * @param copylocationarg memory location to copy resulting string (from packet trace) into
- * */
-
-void start_packet_trace(int socketfdarg, int socketfdarg2, pid_t *childpid,
-                        int *imonarg, struct sockaddr *cliaddrarg,
-                        socklen_t clilenarg, char* device, PortPair* pairarg,
-                        const char* testindicatorarg, int iscompressionenabled,
-                        char *copylocationarg) {
-  char tmpstr[256];
-  int i, readretval;
-
-  I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), socketfdarg, 0);
-
-  if ((*childpid = fork()) == 0) {
-    close(socketfdarg2);
-    close(socketfdarg);
-    log_println(0, "%s test Child thinks pipe() returned fd0=%d, fd1=%d",
-                testindicatorarg, imonarg[0], imonarg[1]);
-
-    init_pkttrace(src_addr, cliaddrarg, clilenarg, imonarg, device,
-                  pairarg, testindicatorarg, iscompressionenabled);
-
-    exit(0);  // Packet trace finished, terminate gracefully
-  }
-  memset(tmpstr, 0, 256);
-  for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
-    readretval = read(imonarg[0], tmpstr, 128);
-    if ((readretval == -1) && (errno == EINTR))
-      // socket interrupted, try reading again
-      continue;
-    break;
-  }
-
-  // name of nettrace file passed back from pcap child copied into meta
-  // structure
-  if (strlen(tmpstr) > 5) {
-    memcpy(copylocationarg, tmpstr, strlen(tmpstr));
-    log_println(8, "**start pkt trace, memcopied dir name %s", tmpstr);
-  }
-
-  // free this address now.
-  I2AddrFree(src_addr);
 }
 
 /**

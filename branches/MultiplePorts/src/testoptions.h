@@ -47,6 +47,7 @@ typedef struct testoptions {
   int State;  // seems unused currently
 
   int metaopt;  // meta test to be perfomed?
+  int exttestsopt; // extended tests supported?
 } TestOptions;
 
 // Snap log characteristics
@@ -66,8 +67,8 @@ void catch_s2c_alrm(int signo);
 
 int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                  int conn_options);
-int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
-                  int conn_options);
+int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
+                  int conn_options, Options* options);
 
 int getCurrentTest();
 void setCurrentTest(int testId);
