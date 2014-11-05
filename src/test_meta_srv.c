@@ -20,12 +20,16 @@
 #include "testoptions.h"
 #include "jsonutils.h"
 
+ void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value);
+ void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value);
+
 /**
  * Performs the META test.
  * @param ctlsockfd Client control socket descriptor
  * @param agent UNUSED Web100 agent used to track the connection
  * @param testOptions The test options
  * @param conn_options The connection options
+ * @param options Test Option variables
  * @return 0 - success,
  *          >0 - error code.
  *          Error codes:
@@ -40,12 +44,12 @@
  */
 
 int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
-                  TestOptions* testOptions, int conn_options) {
+                  TestOptions* testOptions, int conn_options, Options* options) {
   int j;
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
   struct metaentry *new_entry = NULL;
-  char* value, *jsonMsgValue;
+  char* value;
 
   // protocol validation logs
   enum TEST_ID testids = META;
@@ -56,7 +60,7 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
     log_println(1, " <-- META test -->");
 
     // log protocol validation details
-    teststatuses = TEST_STARTED;
+     teststatuses = TEST_STARTED;
     protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     // first message exchanged is am empty TEST_PREPARE message
@@ -154,20 +158,22 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
         /*continue;*/
       }
 
-      // now get all the key-value tuples
-      if (new_entry) {
-        new_entry->next = (struct metaentry *) malloc(
-            sizeof(struct metaentry));
-        new_entry = new_entry->next;
-      } else {
-        new_entry = (struct metaentry *) malloc(
-            sizeof(struct metaentry));
-        meta.additional = new_entry;
-      }
-      snprintf(new_entry->key, sizeof(new_entry->key), "%s", buff);
-      snprintf(new_entry->value, sizeof(new_entry->value), "%s", value);
+      addAdditionalMetaEntry(&new_entry, buff, value);
     }
-    new_entry->next = NULL;  // ensure meta list ends here
+#ifdef EXTTESTS_ENABLED
+    if (testOptions->exttestsopt) {
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->uduration);
+      addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->uthroughputsnaps ? "true" : "false");
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->usnapsdelay);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->usnapsoffset);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.threadsnum", options->uthreadsnum);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->dduration);
+      addAdditionalMetaEntry(&new_entry, "ext.s2c.throughputsnaps", options->dthroughputsnaps ? "true" : "false");
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->dsnapsdelay);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->dsnapsoffset);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.threadsnum", options->dthreadsnum);
+    }
+#endif
 
     // Finalize test by sending appropriate message, and setting status
     if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
@@ -184,4 +190,23 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
     setCurrentTest(TEST_NONE);
   }
   return 0;
+}
+
+void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value) {
+  if (*ptr) {
+    (*ptr)->next = (struct metaentry *) malloc(sizeof(struct metaentry));
+    (*ptr) = (*ptr)->next;
+  } else {
+    (*ptr) = (struct metaentry *) malloc(sizeof(struct metaentry));
+    meta.additional = (*ptr);
+  }
+  (*ptr)->next = NULL;  // ensure meta list ends here
+  snprintf((*ptr)->key, sizeof((*ptr)->key), "%s", key);
+  snprintf((*ptr)->value, sizeof((*ptr)->value), "%s", value);
+}
+
+void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value) {
+  char tmpbuff[256];
+  snprintf(tmpbuff, sizeof(tmpbuff), "%d", value);
+  addAdditionalMetaEntry(ptr, key, tmpbuff);
 }

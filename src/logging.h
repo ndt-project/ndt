@@ -54,6 +54,16 @@ struct metaentry {
   struct metaentry* next;  // pointer to next link
 };
 
+#ifdef EXTTESTS_ENABLED
+struct throughputSnapshot {
+  double time;
+  double throughput;
+  struct throughputSnapshot* next;
+};
+
+struct throughputSnapshot *dThroughputSnapshots, *uThroughputSnapshots, *lastThroughputSnapshot;
+#endif
+
 /**
  * Used to save results of meta tests.
  * These values (most) are thes logged in the
@@ -65,6 +75,7 @@ struct metadata {
   char s2c_snaplog[FILENAME_SIZE];  // S->C test Snaplog file name
   char s2c_ndttrace[FILENAME_SIZE];  // S->C NDT trace file name
   char CPU_time[FILENAME_SIZE];  // CPU time file
+  char web_variables_log[FILENAME_SIZE];  // web100/web10g variables log
   char summary[256];  // Summary data
   char date[32];  // Date and,
   char time[16];  // time

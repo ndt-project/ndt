@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle C2S throughput
  * test (client part).
  *
- * Jakub S�awi�ski 2006-08-02
+ * Jakub Sławiński 2006-08-02
  * jeremian@poczta.fm
  */
 
@@ -23,8 +23,17 @@ int pkts, lth;
 int sndqueue;
 double spdout, c2sspd;
 
+typedef struct c2sWriteWorkerArgs {
+  int connectionId;
+  int socketDescriptor;
+  double stopTime;
+  char* buff;
+} WriteWorkerArgs;
+
+void* c2sWriteWorker(void* arg);
+
 /**
- * Client to server throughput test. This test performs 10 seconds
+ * Client to server throughput test. This test performs testDuration seconds
  * memory-to-memory data transfer to test achievable network bandwidth.
  *
  * @param ctlSocket Socket on which messages are received from the server
@@ -39,6 +48,7 @@ double spdout, c2sspd;
  *		2: Unexpected protocol message (type) received
  *		3: Improper message payload
  *		4: Incorrect message data received
+ *    -1: Unable to create worker threads
  *		-3: Unable to resolve server address
  *		-11: Cannot connect to server
  *
@@ -55,11 +65,22 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   int msgLen, msgType;  // message related data
   int c2sport = atoi(PORT2);  // default C2S port
   I2Addr sec_addr = NULL;  // server address
+  I2Addr sec_addresses[7];  // server addresses per thread
   int retcode;  // return code
   int one = 1;  // socket option store
   int i, k;  // temporary iterator
+  C2SWriteWorkerArgs writeWorkerArgs[7]; // write workers parameters
+  pthread_t writeWorkerIds[7];        // write workers ids
   int outSocket;  // socket descriptor for the outgoing connection
   double t, stop_time;  // test-time indicators
+  double testDuration = 10; // default test duration
+  char* strtokptr;  // pointer used by the strtok method
+#ifdef EXTTESTS_ENABLED
+  int throughputsnaps = 0; // enable the throughput snapshots writing
+  int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
+  int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
+#endif
+  int threadsnum = 1;      // specify the number of threads (parallel TCP connections)
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = C2S;
@@ -100,10 +121,40 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Server sends port number to bind to in the TEST_PREPARE. Check if this
     // message body (string) is a valid integral port number.
+#ifdef EXTTESTS_ENABLED
+    if (tests & TEST_EXT) {
+      strtokptr = strtok(buff, " ");
+      c2sport = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      testDuration = atoi(strtokptr) / 1000.0;
+      strtokptr = strtok(NULL, " ");
+      throughputsnaps = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      snapsdelay = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      snapsoffset = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      threadsnum = atoi(strtokptr);
+
+      log_println(1, "  -- test duration: %.1fs", testDuration);
+      log_println(1, "  -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
+                           throughputsnaps ? "true" : "false", snapsdelay, snapsoffset);
+      log_println(1, "  -- threads: %d", threadsnum);
+      lastThroughputSnapshot = NULL;
+    }
+    else {
+      if (check_int(buff, &c2sport)) {
+        log_println(0, "Invalid port number");
+        return 4;
+      }
+    }
+#else
     if (check_int(buff, &c2sport)) {
       log_println(0, "Invalid port number");
       return 4;
     }
+#endif
+
     log_println(1, "  -- port: %d", c2sport);
 
     // make struct of "address details" of the server using the host name
@@ -113,14 +164,15 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     }
     I2AddrSetPort(sec_addr, c2sport);  // set port value
 
-    // connect to server  and set socket options
-    if ((retcode = CreateConnectSocket(&outSocket, NULL, sec_addr, conn_options,
-                                       buf_size))) {
-      log_println(0, "Connect() for client to server failed", strerror(errno));
-      return -11;
-    }
+    for (i = 0; i < threadsnum; ++i) {
+      sec_addresses[i] = I2AddrCopy(sec_addr);
 
-    setsockopt(outSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+      if ((retcode = CreateConnectSocket(&(writeWorkerArgs[i].socketDescriptor), NULL, sec_addresses[i], conn_options, buf_size))) {
+        log_println(0, "Connect() for client to server failed (connection %d)", strerror(errno), i+1);
+        return -11;
+      }
+      setsockopt(writeWorkerArgs[i].socketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+    }
 
     // Expect a TEST_START message from server now. Any other message
     // type is an error
@@ -134,8 +186,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       return 2;
     }
 
-    // Prepare for running a C->S throughput test
-    printf("running 10s outbound test (client to server) . . . . . ");
+    printf("running %.1fs outbound test (client to server) . . . . . ", testDuration);
     fflush(stdout);
 
     // ....Fill buffer upto NDTConstants.PREDEFNED_BUFFER_SIZE packets
@@ -149,30 +200,50 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       buff[i] = (k++ % 0x7f);
     }
 
-    // set the test time to 10 seconds
+    // set the test time to testDuration seconds
     t = secs();
-    stop_time = t + 10;
+    stop_time = t + testDuration;
     /* ignore the pipe signal */
     memset(&new, 0, sizeof(new));
     new.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &new, &old);
 
-    // While the 10 s timer ticks, stream data to server. Record the byte count
-    do {
-      write(outSocket, buff, lth);
-      pkts++;
-    }while (secs() < stop_time);
+    for (i = 0; i < threadsnum; ++i) {
+      writeWorkerArgs[i].connectionId = i + 1;
+      writeWorkerArgs[i].stopTime = stop_time;
+      writeWorkerArgs[i].buff = buff;
+    }
+
+    if (threadsnum == 1) {
+      c2sWriteWorker((void*) &writeWorkerArgs[0]);
+    }
+    else {
+      for (i = 0; i < threadsnum; ++i) {
+        if (pthread_create(&writeWorkerIds[i], NULL, c2sWriteWorker, (void*) &writeWorkerArgs[i])) {
+          log_println(0, "Cannot create write worker thread for throughput upload test!");
+          writeWorkerIds[i] = 0;
+          return -1;
+        }
+      }
+
+      for (i = 0; i < threadsnum; ++i) {
+        pthread_join(writeWorkerIds[i], NULL);
+      }
+    }
+ 
     sigaction(SIGPIPE, &old, NULL);
-    sndqueue = sndq_len(outSocket);  // get send-queue length
+    sndqueue = sndq_len(writeWorkerArgs[0].socketDescriptor);  // get send-queue length
 
     // get actual duration for which data was sent to the server
     t = secs() - t;
+    for (i = 0; i < threadsnum; ++i) {
+      I2AddrFree(sec_addresses[i]);
+    }
     I2AddrFree(sec_addr);
 
     // Calculate C2S throughput in kbps
     spdout = ((BITS_8_FLOAT * pkts * lth) / KILO) / t;
-    // log_println(6," ---C->S CLT speed=%0.0f, pkts= %d, lth=%d, time=%d",
-    //             spdout, pkts, lth, t);
+    log_println(6, " ---C->S CLT speed=%0.0f, pkts= %d, lth=%d, time=%0.0f", spdout, pkts, lth, t);
 
 
     // The client has stopped streaming data, and the server is now
@@ -204,6 +275,24 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     else {
       c2sspd = atoi(buff);
     }
+#ifdef EXTTESTS_ENABLED
+    if (throughputsnaps != NULL) {
+      char* strtokptr = strtok(buff, " ");
+      while ((strtokptr = strtok(NULL, " ")) != NULL) {
+        if (lastThroughputSnapshot != NULL) {
+          lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          lastThroughputSnapshot = lastThroughputSnapshot->next;
+        }
+        else {
+          uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        }
+        lastThroughputSnapshot->next = NULL;
+        lastThroughputSnapshot->time = atof(strtokptr);
+        strtokptr = strtok(NULL, " ");
+        lastThroughputSnapshot->throughput = atof(strtokptr);
+      }
+    }
+#endif
 
     // Print results in the most convenient units (kbps or Mbps)
     if (c2sspd < KILO)
@@ -229,4 +318,35 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     setCurrentTest(TEST_NONE);
   }
   return 0;
+}
+
+void* c2sWriteWorker(void* arg) {
+  C2SWriteWorkerArgs *workerArgs = (C2SWriteWorkerArgs*) arg;
+  int connectionId = workerArgs->connectionId;
+  int socketDescriptor = workerArgs->socketDescriptor;
+  double stopTime = workerArgs->stopTime;
+  char* threadBuff = workerArgs->buff;
+  double threadBytes = 0;
+  int threadPackets = 0, n;
+  double threadTime = secs();
+
+  do {
+    n = write(socketDescriptor, threadBuff, lth); // TODO avoid snd block
+    // socket interrupted, continue attempting to write
+    if ((n == -1) && (errno == EINTR))
+      continue;
+    if (n < 0)
+      break;  // all data written. Exit
+    threadPackets++;
+    threadBytes += n;
+  } while (secs() < stopTime);
+
+  if (connectionId == 1) {
+    pkts = threadPackets;
+  }
+
+  log_println(6, " ---C->S CLT thread %d (sc %d): speed=%0.0f, bytes=%0.0f, pkts= %d, lth=%d, time=%0.0f", connectionId, socketDescriptor,
+                 ((BITS_8_FLOAT * threadBytes) / KILO) / (secs() - threadTime), threadBytes, threadPackets, lth, secs() - threadTime);
+
+  return NULL;
 }

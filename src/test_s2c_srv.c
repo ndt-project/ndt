@@ -26,6 +26,15 @@
 extern pthread_mutex_t mainmutex;
 extern pthread_cond_t maincond;
 
+typedef struct s2cWriteWorkerArgs {
+  int connectionId;
+  int socketDescriptor;
+  double stopTime;
+  char* buff;
+} S2CWriteWorkerArgs;
+ 
+void* s2cWriteWorker(void* arg);
+
 const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 
 /**
@@ -65,6 +74,7 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  *				-2 	   - Cannot write message data while attempting to send
  *           		 TEST_PREPARE message, or Unexpected message type received
  *           	-3 	   -  Received message is invalid
+ *             -4: Unable to create worker threads
  *          	-100   - timeout while waiting for client to connect to server�s ephemeral port
  *				-101   - Retries exceeded while waiting for client to connect
  *				-102   - Retries exceeded while waiting for data from connected client
@@ -78,31 +88,35 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
    */
-  web100_snapshot* tsnap = NULL;
-  web100_snapshot* rsnap = NULL;
-  web100_group* tgroup;
-  web100_group* rgroup;
+  web100_snapshot* tsnap[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+  web100_snapshot* rsnap[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+  web100_group* tgroup[7];
+  web100_group* rgroup[7];
   web100_var* var;
 #elif USE_WEB10G
-  estats_val_data* snap;
+  estats_val_data* snap[7]; // up to 7 connections
 #endif
-  tcp_stat_connection conn;
+  tcp_stat_connection conn[7]; // up to 7 connections
   /* Just a holder for web10g */
   tcp_stat_group* group = NULL;
   /* Pipe that handles returning packet pair timing */
   int mon_pipe[2];
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
-  int xmitsfd;  // transmit (i.e server) socket fd
+  int threadsNum = 1;
+  S2CWriteWorkerArgs writeWorkerArgs[7]; // write workers parameters
+  pthread_t writeWorkerIds[7];        // write workers ids
+  int xmitsfd[7];  // transmit (i.e server) socket fds (up to 7)
   pid_t s2c_childpid = 0;  // s2c_childpid
 
   char tmpstr[256];  // string array used for temp storage of many char*
-  struct sockaddr_storage cli_addr;
+  struct sockaddr_storage cli_addr[7];
 
   socklen_t clilen;
   double bytes_written;  // bytes written in the throughput test
   double tx_duration;  // total time for which data was txed
   double tmptime;  // temporary time store
+  double testDuration = 10; // default test duration
   double x2cspd;  // s->c test throughput
   struct timeval sel_tv;  // time
   fd_set rfd;  // receive file descriptor
@@ -208,14 +222,29 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // run tests
     testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
     testOptions->s2csockport = I2AddrPort(s2csrv_addr);
-    log_println(1, "  -- s2c %d port: %d", testOptions->child0,
-                testOptions->s2csockport);
+    log_println(1, "  -- s2c %d port: %d", testOptions->child0, testOptions->s2csockport);
+#ifdef EXTTESTS_ENABLED
+    if (testOptions->exttestsopt) {
+      log_println(1, "  -- s2c ext -- duration = %d", options->dduration);
+      log_println(1, "  -- s2c ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
+                          options->dthroughputsnaps ? "true" : "false", options->dsnapsdelay, options->dsnapsoffset);
+      log_println(1, "  -- s2c ext -- number of threads: %d", options->dthreadsnum);
+    }
+#endif
     pair.port1 = -1;
     pair.port2 = testOptions->s2csockport;
 
     // Data received from speed-chk. Send TEST_PREPARE "GO" signal with port
     // number
     snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
+#ifdef EXTTESTS_ENABLED
+    if (testOptions->exttestsopt) {
+      snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->s2csockport,
+               options->dduration, options->dthroughputsnaps,
+               options->dsnapsdelay, options->dsnapsoffset, options->dthreadsnum);
+      lastThroughputSnapshot = NULL;
+    }
+#endif
     j = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
                           testOptions->json_support, JSON_SINGLE_VALUE);
     if (j == -1) {
@@ -236,12 +265,20 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     log_println(1, "%d waiting for data on testOptions->s2csockfd",
                 testOptions->child0);
 
-    clilen = sizeof(cli_addr);
+    clilen = sizeof(cli_addr[0]);
     FD_ZERO(&rfd);
     FD_SET(testOptions->s2csockfd, &rfd);
     sel_tv.tv_sec = 5;  // wait for 5 secs
     sel_tv.tv_usec = 0;
-    for (j = 0; j < RETRY_COUNT; j++) {
+    i = 0;
+#ifdef EXTTESTS_ENABLED 
+    if (testOptions->exttestsopt) {
+      threadsNum = options->dthreadsnum;
+      testDuration = options->dduration / 1000.0;
+    }
+#endif
+ 
+    for (j = 0; j < RETRY_COUNT*threadsNum; j++) {
       ret = select((testOptions->s2csockfd) + 1, &rfd, NULL, NULL,
                    &sel_tv);
       if ((ret == -1) && (errno == EINTR))
@@ -250,25 +287,26 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         return SOCKET_CONNECT_TIMEOUT;  // timeout
       if (ret < 0)
         return -errno;  // other socket errors. exit
-      if (j == 4)
+      if (j == (RETRY_COUNT*threadsNum - 1))
         return RETRY_EXCEEDED_WAITING_CONNECT;  // retry exceeded. exit
 
       // If a valid connection request is received, client has connected.
       // Proceed.
       // Note the new socket fd - xmitfd - used in the throughput test
-ximfd: xmitsfd = accept(testOptions->s2csockfd,
-                        (struct sockaddr *) &cli_addr, &clilen);
-       if (xmitsfd > 0) {
-         log_println(6, "accept() for %d completed",
-                     testOptions->child0);
+ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr[i], &clilen);
+       if (xmitsfd[i] > 0) {
+        i++;
+         log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
+         if (i < threadsNum) {
+           continue;
+         }
          procstatusenum = PROCESS_STARTED;
          proctypeenum = CONNECT_TYPE;
-         protolog_procstatus(testOptions->child0, testids, proctypeenum,
-                             procstatusenum, xmitsfd);
+         protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, xmitsfd[0]);
          break;
        }
        // socket interrupted, wait some more
-       if ((xmitsfd == -1) && (errno == EINTR)) {
+       if ((xmitsfd[i] == -1) && (errno == EINTR)) {
          log_println(
              6,
              "Child %d interrupted while waiting for accept() to complete",
@@ -279,9 +317,9 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
            6,
            "-------     S2C connection setup for %d returned because (%d)",
            testOptions->child0, errno);
-       if (xmitsfd < 0)  // other socket errors, quit
+       if (xmitsfd[i] < 0)   // other socket errors, quit
          return -errno;
-       if (++j == 4) {  // retry exceeded, quit
+        if (j == (RETRY_COUNT*threadsNum - 1)) {  // retry exceeded, quit
          log_println(
              6,
              "s2c child %d, unable to open connection, return from test",
@@ -289,36 +327,33 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
          return -102;
        }
     }
-    src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
-    conn = tcp_stat_connection_from_socket(agent, xmitsfd);
+    src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd[0], 0);
+    for (i = 0; i < threadsNum; ++i) {
+      conn[i] = tcp_stat_connection_from_socket(agent, xmitsfd[i]); 
+    }
 
     // set up packet capture. The data collected is used for bottleneck link
     // calculations
-    if (xmitsfd > 0) {
+    if (xmitsfd[0] > 0) {
       log_println(6, "S2C child %d, ready to fork()",
                   testOptions->child0);
       if (getuid() == 0) {
-        /*
-           pipe(mon_pipe2);
-           start_packet_trace(xmitsfd, testOptions->s2csockfd,
-           &s2c_childpid, mon_pipe2, (struct sockaddr *) &cli_addr,
-           clilen, device, &pair, "s2c", options->compress,
-           meta.s2c_ndttrace);
-           */
         pipe(mon_pipe);
         if ((s2c_childpid = fork()) == 0) {
           /* close(ctlsockfd); */
           close(testOptions->s2csockfd);
-          close(xmitsfd);
+          for (i = 0; i < threadsNum; i++) {
+            close(xmitsfd[i]);
+          }
           log_println(
               5,
               "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
               mon_pipe[0], mon_pipe[1]);
-          // log_println(2, "S2C test calling init_pkttrace() with pd=0x%x",
-          //             (int) &cli_addr);
-          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
+          log_println(2, "S2C test calling init_pkttrace() with pd=%p",
+                      &cli_addr[0]);
+          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr[0],
                         clilen, mon_pipe, device, &pair, "s2c",
-                        options->compress);
+                        options->dduration / 1000.0);
           log_println(6,
                       "S2C test ended, why is timer still running?");
           /* Close the pipe */
@@ -342,7 +377,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       }
 
       /* experimental code, delete when finished */
-      setCwndlimit(conn, group, agent, options);
+      setCwndlimit(conn[0], group, agent, options);
       /* End of test code */
 
       // create directory to write web100 snaplog trace
@@ -357,14 +392,16 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
         system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
+      for (i = 0; i < threadsNum; ++i) {
 #if USE_WEB100
-      rgroup = web100_group_find(agent, "read");
-      rsnap = web100_snapshot_alloc(rgroup, conn);
-      tgroup = web100_group_find(agent, "tune");
-      tsnap = web100_snapshot_alloc(tgroup, conn);
+        rgroup[i] = web100_group_find(agent, "read");
+        rsnap[i] = web100_snapshot_alloc(rgroup[i], conn[i]);
+        tgroup[i] = web100_group_find(agent, "tune");
+        tsnap[i] = web100_snapshot_alloc(tgroup[i], conn[i]);
 #elif USE_WEB10G
-      estats_val_data_new(&snap);
+        estats_val_data_new(&snap[i]);
 #endif
+    }
 
       // fill send buffer with random printable data for throughput test
       bytes_written = 0;
@@ -400,77 +437,93 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         conn, group);*///new file changes
       start_snap_worker(&snapArgs, agent, peaks, options->snaplog,
                         &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
-                        conn, group);
+                        conn[0], group);
 
       /* alarm(20); */
       tmptime = secs();  // current time
-      tx_duration = tmptime + 10.0;  // set timeout to 10 s in future
+      tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
+
+      for (i = 0; i < threadsNum; ++i) {  
+        writeWorkerArgs[i].connectionId = i + 1;
+        writeWorkerArgs[i].socketDescriptor = xmitsfd[i];
+        writeWorkerArgs[i].stopTime = tx_duration; 
+        writeWorkerArgs[i].buff = buff;
+      }
+
 
       log_println(6, "S2C child %d beginning test", testOptions->child0);
 
-      while (secs() < tx_duration) {
+      if (threadsNum == 1) {
+        while (secs() < tx_duration) {
         // Increment total attempts at sending-> buffer control
         bufctrlattempts++;
-        if (options->avoidSndBlockUp) {  // Do not block send buffers
-          pthread_mutex_lock(&mainmutex);
+          if (options->avoidSndBlockUp) {  // Do not block send buffers
+            pthread_mutex_lock(&mainmutex);
 
-          // get details of next sequence # to be sent and fetch value from
-          // snap file
+            // get details of next sequence # to be sent and fetch value from snap file
 #if USE_WEB100
-          web100_agent_find_var_and_group(agent, "SndNxt", &group,
-                                          &var);
-          web100_snap_read(var, snapArgs.snap, tmpstr);
-          nextseqtosend = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   tmpstr));
-          // get oldest un-acked sequence number
-          web100_agent_find_var_and_group(agent, "SndUna", &group,
-                                          &var);
-          web100_snap_read(var, snapArgs.snap, tmpstr);
-          lastunackedseq = atoi(
-              web100_value_to_text(web100_get_var_type(var),
-                                   tmpstr));
+            web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
+            web100_snap_read(var, snapArgs.snap, tmpstr);
+            nextseqtosend = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
+            // get oldest un-acked sequence number
+            web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
+            web100_snap_read(var, snapArgs.snap, tmpstr);
+            lastunackedseq = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
 #elif USE_WEB10G
-          struct estats_val value;
-          web10g_find_val(snapArgs.snap, "SndNxt", &value);
-          nextseqtosend = value.uv32;
-          web10g_find_val(snapArgs.snap, "SndUna", &value);
-          lastunackedseq = value.uv32;
+            struct estats_val value;
+            web10g_find_val(snapArgs.snap, "SndNxt", &value);
+            nextseqtosend = value.uv32;
+            web10g_find_val(snapArgs.snap, "SndUna", &value);
+            lastunackedseq = value.uv32;
 #endif
-          pthread_mutex_unlock(&mainmutex);
+            pthread_mutex_unlock(&mainmutex);
 
-          // Temporarily stop sending data if you sense that the buffer is
-          // overwhelmed
-          // This is calculated by checking if (8192 * 4) <
-          //    ((Next Sequence Number To Be Sent) -
-          //     (Oldest Unacknowledged Sequence Number) - 1)
-          if (is_buffer_clogged(nextseqtosend, lastunackedseq)) {
-            // Increment draining queue value
-            drainingqueuecount++;
+            // Temporarily stop sending data if you sense that the buffer is overwhelmed
+            // This is calculated by checking if (8192 * 4) < ((Next Sequence Number To Be Sent) - (Oldest Unacknowledged Sequence Number) - 1)
+            if (is_buffer_clogged(nextseqtosend, lastunackedseq)) {
+              // Increment draining queue value
+              drainingqueuecount++;
+              continue;
+            }
+          }
+
+          // attempt to write random data into the client socket
+          n = write(xmitsfd[0], buff, RECLTH);
+          // socket interrupted, continue attempting to write
+          if ((n == -1) && (errno == EINTR))
             continue;
+          if (n < 0)
+            break;  // all data written. Exit
+          bytes_written += n;
+
+          if (options->avoidSndBlockUp) {
+            bufctlrnewdata++;  // increment "sent data" queue
+          }
+        }  // Completed end of trying to transmit data for the goodput test
+      }
+      else {
+        for (i = 0; i < threadsNum; ++i) {
+          if (pthread_create(&writeWorkerIds[i], NULL, s2cWriteWorker, (void*) &writeWorkerArgs[i])) {
+            log_println(0, "Cannot create write worker thread for throughput download test!");
+            writeWorkerIds[i] = 0;
+            return -4;
           }
         }
 
-        // attempt to write random data into the client socket
-        n = write(xmitsfd, buff, RECLTH);
-        // socket interrupted, continue attempting to write
-        if ((n == -1) && (errno == EINTR))
-          continue;
-        if (n < 0)
-          break;  // all data written. Exit
-        bytes_written += n;
-
-        if (options->avoidSndBlockUp) {
-          bufctlrnewdata++;  // increment "sent data" queue
+        for (i = 0; i < threadsNum; ++i) {
+          pthread_join(writeWorkerIds[i], NULL);
         }
-      }  // Completed end of trying to transmit data for the goodput test
+      }
+
       /* alarm(10); */
       sigaction(SIGALRM, &old, NULL);
-      sndqueue = sndq_len(xmitsfd);
+      sndqueue = sndq_len(xmitsfd[0]);
 
       // finalize the midbox test ; disabling socket used for throughput test
       log_println(6, "S2C child %d finished test", testOptions->child0);
-      shutdown(xmitsfd, SHUT_WR); /* end of write's */
+      for (i = 0; i < threadsNum; i++) {
+        shutdown(xmitsfd[i], SHUT_WR); /* end of write's */
+      }
 
       // get actual time duration during which data was transmitted
       tx_duration = secs() - tmptime;
@@ -503,13 +556,14 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
               s2c_childpid);
       }
 
-
+      for (i = 0; i < threadsNum; ++i) {
 #if USE_WEB100
-      web100_snap(rsnap);
-      web100_snap(tsnap);
+        web100_snap(rsnap[i]);
+        web100_snap(tsnap[i]);
 #elif USE_WEB10G
-      estats_read_vars(snap, conn, agent);
+        estats_read_vars(snap[i], conn[i], agent);
 #endif
+      }
 
       log_println(1, "sent %d bytes to client in %0.2f seconds",
                   (int) bytes_written, tx_duration);
@@ -594,14 +648,20 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
-    web100_snapshot_free(tsnap);
+    ret = tcp_stat_get_data(tsnap, xmitsfd, threadsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+     for (i = 0; i < threadsNum; ++i) {
+      web100_snapshot_free(tsnap[i]);
+    }
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
-    web100_snapshot_free(rsnap);
+    ret = tcp_stat_get_data(rsnap, xmitsfd, threadsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    for (i = 0; i < threadsNum; ++i) {
+      web100_snapshot_free(rsnap[i]); 
+    }
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars, testOptions->json_support);
-    estats_val_data_free(&snap);
+    ret = tcp_stat_get_data(snap, xmitsfd, threadsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    for (i = 0; i < threadsNum; ++i) {
+      estats_val_data_free(&snap[i]); 
+    }
 #endif
 
     // If sending web100 variables above failed, indicate to client
@@ -655,10 +715,30 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       return -3;
     }
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
+#ifdef EXTTESTS_ENABLED 
+    if (testOptions->exttestsopt && options->dthroughputsnaps) {
+      char* strtokptr = strtok(buff, " ");
+      while ((strtokptr = strtok(NULL, " ")) != NULL) {
+        if (lastThroughputSnapshot != NULL) {
+          lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          lastThroughputSnapshot = lastThroughputSnapshot->next;
+        }
+        else {
+          dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        }
+        lastThroughputSnapshot->next = NULL;
+        lastThroughputSnapshot->time = atof(strtokptr);
+        strtokptr = strtok(NULL, " ");
+        lastThroughputSnapshot->throughput = atof(strtokptr);
+      }
+    }
+#endif
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client
-    close(xmitsfd);
+    for (i = 0; i < threadsNum; i++) {
+      close(xmitsfd[i]);
+    }
     if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
                           testOptions->json_support, JSON_SINGLE_VALUE) < 0)
       log_println(6,
@@ -678,4 +758,33 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
     setCurrentTest(TEST_NONE);
   }
   return 0;
+}
+
+void* s2cWriteWorker(void* arg) {
+  S2CWriteWorkerArgs *workerArgs = (S2CWriteWorkerArgs*) arg;
+  int connectionId = workerArgs->connectionId;
+  int socketDescriptor = workerArgs->socketDescriptor;
+  double stopTime = workerArgs->stopTime;
+  char* threadBuff = workerArgs->buff;
+  double threadBytes = 0;
+  int threadPackets = 0, n;
+  double threadTime = secs();
+ 
+ 
+  while (secs() < stopTime) {
+    // attempt to write random data into the client socket
+    n = write(socketDescriptor, threadBuff, RECLTH); // TODO avoid snd block
+    // socket interrupted, continue attempting to write
+    if ((n == -1) && (errno == EINTR))
+      continue;
+    if (n < 0)
+      break;  // all data written. Exit
+    threadPackets++;
+    threadBytes += n;
+  }
+ 
+  log_println(6, " ---S->C thread %d (sc %d): speed=%0.0f, bytes=%0.0f, pkts=%d, lth=%d, time=%0.0f", connectionId, socketDescriptor,
+                 ((BITS_8_FLOAT * threadBytes) / KILO) / (secs() - threadTime), threadBytes, threadPackets, RECLTH, secs() - threadTime);
+ 
+  return NULL;
 }

@@ -66,19 +66,25 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
-  int recvsfd;  // receiver socket file descriptor
+  int recvsfd[7];  // receiver socket file descriptors (up to 7)
   pid_t c2s_childpid = 0;  // child process pids
   int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
   int i, j;  // used as loop iterators
+  int threadsNum = 1;
+  int activeThreads = 1;
 
   struct sockaddr_storage cli_addr;
 
   socklen_t clilen;
   char tmpstr[256];  // string array used for all sorts of temp storage purposes
   double tmptime;  // time indicator
+#ifdef EXTTESTS_ENABLED
+  double throughputSnapshotTime; // specify the next snapshot time
+#endif
+  double testDuration = 10; // default test duration
   double bytes_read = 0;  // number of bytes read during the throughput tests
   struct timeval sel_tv;  // time
-  fd_set rfd;  // receive file descriptor
+  fd_set rfd, tmpRfd;  // receive file descriptors
   char buff[BUFFSIZE + 1];  // message "payload" buffer
   PortPair pair;  // socket ports
   I2Addr c2ssrv_addr = NULL;  // c2s test's server address
@@ -159,7 +165,18 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // run tests
     testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
-    log_println(1, "  -- port: %d", testOptions->c2ssockport);
+    log_println(1, "  -- c2s %d port: %d", testOptions->child0, testOptions->c2ssockport);
+#ifdef EXTTESTS_ENABLED
+    if (testOptions->exttestsopt) {
+      log_println(1, "  -- c2s ext -- duration = %d", options->uduration);
+      log_println(1, "  -- c2s ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
+                          options->uthroughputsnaps ? "true" : "false", options->usnapsdelay, options->usnapsoffset);
+      log_println(1, "  -- c2s ext -- number of threads: %d", options->uthreadsnum);
+    }
+ 
+ 
+169
+#endif
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
 
@@ -173,6 +190,14 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         "Sending 'GO' signal, to tell client %d to head for the next test",
         testOptions->child0);
     snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
+#ifdef EXTTESTS_ENABLED
+    if (testOptions->exttestsopt) {
+      snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->c2ssockport,
+                     options->uduration, options->uthroughputsnaps, 
+                     options->usnapsdelay, options->usnapsoffset, options->uthreadsnum);
+      lastThroughputSnapshot = NULL;
+    }
+#endif
 
     // send TEST_PREPARE message with ephemeral port detail, indicating start
     // of tests
@@ -190,10 +215,16 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     FD_SET(testOptions->c2ssockfd, &rfd);
     sel_tv.tv_sec = 5;
     sel_tv.tv_usec = 0;
+    i = 0;
+#ifdef EXTTESTS_ENABLED 
+    if (testOptions->exttestsopt) {
+      threadsNum = options->uthreadsnum;
+      testDuration = options->uduration / 1000.0;
+    }
+#endif
 
-    for (j = 0; j < RETRY_COUNT; j++) {
-      msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL,
-                           &sel_tv);
+    for (j = 0; j < RETRY_COUNT * threadsNum; j++) {
+      msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL, &sel_tv); // TODO
       // socket interrupted. continue waiting for activity on socket
       if ((msgretvalue == -1) && (errno == EINTR))
         continue;
@@ -201,27 +232,29 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         return -SOCKET_CONNECT_TIMEOUT;
       if (msgretvalue < 0)  // other socket errors. exit
         return -errno;
-      if (j == (RETRY_COUNT - 1))  // retry exceeded. exit
+      if (j == (RETRY_COUNT*threadsNum - 1))  // retry exceeded. exit
         return -RETRY_EXCEEDED_WAITING_CONNECT;
  recfd:
 
       // If a valid connection request is received, client has connected.
       // Proceed.  Note the new socket fd - recvsfd- used in the throughput test
-      recvsfd = accept(testOptions->c2ssockfd,
-                       (struct sockaddr *) &cli_addr, &clilen);
-      if (recvsfd > 0) {
-        log_println(6, "accept() for %d completed",
-                    testOptions->child0);
+      recvsfd[i] = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr[i], &clilen);
+      if (recvsfd[i] > 0) {
+        i++;
+        log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
+
+        if (i < threadsNum) {
+          continue;
+        }
 
         // log protocol validation indicating client accept
         procstatusenum = PROCESS_STARTED;
         proctypeenum = CONNECT_TYPE;
-        protolog_procstatus(testOptions->child0, testids, proctypeenum,
-                            procstatusenum, recvsfd);
+        protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[i]);
         break;
       }
       // socket interrupted, wait some more
-      if ((recvsfd == -1) && (errno == EINTR)) {
+      if ((recvsfd[i] == -1) && (errno == EINTR)) {
         log_println(
             6,
             "Child %d interrupted while waiting for accept() to complete",
@@ -232,10 +265,10 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           6,
           "-------     C2S connection setup for %d returned because (%d)",
           testOptions->child0, errno);
-      if (recvsfd < 0) {  // other socket errors, quit
+      if (recvsfd[i] < 0) {  // other socket errors, quit
         return -errno;
       }
-      if (j == (RETRY_COUNT - 1)) {  // retry exceeded, quit
+      if (j == (RETRY_COUNT*threadsNum - 1)) {  // retry exceeded, quit
         log_println(
             6,
             "c2s child %d, uable to open connection, return from test",
@@ -245,40 +278,31 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     }
 
     // Get address associated with the throughput test. Used for packet tracing
-    log_println(6, "child %d - c2s ready for test with fd=%d",
-                testOptions->child0, recvsfd);
+    log_println(6, "child %d - c2s ready for test with fd=%d", testOptions->child0, recvsfd[i]);
 
     // commenting out below to move to init_pkttrace function
-    I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd, 0);
+    I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd[i], 0);
 
     // Get tcp_stat connection. Used to collect tcp_stat variable statistics
-    conn = tcp_stat_connection_from_socket(agent, recvsfd);
+    conn = tcp_stat_connection_from_socket(agent, recvsfd[i]);
 
     // set up packet tracing. Collected data is used for bottleneck link
     // calculations
     if (getuid() == 0) {
-      /*
-         pipe(mon_pipe1);
-         log_println(0, "%s test calling pkt_trace_start() with pd=%d for device %s, addr %s",
-         currenttestdesc, clilen, device , src_addr);
-
-         start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
-         mon_pipe1, (struct sockaddr *) &cli_addr, clilen, device,
-         &pair, currenttestdesc, options->compress, meta.c2s_ndttrace);
-         */
-
       pipe(mon_pipe);
       if ((c2s_childpid = fork()) == 0) {
         /* close(ctlsockfd); */
         close(testOptions->c2ssockfd);
-        close(recvsfd);
+        for (i = 0; i < threadsNum; i++) {
+          close(recvsfd[i]);
+        }
         log_println(
             5,
             "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
             testOptions->child0, mon_pipe[0], mon_pipe[1]);
         log_println(2, "C2S test calling init_pkttrace() with pd=%p",
-                    &cli_addr);
-        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
+                    &cli_addr[0]);
+        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr[0], clilen,
                       mon_pipe, device, &pair, "c2s", options->compress);
         log_println(1, "c2s is exiting gracefully");
         /* Close the pipe */
@@ -311,7 +335,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // Create C->S snaplog directories, and perform some initialization based on
     // options
-    create_client_logdir((struct sockaddr *) &cli_addr, clilen,
+    create_client_logdir((struct sockaddr *) &cli_addr[0], clilen,
                          options->c2s_logname, sizeof(options->c2s_logname),
                          namesuffix,
                          sizeof(namesuffix));
@@ -337,26 +361,61 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                       meta.c2s_snaplog, options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
-    sel_tv.tv_sec = 11;  // time out after 11 seconds
+#ifdef EXTTESTS_ENABLED
+    throughputSnapshotTime = tmptime + (options->usnapsoffset / 1000.0);
+#endif
+    sel_tv.tv_sec = testDuration + 1;  // time out after test duration + 1sec
     sel_tv.tv_usec = 0;
     FD_ZERO(&rfd);
-    FD_SET(recvsfd, &rfd);
+    activeThreads = threadsNum;
+    for (i = 0; i < threadsNum; i++) {
+      FD_SET(recvsfd[i], &rfd);
+    }
     for (;;) {
-      msgretvalue = select(recvsfd + 1, &rfd, NULL, NULL, &sel_tv);
+readMainLoop:
+      tmpRfd = rfd;
+      msgretvalue = select(recvsfd[threadsNum-1] + 1, &tmpRfd, NULL, NULL, &sel_tv);
+#ifdef EXTTESTS_ENABLED
+    if (testOptions->exttestsopt && options->uthroughputsnaps && secs() > throughputSnapshotTime) {
+      if (lastThroughputSnapshot != NULL) {
+        lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        lastThroughputSnapshot = lastThroughputSnapshot->next;
+      }
+      else {
+        uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+      }
+      lastThroughputSnapshot->next = NULL;
+      lastThroughputSnapshot->time = secs() - tmptime;
+      lastThroughputSnapshot->throughput = (8.e-3 * bytes_read) / (lastThroughputSnapshot->time);  // kbps
+      log_println(6, " ---C->S: Throughput at %0.2f secs: Received %0.0f bytes, Spdin= %f",
+                     lastThroughputSnapshot->time, bytes_read, lastThroughputSnapshot->throughput);
+      throughputSnapshotTime += options->usnapsdelay / 1000.0;
+    }
+#endif
       if ((msgretvalue == -1) && (errno == EINTR)) {
         // socket interrupted. Continue waiting for activity on socket
         continue;
       }
       if (msgretvalue > 0) {  // read from socket
-        tmpbytecount = read(recvsfd, buff, sizeof(buff));
-        // read interrupted, continue waiting
-        if ((tmpbytecount == -1) && (errno == EINTR))
-          continue;
-        if (tmpbytecount == 0)  // all data has been read
-          break;
-        bytes_read += tmpbytecount;  // data byte count has to be increased
+        for (i = 0; i < threadsNum; i++) {
+          if (FD_ISSET(recvsfd[i], &tmpRfd)) {
+            tmpbytecount = read(recvsfd[i], buff, sizeof(buff));
+            // read interrupted, continue waiting
+            if ((tmpbytecount == -1) && (errno == EINTR))
+              goto readMainLoop;
+            if (tmpbytecount == 0) { // all data has been read
+               activeThreads--;
+               FD_CLR(recvsfd[i], &rfd);
+               if (activeThreads == 0) {
+                 goto breakMainLoop;
+               }
+            }
+            bytes_read += tmpbytecount;  // data byte count has to be increased
+          }
+        }
         continue;
       }
+breakMainLoop:
       break;
     }
 
@@ -374,15 +433,27 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
+#ifdef EXTTESTS_ENABLED
+    if (uThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = uThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        int currBuffLength = strlen(buff);
+        snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
+      }
+    }
+#endif
     send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
 
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
     if (record_reverse == 1)
-      tcp_stat_get_data_recv(recvsfd, agent, conn, count_vars);
+      tcp_stat_get_data_recv(recvsfd[i], agent, conn, count_vars);
 
 
-    close(recvsfd);
+    for (i = 0; i < threadsNum; i++) {
+      close(recvsfd[i]);
+    }
     close(testOptions->c2ssockfd);
 
     // Next, send speed-chk a flag to retrieve the data it collected.

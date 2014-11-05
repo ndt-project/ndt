@@ -468,6 +468,35 @@ void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
          "'%3d'\n", s2c_linkspeed_data, s2c_linkspeed_ack);
 }
 
+#ifdef EXTTESTS_ENABLED
+/**
+ * Print calculated throughput snapshots
+ *
+ * @param dThroughputSnapshots Throughput snapshots calculated during s2c test
+ * @param uThroughputSnapshots Throughput snapshots calculated during c2s test
+ */
+void print_throughput_snapshots(struct throughputSnapshot *dThroughputSnapshots,
+                                struct throughputSnapshot *uThroughputSnapshots) {
+  struct throughputSnapshot *snapshotsPtr;
+  if (uThroughputSnapshots != NULL) {
+    snapshotsPtr = uThroughputSnapshots;
+    printf(" ---C->S (upload): Throughput snapshots:\n");
+    while (snapshotsPtr != NULL) {
+      printf("    * Test duration: %0.2f secs, Throughput: %f kbps\n", snapshotsPtr->time, snapshotsPtr->throughput);
+      snapshotsPtr = snapshotsPtr->next;
+    }
+  }
+  if (dThroughputSnapshots != NULL) {
+    snapshotsPtr = dThroughputSnapshots;
+    printf(" ---S->C (download): Throughput snapshots:\n");
+    while (snapshotsPtr != NULL) {
+      printf("    * Test duration: %0.2f secs, Throughput: %f kbps\n", snapshotsPtr->time, snapshotsPtr->throughput);
+      snapshotsPtr = snapshotsPtr->next;
+    }
+  }
+}
+#endif
+
 /**
  * A Network Address Translation (NAT) box is detected by
  *  comparing the client/server IP addresses as seen from the server and the client boxes.

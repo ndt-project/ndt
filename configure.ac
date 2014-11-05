@@ -67,6 +67,17 @@ else
     AC_MSG_RESULT(yes)
 fi
 
+# Enabling/disabling extended tests code
+AC_MSG_CHECKING(whether to enable extended tests code)
+AC_ARG_ENABLE(exttests, [  --enable-exttests=[yes/no] turn on extended tests code
+              [default=yes]],, enable_exttests=yes)
+if test "x$enable_exttests" = "xno"; then
+    AC_MSG_RESULT(no)
+else
+    CFLAGS="$CFLAGS -DEXTTESTS_ENABLED"
+    AC_MSG_RESULT(yes)
+fi
+
 # Enabling/disabling database support
 AC_MSG_CHECKING(whether to enable database support)
 AC_ARG_ENABLE(database, [  --enable-database=[yes/no] turn on database support
