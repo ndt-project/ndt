@@ -1879,7 +1879,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				final Socket outSocket = (Socket) outSockets.get(i);
 
 				C2SWriterWorker worker = new C2SWriterWorker(
-					i, outSocket, yabuff2Write, iTestDuration
+					i, outSocket, _yabuff2Write, iTestDuration
 				);
 
 				threads[i] = new Thread(worker);

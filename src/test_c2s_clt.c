@@ -28,7 +28,7 @@ typedef struct c2sWriteWorkerArgs {
   int socketDescriptor;
   double stopTime;
   char* buff;
-} WriteWorkerArgs;
+} C2SWriteWorkerArgs;
 
 void* c2sWriteWorker(void* arg);
 

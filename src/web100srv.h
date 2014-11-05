@@ -323,7 +323,7 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                    int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
-int tcp_stat_get_data(tcp_stat_snap* snap, int* testsock, int threadsNum, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int ctlsock,
                       tcp_stat_agent* agent, int count_vars, int jsonSupport);
 
 int CwndDecrease(char* logname,
@@ -332,7 +332,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int connId, int count_vars);
 
 void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars);
 
-void tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.dthreadsnum : 1, vars);
+void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars);
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
