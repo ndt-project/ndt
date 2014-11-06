@@ -192,6 +192,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Set socket timeout to testDuration seconds
     bytes = 0;
+    testStartTime = secs();
     t = testStartTime + testDuration + 5;
 #ifdef EXTTESTS_ENABLED
     throughputSnapshotTime = testStartTime + (snapsoffset / 1000.0);

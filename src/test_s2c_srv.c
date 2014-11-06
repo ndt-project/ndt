@@ -381,7 +381,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       /* End of test code */
 
       // create directory to write web100 snaplog trace
-      create_client_logdir((struct sockaddr *) &cli_addr, clilen,
+      create_client_logdir((struct sockaddr *) &cli_addr[0], clilen,
                            options->s2c_logname, sizeof(options->s2c_logname),
                            snaplogsuffix, sizeof(snaplogsuffix));
 

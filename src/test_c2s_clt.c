@@ -71,7 +71,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   int i, k;  // temporary iterator
   C2SWriteWorkerArgs writeWorkerArgs[7]; // write workers parameters
   pthread_t writeWorkerIds[7];        // write workers ids
-  int outSocket;  // socket descriptor for the outgoing connection
   double t, stop_time;  // test-time indicators
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method
@@ -270,11 +269,28 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     if (json_check_msg(buff) == 0) {
       jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
       c2sspd = atoi(jsonMsgValue);
+#ifdef EXTTESTS_ENABLED
+      if (throughputsnaps != NULL) {
+        char* strtokptr = strtok(jsonMsgValue, " ");
+        while ((strtokptr = strtok(NULL, " ")) != NULL) {
+          if (lastThroughputSnapshot != NULL) {
+            lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+            lastThroughputSnapshot = lastThroughputSnapshot->next;
+          }
+          else {
+            uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          }
+          lastThroughputSnapshot->next = NULL;
+          lastThroughputSnapshot->time = atof(strtokptr);
+          strtokptr = strtok(NULL, " ");
+          lastThroughputSnapshot->throughput = atof(strtokptr);
+        }
+      }
+#endif
       free(jsonMsgValue);
     }
     else {
       c2sspd = atoi(buff);
-    }
 #ifdef EXTTESTS_ENABLED
     if (throughputsnaps != NULL) {
       char* strtokptr = strtok(buff, " ");
@@ -293,6 +309,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       }
     }
 #endif
+    }
 
     // Print results in the most convenient units (kbps or Mbps)
     if (c2sspd < KILO)
