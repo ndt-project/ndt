@@ -69,7 +69,7 @@ void srv_long_usage(char* info) {
   printf("  -L, --log_dir DIR      - specify the base directory for snaplog and tcpdump files\n");
   printf("                           (default %s/serverdata)\n", BASEDIR);
   printf("  -S, --logfacility #F   - specify syslog facility name\n");
-  printf("                           Note: this doesn't enable 'syslog'\n\n");
+  printf("                           Note: this doesn't enable 'syslog'\n");
   printf("  --savewebvalues        - enable web values writing to a separate file\n\n");
 #ifdef EXPERIMENTAL_ENABLED
   printf(" Experimental code:\n\n");

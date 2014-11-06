@@ -973,7 +973,7 @@ int main(int argc, char *argv[]) {
         }
         break;
       default:
-        log_println(0, "Unknown test ID");
+        log_println(0, "Unknown test ID: %d", testId);
         exit(5);
     }
     ptr = strtok_r(NULL, " ", &strtokbuf);

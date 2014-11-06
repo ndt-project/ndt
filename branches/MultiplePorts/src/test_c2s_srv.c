@@ -247,7 +247,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         // log protocol validation indicating client accept
         procstatusenum = PROCESS_STARTED;
         proctypeenum = CONNECT_TYPE;
-        protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[i]);
+        protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[0]);
         break;
       }
       // socket interrupted, wait some more
@@ -275,13 +275,13 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     }
 
     // Get address associated with the throughput test. Used for packet tracing
-    log_println(6, "child %d - c2s ready for test with fd=%d", testOptions->child0, recvsfd[i]);
+    log_println(6, "child %d - c2s ready for test with fd=%d", testOptions->child0, recvsfd[0]);
 
     // commenting out below to move to init_pkttrace function
-    I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd[i], 0);
+    I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd[0], 0);
 
     // Get tcp_stat connection. Used to collect tcp_stat variable statistics
-    conn = tcp_stat_connection_from_socket(agent, recvsfd[i]);
+    conn = tcp_stat_connection_from_socket(agent, recvsfd[0]);
 
     // set up packet tracing. Collected data is used for bottleneck link
     // calculations
@@ -300,7 +300,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         log_println(2, "C2S test calling init_pkttrace() with pd=%p",
                     &cli_addr[0]);
         init_pkttrace(src_addr, (struct sockaddr *) &cli_addr[0], clilen,
-                      mon_pipe, device, &pair, "c2s", options->compress);
+                      mon_pipe, device, &pair, "c2s", options->uduration / 1000.0);
         log_println(1, "c2s is exiting gracefully");
         /* Close the pipe */
         close(mon_pipe[0]);
@@ -445,7 +445,7 @@ breakMainLoop:
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
     if (record_reverse == 1)
-      tcp_stat_get_data_recv(recvsfd[i], agent, conn, count_vars);
+      tcp_stat_get_data_recv(recvsfd[0], agent, conn, count_vars);
 
 
     for (i = 0; i < threadsNum; i++) {
