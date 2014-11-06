@@ -1782,7 +1782,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				return true;
 			}
 			// Server sends port number to bind to in the TEST_PREPARE
-			String[] sMsgBody = new String(msg.getBody()).split(" ");
+			String[] sMsgBody;
+			if (jsonSupport) {
+				sMsgBody = JSONUtils.getSingleMessage(new String(msg.getBody())).split(" ");
+			} else {
+				sMsgBody = new String(msg.getBody()).split(" ");
+			}
+
 			int iC2sport = Integer.parseInt(sMsgBody[0]);
 
 			if (_bSupportExtTests) {
@@ -1958,7 +1964,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				tmpstr3 = new String(msg.getBody());
 			}
 
-			sMsgBody = new String(msg.getBody()).split(" ");
+			sMsgBody = tmpstr3.split(" ");
 			_dSc2sspd = Double.parseDouble(sMsgBody[0]) / NDTConstants.KILO;
 			ThroughputSnapshot lastThroughputSnapshot = null;
 
@@ -2065,7 +2071,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				return true;
 			}
 			// get port to bind to for S2C tests
-			String[] sMsgBody = new String(msg.getBody()).split(" ");
+			String[] sMsgBody;
+			if (jsonSupport) {
+				sMsgBody = JSONUtils.getSingleMessage(new String(msg.getBody())).split(" ");
+			} else {
+				sMsgBody = new String(msg.getBody()).split(" ");
+			}
+
 			int iS2cport = Integer.parseInt(sMsgBody[0]);
  
 			if (_bSupportExtTests) {
