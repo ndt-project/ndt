@@ -276,7 +276,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     c2sspd = atoi(buff);
 #ifdef EXTTESTS_ENABLED
     if (throughputsnaps != NULL) {
-      char* strtokptr = strtok(jsonMsgValue, " ");
+      char* strtokptr = strtok(buff, " ");
       while ((strtokptr = strtok(NULL, " ")) != NULL) {
         if (lastThroughputSnapshot != NULL) {
           lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
