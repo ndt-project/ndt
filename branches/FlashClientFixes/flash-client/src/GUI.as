@@ -59,6 +59,8 @@ package  {
     private var _copyButton:Sprite;
     private var _yesButton:Sprite;
     private var _noButton:Sprite;
+    private var _upArrowButton:ArrowButton;
+    private var _downArrowButton:ArrowButton;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -141,7 +143,7 @@ package  {
     }
 
     private function rollOver(e:MouseEvent):void {
-      e.target.alpha = 0.8;
+      e.target.alpha = 0.7;
     }
 
     private function rollOut(e:MouseEvent):void {
@@ -201,6 +203,8 @@ package  {
       while (this.numChildren > 0)
         this.removeChildAt(0);
 
+      _resultsTextField.removeEventListener(Event.SCROLL, scroll);
+
       _resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
@@ -208,6 +212,8 @@ package  {
       _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _yesButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _noButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _upArrowButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _downArrowButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
@@ -216,6 +222,8 @@ package  {
       _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _yesButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _noButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _upArrowButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _downArrowButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
@@ -224,6 +232,8 @@ package  {
       _restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
       _yesButton.removeEventListener(MouseEvent.CLICK, clickYes);
       _noButton.removeEventListener(MouseEvent.CLICK, clickNo);
+      _upArrowButton.removeEventListener(MouseEvent.CLICK, clickUpArrow);
+      _downArrowButton.removeEventListener(MouseEvent.CLICK, clickDownArrow);
     }
 
     /**
@@ -258,8 +268,11 @@ package  {
       _resultsTextField.x = 0.275 * _stageWidth;
       _resultsTextField.y = 0.05 * _stageHeight;
       _resultsTextField.width = 0.725 * _stageWidth;
-      _resultsTextField.height = 0.90 * _stageHeight;
+      _resultsTextField.height = 0.85 * _stageHeight;
       this.addChild(_resultsTextField);
+
+      _upArrowButton = new ArrowButton(ArrowOrientation.UP, 0.5);	  
+      _downArrowButton = new ArrowButton(ArrowOrientation.DOWN, 0.5);
 
       _resultsButton = new NDTButton("RESULTS", 18, 30, 0.25);
       _detailsButton = new NDTButton("DETAILS", 18, 30, 0.25);
@@ -282,6 +295,8 @@ package  {
       _copyButton.y = _restartButton.y + verticalMargin;
       _yesButton.y = _stageHeight / 2 - verticalMargin;
       _noButton.y = _yesButton.y + verticalMargin;
+      _upArrowButton.y = 12 * _stageHeight / 13;
+      _downArrowButton.y = _upArrowButton.y;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
       if (_debugButton)
@@ -290,12 +305,16 @@ package  {
       _copyButton.x += _copyButton.width / 2;
       _yesButton.x = 0.6 * _stageWidth;
       _noButton.x = _yesButton.x;
+      _upArrowButton.x = _resultsTextField.x + 2 * _resultsTextField.width / 5;
+      _downArrowButton.x = _resultsTextField.x + 3 * _resultsTextField.width / 5;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
       if (_debugButton)
         this.addChild(_debugButton);
       this.addChild(_restartButton);
+	  
+      _resultsTextField.addEventListener(Event.SCROLL, scroll);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
@@ -305,6 +324,8 @@ package  {
       _copyButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _yesButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _noButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _upArrowButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _downArrowButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
@@ -314,6 +335,8 @@ package  {
       _copyButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _yesButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _noButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _upArrowButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _downArrowButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
@@ -323,6 +346,8 @@ package  {
       _copyButton.addEventListener(MouseEvent.CLICK, clickCopy);
       _yesButton.addEventListener(MouseEvent.CLICK, clickYes);
       _noButton.addEventListener(MouseEvent.CLICK, clickNo);
+      _upArrowButton.addEventListener(MouseEvent.CLICK, clickUpArrow);
+      _downArrowButton.addEventListener(MouseEvent.CLICK, clickDownArrow);
 
       changeActiveButton(_resultsButton);
       setSummaryResultText();
@@ -444,6 +469,32 @@ package  {
       clickResults(null);
     }
 
+    private function clickUpArrow(e:MouseEvent):void {
+      _resultsTextField.scrollV -= 20;	
+    }
+
+    private function clickDownArrow(e:MouseEvent):void {
+      _resultsTextField.scrollV += 20;    	
+    }
+
+    private function scroll(e:Event):void {
+      if (_resultsTextField.scrollV >= _resultsTextField.maxScrollV) {
+        if (this.contains(_downArrowButton))
+          this.removeChild(_downArrowButton);
+	  } else {
+        if (!this.contains(_downArrowButton))
+          this.addChild(_downArrowButton);
+	  }
+
+      if (_resultsTextField.scrollV <= 1) {
+        if (this.contains(_upArrowButton))
+          this.removeChild(_upArrowButton);     
+      } else {
+        if (!this.contains(_upArrowButton))
+          this.addChild(_upArrowButton);		
+      }
+    }
+
     private function changeActiveButton(target:NDTButton):void {
       if (_activeButton == _restartButton)
         cancelRestart();
@@ -522,6 +573,38 @@ class NDTButton extends Sprite {
     var textFormat:TextFormat = _textField.getTextFormat();
     textFormat.color = 0xFFFFFF;
     _textField.setTextFormat(textFormat);
+  }
+}
+
+final class ArrowOrientation
+{ 
+    public static const UP:String = "up"; 
+    public static const DOWN:String = "down"; 
+}
+
+class ArrowButton extends Sprite {
+  [Embed(source="../assets/downArrow.png")]
+  private var downArrowImg:Class;
+  
+  [Embed(source="../assets/upArrow.png")]
+  private var upArrowImg:Class;
+  
+  function ArrowButton(orientation:String, prop:Number) {
+    super();
+    this.buttonMode = true;
+    var buttonShape:DisplayObject;
+
+    if (orientation == ArrowOrientation.DOWN)    
+      buttonShape = new downArrowImg();
+    else
+      buttonShape = new upArrowImg();
+
+    buttonShape.width *= prop;
+    buttonShape.height *= prop;
+    buttonShape.x -= buttonShape.width / 2;
+    buttonShape.y -= buttonShape.height / 2;
+
+    this.addChild(buttonShape);
   }
 }
 
