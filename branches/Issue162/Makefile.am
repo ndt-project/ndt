@@ -16,7 +16,7 @@
 #	Description:	toplevel build for bwctl
 #
 
-SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
+SUBDIRS = @TOP_BUILD_DIRS@ src conf doc HTML5-frontend
 
 if INCLUDE_APPLET
 SUBDIRS += Applet
