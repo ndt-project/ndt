@@ -143,7 +143,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
     port = strtol(testOptions->multiple ? mrange_next(listenc2sport, sizeof(listenc2sport)) : listenc2sport, NULL, 0);
 
-    for (i = 0; i < options->uthreadsnum; ++i) {
+    for (i = 0; i < threadsNum; ++i) {
       snprintf(listenc2sport, sizeof(listenc2sport), "%ld", port + i);
 
       // attempt to bind to a new port and obtain address structure with details
@@ -158,31 +158,17 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           break;
         }
       }
-    }
-
-#ifdef EXTTESTS_ENABLED 
-    if (testOptions->exttestsopt) {
-      threadsNum = options->uthreadsnum;
-      testDuration = options->uduration / 1000.0;
-    }
-#endif
-
-    port = strtol(testOptions->multiple ? mrange_next(listenc2sport, sizeof(listenc2sport)) : listenc2sport, NULL, 0);
-
-    for (i = 0; i < options->uthreadsnum; ++i) {
-      snprintf(listenc2sport, sizeof(listenc2sport), "%ld", port + i);
-
-      // attempt to bind to a new port and obtain address structure with details
-      // of listening port
-      while (c2ssrv_addr[i] == NULL) {
-        c2ssrv_addr[i] = CreateListenSocket(NULL, listenc2sport, conn_options, 0);
-        if (strcmp(listenc2sport, "0") == 0) {
-          log_println(0, "WARNING: ephemeral port number was bound");
-          break;
-        }
-        if (testOptions->multiple == 0) {
-          break;
-        }
+      if (c2ssrv_addr[i] == NULL) {
+        log_println(
+          0,
+          "Server (C2S throughput test): CreateListenSocket failed: %s",
+          strerror(errno));
+        snprintf(buff,
+          sizeof(buff),
+          "Server (C2S throughput test): CreateListenSocket failed: %s",
+          strerror(errno));
+        send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
+        return -1;
       }
 
       c2ssockfd[i] = I2AddrFD(c2ssrv_addr[i]);
