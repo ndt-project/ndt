@@ -125,6 +125,7 @@ fi
 %{_mandir}/man1/viewtrace.1.gz
 %{_bindir}/analyze
 %{_bindir}/genplot
+%{_bindir}/genplot10g
 %{_bindir}/tr-mkmap
 %{_bindir}/viewtrace
 
