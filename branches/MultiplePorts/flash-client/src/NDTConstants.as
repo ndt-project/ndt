@@ -21,6 +21,8 @@ package  {
     // The current version of the protocol is backward compatible to v3.3.12.
     public static const LAST_VALID_SERVER_VERSION:String = "v3.3.12";
     public static const CLIENT_ID:String = "swf";
+    public static const LIMITED_CLIENT_ID:String = "swf-ltd";
+    public static const BAD_ENV_ACTION:String = "error";
     // Client MUST request the TEST_STATUS.
     public static const TESTS_REQUESTED_BY_CLIENT:int =
         TestType.C2S | TestType.S2C | TestType.META | TestType.STATUS;
@@ -41,7 +43,6 @@ package  {
         + "users, they can also help novice users by "
         + "allowing them to provide detailed trouble "
         + "reports to their network administrator.";
-
     public static const PROTOCOL_MSG_READ_SUCCESS:int = 0;
     public static const PROTOCOL_MSG_READ_ERROR:int = 1;
     public static const MSG_HEADER_LENGTH:int = 3;
@@ -162,6 +163,7 @@ package  {
     public static const HTML_LOCALE:String = "Locale";
     public static const HTML_USERAGENT:String = "UserAgentString";
     public static const HTML_SERVER_HOSTNAME:String = "ServerHostname";
+    public static const HTML_BAD_ENV_ACTION:String = "BadRuntimeAction";
 
     // Names of NDT variables sent by the server.
     public static const MSSSENT:String = "MSSSent";
@@ -231,6 +233,21 @@ package  {
     public static const SPD:String = "spd";
     public static const ASPD:String = "aspd";
     public static const OPTRCVRBUFF:String = "optimalRcvrBuffer";
+
+    //Bad environment handlers
+    public static const ENV_OK:String = "none"
+    public static const BAD_ENV_WARN:String = "warn"
+    public static const BAD_ENV_WARN_AND_LIMIT:String = "warn-limit"
+    public static const BAD_ENV_ERROR:String = "error"
+    public static const BAD_ENV_MESG:String = 
+        "Due to performance limitations in the Adobe Flash "
+        + "Runtime, the NDT flash test cannot measure "
+        + "high-speed connections accurately unless "
+        + "it is run within Google Chrome "
+        + "on Mac OS and Linux, or any web-browser running "
+        + "on Windows operating systems. Please use one of "
+        + "these platforms or run the NDT Java client "
+        + "to obtain precise measurements.";
   }
 }
 

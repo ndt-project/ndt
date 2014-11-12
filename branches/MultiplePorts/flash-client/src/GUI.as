@@ -73,8 +73,8 @@ package  {
       aboutNDTTextFormat.color = 0x000000;
       _aboutNDTText = new TextField();
       _aboutNDTText.defaultTextFormat = aboutNDTTextFormat;
-      _aboutNDTText.width = 0.75 * _stageWidth;
-      _aboutNDTText.height = 0.40 * _stageHeight;
+      _aboutNDTText.width = 0.80 * _stageWidth;
+      _aboutNDTText.height = 0.35 * _stageHeight;
       _aboutNDTText.wordWrap = true;
       _aboutNDTText.selectable = false;
       _aboutNDTText.text = Main.ndt_description;
@@ -95,23 +95,44 @@ package  {
       _learnMoreLink.buttonMode = true;
       _learnMoreLink.mouseChildren = false;
       _learnMoreLink.width = 0.50 * _stageWidth;
+      _learnMoreLink.height = 0.17 * _stageWidth;
 
-      // 4) Start button
+      // 4) Bad runtime warning/error
+      var badRuntimeMessageFormat:TextFormat = new TextFormat();
+      badRuntimeMessageFormat.size = 14;
+      badRuntimeMessageFormat.font = "Verdana";
+      badRuntimeMessageFormat.align = TextFormatAlign.CENTER;
+      badRuntimeMessageFormat.color = 0xB02B08;
+      var _badRuntimeMessage:TextField = new TextField();
+      _badRuntimeMessage.defaultTextFormat = badRuntimeMessageFormat;
+      _badRuntimeMessage.width = 0.90 * _stageWidth;
+      _badRuntimeMessage.height = 0.35 * _stageHeight;
+      //_badRuntimeMessage.opaqueBackground = 0x000000;
+      _badRuntimeMessage.wordWrap = true;
+      _badRuntimeMessage.selectable = false;
+      _badRuntimeMessage.text = NDTConstants.BAD_ENV_MESG;
+      if (Main.bad_runtime_action == NDTConstants.ENV_OK) {
+        _badRuntimeMessage.height = 0;
+      }
+
+      // 5) Start button
       _startButton = new NDTButton("START", 30, 45, 0.4);
 
       // Position objects within initial screen, using a relative layout.
       _mlabLogo.x = (_stageWidth / 2) - (_mlabLogo.width / 2);
       _aboutNDTText.x = _stageWidth / 2 - _aboutNDTText.width / 2;
       _learnMoreLink.x = _stageWidth / 2 - _learnMoreLink.width / 2;
+      _badRuntimeMessage.x = _stageWidth / 2 - _badRuntimeMessage.width / 2;
       _startButton.x = _stageWidth / 2;
       var verticalMargin:Number = (_stageHeight - (
           _mlabLogo.height + _aboutNDTText.height + _learnMoreLink.height
-          + _startButton.height)) / 5;
-      _mlabLogo.y = verticalMargin;
-      _aboutNDTText.y = _mlabLogo.y + _mlabLogo.height + verticalMargin;
+          + _badRuntimeMessage.height + _startButton.height)) / 6;
+      _mlabLogo.y = 0;
+      _aboutNDTText.y = _mlabLogo.y + _mlabLogo.height;
       _learnMoreLink.y = _aboutNDTText.y + _aboutNDTText.height;
-                         + verticalMargin;
-      _startButton.y = _learnMoreLink.y + _learnMoreLink.height
+      _badRuntimeMessage.y = _learnMoreLink.y + _learnMoreLink.height
+                         + verticalMargin*3;
+      _startButton.y = _badRuntimeMessage.y + _badRuntimeMessage.height
                          + verticalMargin;
 
       // Add initial event listeners.
@@ -124,7 +145,15 @@ package  {
       this.addChild(_mlabLogo);
       this.addChild(_aboutNDTText);
       this.addChild(_learnMoreLink);
-      this.addChild(_startButton);
+      if (Main.bad_runtime_action != NDTConstants.ENV_OK) {
+        this.addChild(_badRuntimeMessage);
+        TestResults.appendDebugMsg("Bad Runtime detected");
+      }
+      if (Main.bad_runtime_action != NDTConstants.BAD_ENV_ERROR) {
+        this.addChild(_startButton);
+      }
+      else 
+        TestResults.appendErrMsg("Halting test due to bad runtime");
     }
 
     private function clickLearnMoreLink(e:MouseEvent):void {

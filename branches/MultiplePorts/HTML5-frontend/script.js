@@ -5,10 +5,9 @@ $(function(){
     setTimeout(initializeTest, 1000);
     return;
   }
+  checkInstalledPlugins();
   initializeTest();
 });
-
-
 
 // CONSTANTS
 
@@ -57,6 +56,8 @@ function initializeTest() {
 function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
+  document.getElementById('javaButton').disabled = true;
+  document.getElementById('flashButton').disabled = true;
   showPage('test', resetGauges);
   document.getElementById('rttValue').innerHTML = "";
   if (simulate) return simulateTest();
@@ -196,6 +197,8 @@ function setPhase(phase) {
       document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
+      document.getElementById('javaButton').disabled = false;
+      document.getElementById('flashButton').disabled = false;
 
       showPage('results');
       break;
@@ -467,10 +470,67 @@ function testDetails() {
   return d;
 }
 
+// BACKEND METHODS
+function useJavaAsBackend() {
+  //document.getElementById('javaButton').toggleClass('active');
+  var backendContainer = document.getElementById('backendContainer');
+  while (backendContainer.firstChild) {
+    backendContainer.removeChild(backendContainer.firstChild);
+  } 
+
+  var app = document.createElement('applet');
+  app.id = 'NDT';
+  app.name = 'NDT';
+  app.archive = 'Tcpbw100.jar';
+  app.code = 'edu.internet2.ndt.Tcpbw100.class';
+  app.width = '400';
+  app.height = '400';
+  document.getElementById('backendContainer').appendChild(app);
+}
+
+function useFlashAsBackend() {
+  var backendContainer = document.getElementById('backendContainer');
+  while (backendContainer.firstChild) {
+    backendContainer.removeChild(backendContainer.firstChild);
+  } 
+
+  var embed = document.createElement('embed');
+  embed.id = 'NDT';
+  embed.name = 'NDT';
+  embed.type = 'application/x-shockwave-flash';
+  embed.src = 'FlashClt.swf';
+  embed.width = '600';
+  embed.height = '400';
+  document.getElementById('backendContainer').appendChild(embed);  
+}
 
 // UTILITIES
 
 function debug(message) {
   if (allowDebug && window.console) console.debug(message);
+}
+
+function checkInstalledPlugins() {
+  var hasFlash = false, hasJava = false;
+  try {
+    var activeXObject = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
+    if(activeXObject) hasFlash = true;
+  } catch(e) {
+    if(navigator.mimeTypes ["application/x-shockwave-flash"] != undefined) hasFlash = true;
+  }
+  
+  if (!hasFlash) {
+    document.getElementById('flashButton').disabled = true
+  }
+
+  if (deployJava.getJREs() == '') {
+    document.getElementById('javaButton').disabled = true;
+  } else {
+    hasJava = true;
+  }
+
+  if (hasJava) {
+    useJavaAsBackend();  
+  }
 }
 

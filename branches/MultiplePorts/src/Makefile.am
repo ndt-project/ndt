@@ -26,23 +26,26 @@ if BUILD_FAKEWWW
 ADD_FAKEWWW = fakewww
 endif
 
-if HAVE_WEB100
-bin_PROGRAMS = web100clt analyze viewtrace tr-mkmap genplot
-if HAVE_PCAP_H
-sbin_PROGRAMS = $(ADD_FAKEWWW) web100srv
-else
+bin_PROGRAMS =
 sbin_PROGRAMS = $(ADD_FAKEWWW)
+
+if HAVE_WEB100
+bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
+if HAVE_JANSSON
+bin_PROGRAMS += web100clt
 endif
-else
-bin_PROGRAMS = web100clt
+if HAVE_PCAP_H
+if HAVE_JANSSON
+sbin_PROGRAMS += web100srv
+endif
+endif
 endif
 
 if HAVE_WEB10G
+bin_PROGRAMS += genplot10g
 if HAVE_PCAP_H
-if HAVE_WEB100
-sbin_PROGRAMS += web10gsrv genplot10g
-else
-sbin_PROGRAMS = $(ADD_FAKEWWW) web10gsrv genplot10g
+if HAVE_JANSSON
+sbin_PROGRAMS += web10gsrv
 endif
 endif
 endif

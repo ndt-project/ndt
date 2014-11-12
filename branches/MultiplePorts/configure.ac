@@ -269,15 +269,16 @@ else
 	AM_CONDITIONAL(HAVE_PCAP_H, false)
 fi
 
-AC_CHECK_HEADER(jansson.h, [] [b=0])
-if test $b == 0
-then
-	JSONLIB="-ljansson"
-	AC_DEFINE(HAVE_JANSSON_H, 1, [Have JANSSON header file.])
-	AM_CONDITIONAL(HAVE_JANSSON_H, true)
-else
-	AM_CONDITIONAL(HAVE_JANSSON_H, false)
-fi
+AC_CHECK_LIB([jansson], [json_true],
+             [
+              JSONLIB="-ljansson"
+              AC_DEFINE(HAVE_JANSSON, 1, [Define to 1 if you have the 'jansson' library (-ljansson).])
+              AM_CONDITIONAL(HAVE_JANSSON, true)
+              ],
+              [
+               JSONLIB=""
+               AM_CONDITIONAL(HAVE_JANSSON, false)
+               ])
 
 AC_CHECK_LIB([z], [deflateInit_],
              [
@@ -402,12 +403,12 @@ echo ""
 
 if test -z "$HAVE_WEB10G_TRUE" && test -n "$HAVE_WEB10G_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
-if test -z "$HAVE_JANSSON_H_TRUE" && test -n "$HAVE_JANSSON_H_FALSE"; then
+if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
   SUMMARY_WEB10GSRV="YES"
   SUMMARY_GENPLOT10G="YES"
 else
   SUMMARY_GENPLOT10G="YES"
-  SUMMARY_WEB10GSRV="NO    (missing jansson headers)"
+  SUMMARY_WEB10GSRV="NO    (missing jansson library)"
 fi
 else
   SUMMARY_GENPLOT10G="YES"
@@ -418,22 +419,12 @@ else
   SUMMARY_GENPLOT10G="NO (missing web10g userland library >=2.0.6.2)"
 fi
 
-if test -z "$HAVE_JANSSON_H_TRUE" && test -n "$HAVE_JANSSON_H_FALSE"; then
+if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
   SUMMARY_WEB100CLT="YES"
 else
-  SUMMARY_WEB100CLT="NO    (missing jansson headers)"
+  SUMMARY_WEB100CLT="NO    (missing jansson library)"
 fi
 
-if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
-if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
-if test -z "$HAVE_JANSSON_H_TRUE" && test -n "$HAVE_JANSSON_H_FALSE"; then
-SUMMARY_WEB100SRV="YES"
-else
-SUMMARY_WEB100SRV="NO    (missing jansson headers)"
-fi
-else
-SUMMARY_WEB100SRV="NO    (missing pcap headers)"
-fi
 if test "x$enable_fakewww" == "xno"; then
 SUMMARY_FAKEWWW="NO    (disabled by user)"
 elif test "x$enable_fakewww" != "xyes"; then
@@ -441,13 +432,23 @@ SUMMARY_FAKEWWW="NO    (disabled by default)"
 else
 SUMMARY_FAKEWWW="YES"
 fi
+
+if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
+if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
+if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
+SUMMARY_WEB100SRV="YES"
+else
+SUMMARY_WEB100SRV="NO    (missing jansson library)"
+fi
+else
+SUMMARY_WEB100SRV="NO    (missing pcap headers)"
+fi
 SUMMARY_ANALYZE="YES"
 SUMMARY_VIEWTRACE="YES"
 SUMMARY_TRMKMAP="YES"
 SUMMARY_GENPLOT="YES"
 else
 SUMMARY_WEB100SRV="NO    (missing web100 library)"
-SUMMARY_FAKEWWW="NO    (missing web100 library)"
 SUMMARY_ANALYZE="NO    (missing web100 library)"
 SUMMARY_VIEWTRACE="NO    (missing web100 library)"
 SUMMARY_TRMKMAP="NO    (missing web100 library)"

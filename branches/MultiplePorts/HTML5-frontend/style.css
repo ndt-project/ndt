@@ -91,6 +91,22 @@ h3 {
   -moz-box-shadow: 0 3px 5px #000;
 }
 
+.backendButton {
+  width: 200px;
+  height: 50px;
+  font-size: 24px;
+  margin: 10px; 
+}
+
+.backendButton .active {
+  background-color:blue;
+}
+
+.backendButton:disabled {
+  background-color:gray;
+  cursor: default;
+}
+
 
 /* Welcome page */
 

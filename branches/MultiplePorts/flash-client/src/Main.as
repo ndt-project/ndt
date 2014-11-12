@@ -30,6 +30,8 @@ package {
     public static var client_application:String = NDTConstants.CLIENT_ID;
     public static var ndt_description:String = NDTConstants.NDT_DESCRIPTION;
     public static var jsonSupport:Boolean = true;
+    public static var bad_runtime_action:String = "warn";
+    //Options are warn, warn-limit, and error (default)
 
     public function Main():void {
       if (stage)
@@ -53,6 +55,12 @@ package {
       // Set the properties of the SWF from HTML tags.
       NDTUtils.initializeFromHTML(this.root.loaderInfo.parameters);
 
+      //User Agent string is stored in a TestResults var by initFromHTML
+      if (UserAgentTools.goodRuntimeCheck(TestResults.ndt_test_results::userAgent)) {
+        bad_runtime_action = NDTConstants.ENV_OK;
+      } else
+        client_application = NDTConstants.LIMITED_CLIENT_ID; 
+
       var frame:NDTPController = NDTPController.getInstance();
 
       stage.showDefaultContextMenu = false;
@@ -65,6 +73,22 @@ package {
 
     public static function getHost():String {
       return server_hostname;
+    }
+    
+    /**
+     * Function that initializes the NDT server variable set directly through JS.
+     */
+    public static function setHost(hostname:String):String {
+        var js_server_hostname:String = hostname;
+        if (js_server_hostname) {
+          server_hostname = js_server_hostname;
+          TestResults.appendDebugMsg(
+            "Initialized server from JavaScript. Server hostname:"
+            + Main.server_hostname);
+        } else {
+	  js_server_hostname = null;
+	}
+	return js_server_hostname;
     }
   }
 }
