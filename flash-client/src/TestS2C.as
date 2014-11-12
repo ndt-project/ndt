@@ -84,12 +84,12 @@ package  {
               NDTConstants.BUNDLE_NAME, "startingTest", null, Main.locale) +
           ResourceManager.getInstance().getString(
               NDTConstants.BUNDLE_NAME, "s2cThroughput", null, Main.locale))
-      NDTUtils.callExternalFunction("startTested", "ServerToClientThroughput");
+      NDTUtils.callExternalFunction("testStarted", "ServerToClientThroughput");
       TestResults.appendDebugMsg("S2C test: PREPARE_TEST stage.");
       TestResults.appendDebugMsg(
         ResourceManager.getInstance().getString(
             NDTConstants.BUNDLE_NAME, "runningInboundTest", null, Main.locale));
-      TestResults.ndt_test_results::ndtTestStatus = "runningInboundTest";
+      TestResults.ndt_test_results::ndtTestStatus = "preparingInboundTest";
 
       addCtlSocketOnReceivedDataListener();
       _msg = new Message();
@@ -294,6 +294,7 @@ package  {
       // Record start time right before it starts receiving data, to be as
       // accurate as possible.
       _s2cTestStartTime = getTimer();
+      TestResults.ndt_test_results::ndtTestStatus = "runningInboundTest";
 
       _testStage = RECEIVE_DATA;
       TestResults.appendDebugMsg("S2C test: RECEIVE_DATA stage.");

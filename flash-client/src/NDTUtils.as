@@ -63,19 +63,20 @@ package  {
     /**
      * Function that initializes the NDT server variable.
      */
-    public static function hostnameFromJS():String {
+    public static function hostnameFromJS(queryFn:String):String {
       try {
-        var js_server_hostname:String = ExternalInterface.call("getNDTServer");
+        var js_server_hostname:String = ExternalInterface.call(queryFn);
         if (js_server_hostname) {
           TestResults.appendDebugMsg(
-            "Initialized server from JavaScript. Server hostname:"
+            "Initialized server from " + queryFn 
+            + " JavaScript function. Server hostname: " 
             + Main.server_hostname);
         } else {
 	  js_server_hostname = null;
 	}
 	return js_server_hostname;
       } catch(e:Error) {
-        TestResults.appendDebugMsg("Failed to call getNDTServer(): "
+        TestResults.appendDebugMsg("Failed to call " + queryFn + "(): "
                                    + e.toString());
         return null;
       }
@@ -118,7 +119,7 @@ package  {
                                    + e.toString());
       }
 
-      var js_server_hostname:String = hostnameFromJS();
+      var js_server_hostname:String = hostnameFromJS("getNDTServer");
       if (js_server_hostname) {
         Main.server_hostname = js_server_hostname;
       }
@@ -152,6 +153,14 @@ package  {
         TestResults.appendDebugMsg("Failed to call getNDTDescription(): "
                                    + e.toString());
       }
+      if (NDTConstants.HTML_BAD_ENV_ACTION in paramObject) {
+         var validParams:Array = new Array(NDTConstants.BAD_ENV_WARN, 
+         NDTConstants.BAD_ENV_WARN_AND_LIMIT, NDTConstants.BAD_ENV_ERROR);
+        if (validParams.indexOf(paramObject[NDTConstants.HTML_BAD_ENV_ACTION]) > -1) 
+          Main.bad_runtime_action = paramObject[NDTConstants.HTML_BAD_ENV_ACTION];
+     // else keep the default value (NDTConstants.BAD_ENV_ACTION).
+      }
+
     }
 
     /**
@@ -201,6 +210,8 @@ package  {
             "get_PcBuffSpdLimit", TestResults.getPcLimit);
         ExternalInterface.addCallback(
             "getNDTvar", TestResultsUtils.getNDTVariable);
+        ExternalInterface.addCallback(
+            "set_host", Main.setHost);
       } catch (e:Error) {
         // TODO(tiziana): Find out why ExternalInterface.available does not work
         // in some cases and this exception is raised.
