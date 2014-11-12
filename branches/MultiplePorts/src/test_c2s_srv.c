@@ -158,6 +158,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           break;
         }
       }
+    }
+
 #ifdef EXTTESTS_ENABLED 
     if (testOptions->exttestsopt) {
       threadsNum = options->uthreadsnum;
