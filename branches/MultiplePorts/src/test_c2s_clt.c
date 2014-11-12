@@ -64,7 +64,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
   int msgLen, msgType;  // message related data
   int c2sport = atoi(PORT2);  // default C2S port
-  I2Addr sec_addr = NULL;  // server address
   I2Addr sec_addresses[7];  // server addresses per thread
   int retcode;  // return code
   int one = 1;  // socket option store
@@ -156,15 +155,14 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     log_println(1, "  -- port: %d", c2sport);
 
-    // make struct of "address details" of the server using the host name
-    if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
-      log_println(0, "Unable to resolve server address: %s", strerror(errno));
-      return -3;
-    }
-    I2AddrSetPort(sec_addr, c2sport);  // set port value
-
     for (i = 0; i < threadsnum; ++i) {
-      sec_addresses[i] = I2AddrCopy(sec_addr);
+      // make struct of "address details" of the server using the host name
+      if ((sec_addresses[i] = I2AddrByNode(get_errhandle(), host)) == NULL) {
+        log_println(0, "Unable to resolve server address: %s", strerror(errno));
+        return -3;
+      }
+ 
+      I2AddrSetPort(sec_addresses[i], c2sport + i);  // set port value
 
       if ((retcode = CreateConnectSocket(&(writeWorkerArgs[i].socketDescriptor), NULL, sec_addresses[i], conn_options, buf_size))) {
         log_println(0, "Connect() for client to server failed (connection %d)", strerror(errno), i+1);
@@ -238,7 +236,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     for (i = 0; i < threadsnum; ++i) {
       I2AddrFree(sec_addresses[i]);
     }
-    I2AddrFree(sec_addr);
 
     // Calculate C2S throughput in kbps
     spdout = ((BITS_8_FLOAT * pkts * lth) / KILO) / t;
