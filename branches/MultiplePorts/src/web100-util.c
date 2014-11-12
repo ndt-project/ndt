@@ -677,7 +677,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int c
           continue;
         }
         snprintf(line, sizeof(line), "%s: %s\n", estats_var_array[j].name, str);
-        send_msg(ctlsock, TEST_MSG, (const void *) line, strlen(line));
+        send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
         log_print(9, "%s", line);
         free(str);
         str = NULL;
