@@ -60,9 +60,9 @@ Java applet.
 
 %build
 %if "%{?CERT_FILE}" == ""
-%configure --with-I2util=%{_libdir} --enable-fakewww --with-java=precompiled
+%configure --with-I2util=%{_libdir} --enable-fakewww --with-java=precompiled --with-flash=precompiled
 %else
-%configure --with-I2util=%{_libdir} --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}"
+%configure --with-I2util=%{_libdir} --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}" --with-flash=precompiled
 %endif
 
 #make %{?_smp_mflags}
@@ -110,13 +110,13 @@ fi
 %files server
 %defattr(-,root,root,-)
 %{_sbindir}/*
-%config(noreplace) %{_initrddir}/%{name}
+%{_initrddir}/%{name}
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 %config(noreplace) %{_sysconfdir}/logrotate.d/%{name}
 %dir %{_prefix}/%{name}
 %dir %{_localstatedir}/lib/%{name}
 %dir %{_localstatedir}/log/%{name}
-%{_prefix}/%{name}/[^d]*
+%{_prefix}/%{name}/*
 %{_mandir}/man5/*
 %{_mandir}/man8/*
 %{_mandir}/man1/analyze.1.gz
@@ -125,7 +125,6 @@ fi
 %{_mandir}/man1/viewtrace.1.gz
 %{_bindir}/analyze
 %{_bindir}/genplot
-%{_bindir}/genplot10g
 %{_bindir}/tr-mkmap
 %{_bindir}/viewtrace
 
@@ -139,6 +138,9 @@ fi
 %{_bindir}/ndtclt
 
 %changelog
+* Wed Nov 12 2014 Aaron Brown <aaron@internet2.edu> - 3.7.0-1
+- Initial NDT 3.7.0 release candidate RPM
+
 * Tue Sep 25 2012 Kavitha Kumar <kkumar@internet2.edu> - 3.6.5.2
 - Change NDT version to 3.6.5.2_rc2
 
