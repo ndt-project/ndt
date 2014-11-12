@@ -41,8 +41,10 @@ EXTRA_DIST = admin_description.html admin.html \
 	tfw/Readme tfw/scenarios.py tfw/server.py tfw/traffics.py tfw/widgets.py
 
 ndtdir = $(prefix)/ndt
-ndt_DATA = admin_description.html admin.html \
+ndt_DATA = admin_description.html admin.html flashpolicy.xml \
 	   copyright.html web100variables.html web100_variables
+
+sbin_SCRIPTS = ndt-flashpolicyd
 
 sdatadir:
 	test -z "$(DESTDIR)$(ndtdir)/serverdata" || $(mkdir_p) "$(DESTDIR)$(ndtdir)/serverdata"

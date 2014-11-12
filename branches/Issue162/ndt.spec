@@ -41,6 +41,7 @@ Group: Applications/Network
 Requires: I2util, chkconfig, initscripts, shadow-utils, coreutils
 Requires: web100_userland, libpcap
 Requires: jansson
+Requires: python >= 2.5
 
 %description server
 NDT server that enables end users to run performance tests
