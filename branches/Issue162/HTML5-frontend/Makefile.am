@@ -18,9 +18,9 @@ TEMPDIRS = dist
 
 ndtdir = $(prefix)/ndt
 
-ndt_DATA = jquery-1.4.4.min.js ie.css style.css gauge.min.js widget.html \
+nobase_ndt_DATA = jquery-1.4.4.min.js ie.css style.css gauge.min.js widget.html \
 	   images/mlab-logo.png images/mlab-logo-small.png script.js \
            fonts/digital-7-mono.ttf fonts/League_Gothic.otf \
            fonts/League_Gothic.eot embed.html set-active-client.sh
 
-EXTRA_DIST = $(ndt_DATA)
+EXTRA_DIST = $(nobase_ndt_DATA)
