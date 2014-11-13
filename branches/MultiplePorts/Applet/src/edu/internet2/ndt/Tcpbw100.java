@@ -1823,7 +1823,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			for (int i = 0; i < iThreadsnum; ++i) {
 				try {
-					outSockets.add(new Socket(hostAddress, iC2sport));
+					outSockets.add(new Socket(hostAddress, iC2sport + i));
 				} catch (UnknownHostException e) {
 					System.err.println("Don't know about host: " + sHostName);
 					_sErrMsg = _resBundDisplayMsgs.getString("unknownServer")
@@ -2112,7 +2112,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			for (int i = 0; i < iThreadsnum; ++i) {
 				try {
-					Socket socket = new Socket(hostAddress, iS2cport);
+					Socket socket = new Socket(hostAddress, iS2cport + i);
 					socket.setSoTimeout(iTestDuration + 5000);
  
 					inSockets.add(socket);
