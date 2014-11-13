@@ -25,6 +25,8 @@ package  {
   import flash.display.DisplayObjectContainer;
   import flash.display.DisplayObject;
   import flash.filters.BlurFilter;
+  import flash.desktop.Clipboard;
+  import flash.desktop.ClipboardFormats;
   import spark.effects.*;
 
   /**
@@ -54,6 +56,11 @@ package  {
     private var _debugButton:NDTButton;
     private var _activeButton:NDTButton;
     private var _restartButton:Sprite;
+    private var _copyButton:Sprite;
+    private var _yesButton:Sprite;
+    private var _noButton:Sprite;
+    private var _upArrowButton:ArrowButton;
+    private var _downArrowButton:ArrowButton;
 
     public function GUI(
         stageWidth:int, stageHeight:int, callerObj:NDTPController) {
@@ -165,7 +172,7 @@ package  {
     }
 
     private function rollOver(e:MouseEvent):void {
-      e.target.alpha = 0.8;
+      e.target.alpha = 0.7;
     }
 
     private function rollOut(e:MouseEvent):void {
@@ -199,6 +206,11 @@ package  {
       _callerObj.startNDTTest();
     }
 
+    private function clickCopy(e:MouseEvent):void {
+      Clipboard.generalClipboard.clear();
+      Clipboard.generalClipboard.setData(ClipboardFormats.TEXT_FORMAT, _resultsTextField.text);
+    }
+
     public function updateProgressText(completed:int, total:int):void {
       if (_progressText) {
         _progressText.text = "Completed " + completed + " of "
@@ -220,23 +232,37 @@ package  {
       while (this.numChildren > 0)
         this.removeChildAt(0);
 
+      _resultsTextField.removeEventListener(Event.SCROLL, scroll);
+
       _resultsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _yesButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _noButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _upArrowButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _downArrowButton.removeEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _yesButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _noButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _upArrowButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _downArrowButton.removeEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.removeEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.removeEventListener(MouseEvent.CLICK, clickDetails);
       if (_debugButton)
         _debugButton.removeEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.removeEventListener(MouseEvent.CLICK, clickRestart);
+      _yesButton.removeEventListener(MouseEvent.CLICK, clickYes);
+      _noButton.removeEventListener(MouseEvent.CLICK, clickNo);
+      _upArrowButton.removeEventListener(MouseEvent.CLICK, clickUpArrow);
+      _downArrowButton.removeEventListener(MouseEvent.CLICK, clickDownArrow);
     }
 
     /**
@@ -271,51 +297,86 @@ package  {
       _resultsTextField.x = 0.275 * _stageWidth;
       _resultsTextField.y = 0.05 * _stageHeight;
       _resultsTextField.width = 0.725 * _stageWidth;
-      _resultsTextField.height = 0.90 * _stageHeight;
+      _resultsTextField.height = 0.85 * _stageHeight;
       this.addChild(_resultsTextField);
+
+      _upArrowButton = new ArrowButton(ArrowOrientation.UP, 0.5);	  
+      _downArrowButton = new ArrowButton(ArrowOrientation.DOWN, 0.5);
 
       _resultsButton = new NDTButton("RESULTS", 18, 30, 0.25);
       _detailsButton = new NDTButton("DETAILS", 18, 30, 0.25);
       if (CONFIG::debug)
         _debugButton = new NDTButton("DEBUG", 18, 30, 0.25);
 	  _restartButton = new NDTButton("RESTART", 18, 30, 0.25);
+      _copyButton = new NDTButton("Copy log \nto Clipboard", 12, 35, 0.25);
+      _yesButton = new NDTButton("YES", 18, 30, 0.25);
+      _noButton = new NDTButton("NO", 18, 30, 0.25);
 
       var verticalMargin:Number = _stageHeight / 5;
       if (CONFIG::debug)
         verticalMargin = _stageHeight / 6;
       _resultsButton.y = verticalMargin;
       _detailsButton.y = _resultsButton.y + verticalMargin;
-      _debugButton.y = _detailsButton.y + verticalMargin;
+      if (_debugButton)
+        _debugButton.y = _detailsButton.y + verticalMargin;
       _restartButton.y = CONFIG::debug ? _debugButton.y + verticalMargin
                                        : _detailsButton.y + verticalMargin;
+      _copyButton.y = _restartButton.y + verticalMargin;
+      _yesButton.y = _stageHeight / 2 - verticalMargin;
+      _noButton.y = _yesButton.y + verticalMargin;
+      _upArrowButton.y = 12 * _stageHeight / 13;
+      _downArrowButton.y = _upArrowButton.y;
       _resultsButton.x += _resultsButton.width / 2;
       _detailsButton.x += _detailsButton.width / 2;
-      _debugButton.x += _debugButton.width / 2;
+      if (_debugButton)
+        _debugButton.x += _debugButton.width / 2;
       _restartButton.x += _restartButton.width / 2;
+      _copyButton.x += _copyButton.width / 2;
+      _yesButton.x = 0.6 * _stageWidth;
+      _noButton.x = _yesButton.x;
+      _upArrowButton.x = _resultsTextField.x + 2 * _resultsTextField.width / 5;
+      _downArrowButton.x = _resultsTextField.x + 3 * _resultsTextField.width / 5;
 
       this.addChild(_resultsButton);
       this.addChild(_detailsButton);
       if (_debugButton)
         this.addChild(_debugButton);
       this.addChild(_restartButton);
+	  
+      _resultsTextField.addEventListener(Event.SCROLL, scroll);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _detailsButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
       _restartButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _copyButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _yesButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _noButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _upArrowButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
+      _downArrowButton.addEventListener(MouseEvent.ROLL_OVER, rollOver);
 
       _resultsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _detailsButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
       _restartButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _copyButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _yesButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _noButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _upArrowButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
+      _downArrowButton.addEventListener(MouseEvent.ROLL_OUT, rollOut);
 
       _resultsButton.addEventListener(MouseEvent.CLICK, clickResults);
       _detailsButton.addEventListener(MouseEvent.CLICK, clickDetails);
       if (_debugButton)
         _debugButton.addEventListener(MouseEvent.CLICK, clickDebug);
       _restartButton.addEventListener(MouseEvent.CLICK, clickRestart);
+      _copyButton.addEventListener(MouseEvent.CLICK, clickCopy);
+      _yesButton.addEventListener(MouseEvent.CLICK, clickYes);
+      _noButton.addEventListener(MouseEvent.CLICK, clickNo);
+      _upArrowButton.addEventListener(MouseEvent.CLICK, clickUpArrow);
+      _downArrowButton.addEventListener(MouseEvent.CLICK, clickDownArrow);
 
       changeActiveButton(_resultsButton);
       setSummaryResultText();
@@ -389,13 +450,15 @@ package  {
     }
 
     private function clickResults(e:MouseEvent):void {
-      changeActiveButton(NDTButton(e.target));
+      changeActiveButton(_resultsButton);
+      hideCopyButton();
       _resultsTextField.htmlText = _summaryResultText;
       _resultsTextField.scrollV = 0;
     }
 
     private function clickDetails(e:MouseEvent):void {
       changeActiveButton(NDTButton(e.target));
+      showCopyButton();
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getResultDetails();
       _resultsTextField.scrollV = 0;
@@ -403,25 +466,88 @@ package  {
 
     private function clickDebug(e:MouseEvent):void {
       changeActiveButton(NDTButton(e.target));
+      showCopyButton();
       _resultsTextField.htmlText = "<font size=\"14\">"
                                    + TestResults.getDebugMsg();
       _resultsTextField.scrollV = 0;
     }
 
     private function clickRestart(e:MouseEvent):void {
+      changeActiveButton(NDTButton(e.target));
+      hideCopyButton();
+      _resultsTextField.htmlText = "<font size=\"16\"><b>"
+                                   + "\nRestarting test will clear all current results. Are you sure you want to continue? </b></font>";
+      _resultsTextField.scrollV = 0;		   
+      if (!this.contains(_yesButton))
+        this.addChild(_yesButton);
+      if (!this.contains(_noButton))
+        this.addChild(_noButton);
+    }
+
+    private function clickYes(e:MouseEvent):void {
       hideResultsScreen();
       if (_consoleText) {
         _consoleText.text = "";
         this.addChild(_consoleText);
       }
-      _callerObj.startNDTTest();
+      _callerObj.startNDTTest();      		
+    }
+
+    private function clickNo(e:MouseEvent):void {
+      cancelRestart();
+      clickResults(null);
+    }
+
+    private function clickUpArrow(e:MouseEvent):void {
+      _resultsTextField.scrollV -= 20;	
+    }
+
+    private function clickDownArrow(e:MouseEvent):void {
+      _resultsTextField.scrollV += 20;    	
+    }
+
+    private function scroll(e:Event):void {
+      if (_resultsTextField.scrollV >= _resultsTextField.maxScrollV) {
+        if (this.contains(_downArrowButton))
+          this.removeChild(_downArrowButton);
+	  } else {
+        if (!this.contains(_downArrowButton))
+          this.addChild(_downArrowButton);
+	  }
+
+      if (_resultsTextField.scrollV <= 1) {
+        if (this.contains(_upArrowButton))
+          this.removeChild(_upArrowButton);     
+      } else {
+        if (!this.contains(_upArrowButton))
+          this.addChild(_upArrowButton);		
+      }
     }
 
     private function changeActiveButton(target:NDTButton):void {
+      if (_activeButton == _restartButton)
+        cancelRestart();
       if (_activeButton)
         _activeButton.setInactive();
       target.setActive();
       _activeButton = target;
+    }
+
+    private function showCopyButton():void {
+      if (!this.contains(_copyButton))
+        this.addChild(_copyButton);
+    }
+
+    private function hideCopyButton():void {
+      if (this.contains(_copyButton))
+        this.removeChild(_copyButton);
+    }
+
+    private function cancelRestart():void {
+      if (this.contains(_yesButton))
+        this.removeChild(_yesButton);
+      if (this.contains(_noButton))
+	    this.removeChild(_noButton);
     }
   }
 }
@@ -476,6 +602,38 @@ class NDTButton extends Sprite {
     var textFormat:TextFormat = _textField.getTextFormat();
     textFormat.color = 0xFFFFFF;
     _textField.setTextFormat(textFormat);
+  }
+}
+
+final class ArrowOrientation
+{ 
+    public static const UP:String = "up"; 
+    public static const DOWN:String = "down"; 
+}
+
+class ArrowButton extends Sprite {
+  [Embed(source="../assets/downArrow.png")]
+  private var downArrowImg:Class;
+  
+  [Embed(source="../assets/upArrow.png")]
+  private var upArrowImg:Class;
+  
+  function ArrowButton(orientation:String, prop:Number) {
+    super();
+    this.buttonMode = true;
+    var buttonShape:DisplayObject;
+
+    if (orientation == ArrowOrientation.DOWN)    
+      buttonShape = new downArrowImg();
+    else
+      buttonShape = new upArrowImg();
+
+    buttonShape.width *= prop;
+    buttonShape.height *= prop;
+    buttonShape.x -= buttonShape.width / 2;
+    buttonShape.y -= buttonShape.height / 2;
+
+    this.addChild(buttonShape);
   }
 }
 

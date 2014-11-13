@@ -159,6 +159,9 @@ package  {
     public static function appendClientInfo():void {
       TestResults.appendResultDetails(ResourceManager.getInstance().getString(
           NDTConstants.BUNDLE_NAME, "clientInfo", null, Main.locale));
+      TestResults.appendResultDetails(ResourceManager.getInstance().getString(
+          NDTConstants.BUNDLE_NAME, "clientVersion", null, Main.locale)
+          + ": " + CONFIG::clientVersion);
       TestResults.appendResultDetails(
           ResourceManager.getInstance().getString(
               NDTConstants.BUNDLE_NAME, "osData", null, Main.locale)
