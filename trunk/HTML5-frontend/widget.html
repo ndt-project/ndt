@@ -17,6 +17,19 @@
     </script>
 </head>
 <body class="initializing">
+<div class="header">
+    <p>You can choose which plugin (flash/java) you want to use by clicking on proper button below. <br />
+       Make sure that specific plugin is not blocked by your browser (if you use some kind of "flash block" extension <br />
+       then you may need to click on small bar at the bottom of this page to enable content).</p>
+</div>
+<div>
+  <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Use java</button>
+  <button id="flashButton" class="backendButton button" onclick="useFlashAsBackend()" type="button">Use flash</button>
+</div>
+<div id="warning">
+    <p>Selected plugin was not loaded properly. <br />
+       Make sure that you have proper plugin installed and it is not blocked by your browser.</p>
+</div>
 <div id="widget">
   <div id="welcome" class="page">
     <div class="info">
@@ -123,16 +136,11 @@
   </div>
 </div>
 
-<div>
-  <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Use java</button>
-  <button id="flashButton" class="backendButton button" onclick="useFlashAsBackend()" type="button">Use flash</button>
-</div>
-
 <div id="backendContainer">
   <!--Use embed tag to have flash client being background for JS UI or applet tag if you want to use java applet instead. -->
-  <embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="400" />
+  <embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="10" />
 
-  <!--<applet id="NDT" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar"     width="400" height="400"></applet>-->
+  <!--<applet id="NDT" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar"     width="400" height="10"></applet>-->
 </div>
 
 </body>

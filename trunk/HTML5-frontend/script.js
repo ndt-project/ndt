@@ -56,6 +56,11 @@ function initializeTest() {
 function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
+  if (!isPluginLoaded()) {
+    $('#warning').show();
+    return;
+  } 
+  $('#warning').hide();
   document.getElementById('javaButton').disabled = true;
   document.getElementById('flashButton').disabled = true;
   showPage('test', resetGauges);
@@ -472,7 +477,6 @@ function testDetails() {
 
 // BACKEND METHODS
 function useJavaAsBackend() {
-  //document.getElementById('javaButton').toggleClass('active');
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
@@ -486,6 +490,8 @@ function useJavaAsBackend() {
   app.width = '400';
   app.height = '400';
   document.getElementById('backendContainer').appendChild(app);
+  $('#flashButton').removeClass("active");
+  $('#javaButton').addClass("active");
 }
 
 function useFlashAsBackend() {
@@ -500,8 +506,10 @@ function useFlashAsBackend() {
   embed.type = 'application/x-shockwave-flash';
   embed.src = 'FlashClt.swf';
   embed.width = '600';
-  embed.height = '400';
-  document.getElementById('backendContainer').appendChild(embed);  
+  embed.height = '10';
+  document.getElementById('backendContainer').appendChild(embed);
+  $('#javaButton').removeClass("active");
+  $('#flashButton').addClass("active");
 }
 
 // UTILITIES
@@ -510,8 +518,19 @@ function debug(message) {
   if (allowDebug && window.console) console.debug(message);
 }
 
+function isPluginLoaded() {
+  try {
+    testStatus();
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
 function checkInstalledPlugins() {
   var hasFlash = false, hasJava = false;
+
+  $('#warning').hide();
   try {
     var activeXObject = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
     if(activeXObject) hasFlash = true;
@@ -520,7 +539,7 @@ function checkInstalledPlugins() {
   }
   
   if (!hasFlash) {
-    document.getElementById('flashButton').disabled = true
+    document.getElementById('flashButton').disabled = true;
   }
 
   if (deployJava.getJREs() == '') {
@@ -531,6 +550,8 @@ function checkInstalledPlugins() {
 
   if (hasJava) {
     useJavaAsBackend();  
+  } else if (hasFlash) {
+    useFlashAsBackend();
   }
 }
 

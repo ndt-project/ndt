@@ -12,6 +12,7 @@ body {
   padding: 0;
   border: 0;
   overflow: hidden;
+  height: 2000px;
 }
 a img {
   border: 0;
@@ -26,6 +27,15 @@ a img {
   text-transform: uppercase;
   font-size: 36px;
   font-family: "League Gothic", Impact, "Arial Narrow", sans-serif;
+  margin-bottom: 15px;
+}
+.header {
+  margin: 10px;  
+}
+#warning {
+  font-size: 20px;
+  color: red;
+  margin: 10px;
 }
 .page {
   width: 640px;
@@ -98,8 +108,8 @@ h3 {
   margin: 10px; 
 }
 
-.backendButton .active {
-  background-color:blue;
+.active {
+  background-color:black;
 }
 
 .backendButton:disabled {

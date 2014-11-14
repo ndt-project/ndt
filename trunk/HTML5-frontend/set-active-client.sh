@@ -6,8 +6,8 @@
 flash="flash"
 java="java"
 widget="widget.html"
-embed_tag="<embed id=\"NDT\" name=\"NDT\" type=\"application\/x-shockwave-flash\" src=\"FlashClt.swf\" width=\"600\" height=\"400\" \/>"
-applet_tag="<applet id=\"NDT\" name=\"NDT\" code=\"edu.internet2.ndt.Tcpbw100.class\" codebase=\"<?php print \$applet_url ?>\" archive=\"Tcpbw100.jar\" width=\"400\" height=\"400\"><\/applet>"
+embed_tag="<embed id=\"NDT\" name=\"NDT\" type=\"application\/x-shockwave-flash\" src=\"FlashClt.swf\" width=\"600\" height=\"10\" \/>"
+applet_tag="<applet id=\"NDT\" name=\"NDT\" code=\"edu.internet2.ndt.Tcpbw100.class\" codebase=\"<?php print \$applet_url ?>\" archive=\"Tcpbw100.jar\" width=\"400\" height=\"10\"><\/applet>"
 
 echo "This script allows you to change NDT client being used in $widget page."
 if test ! -f "$widget"; then
