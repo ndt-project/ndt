@@ -487,8 +487,8 @@ function useJavaAsBackend() {
   app.name = 'NDT';
   app.archive = 'Tcpbw100.jar';
   app.code = 'edu.internet2.ndt.Tcpbw100.class';
-  app.width = '400';
-  app.height = '400';
+  app.width = '600';
+  app.height = '10';
   document.getElementById('backendContainer').appendChild(app);
   $('#flashButton').removeClass("active");
   $('#javaButton').addClass("active");

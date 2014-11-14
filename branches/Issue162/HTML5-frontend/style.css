@@ -33,7 +33,6 @@ a img {
   margin: 10px;  
 }
 #warning {
-  font-size: 20px;
   color: red;
   margin: 10px;
 }
@@ -138,7 +137,7 @@ body.initializing .page .status {
 }
 
 #welcome .info {
-  padding-top: 50px;
+  padding-top: 10px;
   text-transform: none;
   font: 13px/18px verdana, helvetica, arial, sans-serif;
 }
