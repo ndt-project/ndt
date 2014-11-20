@@ -2116,22 +2116,21 @@ mainloop: if (head_ptr == NULL)
             sel_tv.tv_sec = 3;  // 3 seconds == WAIT_TIME_SRVR
             sel_tv.tv_usec = 0;
             log_println(3, "Waiting for new connection, timer running");
-sel_11: retcode = select(listenfd + 1, &rfd, NULL, NULL, &sel_tv);
-        if ((retcode == -1) && (errno == EINTR))
-          /* continue; */  // a signal caused the select() to exit, re-enter
-          // loop & check
-          goto sel_11;
-        tt = time(0);
+            do {
+              retcode = select(listenfd + 1, &rfd, NULL, NULL, &sel_tv);
+              // retry if a signal caused select() to exit.
+            } while ((retcode == -1) && (errno == EINTR));
+            tt = time(0);
 
           } else {
             // Nothing is in the queue, so wait forever until a new connection
             // request arrives
             log_println(3, "Timer not running, waiting for new connection");
             mclients = 0;
-sel_12: retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
-        if ((retcode == -1) && (errno == EINTR))
-          goto sel_12;
-        // a signal caused the select() to exit, re-enter loop & check
+            do {
+              retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
+              // retry if a signal caused the select() to exit
+            } while ((retcode == -1) && (errno == EINTR));
           }
 
           if (retcode < 0) {
