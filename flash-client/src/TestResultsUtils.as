@@ -688,9 +688,9 @@ package  {
         // https://code.google.com/p/ndt/issues/detail?id=98
         if (TestResults.ndt_test_results::ss2cSpeed
             > TestResults.ndt_test_results::s2cSpeed) {
-          var s2cQueue:Number = (TestResults.ndt_test_results::c2sSpeed
-                                 - TestResults.ndt_test_results::sc2sSpeed)
-                                 / TestResults.ndt_test_results::c2sSpeed;
+          var s2cQueue:Number = (TestResults.ndt_test_results::s2cSpeed
+                                 - TestResults.ndt_test_results::ss2cSpeed)
+                                 / TestResults.ndt_test_results::s2cSpeed;
           TestResults.appendResultDetails(
               ResourceManager.getInstance().getString(
                   NDTConstants.BUNDLE_NAME, "s2c", null, Main.locale)
