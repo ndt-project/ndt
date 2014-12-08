@@ -28,6 +28,8 @@ endif
 
 bin_PROGRAMS =
 sbin_PROGRAMS = $(ADD_FAKEWWW)
+noinst_PROGRAMS = 
+TESTS = 
 
 if HAVE_WEB100
 bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
@@ -37,6 +39,8 @@ endif
 if HAVE_PCAP_H
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
+noinst_PROGRAMS += web100srv_unit_tests
+TESTS += web100srv_unit_tests
 endif
 endif
 endif
@@ -84,6 +88,12 @@ web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
+
+web100srv_unit_tests_SOURCES = web100srv_unit_tests.c unit_testing.c
+web100srv_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
+web100srv_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
+web100srv_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
+web100srv_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web10gsrv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
 		    network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
