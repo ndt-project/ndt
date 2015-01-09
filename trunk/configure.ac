@@ -220,13 +220,13 @@ if test "$with_I2util" != "no"; then
 		I2UTILINCS="-I/usr/local/I2util/include $I2UTILINCS"
 		I2UTILLDFLAGS="-L/usr/local/I2util/lib $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="/usr/local/I2util/lib/libI2util.a"
+
+	else
+                AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
+                AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
 	fi
 
-	if test -z "$I2UTILLDFLAGS"; then
-		AC_MSG_ERROR([couldn't find I2util library])
-	else
-		I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
-	fi
+	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 fi
 
 AC_SUBST(I2UTILLDFLAGS)
