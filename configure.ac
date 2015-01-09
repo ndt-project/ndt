@@ -213,7 +213,7 @@ if test "$with_I2util" != "no"; then
 		I2UTILINCS="-I$I2util_dir $I2UTILINCS"
 		I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
-    I2UTILLIBMAKE="cd $I2util_dir; make"
+		I2UTILLIBMAKE="cd $I2util_dir; make"
 		
 	# now, check for installed I2util
 	elif test -d /usr/local/I2util; then
@@ -221,10 +221,20 @@ if test "$with_I2util" != "no"; then
 		I2UTILLDFLAGS="-L/usr/local/I2util/lib $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="/usr/local/I2util/lib/libI2util.a"
 
-	else
-                AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
-                AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
 	fi
+
+        # Save the old CFLAGS and LDFLAGS
+	OLD_LDFLAGS="$LDFLAGS"
+	OLD_CFLAGS="$CFLAGS"
+
+        CFLAGS="$CFLAGS $I2UTILINCS"
+        LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
+
+        AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
+        AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
+
+	LDFLAGS="$OLD_LDFLAGS"
+	CFLAGS="$OLD_CFLAGS"
 
 	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 fi
