@@ -148,18 +148,41 @@ AC_SUBST(ALIAS)
 	
 
 # Enabling/disabling flash client build
-AC_ARG_ENABLE(flash, [  --enable-flash=[yes/no] turn on flash client build
-              [default=yes]],, enable_flash=yes)
+AC_ARG_WITH(flash, [  --enable-flash=[yes/no/precompiled/auto] turn on flash client build
+              [default=auto]],, enable_flash=yes)
 
-if test "x$enable_flash" != "xno"; then
-	AM_CONDITIONAL(BUILD_FLASH_CLT, true)
-else
-	AM_CONDITIONAL(BUILD_FLASH_CLT, false)
+if test "x$with_flash" == "xauto"; then
+    AC_CHECK_PROGS(NDTMXMLC, mxmlc)
+    if test -n "$NDTMXMLC"; then
+        with_flash=yes
+    else
+        with_flash=precompiled
+    fi
 fi
+
+if test "x$with_flash" == "xyes"; then
+    AC_CHECK_PROGS(NDTMXMLC, mxmlc)
+    if test -z "$NDTMXMLC"; then
+      AC_MSG_FAILURE([mxmlc required to rebuild flash client but not available])
+    fi
+fi
+
+if test "x$with_flash" != "xno"; then
+	AM_CONDITIONAL(INCLUDE_FLASH, true)
+else
+	AM_CONDITIONAL(INCLUDE_FLASH, false)
+fi
+
+if test "x$with_flash" != "xprecompiled"; then
+	AM_CONDITIONAL(BUILD_FLASH, true)
+else
+	AM_CONDITIONAL(BUILD_FLASH, false)
+fi
+
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
-				[defaults to building I2util under owamp if exists]),
+				[defaults to building I2util under NDT if exists]),
 		with_I2util=$withval, with_I2util=yes)		
 
 #
@@ -377,7 +400,7 @@ AC_CHECK_FUNCS([alarm bzero gethostbyaddr gettimeofday inet_ntoa memset select s
 AC_SUBST(ac_aux_dir)
 AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
-		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile])
+		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile HTML5-frontend/Makefile])
 AC_OUTPUT
 
 echo ""
@@ -458,14 +481,10 @@ SUMMARY_ADMINCLASS="NO    (missing java compiler)"
 SUMMARY_JANALYZEJAR="NO    (missing java compiler)"
 fi
 
-if test -z "$HAVE_MXMLC_TRUE" && test -n "$HAVE_MXMLC_FALSE"; then
-if test "x$enable_flash" != "xno"; then
+if test "x$with_flash" != "xno"; then
 SUMMARY_FLASHCLT="YES"
 else
-SUMMARY_FLASHCLT="NO (disabled by user)"
-fi
-else
-SUMMARY_FLASHCLT="NO (missing action script compiler)"
+SUMMARY_FLASHCLT="NO"
 fi
 
 if test "$SUMMARY_WEB100CLT" = "YES" && test "$SUMMARY_FLASHCLT" = "YES" && test "$SUMMARY_TCPBW100JAR" = "YES"; then
