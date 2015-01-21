@@ -2,7 +2,7 @@
 
 Name:           ndt
 Version:        3.7.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Network Diagnostic Tool
 
 Group:          Applications/Networking
@@ -60,9 +60,9 @@ Java applet.
 
 %build
 %if "%{?CERT_FILE}" == ""
-%configure --with-I2util=%{_libdir} --enable-fakewww --with-java=precompiled --with-flash=precompiled
+%configure --enable-fakewww --with-java=precompiled --with-flash=precompiled
 %else
-%configure --with-I2util=%{_libdir} --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}" --with-flash=precompiled
+%configure --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}" --with-flash=precompiled
 %endif
 
 #make %{?_smp_mflags}

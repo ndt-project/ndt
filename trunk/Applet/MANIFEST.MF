@@ -3,5 +3,5 @@ Class-Path: lib/json-simple-1.1.1.jar
 Created-By: Rich Carlson
 Application-Name: NDT
 Main-Class: edu.internet2.ndt.Tcpbw100
-Permissions: sandbox
+Permissions: all-permissions
 Caller-Allowable-Codebase: *
