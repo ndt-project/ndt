@@ -149,7 +149,7 @@ AC_SUBST(ALIAS)
 
 # Enabling/disabling flash client build
 AC_ARG_WITH(flash, [  --enable-flash=[yes/no/precompiled/auto] turn on flash client build
-              [default=auto]],, enable_flash=yes)
+              [default=auto]],, with_flash=auto)
 
 if test "x$with_flash" == "xauto"; then
     AC_CHECK_PROGS(NDTMXMLC, mxmlc)

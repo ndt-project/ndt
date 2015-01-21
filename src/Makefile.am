@@ -130,5 +130,5 @@ $(I2UTILLIBDEPS):
 
 EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h test_meta.h \
              troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h ndt_odbc.h runningtest.h ndtptestconstants.h \
-             heuristics.h strlutils.h test_results_clt.h tests_srv.h jsonutils.h
+             heuristics.h strlutils.h test_results_clt.h tests_srv.h jsonutils.h unit_testing.h
 
