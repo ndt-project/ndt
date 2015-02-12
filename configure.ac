@@ -159,18 +159,41 @@ AC_SUBST(ALIAS)
 	
 
 # Enabling/disabling flash client build
-AC_ARG_ENABLE(flash, [  --enable-flash=[yes/no] turn on flash client build
-              [default=yes]],, enable_flash=yes)
+AC_ARG_WITH(flash, [  --enable-flash=[yes/no/precompiled/auto] turn on flash client build
+              [default=auto]],, with_flash=auto)
 
-if test "x$enable_flash" != "xno"; then
-	AM_CONDITIONAL(BUILD_FLASH_CLT, true)
-else
-	AM_CONDITIONAL(BUILD_FLASH_CLT, false)
+if test "x$with_flash" == "xauto"; then
+    AC_CHECK_PROGS(NDTMXMLC, mxmlc)
+    if test -n "$NDTMXMLC"; then
+        with_flash=yes
+    else
+        with_flash=precompiled
+    fi
 fi
+
+if test "x$with_flash" == "xyes"; then
+    AC_CHECK_PROGS(NDTMXMLC, mxmlc)
+    if test -z "$NDTMXMLC"; then
+      AC_MSG_FAILURE([mxmlc required to rebuild flash client but not available])
+    fi
+fi
+
+if test "x$with_flash" != "xno"; then
+	AM_CONDITIONAL(INCLUDE_FLASH, true)
+else
+	AM_CONDITIONAL(INCLUDE_FLASH, false)
+fi
+
+if test "x$with_flash" != "xprecompiled"; then
+	AM_CONDITIONAL(BUILD_FLASH, true)
+else
+	AM_CONDITIONAL(BUILD_FLASH, false)
+fi
+
 
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
-				[defaults to building I2util under owamp if exists]),
+				[defaults to building I2util under NDT if exists]),
 		with_I2util=$withval, with_I2util=yes)		
 
 #
@@ -201,20 +224,30 @@ if test "$with_I2util" != "no"; then
 		I2UTILINCS="-I$I2util_dir $I2UTILINCS"
 		I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
-    I2UTILLIBMAKE="cd $I2util_dir; make"
+		I2UTILLIBMAKE="cd $I2util_dir; make"
 		
 	# now, check for installed I2util
 	elif test -d /usr/local/I2util; then
 		I2UTILINCS="-I/usr/local/I2util/include $I2UTILINCS"
 		I2UTILLDFLAGS="-L/usr/local/I2util/lib $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="/usr/local/I2util/lib/libI2util.a"
+
 	fi
 
-	if test -z "$I2UTILLDFLAGS"; then
-		AC_MSG_ERROR([couldn't find I2util library])
-	else
-		I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
-	fi
+        # Save the old CFLAGS and LDFLAGS
+	OLD_LDFLAGS="$LDFLAGS"
+	OLD_CFLAGS="$CFLAGS"
+
+        CFLAGS="$CFLAGS $I2UTILINCS"
+        LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
+
+        AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
+        AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
+
+	LDFLAGS="$OLD_LDFLAGS"
+	CFLAGS="$OLD_CFLAGS"
+
+	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 fi
 
 AC_SUBST(I2UTILLDFLAGS)
@@ -388,7 +421,7 @@ AC_CHECK_FUNCS([alarm bzero gethostbyaddr gettimeofday inet_ntoa memset select s
 AC_SUBST(ac_aux_dir)
 AC_CONFIG_FILES([Makefile
 		src/Makefile Admin/Makefile Applet/Makefile
-		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile])
+		conf/Makefile doc/Makefile janalyze/Makefile flash-client/Makefile HTML5-frontend/Makefile])
 AC_OUTPUT
 
 echo ""
@@ -469,14 +502,10 @@ SUMMARY_ADMINCLASS="NO    (missing java compiler)"
 SUMMARY_JANALYZEJAR="NO    (missing java compiler)"
 fi
 
-if test -z "$HAVE_MXMLC_TRUE" && test -n "$HAVE_MXMLC_FALSE"; then
-if test "x$enable_flash" != "xno"; then
+if test "x$with_flash" != "xno"; then
 SUMMARY_FLASHCLT="YES"
 else
-SUMMARY_FLASHCLT="NO (disabled by user)"
-fi
-else
-SUMMARY_FLASHCLT="NO (missing action script compiler)"
+SUMMARY_FLASHCLT="NO"
 fi
 
 if test "$SUMMARY_WEB100CLT" = "YES" && test "$SUMMARY_FLASHCLT" = "YES" && test "$SUMMARY_TCPBW100JAR" = "YES"; then

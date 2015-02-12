@@ -17,15 +17,28 @@
     </script>
 </head>
 <body class="initializing">
+<div class="header">
+</div>
 <div id="widget">
   <div id="welcome" class="page">
     <div class="info">
 
-    <p class="mlab logo"><a href="http://www.measurementlab.net/"><img src="images/mlab-logo.png" alt="Measurement Lab" /></a></p>
+    <p>The Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
 
-    <p>Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
+    <p>NDT makes use of either Flash or Java plugins to perform the test. Make sure that the plugin you choose is not blocked by your browser</p>
 
-    <p class="mlab logo"><a href="http://www.measurementlab.net/">Learn more about Measurement Lab</a></p>
+    <div id="warning">
+        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and is not being blocked by your browser.</p>
+    </div>
+
+    <div>
+      <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Use Java</button>
+      <button id="flashButton" class="backendButton button" onclick="useFlashAsBackend()" type="button">Use Flash</button>
+    </div>
+
+    <div is="learn_more">
+      <a href="http://software.internet2.edu/ndt/">Learn more about NDT</a> &ndash; <a href="http://www.measurementlab.net/">Learn more about Measurement Lab</a>
+    </div>
 
     </div>
     <div class="status">
@@ -108,11 +121,9 @@
     </div>
 
     <div class="branding">
-      <div class="logo">
-        <a href="http://measurementlab.net/about" target="_blank"><img src="images/mlab-logo-small.png" /></a>
-      </div>
       <div class="text">
-        <a href="http://measurementlab.net/about" target="_blank">More information about M-Lab</a>
+        <a href="http://software.internet2.edu/ndt/" target="_blank">More information about NDT</a> <br />
+        <a href="http://measurementlab.net/about" target="_blank">More information about Measurement Lab</a>
       </div>
     </div>
 
@@ -123,16 +134,11 @@
   </div>
 </div>
 
-<div>
-  <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Use java</button>
-  <button id="flashButton" class="backendButton button" onclick="useFlashAsBackend()" type="button">Use flash</button>
-</div>
-
 <div id="backendContainer">
   <!--Use embed tag to have flash client being background for JS UI or applet tag if you want to use java applet instead. -->
-  <embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="400" />
+  <embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="10" />
 
-  <!--<applet id="NDT" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar"     width="400" height="400"></applet>-->
+  <!--<applet id="NDT" width="600" height="10" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar"     width="400" height="10"></applet>-->
 </div>
 
 </body>

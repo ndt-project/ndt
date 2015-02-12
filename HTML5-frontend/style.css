@@ -12,6 +12,7 @@ body {
   padding: 0;
   border: 0;
   overflow: hidden;
+  height: 2000px;
 }
 a img {
   border: 0;
@@ -26,6 +27,14 @@ a img {
   text-transform: uppercase;
   font-size: 36px;
   font-family: "League Gothic", Impact, "Arial Narrow", sans-serif;
+  margin-bottom: 15px;
+}
+.header {
+  margin: 10px;  
+}
+#warning {
+  color: red;
+  margin: 10px;
 }
 .page {
   width: 640px;
@@ -98,8 +107,8 @@ h3 {
   margin: 10px; 
 }
 
-.backendButton .active {
-  background-color:blue;
+.active {
+  background-color:black;
 }
 
 .backendButton:disabled {
@@ -128,7 +137,7 @@ body.initializing .page .status {
 }
 
 #welcome .info {
-  padding-top: 50px;
+  padding-top: 10px;
   text-transform: none;
   font: 13px/18px verdana, helvetica, arial, sans-serif;
 }

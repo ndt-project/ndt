@@ -113,3 +113,10 @@ USE_FAKEWWW="1"
 # extra options for fakewww - ignored unless USE_FAKEWWW is set to '1'
 #FAKEWWW_OPTIONS="-f /index.html"
 FAKEWWW_OPTIONS="-f /index.html -s -l /var/log/ndt/fakewww_access.log -e /var/log/ndt/fakewww_error.log"
+
+# Flash policy daemon options
+#   -f FILE, --file=FILE  The flashpolicy.xml file that will be served
+#
+# Whether to use the flash policy daemon; null or 0 to disable, 1 to enable
+USE_FLASHPOLICYD="1"
+FLASHPOLICYD_OPTIONS="-f /usr/ndt/flashpolicy.xml"

@@ -28,6 +28,8 @@ endif
 
 bin_PROGRAMS =
 sbin_PROGRAMS = $(ADD_FAKEWWW)
+noinst_PROGRAMS = 
+TESTS = 
 
 if HAVE_WEB100
 bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
@@ -37,6 +39,8 @@ endif
 if HAVE_PCAP_H
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
+noinst_PROGRAMS += web100srv_unit_tests
+TESTS += web100srv_unit_tests
 endif
 endif
 endif
@@ -45,6 +49,7 @@ if HAVE_WEB10G
 bin_PROGRAMS += genplot10g
 if HAVE_PCAP_H
 if HAVE_JANSSON
+bin_PROGRAMS += web100clt
 sbin_PROGRAMS += web10gsrv
 endif
 endif
@@ -85,6 +90,12 @@ web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 
+web100srv_unit_tests_SOURCES = web100srv_unit_tests.c unit_testing.c
+web100srv_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
+web100srv_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
+web100srv_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
+web100srv_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
+
 web10gsrv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
 		    network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
 		    protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c \
@@ -120,5 +131,5 @@ $(I2UTILLIBDEPS):
 
 EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h test_meta.h \
              troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h ndt_odbc.h runningtest.h ndtptestconstants.h \
-             heuristics.h strlutils.h test_results_clt.h tests_srv.h jsonutils.h
+             heuristics.h strlutils.h test_results_clt.h tests_srv.h jsonutils.h unit_testing.h
 
