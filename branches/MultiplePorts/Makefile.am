@@ -16,20 +16,26 @@
 #	Description:	toplevel build for bwctl
 #
 
-SUBDIRS = @TOP_BUILD_DIRS@ src conf doc
+SUBDIRS = @TOP_BUILD_DIRS@ src conf doc HTML5-frontend
 
 if INCLUDE_APPLET
 SUBDIRS += Applet
 endif
 
-if HAVE_GCJ
-SUBDIRS += Admin janalyze
-if HAVE_MXMLC
-if BUILD_FLASH_CLT
+if INCLUDE_FLASH
 SUBDIRS += flash-client
 endif
+
+if HAVE_GCJ
+SUBDIRS += Admin janalyze
 endif
-endif
+
+sbin_SCRIPTS = ndt-flashpolicyd
+
+
+ndtdir = $(prefix)/ndt
+ndt_DATA = admin_description.html admin.html flashpolicy.xml \
+	   copyright.html web100variables.html web100_variables
 
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template tcpbw100-java.template copyright.html web100variables.html \
@@ -38,21 +44,10 @@ EXTRA_DIST = admin_description.html admin.html \
 	contrib/README contrib/loadmap.intro contrib/loadmap.js \
 	contrib/loadmap.txt contrib/Tcpbw1001.java \
 	tfw/client.py tfw/communication.py tfw/hosts.py tfw/network.py \
-	tfw/Readme tfw/scenarios.py tfw/server.py tfw/traffics.py tfw/widgets.py
-
-ndtdir = $(prefix)/ndt
-ndt_DATA = admin_description.html admin.html \
-	   copyright.html web100variables.html web100_variables
+	tfw/Readme tfw/scenarios.py tfw/server.py tfw/traffics.py tfw/widgets.py \
+        $(sbin_SCRIPTS) $(ndt_DATA)
 
 sdatadir:
 	test -z "$(DESTDIR)$(ndtdir)/serverdata" || $(mkdir_p) "$(DESTDIR)$(ndtdir)/serverdata"
 
 install: sdatadir install-recursive
-
-# uncomment this when we stop using broken automake 1.5
-# (then remove from DIST_EXTRA in subdir)
-#nobase_include_HEADERS = bwlib/bwlib.h
-
-#EXTRA_DIST	=		bootstrap
-#MAINTAINERCLEANFILES	=	aclocal.m4 Makefile.in configure config.log \
-#				config.status

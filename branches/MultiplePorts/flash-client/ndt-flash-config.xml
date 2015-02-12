@@ -8,7 +8,7 @@
     <define append="true">
       <name>CONFIG::debug</name>
       <!--TODO(tiziana): Change to false, right before the first public release. -->
-      <value>true</value>
+      <value>false</value>
     </define>
     <define append="true">
       <name>CONFIG::release</name>
@@ -27,7 +27,7 @@
     <!-- The current NDT version -->
     <define append="true">
       <name>CONFIG::serverVersion</name>
-      <value>"v3.6.5.2"</value>
+      <value>"v3.7.0-rc1"</value>
     </define>
     <define append="true">
       <name>CONFIG::clientVersion</name>

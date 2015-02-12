@@ -27,6 +27,7 @@ path=/usr/sbin
 
 [ -f $path/web100srv ] || exit 0
 [ -f $path/fakewww ] || exit 0
+[ -f $path/ndt-flashpolicyd ] || exit 0
 
 RETVAL=0
 
@@ -71,6 +72,30 @@ else
 fi
 }
 
+start_flashpolicyd ()
+{
+if [ ! $USE_FLASHPOLICYD = 0 ]
+then
+   if [ ! -n "`pidof -x $path/ndt-flashpolicyd`" ]; then
+      echo -n "Starting flashpolicyd:"
+      $path/ndt-flashpolicyd $FLASHPOLICYD_OPTIONS 2>/dev/null &
+      RETVAL=$?
+      if [ $RETVAL = 0 ]
+      then
+        success
+        touch /var/lock/subsys/ndt-flashpolicyd
+      else
+        failure
+      fi
+      echo
+   fi
+else
+    warning
+    echo "flashpolicyd disabled - see /etc/sysconfig/ndt"
+fi
+}
+
+
 stop_web100srv ()
 {
    echo -n "Stopping web100srv:"
@@ -103,20 +128,46 @@ stop_fakewww ()
     fi
 }
 
+stop_flashpolicyd ()
+{
+    if [ ! $USE_FLASHPOLICYD = 0 ]
+    then
+        echo -n "Stopping flashpolicyd:"
+        killproc ndt-flashpolicyd -TERM
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/ndt-flashpolicyd
+    else
+        status ndt-flashpolicyd 2>/dev/null
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]
+        then
+            warning
+            echo "flashpolicyd disabled, but is running"
+        else
+            success
+            echo "flashpolicyd disabled, not running"
+         fi
+    fi
+}
+
 
 rhstatus() {
 	status web100srv
 	status fakewww
+	status ndt-flashpolicyd
 }
 
 stop() {
 	stop_web100srv
 	stop_fakewww
+	stop_flashpolicyd 
 }
 
 start () {
 	start_web100srv
 	start_fakewww
+	start_flashpolicyd
 }
 
 restart() {

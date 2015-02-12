@@ -64,8 +64,8 @@ char *MsgRedir6 = ">Click Here  </a> if you are not "
 "automatically redirected in the next 2 seconds.\n  "
 "</font></BODY>\n</HTML>";
 
-char *Mypagefile = "/tcpbw100.html"; /* we throw the slash away */
-char *okfile[] = { "/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
+char *Mypagefile = "/widget.html"; /* we throw the slash away */
+char *okfile[] = { "/widget.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
   "/Tcpbw100$clsFrame.class", "/Tcpbw100.jar", "/copyright.html",
   "/web100variables.html", "/"ADMINFILE, "/Admin.class", "/tr.sh",
   "/traceroute.pl", "/Tcpbw100$MyTextPane.class",
@@ -73,7 +73,11 @@ char *okfile[] = { "/tcpbw100.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
   "/Tcpbw100$3.class", "/Tcpbw100$OsfwWorker.class",
   "/Tcpbw100$Message.class", "/Tcpbw100$StatusPanel$1.class",
   "/Tcpbw100$clsFrame$1.class", "/Tcpbw100$TestWorker.class",
-  "/lib/json-simple-1.1.1.jar", "/crossdomain.xml", 0 };
+  "/lib/json-simple-1.1.1.jar", "/crossdomain.xml", 
+  "/embed.html", "/tcpbw100.html", "/FlashClt.swf", "/script.js", "/ie.css",
+  "/gauge.min.js", "/jquery-1.4.4.min.js", "/style.css", 
+  "/fonts/digital-7-mono.ttf", "/fonts/League_Gothic.eot", "/fonts/League_Gothic.otf", 
+  "/images/mlab-logo.png", "/images/mlab-logo-small.png", 0 };
 
 typedef struct allowed {
   char* filename;
@@ -495,7 +499,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 
           writen(sd, MsgRedir1, strlen(MsgRedir1));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          snprintf(line, sizeof(line), "http://%u.%u.%u.%u:%s/tcpbw100.html",
+          snprintf(line, sizeof(line), "http://%u.%u.%u.%u:%s/widget.html",
                    srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
                    port);
@@ -504,7 +508,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
           writen(sd, MsgRedir4, strlen(MsgRedir4));
           answerSize = strlen(MsgRedir4);
           snprintf(line, sizeof(line),
-                   "url=http://%u.%u.%u.%u:%s/tcpbw100.html",
+                   "url=http://%u.%u.%u.%u:%s/widget.html",
                    srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
                    port);
@@ -513,7 +517,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
           writen(sd, MsgRedir5, strlen(MsgRedir5));
           answerSize += strlen(MsgRedir5);
           snprintf(line, sizeof(line),
-                   "href=\"http://%u.%u.%u.%u:%s/tcpbw100.html\"",
+                   "href=\"http://%u.%u.%u.%u:%s/widget.html\"",
                    srv_addr & 0xff, (srv_addr >> 8) & 0xff,
                    (srv_addr >> 16) & 0xff, (srv_addr >> 24) & 0xff,
                    port);
@@ -586,19 +590,19 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
 
           writen(sd, MsgRedir1, strlen(MsgRedir1));
           writen(sd, MsgRedir2, strlen(MsgRedir2));
-          snprintf(line, sizeof(line), "http://[%s]:%s/tcpbw100.html",
+          snprintf(line, sizeof(line), "http://[%s]:%s/widget.html",
                    onenodename, port);
           writen(sd, line, strlen(line));
           writen(sd, MsgRedir3, strlen(MsgRedir3));
           writen(sd, MsgRedir4, strlen(MsgRedir4));
           answerSize = strlen(MsgRedir4);
-          snprintf(line, sizeof(line), "url=http://[%s]:%s/tcpbw100.html",
+          snprintf(line, sizeof(line), "url=http://[%s]:%s/widget.html",
                    onenodename, port);
           writen(sd, line, strlen(line));
           answerSize += strlen(line);
           writen(sd, MsgRedir5, strlen(MsgRedir5));
           answerSize += strlen(MsgRedir5);
-          snprintf(line, sizeof(line), "href=\"http://[%s]:%s/tcpbw100.html\"",
+          snprintf(line, sizeof(line), "href=\"http://[%s]:%s/widget.html\"",
                    onenodename, port);
           writen(sd, line, strlen(line));
           answerSize += strlen(line);
@@ -622,7 +626,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
     tt = time(0);
     ok = 0;
     if (strcmp(filename, "/") == 0)
-      strncpy(filename, "/tcpbw100.html", 15);
+      strncpy(filename, "/widget.html", 15);
     for (i = 0; okfile[i]; i++) {
       /* restrict file access */
       if (strcmp(okfile[i], filename) == 0) {
