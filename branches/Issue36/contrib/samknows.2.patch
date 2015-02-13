@@ -1,0 +1,575 @@
+--- Tcpbw100.java.orig	2010-04-14 21:51:01.423918200 +0400
++++ Tcpbw100.java	2010-04-14 21:50:04.865683200 +0400
+@@ -59,17 +59,24 @@
+ The Software was developed at least in part by the University of Chicago,
+ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/). 
+  */
++// BEGIN by prv
++import skin.Interface;
++import skin.TextPane;
++import skin.control.SkinPanel;
++// END by prv
++
+ import java.io.*;
+ import java.net.*;
+ import java.net.Socket;
+ import java.awt.*;
++// BEGIN by prv
++import java.awt.datatransfer.Clipboard;
++import java.awt.datatransfer.StringSelection;
++// END by prv
+ import java.awt.event.*;
+ import java.awt.event.ActionListener;
+ import java.awt.event.ActionEvent;
+-import java.awt.datatransfer.*;
+-import java.applet.*;
+ import java.util.*;
+-import java.text.*;
+ import java.lang.*;
+ import javax.swing.JLabel;
+ import javax.swing.JApplet;
+@@ -81,8 +88,6 @@
+ import javax.swing.JScrollPane;
+ import javax.swing.BorderFactory;
+ import javax.swing.JTextPane;
+-import javax.swing.text.StyledDocument;
+-import javax.swing.text.DefaultStyledDocument;
+ import javax.swing.text.BadLocationException;
+ import javax.swing.JOptionPane;
+ import javax.swing.BoxLayout;
+@@ -90,6 +95,9 @@
+ import javax.swing.SpinnerNumberModel;
+ import javax.swing.JComboBox;
+ import javax.swing.JProgressBar;
++// BEGIN by prv
++import javax.swing.JDialog;
++// END by prv
+ 
+ public class Tcpbw100 extends JApplet implements ActionListener
+ {
+@@ -124,6 +132,11 @@
+   MyTextPane results;
+   String inresult, outresult, errmsg;
+   JButton startTest;
++
++    // BEGIN by prv
++    JButton stopTest;
++    // END by prv
++
+   JButton disMiss, disMiss2;
+   JButton copy, copy2;
+   JButton deTails;
+@@ -161,6 +174,10 @@
+   int ssndqueue;
+   double sbytes;
+ 
++    // BEGIN by prv
++    private boolean _stop;
++    // END by prv
++
+   /*************************************************************************
+    * Added by Seth Peery
+    * Adds public variables to store upstream and downstream speeds in kbps
+@@ -184,10 +201,17 @@
+   int c2sResult = SFW_NOTTESTED;
+   int s2cResult = SFW_NOTTESTED;
+ 
++    // BEGIN by prv
++    private SkinPanel skinPanel;
++    // END by prv
++
+   public void showStatus(String msg)
+   {
+     if (!isApplication) {
+       super.showStatus(msg);
++        // BEGIN by prv
++            skinPanel.getStatusLabel().setText(msg);
++        // END by prv
+     }
+   }
+ 
+@@ -199,34 +223,91 @@
+     return null;
+   }
+ 
++// BEGIN by prv
++    public boolean wantToStop() {
++        return _stop;
++    }
++    // END by prv
++
+   public void init() {
++        /* BEGIN by prv
+       getContentPane().setLayout(new BorderLayout());
+       showStatus("Tcpbw100 ready");
++        END by prv */
+       failed = false ;
+       Randomize = false;
+       cancopy = false;
+-      results = new MyTextPane();
++      // BEGIN by prv
++      Interface skin = Interface.getInstance();
++
++      skinPanel = new SkinPanel(skin);
++      Insets insets = skinPanel.getInsets();
++      // END by prv
++      results = new MyTextPane(/* BEGIN by prv */skin.getTextPane(), insets/* END by prv */);
++
++      // BEGIN by prv
++      startTest = skinPanel.getStartButton();
++        startTest.addActionListener(this);
++        stopTest = skinPanel.getStopButton();
++        stopTest.setEnabled(false);
++
++        stopTest.addActionListener(new ActionListener() {
++
++            public void actionPerformed(ActionEvent e) {
++                if (!_stop && JOptionPane.showConfirmDialog(null, "Are you sure?", "Stop test", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
++                    stopTest.setEnabled(false);
++                    _stop = true;
++                }
++
++            }
++
++        });
++
++
++        options = skinPanel.getAdvancedButton();
++        options.addActionListener(new ActionListener() {
++
++            public void actionPerformed(ActionEvent e) {
++                options.setEnabled(false);
++                showAdvancedPanel();
++
++            }
++
++        });
++
++        setContentPane(skinPanel);
++      // END by prv
++
+       results.append("TCP/Web100 Network Diagnostic Tool v" + VERSION + "\n");
++        /* BEGIN by prv
+       results.setEditable(false);
+       getContentPane().add(new JScrollPane(results));
++      END by prv */
+       results.append("click START to begin\n");
++      /* BEGIN by prv
+       Panel mPanel = new Panel();
+       startTest = new JButton("START");
+       startTest.addActionListener(this);
+       mPanel.add(startTest);
++      END by prv */
+       sTatistics = new JButton("Statistics");
++      /* BEGIN by prv
+       sTatistics.addActionListener(this);
+       if (getParameter("disableStatistics") == null) {
+           mPanel.add(sTatistics);
+       }
+       sTatistics.setEnabled(false);
++      END by prv */
+       deTails = new JButton("More Details...");
+       deTails.addActionListener(this);
++      /* BEGIN by prv
+       if (getParameter("disableDetails") == null) {
+           mPanel.add(deTails);
+       }
++      END by prv */
+       deTails.setEnabled(false);
+       mailTo = new JButton("Report Problem");
++      /* BEGIN by prv
+       mailTo.addActionListener(this);
+       if (getParameter("disableMailto") == null) {
+           mPanel.add(mailTo);
+@@ -246,6 +327,7 @@
+           mPanel.add(options);
+       }
+       getContentPane().add(BorderLayout.SOUTH, mPanel);
++      END by prv */
+       preferIPv6.setSelected(true);
+       defaultTest.setSelected(true);
+       defaultTest.setEnabled(false);
+@@ -259,6 +341,16 @@
+ 
+   class MyTextPane extends JTextPane
+   {
++    public MyTextPane(final TextPane skin, final Insets insets) {
++
++        setEditable(false);
++
++        final Dimension size = new Dimension(skin.getW(), skin.getH());
++        setPreferredSize(size);
++        setBounds(skin.getX() + insets.left, skin.getY() + insets.top,
++                size.width, size.height);
++    }
++
+     public void append(String text)
+     {
+       try {
+@@ -277,6 +369,44 @@
+     }
+   }
+ 
++    private void showAdvancedPanel() {
++        final JDialog dialog = new JDialog();
++        dialog.setTitle("Advanced");
++        JPanel panel = new JPanel(new BorderLayout());
++        panel.add(BorderLayout.CENTER, new JScrollPane(results));
++        JPanel buttonsPanel = new JPanel();
++
++        final JButton optionsButton = new JButton("Options");
++        optionsButton.addActionListener(new ActionListener() {
++            public void actionPerformed(ActionEvent e) {
++                showOptions();
++            }
++        });
++        buttonsPanel.add(optionsButton);
++
++        buttonsPanel.add(deTails);
++
++        JButton btn = new JButton("Close");
++        btn.addActionListener(new ActionListener() {
++            public void actionPerformed(ActionEvent e) {
++                dialog.dispose();
++            }
++        });
++        buttonsPanel.add(btn);
++        panel.add(BorderLayout.SOUTH, buttonsPanel);
++        dialog.addWindowListener(new WindowAdapter() {
++            @Override
++            public void windowClosed(WindowEvent e) {
++                options.setEnabled(true);
++            }
++        });
++        dialog.setContentPane(panel);
++        dialog.setSize(new Dimension(600, 400));
++        dialog.setLocationRelativeTo(null);
++        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
++        dialog.setVisible(true);
++    }
++
+   class StatusPanel extends JPanel
+   {
+       private int _testNo;
+@@ -353,10 +483,17 @@
+         diagnose();
+         statistics();
+         startTest.setEnabled(false);
++                // BEGIN by prv
++                stopTest.setEnabled(true);
++                _stop = false;
++                // END by prv
++
+         deTails.setEnabled(false);
+         sTatistics.setEnabled(false);
+         mailTo.setEnabled(false);
++          /* BEGIN by prv
+         options.setEnabled(false);
++        END by prv */
+         numOfTests.setEnabled(false);
+         StatusPanel sPanel = new StatusPanel(testsNum);
+ 		getContentPane().add(BorderLayout.NORTH, sPanel);
+@@ -365,7 +502,7 @@
+ 
+         try {
+             while (true) {
+-                if (sPanel.wantToStop()) {
++                        if (sPanel.wantToStop()/* BEGIN by prv */ || wantToStop() /* END by prv */) {
+                     break;
+                 }
+                 if (testsNum == 0) {
+@@ -378,7 +515,7 @@
+                 if (testNo == testsNum) {
+                     break;
+                 }
+-                if (sPanel.wantToStop()) {
++                        if (sPanel.wantToStop()/* BEGIN by prv */ || wantToStop() /* END by prv */) {
+                     break;
+                 }
+                 sPanel.setText("");
+@@ -387,7 +524,9 @@
+                 deTails.setEnabled(true);
+                 sTatistics.setEnabled(true);
+                 mailTo.setEnabled(true);
++                /* BEGIN by prv
+                 options.setEnabled(true);
++                END by prv */
+                 statistics.append("\n** Test " + testNo + " **\n");
+                 diagnosis.append("\n** Test " + testNo + " **\n");
+                 try {
+@@ -434,16 +573,37 @@
+ 
+         if (failed) {
+           results.append(errmsg);
++                    // BEGIN by prv
++                    showStatus(Interface.getInstance().getStopString());
++                    // END by prv
+         }
++        // BEGIN by prv
++        else {
++                    showStatus(Interface.getInstance().getCompleteTestString());
++        }
++                // END by prv
+ 
+         deTails.setEnabled(true);
+         sTatistics.setEnabled(true);
+         mailTo.setEnabled(true);
++
++                // BEGIN by prv
++                skinPanel.setValue1_(0);
++                skinPanel.setValue2_(0);
++          // END by prv
++          /* BEGIN by prv
+         options.setEnabled(true);
++                END by prv */
++
+         numOfTests.setEnabled(true);
++          /* BEGIN by prv
+         showStatus("Tcpbw100 done");
++        END by prv */
+         results.append("\nclick START to re-test\n");
+         startTest.setEnabled(true);
++                // BEGIN by prv
++                stopTest.setEnabled(false);
++                // END by prv
+         testInProgress = false;
+ 		getContentPane().remove(sPanel);
+         getContentPane().validate();
+@@ -538,7 +698,11 @@
+       /* now look for middleboxes (firewalls, NATs, and other boxes that
+        * muck with TCP's end-to-end priciples
+        */
++
++            /* BEGIN by prv
+       showStatus("Tcpbw100 Middlebox test...");
++            END by prv */
++
+       results.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+       statistics.append("Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ");
+       emailText = "Checking for Middleboxes . . . . . . . . . . . . . . . . . .  ";
+@@ -653,7 +817,7 @@
+   {
+     Message msg = new Message();
+     if ((tests & TEST_SFW) == TEST_SFW) {
+-      showStatus("Simple firewall test...");
++            showStatus(/* BEGIN prv */Interface.getInstance().getFirewallTestString()/* END prv */);
+       results.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+       statistics.append("checking for firewalls . . . . . . . . . . . . . . . . . . .  ");
+       emailText = "checking for firewalls . . . . . . . . . . . . . . . . . . .  ";
+@@ -769,7 +933,7 @@
+ 		byte buff2[] = new byte[64*1024];
+     Message msg = new Message();
+     if ((tests & TEST_C2S) == TEST_C2S) {
+-      showStatus("Tcpbw100 outbound test...");
++            showStatus(/* BEGIN prv */Interface.getInstance().getUploadTestString()/* END prv */);
+       results.append("running 10s outbound test (client-to-server [C2S]) . . . . . ");
+       statistics.append("running 10s outbound test (client-to-server [C2S]) . . . . . ");
+       emailText += "running 10s outbound test (client-to-server [C2S]) . . . . . ";
+@@ -839,6 +1003,11 @@
+           break;
+         }
+         pkts++;
++                // BEGIN by prv
++                if (System.currentTimeMillis() - t > 0) {
++                    skinPanel.setValue2((int) ((8.0 * pkts * lth) / (System.currentTimeMillis() - t)));
++                }
++                //END by prv
+       } while (System.currentTimeMillis() < stop_time);
+ 
+       t =  System.currentTimeMillis() - t;
+@@ -875,6 +1044,10 @@
+         emailText += prtdbl(sc2sspd) + "Mb/s\n%0A";
+       }
+ 
++            // BEGIN by prv
++            skinPanel.setValue2((int) (sc2sspd * 1000));
++            // END by prv
++
+ /*************************************************************************
+  * Added by Seth Peery
+  * Write string representation of upstream speed to public String upstream
+@@ -902,7 +1075,7 @@
+ 		byte buff[] = new byte[8192];
+     Message msg = new Message();
+     if ((tests & TEST_S2C) == TEST_S2C) {
+-      showStatus("Tcpbw100 inbound test...");
++            showStatus(/* BEGIN prv */Interface.getInstance().getDownloadTestString()/* END prv */);
+       results.append("running 10s inbound test (server-to-client [S2C]) . . . . . . ");
+       statistics.append("running 10s inbound test (server-to-client [S2C]) . . . . . . ");
+       emailText += "running 10s inbound test (server-to-client [S2C]) . . . . . . ";
+@@ -960,6 +1133,10 @@
+           bytes += inlth;
+           if ((System.currentTimeMillis() - t) > 14500)
+             break;
++                    // BEGIN by prv
++                    if (System.currentTimeMillis() - t > 0)
++                        skinPanel.setValue1((int) ((8.0 * bytes) / (System.currentTimeMillis() - t)));
++                    // END by prv
+         }
+       } 
+       catch (IOException e) {}
+@@ -968,6 +1145,10 @@
+       System.out.println(bytes + " bytes " + (8.0 * bytes)/t + " kb/s " + t/1000 + " secs");
+       s2cspd = ((8.0 * bytes) / 1000) / t;
+ 
++            // BEGIN by prv
++            skinPanel.setValue1((int) ((8.0 * bytes) / t));
++            // END by prv
++
+       /* receive the s2cspd from the server */
+       if (ctl.recv_msg(msg) != 0) {
+         errmsg = "Protocol error!  Expected test data, got: " + new String(msg.body) + "instead\n";
+@@ -1162,6 +1343,9 @@
+           wait = (wait * 45);
+           results.append("Another client is currently being served, your test will " +
+                   "begin within " + wait + " seconds\n");
++          // BEGIN prv
++            showStatus(Interface.getInstance().getWaitString());
++          // END prv
+       }
+ 
+       f.toBack();
+@@ -1199,7 +1383,7 @@
+       StringTokenizer tokenizer = new StringTokenizer(new String(msg.body), " ");
+ 
+       while (tokenizer.hasMoreTokens()) {
+-          if (sPanel.wantToStop()) {
++            if (sPanel.wantToStop() /* BEGIN by prv */ || wantToStop() /* END by prv */) {
+               ctl.send_msg(MSG_ERROR, "Manually stopped by the user".getBytes());
+               ctl.close();
+               ctlSocket.close();
+@@ -1232,14 +1416,37 @@
+                       results.append("C2S throughput test FAILED!\n");
+                       tests &= (~TEST_C2S);
+                   }
++                    // BEGIN by prv
++                    try {
++                        Thread.sleep(3000);
++                    } catch (InterruptedException e) {
++                    }
++                    skinPanel.setValue2_(0);
++                    try {
++                        Thread.sleep(1000);
++                    } catch (InterruptedException e) {
++                    }
++                    // END by prv
+                   break;
+               case TEST_S2C:
++                    // BEGIN by prv
++                    try {
++                        Thread.sleep(1000);
++                    } catch (InterruptedException e) {
++                    }
++                    // END by prv
+                   sPanel.setText("S2C throughput");
+                   if (test_s2c(ctl, ctlSocket)) {
+                       results.append(errmsg);
+                       results.append("S2C throughput test FAILED!\n");
+                       tests &= (~TEST_S2C);
+                   }
++                    // BEGIN by prv
++                    try {
++                        Thread.sleep(1000);
++                    } catch (InterruptedException e) {
++                    }
++                    // END by prv
+                   break;
+               default:
+                   errmsg = "Unknown test ID\n";
+@@ -1247,7 +1454,7 @@
+                   return;
+           }
+       }
+-      if (sPanel.wantToStop()) {
++        if (sPanel.wantToStop()/* BEGIN by prv */ || wantToStop() /* END by prv */) {
+           ctl.send_msg(MSG_ERROR, "Manually stopped by the user".getBytes());
+           ctl.close();
+           ctlSocket.close();
+@@ -1309,6 +1516,21 @@
+       if ((tests & TEST_MID) == TEST_MID) {
+           middleboxResults(tmpstr2);
+       }
++
++        // BEGIN by prv
++        skinPanel.setRtt(avgrtt);
++        skinPanel.setLoss(loss);
++
++        StringBuilder sb = new StringBuilder();
++        sb.append("sessionid=").append(URLEncoder.encode(getParameter("sessionid"), "UTF-8")).append('&');
++        sb.append("avgrtt=").append(URLEncoder.encode(String.valueOf(avgrtt), "UTF-8")).append('&');
++        sb.append("loss=").append(URLEncoder.encode(String.valueOf(loss), "UTF-8")).append('&');
++        sb.append("upload=").append(URLEncoder.encode(String.valueOf(sc2sspd), "UTF-8")).append('&');
++//        sb.append("upload=").append(URLEncoder.encode(String.valueOf(c2sspd), "UTF-8")).append('&');
++        sb.append("download=").append(URLEncoder.encode(String.valueOf(s2cspd), "UTF-8")).append('\n');
++        System.out.println("Request: " + sb.toString());
++        sendPostRequest(getParameter("resultServer"), sb.toString());
++        // END by prv
+   }
+ 
+ 
+@@ -2166,7 +2388,9 @@
+ 
+ 
+ 	public void diagnose() {
++        /* BEGIN by prv
+ 		showStatus("Get WEB100 Variables");
++         END by prv */
+ 		
+ 		if (f == null) {
+ 			f = new clsFrame();
+@@ -2195,7 +2419,9 @@
+ 	
+ 
+ 	public void statistics() {
++        /* BEGIN ny prv
+ 		showStatus("Print Detailed Statistics");
++        END by prv */
+ 
+ 		if (ff == null) {
+ 			ff = new clsFrame();
+@@ -2297,6 +2523,15 @@
+ 				ff.dispose();
+ 				ff = null;
+ 			}
++            // BEGIN by prv
++            _stop = false;
++            skinPanel.setValue1(0);
++            skinPanel.setValue2(0);
++            skinPanel.setRtt(0f);
++            skinPanel.setLoss(0f);
++            showStatus(Interface.getInstance().getPreparingTestString());
++            // END by prv
++
+ 			runtest();
+ 		}
+ 
+@@ -2420,4 +2655,29 @@
+     frame.setVisible(true);
+   }
+ 
++    // BEGIN by prv
++    // send a POST request to Web server
++
++    public void sendPostRequest(String url, String message) {
++        try {
++            System.out.println("Send report to: " + url);
++            URLConnection connection = new URL(url).openConnection();
++            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
++            connection.setDoOutput(true);
++            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(connection.getOutputStream()));
++            out.write(message);
++            out.flush();
++            out.close();
++
++            BufferedInputStream in = new BufferedInputStream(connection.getInputStream());
++            while (in.read() != -1) ;
++            System.out.println();
++            in.close();
++
++        } catch (Exception e) {
++            e.printStackTrace();
++        }
++    }
++    // END by prv
++
+ } // class: Tcpbw100
