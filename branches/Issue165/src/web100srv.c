@@ -136,9 +136,10 @@ static char *SysLogFacility = NULL;
 static int syslogfacility = LOG_FACILITY;
 static char *ConfigFileName = NULL;
 static char buff[BUFFSIZE + 1];
-static char*rmt_host;
+static char rmt_host[256];
+static char rmt_addr[256];
 static char *device = NULL;
-static char* port = PORT;
+static char *port = PORT;
 static TestOptions testopt;
 
 static int conn_options = 0;
@@ -1262,9 +1263,9 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
            get_ISOtime(isoTime, sizeof(isoTime)));
 
   log_println(9, "meta.date=%s, meta.clientip =%s:%s:%d", meta.date,
-              meta.client_ip, rmt_host, strlen(rmt_host));
-  memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
-  log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
+              meta.client_ip, rmt_addr, strlen(rmt_addr));
+  memcpy(meta.client_ip, rmt_addr, strlen(rmt_addr));
+  log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_addr);
 
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%"VARtype",%"VARtype",%"
@@ -2184,12 +2185,15 @@ mainloop: if (head_ptr == NULL)
               memcpy(&meta.c_addr, &cli_addr, clilen);
               meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
               
-              size_t tmpstrlen = sizeof(tmpstr);
-              memset(tmpstr, 0, tmpstrlen);
+              memset(rmt_addr, 0, sizeof(rmt_addr));
               // get addr details based on socket info available
               I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd,
                                                False);
-              I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
+              addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
+
+              size_t rmt_host_strlen = sizeof(rmt_host);
+              memset(rmt_host, 0, rmt_host_strlen);
+              I2AddrNodeName(tmp_addr, rmt_host, &rmt_host_strlen);
               /* I2AddrFree(tmp_addr); */
               log_println(4,
                           "New connection received from 0x%x [%s] sockfd=%d.",
@@ -2245,9 +2249,7 @@ mainloop: if (head_ptr == NULL)
             new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
             memset(new_child, 0, sizeof(struct ndtchild));
             tt = time(0);
-            name = tmpstr;
-
-            rmt_host = tmpstr;
+            name = rmt_host;
 
             // At this point we have received a connection from a client,
             // meaning that a test is being requested.  At this point we should
