@@ -37,7 +37,7 @@ char* ctStmt_1 = "CREATE TABLE ndt_test_results ("
 "hostName TEXT,"
 "testPort INT,"
 "date TEXT,"
-"rmt_addr TEXT,";
+"rmt_host TEXT,";
 char* ctStmt_2 = "s2c2spd INT,"
 "s2cspd INT,"
 "c2sspd INT,"
