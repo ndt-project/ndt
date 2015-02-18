@@ -325,7 +325,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars);
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
 
-char *get_remotehost();
+char *get_remotehostaddress();
 
 /* global variables for signal processing */
 sig_atomic_t sig13;

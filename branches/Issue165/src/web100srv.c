@@ -955,7 +955,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // start with a clean slate of currently running test and direction
   setCurrentTest(TEST_NONE);
-  log_println(7, "Remote host= %s", get_remotehost());
+  log_println(7, "Remote host= %s", get_remotehostaddress());
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -1327,7 +1327,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
     fprintf(fp, "%s,", date);
     fprintf(fp, "%s,%d,%d,%d,%"VARtype",%"VARtype",%"VARtype",%"
             VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
-            VARtype",%"VARtype",", rmt_host,
+            VARtype",%"VARtype",", rmt_addr,
             (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
             vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
             vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
@@ -1356,7 +1356,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
     fclose(fp);
   }
   db_insert(spds, runave, cputimelog, options.s2c_logname,
-            options.c2s_logname, testName, testPort, date, rmt_host, s2c2spd,
+            options.c2s_logname, testName, testPort, date, rmt_addr, s2c2spd,
             s2cspd, c2sspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
             vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut,
             vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn,
@@ -1381,7 +1381,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
         "AckPktsOut=%"VARtype","
         "CurrentMSS=%"VARtype",DupAcksIn=%"VARtype","
         "AckPktsIn=%"VARtype",",
-        rmt_host, c2sspd, s2cspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
+        rmt_addr, c2sspd, s2cspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
         vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut, vars.AckPktsOut,
         vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn);
     snprintf(
@@ -2249,7 +2249,6 @@ mainloop: if (head_ptr == NULL)
             new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
             memset(new_child, 0, sizeof(struct ndtchild));
             tt = time(0);
-            name = rmt_host;
 
             // At this point we have received a connection from a client,
             // meaning that a test is being requested.  At this point we should
@@ -2315,10 +2314,10 @@ mainloop: if (head_ptr == NULL)
               log_println(6, "creating new child - semaphore locked");
               /*sigprocmask(SIG_BLOCK, &newmask, &oldmask); */
               new_child->pid = chld_pid;
-              /* strncpy(new_child->addr, rmt_host, strlen(rmt_host));
-                 strncpy(new_child->host, name, strlen(name));*/
-              strlcpy(new_child->addr, rmt_host, sizeof(new_child->addr));
-              strlcpy(new_child->host, name, sizeof(new_child->host));
+              /* strncpy(new_child->addr, rmt_addr, strlen(rmt_host));
+                 strncpy(new_child->host, rmt_host, strlen(name));*/
+              strlcpy(new_child->addr, rmt_addr, sizeof(new_child->addr));
+              strlcpy(new_child->host, rmt_host, sizeof(new_child->host));
 
               // compute start time based in the number of waiting clients
               // set other properties on this child process
@@ -2664,12 +2663,12 @@ mainloop: if (head_ptr == NULL)
                                                  False);
                 testPort = I2AddrPort(tmp_addr);
                 meta.ctl_port = testPort;
-                snprintf(testName, sizeof(testName), "%s", name);
+                snprintf(testName, sizeof(testName), "%s", rmt_host);
                 I2AddrFree(tmp_addr);
                 memset(cputimelog, 0, 256);
                 if (cputime) {
                   snprintf(dir, sizeof(dir), "%s_%s:%d.cputime",
-                           get_ISOtime(isoTime, sizeof(isoTime)), name,
+                           get_ISOtime(isoTime, sizeof(isoTime)), rmt_host,
                            testPort);
                   log_println(8, "CPUTIME:suffix=%s", dir);
                   create_named_logdir(cputimelog, sizeof(cputimelog), dir, 0);
@@ -2689,7 +2688,7 @@ mainloop: if (head_ptr == NULL)
                 log_println(0, "Unable to open log file '%s', continuing on "
                             "without logging", get_logfile());
               } else {
-                fprintf(fp, "%15.15s  %s port %d\n", ctime(&tt)+4, name,
+                fprintf(fp, "%15.15s  %s port %d\n", ctime(&tt)+4, rmt_host,
                         testPort);
                 if (cputime && workerThreadId) {
                   log_println(1, "cputime trace file: %s\n", cputimelog);
@@ -2771,8 +2770,8 @@ mainloop: if (head_ptr == NULL)
 
 /**
  * Method to get remote host's address.
- * @return remote host name
+ * @return remote host's address
  * */
-char *get_remotehost() {
-  return rmt_host;
+char *get_remotehostaddress() {
+  return rmt_addr;
 }

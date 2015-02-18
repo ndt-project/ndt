@@ -42,7 +42,6 @@
 char buff[BUFFSIZE + 1];
 int window = 64000;
 int randomize = 0;
-char *rmt_host;
 char *VarFileName = NULL;
 char *LogFileName = NULL;
 char *ProtoLogFileName = NULL;  // Log file used to log protocol validation logs
