@@ -219,7 +219,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   char* jsonMsgValue;
 
   // char remhostarr[256], protologlocalarr[256];
-  // char *remhost_ptr = get_remotehost();
+  // char *remhost_ptr = get_remotehostaddress();
 
   assert(ctlsockfd != -1);
   assert(options);
@@ -284,9 +284,9 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   // log that client connected, and create log file
   log_println(0,
               "Client connect received from :IP %s to some server on socket %d",
-              get_remotehost(), ctlsockfd);
+              get_remotehostaddress(), ctlsockfd);
 
-  // set_protologfile(get_remotehost(), protologlocalarr);
+  // set_protologfile(get_remotehostaddress(), protologlocalarr);
 
   if (!(useropt
         & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
