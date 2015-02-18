@@ -1,7 +1,7 @@
 /*
  * This file contains functions needed to handle database support (ODBC).
  *
- * Jakub S³awiñski 2007-07-23
+ * Jakub Sï¿½awiï¿½ski 2007-07-23
  * jeremian@poczta.fm
  */
 
@@ -257,7 +257,7 @@ int initialize_db(int options, char* dsn, char* uid, char* pwd) {
  * */
 int db_insert(char spds[4][256], float runave[], char* cputimelog,
               char* snaplog, char* c2s_snaplog, char* hostName, int testPort,
-              char* date, char* rmt_host, int s2c2spd, int s2cspd, int c2sspd,
+              char* date, char* rmt_addr, int s2c2spd, int s2cspd, int c2sspd,
               int Timeouts, int SumRTT, int CountRTT, int PktsRetrans,
               int FastRetran, int DataPktsOut, int AckPktsOut, int CurrentMSS,
               int DupAcksIn, int AckPktsIn, int MaxRwinRcvd, int Sndbuf,
@@ -304,7 +304,7 @@ int db_insert(char spds[4][256], float runave[], char* cputimelog,
            ");",
            spds[0], spds[1], spds[2], spds[3], runave[0], runave[1], runave[2],
            runave[3], cputimelog, snaplog, c2s_snaplog, hostName, testPort,
-           date, rmt_host, s2c2spd, s2cspd, c2sspd, Timeouts,
+           date, rmt_addr, s2c2spd, s2cspd, c2sspd, Timeouts,
            SumRTT, CountRTT, PktsRetrans, FastRetran, DataPktsOut,
            AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd,
            Sndbuf, MaxCwnd, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
