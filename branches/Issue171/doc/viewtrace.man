@@ -1,0 +1,92 @@
+.TH viewtrace 1 "$Date$"
+." The first line of this file must contain the '"[e][r][t][v] line
+." to tell man to run the appropriate filter "t" for table.
+."
+."	$Id$
+."
+."######################################################################
+."#									#
+."#			   Copyright (C)  2006				#
+."#	     			Internet2				#
+."#			   All Rights Reserved				#
+."#									#
+."######################################################################
+."
+."	File:		viewtrace.1
+."
+."	Author:		Rich Carlson
+."			Internet2
+."
+."	Date:		Sun Jul 2 13:02:25 CST 2006
+."
+."	Description:	
+."
+.SH NAME
+viewtrace \- Simple speed checker the NDT system.
+.SH SYNOPSIS
+.B viewtrace
+[\fIoptions\fR] 
+.SH DESCRIPTION
+The \fBNetwork Diagnostic Tester\fR (NDT) tool is a client/server
+program that provides network configuration and performance testing
+to a users desktop or laptop computers.  The system is composed of
+a client program (\fIcommand line\fR or \fIjava applet\fR) and a pair
+of server programs (a webserver and a testing/analysis engine).  
+.PP
+The \fBviewtrace\fR program observes the network interface or reads
+the offline traces. It is designed to perform packet pair timings
+to determine what type of bottleneck link exists on the path between
+this server and a remote desktop client.
+.SH OPTIONS
+.TP
+\fB\-c, --count\fR \fIamount\fR
+Specify how many packets will be viewed. The read will stop
+after \fIamount\fR packets. If this option is not set, the program will
+read forever or until the end of file.
+.TP
+\fB\-d, --debug\fR 
+Print debugging information.  This option increments the internal
+debugging flag allowing the display of run time diagnostic messages. 
+Repeated use of this option increases the amount of debugging
+information that will be displayed.  Note: the debugging information
+prints to the stderr.
+.TP
+\fB\-f, --file\fR \fIfn\fR
+Specify the name of the file to offline trace. If this option is set, the program
+will not open the real device (\fB-i\fR option will be ignored).
+.TP
+\fB\-h, --help\fR 
+Print a simple usage page and exit.
+.TP
+\fB\-i, --interface\fR \fIdevice\fR
+Specify network interface (libpcap device). This device will be used when the \fB-f\fR
+option is not set.
+.TP
+\fB\--c2sport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3002 for the C2S throughput test.
+This option allows the \fBNDT\fR administrator to analyze the traces with the
+different port number used.
+.TP
+\fB\--s2cport\fR \fIport #\fR
+By default, the \fBNDT\fR server uses port 3003 for the S2C throughput test.
+This option allows the \fBNDT\fR administrator to analyze the traces with the
+different port number used.
+.TP
+\fB\-v, --version\fR 
+Print version number and exit.
+.SH LIMITATIONS
+The NDT service is continuing to undergo testing and upgrading. 
+Better diagnostic algorithms are being developed to improve the
+accuracy and reliability of this service.
+.SH EXAMPLES
+.LP
+\fBviewtrace -c 50 -i eth0\fR
+.IP
+Open the \fBeth0\fR interface and read no more than \fB50\fR packets.
+.SH SEE ALSO
+The \%http://e2epi.internet2.edu/ndt/ web site, web100srv(8), web100clt(1), and setsockopt(2).
+.SH ACKNOWLEDGMENTS
+This material is based in part on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings and
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the NSF.
