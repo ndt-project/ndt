@@ -428,7 +428,7 @@ function testDetails() {
 
   d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd").bold() + " current, " + a.getNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
   d += a.getNDTvar("loss").bold() + " packets lost during test<br>";
-  d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), " + a.getNDTvar("avgrtt").bold() + " msec (average)<br>";
+  d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + Math.round(averageRoundTrip()) + "</b> msec (average)<br>";
   d += "Jitter: " + a.getNDTvar("Jitter").bold() + " msec<br>";
   d += a.getNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
   d += "TCP time-out counter: " + a.getNDTvar("CurRTO").bold() + "<br>";
