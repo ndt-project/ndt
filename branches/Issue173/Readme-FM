@@ -1,0 +1,85 @@
+This file describes the steps needed to create a federation of
+NDT servers.
+
+See the Readme-fakewww file to get a basic overview of how the
+fakewww server operates.  
+
+The '-F' flag controls the basic operating mode of the fakewww
+program.  If the -F is not specified, then the server acts in stand-
+alone mode, just as previous versions of the tool did.  If the -F
+options is specified, then the server operates in federated mode.
+
+In federated mode, multiple servers work together to form a single
+testing domain.  In this mode, the clients are outside the testing
+domain and each fakewww server will re-direct the client to the 
+'closest' server, i.e., the testing domain ingress server.  This allows
+testing of the shortest network path, and any host based configuration
+problems will be detected and reported.  Future versions will allow
+the user to test to the egress point for better performance diagnostics.
+
+To operate in federated mode you must. perform these steps:
+	1) create a traceroute file on each server
+	2) convert this traceroute file into a traceroute map
+	3) start the fakewww server with the -F option
+
+The details for each of these 3 steps are:
+
+1) create a traceroute map of all federated fakewww servers.
+
+  Run traceroute to every NDT server in the Federation, including the
+  local NDT server and store the results in an empty traceroute results
+  file.  This step is accomplished by running the standard /sbin/traceroute
+  program on each NDT server in the federation.  Note: a *blank* line must
+  separate the output of each traceroute.  Note: by default the traceroute
+  results file is named /tmp/traceroute.data, use the 'tr-mkmap -bf fn'
+  command to specify a different name.
+
+	For example, assume that you have created a Federation with 4 servers
+	(called NDT-1, NDT-2, NDT-3, and NDT-4).  A simple shell script with
+	the following code could be used to generate the traceroute results file.
+
+		#!/bin/sh 
+		# simple shell script to create traceroute map file
+
+		/sbin/traceroute NDT-1 > /tmp/traceroute.data
+		echo "" >> /tmp/traceroute.data
+		/sbin/traceroute NDT-2 >> /tmp/traceroute.data
+		echo "" >> /tmp/traceroute.data
+		/sbin/traceroute NDT-3 >> /tmp/traceroute.data
+		echo "" >> /tmp/traceroute.data
+		/sbin/traceroute NDT-4 >> /tmp/traceroute.data
+
+	Once this script is created, simply run it on ALL 4 NDT servers that
+	make up the Federation.  It is important that routes exist to ALL NDT
+	servers, including the local NDT server.
+
+2) convert this traceroute file into a traceroute map.
+
+  Once this traceroute results file is created, use the tr-mkmap command to
+  generate a binary traceroute MAP file.  The format of the command is
+  "/usr/local/bin/tr-mkmap -b".  This result of this command is that a binary
+  version of the traceroute data file will be created and stored in the
+  "Default.map" file.  This file is stored in the $NDT_DIR directory (by default
+  the /usr/local/ndt directory).
+
+3) start the fakewww server with the -F option
+
+  Now that the "Default.map" file has been created and stored in the proper
+  directory, start the fakewww server with the -F option
+  "/usr/local/sbin/fakewww -F".  This will cause the server to perform these
+  2 additional tasks.
+
+  a) When a new client connects, the server will perform a traceroute back
+  to the client.  (The number of hops that must be crossed is set by the
+  -t flag on the fakewww server.)  This task is performed by the fakewww
+  child process using a modified version of traceroute.  (note this means
+  that the fakewww process must run as root in order to process the returned
+  ICMP messages.)
+
+  b) After the traceroute to the client is complete, the fakewww child will
+  compare this route to that pre-stored map data.  A match is found when
+  the paths start to diverge.  This ensures that the client will always
+  recieve a positive answer, but that it might re-direct to itself.  A
+  dynamic web page is created and sent to the client, indicating that 
+  the 'closest' NDT server is being contacted and testing can begin once
+  the java applet is downloaded.

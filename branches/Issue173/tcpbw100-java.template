@@ -1,0 +1,96 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<title>YOURSITE NDT server</title>
+<meta http-equiv="Content-Language" content="en">
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+</head>
+<body onload="setTimeout('setUserAgent()', 2000)">
+<h3> YOURSITE Web100 based Network Diagnostic Tool (NDT) </h3>
+<b>Located at YOURLOCATION; 
+YOURSPEED network connection</b>
+<br><font size=-1>
+ This is java version of client. If you want to use flash app instead, please visit <a href="tcpbw100.html">this site</a>
+<!-- this applet will email results to the person specified by the 
+     param parameters.  The 'H' value is the hostname, the 'U' value
+     is the username.  The 'subject' line overwrites the default message
+     built into the java program.  -->
+
+<table align=center><tr><td>
+<applet code="edu.internet2.ndt.Tcpbw100.class" name="NDTApplet" ARCHIVE="Tcpbw100.jar"
+   width=700 height=320>
+  <PARAM NAME="H" VALUE="YOURDOMAIN">
+  <PARAM NAME="U" VALUE="YOUREMAIL">
+  <PARAM NAME="subject" VALUE="YOURSUBJECT">
+
+<!--
+  JZ 2/14/2013: Localization Support
+
+  Greek/Greece
+  <PARAM NAME="language" VALUE="el">
+  <PARAM NAME="country" VALUE="GR">
+
+  Norwegian/Norway 
+  <PARAM NAME="language" VALUE="nb">
+  <PARAM NAME="country" VALUE="NO">
+
+  Dutch/Netherlands
+  <PARAM NAME="language" VALUE="nl">
+  <PARAM NAME="country" VALUE="NL">
+
+  Catalan/Spain
+  <PARAM NAME="language" VALUE="ca">
+  <PARAM NAME="country" VALUE="ES">
+
+  Russian/Russia
+  <PARAM NAME="language" VALUE="ru">
+  <PARAM NAME="country" VALUE="RU">
+  
+  French/France
+  <PARAM NAME="language" VALUE="fr">
+  <PARAM NAME="country" VALUE="FR">
+
+  Portugese/Brazil
+  <PARAM NAME="language" VALUE="pt">
+  <PARAM NAME="country" VALUE="BR">
+  
+  English/US
+  <PARAM NAME="language" VALUE="en">
+  <PARAM NAME="country" VALUE="US">
+-->
+
+  <PARAM NAME="language" VALUE="en">
+  <PARAM NAME="country" VALUE="US">
+  <PARAM NAME="client" VALUE="applet">
+
+</applet>
+</td></tr></table>
+
+<br>
+<a href="mailto:YOUREMAIL@YOURDOMAIN?subject=YOURSUBJECT
+?&amp;body=Your name:  %0aEmail:  %0aHostname:  %0a%0aPaste results from%20
+'Statistics' window here:%0a%0a%0aPaste results from 'More Details' window%20
+here:%0a%0a%0aComments:%0a">Report Problems</a> <font size=-1> &nbsp; &nbsp; &nbsp; &nbsp; Use "ctrl-C"
+to copy data onto the clipboard and then paste it into the email message. </font>
+
+<hr size=3  width="99%" noshade>
+<br>
+This java applet was originally developed by ORNL and has been extensively modified
+at ANL.
+<br>
+Complete University of Chicago <a href="copyright.html">Copyright Notice</a>
+<hr noshade width="90%" size=-4>
+Comments to <a href="mailto:rcarlson501@gmail.com"> Rich Carlson </a> email:rcarlson501@gmail.com
+<br><i>Created: April 4, 2002 by Rich Carlson
+<br>Last Updated: March 16, 2010 by Jason Zurawski</i>
+
+<script language="javascript" type="text/javascript">
+
+  function setUserAgent() {
+    document.NDTApplet.setUserAgent(navigator.userAgent);
+  }
+
+</script>
+
+</body>
+</html>
