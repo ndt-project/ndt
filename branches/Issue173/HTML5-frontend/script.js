@@ -196,8 +196,8 @@ function setPhase(phase) {
       debug("SHOW RESULTS");
       debug('Testing complete');
 
-      document.getElementById('upload-speed').innerHTML = uploadSpeed().toPrecision(2); 
-      document.getElementById('download-speed').innerHTML = downloadSpeed().toPrecision(2); 
+      printDownloadSpeed();
+      printUploadSpeed();
       document.getElementById('latency').innerHTML = averageRoundTrip().toPrecision(2); 
       document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
       document.getElementById("test-details").innerHTML = testDetails();
@@ -413,6 +413,30 @@ function jitter() {
 function speedLimit() {
   if (simulate) return 0;
   return parseFloat(testNDT().get_PcBuffSpdLimit());
+}
+
+function printDownloadSpeed() {
+  var downloadSpeedVal = downloadSpeed();
+  if (downloadSpeedVal >= 1024) {
+    downloadSpeedVal = parseFloat(downloadSpeedVal/1024);
+    document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
+    document.getElementById('download-speed-units').innerHTML = 'gb/s';  
+  } else {
+    document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
+    document.getElementById('download-speed-units').innerHTML = 'mb/s';  
+  }
+}
+
+function printUploadSpeed() {
+  var uploadSpeedVal = uploadSpeed(false);
+  if (uploadSpeedVal >= 1024) {
+    uploadSpeedVal = parseFloat(uploadSpeedVal/1024);
+    document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
+    document.getElementById('upload-speed-units').innerHTML = 'gb/s';  
+  } else {
+    document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
+    document.getElementById('upload-speed-units').innerHTML = 'mb/s';  
+  }
 }
 
 function testDetails() {
