@@ -151,7 +151,7 @@ function setPhase(phase) {
       if (isNaN(rtt)) {
         document.getElementById("rttValue").innerHTML = "n/a";
       } else {
-        document.getElementById("rttValue").innerHTML = rtt.toFixed(2).concat(" ms");
+        document.getElementById("rttValue").innerHTML = Math.round(rtt) + " ms";
       }
 
       if (!isNaN(pcBuffSpdLimit)) {
@@ -198,7 +198,7 @@ function setPhase(phase) {
 
       document.getElementById('upload-speed').innerHTML = uploadSpeed().toPrecision(2); 
       document.getElementById('download-speed').innerHTML = downloadSpeed().toPrecision(2); 
-      document.getElementById('latency').innerHTML = averageRoundTrip().toPrecision(2); 
+      document.getElementById('latency').innerHTML = Math.round(averageRoundTrip()); 
       document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
