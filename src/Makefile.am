@@ -47,6 +47,9 @@ endif
 
 if HAVE_WEB10G
 bin_PROGRAMS += genplot10g
+if HAVE_JANSSON
+bin_PROGRAMS += web100clt
+endif
 if HAVE_PCAP_H
 if HAVE_JANSSON
 sbin_PROGRAMS += web10gsrv
