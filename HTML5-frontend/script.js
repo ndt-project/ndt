@@ -199,7 +199,7 @@ function setPhase(phase) {
       document.getElementById('upload-speed').innerHTML = uploadSpeed().toPrecision(2); 
       document.getElementById('download-speed').innerHTML = downloadSpeed().toPrecision(2); 
       document.getElementById('latency').innerHTML = averageRoundTrip().toPrecision(2); 
-      document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
+      document.getElementById('jitter').innerHTML = printJitter(false); 
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
       document.getElementById('javaButton').disabled = false;
@@ -415,6 +415,17 @@ function speedLimit() {
   return parseFloat(testNDT().get_PcBuffSpdLimit());
 }
 
+function printJitter(boldValue) {
+  var retStr = '';
+  var jitterValue = jitter();
+  if (jitterValue >= 1000) {
+    retStr += (boldValue ? '<b>' : '') + jitterValue/1000 + (boldValue ? '</b>' : '') + ' sec';
+  } else {
+    retStr += (boldValue ? '<b>' : '') + jitterValue + (boldValue ? '</b>' : '') + ' msec';
+  }
+  return retStr;
+}
+
 function testDetails() {
   if (simulate) return 'Test details';
 
@@ -429,7 +440,7 @@ function testDetails() {
   d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd").bold() + " current, " + a.getNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
   d += a.getNDTvar("loss").bold() + " packets lost during test<br>";
   d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), " + a.getNDTvar("avgrtt").bold() + " msec (average)<br>";
-  d += "Jitter: " + a.getNDTvar("Jitter").bold() + " msec<br>";
+  d += "Jitter: " + printJitter(true) + "<br>";
   d += a.getNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
   d += "TCP time-out counter: " + a.getNDTvar("CurRTO").bold() + "<br>";
   d += a.getNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
