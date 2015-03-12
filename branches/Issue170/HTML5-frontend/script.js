@@ -415,11 +415,18 @@ function speedLimit() {
   return parseFloat(testNDT().get_PcBuffSpdLimit());
 }
 
+function printPacketLoss() {
+  var packetLoss = parseFloat(testNDT().getNDTvar("loss"));
+  return packetLoss.toFixed(4);
+}
+
 function testDetails() {
   if (simulate) return 'Test details';
 
   var a = testNDT();
   var d = '';
+
+d += "error: " + testError();
 
   d += "Your system: " + a.getNDTvar("OperatingSystem").bold() + "<br>";
   d += "Plugin version: " + (a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>").bold();
@@ -427,7 +434,7 @@ function testDetails() {
   d += "<br>";
 
   d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd").bold() + " current, " + a.getNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
-  d += a.getNDTvar("loss").bold() + " packets lost during test<br>";
+  d += "<b>" + printPacketLoss() + "</b> % of packets lost during test<br>";
   d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), " + a.getNDTvar("avgrtt").bold() + " msec (average)<br>";
   d += "Jitter: " + a.getNDTvar("Jitter").bold() + " msec<br>";
   d += a.getNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
