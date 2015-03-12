@@ -417,8 +417,8 @@ function speedLimit() {
 
 function printDownloadSpeed() {
   var downloadSpeedVal = downloadSpeed();
-  if (downloadSpeedVal >= 1024) {
-    downloadSpeedVal = parseFloat(downloadSpeedVal/1024);
+  if (downloadSpeedVal >= 1000) {
+    downloadSpeedVal = parseFloat(downloadSpeedVal/1000);
     document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
     document.getElementById('download-speed-units').innerHTML = 'gb/s';  
   } else {
@@ -429,8 +429,8 @@ function printDownloadSpeed() {
 
 function printUploadSpeed() {
   var uploadSpeedVal = uploadSpeed(false);
-  if (uploadSpeedVal >= 1024) {
-    uploadSpeedVal = parseFloat(uploadSpeedVal/1024);
+  if (uploadSpeedVal >= 1000) {
+    uploadSpeedVal = parseFloat(uploadSpeedVal/1000);
     document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
     document.getElementById('upload-speed-units').innerHTML = 'gb/s';  
   } else {
