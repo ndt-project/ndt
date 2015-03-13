@@ -484,6 +484,8 @@ d += "error: " + testError();
 
 // BACKEND METHODS
 function useJavaAsBackend() {
+  $("#rtt").show();  
+  $("#rttValue").show();  
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
@@ -502,6 +504,8 @@ function useJavaAsBackend() {
 }
 
 function useFlashAsBackend() {
+  $("#rtt").hide();  
+  $("#rttValue").hide();  
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
