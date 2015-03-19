@@ -1,0 +1,196 @@
+#!/bin/sh 
+#
+# $Id: ndt 206 2008-09-09 13:05:01Z throck $
+#
+# chkconfig: 2345 55 25
+# description: Starts the NDT Web server
+# original by Peter Bertoncini <pjb@anl.gov>
+# improvements by Tom Throckmorton <throck@mcnc.org>
+# 
+# added extra logic to handle cases where fakewww isn't used
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# get local NDT configuration
+if [ -f /etc/sysconfig/ndt ];then
+        . /etc/sysconfig/ndt
+fi
+
+# defaults, if not specified in local config
+
+[ "$WEB100_DATADIR" = "" ] && WEB100_DATADIR="/var/lib/ndt"
+[ "$WEB100SRV_OPTIONS" = "" ] && WEB100SRV_OPTIONS="--ipv4 -s --tcpdump --snaplog -l /var/log/web100srv.log"
+[ "$FAKEWWW_OPTIONS" = "" ] && FAKEWWW_OPTIONS="-f /index.html"
+
+path=/usr/sbin
+
+[ -f $path/web100srv ] || exit 0
+[ -f $path/fakewww ] || exit 0
+[ -f $path/ndt-flashpolicyd ] || exit 0
+
+RETVAL=0
+
+start_web100srv ()
+{
+   if [ ! -n "`pidof $path/web100srv`" ]; then
+      echo -n "Starting web100srv:"
+      cd $WEB100_DATADIR
+      $path/web100srv $WEB100SRV_OPTIONS 2>/dev/null &
+      RETVAL=$?
+      if [ $RETVAL = 0 ]
+      then 
+	success
+        touch /var/lock/subsys/web100srv
+      else
+	failure
+      fi
+      echo
+   fi
+}
+
+start_fakewww ()
+{
+if [ ! $USE_FAKEWWW = 0 ]
+then
+   if [ ! -n "`pidof $path/fakewww`" ]; then
+      echo -n "Starting fakewww:"
+      $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
+      RETVAL=$?
+      if [ $RETVAL = 0 ]
+      then 
+	success
+        touch /var/lock/subsys/fakewww
+      else
+	failure
+      fi
+      echo
+   fi
+else
+    warning
+    echo "fakewww disabled - see /etc/sysconfig/ndt"
+fi
+}
+
+start_flashpolicyd ()
+{
+if [ ! $USE_FLASHPOLICYD = 0 ]
+then
+   if [ ! -n "`pidof -x $path/ndt-flashpolicyd`" ]; then
+      echo -n "Starting flashpolicyd:"
+      $path/ndt-flashpolicyd $FLASHPOLICYD_OPTIONS 2>/dev/null &
+      RETVAL=$?
+      if [ $RETVAL = 0 ]
+      then
+        success
+        touch /var/lock/subsys/ndt-flashpolicyd
+      else
+        failure
+      fi
+      echo
+   fi
+else
+    warning
+    echo "flashpolicyd disabled - see /etc/sysconfig/ndt"
+fi
+}
+
+
+stop_web100srv ()
+{
+   echo -n "Stopping web100srv:"
+   killproc web100srv -INT
+   RETVAL=$?
+   echo
+   [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/web100srv
+}
+
+stop_fakewww ()
+{
+    if [ ! $USE_FAKEWWW = 0 ]
+    then
+        echo -n "Stopping fakewww:"
+        killproc fakewww -TERM
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/fakewww
+    else
+        status fakewww 2>/dev/null
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ] 
+        then
+            warning
+            echo "fakewww disabled, but is running"
+        else
+            success
+            echo "fakewww disabled, not running"
+         fi
+    fi
+}
+
+stop_flashpolicyd ()
+{
+    if [ ! $USE_FLASHPOLICYD = 0 ]
+    then
+        echo -n "Stopping flashpolicyd:"
+        killproc ndt-flashpolicyd -TERM
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/ndt-flashpolicyd
+    else
+        status ndt-flashpolicyd 2>/dev/null
+        RETVAL=$?
+        if [ $RETVAL -eq 0 ]
+        then
+            warning
+            echo "flashpolicyd disabled, but is running"
+        else
+            success
+            echo "flashpolicyd disabled, not running"
+         fi
+    fi
+}
+
+
+rhstatus() {
+	status web100srv
+	status fakewww
+	status ndt-flashpolicyd
+}
+
+stop() {
+	stop_web100srv
+	stop_fakewww
+	stop_flashpolicyd 
+}
+
+start () {
+	start_web100srv
+	start_fakewww
+	start_flashpolicyd
+}
+
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+start)
+   start
+   ;;
+stop)
+   stop
+   ;;
+status)
+   rhstatus
+   ;;
+restart|reload)
+   restart
+   ;;
+*)
+   echo $"Usage: $0 {start|stop|status|restart}"
+   exit 1
+esac
+
+exit $?
