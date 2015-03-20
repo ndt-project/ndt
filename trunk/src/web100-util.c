@@ -134,7 +134,11 @@ int tcp_stat_init(char *VarFileName) {
 
   return (count_vars);
 #elif USE_WEB10G
-  return TOTAL_INDEX_MAX;
+  #ifdef ESTATS_MIB_VAR_H
+    return TOTAL_NUM_VARS;
+  #else
+    return TOTAL_INDEX_MAX;
+  #endif
 #endif
 }
 
