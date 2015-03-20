@@ -431,9 +431,14 @@ function testDetails() {
 
   var d = '';
 
-  if (testError().match(/failed/)) {
-    d += "Error occured while performing test: <br>".bold()
-    d += testError().bold().fontcolor("red") + "<br><br>";
+  var errorMsg = testError();
+  if (errorMsg.match(/failed/)) {
+    d += "Error occured while performing test: <br>".bold();
+    if (errorMsg.match(/#2048/)) {
+      d += "Security error. This error may be caused by firewall issues, make sure that port 843 is available on the NDT server, and that you can access it.".bold().fontcolor("red") + "<br><br>";
+    } else {    
+      d += errorMsg.bold().fontcolor("red") + "<br><br>";
+    }
   }
 
   d += "Your system: " + readNDTvar("OperatingSystem").bold() + "<br>";
