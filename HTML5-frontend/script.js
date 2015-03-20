@@ -426,8 +426,6 @@ function testDetails() {
   var a = testNDT();
   var d = '';
 
-d += "error: " + testError();
-
   d += "Your system: " + a.getNDTvar("OperatingSystem").bold() + "<br>";
   d += "Plugin version: " + (a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>").bold();
 
