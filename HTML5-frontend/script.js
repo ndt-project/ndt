@@ -155,7 +155,7 @@ function setPhase(phase) {
       if (isNaN(rtt)) {
         document.getElementById("rttValue").innerHTML = "n/a";
       } else {
-        document.getElementById("rttValue").innerHTML = Math.round(rtt) + " ms";
+        document.getElementById("rttValue").innerHTML = printNumberValue(Math.round(rtt)) + " ms";
       }
 
       if (!isNaN(pcBuffSpdLimit)) {
@@ -202,7 +202,7 @@ function setPhase(phase) {
 
       printDownloadSpeed();
       printUploadSpeed();
-      document.getElementById('latency').innerHTML = Math.round(averageRoundTrip()); 
+      document.getElementById('latency').innerHTML = printNumberValue(Math.round(averageRoundTrip())); 
       document.getElementById('jitter').innerHTML = printJitter(false); 
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
@@ -423,16 +423,17 @@ function speedLimit() {
 
 function printPacketLoss() {
   var packetLoss = parseFloat(testNDT().getNDTvar("loss"));
-  return packetLoss.toFixed(4);
+  packetLoss = (packetLoss*100).toFixed(2);
+  return packetLoss;
 }
 
 function printJitter(boldValue) {
   var retStr = '';
   var jitterValue = jitter();
   if (jitterValue >= 1000) {
-    retStr += (boldValue ? '<b>' : '') + jitterValue/1000 + (boldValue ? '</b>' : '') + ' sec';
+    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue/1000) + (boldValue ? '</b>' : '') + ' sec';
   } else {
-    retStr += (boldValue ? '<b>' : '') + jitterValue + (boldValue ? '</b>' : '') + ' msec';
+    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue) + (boldValue ? '</b>' : '') + ' msec';
   }
   return retStr;
 }
@@ -466,6 +467,10 @@ function readNDTvar(variable) {
   return !ret ? "-" : ret; 
 }
 
+function printNumberValue(value) {
+  return isNaN(value) ? "-" : value;
+}
+
 function testDetails() {
   if (simulate) return 'Test details';
 
@@ -487,9 +492,9 @@ function testDetails() {
   d += "<br>";
 
   d += "TCP receive window: " + readNDTvar("CurRwinRcvd").bold() + " current, " + readNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
-  d += "<b>" + printPacketLoss() + "</b> % of packets lost during test<br>";
-  d += "Round trip time: " + readNDTvar("MinRTT").bold() + " msec (minimum), " + readNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + Math.round(averageRoundTrip()) + "</b> msec (average)<br>";
-  d += "Jitter: " + printJitter(true) + "<br>";
+  d += "<b>" + printNumberValue(printPacketLoss()) + "</b> % of packets lost during test<br>";
+  d += "Round trip time: " + readNDTvar("MinRTT").bold() + " msec (minimum), " + readNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + printNumberValue(Math.round(averageRoundTrip())) + "</b> msec (average)<br>";
+  d += "Jitter: " + printNumberValue(printJitter(true)) + "<br>";
   d += readNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
   d += "TCP time-out counter: " + readNDTvar("CurRTO").bold() + "<br>";
   d += readNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
@@ -526,9 +531,9 @@ function testDetails() {
 
   d += "<br>";
 
-  d += readNDTvar("cwndtime").bold() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
-  d += readNDTvar("rwintime").bold() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
-  d += "Optimal receive buffer: " + readNDTvar("optimalRcvrBuffer").bold() + " bytes<br>";
+  d += printNumberValue(readNDTvar("cwndtime")).bold() + " % of the time was not spent in a receiver limited or sender limited state.<br>";
+  d += printNumberValue(readNDTvar("rwintime")).bold() + " % of the time the connection is limited by the client machine's receive buffer.<br>";
+  d += "Optimal receive buffer: " + printNumberValue(readNDTvar("optimalRcvrBuffer")).bold() + " bytes<br>";
   d += "Bottleneck link: " + readNDTvar("accessTech").bold() + "<br>";
   d += readNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
 
