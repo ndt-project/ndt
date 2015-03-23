@@ -315,8 +315,10 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                    int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
+
+struct testoptions;  // declare it, but don't define it
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars, int jsonSupport);
+                      tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions);
 
 int CwndDecrease(char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);

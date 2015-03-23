@@ -87,6 +87,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "heuristics.h"
 #include "tests_srv.h"
 #include "jsonutils.h"
+#include "websocket.h"
 
 static char lgfn[FILENAME_SIZE];  // log file name
 static char wvfn[FILENAME_SIZE];  // file name of web100-variables list
@@ -302,7 +303,7 @@ void child_sig(pid_t chld_pid) {
         5,
         "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x",
         pid, child_proc1->pid, child_proc1->host, child_proc1->addr,
-        (u_int64_t) child_proc1->next);
+        (uintptr_t) child_proc1->next);
     if (child_proc1->pid == pid) {
       log_println(4, "Main test process %d terminated, remove from queue",
                   pid);
@@ -329,7 +330,7 @@ void child_sig(pid_t chld_pid) {
       while (child_proc1 != NULL) {
         log_println(5, "\tChild %d, host: %s [%s], next=0x%x",
                     child_proc1->pid, child_proc1->host,
-                    child_proc1->addr, (u_int64_t) child_proc1->next);
+                    child_proc1->addr, (uintptr_t) child_proc1->next);
         if (child_proc1->next == NULL)
           break;
         child_proc1 = child_proc1->next;
@@ -395,7 +396,7 @@ void child_sig(pid_t chld_pid) {
       }
       child_proc1 = child_proc1->next;
       log_println(6, "Looping through service queue ptr = 0x%x",
-                  (u_int64_t) child_proc1);
+                  (uintptr_t) child_proc1);
     }
   }
   if (sig17 > 0)
@@ -783,7 +784,7 @@ void * zombieWorker(void *head_ptr) {
     retcode = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE,
       SRV_QUEUE_HEARTBEAT_STR,
       strlen(SRV_QUEUE_HEARTBEAT_STR),
-      testopt.json_support, JSON_SINGLE_VALUE);
+      testopt.connection_flags, JSON_SINGLE_VALUE);
     log_println(6,
                 "send_msg() returned %d during zombie check on client %d",
                 retcode, tmp_ptr->pid);
@@ -973,13 +974,13 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
-  send_json_message(ctlsockfd, MSG_LOGIN, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_LOGIN, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // initiate test with MSG_LOGIN message.
   log_println(3, "run_test() routine, asking for test_suite = %s",
               test_suite);
   send_json_message(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite),
-                    testopt->json_support, JSON_SINGLE_VALUE);
+                    testopt->connection_flags, JSON_SINGLE_VALUE);
   /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
      log_println(0, "ERROR: Tests initialization failed (%d)", n);
      return;
@@ -1224,38 +1225,38 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   snprintf(buff, sizeof(buff), "c2sData: %d\nc2sAck: %d\ns2cData: %d\n"
            "s2cAck: %d\n", c2s_linkspeed_data, c2s_linkspeed_ack,
            s2c_linkspeed_data, s2c_linkspeed_ack);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\n"
            "mismatch: %d\nspd: %0.2f\n", half_duplex, link, congestion,
            bad_cable, mismatch, realthruput);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\n"
            "timesec: %0.2f\norder: %0.4f\n", bw_theortcl, packetloss_s2c,
            avgrtt, waitsec, timesec, oo_order);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\n"
            "rwin: %0.4f\nswin: %0.4f\n", rwintime, sendtime, cwndtime, rwin,
            swin);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %"VARtype"\naspd: %0.5f\n"
            "CWND-Limited: %0.2f\n", cwin, rttsec, vars.Sndbuf, aspd, s2c2spd);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n",
            peaks.min, peaks.max, peaks.amount);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // Signal end of test results to client
-  send_json_message(ctlsockfd, MSG_LOGOUT, "", 0, testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_LOGOUT, "", 0, testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // Copy collected values into the meta data structures. This section
   // seems most readable, easy to debug here.
@@ -1442,6 +1443,12 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   return (0);
 }
 
+/* web100srv.c contains both a main() that runs things, but is also a source of
+ * library of code run by other parts of the program. In order to test the
+ * other parts, we must to compile this file without the main() function.  To
+ * do so, pass in -DUSE_WEB100SRV_ONLY_AS_LIBRARY as a compile-time option.
+ */
+#ifndef USE_WEB100SRV_ONLY_AS_LIBRARY
 /**
  * Initializes data structures,
  *  web100 structures and logging systems.  Read/load configuration, get process
@@ -1478,7 +1485,6 @@ int main(int argc, char** argv) {
   int debug = 0;
 
   int j;
-  char *name;
 
   // variables used for protocol validation logs
   // char startsrvmsg[256];  // used to log start of server process
@@ -1977,7 +1983,7 @@ mainloop: if (head_ptr == NULL)
 
             /* if ((mchild->next == NULL) && (mchild->running == 0))
              *   mchild = tmp_ptr;
-             * if (mchild != head_ptr) {
+             * if (mchild != head_ptr) 
              */
             tmp_ptr = mchild;
 
@@ -1993,7 +1999,7 @@ mainloop: if (head_ptr == NULL)
                   break;
                 if (i == (2 * max_clients)) {
                   rac = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1,
-                                          testopt.json_support, JSON_SINGLE_VALUE);
+                                          testopt.connection_flags, JSON_SINGLE_VALUE);
                   log_println(
                       6,
                       "sent 45 sec update message to client %d on fd=%d, "
@@ -2002,7 +2008,7 @@ mainloop: if (head_ptr == NULL)
                 }
                 if (i == (3 * max_clients)) {
                   rac = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1,
-                                          testopt.json_support, JSON_SINGLE_VALUE);
+                                          testopt.connection_flags, JSON_SINGLE_VALUE);
                   log_println(
                       6,
                       "sent 90 sec update message to client %d on fd=%d, "
@@ -2027,7 +2033,7 @@ mainloop: if (head_ptr == NULL)
               send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
 		strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		testopt.json_support, JSON_SINGLE_VALUE);
+		testopt.connection_flags, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2049,7 +2055,7 @@ mainloop: if (head_ptr == NULL)
               send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
 		strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		testopt.json_support, JSON_SINGLE_VALUE);
+		testopt.connection_flags, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2086,7 +2092,7 @@ mainloop: if (head_ptr == NULL)
               send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
 		strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		testopt.json_support, JSON_SINGLE_VALUE);
+		testopt.connection_flags, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2218,25 +2224,6 @@ mainloop: if (head_ptr == NULL)
                                   procstatusenum, ctlsockfd);
             }
 
-            // the specially crafted data that kicks off the old clients
-            for (i = 0; i < RETRY_COUNT; i++) {
-              retcode = write(ctlsockfd, "123456 654321", 13);
-              if ((retcode == -1) && (errno == EINTR))  // interrupted, retry
-                continue;
-              if (retcode == 13)  // 13 bytes correctly written, exit
-                break;
-              if (retcode == -1) {  // socket error hindering further retries
-                log_println(1,
-                            "Initial contact with client failed errno=%d",
-                            errno);
-                close(chld_pipe[0]);
-                close(chld_pipe[1]);
-                shutdown(ctlsockfd, SHUT_WR);
-                close(ctlsockfd);
-                goto mainloop;
-              }
-            }
-
             t_opts = initialize_tests(ctlsockfd, &testopt, test_suite,
                                       sizeof(test_suite));
             if (t_opts < 1) {  // some error in initialization routines
@@ -2293,7 +2280,7 @@ mainloop: if (head_ptr == NULL)
                 send_json_message(ctlsockfd, SRV_QUEUE,
 		  SRV_QUEUE_SERVER_BUSY_STR, 
 		  strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		  testopt.json_support, JSON_SINGLE_VALUE);
+		  testopt.connection_flags, JSON_SINGLE_VALUE);
                 close(chld_pipe[0]);
                 close(chld_pipe[1]);
                 shutdown(ctlsockfd, SHUT_WR);
@@ -2359,7 +2346,7 @@ mainloop: if (head_ptr == NULL)
                 send_json_message(new_child->ctlsockfd, SRV_QUEUE,
 		  SRV_QUEUE_SERVER_BUSY_STR, 
 		  strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		  testopt.json_support, JSON_SINGLE_VALUE);
+		  testopt.connection_flags, JSON_SINGLE_VALUE);
                 close(chld_pipe[1]);
                 shutdown(new_child->ctlsockfd, SHUT_WR);
                 close(new_child->ctlsockfd);
@@ -2397,7 +2384,7 @@ mainloop: if (head_ptr == NULL)
                   while (tmp_ptr != NULL) {
                     log_println(4, "\tChild %d, host: %s [%s], next=0x%x",
                                 tmp_ptr->pid, tmp_ptr->host, tmp_ptr->addr,
-                                (u_int64_t) tmp_ptr->next);
+                                (uintptr_t) tmp_ptr->next);
                     if (tmp_ptr->next == NULL)
                       break;
                     tmp_ptr = tmp_ptr->next;
@@ -2418,7 +2405,7 @@ mainloop: if (head_ptr == NULL)
                     (waiting-1));
                 snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-1));
                 send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr),
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 continue;
               }
 
@@ -2429,7 +2416,7 @@ mainloop: if (head_ptr == NULL)
                             (waiting-max_clients), mchild->pid, xx);
                 snprintf(tmpstr, sizeof(tmpstr), "%d", xx);
                 send_json_message(mchild->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr),
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 continue;
               }
 
@@ -2469,7 +2456,7 @@ mainloop: if (head_ptr == NULL)
 
                   snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-j));
                   send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr,
-                           strlen(tmpstr), testopt.json_support, JSON_SINGLE_VALUE);
+                           strlen(tmpstr), testopt.connection_flags, JSON_SINGLE_VALUE);
                   tmp_ptr = tmp_ptr->next;
                   j--;
                 }
@@ -2535,7 +2522,7 @@ mainloop: if (head_ptr == NULL)
                             tmpstr);
                 // test session starts now
                 send_json_message(mchild->ctlsockfd, SRV_QUEUE, "0", 1,
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 for (i = 0; i < 5; i++) {
                   retcode = write(mchild->pipe, tmpstr, strlen(tmpstr));
                   log_println(6, "write(%d) returned %d, errno=%d",
@@ -2567,7 +2554,7 @@ mainloop: if (head_ptr == NULL)
                 log_println(5, "sending 'GO' signal to client msg='%s'",
                             tmpstr);
                 send_json_message(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1,
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 for (i = 0; i < 5; i++) {
                   retcode = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
                   if ((retcode == -1) && (errno == EINTR))
@@ -2767,6 +2754,7 @@ mainloop: if (head_ptr == NULL)
           }
   }
 }
+#endif
 
 /**
  * Method to get remote host's address.
