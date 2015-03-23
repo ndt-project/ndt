@@ -7,9 +7,11 @@
  * skostuch@soldevelo.com
  */
 
+#include <ctype.h>
 #include <jansson.h>
 #include <string.h>
 #include "jsonutils.h"
+#include "logging.h"
 
 /**
  * Creates string representing JSON object with single key:value pair
@@ -141,7 +143,7 @@ char* json_read_map_value(const char *jsontext, const char *key) {
 	data = json_object_get(root, key);
 	if(data != NULL)
 	{
-		char *value = json_string_value(data);
+		char *value = (char *)json_string_value(data);
 
 		return value;
 	}

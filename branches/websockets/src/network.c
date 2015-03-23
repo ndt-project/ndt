@@ -12,8 +12,9 @@
 #include <unistd.h>
 #include "jsonutils.h"
 
-#include "network.h"
 #include "logging.h"
+#include "network.h"
+#include "websocket.h"
 
 /**
  * Create and bind socket.
@@ -374,8 +375,9 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  * @param type type of the message
  * @param msg message to send
  * @param len length of the message
- * @param jsonSupport indicates if JSON format is supported by second side (if not
- * 					  then msg is being sent as it is and no JSON converting is done)
+ * @param connectionFlags indicates if JSON format is supported by the other side (connectionFlags & JSON_SUPPORT)
+ *                        and if websockets are supported by the other side (connectionFlags & WEBSOCKET_SUPPORT)
+ *                        It is expected, but not required, that WEBSOCKET_SUPPORT will always include JSON_SUPPORT.
  * @param jsonConvertType defines how message converting should be handled:
  *			JSON_SINGLE_VALUE: single key/value pair is being created (using default key)
  *							   with msg as value
@@ -403,14 +405,19 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  *        -4 - Cannot convert msg to JSON
  *
  */
-int send_json_msg(int ctlSocket, int type, const char* msg, int len, int jsonSupport,
-		int jsonConvertType, const char *keys, const char *keysDelimiters,
-        const char *values, char *valuesDelimiters) {
+int send_json_msg(int ctlSocket, int type, const char* msg, int len,
+                  int connectionFlags, int jsonConvertType,
+                  const char *keys, const char *keysDelimiters,
+                  const char *values, char *valuesDelimiters) {
   char* tempBuff;
   int ret = 0;
   // if JSON is not supported by second side, sends msg as it is
-  if (!jsonSupport) {
-    return send_msg(ctlSocket, type, msg, len);
+  if (!(connectionFlags & JSON_SUPPORT)) {
+    if (connectionFlags & WEBSOCKET_SUPPORT) {
+      return send_websocket_msg(ctlSocket, type, msg, len);
+    } else {
+      return send_msg(ctlSocket, type, msg, len);
+    }
   }
 
   switch(jsonConvertType) {
@@ -422,24 +429,32 @@ int send_json_msg(int ctlSocket, int type, const char* msg, int len, int jsonSup
     case JSON_KEY_VALUE_PAIRS:
       tempBuff = json_create_from_key_value_pairs(msg); break;
     default:
-      return send_msg(ctlSocket, type, msg, len);
+      if (connectionFlags & WEBSOCKET_SUPPORT) {
+        return send_websocket_msg(ctlSocket, type, msg, len);
+      } else {
+        return send_msg(ctlSocket, type, msg, len);
+      }
   }
 
   if (!tempBuff) {
     return -4;
   }
-  ret = send_msg(ctlSocket, type, tempBuff, strlen(tempBuff));
+  if (connectionFlags & WEBSOCKET_SUPPORT) {
+    ret = send_websocket_msg(ctlSocket, type, tempBuff, strlen(tempBuff));
+  } else {
+    ret = send_msg(ctlSocket, type, tempBuff, strlen(tempBuff));
+  }
   free(tempBuff);
   return ret;
 }
 
 /**
- * Shortest version of send_json_msg method. Uses default NULL values for JSON_MULTIPLE_VALUES
- * convert type specific parameters.
+ * Shortest version of send_json_msg method. Uses default NULL values for
+ * JSON_MULTIPLE_VALUES convert type specific parameters.
  */
-int send_json_message(int ctlSocket, int type, const char* msg, int len, int jsonSupport,
-		int jsonConvertType) {
-  return send_json_msg(ctlSocket, type, msg, len, jsonSupport, jsonConvertType,
+int send_json_message(int ctlSocket, int type, const char* msg, int len,
+                      int connectionFlags, int jsonConvertType) {
+  return send_json_msg(ctlSocket, type, msg, len, connectionFlags, jsonConvertType,
                        NULL, NULL, NULL, NULL);
 }
 
@@ -455,8 +470,6 @@ int send_json_message(int ctlSocket, int type, const char* msg, int len, int jso
  *        -2 - Cannot complete writing full message data into socket
  *        -3 - Cannot write after retries
  */
-
-
 int send_msg(int ctlSocket, int type, const void* msg, int len) {
   unsigned char buff[3];
   int rc, i;
@@ -511,20 +524,18 @@ int send_msg(int ctlSocket, int type, const void* msg, int len) {
 /**
  * Receive the protocol message from the control socket.
  * @param ctlSocket control socket
- * @param typetarget place for type of the message
+ * @param type target place for type of the message
  * @param msg target place for the message body
- * @param len  target place for the length of the message
+ * @param len target place for the length of the message
  * @returns 0 on success, error code otherwise.
  *          Error codes:
  *          -1 : Error reading from socket
  *          -2 : No of bytes received were lesser than expected byte count
  *          -3 : No of bytes received did not match expected byte count
  */
-
 int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
   unsigned char buff[3];
   int length;
-
   char *msgtemp = (char*) msg;
 
   assert(type);
@@ -556,6 +567,15 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
   protolog_rcvprintln(*type, msgtemp, *len, getpid(), ctlSocket);
 
   return 0;
+}
+
+int recv_any_msg(int ctlSocket, int* type, void* msg, int* len,
+                 int connectionFlags) {
+  if (connectionFlags & WEBSOCKET_SUPPORT) {
+    return recv_websocket_ndt_msg(ctlSocket, type, msg, len);
+  } else {
+    return recv_msg(ctlSocket, type, msg, len);
+  }
 }
 
 /**
@@ -599,8 +619,9 @@ int writen(int fd, const void* buf, int amount) {
  * @return The amount of bytes read from the file descriptor
  */
 
-int readn(int fd, void* buf, int amount) {
-  int received = 0, n, rc;
+size_t readn(int fd, void* buf, size_t amount) {
+  size_t received = 0;
+  int n, rc;
   char* ptr = buf;
   struct timeval sel_tv;
   fd_set rfd;

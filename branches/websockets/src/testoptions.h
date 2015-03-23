@@ -18,13 +18,16 @@
 #define RETRY_EXCEEDED_WAITING_DATA -102
 #define SOCKET_STATUS_FAILED -1
 
+#define JSON_SUPPORT 1
+#define WEBSOCKET_SUPPORT 2
+
 typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
 
   char client_version[CS_VERSION_LENGTH_MAX + 1]; // client version number.
 
-  int json_support; // indicates if client supports JSON messages
+  int connection_flags; // indicates if client supports JSON messages and/or websockets
 
   int midopt;  // middlebox test to be perfomed?
   int midsockfd;  // socket file desc for middlebox test
@@ -44,7 +47,6 @@ typedef struct testoptions {
   pid_t child2;
 
   int sfwopt;  // Is firewall test to be performed?
-  int State;  // seems unused currently
 
   int metaopt;  // meta test to be perfomed?
 } TestOptions;
