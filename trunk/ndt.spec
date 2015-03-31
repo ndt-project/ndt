@@ -1,4 +1,4 @@
-%define         rc_tag     -rc1
+%define         rc_tag     -rc2
 
 Name:           ndt
 Version:        3.7.0
