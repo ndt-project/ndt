@@ -1,3 +1,0 @@
-Manifest-Version: 1.0
-Created-By: My own fingers
-Main-Class: edu/internet2/ndt/JAnalyze
