@@ -2,7 +2,7 @@
 
 Name:           ndt
 Version:        3.7.0
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Network Diagnostic Tool
 
 Group:          Applications/Networking
