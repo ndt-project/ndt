@@ -32,13 +32,17 @@ a img {
 .header {
   margin: 10px;  
 }
-#warning {
+#warning-environment {
+  color: orange;
+  margin: 5px;
+}
+#warning-plugin {
   color: red;
-  margin: 10px;
+  margin: 5px;
 }
 .page {
   width: 640px;
-  height: 400px;
+  height: 420px;
   position: absolute;
   left: 0;
   top: 0;
