@@ -57,10 +57,10 @@ function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
   if (!isPluginLoaded()) {
-    $('#warning').show();
+    $('#warning-plugin').show();
     return;
   } 
-  $('#warning').hide();
+  $('#warning-plugin').hide();
   document.getElementById('javaButton').disabled = true;
   document.getElementById('flashButton').disabled = true;
   showPage('test', resetGauges);
@@ -548,6 +548,7 @@ function useJavaAsBackend() {
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
   } 
+  document.getElementById('warning-environment').innerHTML = "";
 
   var app = document.createElement('applet');
   app.id = 'NDT';
@@ -563,11 +564,19 @@ function useJavaAsBackend() {
 
 function useFlashAsBackend() {
   $("#rtt").hide();  
-  $("#rttValue").hide();  
+  $("#rttValue").hide();
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
   } 
+
+  if (isLinuxSystem()) {
+    document.getElementById('warning-environment').innerHTML = "Warning: Using flash plugin on Linux system may provide inaccurate results";
+  }
+
+  if (isChromeBrowser()) {
+    document.getElementById('warning-environment').innerHTML = "Warning: Using flash plugin in Chrome browser may provide inaccurate results";
+  }
 
   var embed = document.createElement('embed');
   embed.id = 'NDT';
@@ -599,7 +608,7 @@ function isPluginLoaded() {
 function checkInstalledPlugins() {
   var hasFlash = false, hasJava = false;
 
-  $('#warning').hide();
+  $('#warning-plugin').hide();
   try {
     var activeXObject = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
     if(activeXObject) hasFlash = true;
@@ -624,3 +633,13 @@ function checkInstalledPlugins() {
   }
 }
 
+function isLinuxSystem() {
+  if (navigator.platform.indexOf("Linux") != -1) 
+    return true;
+
+  return false;
+}
+
+function isChromeBrowser() {
+   return (/Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor));
+}
