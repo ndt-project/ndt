@@ -1,0 +1,138 @@
+.TH fakewww 8 "$Date$"
+." The first line of this file must contain the '"[e][r][t][v] line
+." to tell man to run the appropriate filter "t" for table.
+."
+."	$Id$
+."
+."######################################################################
+."#									#
+."#			   Copyright (C)  2004				#
+."#	     			Internet2				#
+."#			   All Rights Reserved				#
+."#									#
+."######################################################################
+."
+."	File:		fakewww.8
+."
+."	Author:		Rich Carlson
+."			Internet2
+."
+."	Date:		Sun May 20 16:01:25 CST 2004
+."
+."	Description:	
+."
+.SH NAME
+fakewww \- Simple web server for the NDT system.
+.SH SYNOPSIS
+.B fakewww 
+[\fIoptions\fR] 
+.SH DESCRIPTION
+The \fBNetwork Diagnostic Tester\fR (NDT) tool is a client/server
+program that provides network configuration and performance testing
+to a users desktop or laptop computers.  The system is composed of
+a client program (\fIcommand line\fR or \fIjava applet\fR) and a pair
+of server programs (a webserver and a testing/analysis engine).  
+.PP
+The \fBfakewww\fR server provides a simple web server program to
+handle Web based \fIJava clients\fR.  This program eliminated the
+need to install and configure a full-fledged web server.  It also
+provides \fIserver\fR discovery functions when operated in \fIfederated
+mode\fR (see options).  By default, the server listens for incoming
+Web client requests on TCP port 7123 (see options to change this
+port number).  Once a TCP connection is received, the \fBfakewww\fR
+server \fBfork(2)\fR's a child process off to handle the request
+and the parent process returns to the \fBlisten(2)\fR state.  
+.PP
+The \fBfakewww\fR server only responds to the \fBHTTP GET\fR command. 
+All other commands results in the connection being closed and, if
+enabled, an error message is logged.  The server contains a list of
+html and java class/jar files that can be returned to the client. 
+If a request is received for an unlisted file, a "\fI404 no file found\fR"
+error is returned to the client and, if enabled, an error message
+is logged.  Otherwise the requested file(s) is(are) returned to the
+client.
+.SH OPTIONS
+.TP
+\fB\-d, --debug\fR 
+Print debugging information.  This option increments the internal
+debugging flag allowing the display of run time diagnostic messages. 
+Repeated use of this option increases the amount of debugging
+information that will be displayed.  Note: the debugging information
+prints to the stderr.
+.TP
+\fB\-h, --help\fR 
+Print a simple usage page and exit.
+.TP
+\fB\-F, --federated\fR 
+Operate in \fBfederated mode\fR.  In this mode several servers operate
+together to handle client requests.  The federated servers form a
+\fIMeasurement Domain\fR that clients can connect to.  Each server
+contains a \fBtraceroute\fR map to all servers in the \fBfederation\fR. 
+When a client connects to a server, the server performs a \fBtraceroute\fR
+back to the client.  The server then dynamically creates a new web
+page that redirects the client to the appropriate server.  By default,
+this will be the server \fIclosest\fR to the ingress point of the
+\fBmeasurement domain\fR.
+.TP
+\fB\-f, --file\fR \fIfile\fR
+Add the specified file to the list of allowed ones.
+.TP
+\fB\-s, --syslog\fR
+use the syslog() to log some information
+.TP
+\fB\-v, --version\fR 
+Print version number and exit.
+.TP
+\fB\-l, --alog\fR \fIalog_FN\fR
+specify the access log filename
+.TP
+\fB\-e, --elog\fR \fIelog_FN\fR
+specify the error log filename
+.TP
+\fB\-b, --basedir\fR \fIpath\fR
+Specify a basedir for the documents.
+.TP
+\fB\-S, --logfacility\fR \fI#F\fR
+specify syslog facility name.
+Note: this doesn't enable 'syslog'
+.TP
+\fB\-p, --port\fR \fIport number\fR
+Specify a different TCP port number to listen for client requests.
+.TP
+\fB\-t, --ttl\fR \fInumber\fR
+Specify the maximum number of hops that traceroute should follow. 
+This number needs to be larger than the maximum number of hops
+between servers in the federation.  
+.TP
+\fB\--dflttree\fR \fIfn\fR
+Specify alternate 'Default.tree' file.
+.TP
+\fB\--dflttree6\fR \fIfn\fR
+Specify alternate 'Default.tree6' file.
+.TP
+\fB\-4, --ipv4\fR 
+Use IPv4 addresses only.
+.TP
+\fB\-6, --ipv6\fR 
+Use IPv6 addresses only.
+.SH LIMITATIONS
+The NDT service is continuing to undergo testing and upgrading. 
+Better diagnostic algorithms are being developed to improve the
+accuracy and reliability of this service.
+.SH EXAMPLES
+.LP
+\fBfakewww -l /var/log/access.log -e /var/log/error.log >& /dev/null &\fR
+.IP
+Run a fakewww server on TCP port 7123 and log the access log to the
+\fB/var/log/access.log\fR file and error log to the \fB/var/log/error.log\fR file.
+.LP
+\fBfakewww -p80 >& /dev/null\fR
+.IP
+Run a fakewww server on the standard TCP web services port.
+.SH SEE ALSO
+The \%http://e2epi.internet2.edu/ndt/ web site, web100srv(8), web100clt(1), and setsockopt(2).
+.SH ACKNOWLEDGMENTS
+This material is based in part on work supported by the National Science
+Foundation (NSF) under Grant No. ANI-0314723. Any opinions, findings and
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the NSF.
