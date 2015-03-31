@@ -571,11 +571,11 @@ function useFlashAsBackend() {
   } 
 
   if (isLinuxSystem()) {
-    document.getElementById('warning-environment').innerHTML = "Warning: Using flash plugin on Linux system may provide inaccurate results";
+    document.getElementById('warning-environment').innerHTML = "Warning: Using the flash client on Linux may provide less accurate results";
   }
 
   if (isChromeBrowser()) {
-    document.getElementById('warning-environment').innerHTML = "Warning: Using flash plugin in Chrome browser may provide inaccurate results";
+    document.getElementById('warning-environment').innerHTML = "Warning: Using the flash client in Chrome may provide less accurate results";
   }
 
   var embed = document.createElement('embed');
