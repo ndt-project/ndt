@@ -1,0 +1,36 @@
+TFW - The testing framework for the NDT system.
+
+
+The TFW tool is a client/server program that provides the possibility
+to test the various detecting algorithms used by the Network
+Diagnostic Tester (NDT). The system is composed of a single server and
+multiple client programs.
+
+
+USAGE:
+
+The single instance of the server should be started on the well known
+machine. Then, the appropriate number of clients should be started on
+the various computers. The command-line arguments to the client.py:
+  - host - the hostname of the server
+  - port - the port on which the server is running
+  - publicaddr - the public address of the machine on which client is
+    running.
+
+On the server side the testing scenario should be created. It contains
+the set of hosts, which take part in the test. Each of the hosts must
+be assigned to one of the connected clients.
+
+The hosts can have multiple 'traffics'. In each 'traffic' the target
+client and the throughput, on which the data will be send, must be
+specified. 
+
+The start button in the scenario enables all the specified traffic.
+The stop button stops the scenario completely.
+
+
+FUTURE EXTENSIONS:
+
+ - automatic NDT client/server starting
+ - automatic logs retrieval
+ - possibility to specify the set of scenarios with different settings
