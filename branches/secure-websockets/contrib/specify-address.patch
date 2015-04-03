@@ -1,0 +1,116 @@
+Only in patched/ndt-3.6.2b/src: .deps
+Only in patched/ndt-3.6.2b/src: Makefile
+Only in patched/ndt-3.6.2b/src: analyze
+Only in patched/ndt-3.6.2b/src: analyze-analyze.o
+Only in patched/ndt-3.6.2b/src: analyze-logging.o
+Only in patched/ndt-3.6.2b/src: analyze-usage.o
+Only in patched/ndt-3.6.2b/src: fakewww
+Only in patched/ndt-3.6.2b/src: fakewww-fakewww.o
+Only in patched/ndt-3.6.2b/src: fakewww-logging.o
+Only in patched/ndt-3.6.2b/src: fakewww-network.o
+Only in patched/ndt-3.6.2b/src: fakewww-tr-tree.o
+Only in patched/ndt-3.6.2b/src: fakewww-tr-tree6.o
+Only in patched/ndt-3.6.2b/src: fakewww-troute.o
+Only in patched/ndt-3.6.2b/src: fakewww-troute6.o
+Only in patched/ndt-3.6.2b/src: fakewww-usage.o
+diff -up unpatched/ndt-3.6.2b/src/fakewww.c patched/ndt-3.6.2b/src/fakewww.c
+--- unpatched/ndt-3.6.2b/src/fakewww.c	2010-03-25 08:45:12.000000000 -0700
++++ patched/ndt-3.6.2b/src/fakewww.c	2010-05-04 20:25:09.000000000 -0700
+@@ -97,6 +97,7 @@ static struct option long_options[] = {
+   {"help", 0, 0, 'h'},
+   {"alog", 1, 0, 'l'},
+   {"elog", 1, 0, 'e'},
++  {"address", 1, 0, 'a'},
+   {"port", 1, 0, 'p'},
+   {"ttl", 1, 0, 't'},
+   {"federated", 0, 0, 'F'},
+@@ -145,6 +146,8 @@ main(int argc, char** argv)
+   struct sockaddr_storage cli_addr;
+   I2Addr listenaddr = NULL;
+   Allowed* ptr;
++  size_t l = 255;
++  char buf[256];
+ 
+ #ifdef AF_INET6
+ #define GETOPT_LONG_INET6(x) "46"x
+@@ -153,7 +156,7 @@ main(int argc, char** argv)
+ #endif
+   
+   while ((c = getopt_long(argc, argv,
+-          GETOPT_LONG_INET6("dhl:e:p:t:Ff:b:sS:v"), long_options, 0)) != -1) {
++          GETOPT_LONG_INET6("dhl:e:a:p:t:Ff:b:sS:v"), long_options, 0)) != -1) {
+     switch (c) {
+       case '4':
+         conn_options |= OPT_IPV4_ONLY;
+@@ -177,6 +180,9 @@ main(int argc, char** argv)
+       case 'e':
+         ErLogFileName = optarg;
+         break;
++      case 'a':
++        srcname = optarg;
++        break;
+       case 'p':
+         listenport = optarg;
+         break;
+@@ -262,6 +268,8 @@ main(int argc, char** argv)
+ 
+   tt = time(0);
+   log_println(1, "%15.15s fakewww server started (NDT version %s)", ctime(&tt)+4, VERSION);
++  I2AddrNodeName( listenaddr, buf, &l );
++  log_println(1, "\taddr = %s", buf);
+   log_println(1, "\tport = %d", I2AddrPort(listenaddr));
+   log_println(1, "\tfederated mode = %s", (federated == 1) ? "on" : "off");
+   log_println(1, "\taccess log = %s\n\terror log = %s", AcLogFileName, ErLogFileName);
+Only in patched/ndt-3.6.2b/src: genplot
+Only in patched/ndt-3.6.2b/src: genplot-genplot.o
+Only in patched/ndt-3.6.2b/src: genplot-usage.o
+diff -up unpatched/ndt-3.6.2b/src/network.c patched/ndt-3.6.2b/src/network.c
+--- unpatched/ndt-3.6.2b/src/network.c	2010-04-12 16:02:45.000000000 -0700
++++ patched/ndt-3.6.2b/src/network.c	2010-05-04 20:21:43.000000000 -0700
+@@ -109,10 +109,11 @@ OpenSocket(I2Addr addr, char* serv, int
+ failsock:
+     /* RAC debug statemement 10/11/06 */
+     log_println(1, "failsock: Unable to set socket options for fd=%d", fd);
+-    while((close(fd) < 0) && (errno == EINTR));
++    while(fd > 3 && (close(fd) < 0) && (errno == EINTR));
++    fd = -1;
+   }
+   
+-  if (meta.family == 0)
++  if (meta.family == 0 && ai != NULL)
+     meta.family = ai->ai_family;
+   return fd;
+ }
+Only in patched/ndt-3.6.2b/src: tr-mkmap
+Only in patched/ndt-3.6.2b/src: tr_mkmap-logging.o
+Only in patched/ndt-3.6.2b/src: tr_mkmap-tr-mkmap.o
+Only in patched/ndt-3.6.2b/src: tr_mkmap-tr-tree.o
+Only in patched/ndt-3.6.2b/src: tr_mkmap-tr-tree6.o
+Only in patched/ndt-3.6.2b/src: tr_mkmap-usage.o
+diff -up unpatched/ndt-3.6.2b/src/usage.c patched/ndt-3.6.2b/src/usage.c
+--- unpatched/ndt-3.6.2b/src/usage.c	2010-03-01 14:51:39.000000000 -0800
++++ patched/ndt-3.6.2b/src/usage.c	2010-05-04 20:21:43.000000000 -0700
+@@ -161,6 +161,7 @@ www_long_usage(char* info)
+     printf("  -b, --basedir path     - set the basedir for the documents\n");
+     printf("  -S, --logfacility #F   - specify syslog facility name\n");
+     printf("                           Note: this doesn't enable 'syslog'\n");
++    printf("  -a, --address          - specify alternate address to bind to\n");
+     printf("  -p, --port #port       - specify the port number (default is 7123)\n");
+     printf("  -t, --ttl #amount      - specify maximum number of hops in path (default is 10)\n");
+     printf("  --dflttree fn          - specify alternate 'Default.tree' file\n");
+Only in patched/ndt-3.6.2b/src: viewtrace
+Only in patched/ndt-3.6.2b/src: viewtrace-logging.o
+Only in patched/ndt-3.6.2b/src: viewtrace-usage.o
+Only in patched/ndt-3.6.2b/src: viewtrace-utils.o
+Only in patched/ndt-3.6.2b/src: viewtrace-viewtrace.o
+Only in patched/ndt-3.6.2b/src: web100clt
+Only in patched/ndt-3.6.2b/src: web100clt-logging.o
+Only in patched/ndt-3.6.2b/src: web100clt-network.o
+Only in patched/ndt-3.6.2b/src: web100clt-protocol.o
+Only in patched/ndt-3.6.2b/src: web100clt-test_c2s_clt.o
+Only in patched/ndt-3.6.2b/src: web100clt-test_mid_clt.o
+Only in patched/ndt-3.6.2b/src: web100clt-test_s2c_clt.o
+Only in patched/ndt-3.6.2b/src: web100clt-test_sfw_clt.o
+Only in patched/ndt-3.6.2b/src: web100clt-usage.o
+Only in patched/ndt-3.6.2b/src: web100clt-utils.o
+Only in patched/ndt-3.6.2b/src: web100clt-web100clt.o
