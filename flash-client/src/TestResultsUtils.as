@@ -114,10 +114,6 @@ package  {
           return String(TestResults.ndtVariables[NDTConstants.MAXRWINRCVD] * NDTConstants.KBITS2BITS);
         case NDTConstants.ACCESS_TECH:
          return TestResults.ndt_test_results::accessTech;
-        case "BadRuntime":
-          return TestResults.ndt_test_results::ndtBadRuntime;
-        case "GuiMessage":
-          return TestResults.ndt_test_results::ndtGuiMsg;
         default:
           if (varName in TestResults.ndtVariables) {
             return TestResults.ndtVariables[varName].toString();

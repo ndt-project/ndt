@@ -32,17 +32,13 @@ a img {
 .header {
   margin: 10px;  
 }
-#warning-environment {
-  color: orange;
-  margin: 5px;
-}
-#warning-plugin {
+#warning {
   color: red;
-  margin: 5px;
+  margin: 10px;
 }
 .page {
   width: 640px;
-  height: 420px;
+  height: 400px;
   position: absolute;
   left: 0;
   top: 0;
@@ -259,7 +255,7 @@ body.initializing .page .status {
   border: 1px solid white;
 }
 #results .result .number {
-  font-size: 100px;
+  font-size: 128px;
   line-height: 128px;
   color: white;
 }

@@ -26,7 +26,7 @@
  *            directly to fprintf, which allows you to do things like:
  *              ASSERT(the_answer == 42, "Bad the_answer: %d", the_answer);
  *            in order to create nice error messages.
- * */
+ */
 #define ASSERT(COND, ...)                                              \
   do {                                                                 \
     if (!(COND)) {                                                     \
@@ -41,7 +41,7 @@
  * Asserts a condition using the text of the condition as the error message.
  *
  * @param COND The condition being asserted.
- * */
+ */
 #define CHECK(COND) ASSERT(COND, #COND)
 
 /**
@@ -50,9 +50,11 @@
  *
  * @param ... The message and arguments for fprintf indicating why the failure
  *            occurred
- * */
+ */
 #define FAIL(...) ASSERT(0, __VA_ARGS__)
 
-int run_test(const char* test_name, const void (*test_func)());
+int run_unit_test(const char* test_name, void (*test_func)());
+
+#define RUN_TEST(FN) run_unit_test(#FN, &(FN))
 
 #endif  // SRC_UNIT_TESTING_H

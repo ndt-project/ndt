@@ -57,10 +57,10 @@ function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
   if (!isPluginLoaded()) {
-    $('#warning-plugin').show();
+    $('#warning').show();
     return;
   } 
-  $('#warning-plugin').hide();
+  $('#warning').hide();
   document.getElementById('javaButton').disabled = true;
   document.getElementById('flashButton').disabled = true;
   showPage('test', resetGauges);
@@ -98,10 +98,6 @@ function monitorTest() {
   if (message.match(/completed/) && currentPhase < PHASE_RESULTS) {
     setPhase(PHASE_RESULTS);
     return true;
-  }
-  if (message.match(/failed/) && currentPhase < PHASE_RESULTS) {
-    setPhase(PHASE_RESULTS);
-    return false;
   }
   if (currentStatus.match(/Outbound/) && currentPhase < PHASE_UPLOAD) {
     setPhase(PHASE_UPLOAD);
@@ -155,7 +151,7 @@ function setPhase(phase) {
       if (isNaN(rtt)) {
         document.getElementById("rttValue").innerHTML = "n/a";
       } else {
-        document.getElementById("rttValue").innerHTML = printNumberValue(Math.round(rtt)) + " ms";
+        document.getElementById("rttValue").innerHTML = Math.round(rtt) + " ms";
       }
 
       if (!isNaN(pcBuffSpdLimit)) {
@@ -200,10 +196,10 @@ function setPhase(phase) {
       debug("SHOW RESULTS");
       debug('Testing complete');
 
-      printDownloadSpeed();
-      printUploadSpeed();
-      document.getElementById('latency').innerHTML = printNumberValue(Math.round(averageRoundTrip())); 
-      document.getElementById('jitter').innerHTML = printJitter(false); 
+      document.getElementById('upload-speed').innerHTML = uploadSpeed().toPrecision(2); 
+      document.getElementById('download-speed').innerHTML = downloadSpeed().toPrecision(2); 
+      document.getElementById('latency').innerHTML = Math.round(averageRoundTrip()); 
+      document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
       document.getElementById('javaButton').disabled = false;
@@ -379,9 +375,7 @@ function testDiagnosis() {
   );
   txt = txt + "=== Results sent by the server ===";
   div.innerHTML = txt;
-  if (isTable) {
-    div.appendChild(table);
-  }
+  div.appendChild(table);
 
   return div;
 }
@@ -423,106 +417,54 @@ function speedLimit() {
 
 function printPacketLoss() {
   var packetLoss = parseFloat(testNDT().getNDTvar("loss"));
-  packetLoss = (packetLoss*100).toFixed(2);
-  return packetLoss;
-}
-
-function printJitter(boldValue) {
-  var retStr = '';
-  var jitterValue = jitter();
-  if (jitterValue >= 1000) {
-    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue/1000) + (boldValue ? '</b>' : '') + ' sec';
-  } else {
-    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue) + (boldValue ? '</b>' : '') + ' msec';
-  }
-  return retStr;
-}
-
-function printDownloadSpeed() {
-  var downloadSpeedVal = downloadSpeed();
-  if (downloadSpeedVal >= 1000) {
-    downloadSpeedVal = parseFloat(downloadSpeedVal/1000);
-    document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
-    document.getElementById('download-speed-units').innerHTML = 'gb/s';  
-  } else {
-    document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
-    document.getElementById('download-speed-units').innerHTML = 'mb/s';  
-  }
-}
-
-function printUploadSpeed() {
-  var uploadSpeedVal = uploadSpeed(false);
-  if (uploadSpeedVal >= 1000) {
-    uploadSpeedVal = parseFloat(uploadSpeedVal/1000);
-    document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
-    document.getElementById('upload-speed-units').innerHTML = 'gb/s';  
-  } else {
-    document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
-    document.getElementById('upload-speed-units').innerHTML = 'mb/s';  
-  }
-}
-
-function readNDTvar(variable) {
-  var ret = testNDT().getNDTvar(variable);
-  return !ret ? "-" : ret; 
-}
-
-function printNumberValue(value) {
-  return isNaN(value) ? "-" : value;
+  return packetLoss.toFixed(4);
 }
 
 function testDetails() {
   if (simulate) return 'Test details';
 
+  var a = testNDT();
   var d = '';
 
-  var errorMsg = testError();
-  if (errorMsg.match(/failed/)) {
-    d += "Error occured while performing test: <br>".bold();
-    if (errorMsg.match(/#2048/)) {
-      d += "Security error. This error may be caused by firewall issues, make sure that port 843 is available on the NDT server, and that you can access it.".bold().fontcolor("red") + "<br><br>";
-    } else {    
-      d += errorMsg.bold().fontcolor("red") + "<br><br>";
-    }
-  }
+d += "error: " + testError();
 
-  d += "Your system: " + readNDTvar("OperatingSystem").bold() + "<br>";
-  d += "Plugin version: " + (readNDTvar("PluginVersion") + " (" + readNDTvar("OsArchitecture") + ")<br>").bold();
+  d += "Your system: " + a.getNDTvar("OperatingSystem").bold() + "<br>";
+  d += "Plugin version: " + (a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>").bold();
 
   d += "<br>";
 
-  d += "TCP receive window: " + readNDTvar("CurRwinRcvd").bold() + " current, " + readNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
-  d += "<b>" + printNumberValue(printPacketLoss()) + "</b> % of packets lost during test<br>";
-  d += "Round trip time: " + readNDTvar("MinRTT").bold() + " msec (minimum), " + readNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + printNumberValue(Math.round(averageRoundTrip())) + "</b> msec (average)<br>";
-  d += "Jitter: " + printNumberValue(printJitter(true)) + "<br>";
-  d += readNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
-  d += "TCP time-out counter: " + readNDTvar("CurRTO").bold() + "<br>";
-  d += readNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
+  d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd").bold() + " current, " + a.getNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
+  d += "<b>" + printPacketLoss() + "</b> % of packets lost during test<br>";
+  d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + Math.round(averageRoundTrip()) + "</b> msec (average)<br>";
+  d += "Jitter: " + a.getNDTvar("Jitter").bold() + " msec<br>";
+  d += a.getNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
+  d += "TCP time-out counter: " + a.getNDTvar("CurRTO").bold() + "<br>";
+  d += a.getNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
 
   d += "<br>";
 
-  if (readNDTvar("mismatch") == "yes") {
+  if (a.getNDTvar("mismatch") == "yes") {
     d += "A duplex mismatch condition was detected.<br>".fontcolor("red").bold();
   }
   else {
     d += "No duplex mismatch condition was detected.<br>".fontcolor("green");
   }
 
-  if (readNDTvar("bad_cable") == "yes") {
+  if (a.getNDTvar("bad_cable") == "yes") {
     d += "The test detected a cable fault.<br>".fontcolor("red").bold();
   }
   else {
     d += "The test did not detect a cable fault.<br>".fontcolor("green");
   }
 
-  if (readNDTvar("congestion") == "yes") {
+  if (a.getNDTvar("congestion") == "yes") {
     d += "Network congestion may be limiting the connection.<br>".fontcolor("red").bold();
   }
   else {
     d += "No network congestion was detected.<br>".fontcolor("green");
   }
 
-  /*if (testNDT().get_natStatus() == "yes") {
+  /*if (a.get_natStatus() == "yes") {
     d += "A network address translation appliance was detected.<br>";
   }
   else {
@@ -531,24 +473,21 @@ function testDetails() {
 
   d += "<br>";
 
-  d += printNumberValue(readNDTvar("cwndtime")).bold() + " % of the time was not spent in a receiver limited or sender limited state.<br>";
-  d += printNumberValue(readNDTvar("rwintime")).bold() + " % of the time the connection is limited by the client machine's receive buffer.<br>";
-  d += "Optimal receive buffer: " + printNumberValue(readNDTvar("optimalRcvrBuffer")).bold() + " bytes<br>";
-  d += "Bottleneck link: " + readNDTvar("accessTech").bold() + "<br>";
-  d += readNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
+  d += a.getNDTvar("cwndtime").bold() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
+  d += a.getNDTvar("rwintime").bold() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
+  d += "Optimal receive buffer: " + a.getNDTvar("optimalRcvrBuffer").bold() + " bytes<br>";
+  d += "Bottleneck link: " + a.getNDTvar("accessTech").bold() + "<br>";
+  d += a.getNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
 
   return d;
 }
 
 // BACKEND METHODS
 function useJavaAsBackend() {
-  $("#rtt").show();  
-  $("#rttValue").show();  
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
   } 
-  document.getElementById('warning-environment').innerHTML = "";
 
   var app = document.createElement('applet');
   app.id = 'NDT';
@@ -563,20 +502,10 @@ function useJavaAsBackend() {
 }
 
 function useFlashAsBackend() {
-  $("#rtt").hide();  
-  $("#rttValue").hide();
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
   } 
-
-  if (isLinuxSystem()) {
-    document.getElementById('warning-environment').innerHTML = "Warning: Using the flash client on Linux may provide less accurate results";
-  }
-
-  if (isChromeBrowser()) {
-    document.getElementById('warning-environment').innerHTML = "Warning: Using the flash client in Chrome may provide less accurate results";
-  }
 
   var embed = document.createElement('embed');
   embed.id = 'NDT';
@@ -608,7 +537,7 @@ function isPluginLoaded() {
 function checkInstalledPlugins() {
   var hasFlash = false, hasJava = false;
 
-  $('#warning-plugin').hide();
+  $('#warning').hide();
   try {
     var activeXObject = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
     if(activeXObject) hasFlash = true;
@@ -633,13 +562,3 @@ function checkInstalledPlugins() {
   }
 }
 
-function isLinuxSystem() {
-  if (navigator.platform.indexOf("Linux") != -1) 
-    return true;
-
-  return false;
-}
-
-function isChromeBrowser() {
-   return (/Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor));
-}

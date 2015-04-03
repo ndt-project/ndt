@@ -134,11 +134,7 @@ int tcp_stat_init(char *VarFileName) {
 
   return (count_vars);
 #elif USE_WEB10G
-  #ifdef ESTATS_MIB_VAR_H
-    return TOTAL_NUM_VARS;
-  #else
-    return TOTAL_INDEX_MAX;
-  #endif
+  return TOTAL_INDEX_MAX;
 #endif
 }
 
@@ -595,11 +591,11 @@ static void print_10gvar_renamed(const char * old_name,
  * @param ctlsock integer socket file descriptor indicating data recipient
  * @param agent pointer to a tcp_stat_agent
  * @param count_vars integer number of tcp_stat_variables to get value of
- * @param jsonSupport indicates if messages should be sent usin JSON format
+ * @param testoptions the options that determine how the data should be sent
  *
  */
 int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars, int jsonSupport) {
+                      tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions) {
   char line[256];
 #if USE_WEB100
   int i;
@@ -643,7 +639,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
     /* Why do we atoi after getting as text anyway ?? */
     snprintf(line, sizeof(line), "%s: %d\n", web_vars[i].name,
              atoi(web_vars[i].value));
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     log_print(9, "%s", line);
   }
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
@@ -1031,9 +1027,9 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
     const char* web100_name = tcp_names[a].web100_name;
     if (web100_name == NULL)
       continue;
-  int PktsIn = -1;
-  int DataPktsIn = -1;
-  int has_AckPktsIn = 0;
+  //int PktsIn = -1;
+  //int DataPktsIn = -1;
+  //int has_AckPktsIn = 0;
 
     for (b = 0; b < count_vars; b++) {
       if (strcmp(web_vars[b].name, web100_name) == 0) {

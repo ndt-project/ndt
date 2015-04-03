@@ -36,8 +36,6 @@ package  {
     // Valid only when ndtTestFailed == false.
     ndt_test_results static var ndtTestStatus:String = "notStarted";
     ndt_test_results static var ndtErrStatus:String = "Test not run.";
-    ndt_test_results static var ndtGuiMsg:String = "";
-    ndt_test_results static var ndtBadRuntime:String = "false";
     ndt_test_results static var ndtTestFailed:Boolean = false;
     ndt_test_results static var c2sSpeed:Number = 0.0;
     ndt_test_results static var s2cSpeed:Number = 0.0;
