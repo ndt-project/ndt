@@ -1444,9 +1444,10 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 }
 
 /* web100srv.c contains both a main() that runs things, but is also a source of
- * library of code run by other parts of the program. In order to test the
- * other parts, we must to compile this file without the main() function.  To
- * do so, pass in -DUSE_WEB100SRV_ONLY_AS_LIBRARY as a compile-time option.
+ * library code run by other parts of the program.  In order to test those
+ * other parts, we must be able to compile this file without the main()
+ * function.  To use this file as a library, pass in
+ * -DUSE_WEB100SRV_ONLY_AS_LIBRARY as a compile-time option.
  */
 #ifndef USE_WEB100SRV_ONLY_AS_LIBRARY
 /**
@@ -2166,7 +2167,6 @@ mainloop: if (head_ptr == NULL)
             if ((waiting > 0) && (testing == 0))  // no clients waiting, no test
                                                   // in progress
               goto ChldRdy;
-            /* } */
             clilen = sizeof(cli_addr);
             memset(&cli_addr, 0, clilen);
             log_println(6, "Select() found %d clients ready, highest fd=%d",
@@ -2754,7 +2754,7 @@ mainloop: if (head_ptr == NULL)
           }
   }
 }
-#endif
+#endif  // USE_WEB100SRV_ONLY_AS_LIBRARY
 
 /**
  * Method to get remote host's address.
