@@ -365,7 +365,8 @@ int read_websocket_header(int socket_fd, unsigned int skip_bytes,
   const static unsigned int MAX_HEADER_LENGTH = 8192;
   // String constants used when making a websocket connection.
   const static char UPGRADE_HEADER[] = "Upgrade: websocket";
-  const static char CONNECTION_HEADER[] = "Connection: Upgrade";
+  const static char CONNECTION_HEADER[] = "Connection: ";
+  const static char CONNECTION_HEADER_VALUE[] = " Upgrade";
   const static char VERSION_HEADER[] = "Sec-WebSocket-Version: 13";
   const static char WS_KEY[] = "Sec-WebSocket-Key: ";
 
@@ -389,8 +390,10 @@ int read_websocket_header(int socket_fd, unsigned int skip_bytes,
   for (i = 0; i < MAX_HEADER_COUNT; i++) {
     if (strcmp(line, UPGRADE_HEADER) == 0) {
       validated_upgrade = 1;
-    } else if (strcmp(line, CONNECTION_HEADER) == 0) {
-      validated_connection = 1;
+    } else if (strncmp(line, CONNECTION_HEADER, strlen(CONNECTION_HEADER)) == 0) {
+      if (strstr(line, CONNECTION_HEADER_VALUE) != NULL) {
+        validated_connection = 1;
+      }
     } else if (strcmp(line, VERSION_HEADER) == 0) {
       validated_version = 1;
     } else if (strncmp(line, WS_PROTOCOL, strlen(WS_PROTOCOL)) == 0) {
