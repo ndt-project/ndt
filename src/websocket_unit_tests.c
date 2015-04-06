@@ -327,6 +327,34 @@ void test_websocket_handshake() {
   check_websocket_handshake(header, response);
 }
 
+void test_firefox_websocket_handshake() {
+  const char* header = 
+      "GET /ndt_after_user_privacy_agreement HTTP/1.1\r\n"
+      "Host: ndt.iupui.mlab2.nuq0t.measurement-lab.org:7000\r\n"
+      "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:35.0) Gecko/20100101\r\n"
+      "Firefox/35.0 Iceweasel/35.0.1\r\n"
+      "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
+      "Accept-Language: en,es;q=0.7,en-us;q=0.3\r\n"
+      "Accept-Encoding: gzip, deflate\r\n"
+      "Sec-WebSocket-Version: 13\r\n"
+      "Origin: null\r\n"
+      "Sec-WebSocket-Protocol: ndt\r\n"
+      "Sec-WebSocket-Key: FXsRm8SyAc2WCzXCn248UQ==\r\n"
+      "Connection: keep-alive, Upgrade\r\n"
+      "Pragma: no-cache\r\n"
+      "Cache-Control: no-cache\r\n"
+      "Upgrade: websocket\r\n"
+      "\r\n";
+  const char* response =
+      "HTTP/1.1 101 Switching Protocols\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: Upgrade\r\n"
+      "Sec-WebSocket-Protocol: ndt\r\n"
+      "Sec-WebSocket-Accept: pe2T6IrtSYYz+YUvcOLw1n/ioLc=\r\n"
+      "\r\n";
+  check_websocket_handshake(header, response);
+}
+
 void test_websocket_sha() {
   const char key[] = "dGhlIHNhbXBsZSBub25jZQ==";
   const unsigned char expected_digest[20] = {
@@ -382,5 +410,7 @@ int main() {
          RUN_TEST(test_rfc_example_fragmented_with_ping) |
          RUN_TEST(test_rfc_example_masked_hello) |
          RUN_TEST(test_send_digest_base64) |
-         RUN_TEST(test_websocket_handshake) | RUN_TEST(test_websocket_sha);
+	 RUN_TEST(test_websocket_handshake) |
+         RUN_TEST(test_firefox_websocket_handshake) |
+         RUN_TEST(test_websocket_sha);
 }
