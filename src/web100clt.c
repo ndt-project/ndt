@@ -681,10 +681,10 @@ int main(int argc, char *argv[]) {
 
   /* The beginning of the protocol */
 
-  buff[0] = tests;
-  strlcpy(buff + 1, VERSION, sizeof(buff) - 1);
+  snprintf(buff, sizeof(buff), DEFAULT_KEY ": " VERSION "\ntests: %d", tests);
   /* write our test suite request by sending a login message */
-  send_json_message(ctlSocket, MSG_EXTENDED_LOGIN, buff, strlen(buff), jsonSupport, JSON_SINGLE_VALUE);
+  send_json_message(ctlSocket, MSG_EXTENDED_LOGIN, buff, strlen(buff),
+                    jsonSupport, JSON_KEY_VALUE_PAIRS);
   /* read the specially crafted data that kicks off the old clients */
   if (readn(ctlSocket, buff, 13) != 13) {
     printf("Information: The server '%s' does not support this command line "

@@ -48,7 +48,7 @@ void test_e2e() {
 }
 
 /** Runs an end-to-end test of the server over websockets. */
-void test_javascript() {
+void test_javascript(int tests) {
   pid_t server_pid;
   int server_exit_code;
   char hostname[1024];
@@ -67,13 +67,27 @@ void test_javascript() {
   port = (random() % 30000) + 1024;
   server_pid = start_server(port);
   gethostname(hostname, sizeof(hostname) - 1);
-  sprintf(command_line, "%s node_tests/ndt_client.js %s %d", nodejs_name,
-          hostname, port);
+  sprintf(command_line, "%s node_tests/ndt_client.js %s %d %d", nodejs_name,
+          hostname, port, tests);
   ASSERT(system(command_line) == 0, "%s exited with non-zero exit code",
          command_line);
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
 }
 
+void test_run_all_tests_javascript() {
+  test_javascript(2 | 4 | 32);
+}
+
+void test_run_two_tests_javascript() {
+  // This test tickles a bug which causes the server to get stuck in an
+  // infinite loop.
+  test_javascript(2 | 4);
+}
+
 /** Runs each test, returns non-zero to the shell if any tests fail. */
-int main() { return RUN_TEST(test_e2e) | RUN_TEST(test_javascript); }
+int main() {
+  return RUN_TEST(test_e2e) |
+      RUN_TEST(test_run_all_tests_javascript) |
+      RUN_TEST(test_run_two_tests_javascript);
+}

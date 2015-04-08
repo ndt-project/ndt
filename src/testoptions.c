@@ -321,9 +321,24 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
       send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
       return (-2);
     }
+    useropt = msgValue[0];
   } else if (msgType == MSG_EXTENDED_LOGIN) { /* Case 2 */
+    msgValue[msgLen] = '\0';  // Null-terminate the received string
     options->connection_flags |= JSON_SUPPORT;
+    jsonMsgValue = json_read_map_value(msgValue, "tests");
+    if (jsonMsgValue == NULL) {
+      send_json_message(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test),
+                        options->connection_flags, JSON_SINGLE_VALUE);
+      return (-2);
+    }
+    useropt = atoi(jsonMsgValue);
+    free(jsonMsgValue);
     jsonMsgValue = json_read_map_value(msgValue, DEFAULT_KEY);
+    if (jsonMsgValue == NULL) {
+      send_json_message(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test),
+                        options->connection_flags, JSON_SINGLE_VALUE);
+      return (-2);
+    }
     strlcpy(msgValue, jsonMsgValue, sizeof(msgValue));
     msgLen = strlen(jsonMsgValue);
     free(jsonMsgValue);
@@ -341,7 +356,6 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
              strlen(invalid_login_msg));
     return (-2);
   }
-  useropt = msgValue[0];
 
   // client connect received correctly. Logging activity
   // log that client connected, and create log file
