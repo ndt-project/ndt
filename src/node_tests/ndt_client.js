@@ -1,6 +1,12 @@
 /* This is an NDT client, written in node.js.  It speaks the websocket version
  * of the NDT protocol.  The NDT protocol is documented at:
  *   https://code.google.com/p/ndt/wiki/NDTProtocol
+ *
+ * If the tests involving this fail with the message
+ *   Error: Cannot find module 'ws'
+ * then node.js can't fnd the ws package. You can install the package either in
+ * the current directory by typing "npm install ws" or globally for the whole
+ * system with "npm install ws -g".
  */
 
 /*jslint bitwise: true, node: true */
@@ -25,13 +31,14 @@ var COMM_FAILURE = 0,
     WebSocket = require('ws'),
     server = process.argv[2],
     port = Number(process.argv[3]),
+    tests = Number(process.argv[4] || (2 | 4 | 32)),  // If unspecified, run every test we can
     test_url = "ws://" + server + ":" + port + "/ndt_after_user_privacy_agreement",
     ws = new WebSocket(test_url, {protocol: 'ndt'});
 
 console.log("Running NDT test to " + server + " on port " + port);
 
 // A helper function that prints an error message and crashes things.
-function die(a1, a2, a3, a4) {
+function die() {
     console.log.apply(
         console.log, ["DIED: "].concat(Array.prototype.slice.call(arguments)));
     process.exit(1);
@@ -40,20 +47,15 @@ function die(a1, a2, a3, a4) {
 // Makes a login message suitable for sending to the server.  The login
 // messages specifies the tests to be run.
 function make_login_msg(desired_tests) {
+    // We must support TEST_STATUS (16) as a 3.5.5+ client, so we make sure test 16 is desired.
     var i = 0,
-        message = 'XXX { "msg": "Xv3.5.5" }',
+        message = 'XXX { "msg": "v3.5.5", "tests": "' + (desired_tests | 16) + '" }',
         NDT_LOGIN_MSG = new Uint8Array(message.length);
     NDT_LOGIN_MSG[0] = MSG_EXTENDED_LOGIN;  // MSG_EXTENDED_LOGIN
     NDT_LOGIN_MSG[1] = 0;  // Two bytes to represent packet length
     NDT_LOGIN_MSG[2] = message.length - 3;
     for (i = 3; i < message.length; i += 1) {
-        if (message.charAt(i) === 'X') {
-            // The mid-message X specifies the tests to run.  We must support
-            // TEST_STATUS (16) as a 3.5.5+ client
-            NDT_LOGIN_MSG[i] = desired_tests | 16;
-        } else {
-            NDT_LOGIN_MSG[i] = message.charCodeAt(i);
-        }
+        NDT_LOGIN_MSG[i] = message.charCodeAt(i);
     }
     return NDT_LOGIN_MSG;
 }
@@ -242,7 +244,7 @@ function ndt_coordinator(sock) {
         // Sign up for every test except for TEST_MID and TEST_SFW - browsers can't
         // open server sockets, which makes those tests impossible, because they
         // require the server to open a connection to a port on the client.
-        sock.send(make_login_msg(2 | 4 | 32), { binary: true, mask: true });
+        sock.send(make_login_msg(tests), { binary: true, mask: true });
         state = "LOGIN_SENT";
     }
 

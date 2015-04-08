@@ -98,7 +98,7 @@ void test_initialize_MSG_EXTENDED_LOGIN_tests() {
                      '6', '5', '4', '3', '2', '1'};
   TestOptions test_options;
   // The first char of msg is TEST_META|TEST_STATUS == 32|16 == 48 == '0'
-  char data[] = "XXX{ \"msg\": \"0v3.5.5\"}";
+  char data[] = "XXX{ \"msg\": \"v3.5.5\", \"tests\": \"48\" }";
   data[0] = MSG_EXTENDED_LOGIN;
   data[1] = 0;
   data[2] = strlen(data + 3);
@@ -140,7 +140,7 @@ void test_initialize_websocket_tests() {
   size_t response_len = sizeof(response) - 1;
   unsigned char websocket_header[] = {0x80 | 0x1, 0x80, 'M', 'A', 'S', 'K'};
   size_t websocket_header_len = sizeof(websocket_header);
-  unsigned char websocket_payload[] = "XXX{ \"msg\": \"0v3.5.5\"}";
+  unsigned char websocket_payload[] = "XXX{ \"msg\": \"v3.5.5\", \"tests\": \"48\" }";
   size_t websocket_payload_len = sizeof(websocket_payload) - 1;
   char* message_to_send;
   websocket_payload[0] = MSG_EXTENDED_LOGIN;
