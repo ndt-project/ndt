@@ -157,7 +157,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
                "Server (Middlebox test): CreateListenSocket failed: %s",
                strerror(errno));
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->json_support, JSON_SINGLE_VALUE);
+                        options->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -169,7 +169,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     // send this port number to client
     snprintf(buff, sizeof(buff), "%d", options->midsockport);
     if ((msgretvalue = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
-                                         options->json_support, JSON_SINGLE_VALUE))
+                                         options->connection_flags, JSON_SINGLE_VALUE))
         < 0)
       return msgretvalue;
 
@@ -254,7 +254,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     tcp_stat_middlebox(midsfd, agent, conn, results_keys, sizeof(results_keys), buff, sizeof(buff));
 
     // Transmit results in the form of a TEST_MSG message
-    send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), options->json_support, JSON_MULTIPLE_VALUES,
+    send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), options->connection_flags, JSON_MULTIPLE_VALUES,
                   results_keys, ";", buff, ";");
 
     // Expect client to send throughput as calculated at its end
@@ -267,7 +267,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
           sizeof(buff),
           "Server (Middlebox test): Invalid CWND limited throughput received");
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->json_support, JSON_SINGLE_VALUE);
+                        options->connection_flags, JSON_SINGLE_VALUE);
       return 1;
     }
     if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff,
@@ -277,11 +277,11 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
           sizeof(buff),
           "Server (Middlebox test): Invalid CWND limited throughput received");
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->json_support, JSON_SINGLE_VALUE);
+                        options->connection_flags, JSON_SINGLE_VALUE);
       return 2;
     }
     buff[msgLen] = 0;
-    if (options->json_support) {
+    if (options->connection_flags & JSON_SUPPORT) {
     	jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
     	strlcpy(buff, jsonMsgValue, sizeof(buff));
     	msgLen = strlen(buff);
@@ -294,7 +294,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
           sizeof(buff),
           "Server (Middlebox test): Invalid CWND limited throughput received");
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->json_support, JSON_SINGLE_VALUE);
+                        options->connection_flags, JSON_SINGLE_VALUE);
       return 3;
     }
 
@@ -308,7 +308,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     shutdown(midsfd, SHUT_WR);
     close(midsfd);
     close(options->midsockfd);
-    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, options->json_support, JSON_SINGLE_VALUE);
+    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, options->connection_flags, JSON_SINGLE_VALUE);
     log_println(1, " <--------- %d ----------->", options->child0);
 
     // log end of test into protocol doc, just to delimit.

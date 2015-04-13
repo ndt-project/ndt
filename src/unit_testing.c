@@ -9,15 +9,16 @@
 
 /**
  * The workhorse method of the test framework. Due to this framework's
- * minimality, the run_test() method must be explicitly called in main() for
- * each test you want to run.  Also, there is no timeout for tests, which means
- * an infinite loop will hang the testing framework.
+ * minimality, the run_unit_test() method must be explicitly called in main()
+ * for each test you want to run.  Also, there is no timeout for tests, which
+ * means an infinite loop will hang the testing framework.
  *
  * @param *test_name The displayed name of the test to be run
  * @param *test_func A pointer to the void() test function
- * */
-int run_test(const char* test_name, const void (*test_func)()) {
+ */
+int run_unit_test(const char* test_name, void (*test_func)()) {
   int test_exit_code;
+  int scratch;
   pid_t child_test_pid;
   fprintf(stderr, "Running test %s...\n", test_name);
   //  Run each child test in its own subprocess to help prevent tests from
@@ -40,6 +41,10 @@ int run_test(const char* test_name, const void (*test_func)()) {
       } else {
         fprintf(stderr, " ...TEST CRASHED (return code=%d, %s).\n",
                 test_exit_code, strerror(test_exit_code));
+      }
+      if (!WIFEXITED(test_exit_code)) {
+        kill(child_test_pid, SIGKILL);
+        waitpid(child_test_pid, &scratch, 0);
       }
       // Make sure at least one of the bottom 7 bits is set.  Some systems only
       // pay attention to the bottom 7 bits of the process return code.

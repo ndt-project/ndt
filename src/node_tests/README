@@ -1,0 +1,13 @@
+These tests use node.js and the ws library for node.js to run the client side
+of NDT tests that speak to a server using websockets.
+
+They can only be run on a system that has node.js, and the ws libraries. At
+last look, the documentation for ws can be found at:
+   http://einaros.github.io/ws/
+
+This code also serves as documentation for how to write your own javascript
+client for NDT.
+
+If you have node.js and the node package manager npm, then the ws library may
+be installed via:
+   npm install ws
