@@ -41,7 +41,7 @@ void send_data_and_compare_response(const char* data, size_t data_len,
   parent_socket = sockets[1];
   if ((child_pid = fork()) == 0) {
     bytes_written = writen(child_socket, data, data_len);
-    ASSERT(bytes_written == data_len, "write wrote %d bytes, and not %d",
+    ASSERT(bytes_written == data_len, "write wrote %d bytes, and not %zu",
            bytes_written, data_len);
     if (expected_len) {
       received_data = (char*)malloc(expected_len * sizeof(char));

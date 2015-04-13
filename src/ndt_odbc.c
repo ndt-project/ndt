@@ -211,7 +211,7 @@ int initialize_db(int options, char* dsn, char* uid, char* pwd) {
       SQLUSMALLINT i;
       // Loop through the columns
       for (i = 2; i <= columns; i++) {
-        SQLINTEGER indicator;
+        SQLLEN indicator;
         char buf[512];
         // retrieve column data as a string
         ret = SQLGetData(stmt, i, SQL_C_CHAR,

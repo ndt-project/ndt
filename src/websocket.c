@@ -333,7 +333,7 @@ int send_digest_base64(int socket_fd, const unsigned char* message_digest) {
     // Write the data
     if (BIO_write(b64, message_digest, SHA_HASH_SIZE) != SHA_HASH_SIZE)
       error = EIO;
-    BIO_flush(b64);
+    (void) BIO_flush(b64);
   } else {
     error = ENOMEM;
   }
