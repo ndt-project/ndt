@@ -308,7 +308,7 @@ void check_websocket_handshake(const char* header, const char* response) {
 
 void test_websocket_handshake() {
   const char* header =
-      "GET /ndt_after_user_privacy_agreement HTTP/1.1\r\n"
+      "GET /ndt_protocol HTTP/1.1\r\n"
       "Host: server.example.com\r\n"
       "Upgrade: websocket\r\n"
       "Connection: Upgrade\r\n"
@@ -329,7 +329,7 @@ void test_websocket_handshake() {
 
 void test_firefox_websocket_handshake() {
   const char* header = 
-      "GET /ndt_after_user_privacy_agreement HTTP/1.1\r\n"
+      "GET /ndt_protocol HTTP/1.1\r\n"
       "Host: ndt.iupui.mlab2.nuq0t.measurement-lab.org:7000\r\n"
       "User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:35.0) Gecko/20100101\r\n"
       "Firefox/35.0 Iceweasel/35.0.1\r\n"

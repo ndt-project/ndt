@@ -371,7 +371,7 @@ int read_websocket_header(int socket_fd, unsigned int skip_bytes,
   const static char WS_KEY[] = "Sec-WebSocket-Key: ";
 
   char line[MAX_HEADER_LENGTH];
-  const char* first_line = "GET /ndt_after_user_privacy_agreement HTTP/1.1";
+  const char* first_line = "GET /ndt_protocol HTTP/1.1";
   const char* suffix;
   int validated_connection = 0;
   int validated_upgrade = 0;

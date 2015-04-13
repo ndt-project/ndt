@@ -32,7 +32,7 @@ var COMM_FAILURE = 0,
     server = process.argv[2],
     port = Number(process.argv[3]),
     tests = Number(process.argv[4] || (2 | 4 | 32)),  // If unspecified, run every test we can
-    test_url = "ws://" + server + ":" + port + "/ndt_after_user_privacy_agreement",
+    test_url = "ws://" + server + ":" + port + "/ndt_protocol",
     ws = new WebSocket(test_url, {protocol: 'ndt'});
 
 console.log("Running NDT test to " + server + " on port " + port);
@@ -143,7 +143,7 @@ function ndt_s2c_test(sock) {
         if (state === "WAIT_FOR_TEST_PREPARE" && type === TEST_PREPARE) {
             server_port = Number(body.msg);
             // bind a connection to that port
-            test_connection = new WebSocket("ws://" + server + ":" + server_port + "/ndt_after_user_privacy_agreement", {protocol: "s2c"});
+            test_connection = new WebSocket("ws://" + server + ":" + server_port + "/ndt_protocol", {protocol: "s2c"});
             test_connection.on('open', on_open);
             test_connection.on('message', on_msg);
             test_connection.on('error', on_error);
@@ -210,7 +210,7 @@ function ndt_c2s_test() {
         console.log("C2S type %d (%s)", type, msg_name[type], body);
         if (state === "WAIT_FOR_TEST_PREPARE" && type === TEST_PREPARE) {
             server_port = Number(body.msg);
-            test_connection = new WebSocket("ws://" + server + ":" + server_port + "/ndt_after_user_privacy_agreement", {protocol: "c2s"});
+            test_connection = new WebSocket("ws://" + server + ":" + server_port + "/ndt_protocol", {protocol: "c2s"});
             state = "WAIT_FOR_TEST_START";
             return "KEEP GOING";
         }

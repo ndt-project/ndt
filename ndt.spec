@@ -1,8 +1,8 @@
-%define         rc_tag     -rc2
+%define         rc_tag     -rc4
 
 Name:           ndt
 Version:        3.7.0
-Release:        3%{?dist}
+Release:        5%{?dist}
 Summary:        Network Diagnostic Tool
 
 Group:          Applications/Networking
@@ -15,7 +15,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       ndt-server, ndt-client
 BuildRequires:  web100_userland, libpcap-devel, jpackage-utils, I2util
 BuildRequires:  mysql-connector-odbc, unixODBC-devel, zlib-devel
-BuildRequires:  jansson-devel
+BuildRequires:  jansson-devel, openssl-devel
 BuildRequires:  gcc
 
 %description
