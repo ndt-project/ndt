@@ -63,10 +63,10 @@ void compare_sent_and_received(const unsigned char* raw_data_to_send,
              strerror(expected_error));
     } else {
       ASSERT(bytes_read == expected_length,
-             "recv_websocket_msg returned %lld but we expected %lld",
+             "recv_websocket_msg returned %" PRIu64 " but we expected %" PRIu64,
              bytes_read, expected_length);
       ASSERT(bytes_read == expected_length,
-             "Bad frame data length: %lld vs %lld", bytes_read,
+             "Bad frame data length: %" PRIu64 " vs %" PRIu64, bytes_read,
              expected_length);
       for (i = 0; i < bytes_read; i++) {
         ASSERT(received_data[i] == expected_data[i],
@@ -247,7 +247,7 @@ void test_recv_websocket_ndt_msg() {
     err = recv_websocket_ndt_msg(sockets[1], &received_type, received_contents,
                                  &received_len);
     CHECK(err == 0);
-    ASSERT(received_len == sizeof(expected_contents), "%d != %d", received_len,
+    ASSERT(received_len == sizeof(expected_contents), "%d != %zu", received_len,
            sizeof(expected_contents));
     CHECK(received_len == expected_len);
     CHECK(received_type == expected_type);
@@ -286,10 +286,10 @@ void check_websocket_handshake(const char* header, const char* response) {
   } else {
     // The writer uses the second socket.
     bytes_written = writen(parent_socket, header, strlen(header));
-    ASSERT(bytes_written == strlen(header), "write returned %d and not %d",
+    ASSERT(bytes_written == strlen(header), "write returned %d and not %zu",
            bytes_written, strlen(header));
     bytes_read = readn(parent_socket, scratch, strlen(response));
-    ASSERT(bytes_read == strlen(response), "readn returned %d, we wanted %d",
+    ASSERT(bytes_read == strlen(response), "readn returned %d, we wanted %zu",
            bytes_read, strlen(response));
     for (i = 0; i < strlen(response); i++) {
       ASSERT(scratch[i] == response[i], "Differ at char %d (%d vs %d)\n", i,
