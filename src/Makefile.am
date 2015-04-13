@@ -35,11 +35,12 @@ if HAVE_JANSSON
 TESTS += websocket_unit_tests testoptions_unit_tests
 endif
 
-if HAVE_WEB100
-bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
 if HAVE_JANSSON
 bin_PROGRAMS += web100clt
 endif
+
+if HAVE_WEB100
+bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
 if HAVE_PCAP_H
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
@@ -50,9 +51,6 @@ endif
 
 if HAVE_WEB10G
 bin_PROGRAMS += genplot10g
-if HAVE_JANSSON
-bin_PROGRAMS += web100clt
-endif
 if HAVE_PCAP_H
 if HAVE_JANSSON
 sbin_PROGRAMS += web10gsrv
