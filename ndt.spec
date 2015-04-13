@@ -15,7 +15,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       ndt-server, ndt-client
 BuildRequires:  web100_userland, libpcap-devel, jpackage-utils, I2util
 BuildRequires:  mysql-connector-odbc, unixODBC-devel, zlib-devel
-BuildRequires:  jansson-devel
+BuildRequires:  jansson-devel, openssl-devel
 BuildRequires:  gcc
 
 %description

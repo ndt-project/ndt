@@ -399,6 +399,8 @@ AC_C_CONST
 AC_HEADER_TIME
 
 # Checks for library functions.
+AX_CHECK_OPENSSL(AM_CONDITIONAL(HAVE_SSL, true), AM_CONDITIONAL(HAVE_SSL, false))
+
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
 AC_FUNC_MALLOC
@@ -426,8 +428,13 @@ echo ""
 if test -z "$HAVE_WEB10G_TRUE" && test -n "$HAVE_WEB10G_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
+if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
   SUMMARY_WEB10GSRV="YES"
   SUMMARY_GENPLOT10G="YES"
+else
+  SUMMARY_GENPLOT10G="YES"
+  SUMMARY_WEB10GSRV="NO    (missing OpenSSL library)"
+fi
 else
   SUMMARY_GENPLOT10G="YES"
   SUMMARY_WEB10GSRV="NO    (missing jansson library)"
@@ -441,10 +448,14 @@ else
   SUMMARY_GENPLOT10G="NO (missing web10g userland library >=2.0.6.2)"
 fi
 
+if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
   SUMMARY_WEB100CLT="YES"
 else
   SUMMARY_WEB100CLT="NO    (missing jansson library)"
+fi
+else
+  SUMMARY_WEB100CLT="NO    (missing OpenSSL library)"
 fi
 
 if test "x$enable_fakewww" == "xno"; then
@@ -458,7 +469,11 @@ fi
 if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
+if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
 SUMMARY_WEB100SRV="YES"
+else
+SUMMARY_WEB100SRV="NO    (missing OpenSSL library)"
+fi
 else
 SUMMARY_WEB100SRV="NO    (missing jansson library)"
 fi
