@@ -120,7 +120,7 @@ void test_initialize_websocket_tests() {
   char test_suite[16] = {0};
   TestOptions test_options;
   const char request[] =
-      "GET /ndt_after_user_privacy_agreement HTTP/1.1\r\n"
+      "GET /ndt_protocol HTTP/1.1\r\n"
       "Host: server.example.com\r\n"
       "Upgrade: websocket\r\n"
       "Connection: Upgrade\r\n"
