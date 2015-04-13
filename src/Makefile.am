@@ -29,7 +29,11 @@ endif
 bin_PROGRAMS =
 sbin_PROGRAMS = $(ADD_FAKEWWW)
 noinst_PROGRAMS = 
-TESTS = 
+TESTS =
+
+if HAVE_JANSSON
+TESTS += websocket_unit_tests testoptions_unit_tests
+endif
 
 if HAVE_WEB100
 bin_PROGRAMS += analyze viewtrace tr-mkmap genplot
@@ -39,7 +43,6 @@ endif
 if HAVE_PCAP_H
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
-noinst_PROGRAMS += web100srv_unit_tests
 TESTS += web100srv_unit_tests
 endif
 endif
@@ -57,10 +60,12 @@ endif
 endif
 endif
 
+noinst_PROGRAMS += $(TESTS)
+
 web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
                     test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c \
-                    test_results_clt.c jsonutils.c
-web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
+                    test_results_clt.c jsonutils.c websocket.c
+web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) -lssl
 web100clt_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 web100clt_DEPENDENCIES = $(I2UTILLIBDEPS)
 
@@ -78,32 +83,50 @@ analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 
 if BUILD_FAKEWWW
 fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
-                  runningtest.c ndtptestconstants.c strlutils.c jsonutils.c
-fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB) $(JSONLIB)
+                  runningtest.c ndtptestconstants.c strlutils.c jsonutils.c websocket.c
+fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB) $(JSONLIB) -lssl
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"'
 endif
 
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
                     protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c \
-                    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c jsonutils.c
+                    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c jsonutils.c websocket.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
-web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
+web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) -lssl
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web100srv_unit_tests_SOURCES = web100srv_unit_tests.c unit_testing.c
 web100srv_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
-web100srv_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
-web100srv_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
+web100srv_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) -lssl
+web100srv_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -Wall -Werror -Wno-unused-variable -Wno-unused-function
 web100srv_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
+
+websocket_unit_tests_SOURCES = unit_testing.c websocket_unit_tests.c websocket.c \
+                               network.c logging.c strlutils.c jsonutils.c ndtptestconstants.c runningtest.c
+websocket_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
+websocket_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) -lssl
+websocket_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -Wall -Werror -Wno-unused-variable  -Wno-unused-function
+websocket_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
+
+testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c unit_testing.c \
+                                 heuristics.c jsonutils.c logging.c mrange.c ndt_odbc.c ndtptestconstants.c \
+                                 network.c protocol.c runningtest.c strlutils.c test_c2s_srv.c test_meta_srv.c \
+                                 test_mid_srv.c test_s2c_srv.c test_sfw_srv.c utils.c web100-pcap.c web100-util.c \
+                                 web100srv.c websocket.c
+testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
+testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) -lssl
+testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Werror -Wno-unused-variable -Wno-unused-function
+
+testoptions_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web10gsrv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
 		    network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
 		    protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c \
-		    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c web10g-util.c jsonutils.c
+		    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c web10g-util.c jsonutils.c websocket.c
 web10gsrv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
-web10gsrv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB)
+web10gsrv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) -lssl
 web10gsrv_CPPFLAGS = '-DBASEDIR="$(ndtdir)"'
 web10gsrv_DEPENDENCIES = $(I2UTILLIBDEPS)
 
