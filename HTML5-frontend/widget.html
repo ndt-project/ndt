@@ -10,6 +10,8 @@
     <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
     <script type="text/javascript" src="gauge.min.js"></script>
     <script type="text/javascript" src="script.js"></script>
+    <script type="text/javascript" src="ndt-browser-client.js"></script>
+    <script type="text/javascript" src="ndt-wrapper.js"></script>
     <script type="text/javascript" src="http://www.java.com/js/deployJava.js"></script>
     <script type="text/javascript">
     var simulate = false;
@@ -25,7 +27,7 @@
 
     <p>The Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
 
-    <p>NDT makes use of either Flash or Java plugins to perform the test. Make sure that the plugin you choose is not blocked by your browser</p>
+    <p>NDT makes use of either WebSockets or a Java plugin to perform the test. Make sure that the plugin you choose is not blocked by your browser</p>
     <div id="warning-environment">
     </div>
 
@@ -34,9 +36,8 @@
     </div>
 
     <div>
+      <button id="websocketButton" class="backendButton button" onclick="useWebsocketAsBackend()" type="button">Websockets</button>
       <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Java</button>
-      <button id="flashButton" class="backendButton button" onclick="useFlashAsBackend()" type="button">Flash</button>
-      <a id="html5Button" class="backendButton button" href="websocket-client/ndt_d3.html" type="button">HTML5</a>
     </div>
 
     <div is="learn_more">
@@ -138,10 +139,6 @@
 </div>
 
 <div id="backendContainer">
-  <!--Use embed tag to have flash client being background for JS UI or applet tag if you want to use java applet instead. -->
-  <embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="10" />
-
-  <!--<applet id="NDT" width="600" height="10" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar"     width="400" height="10"></applet>-->
 </div>
 
 </body>

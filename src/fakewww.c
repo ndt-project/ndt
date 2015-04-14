@@ -78,9 +78,7 @@ char *okfile[] = { "/widget.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
   "/gauge.min.js", "/jquery-1.4.4.min.js", "/style.css", 
   "/gauge.min.js", "/jquery-1.4.4.min.js", "/style.css", 
   "/fonts/digital-7-mono.ttf", "/fonts/League_Gothic.eot", "/fonts/League_Gothic.otf", 
-  /* the WebSocket D3-based client */
-  "/websocket-client/ndt_d3.html", "/websocket-client/ndt_d3.js",
-  "/websocket-client/ndt_d3.css", "/websocket-client/ndt-browser-client.js",
+  "/ndt-wrapper.js", "/ndt-browser-client.js",
   "/images/mlab-logo.png", "/images/mlab-logo-small.png", 0 };
 
 typedef struct allowed {

@@ -30,15 +30,9 @@ if HAVE_GCJ
 SUBDIRS += Admin janalyze
 endif
 
-sbin_SCRIPTS = ndt-flashpolicyd
-
-
 ndtdir = $(prefix)/ndt
-ndt_DATA = admin_description.html admin.html flashpolicy.xml \
+ndt_DATA = admin_description.html admin.html \
 	   copyright.html web100variables.html web100_variables
-
-nobase_ndt_DATA = websocket-client/ndt_d3.html websocket-client/ndt_d3.js \
-		websocket-client/ndt_d3.css websocket-client/ndt-browser-client.js
 
 EXTRA_DIST = admin_description.html admin.html \
 	tcpbw100.template tcpbw100-java.template copyright.html web100variables.html \
@@ -48,7 +42,7 @@ EXTRA_DIST = admin_description.html admin.html \
 	contrib/loadmap.txt contrib/Tcpbw1001.java \
 	tfw/client.py tfw/communication.py tfw/hosts.py tfw/network.py \
 	tfw/Readme tfw/scenarios.py tfw/server.py tfw/traffics.py tfw/widgets.py \
-        $(sbin_SCRIPTS) $(ndt_DATA) $(nobase_ndt_DATA)
+        $(sbin_SCRIPTS) $(ndt_DATA)
 
 sdatadir:
 	test -z "$(DESTDIR)$(ndtdir)/serverdata" || $(mkdir_p) "$(DESTDIR)$(ndtdir)/serverdata"

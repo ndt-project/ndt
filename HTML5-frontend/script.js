@@ -23,6 +23,8 @@ var PHASE_RESULTS   = 5;
 
 // STATUS VARIABLES
 
+var websocket_client = null;
+
 var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
@@ -62,7 +64,7 @@ function startTest(evt) {
   } 
   $('#warning-plugin').hide();
   document.getElementById('javaButton').disabled = true;
-  document.getElementById('flashButton').disabled = true;
+  document.getElementById('websocketButton').disabled = true;
   showPage('test', resetGauges);
   document.getElementById('rttValue').innerHTML = "";
   if (simulate) return simulateTest();
@@ -115,10 +117,12 @@ function monitorTest() {
     debug("Remote server is " + remoteServer());
     setPhase(PHASE_UPLOAD);
   }
+
   if (remoteServer() !== 'unknown' && currentPhase < PHASE_PREPARING) {
     setPhase(PHASE_PREPARING);
   }
-  setTimeout(monitorTest, 100);
+
+  setTimeout(monitorTest, 1000);
 }
 
 
@@ -207,7 +211,6 @@ function setPhase(phase) {
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
       document.getElementById('javaButton').disabled = false;
-      document.getElementById('flashButton').disabled = false;
 
       showPage('results');
       break;
@@ -328,9 +331,13 @@ function updateGaugeValue() {
   }   
 }
 
-// TESTING JAVA/FLASH CLIENT
+// TESTING JAVA/WEBSOCKET CLIENT
 
 function testNDT() {
+  if (websocket_client) {
+    return websocket_client;
+  }
+
   return ndt = document.getElementById('NDT');
 }
 
@@ -542,6 +549,8 @@ function testDetails() {
 
 // BACKEND METHODS
 function useJavaAsBackend() {
+  $websocket_client = null;
+
   $("#rtt").show();  
   $("#rttValue").show();  
   var backendContainer = document.getElementById('backendContainer');
@@ -558,36 +567,23 @@ function useJavaAsBackend() {
   app.width = '600';
   app.height = '10';
   document.getElementById('backendContainer').appendChild(app);
-  $('#flashButton').removeClass("active");
+  $('#websocketButton').removeClass("active");
   $('#javaButton').addClass("active");
 }
 
-function useFlashAsBackend() {
+function useWebsocketAsBackend() {
   $("#rtt").hide();  
-  $("#rttValue").hide();
+  $("#rttValue").hide();  
+
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
     backendContainer.removeChild(backendContainer.firstChild);
   } 
 
-  if (isLinuxSystem()) {
-    document.getElementById('warning-environment').innerHTML = "Warning: Using the flash client on Linux may provide less accurate results";
-  }
+  websocket_client = new NDTWrapper();
 
-  if (isChromeBrowser()) {
-    document.getElementById('warning-environment').innerHTML = "Warning: Using the flash client in Chrome may provide less accurate results";
-  }
-
-  var embed = document.createElement('embed');
-  embed.id = 'NDT';
-  embed.name = 'NDT';
-  embed.type = 'application/x-shockwave-flash';
-  embed.src = 'FlashClt.swf';
-  embed.width = '600';
-  embed.height = '10';
-  document.getElementById('backendContainer').appendChild(embed);
   $('#javaButton').removeClass("active");
-  $('#flashButton').addClass("active");
+  $('#websocketButton').addClass("active");
 }
 
 // UTILITIES
@@ -606,19 +602,9 @@ function isPluginLoaded() {
 }
 
 function checkInstalledPlugins() {
-  var hasFlash = false, hasJava = false;
+  var hasJava = false;
 
   $('#warning-plugin').hide();
-  try {
-    var activeXObject = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
-    if(activeXObject) hasFlash = true;
-  } catch(e) {
-    if(navigator.mimeTypes ["application/x-shockwave-flash"] != undefined) hasFlash = true;
-  }
-  
-  if (!hasFlash) {
-    document.getElementById('flashButton').disabled = true;
-  }
 
   if (deployJava.getJREs() == '') {
     document.getElementById('javaButton').disabled = true;
@@ -626,11 +612,7 @@ function checkInstalledPlugins() {
     hasJava = true;
   }
 
-  if (hasJava) {
-    useJavaAsBackend();  
-  } else if (hasFlash) {
-    useFlashAsBackend();
-  }
+  useWebsocketAsBackend();
 }
 
 function isLinuxSystem() {

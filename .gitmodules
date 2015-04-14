@@ -1,3 +1,0 @@
-[submodule "websocket-client"]
-	path = websocket-client
-	url = https://github.com/ndt-project/ndt-javascript-client

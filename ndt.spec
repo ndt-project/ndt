@@ -60,9 +60,9 @@ Java applet.
 
 %build
 %if "%{?CERT_FILE}" == ""
-%configure --enable-fakewww --with-java=precompiled --with-flash=precompiled
+%configure --enable-fakewww --with-java=precompiled --with-flash=no
 %else
-%configure --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}" --with-flash=precompiled
+%configure --enable-fakewww  --with-java=precompiled --with-cert="%{CERT_FILE}" --with-alias="%{CERT_ALIAS}" --with-flash=no
 %endif
 
 #make %{?_smp_mflags}

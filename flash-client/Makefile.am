@@ -19,10 +19,12 @@ TEMPDIRS = dist
 
 ndtdir = $(prefix)/ndt
 
-ndt_DATA  = dist/FlashClt.swf
+ndt_DATA  = dist/FlashClt.swf flashpolicy.xml
 FlashCltdir = $(ndtdir)
 
 noinst_PROGRAMS = FlashClt.swf
+
+sbin_SCRIPTS = ndt-flashpolicyd
 
 FlashClt_swf_SOURCES = src/GUI.as src/Handshake.as src/Main.as src/Message.as \
 			src/MessageType.as src/NDTConstants.as src/NDTPController.as \
