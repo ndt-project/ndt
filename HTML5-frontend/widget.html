@@ -27,17 +27,17 @@
 
     <p>The Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
 
-    <p>NDT makes use of either WebSockets or a Java plugin to perform the test. Make sure that the plugin you choose is not blocked by your browser</p>
+    <p>NDT can make use of either a Java plugin, or WebSockets to perform the test. Make sure that the method you choose is supported by your browser</p>
     <div id="warning-environment">
     </div>
 
     <div id="warning-plugin">
-        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and is not being blocked by your browser.</p>
+        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and that it is not being blocked by your browser.</p>
     </div>
 
     <div>
-      <button id="websocketButton" class="backendButton button" onclick="useWebsocketAsBackend()" type="button">Websockets</button>
       <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Java</button>
+      <button id="websocketButton" class="backendButton button" onclick="useWebsocketAsBackend()" type="button">WebSockets<sup><small>Beta</small></sup></button>
     </div>
 
     <div is="learn_more">

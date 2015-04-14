@@ -549,7 +549,7 @@ function testDetails() {
 
 // BACKEND METHODS
 function useJavaAsBackend() {
-  $websocket_client = null;
+  websocket_client = null;
 
   $("#rtt").show();  
   $("#rttValue").show();  
@@ -603,25 +603,37 @@ function isPluginLoaded() {
 
 function checkInstalledPlugins() {
   var hasJava = false;
+  var hasWebsockets = false;
 
   $('#warning-plugin').hide();
 
+  hasJava = true;
   if (deployJava.getJREs() == '') {
-    document.getElementById('javaButton').disabled = true;
-  } else {
-    hasJava = true;
+    hasJava = false;
   }
 
-  useWebsocketAsBackend();
-}
+  hasWebsockets = false;
+  try {
+    ndt_js = new NDTjs();
+    if (ndt_js.check_browser_support()) {
+      hasWebsockets = true; 
+    }
+  } catch(e) {
+    return false;
+  }
 
-function isLinuxSystem() {
-  if (navigator.platform.indexOf("Linux") != -1) 
-    return true;
+  if (!hasWebsockets) {
+    document.getElementById('websocketButton').disabled = true;
+  }
 
-  return false;
-}
-
-function isChromeBrowser() {
-   return (/Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor));
+  if (!hasJava) {
+    document.getElementById('javaButton').disabled = true;
+  }
+ 
+  if (hasJava) { 
+    useJavaAsBackend();
+  }
+  else if (hasWebsockets) {
+    useWebsocketAsBackend();
+  }
 }
