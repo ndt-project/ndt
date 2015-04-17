@@ -522,8 +522,6 @@ NDTjs.prototype.start_test = function () {
     var tests_to_run = [];
     var _this = this;
 
-    this.check_browser_support();
-
     this.logger('Test started.  Waiting for connection to server...');
     this.callbacks.onstart(this.server);
 
