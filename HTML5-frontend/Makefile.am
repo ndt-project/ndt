@@ -21,6 +21,6 @@ ndtdir = $(prefix)/ndt
 nobase_ndt_DATA = jquery-1.4.4.min.js ie.css style.css gauge.min.js widget.html \
 	   images/mlab-logo.png images/mlab-logo-small.png script.js \
            fonts/digital-7-mono.ttf fonts/League_Gothic.otf \
-           fonts/League_Gothic.eot embed.html ndt-wrapper.js ndt-browser-client.js
+           fonts/League_Gothic.eot embed.html ndt-wrapper.js ndt-wrapper-ww.js ndt-browser-client.js
 
 EXTRA_DIST = $(nobase_ndt_DATA)
