@@ -550,7 +550,7 @@ static int X_RcvBuf = -1;
  * @param line A char* to write the line to
  * @param line_size Size of line in bytes
  * @param ctlsock The socket to write to
- * @param jsonSupport Indicates if messages should be sent using JSON format
+ * @param testoptions the options that determine how the data should be sent
  *
  * If this fails nothing is sent on the cltsocket and the error will
  * be logged.
@@ -558,7 +558,7 @@ static int X_RcvBuf = -1;
  */
 static void print_10gvar_renamed(const char * old_name,
       const char * new_name, const tcp_stat_snap* snap, char * line,
-      int line_size, int ctlsock, int jsonSupport) {
+      int line_size, int ctlsock, const struct testoptions* const testoptions) {
   int type;
   struct estats_val val;
   estats_error* err;
@@ -576,7 +576,7 @@ static void print_10gvar_renamed(const char * old_name,
       estats_error_free(&err);
     } else {
       snprintf(line, line_size, "%s: %s\n", new_name, str);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
       free(str);
       str = NULL;
     }
@@ -686,7 +686,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
     }
     snprintf(line, sizeof(line), "%s: %s\n",
                  estats_var_array[j].name, str);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     log_print(9, "%s", line);
     free(str);
     str = NULL;
@@ -715,7 +715,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
   static const char* frame_web100 = "-~~~Web100_old_var_names~~~-: 1\n";
   int type;
   char *str = NULL;
-  send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), jsonSupport, JSON_SINGLE_VALUE);
+  send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
   /* ECNEnabled -> ECN */
   type = web10g_find_val(snap, "ECN", &val);
@@ -724,7 +724,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
                     " failed to find ECN bad type=%d", type);
   } else {
     snprintf(line, sizeof(line), "ECNEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
   }
 
   /* NagleEnabled -> Nagle */
@@ -734,7 +734,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
                     " failed to find Nagle bad type=%d", type);
   } else {
     snprintf(line, sizeof(line), "NagleEnabled: %"PRId32"\n", (val.sv32 == 2) ? 1 : 0);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
   }
 
   /* SACKEnabled -> WillUseSACK & WillSendSACK */
@@ -745,7 +745,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
   } else {
   /* Yes this comes through as 3 from web100 */
     snprintf(line, sizeof(line), "SACKEnabled: %d\n", (val.sv32 == 1) ? 3 : 0);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
   }
 
   /* TimestampsEnabled -> TimeStamps */
@@ -755,40 +755,40 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
                     " failed to find TimeStamps bad type=%d", type);
   } else {
     snprintf(line, sizeof(line), "TimestampsEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
   }
 
   /* PktsRetrans -> SegsRetrans */
   print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap, line,
-                              sizeof(line), ctlsock, jsonSupport);
+                              sizeof(line), ctlsock, testoptions);
 
   /* DataPktsOut -> DataSegsOut */
   print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap, line,
-                              sizeof(line), ctlsock, jsonSupport);
+                              sizeof(line), ctlsock, testoptions);
 
   /* MaxCwnd -> MAX(MaxSsCwnd, MaxCaCwnd) */
   print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap, line,
-                              sizeof(line), ctlsock, jsonSupport);
+                              sizeof(line), ctlsock, testoptions);
 
   /* SndLimTimeSender -> SndLimTimeSnd */
   print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap, line,
-                              sizeof(line), ctlsock, jsonSupport);
+                              sizeof(line), ctlsock, testoptions);
 
   /* DataBytesOut -> DataOctetsOut */
   print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap, line,
-                              sizeof(line), ctlsock, jsonSupport);
+                              sizeof(line), ctlsock, testoptions);
 
   /* SndLimTransSender -> SndLimTransSnd */
   print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap, line,
-                            sizeof(line), ctlsock, jsonSupport);
+                            sizeof(line), ctlsock, testoptions);
 
   /* PktsOut -> SegsOut */
   print_10gvar_renamed("SegsOut", "PktsOut", snap, line,
-                            sizeof(line), ctlsock, jsonSupport);
+                            sizeof(line), ctlsock, testoptions);
 
   /* CongestionSignals -> CongSignals */
   print_10gvar_renamed("CongSignals", "CongestionSignals", snap, line,
-                            sizeof(line), ctlsock, jsonSupport);
+                            sizeof(line), ctlsock, testoptions);
 
   /* RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1 */
   type = web10g_find_val(snap, "WinScaleSent", &val);
@@ -800,16 +800,16 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
       snprintf(line, sizeof(line), "RcvWinScale: %u\n", 0);
     else
       snprintf(line, sizeof(line), "RcvWinScale: %d\n", val.sv32);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
   }
 
   /* X_Rcvbuf & X_Sndbuf */
   snprintf(line, sizeof(line), "X_Rcvbuf: %d\n", X_RcvBuf);
-  send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+  send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
   snprintf(line, sizeof(line), "X_Sndbuf: %d\n", X_SndBuf);
-  send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+  send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
-  send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), jsonSupport, JSON_SINGLE_VALUE);
+  send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return 0;
