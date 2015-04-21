@@ -116,7 +116,7 @@ NDTWrapper.prototype.run_test = function () {
         }
       };
 
-      this.client = new NDTjs(this._hostname, this._port, this._path, this.callbacks, this.update_interval);
+      this.client = new NDTjs(this._hostname, this._port, this._path, this.callbacks, this._update_interval);
       this.client.start_test();
     }
 };
