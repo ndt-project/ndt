@@ -47,6 +47,7 @@ char* er_time_format = ER_TIME_FORMAT;
 char buff[BUFFSIZE];
 /* html message */
 char *MsgOK = "HTTP/1.0 200 OK\r\n\r\n";
+char *CSSMsgOK = "HTTP/1.0 200 OK\r\nContent-Type: text/css\r\n\r\n";
 char *MsgNope1 = "HTTP/1.0 404 Not found\r\n\r\n";
 char *MsgNope2 = "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
 "<BODY><H1>The requested file could not be found</H1></BODY>\n";
@@ -401,6 +402,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
   char useragentBuf[100];
   char refererBuf[100];
   int answerSize;
+  char *ok_msg;
 
   memset(nodename, 0, 200);
   I2AddrNodeName(addr, nodename, &nlen);
@@ -709,7 +711,14 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
       fd = open("/tmp/rac-traceroute.pl", 0);
     }
 
-    writen(sd, MsgOK, strlen(MsgOK));
+    if (strcmp(htmlfile + strlen(htmlfile) - 4, ".css") == 0) {
+        ok_msg = CSSMsgOK;
+    }
+    else {
+        ok_msg = MsgOK;
+    }
+
+    writen(sd, ok_msg, strlen(ok_msg));
     answerSize = 0;
     while ((n = read(fd, buff, sizeof(buff))) > 0) {
       writen(sd, buff, n);
