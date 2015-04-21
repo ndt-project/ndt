@@ -388,7 +388,7 @@ int read_websocket_header(int socket_fd, unsigned int skip_bytes,
   // check (i.e. have no data we need for later) are handled as they arrive.
   if (ws_readline(socket_fd, line, MAX_HEADER_LENGTH) < 0) return EIO;
   for (i = 0; i < MAX_HEADER_COUNT; i++) {
-    if (strcmp(line, UPGRADE_HEADER) == 0) {
+    if (strcasecmp(line, UPGRADE_HEADER) == 0) {
       validated_upgrade = 1;
     } else if (strncmp(line, CONNECTION_HEADER, strlen(CONNECTION_HEADER)) == 0) {
       if (strstr(line, CONNECTION_HEADER_VALUE) != NULL) {
