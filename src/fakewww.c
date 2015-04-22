@@ -384,7 +384,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
            char* ErLogFileName, int fed_mode, int max_ttl) {
   /* process web request */
   int fd, n, i, ok;
-  char *p, filename[256], line[256], *ctime();
+  char *p, filename[BUFFSIZE], line[256], *ctime();
   char htmlfile[256];
   u_int32_t IPlist[64], srv_addr;
 #ifdef AF_INET6
