@@ -637,7 +637,13 @@ NDTjs.prototype.start_test = function () {
     };
 
     ndt_socket.onerror = function (response) {
-        error_message = _this.parse_ndt_message(response.data)[3].msg;
+        if (response.data) {
+          error_message = _this.parse_ndt_message(response.data)[3].msg;
+        }
+        else {
+          error_message = "unknown error";
+        }
+
         throw _this.TestFailureException(error_message);
     };
 };
