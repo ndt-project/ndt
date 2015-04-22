@@ -54,7 +54,7 @@ if [ ! $USE_FAKEWWW = 0 ]
 then
    if [ ! -n "`pidof $path/fakewww`" ]; then
       echo -n "Starting fakewww:"
-      $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
+      sudo -u nobody $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
       RETVAL=$?
       if [ $RETVAL = 0 ]
       then 
