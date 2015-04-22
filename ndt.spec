@@ -93,6 +93,8 @@ rm -rf $RPM_BUILD_ROOT
 
 /sbin/chkconfig --add %{name} || :
 
+/sbin/service ndt cond-restart
+
 %preun server
 if [ $1 = 0 ]; then
 	/sbin/service ndt stop > /dev/null 2>&1 || :

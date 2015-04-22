@@ -105,7 +105,10 @@ stop_fakewww ()
 
 rhstatus() {
 	status web100srv
-	status fakewww
+	if [ ! $USE_FAKEWWW = 0 ]
+	then
+		status fakewww
+	fi
 }
 
 stop() {
@@ -123,6 +126,13 @@ restart() {
 	start
 }
 
+condrestart() {
+	rhstatus
+	if [ $? == 0 ]; then
+		restart
+	fi
+}
+
 case "$1" in
 start)
    start
@@ -132,6 +142,9 @@ stop)
    ;;
 status)
    rhstatus
+   ;;
+cond-restart)
+   condrestart
    ;;
 restart|reload)
    restart
