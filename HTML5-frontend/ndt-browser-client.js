@@ -373,7 +373,16 @@ NDTjs.prototype.ndt_s2c_test = function (ndt_socket) {
             };
 
             test_connection.onmessage = function (response) {
-                received_bytes +=  response.data.byteLength;
+                var response_message_size = response.data.byteLength;
+                var hdr_size;
+                if (response_message_size < 126) {
+                    hdr_size = 2;
+                } else if (response_message_size < 65536) {
+                    hdr_size = 4;
+                } else {
+                    hdr_size = 10;
+                }
+                received_bytes += (hdr_size + response_message_size);
 
                 var curr_time = Date.now() / 1000.0;
                 if (_this.update_interval && curr_time > test_start + next_callback_time) {
