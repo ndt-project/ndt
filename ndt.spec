@@ -90,10 +90,13 @@ make install DESTDIR=$RPM_BUILD_ROOT
 rm -rf $RPM_BUILD_ROOT
 
 %post server
+if [ "$1" = "1" ]; then
+    # If this is a first time install, add the users and enable it by default
+    /sbin/chkconfig --add ndt
+else
+    /sbin/service bwctld cond-restart
+fi
 
-/sbin/chkconfig --add %{name} || :
-
-/sbin/service ndt cond-restart
 
 %preun server
 if [ $1 = 0 ]; then
