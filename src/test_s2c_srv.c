@@ -314,26 +314,31 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
            clilen, device, &pair, "s2c", options->compress,
            meta.s2c_ndttrace);
            */
-        int ret = pipe(mon_pipe);
-        if ((s2c_childpid = fork()) == 0) {
-          /* close(ctlsockfd); */
-          close(testOptions->s2csockfd);
-          close(xmitsfd);
-          log_println(
-              5,
-              "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
-              mon_pipe[0], mon_pipe[1]);
-          // log_println(2, "S2C test calling init_pkttrace() with pd=0x%x",
-          //             (int) &cli_addr);
-          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
-                        clilen, mon_pipe, device, &pair, "s2c",
-                        options->compress);
-          log_println(6,
-                      "S2C test ended, why is timer still running?");
-          /* Close the pipe */
-          close(mon_pipe[0]);
-          close(mon_pipe[1]);
-          exit(0); /* Packet trace finished, terminate gracefully */
+        if (pipe(mon_pipe) != 0) {
+          log_println(0, "S2C test error: can't create pipe.");
+        } else {
+          if ((s2c_childpid = fork()) == 0) {
+            /* close(ctlsockfd); */
+            close(testOptions->s2csockfd);
+            close(xmitsfd);
+            log_println(
+                5,
+                "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
+                mon_pipe[0], mon_pipe[1]);
+            // log_println(2, "S2C test calling init_pkttrace() with pd=0x%x",
+            //             (int) &cli_addr);
+            init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
+                          clilen, mon_pipe, device, &pair, "s2c",
+                          options->compress);
+            log_println(6,
+                        "S2C test ended, why is timer still running?");
+            /* Close the pipe */
+            close(mon_pipe[0]);
+            close(mon_pipe[1]);
+            exit(0); /* Packet trace finished, terminate gracefully */
+          } else if (s2c_childpid < 0){
+            log_println(0, "S2C test error: can't create child process.");
+          }
         }
         memset(tmpstr, 0, 256);
         for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
@@ -364,7 +369,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        */
       if (getuid() == 0) {
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
-        int ret = system("echo 1 > /proc/sys/net/ipv4/route/flush");
+        if (system("echo 1 > /proc/sys/net/ipv4/route/flush") != 0)
+          log_println(0, "C2S test error: error calling system function: \"echo 1 > /proc/sys/net/ipv4/route/flush\"");
       }
 #if USE_WEB100
       rgroup = web100_group_find(agent, "read");
