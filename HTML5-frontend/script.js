@@ -551,6 +551,7 @@ function testDetails() {
 function useJavaAsBackend() {
   websocket_client = null;
 
+  $('#warning-websocket').hide();
   $("#rtt").show();  
   $("#rttValue").show();  
   var backendContainer = document.getElementById('backendContainer');
@@ -574,6 +575,7 @@ function useJavaAsBackend() {
 function useWebsocketAsBackend() {
   $("#rtt").hide();  
   $("#rttValue").hide();  
+  $('#warning-websocket').show();
 
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
@@ -606,6 +608,7 @@ function checkInstalledPlugins() {
   var hasWebsockets = false;
 
   $('#warning-plugin').hide();
+  $('#warning-websocket').hide();
 
   hasJava = true;
   if (deployJava.getJREs() == '') {

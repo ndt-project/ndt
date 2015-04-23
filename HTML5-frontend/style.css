@@ -36,7 +36,7 @@ a img {
   color: orange;
   margin: 5px;
 }
-#warning-plugin {
+#warning-plugin, #warning-websocket {
   color: red;
   margin: 5px;
 }
