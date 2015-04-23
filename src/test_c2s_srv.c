@@ -276,24 +276,29 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
          &pair, currenttestdesc, options->compress, meta.c2s_ndttrace);
          */
 
-      int ret = pipe(mon_pipe);
-      if ((c2s_childpid = fork()) == 0) {
-        /* close(ctlsockfd); */
-        close(testOptions->c2ssockfd);
-        close(recvsfd);
-        log_println(
-            5,
-            "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
-            testOptions->child0, mon_pipe[0], mon_pipe[1]);
-        log_println(2, "C2S test calling init_pkttrace() with pd=%p",
-                    &cli_addr);
-        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
-                      mon_pipe, device, &pair, "c2s", options->compress);
-        log_println(1, "c2s is exiting gracefully");
-        /* Close the pipe */
-        close(mon_pipe[0]);
-        close(mon_pipe[1]);
-        exit(0); /* Packet trace finished, terminate gracefully */
+      if (pipe(mon_pipe) != 0) {
+        log_println(0, "C2S test error: can't create pipe.");
+      } else {
+        if ((c2s_childpid = fork()) == 0) {
+          /* close(ctlsockfd); */
+          close(testOptions->c2ssockfd);
+          close(recvsfd);
+          log_println(
+              5,
+              "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
+              testOptions->child0, mon_pipe[0], mon_pipe[1]);
+          log_println(2, "C2S test calling init_pkttrace() with pd=%p",
+                      &cli_addr);
+          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
+                        mon_pipe, device, &pair, "c2s", options->compress);
+          log_println(1, "c2s is exiting gracefully");
+          /* Close the pipe */
+          close(mon_pipe[0]);
+          close(mon_pipe[1]);
+          exit(0); /* Packet trace finished, terminate gracefully */
+        } else if (c2s_childpid < 0) {
+          log_println(0, "C2S test error: can't create child process.");
+        }
       }
 
       // Get data collected from packet tracing into the C2S "ndttrace" file

@@ -309,7 +309,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     currentMSSval = MIDDLEBOX_PREDEFINED_MSS;
   }
   if (getuid() == 0) {
-    int ret = system("echo 1 > /proc/sys/net/ipv4/route/flush");
+    if (system("echo 1 > /proc/sys/net/ipv4/route/flush") != 0)
+      log_println(0, "Error calling system function: \"echo 1 > /proc/sys/net/ipv4/route/flush\"");
   }
 
   // fill send buffer with random printable data
