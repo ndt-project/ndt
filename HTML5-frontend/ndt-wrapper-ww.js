@@ -33,9 +33,16 @@ function startNDT(hostname, port, path, update_interval) {
         'server': server
       });
     },
-    'onchange': function(state, results) {
+    'onstatechange': function(state, results) {
       self.postMessage({
-        'cmd': 'onchange',
+        'cmd': 'onstatechange',
+        'state': state,
+        'results': results,
+      });
+    },
+    'onprogress': function(state, results) {
+      self.postMessage({
+        'cmd': 'onprogress',
         'state': state,
         'results': results,
       });
@@ -55,5 +62,5 @@ function startNDT(hostname, port, path, update_interval) {
   };
 
   var client = new NDTjs(hostname, port, path, callbacks, update_interval);
-  client.start_test();
+  client.startTest();
 }

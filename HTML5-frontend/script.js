@@ -618,7 +618,7 @@ function checkInstalledPlugins() {
   hasWebsockets = false;
   try {
     ndt_js = new NDTjs();
-    if (ndt_js.check_browser_support()) {
+    if (ndt_js.checkBrowserSupport()) {
       hasWebsockets = true; 
     }
   } catch(e) {

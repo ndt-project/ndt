@@ -76,8 +76,11 @@ NDTWrapper.prototype.run_test = function () {
           case 'onstart':
             _this.onstart_cb(msg.server);
             break;
-          case 'onchange':
-            _this.onchange_cb(msg.state, msg.results);
+          case 'onstatechange':
+            _this.onstatechange_cb(msg.state, msg.results);
+            break;
+          case 'onprogress':
+            _this.onprogress_cb(msg.state, msg.results);
             break;
           case 'onfinish':
             _this.onfinish_cb(msg.results);
@@ -105,8 +108,11 @@ NDTWrapper.prototype.run_test = function () {
         'onstart': function(server) {
             _this.onstart_cb(server);
         },
-        'onchange': function(state, results) {
-            _this.onchange_cb(state, results);
+        'onstatechange': function(state, results) {
+            _this.onstatechange_cb(state, results);
+        },
+        'onprogress': function(state, results) {
+            _this.onprogress_cb(state, results);
         },
         'onfinish': function(passed_results) {
             _this.onfinish_cb(passed_results);
@@ -117,7 +123,7 @@ NDTWrapper.prototype.run_test = function () {
       };
 
       this.client = new NDTjs(this._hostname, this._port, this._path, this.callbacks, this._update_interval);
-      this.client.start_test();
+      this.client.startTest();
     }
 };
 
@@ -149,27 +155,36 @@ NDTWrapper.prototype.get_PcBuffSpdLimit = function (variable) {
 NDTWrapper.prototype.onstart_cb = function (server) {
 };
 
-NDTWrapper.prototype.onchange_cb = function (state, results) {
+NDTWrapper.prototype.onstatechange_cb = function (state, results) {
     if (state === 'running_s2c') {
         this._status = 'Inbound';
-        this._ndt_vars['ServerToClientSpeed'] = results['s2c_rate'] / 1000;
+        this._ndt_vars['ServerToClientSpeed'] = results['s2cRate'] / 1000;
     }
-    else if (state == 'interval_s2c' || state === 'finished_s2c') {
-        this._ndt_vars['ServerToClientSpeed'] = results['s2c_rate'] / 1000;
+    else if (state === 'finished_s2c') {
+        this._ndt_vars['ServerToClientSpeed'] = results['s2cRate'] / 1000;
     }
     else if (state === 'running_c2s') {
         this._status = 'Outbound';
     }
-    else if (state === 'interval_c2s' || state == 'finished_c2s') {
-        this._ndt_vars['ClientToServerSpeed'] = results['c2s_rate'] / 1000;
+    else if (state == 'finished_c2s') {
+        this._ndt_vars['ClientToServerSpeed'] = results['c2sRate'] / 1000;
+    }
+};
+
+NDTWrapper.prototype.onprogress_cb = function (state, results) {
+    if (state == 'interval_s2c') {
+        this._ndt_vars['ServerToClientSpeed'] = results['s2cRate'] / 1000;
+    }
+    else if (state === 'interval_c2s') {
+        this._ndt_vars['ClientToServerSpeed'] = results['c2sRate'] / 1000;
     }
 };
 
 NDTWrapper.prototype.onfinish_cb = function (results) {
     this._errmsg = "Test completed";
     this._ndt_vars = results;
-    this._ndt_vars['ServerToClientSpeed'] = results['s2c_rate'] / 1000;
-    this._ndt_vars['ClientToServerSpeed'] = results['c2s_rate'] / 1000;
+    this._ndt_vars['ServerToClientSpeed'] = results['s2cRate'] / 1000;
+    this._ndt_vars['ClientToServerSpeed'] = results['c2sRate'] / 1000;
     this._ndt_vars['Jitter'] = results['MaxRTT'] - results['MinRTT'];
     this.build_diagnosis();
 };
