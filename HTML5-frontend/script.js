@@ -619,7 +619,7 @@ function checkInstalledPlugins() {
       hasWebsockets = true; 
     }
   } catch(e) {
-    return false;
+    hasWebsockets = false;
   }
 
   if (!hasWebsockets) {

@@ -75,7 +75,7 @@ NDTjs.prototype.logger = function (log_message, debugging) {
 
 NDTjs.prototype.check_browser_support = function () {
 
-    if (window.WebSocket !== undefined && window.MozWebSocket !== undefined) {
+    if (window.WebSocket == undefined && window.MozWebSocket == undefined) {
         throw this.UnsupportedBrowser("No Websockets");
     }
     return true;
