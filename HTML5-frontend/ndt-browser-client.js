@@ -557,6 +557,14 @@ NDTjs.prototype.startTest = function () {
     } else if (state === 'WAIT_FOR_MSG_RESULTS' &&
                messageType === that.MSG_RESULTS) {
       that.logger(messageContent);
+      var lines = messageContent.msg.split('\n');
+      for (i = 0; i < lines.length; i++) {
+          var line = lines[i];
+          var record = line.split(': ');
+          var variable = record[0];
+          var result = record[1];
+          that.results[variable] = result;
+      }
     } else if (state === 'WAIT_FOR_MSG_RESULTS' &&
                messageType === that.MSG_LOGOUT) {
       ndtSocket.close();
