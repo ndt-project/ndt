@@ -472,7 +472,6 @@ void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int portA,
  */
 
 void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
-  struct ether_header *enet;
   const struct ip *ip = NULL;
   PortPair* pair = (PortPair*) user;
 #if defined(AF_INET6)
@@ -499,7 +498,6 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
   current.usec = h->ts.tv_usec;
   current.time = (current.sec * 1000000) + current.usec;
 
-  enet = (struct ether_header *) p;
   p += sizeof(struct ether_header);  // move packet pointer past ethernet fields
 
   ip = (const struct ip *) p;

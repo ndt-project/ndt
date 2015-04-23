@@ -276,7 +276,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
          &pair, currenttestdesc, options->compress, meta.c2s_ndttrace);
          */
 
-      pipe(mon_pipe);
+      int ret = pipe(mon_pipe);
       if ((c2s_childpid = fork()) == 0) {
         /* close(ctlsockfd); */
         close(testOptions->c2ssockfd);

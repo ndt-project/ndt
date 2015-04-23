@@ -314,7 +314,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
            clilen, device, &pair, "s2c", options->compress,
            meta.s2c_ndttrace);
            */
-        pipe(mon_pipe);
+        int ret = pipe(mon_pipe);
         if ((s2c_childpid = fork()) == 0) {
           /* close(ctlsockfd); */
           close(testOptions->s2csockfd);
@@ -364,7 +364,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        */
       if (getuid() == 0) {
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
-        system("echo 1 > /proc/sys/net/ipv4/route/flush");
+        int ret = system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
 #if USE_WEB100
       rgroup = web100_group_find(agent, "read");

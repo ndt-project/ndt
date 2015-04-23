@@ -945,11 +945,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   double c2sspd;  // average throughput as calculated by C->S test
   double s2c2spd;  // average throughput as calculated by midbox test
   double realthruput;  // total send throughput in S->C
-  double acksratio;  // ratio of acks over packets sent
   double aspd = 0;
-  double tmoutsratio;  // timeouts fraction
-  // ratio of retransmissions and duplicate acks over packets sent
-  double rtranratio, dackratio;
   float runave[4];
 
   FILE * fp;
@@ -1116,10 +1112,10 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   RTOidle = calc_RTOIdle(vars.Timeouts, vars.CurrentRTO, timesec);
 
   // get timeout, retransmission, acks and dup acks ratios.
-  tmoutsratio = (double) vars.Timeouts / vars.PktsOut;
+  /*tmoutsratio = (double) vars.Timeouts / vars.PktsOut;
   rtranratio = (double) vars.PktsRetrans / vars.PktsOut;
   acksratio = (double) vars.AckPktsIn / vars.PktsOut;
-  dackratio = (double) vars.DupAcksIn / (double) vars.AckPktsIn;
+  dackratio = (double) vars.DupAcksIn / (double) vars.AckPktsIn;*/
 
   // get actual throughput in Mbps (totaltime is in microseconds)
   realthruput = calc_real_throughput(vars.DataBytesOut, totaltime);
