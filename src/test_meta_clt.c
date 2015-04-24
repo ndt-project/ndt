@@ -39,7 +39,7 @@ double spdout, c2sspd;
  *     		1: Unable to receive protocol message successfully
  * 			2: Wrong message type received
  */
-int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options, int jsonSupport) {
+int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options, char* client_app_id, int jsonSupport) {
   char buff[1024], tmpBuff[512];
   int msgLen, msgType;
   FILE * fp;
@@ -84,7 +84,7 @@ int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options, int j
     printf("sending meta information to server . . . . . ");
     fflush(stdout);
 
-    snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_APPLICATION, "cli");
+    snprintf(buff, sizeof(buff), "%s:%s", META_CLIENT_APPLICATION, client_app_id);
     send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
                       jsonSupport, JSON_SINGLE_VALUE);
     // send client os name details

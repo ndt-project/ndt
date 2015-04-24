@@ -59,7 +59,7 @@ static struct option long_options[] = {
   { "buffer", 1, 0, 'b' }, { "disablemid", 0, 0, 302 },
   { "disablec2s", 0, 0, 303 }, { "disables2c", 0, 0, 304 },
   { "disablesfw", 0, 0, 305 }, { "protocol_log", 1, 0, 'u' },
-  { "enableprotolog", 0, 0, 'e' },
+  { "enableprotolog", 0, 0, 'e' }, { "client_app_id", 1, 0, 'c' },
 #ifdef AF_INET6
   { "ipv4", 0, 0, '4'},
   { "ipv6", 0, 0, '6'},
@@ -527,6 +527,7 @@ int main(int argc, char *argv[]) {
   char buff[BUFFSIZE];  // buffer used to store protocol message payload
   char* strtokbuf;  // buffer to store string tokens
   char *host = NULL;  // server name to connect to
+  char* client_app_id; // optional runtime-specified client app id
   int buf_size = 0;  // TCP send/receive window size received from user
   int msgLen, msgType;  // protocol message related variables
   int conn_options = 0;  // connection options received from user
@@ -545,7 +546,7 @@ int main(int argc, char *argv[]) {
 #endif
   // Read and record various optional values used for the tests/process
   while ((useroption = getopt_long(argc, argv,
-                                   GETOPT_LONG_INET6("n:u:e:p:dhlvb:"),
+                                   GETOPT_LONG_INET6("n:u:e:p:dhlvb:c:"),
                                    long_options, 0)) != -1) {
     switch (useroption) {
       case '4':
@@ -563,6 +564,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'b':
         buf_size = atoi(optarg);
+        break;
+      case 'c':
+        client_app_id = strndup(optarg, 16);
         break;
       case 'd':
         debug++;
@@ -929,7 +933,11 @@ int main(int argc, char *argv[]) {
         }
         break;
       case TEST_META:
-        if (test_meta_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
+        if (client_app_id == NULL)  {
+          client_app_id = META_CLIENT_APPLICATION_ID;
+        }
+
+        if (test_meta_clt(ctlSocket, tests, host, conn_options, client_app_id, jsonSupport)) {
           log_println(0, "META test FAILED!");
           tests &= (~TEST_META);
         }
