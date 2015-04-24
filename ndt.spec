@@ -94,9 +94,10 @@ if [ "$1" = "1" ]; then
     # If this is a first time install, add the users and enable it by default
     /sbin/chkconfig --add ndt
 else
-    /sbin/service bwctld cond-restart
+    /sbin/service ndt cond-restart
 fi
 
+chown nobody:nobody /var/log/ndt/fakewww*log
 
 %preun server
 if [ $1 = 0 ]; then
