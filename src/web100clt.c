@@ -527,7 +527,7 @@ int main(int argc, char *argv[]) {
   char buff[BUFFSIZE];  // buffer used to store protocol message payload
   char* strtokbuf;  // buffer to store string tokens
   char *host = NULL;  // server name to connect to
-  char* client_app_id // optional runtime-specified client app id
+  char* client_app_id; // optional runtime-specified client app id
   int buf_size = 0;  // TCP send/receive window size received from user
   int msgLen, msgType;  // protocol message related variables
   int conn_options = 0;  // connection options received from user
@@ -937,7 +937,7 @@ int main(int argc, char *argv[]) {
           client_app_id = META_CLIENT_APPLICATION_ID;
         }
 
-        if (test_meta_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
+        if (test_meta_clt(ctlSocket, tests, host, conn_options, client_app_id, jsonSupport)) {
           log_println(0, "META test FAILED!");
           tests &= (~TEST_META);
         }
