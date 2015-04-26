@@ -45,10 +45,10 @@ endif
 mostlyclean-generic:
 	rm -rf $(TEMPDIRS) *~
 
-EXTRA_DIST = README AUTHORS COPYING ndt-flash-config.xml assets/hover.png assets/mlab-logo.png \
+EXTRA_DIST = README AUTHORS COPYING ndt-flash-config.xml \
 		src/locale/ca_ES/DisplayMessages.properties src/locale/el_GR/DisplayMessages.properties \
 		src/locale/en_US/DisplayMessages.properties src/locale/fr_FR/DisplayMessages.properties \
 		src/locale/nb_NO/DisplayMessages.properties src/locale/nl_NL/DisplayMessages.properties \
 		src/locale/pt_BR/DisplayMessages.properties src/locale/ru_RU/DisplayMessages.properties \
-		precompiled/FlashClt.swf
-		
+		precompiled/FlashClt.swf $(sbin_SCRIPTS) flashpolicy.xml \
+		assets/hover.png assets/mlab-logo.png assets/downArrow.png assets/upArrow.png
