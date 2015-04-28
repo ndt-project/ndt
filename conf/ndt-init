@@ -54,6 +54,12 @@ if [ ! $USE_FAKEWWW = 0 ]
 then
    if [ ! -n "`pidof $path/fakewww`" ]; then
       echo -n "Starting fakewww:"
+
+      # Make sure that it can log
+      touch /var/log/ndt/fakewww_access.log
+      touch /var/log/ndt/fakewww_error.log
+      chown nobody:nobody /var/log/ndt/fakewww*log
+
       sudo -u nobody $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
       RETVAL=$?
       if [ $RETVAL = 0 ]
