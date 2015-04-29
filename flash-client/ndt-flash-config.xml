@@ -27,7 +27,7 @@
     <!-- The current NDT version -->
     <define append="true">
       <name>CONFIG::serverVersion</name>
-      <value>"v3.7.0-rc1"</value>
+      <value>"v3.7.0"</value>
     </define>
     <define append="true">
       <name>CONFIG::clientVersion</name>
