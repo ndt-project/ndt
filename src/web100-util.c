@@ -17,6 +17,7 @@
 #include "utils.h"
 #include "web100srv.h"
 #include "jsonutils.h"
+#include "testoptions.h"
 
 struct tcp_name {
   char* web100_name;

@@ -10,13 +10,15 @@
 #define SRC_NETWORK_H_
 
 #include <I2util/util.h>
-#include "testoptions.h"
 
 #define NDT_BACKLOG 5
 #define BUFFSIZE  8192
 
 #define OPT_IPV6_ONLY 1
 #define OPT_IPV4_ONLY 2
+
+#define JSON_SUPPORT 1
+#define WEBSOCKET_SUPPORT 2
 
 I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size);
 int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
