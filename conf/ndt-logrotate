@@ -1,22 +1,10 @@
-/var/log/ndt/fakewww*log {
-    weekly
-    rotate 4
-    missingok
-    notifempty
-    sharedscripts
-    create 644 nobody nobody
-    postrotate
-        /sbin/service ndt cond-restart > /dev/null 2>/dev/null || true
-    endscript
-}
-
-/var/log/ndt/web100*log, /var/log/ndt/httpd*log {
+/var/log/ndt/*log {
     weekly
     rotate 4
     missingok
     notifempty
     sharedscripts
     postrotate
-        /sbin/service ndt cond-restart > /dev/null 2>/dev/null || true
+        /sbin/service ndt restart > /dev/null 2>/dev/null || true
     endscript
 }
