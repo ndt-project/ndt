@@ -1,8 +1,6 @@
-%define         rc_tag     -rc5
-
 Name:           ndt
 Version:        3.7.0
-Release:        6%{?dist}
+Release:        8%{?dist}
 Summary:        Network Diagnostic Tool
 
 Group:          Applications/Networking
