@@ -23,6 +23,8 @@ var PHASE_RESULTS   = 5;
 
 // STATUS VARIABLES
 
+var use_websocket_client = false;
+
 var websocket_client = null;
 
 var currentPhase = PHASE_LOADING;
@@ -58,6 +60,7 @@ function initializeTest() {
 function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
+  createBackend();
   if (!isPluginLoaded()) {
     $('#warning-plugin').show();
     return;
@@ -338,7 +341,7 @@ function testNDT() {
     return websocket_client;
   }
 
-  return ndt = document.getElementById('NDT');
+  return document.getElementById('NDT');
 }
 
 function testStatus() {
@@ -549,25 +552,14 @@ function testDetails() {
 
 // BACKEND METHODS
 function useJavaAsBackend() {
-  websocket_client = null;
-
   $('#warning-websocket').hide();
   $("#rtt").show();  
   $("#rttValue").show();  
-  var backendContainer = document.getElementById('backendContainer');
-  while (backendContainer.firstChild) {
-    backendContainer.removeChild(backendContainer.firstChild);
-  } 
-  document.getElementById('warning-environment').innerHTML = "";
 
-  var app = document.createElement('applet');
-  app.id = 'NDT';
-  app.name = 'NDT';
-  app.archive = 'Tcpbw100.jar';
-  app.code = 'edu.internet2.ndt.Tcpbw100.class';
-  app.width = '600';
-  app.height = '10';
-  document.getElementById('backendContainer').appendChild(app);
+  $('.warning-environment').innerHTML = "";
+
+  use_websocket_client = false;
+
   $('#websocketButton').removeClass("active");
   $('#javaButton').addClass("active");
 }
@@ -577,15 +569,28 @@ function useWebsocketAsBackend() {
   $("#rttValue").hide();  
   $('#warning-websocket').show();
 
-  var backendContainer = document.getElementById('backendContainer');
-  while (backendContainer.firstChild) {
-    backendContainer.removeChild(backendContainer.firstChild);
-  } 
-
-  websocket_client = new NDTWrapper();
+  use_websocket_client = true;
 
   $('#javaButton').removeClass("active");
   $('#websocketButton').addClass("active");
+}
+
+function createBackend() {
+  $('#backendContainer').empty();
+
+  if (use_websocket_client) {
+    websocket_client = new NDTWrapper();
+  }
+  else {
+    var app = document.createElement('applet');
+    app.id = 'NDT';
+    app.name = 'NDT';
+    app.archive = 'Tcpbw100.jar';
+    app.code = 'edu.internet2.ndt.Tcpbw100.class';
+    app.width = '600';
+    app.height = '10';
+    $('#backendContainer').append(app);
+  }
 }
 
 // UTILITIES
