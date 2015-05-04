@@ -60,7 +60,7 @@ then
       touch /var/log/ndt/fakewww_error.log
       chown nobody:nobody /var/log/ndt/fakewww*log
 
-      sudo -u nobody $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
+      runuser --session-command="$path/fakewww $FAKEWWW_OPTIONS" -s /bin/sh nobody &
       RETVAL=$?
       if [ $RETVAL = 0 ]
       then 
