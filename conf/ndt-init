@@ -133,8 +133,20 @@ restart() {
 }
 
 condrestart() {
-	rhstatus
-	if [ $? == 0 ]; then
+	RUNNING=0
+	status web100srv
+        if [ $? -eq 0 ]; then
+		RUNNING=1
+        fi
+	if [ ! $USE_FAKEWWW = 0 ]
+	then
+		status fakewww
+	        if [ $? -eq 0 ]; then
+			RUNNING=1
+	        fi
+	fi
+
+	if [ $RUNNING -eq 1 ]; then
 		restart
 	fi
 }
