@@ -95,8 +95,6 @@ else
     /sbin/service ndt cond-restart
 fi
 
-chown nobody:nobody /var/log/ndt/fakewww*log
-
 %preun server
 if [ $1 = 0 ]; then
 	/sbin/service ndt stop > /dev/null 2>&1 || :
