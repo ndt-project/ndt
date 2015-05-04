@@ -105,7 +105,9 @@ fi
 %{_prefix}/%{name}/manage_fakewww_usage disable
 
 %preun server-apache
-%{_prefix}/%{name}/manage_fakewww_usage enable
+if [ $1 = 0 ]; then
+	%{_prefix}/%{name}/manage_fakewww_usage enable
+fi
 
 %files
 
