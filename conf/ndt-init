@@ -161,14 +161,14 @@ stop)
 status)
    rhstatus
    ;;
-cond-restart)
+condrestart)
    condrestart
    ;;
 restart|reload)
    restart
    ;;
 *)
-   echo $"Usage: $0 {start|stop|status|restart}"
+   echo $"Usage: $0 {start|stop|status|restart|condrestart}"
    exit 1
 esac
 

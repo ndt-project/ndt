@@ -92,7 +92,7 @@ if [ "$1" = "1" ]; then
     # If this is a first time install, add the users and enable it by default
     /sbin/chkconfig --add ndt
 else
-    /sbin/service ndt cond-restart
+    /sbin/service ndt condrestart
 fi
 
 %preun server
@@ -103,11 +103,22 @@ fi
 
 %post server-apache
 %{_prefix}/%{name}/manage_fakewww_usage disable
+# Need to restart NDT first so that it lets go of 7123
+service ndt condrestart
+service httpd condrestart
 
 %preun server-apache
-if [ $1 = 0 ]; then
-	%{_prefix}/%{name}/manage_fakewww_usage enable
+if [ $1 -eq 0 ]; then
+	# This will retry to start NDT, but since apache still has the port,
+	# it'll fail. The %postun condrestart will get NDT going again.
+	%{_prefix}/%{name}/manage_fakewww_usage enable || :
 fi
+
+%postun server-apache
+# Need to restart HTTPD first so that it lets go of 7123. This gets done in the
+# '%postun' so that the apache ndt.conf is gone.
+service httpd condrestart
+service ndt condrestart
 
 %files
 
