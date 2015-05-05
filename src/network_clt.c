@@ -35,7 +35,6 @@
  *        -2 - Cannot complete writing full message data into socket
  *        -3 - Cannot write after retries
  *        -4 - Cannot convert msg to JSON
- *
  */
 int send_json_msg(int ctlSocket, int type, const char* msg, int len,
                   int connectionFlags, int jsonConvertType,
@@ -112,7 +111,7 @@ int writen(int fd, const void* buf, int amount) {
  * @return The amount of bytes read from the file descriptor
  */
 size_t readn(int fd, void* buf, size_t amount) {
-  Connection conn = { fd, NULL };
+  Connection conn = {fd, NULL};
   return readn_any(&conn, buf, amount);
 }
 

@@ -581,11 +581,11 @@ int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
 }
 
 /**
- * Write the given amount of data to the file descriptor.
+ * Write the given amount of data to the Connection.
  * @param fd the file descriptor
  * @param buf buffer with data to write
  * @param amount the size of the data
- * @return The amount of bytes written to the file descriptor
+ * @return The amount of bytes written to the Connection
  */
 int writen_any(Connection* conn, const void* buf, int amount) {
   int sent, n;
@@ -603,7 +603,7 @@ int writen_any(Connection* conn, const void* buf, int amount) {
         continue;
       if (errno != EAGAIN) {  // some genuine socket write error
         log_println(6,
-                    "writen() Error! write(%d) failed with err='%s(%d) pic=%d'",
+                    "writen() Error! write(%d) failed with err='%s(%d) pid=%d'",
                     conn->socket, strerror(errno), errno, getpid());
         return -1;
       }
@@ -616,48 +616,43 @@ int writen_any(Connection* conn, const void* buf, int amount) {
   return sent;
 }
 
-/**
- * Read the given amount of data from the file descriptor.
- * @param conn The connection to read
- * @param buf buffer for data
- * @param amount size of the data to read
- * @return The amount of bytes read from the file descriptor
- */
-size_t readn_any(Connection* conn, void* buf, size_t amount) {
-  char error_string[80];
+size_t readn_ssl(Connection* conn, void* buf, size_t amount) {
   const char* file;
   int line;
+  size_t received = 0;
+  char error_string[120] = {0};
   int ssl_err;
+  char* ptr = buf;
+  // To read from OpenSSL, just read.  SSL_read has its own timeout.
+  received = SSL_read(conn->ssl, ptr, amount);
+  if (received <= 0) {
+    ssl_err = ERR_get_error_line(&file, &line);
+    ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
+    log_println(2, "SSL failed due to %s (%d)\n", error_string, ssl_err);
+    log_println(2, "File: %s line: %d\n", file, line);
+  }
+  return received;
+}
+
+size_t readn_raw(Connection* conn, void* buf, size_t amount) {
   size_t received = 0;
   int n, rc;
   char* ptr = buf;
   struct timeval sel_tv;
   fd_set rfd;
 
-  assert(amount >= 0);
-
-  if (conn->ssl != NULL) {
-    // To read from OpenSSL, just read.  SSL_read has its own timeout.
-    received = SSL_read(conn->ssl, ptr, amount);
-    if (received <= 0) {
-      ssl_err = ERR_get_error_line(&file, &line);
-      ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
-      log_println(2, "SSL failed due to %s (%d)\n", error_string, ssl_err);
-      log_println(2, "File: %s line: %d\n", file, line);
-    }
-    return received;
-  }
-
   FD_ZERO(&rfd);  // initialize with zeroes
   FD_SET(conn->socket, &rfd);
   sel_tv.tv_sec = 600;
   sel_tv.tv_usec = 0;
 
-  /* modified readn() routine 11/26/09 - RAC
-   * added in select() call, to timeout if no read occurs after 10 minutes of waiting.
+  /* Using a select() call, to timeout if no read occurs after 10 minutes of waiting.
    * This should fix a bug where the server hangs at it looks like it's in this read
    * state.  The select() should check to see if there is anything to read on this socket.
    * if not, and the 3 second timer goes off, exit out and clean up.
+   *
+   * Now that the server does no reading of any sockets (only the child process
+   * reads any sockets), this fix may no longer be necessary.
    */
   while (received < amount) {
     // check if fd+1 socket is ready to be read
@@ -671,8 +666,8 @@ size_t readn_any(Connection* conn, void* buf, size_t amount) {
     if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
       continue;
     n = read(conn->socket, ptr + received, amount - received);
-    if (n == 0) {  // error
-      if (errno == EINTR) continue;  // interrupted , try reading again
+    if (n == -1) {  // error
+      if (errno == EINTR) continue;  // interrupted, try reading again
       if (errno != EAGAIN) return -errno;  // genuine socket error, return
     }
     if (n != -1) {  // if no errors reading, increment data byte count
@@ -683,3 +678,19 @@ size_t readn_any(Connection* conn, void* buf, size_t amount) {
   return received;
 }
 
+/**
+ * Read the given amount of data from the Connection.
+ * @param conn The connection to read
+ * @param buf buffer for data
+ * @param amount size of the data to read
+ * @return The amount of bytes read from the Connection
+ */
+size_t readn_any(Connection* conn, void* buf, size_t amount) {
+  assert(amount >= 0);
+
+  if (conn->ssl != NULL) {
+    return readn_ssl(conn, buf, amount);
+  } else {
+    return readn_raw(conn, buf, amount);
+  }
+}
