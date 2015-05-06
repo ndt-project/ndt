@@ -582,7 +582,7 @@ int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
 
 /**
  * Write the given amount of data to the Connection.
- * @param fd the file descriptor
+ * @param conn the Connection
  * @param buf buffer with data to write
  * @param amount the size of the data
  * @return The amount of bytes written to the Connection
@@ -616,25 +616,25 @@ int writen_any(Connection* conn, const void* buf, int amount) {
   return sent;
 }
 
-size_t readn_ssl(Connection* conn, void* buf, size_t amount) {
-  const char* file;
-  int line;
+size_t readn_ssl(SSL* ssl, void* buf, size_t amount) {
+  const char* error_file;
+  int error_line;
   size_t received = 0;
-  char error_string[120] = {0};
+  char ssl_error_string[120] = {0};
   int ssl_err;
   char* ptr = buf;
   // To read from OpenSSL, just read.  SSL_read has its own timeout.
-  received = SSL_read(conn->ssl, ptr, amount);
+  received = SSL_read(ssl, ptr, amount);
   if (received <= 0) {
-    ssl_err = ERR_get_error_line(&file, &line);
+    ssl_err = ERR_get_error_line(&error_file, &error_line);
     ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
     log_println(2, "SSL failed due to %s (%d)\n", error_string, ssl_err);
-    log_println(2, "File: %s line: %d\n", file, line);
+    log_println(2, "File: %s line: %d\n", error_file, error_line);
   }
   return received;
 }
 
-size_t readn_raw(Connection* conn, void* buf, size_t amount) {
+size_t readn_raw(int fd, void* buf, size_t amount) {
   size_t received = 0;
   int n, rc;
   char* ptr = buf;
@@ -642,21 +642,22 @@ size_t readn_raw(Connection* conn, void* buf, size_t amount) {
   fd_set rfd;
 
   FD_ZERO(&rfd);  // initialize with zeroes
-  FD_SET(conn->socket, &rfd);
+  FD_SET(fd, &rfd);
   sel_tv.tv_sec = 600;
   sel_tv.tv_usec = 0;
 
-  /* Using a select() call, to timeout if no read occurs after 10 minutes of waiting.
+  /* Using a select() call to timeout if no read occurs after 10 minutes of waiting.
    * This should fix a bug where the server hangs at it looks like it's in this read
    * state.  The select() should check to see if there is anything to read on this socket.
    * if not, and the 3 second timer goes off, exit out and clean up.
    *
    * Now that the server does no reading of any sockets (only the child process
-   * reads any sockets), this fix may no longer be necessary.
+   * reads any sockets), this fix may no longer be necessary, as a long wait
+   * will eventually get interrupted by the child's alarm().
    */
   while (received < amount) {
     // check if fd+1 socket is ready to be read
-    rc = select(conn->socket + 1, &rfd, NULL, NULL, &sel_tv);
+    rc = select(fd + 1, &rfd, NULL, NULL, &sel_tv);
     if (rc == 0) {
       /* A timeout occurred, nothing to read from socket after 3 seconds */
       log_println(6, "readn() routine timeout occurred, return error signal "
@@ -665,7 +666,7 @@ size_t readn_raw(Connection* conn, void* buf, size_t amount) {
     }
     if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
       continue;
-    n = read(conn->socket, ptr + received, amount - received);
+    n = read(fd, ptr + received, amount - received);
     if (n == -1) {  // error
       if (errno == EINTR) continue;  // interrupted, try reading again
       if (errno != EAGAIN) return -errno;  // genuine socket error, return
@@ -689,8 +690,8 @@ size_t readn_any(Connection* conn, void* buf, size_t amount) {
   assert(amount >= 0);
 
   if (conn->ssl != NULL) {
-    return readn_ssl(conn, buf, amount);
+    return readn_ssl(conn->ssl, buf, amount);
   } else {
-    return readn_raw(conn, buf, amount);
+    return readn_raw(conn->socket, buf, amount);
   }
 }
