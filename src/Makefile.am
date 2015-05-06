@@ -47,7 +47,6 @@ endif
 endif
 endif
 
-
 if HAVE_SSL
 if HAVE_JANSSON
 bin_PROGRAMS += web100clt
@@ -79,7 +78,7 @@ endif
 
 noinst_PROGRAMS += $(TESTS)
 
-web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
+web100clt_SOURCES = web100clt.c network.c network_clt.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
                     test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c \
                     test_results_clt.c jsonutils.c websocket.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
@@ -99,7 +98,7 @@ analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 
 if BUILD_FAKEWWW
-fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
+fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c network_clt.c usage.c logging.c \
                   runningtest.c ndtptestconstants.c strlutils.c jsonutils.c websocket.c
 fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' $(OPENSSL_INCLUDES)
@@ -190,7 +189,9 @@ install: install-am install-ln
 $(I2UTILLIBDEPS):
 	$(I2UTILLIBMAKE)
 
-EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h test_meta.h \
-             troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h ndt_odbc.h runningtest.h ndtptestconstants.h \
-             heuristics.h strlutils.h test_results_clt.h tests_srv.h jsonutils.h unit_testing.h websocket.h third_party/safe_iop.h
-
+EXTRA_DIST = clt_tests.h connection.h heuristics.h jsonutils.h logging.h \
+             mrange.h ndt_odbc.h ndtptestconstants.h network.h network_clt.h \
+             node_tests/ndt_client.js protocol.h runningtest.h strlutils.h test_meta.h \
+             test_results_clt.h test_sfw.h testoptions.h tests_srv.h third_party/safe_iop.h \
+             tr-tree.h troute.h unit_testing.h usage.h utils.h varinfo.h web100-admin.h \
+             web100srv.h websocket.h 
