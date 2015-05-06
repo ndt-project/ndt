@@ -14,7 +14,7 @@
 #define META_CLIENT_VERSION "client.version"
 #define META_CLIENT_APPLICATION "client.application"
 #define META_CLIENT_APPLICATION_ID "cli"
- 
+
 #define META_TEST_LOG "META test"
 
 int test_meta_clt(int ctlSocket, char tests, char* host, int conn_options, char* client_app_id, int jsonSupport);
