@@ -620,7 +620,7 @@ size_t readn_ssl(SSL* ssl, void* buf, size_t amount) {
   const char* error_file;
   int error_line;
   size_t received = 0;
-  char ssl_error_string[120] = {0};
+  char error_string[120] = {0};
   int ssl_err;
   char* ptr = buf;
   // To read from OpenSSL, just read.  SSL_read has its own timeout.
