@@ -258,7 +258,7 @@ int64_t recv_websocket_ndt_msg(Connection* conn, int* msg_type, char* msg_value,
 }
 
 /**
- * Reads a line from the filedescriptor, up to maxlen long. Returns the length
+ * Reads a line from the Connection, up to maxlen long. Returns the length
  * of the line on success, a negative number on failure. On success the string
  * in dest will be null terminated.
  * @param conn The connection to read from
@@ -369,8 +369,8 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
   // http://stackoverflow.com/questions/686217/maximum-on-http-header-values
   // They are #define'd because declaring arrays of variable size, even if the
   // variable is const and static, is a gcc extension and not part of C.
-  #define MAX_HEADER_COUNT 1024
-  #define MAX_HEADER_LENGTH 8192
+  const static unsigned int MAX_HEADER_COUNT = 1024;
+  char line[8192];  // Max length for a single line
   // String constants used when making a websocket connection.
   const static char UPGRADE_HEADER[] = "Upgrade: websocket";
   const static char CONNECTION_HEADER[] = "Connection: ";
@@ -380,7 +380,6 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
   const static char FIRST_LINE[] = "GET /ndt_protocol HTTP/1.1";
   // Variables that actually vary
   const char* suffix;
-  char line[MAX_HEADER_LENGTH];
   int validated_connection = 0;
   int validated_upgrade = 0;
   int validated_version = 0;
@@ -389,12 +388,12 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
   // You can only fastforward into the very first line
   if (skip_bytes >= strlen(FIRST_LINE)) return EINVAL;
   // Read the first line.
-  if (ws_readline(conn, line, MAX_HEADER_LENGTH) < 0) return EIO;
+  if (ws_readline(conn, line, sizeof(line)) < 0) return EIO;
   if (strcmp(line, &(FIRST_LINE[skip_bytes])) != 0) return EINVAL;
   // HTTP headers end with a blank line
   // We only save the header values we care about. The headers we only need to
   // check (i.e. have no data we need for later) are handled as they arrive.
-  if (ws_readline(conn, line, MAX_HEADER_LENGTH) < 0) return EIO;
+  if (ws_readline(conn, line, sizeof(line)) < 0) return EIO;
   for (i = 0; i < MAX_HEADER_COUNT; i++) {
     if (strcmp(line, UPGRADE_HEADER) == 0) {
       validated_upgrade = 1;
@@ -416,7 +415,7 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
       if (strlen(suffix) + 1 != BASE64_SHA_DIGEST_LENGTH) return EBADMSG;
       strncpy(key, suffix, BASE64_SHA_DIGEST_LENGTH);
     }
-    if (ws_readline(conn, line, MAX_HEADER_LENGTH) < 0) return EIO;
+    if (ws_readline(conn, line, sizeof(line)) < 0) return EIO;
     if (strcmp(line, "") == 0) break;
   }
   if (strcmp(line, "") == 0 && validated_connection && validated_upgrade &&
@@ -475,7 +474,7 @@ int write_websocket_header(Connection* conn, char* protocol, char* key) {
  * a websocket connection until a few bytes have been read, so this function
  * supports specifying the number of bytes that have already been read, and
  * will try to fast-forward to that point in the handshake.
- * @param socket_fd The socket on which the connection is happening.
+ * @param conn The Connection on which the handshake is happening.
  * @param skip_bytes How many bytes of the initial handshake have already
  *                   been read and validated?
  * @param expected_protocol The protocol name we are expecting from the client.
