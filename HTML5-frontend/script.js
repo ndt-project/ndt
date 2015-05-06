@@ -1,4 +1,3 @@
-
 $(function(){
   jQuery.fx.interval = 50;
   if (simulate) {
@@ -32,8 +31,7 @@ var transitionSpeed = 400;
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
 var gaugeUpdateInterval;
-var gaugeMaxValue = 100; // Mb/s
-
+var gaugeMaxValue = 1000; 
 
 // PRIMARY METHODS
 
@@ -322,10 +320,19 @@ function resetGauges() {
 }
 
 function updateGaugeValue() {
+  var downloadSpeedVal = downloadSpeed();
+  var uploadSpeedVal = uploadSpeed(false);
+  
   if (currentPhase == PHASE_UPLOAD) {
-    uploadGauge.setValue(uploadSpeed(true));
+    uploadGauge.updateConfig({ 
+	  units: getSpeedUnit(uploadSpeedVal)
+	});
+	uploadGauge.setValue(getJustfiedSpeed(uploadSpeedVal));
   } else if (currentPhase == PHASE_DOWNLOAD) {
-    downloadGauge.setValue(downloadSpeed());
+    downloadGauge.updateConfig({ 
+	  units: getSpeedUnit(downloadSpeedVal) 
+	});
+    downloadGauge.setValue(getJustfiedSpeed(downloadSpeedVal));
   } else {
     clearInterval(gaugeUpdateInterval);  
   }   
@@ -445,28 +452,27 @@ function printJitter(boldValue) {
   return retStr;
 }
 
+function getSpeedUnit(speedInKB) {
+  var unit = ['kb/s', 'Mb/s', 'Gb/s', 'Tb/s', 'Pb/s', 'Eb/s'];
+  var e = Math.floor(Math.log(speedInKB*1000) / Math.log(1000));
+  return unit[e];
+}
+
+function getJustfiedSpeed(speedInKB) {
+  var e = Math.floor(Math.log(speedInKB) / Math.log(1000));
+  return (speedInKB / Math.pow(1000, e)).toFixed(2);
+}
+
 function printDownloadSpeed() {
   var downloadSpeedVal = downloadSpeed();
-  if (downloadSpeedVal >= 1000) {
-    downloadSpeedVal = parseFloat(downloadSpeedVal/1000);
-    document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
-    document.getElementById('download-speed-units').innerHTML = 'gb/s';  
-  } else {
-    document.getElementById('download-speed').innerHTML = downloadSpeedVal.toFixed(2);  
-    document.getElementById('download-speed-units').innerHTML = 'mb/s';  
-  }
+  document.getElementById('download-speed').innerHTML = getJustfiedSpeed(downloadSpeedVal);  
+  document.getElementById('download-speed-units').innerHTML = getSpeedUnit(downloadSpeedVal);  
 }
 
 function printUploadSpeed() {
   var uploadSpeedVal = uploadSpeed(false);
-  if (uploadSpeedVal >= 1000) {
-    uploadSpeedVal = parseFloat(uploadSpeedVal/1000);
-    document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
-    document.getElementById('upload-speed-units').innerHTML = 'gb/s';  
-  } else {
-    document.getElementById('upload-speed').innerHTML = uploadSpeedVal.toFixed(2);  
-    document.getElementById('upload-speed-units').innerHTML = 'mb/s';  
-  }
+  document.getElementById('upload-speed').innerHTML = getJustfiedSpeed(uploadSpeedVal); 
+  document.getElementById('upload-speed-units').innerHTML = getSpeedUnit(uploadSpeedVal);    
 }
 
 function readNDTvar(variable) {
@@ -551,7 +557,6 @@ function testDetails() {
 function useJavaAsBackend() {
   websocket_client = null;
 
-  $('#warning-websocket').hide();
   $("#rtt").show();  
   $("#rttValue").show();  
   var backendContainer = document.getElementById('backendContainer');
@@ -575,7 +580,6 @@ function useJavaAsBackend() {
 function useWebsocketAsBackend() {
   $("#rtt").hide();  
   $("#rttValue").hide();  
-  $('#warning-websocket').show();
 
   var backendContainer = document.getElementById('backendContainer');
   while (backendContainer.firstChild) {
@@ -608,7 +612,6 @@ function checkInstalledPlugins() {
   var hasWebsockets = false;
 
   $('#warning-plugin').hide();
-  $('#warning-websocket').hide();
 
   hasJava = true;
   if (deployJava.getJREs() == '') {
@@ -618,11 +621,11 @@ function checkInstalledPlugins() {
   hasWebsockets = false;
   try {
     ndt_js = new NDTjs();
-    if (ndt_js.checkBrowserSupport()) {
+    if (ndt_js.check_browser_support()) {
       hasWebsockets = true; 
     }
   } catch(e) {
-    hasWebsockets = false;
+    return false;
   }
 
   if (!hasWebsockets) {
