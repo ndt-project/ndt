@@ -11,6 +11,7 @@
 
 #include "web100srv.h"
 #include "protocol.h"
+#include "connection.h"
 
 #define LISTENER_SOCKET_CREATE_FAILED  -1
 #define SOCKET_CONNECT_TIMEOUT  -100
@@ -18,13 +19,18 @@
 #define RETRY_EXCEEDED_WAITING_DATA -102
 #define SOCKET_STATUS_FAILED -1
 
+#define JSON_SUPPORT 1
+#define WEBSOCKET_SUPPORT 2
+#define TLS_SUPPORT 4
+
 typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
 
   char client_version[CS_VERSION_LENGTH_MAX + 1]; // client version number.
 
-  int connection_flags; // indicates if client supports JSON messages and/or websockets
+  // indicates if client supports JSON messages, websockets, or TLS
+  int connection_flags;
 
   int midopt;  // middlebox test to be perfomed?
   int midsockfd;  // socket file desc for middlebox test
@@ -58,14 +64,14 @@ typedef struct snapArgs {
 
 int wait_sig;
 
-int initialize_tests(int ctlsockfd, TestOptions* testOptions,
+int initialize_tests(Connection* ctl, TestOptions* testOptions,
                      char* test_suite, size_t test_suite_strlen);
 
 void catch_s2c_alrm(int signo);
 
-int test_sfw_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
+int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
                  int conn_options);
-int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
+int test_meta_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
                   int conn_options);
 
 int getCurrentTest();
