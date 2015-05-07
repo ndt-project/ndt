@@ -32,7 +32,7 @@
  *         Error codes:
  *          -2 - Cannot write message data while attempting to send TEST_START
  *          -1 - Cannot write message header information while attempting to
- *               send TEST_START message
+ *               send TEST_START
  *           1 - Message reception errors/inconsistencies
  *           2 - Unexpected message type received/no message received due to
  *               timeout
@@ -61,7 +61,7 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
     teststatuses = TEST_STARTED;
     protolog_status(testOptions->child0, testids, teststatuses, ctl->socket);
 
-    // first message exchanged is am empty TEST_PREPARE message
+    // first message exchanged is an empty TEST_PREPARE message
     j = send_json_message_any(ctl, TEST_PREPARE, "", 0,
                               testOptions->connection_flags, JSON_SINGLE_VALUE);
     if (j == -1 || j == -2) {

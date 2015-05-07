@@ -280,7 +280,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           // processing is done prior to the start of packet capture, as many
           // browsers have headers that uniquely identitfy a single user.
           if (initialize_websocket_connection(&s2c_conn, 0, "s2c") != 0) {
-            s2c_conn.socket = 0;
+            close_connection(&s2c_conn);
+            return EIO;
           } 
         } 
         break;
@@ -323,26 +324,31 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
            clilen, device, &pair, "s2c", options->compress,
            meta.s2c_ndttrace);
            */
-        pipe(mon_pipe);
-        if ((s2c_childpid = fork()) == 0) {
-          /* close(ctlsockfd); */
-          close(testOptions->s2csockfd);
-          close(s2c_conn.socket);
-          log_println(
-              5,
-              "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
-              mon_pipe[0], mon_pipe[1]);
-          // log_println(2, "S2C test calling init_pkttrace() with pd=0x%x",
-          //             (int) &cli_addr);
-          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
-                        clilen, mon_pipe, device, &pair, "s2c",
-                        options->compress);
-          log_println(6,
-                      "S2C test ended, why is timer still running?");
-          /* Close the pipe */
-          close(mon_pipe[0]);
-          close(mon_pipe[1]);
-          exit(0); /* Packet trace finished, terminate gracefully */
+        if (pipe(mon_pipe) != 0) {
+          log_println(0, "S2C test error: can't create pipe.");
+        } else {
+          if ((s2c_childpid = fork()) == 0) {
+            /* close(ctlsockfd); */
+            close(testOptions->s2csockfd);
+            close(s2c_conn.socket);
+            log_println(
+                5,
+                "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
+                mon_pipe[0], mon_pipe[1]);
+            // log_println(2, "S2C test calling init_pkttrace() with pd=0x%x",
+            //             (int) &cli_addr);
+            init_pkttrace(src_addr, (struct sockaddr *) &cli_addr,
+                          clilen, mon_pipe, device, &pair, "s2c",
+                          options->compress);
+            log_println(6,
+                        "S2C test ended, why is timer still running?");
+            /* Close the pipe */
+            close(mon_pipe[0]);
+            close(mon_pipe[1]);
+            exit(0); /* Packet trace finished, terminate gracefully */
+          } else if (s2c_childpid < 0) {
+            log_println(0, "S2C test error: can't create child process.");
+          }
         }
         memset(tmpstr, 0, 256);
         for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
@@ -652,6 +658,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     estats_val_data_free(&snap);
 #endif
 
+    close_connection(&s2c_conn);
+
     // If sending web100 variables above failed, indicate to client
     if (ret < 0) {
       log_println(6, "S2C - No web100 data received for pid=%d",
@@ -706,7 +714,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client
-    close(s2c_conn.socket);
     if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
                               testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
       log_println(6,

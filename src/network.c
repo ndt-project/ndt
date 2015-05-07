@@ -616,13 +616,13 @@ int writen_any(Connection* conn, const void* buf, int amount) {
   return sent;
 }
 
-size_t readn_ssl(SSL* ssl, void* buf, size_t amount) {
-  const char* error_file;
+size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
+  const char *error_file;
   int error_line;
   size_t received = 0;
   char error_string[120] = {0};
   int ssl_err;
-  char* ptr = buf;
+  char *ptr = buf;
   // To read from OpenSSL, just read.  SSL_read has its own timeout.
   received = SSL_read(ssl, ptr, amount);
   if (received <= 0) {
@@ -634,10 +634,10 @@ size_t readn_ssl(SSL* ssl, void* buf, size_t amount) {
   return received;
 }
 
-size_t readn_raw(int fd, void* buf, size_t amount) {
+size_t readn_raw(int fd, void *buf, size_t amount) {
   size_t received = 0;
   int n, rc;
-  char* ptr = buf;
+  char *ptr = buf;
   struct timeval sel_tv;
   fd_set rfd;
 
@@ -686,7 +686,7 @@ size_t readn_raw(int fd, void* buf, size_t amount) {
  * @param amount size of the data to read
  * @return The amount of bytes read from the Connection
  */
-size_t readn_any(Connection* conn, void* buf, size_t amount) {
+size_t readn_any(Connection *conn, void *buf, size_t amount) {
   assert(amount >= 0);
 
   if (conn->ssl != NULL) {
@@ -694,4 +694,15 @@ size_t readn_any(Connection* conn, void* buf, size_t amount) {
   } else {
     return readn_raw(conn->socket, buf, amount);
   }
+}
+
+/**
+ * Close the connection and free any resources associated with it.
+ * @param conn The connection to close
+ */
+void close_connection(Connection *conn) {
+  SSL_free(conn->ssl);  // SSL_free handles NULL just fine
+  conn->ssl = NULL;
+  close(conn->socket);
+  conn->socket = 0;
 }

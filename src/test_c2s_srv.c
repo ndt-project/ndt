@@ -50,15 +50,13 @@
  * @param spd_index  index used for speed check array
  * @param conn_options Connection options
  * @param ctx The SSL context (possibly NULL)
- * @return 0 - success,
- *          >0 - error code
- *          Error codes:
- *          -1 - Listener socket creation failed
- *          -100 - timeout while waiting for client to connect to server�s ephemeral port
- *                         -errno - Other specific socket error numbers
- *                        -101 - Retries exceeded while waiting for client to connect
- *                        -102 - Retries exceeded while waiting for data from connected client
- *
+ * @return 0 on success, an error code otherwise
+ *         Error codes:
+ *           -1 - Listener socket creation failed
+ *           -100 - timeout while waiting for client to connect to server's ephemeral port
+ *           -101 - Retries exceeded while waiting for client to connect
+ *           -102 - Retries exceeded while waiting for data from connected client
+ *           -errno - Other specific socket error numbers
  */
 int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
@@ -70,7 +68,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
   int mon_pipe[2];
   int recvsfd;  // receiver socket file descriptor
   pid_t c2s_childpid = 0;  // child process pids
-  int msgretvalue, tmpbytecount = 0;  // used during the "read"/"write" process
+  int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
   int i, j;  // used as loop iterators
 
   struct sockaddr_storage cli_addr;
@@ -101,8 +99,6 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
   // Test ID and status descriptors
   enum TEST_ID testids = C2S;
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
-  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
-  enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char namesuffix[256] = "c2s_snaplog";
 
   if (testOptions->c2sopt) {
@@ -179,7 +175,9 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // send TEST_PREPARE message with ephemeral port detail, indicating start
     // of tests
-    if ((msgretvalue = send_json_message_any(ctl, TEST_PREPARE, buff, strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE)) < 0) {
+    if ((msgretvalue = send_json_message_any(
+             ctl, TEST_PREPARE, buff, strlen(buff),
+             testOptions->connection_flags, JSON_SINGLE_VALUE)) < 0) {
       log_println(2, "Child %d could not send details about ephemeral port",
                   getpid());
       return msgretvalue;
@@ -210,17 +208,15 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
  recfd:
 
       // If a valid connection request is received, client has connected.
-      // Proceed.  Note the new socket fd - recvsfd- used in the throughput test
+      // The new connection (c2s_conn) should be used in the throughput test.
       c2s_conn.socket = accept(testOptions->c2ssockfd,
                                (struct sockaddr *)&cli_addr, &clilen);
       if (c2s_conn.socket > 0) {
         log_println(6, "accept() for %d completed", testOptions->child0);
 
         // log protocol validation indicating client accept
-        procstatusenum = PROCESS_STARTED;
-        proctypeenum = CONNECT_TYPE;
-        protolog_procstatus(testOptions->child0, testids, proctypeenum,
-                            procstatusenum, c2s_conn.socket);
+        protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
+                            PROCESS_STARTED, c2s_conn.socket);
         if (testOptions->connection_flags & TLS_SUPPORT) {
           c2s_conn.ssl = SSL_new(ctx);
           if (c2s_conn.ssl == NULL) return ENOMEM;
@@ -228,18 +224,14 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
           if (SSL_accept(c2s_conn.ssl) != 1) return EIO;
         }
         // To preserve user privacy, make sure that the HTTP header
-        // processing is done prior to the start of packet capture, as many
-        // browsers have headers that uniquely identitfy a single user.
+        // processing is done prior to the start of packet capture.
         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
           if (initialize_websocket_connection(&c2s_conn, 0, "c2s") != 0) {
             log_println(2, "Child %d failed to init websocket", getpid());
-            if (c2s_conn.ssl != NULL) {
-              SSL_free(c2s_conn.ssl);
-              c2s_conn.ssl = NULL;
-            }
-            c2s_conn.socket = 0;
+            close_connection(&c2s_conn);
+            return EIO;
           }
-        } 
+        }
         break;
       }
       // socket interrupted, wait some more
@@ -377,10 +369,10 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
         continue;
       }
       if (msgretvalue > 0) {  // read from socket
-        if (c2s_conn.ssl == NULL) {
-          tmpbytecount = read(c2s_conn.socket, buff, sizeof(buff));
-        } else {
+        if (c2s_conn.ssl != NULL) {
           tmpbytecount = SSL_read(c2s_conn.ssl, buff, sizeof(buff));
+        } else {
+          tmpbytecount = read(c2s_conn.socket, buff, sizeof(buff));
         }
         // read interrupted, continue waiting
         if ((tmpbytecount == -1) && (errno == EINTR))
@@ -415,12 +407,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     if (record_reverse == 1)
       tcp_stat_get_data_recv(c2s_conn.socket, agent, conn, count_vars);
 
-
-    if (c2s_conn.ssl != NULL) {
-      SSL_shutdown(c2s_conn.ssl);
-      SSL_free(c2s_conn.ssl);
-    }
-    close(c2s_conn.socket);
+    close_connection(&c2s_conn);
     close(testOptions->c2ssockfd);
 
     // Next, send speed-chk a flag to retrieve the data it collected.
