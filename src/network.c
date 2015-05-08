@@ -701,7 +701,10 @@ size_t readn_any(Connection *conn, void *buf, size_t amount) {
  * @param conn The connection to close
  */
 void close_connection(Connection *conn) {
-  SSL_free(conn->ssl);  // SSL_free handles NULL just fine
+  if (conn->ssl != NULL) {
+    SSL_shutdown(conn->ssl);
+    SSL_free(conn->ssl);
+  }
   conn->ssl = NULL;
   close(conn->socket);
   conn->socket = 0;

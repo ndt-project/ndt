@@ -53,7 +53,7 @@
  * @return 0 on success, an error code otherwise
  *         Error codes:
  *           -1 - Listener socket creation failed
- *           -100 - timeout while waiting for client to connect to server's ephemeral port
+ *           -100 - Timeout while waiting for client to connect to server's ephemeral port
  *           -101 - Retries exceeded while waiting for client to connect
  *           -102 - Retries exceeded while waiting for data from connected client
  *           -errno - Other specific socket error numbers
@@ -219,9 +219,9 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
                             PROCESS_STARTED, c2s_conn.socket);
         if (testOptions->connection_flags & TLS_SUPPORT) {
           c2s_conn.ssl = SSL_new(ctx);
-          if (c2s_conn.ssl == NULL) return ENOMEM;
-          if (SSL_set_fd(c2s_conn.ssl, c2s_conn.socket) == 0) return EIO;
-          if (SSL_accept(c2s_conn.ssl) != 1) return EIO;
+          if (c2s_conn.ssl == NULL) return -ENOMEM;
+          if (SSL_set_fd(c2s_conn.ssl, c2s_conn.socket) == 0) return -EIO;
+          if (SSL_accept(c2s_conn.ssl) != 1) return -EIO;
         }
         // To preserve user privacy, make sure that the HTTP header
         // processing is done prior to the start of packet capture.
@@ -229,7 +229,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
           if (initialize_websocket_connection(&c2s_conn, 0, "c2s") != 0) {
             log_println(2, "Child %d failed to init websocket", getpid());
             close_connection(&c2s_conn);
-            return EIO;
+            return -EIO;
           }
         }
         break;
@@ -254,7 +254,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
             6,
             "c2s child %d, uable to open connection, return from test",
             testOptions->child0);
-        return RETRY_EXCEEDED_WAITING_DATA;
+        return -RETRY_EXCEEDED_WAITING_DATA;
       }
     }
 

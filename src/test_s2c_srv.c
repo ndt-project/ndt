@@ -271,9 +271,9 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                             procstatusenum, s2c_conn.socket);
         if (testOptions->connection_flags & TLS_SUPPORT) {
           s2c_conn.ssl = SSL_new(ctx);
-          if (s2c_conn.ssl == NULL) return ENOMEM;
-          if (SSL_set_fd(s2c_conn.ssl, s2c_conn.socket) == 0) return EIO;
-          if (SSL_accept(s2c_conn.ssl) != 1) return EIO;
+          if (s2c_conn.ssl == NULL) return -ENOMEM;
+          if (SSL_set_fd(s2c_conn.ssl, s2c_conn.socket) == 0) return -EIO;
+          if (SSL_accept(s2c_conn.ssl) != 1) return -EIO;
         }
         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
           // To preserve user privacy, make sure that the HTTP header
@@ -281,9 +281,9 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           // browsers have headers that uniquely identitfy a single user.
           if (initialize_websocket_connection(&s2c_conn, 0, "s2c") != 0) {
             close_connection(&s2c_conn);
-            return EIO;
-          } 
-        } 
+            return -EIO;
+          }
+        }
         break;
       }
       // socket interrupted, wait some more
