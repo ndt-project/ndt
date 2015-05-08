@@ -328,7 +328,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           log_println(0, "S2C test error: can't create pipe.");
         } else {
           if ((s2c_childpid = fork()) == 0) {
-            /* close(ctlsockfd); */
             close(testOptions->s2csockfd);
             close(s2c_conn.socket);
             log_println(
@@ -499,10 +498,10 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         }
 
         // attempt to write random data into the client socket
-        if (s2c_conn.ssl == NULL) {
-          n = write(s2c_conn.socket, buff, RECLTH);
-        } else {
+        if (s2c_conn.ssl != NULL) {
           n = SSL_write(s2c_conn.ssl, buff, RECLTH);
+        } else {
+          n = write(s2c_conn.socket, buff, RECLTH);
         }
         // socket interrupted, continue attempting to write
         if ((n == -1) && (errno == EINTR))
