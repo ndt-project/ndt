@@ -375,7 +375,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
       send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
                         options->connection_flags, JSON_SINGLE_VALUE);
-      close(sfw_conn.socket);
+      close_connection(&sfw_conn);
       finalize_sfw(ctl, options);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
@@ -387,7 +387,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
       send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
                             options->connection_flags, JSON_SINGLE_VALUE);
-      close(sfw_conn.socket);
+      close_connection(&sfw_conn);
       finalize_sfw(ctl, options);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
@@ -406,7 +406,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
       send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
                             options->connection_flags, JSON_SINGLE_VALUE);
-      close(sfw_conn.socket);
+      close_connection(&sfw_conn);
       finalize_sfw(ctl, options);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
@@ -418,7 +418,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
       snprintf(buff, sizeof(buff), "%d", SFW_UNKNOWN);
       send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
                             options->connection_flags, JSON_SINGLE_VALUE);
-      close(sfw_conn.socket);
+      close_connection(&sfw_conn);
       finalize_sfw(ctl, options);
       I2AddrFree(sfwsrv_addr);
       I2AddrFree(sfwcli_addr);
@@ -429,7 +429,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
     snprintf(buff, sizeof(buff), "%d", SFW_NOFIREWALL);
     send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
     		options->connection_flags, JSON_SINGLE_VALUE);
-    close(sfw_conn.socket);
+    close_connection(&sfw_conn);
     finalize_sfw(ctl, options);
     I2AddrFree(sfwsrv_addr);
     I2AddrFree(sfwcli_addr);

@@ -270,10 +270,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         protolog_procstatus(testOptions->child0, testids, proctypeenum,
                             procstatusenum, s2c_conn.socket);
         if (testOptions->connection_flags & TLS_SUPPORT) {
-          s2c_conn.ssl = SSL_new(ctx);
-          if (s2c_conn.ssl == NULL) return -ENOMEM;
-          if (SSL_set_fd(s2c_conn.ssl, s2c_conn.socket) == 0) return -EIO;
-          if (SSL_accept(s2c_conn.ssl) != 1) return -EIO;
+          errno = setup_SSL_connection(&s2c_conn, ctx);
+          if (errno != 0) return -errno;
         }
         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
           // To preserve user privacy, make sure that the HTTP header
@@ -498,6 +496,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         }
 
         // attempt to write random data into the client socket
+	// Using write() and SSL_write() in their raw forms to ensure that
+	// writes are done as fast as possible.
         if (s2c_conn.ssl != NULL) {
           n = SSL_write(s2c_conn.ssl, buff, RECLTH);
         } else {

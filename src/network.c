@@ -709,3 +709,18 @@ void close_connection(Connection *conn) {
   close(conn->socket);
   conn->socket = 0;
 }
+
+/**
+ * Open and set up an SSL connection from a socket connection.
+ * @param conn the Connection to set up.  Should already have its socket set to
+ *             a valid socketfd
+ * @param ctx the SSL context to use for the setup
+ * @return 0 or an error code
+ */
+int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
+  conn->ssl = SSL_new(ctx);
+  if (conn->ssl == NULL) return ENOMEM;
+  if (SSL_set_fd(conn->ssl, conn->socket) == 0) return EIO;
+  if (SSL_accept(conn->ssl) != 1) return EIO;
+  return 0;
+}

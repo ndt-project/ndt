@@ -218,10 +218,8 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
         protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
                             PROCESS_STARTED, c2s_conn.socket);
         if (testOptions->connection_flags & TLS_SUPPORT) {
-          c2s_conn.ssl = SSL_new(ctx);
-          if (c2s_conn.ssl == NULL) return -ENOMEM;
-          if (SSL_set_fd(c2s_conn.ssl, c2s_conn.socket) == 0) return -EIO;
-          if (SSL_accept(c2s_conn.ssl) != 1) return -EIO;
+          errno = setup_SSL_connection(&c2s_conn, ctx);
+          if (errno != 0) return -errno;
         }
         // To preserve user privacy, make sure that the HTTP header
         // processing is done prior to the start of packet capture.
@@ -368,7 +366,9 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
         // socket interrupted. Continue waiting for activity on socket
         continue;
       }
-      if (msgretvalue > 0) {  // read from socket
+      if (msgretvalue > 0) {
+	// Use read or SSL_read in their raw forms.  We want this to go as fast
+	// as possible and we do not care about the contents of buff.
         if (c2s_conn.ssl != NULL) {
           tmpbytecount = SSL_read(c2s_conn.ssl, buff, sizeof(buff));
         } else {
