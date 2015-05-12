@@ -38,4 +38,7 @@ size_t readn_any(Connection* conn, void* buf, size_t amount);
 /* web100-util.c routine used in network. */
 int KillHung(void);
 
+int setup_SSL_connection(Connection *conn, SSL_CTX *ctx);
+void close_connection(Connection *conn);
+
 #endif  // SRC_NETWORK_H_

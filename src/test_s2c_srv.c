@@ -42,7 +42,7 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  * The throughput packets are sent on the new connection, though, and do not
  * follow the NDTP-Control protocol message format.
  *
- * @param ctlsockfd - the client control socket descriptor
+ * @param ctl - the client control Connection
  * @param agent - the Web100 agent used to track the connection
  * @param testOptions - the test options
  * @param conn_options - the connection options
@@ -58,23 +58,25 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  * @param count_vars count of web100 variables
  * @param peaks Cwnd peaks structure pointer
  *
- * @return 0 - success,
- *         >0 - error code.
+ * @return 0 on success, error code otherwise.
  *     Error codes:
- * 			 	-1	   - Message reception errors/inconsistencies in client�s final message, or Listener socket creation failed or cannot write message header information while attempting to send
- *        		 TEST_PREPARE message
- *				-2 	   - Cannot write message data while attempting to send
- *           		 TEST_PREPARE message, or Unexpected message type received
- *           	-3 	   -  Received message is invalid
- *          	-100   - timeout while waiting for client to connect to server�s ephemeral port
- *				-101   - Retries exceeded while waiting for client to connect
- *				-102   - Retries exceeded while waiting for data from connected client
- *  			-errno - Other specific socket error numbers
+ *         -1     - Message reception errors/inconsistencies in client's final
+ *                  message, or Listener socket creation failed or cannot write
+ *                  message header information while attempting to send
+ *                  TEST_PREPARE message
+ *         -2     - Cannot write message data while attempting to send
+ *                  TEST_PREPARE message, or Unexpected message type received
+ *         -3     - Received message is invalid
+ *         -100   - timeout while waiting for client to connect to server's
+ *                  ephemeral port
+ *         -101   - Retries exceeded while waiting for client to connect
+ *         -102   - Retries exceeded while waiting for data from connected client
+ *         -errno - Other specific socket error numbers
  */
-int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
-             int conn_options, double* s2cspd, int set_buff, int window,
-             int autotune, char* device, Options* options, char spds[4][256],
-             int* spd_index, int count_vars, CwndPeaks* peaks) {
+int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
+             int conn_options, double *s2cspd, int set_buff, int window,
+             int autotune, char* device, Options *options, char spds[4][256],
+             int *spd_index, int count_vars, CwndPeaks *peaks, SSL_CTX *ctx) {
 #if USE_WEB100
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -94,7 +96,6 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int mon_pipe[2];
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
-  int xmitsfd;  // transmit (i.e server) socket fd
   pid_t s2c_childpid = 0;  // s2c_childpid
 
   char tmpstr[256];  // string array used for temp storage of many char*
@@ -131,6 +132,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char snaplogsuffix[256] = "s2c_snaplog";
 
+  Connection s2c_conn = {0, NULL};
+
   SnapArgs snapArgs;
   snapArgs.snap = NULL;
 #if USE_WEB100
@@ -150,7 +153,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // protocol logs
     teststatuses = TEST_STARTED;
-    protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
+    protolog_status(testOptions->child0, testids, teststatuses, ctl->socket);
 
     strlcpy(listens2cport, PORT4, sizeof(listens2cport));
 
@@ -200,8 +203,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           sizeof(buff),
           "Server (S2C throughput test): CreateListenSocket failed: %s",
           strerror(errno));
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        testOptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
+                            testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -217,8 +220,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // Data received from speed-chk. Send TEST_PREPARE "GO" signal with port
     // number
     snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
-    j = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
-                          testOptions->connection_flags, JSON_SINGLE_VALUE);
+    j = send_json_message_any(ctl, TEST_PREPARE, buff, strlen(buff),
+                              testOptions->connection_flags, JSON_SINGLE_VALUE);
     if (j == -1) {
       log_println(6, "S2C %d Error!, Test start message not sent!",
                   testOptions->child0);
@@ -256,60 +259,65 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
       // If a valid connection request is received, client has connected.
       // Proceed.
-      // Note the new socket fd - xmitfd - used in the throughput test
-ximfd: xmitsfd = accept(testOptions->s2csockfd,
-                        (struct sockaddr *) &cli_addr, &clilen);
-       if (xmitsfd > 0) {
-         log_println(6, "accept() for %d completed",
-                     testOptions->child0);
-         procstatusenum = PROCESS_STARTED;
-         proctypeenum = CONNECT_TYPE;
-         protolog_procstatus(testOptions->child0, testids, proctypeenum,
-                             procstatusenum, xmitsfd);
-         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
-	   // To preserve user privacy, make sure that the HTTP header
-	   // processing is done prior to the start of packet capture, as many
-	   // browsers have headers that uniquely identitfy a single user.
-           if (initialize_websocket_connection(xmitsfd, 0, "s2c") != 0) {
-             xmitsfd = 0;
-           } 
-         } 
-         break;
-       }
-       // socket interrupted, wait some more
-       if ((xmitsfd == -1) && (errno == EINTR)) {
-         log_println(
-             6,
-             "Child %d interrupted while waiting for accept() to complete",
-             testOptions->child0);
-         goto ximfd;
-       }
-       log_println(
-           6,
-           "-------     S2C connection setup for %d returned because (%d)",
-           testOptions->child0, errno);
-       if (xmitsfd < 0)  // other socket errors, quit
-         return -errno;
-       if (++j == 4) {  // retry exceeded, quit
-         log_println(
-             6,
-             "s2c child %d, unable to open connection, return from test",
-             testOptions->child0);
-         return -102;
-       }
+      // Note the new connection - s2c_conn - used in the throughput test
+    ximfd:
+      s2c_conn.socket = accept(testOptions->s2csockfd,
+                               (struct sockaddr *)&cli_addr, &clilen);
+      if (s2c_conn.socket > 0) {
+        log_println(6, "accept() for %d completed", testOptions->child0);
+        procstatusenum = PROCESS_STARTED;
+        proctypeenum = CONNECT_TYPE;
+        protolog_procstatus(testOptions->child0, testids, proctypeenum,
+                            procstatusenum, s2c_conn.socket);
+        if (testOptions->connection_flags & TLS_SUPPORT) {
+          errno = setup_SSL_connection(&s2c_conn, ctx);
+          if (errno != 0) return -errno;
+        }
+        if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
+          // To preserve user privacy, make sure that the HTTP header
+          // processing is done prior to the start of packet capture, as many
+          // browsers have headers that uniquely identitfy a single user.
+          if (initialize_websocket_connection(&s2c_conn, 0, "s2c") != 0) {
+            close_connection(&s2c_conn);
+            return -EIO;
+          }
+        }
+        break;
+      }
+      // socket interrupted, wait some more
+      if ((s2c_conn.socket == -1) && (errno == EINTR)) {
+        log_println(
+            6,
+            "Child %d interrupted while waiting for accept() to complete",
+            testOptions->child0);
+        goto ximfd;
+      }
+      log_println(
+          6,
+          "-------     S2C connection setup for %d returned because (%d)",
+          testOptions->child0, errno);
+      if (s2c_conn.socket < 0)  // other socket errors, quit
+        return -errno;
+      if (++j == 4) {  // retry exceeded, quit
+        log_println(
+            6,
+            "s2c child %d, unable to open connection, return from test",
+            testOptions->child0);
+        return -102;
+      }
     }
-    src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd, 0);
-    conn = tcp_stat_connection_from_socket(agent, xmitsfd);
+    src_addr = I2AddrByLocalSockFD(get_errhandle(), s2c_conn.socket, 0);
+    conn = tcp_stat_connection_from_socket(agent, s2c_conn.socket);
 
     // set up packet capture. The data collected is used for bottleneck link
     // calculations
-    if (xmitsfd > 0) {
+    if (s2c_conn.socket > 0) {
       log_println(6, "S2C child %d, ready to fork()",
                   testOptions->child0);
       if (getuid() == 0) {
         /*
            pipe(mon_pipe2);
-           start_packet_trace(xmitsfd, testOptions->s2csockfd,
+           start_packet_trace(s2c_conn.socket, testOptions->s2csockfd,
            &s2c_childpid, mon_pipe2, (struct sockaddr *) &cli_addr,
            clilen, device, &pair, "s2c", options->compress,
            meta.s2c_ndttrace);
@@ -318,9 +326,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           log_println(0, "S2C test error: can't create pipe.");
         } else {
           if ((s2c_childpid = fork()) == 0) {
-            /* close(ctlsockfd); */
             close(testOptions->s2csockfd);
-            close(xmitsfd);
+            close(s2c_conn.socket);
             log_println(
                 5,
                 "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
@@ -336,7 +343,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
             close(mon_pipe[0]);
             close(mon_pipe[1]);
             exit(0); /* Packet trace finished, terminate gracefully */
-          } else if (s2c_childpid < 0){
+          } else if (s2c_childpid < 0) {
             log_println(0, "S2C test error: can't create child process.");
           }
         }
@@ -369,8 +376,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
        */
       if (getuid() == 0) {
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
-        if (system("echo 1 > /proc/sys/net/ipv4/route/flush") != 0)
-          log_println(0, "C2S test error: error calling system function: \"echo 1 > /proc/sys/net/ipv4/route/flush\"");
+        system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
 #if USE_WEB100
       rgroup = web100_group_find(agent, "read");
@@ -392,8 +398,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
         // Make sure the data has a websocket header
         ((unsigned char*)buff)[0] = 0x82;  // One frame of binary data
-	// Depending on BUFFSIZE, the websocket header will be 2, 4, or 10
-	// bytes big.  This header is constructed to comply with RFC 6455.
+        // Depending on BUFFSIZE, the websocket header will be 2, 4, or 10
+        // bytes big.  This header is constructed to comply with RFC 6455.
         if (BUFFSIZE < 126) {
           buff[1] = (BUFFSIZE-2) & 0x7F;
         } else if (BUFFSIZE < 65536) {
@@ -414,8 +420,8 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       }
 
       // Send message to client indicating TEST_START
-      if (send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->connection_flags,
-                            JSON_SINGLE_VALUE) < 0)
+      if (send_json_message_any(ctl, TEST_START, "", 0, testOptions->connection_flags,
+                                JSON_SINGLE_VALUE) < 0)
         log_println(6,
                     "S2C test - Test-start message failed for pid=%d",
                     s2c_childpid);
@@ -490,7 +496,13 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
         }
 
         // attempt to write random data into the client socket
-        n = write(xmitsfd, buff, RECLTH);
+        // Using write() and SSL_write() in their raw forms to ensure that
+        // writes are done as fast as possible.
+        if (s2c_conn.ssl != NULL) {
+          n = SSL_write(s2c_conn.ssl, buff, RECLTH);
+        } else {
+          n = write(s2c_conn.socket, buff, RECLTH);
+        }
         // socket interrupted, continue attempting to write
         if ((n == -1) && (errno == EINTR))
           continue;
@@ -504,11 +516,14 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       }  // Completed end of trying to transmit data for the goodput test
       /* alarm(10); */
       sigaction(SIGALRM, &old, NULL);
-      sndqueue = sndq_len(xmitsfd);
+      sndqueue = sndq_len(s2c_conn.socket);
 
       // finalize the midbox test ; disabling socket used for throughput test
       log_println(6, "S2C child %d finished test", testOptions->child0);
-      shutdown(xmitsfd, SHUT_WR); /* end of write's */
+      if (s2c_conn.ssl != NULL) {
+        SSL_shutdown(s2c_conn.ssl);
+      }
+      shutdown(s2c_conn.socket, SHUT_WR); /* end of write's */
 
       // get actual time duration during which data was transmitted
       tx_duration = secs() - tmptime;
@@ -527,15 +542,15 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
       snprintf(buff, sizeof(buff), "%0.0f %d %0.0f", x2cspd, sndqueue,
                bytes_written);
       if (testOptions->connection_flags & JSON_SUPPORT) {
-        if (send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->connection_flags,
-                          JSON_MULTIPLE_VALUES, RESULTS_KEYS, " ", buff, " ") < 0)
+        if (send_json_msg_any(ctl, TEST_MSG, buff, strlen(buff), testOptions->connection_flags,
+                              JSON_MULTIPLE_VALUES, RESULTS_KEYS, " ", buff, " ") < 0)
             log_println(6,
                 "S2C test - failed to send test message to pid=%d",
                 s2c_childpid);
       }
       else {
-        if (send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
-                              testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
+        if (send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
+                                  testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
           log_println(6,
               "S2C test - failed to send test message to pid=%d",
               s2c_childpid);
@@ -632,36 +647,38 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, ctlsockfd, agent, count_vars, testOptions);
+    ret = tcp_stat_get_data(tsnap, s2c_conn.socket, ctl, agent, count_vars, testOptions);
     web100_snapshot_free(tsnap);
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, ctlsockfd, agent, count_vars, testOptions);
+    ret = tcp_stat_get_data(rsnap, s2c_conn.socket, ctl, agent, count_vars, testOptions);
     web100_snapshot_free(rsnap);
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, ctlsockfd, agent, count_vars, testOptions);
+    ret = tcp_stat_get_data(snap, s2c_conn.socket, ctl, agent, count_vars, testOptions);
     estats_val_data_free(&snap);
 #endif
+
+    close_connection(&s2c_conn);
 
     // If sending web100 variables above failed, indicate to client
     if (ret < 0) {
       log_println(6, "S2C - No web100 data received for pid=%d",
                   s2c_childpid);
       snprintf(buff, sizeof(buff), "No Data Collected: 000000");
-      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->connection_flags,
-                        JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, buff, strlen(buff), testOptions->connection_flags,
+                            JSON_SINGLE_VALUE);
     }
 
     // Wait for message from client. Client sends its calculated throughput
     // value
     log_println(6, "S2CSPD reception starts");
     msgLen = sizeof(buff);
-    if (recv_any_msg(ctlsockfd, &msgType, buff, &msgLen, testOptions->connection_flags)) {
+    if (recv_any_msg(ctl, &msgType, buff, &msgLen, testOptions->connection_flags)) {
       log_println(0, "Protocol error!");
       snprintf(
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
                         testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
@@ -671,7 +688,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
                         testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -2;
     }
@@ -688,17 +705,16 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        testOptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
+                            testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -3;
     }
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client
-    close(xmitsfd);
-    if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
-                          testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
+    if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
+                              testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
       log_println(6,
                   "S2C test - failed to send finalize message to pid=%d",
                   s2c_childpid);
@@ -711,7 +727,7 @@ ximfd: xmitsfd = accept(testOptions->s2csockfd,
     log_println(0, " <------------ %d ------------->", testOptions->child0);
     // log protocol validation logs
     teststatuses = TEST_ENDED;
-    protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
+    protolog_status(testOptions->child0, testids, teststatuses, ctl->socket);
 
     setCurrentTest(TEST_NONE);
   }

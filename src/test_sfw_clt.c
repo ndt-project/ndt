@@ -17,6 +17,7 @@
 #include "logging.h"
 #include "protocol.h"
 #include "network.h"
+#include "network_clt.h"
 #include "utils.h"
 #include "jsonutils.h"
 

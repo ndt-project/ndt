@@ -367,8 +367,6 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
   // enforced by the Apache defaults. In particular, it is recommended that
   // there not be more than 8K of headers total, so these limits are generous.
   // http://stackoverflow.com/questions/686217/maximum-on-http-header-values
-  // They are #define'd because declaring arrays of variable size, even if the
-  // variable is const and static, is a gcc extension and not part of C.
   const static unsigned int MAX_HEADER_COUNT = 1024;
   char line[8192];  // Max length for a single line
   // String constants used when making a websocket connection.
