@@ -594,13 +594,13 @@ static void print_10gvar_renamed(const char * old_name,
  * client reachable via the input parameter socket FD.
  *
  * @param snap pointer to a tcp_stat_snapshot taken earlier
- * @param ctlsock integer socket file descriptor indicating data recipient
+ * @param ctl Connection indicating data recipient
  * @param agent pointer to a tcp_stat_agent
  * @param count_vars integer number of tcp_stat_variables to get value of
  * @param testoptions the options that determine how the data should be sent
  *
  */
-int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, Connection* ctl,
                       tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions) {
   char line[256];
 #if USE_WEB100
@@ -645,7 +645,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
     /* Why do we atoi after getting as text anyway ?? */
     snprintf(line, sizeof(line), "%s: %d\n", web_vars[i].name,
              atoi(web_vars[i].value));
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     log_print(9, "%s", line);
   }
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
@@ -688,7 +688,7 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
     }
     snprintf(line, sizeof(line), "%s: %s\n",
                  estats_var_array[j].name, str);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
     log_print(9, "%s", line);
     free(str);
     str = NULL;

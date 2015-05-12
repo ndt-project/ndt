@@ -7,6 +7,8 @@
  * then node.js can't fnd the ws package. You can install the package either in
  * the current directory by typing "npm install ws" or globally for the whole
  * system with "npm install ws -g".
+ *
+ * Similarly if it fails with Cannot find module 'minimist'
  */
 
 /*jslint bitwise: true, node: true */
@@ -15,7 +17,15 @@
 'use strict';
 
 // Constants in use by the entire program, and a live connection to the server.
-var COMM_FAILURE = 0,
+var argv = require('minimist')(process.argv.slice(2), 
+                               {'default': {'server': '127.0.0.1', 
+                                            'port': 3001,
+                                            'protocol': 'ws',
+                                            'tests': (2 | 4 | 32),
+                                            'acceptinvalidcerts': false},
+                                'string': ['server'],
+                                'boolean': ['debug']}),
+    COMM_FAILURE = 0,
     SRV_QUEUE = 1,
     MSG_LOGIN = 2,
     TEST_PREPARE = 3,
@@ -29,13 +39,20 @@ var COMM_FAILURE = 0,
     MSG_EXTENDED_LOGIN = 11,
     msg_name = ["COMM_FAILURE", "SRV_QUEUE", "MSG_LOGIN", "TEST_PREPARE", "TEST_START", "TEST_MSG", "TEST_FINALIZE", "MSG_ERROR", "MSG_RESULTS", "MSG_LOGOUT", "MSG_WAITING", "MSG_EXTENDED_LOGIN"],
     WebSocket = require('ws'),
-    server = process.argv[2],
-    port = Number(process.argv[3]),
-    tests = Number(process.argv[4] || (2 | 4 | 32)),  // If unspecified, run every test we can
-    test_url = "ws://" + server + ":" + port + "/ndt_protocol",
-    ws = new WebSocket(test_url, {protocol: 'ndt'});
+    server = argv['server'],
+    port = argv['port'],
+    tests = argv['tests'],
+    url_protocol = argv['protocol'],
+    debug = !!(argv.debug),
+    test_url = url_protocol + "://" + server + ":" + port + "/ndt_protocol",
+    ws;
 
-console.log("Running NDT test to " + server + " on port " + port);
+console.log("Running NDT test to " + test_url);
+if (argv['acceptinvalidcerts']) {
+  // This allows Node.js to accept a self-signed cert
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+ws = new WebSocket(test_url, {protocol: 'ndt'});
 
 // A helper function that prints an error message and crashes things.
 function die() {
@@ -75,6 +92,12 @@ function make_ndt_msg(type, msg) {
     return NDT_MSG;
 }
 
+function log() {
+    if (debug) {
+        console.log.apply(console.log, arguments);
+    }
+}
+
 // Returns a closure that will process all messages for the META NDT test.  The
 // closure will return the string "DONE" when the test is complete and the
 // closure should no longer be called.
@@ -93,7 +116,8 @@ function ndt_meta_test(sock) {
             return "KEEP GOING";
         }
         if (state === "WAIT_FOR_TEST_FINALIZE" && type === TEST_FINALIZE) {
-            console.log("ndt_meta_test is done");
+            log("ndt_meta_test is done");
+            console.log("META test complete using " + url_protocol);
             return "DONE";
         }
         die("Bad state and message combo for META test: ", state, type, body.msg);
@@ -113,7 +137,7 @@ function ndt_s2c_test(sock) {
 
     // Function called on the opening of the s2c socket.
     function on_open() {
-        console.log("OPENED S2C SUCCESFULLY!");
+        log("OPENED S2C SUCCESFULLY!");
         test_start = Date.now() / 1000;
     }
 
@@ -139,11 +163,11 @@ function ndt_s2c_test(sock) {
     return function (type, body) {
         var TEST_DURATION_SECONDS,
             THROUGHPUT_VALUE;
-        console.log("CALLED S2C with %d (%s) %s in state %s", type, msg_name[type], body.msg, state);
+        log("CALLED S2C with %d (%s) %s in state %s", type, msg_name[type], body.msg, state);
         if (state === "WAIT_FOR_TEST_PREPARE" && type === TEST_PREPARE) {
             server_port = Number(body.msg);
             // bind a connection to that port
-            test_connection = new WebSocket("ws://" + server + ":" + server_port + "/ndt_protocol", {protocol: "s2c"});
+            test_connection = new WebSocket(url_protocol + "://" + server + ":" + server_port + "/ndt_protocol", {protocol: "s2c"});
             test_connection.on('open', on_open);
             test_connection.on('message', on_msg);
             test_connection.on('error', on_error);
@@ -167,11 +191,12 @@ function ndt_s2c_test(sock) {
             return "KEEP GOING";
         }
         if (state === "WAIT_FOR_TEST_MSG_OR_TEST_FINISH" && type === TEST_MSG) {
-            console.log("Got results: ", body.msg);
+            log("Got results: ", body.msg);
             return "KEEP GOING";
         }
         if (state === "WAIT_FOR_TEST_MSG_OR_TEST_FINISH" && type === TEST_FINALIZE) {
-            console.log("Test is over! ", body.msg);
+            console.log("S2C test complete using " + url_protocol);
+            log("Test is over! ", body.msg);
             return "DONE";
         }
         die("S2C: State = " + state + " type = " + type + "(" + msg_name[type] + ") message = ", body);
@@ -184,15 +209,19 @@ function ndt_c2s_test() {
         server_port,
         test_connection,
         TRANSMITTED_BYTES = 0,
-        data_to_send = new Uint8Array(8192 - 4),
+	// The NDT protocol wants 8192 bytes at a time, and with masking
+	// (required for all clients) the websocket header is 8 bytes, which
+	// means we want to have a message payload of (8192 - 8) bytes to bring
+	// the total up to precisely 8192.
+        data_to_send = new Uint8Array(8192 - 8),
         i,
         test_start,
         test_end;
 
     for (i = 0; i < data_to_send.length; i += 1) {
         // All the characters must be printable, and the printable range of
-        // ASCII is from 32 to 126.  101 is because we need a prime number.
-        data_to_send[i] = 32 + (i * 101) % (126 - 32);
+	// ASCII is from 32 to 126.
+        data_to_send[i] = 32 + Math.floor(Math.random() * (126 - 32));
     }
 
     // A while loop, encoded as a setTimeout callback.
@@ -207,10 +236,12 @@ function ndt_c2s_test() {
     }
 
     return function (type, body) {
-        console.log("C2S type %d (%s)", type, msg_name[type], body);
+        log("C2S type %d (%s)", type, msg_name[type], body);
         if (state === "WAIT_FOR_TEST_PREPARE" && type === TEST_PREPARE) {
             server_port = Number(body.msg);
-            test_connection = new WebSocket("ws://" + server + ":" + server_port + "/ndt_protocol", {protocol: "c2s"});
+            log(url_protocol + "://" + server + ":" + server_port + "/ndt_protocol");
+            test_connection = new WebSocket(url_protocol + "://" + server + ":" + server_port + "/ndt_protocol", {protocol: "c2s"});
+            test_connection.on('error', die);
             state = "WAIT_FOR_TEST_START";
             return "KEEP GOING";
         }
@@ -226,7 +257,8 @@ function ndt_c2s_test() {
         }
         if (state === "WAIT_FOR_TEST_FINALIZE" && type === TEST_FINALIZE) {
             state = "DONE";
-            console.log("C2S rate: ", 8 * TRANSMITTED_BYTES / 1000 / (test_end - test_start));
+            console.log("C2S test complete using " + url_protocol);
+            log("C2S rate: ", 8 * TRANSMITTED_BYTES / 1000 / (test_end - test_start));
             return "DONE";
         }
         die("C2S: State = " + state + " type = " + type + "(" + msg_name[type] + ") message = ", body);
@@ -240,7 +272,7 @@ function ndt_coordinator(sock) {
         tests_to_run = [];
 
     function on_open() {
-        console.log("OPENED CONNECTION");
+        log("OPENED CONNECTION");
         // Sign up for every test except for TEST_MID and TEST_SFW - browsers can't
         // open server sockets, which makes those tests impossible, because they
         // require the server to open a connection to a port on the client.
@@ -253,16 +285,16 @@ function ndt_coordinator(sock) {
             body = JSON.parse(message.slice(3)),
             i,
             tests;
-        console.log("type = %d (%s) body = '%s'", type, msg_name[type], body.msg);
+        log("type = %d (%s) body = '%s'", type, msg_name[type], body.msg);
         if (active_test === undefined && tests_to_run.length > 0) {
             active_test = tests_to_run.pop();
         }
         if (active_test !== undefined) {
             // Pass the message to the sub-test
-            console.log("Calling a subtest");
+            log("Calling a subtest");
             if (active_test(type, body) === "DONE") {
                 active_test = undefined;
-                console.log("Subtest complete");
+                log("Subtest complete");
             }
             return;
         }
@@ -276,7 +308,7 @@ function ndt_coordinator(sock) {
                 } else if (body.msg === "9977") {    // Test failed
                     die("server terminated test with SRV_QUEUE 9977");
                 }
-                console.log("Got SRV_QUEUE.    Ignoring and waiting for MSG_LOGIN");
+                log("Got SRV_QUEUE.    Ignoring and waiting for MSG_LOGIN");
             } else if (type === MSG_LOGIN) {
                 if (body.msg[0] !== "v") { die("Bad msg '%s'", body.msg); }
                 state = "WAIT_FOR_TEST_IDS";
@@ -298,10 +330,10 @@ function ndt_coordinator(sock) {
             }
             state = "WAIT_FOR_MSG_RESULTS";
         } else if (state === "WAIT_FOR_MSG_RESULTS" && type === MSG_RESULTS) {
-            console.log(body);
+            // Ignore the results.
         } else if (state === "WAIT_FOR_MSG_RESULTS" && type === MSG_LOGOUT) {
             sock.close();
-            console.log("TESTS FINISHED SUCCESSFULLY!");
+            log("TESTS FINISHED SUCCESSFULLY!");
             process.exit(0);
         } else {
             die("Didn't know what to do with message type %d in state %s", message[0], state);
@@ -311,8 +343,7 @@ function ndt_coordinator(sock) {
     sock.on('open', on_open);
     sock.on('message', on_message);
     sock.on('error', function (err_msg, code) {
-        console.error("Error: %s (%d)", err_msg, code);
-        process.exit(1);
+        die("Error: %s (%d)", err_msg, code);
     });
 }
 

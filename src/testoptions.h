@@ -50,7 +50,6 @@ typedef struct testoptions {
   pid_t child2;
 
   int sfwopt;  // Is firewall test to be performed?
-
   int metaopt;  // meta test to be perfomed?
 } TestOptions;
 
