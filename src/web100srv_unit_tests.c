@@ -7,30 +7,31 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "ndtptestconstants.h"
 #include "unit_testing.h"
 
 /** Starts the web100srv process. Has a variable number of arguments, the last
  * of which should be null. */
 pid_t start_server(int port, ...) {
-  va_list arglist;
+  va_list arg_list;
   int rv;
   char *args_for_exec[256] = {"./web100srv", "--port", NULL};
   int i = 2;  // the first index of args_for_exec that is not NULL
   char *arg;
   pid_t server_pid;
   siginfo_t server_status;
-  char port_string[] = "32767";  // max port
+  char port_string[6];  // 32767 is the max port
   fprintf(stderr, "Starting the server\n");
-  sprintf(port_string, "%d", port);
   if ((server_pid = fork()) == 0) {
+    sprintf(port_string, "%d", port);
     args_for_exec[i++] = port_string;
-    va_start(arglist, port);
-    arg = va_arg(arglist, char*);
+    va_start(arg_list, port);
+    arg = va_arg(arg_list, char *);
     while (arg != NULL) {
       CHECK((args_for_exec[i++] = strdup(arg)) != NULL);
-      arg = va_arg(arglist, char*);
+      arg = va_arg(arg_list, char *);
     }
-    va_end(arglist);
+    va_end(arg_list);
     args_for_exec[i++] = NULL;
     execv("./web100srv", args_for_exec);
     perror("SERVER START ERROR: SHOULD NEVER HAPPEN");
@@ -68,11 +69,13 @@ void test_e2e() {
   waitpid(server_pid, &server_exit_code, 0);
 }
 
-char* nodejs_command() {
-  if (system("nodejs -e 'process.exit(0);' 2>&1 > /dev/null") == 0) {
-    return "nodejs";
-  } else if (system("node -e 'process.exit(0);'") == 0) {
-    return "node";
+const char *nodejs_command() {
+  static const char *node = "node";
+  static const char *nodejs = "nodejs";
+  if (system("node -e 'process.exit(0);'") == 0) {
+    return node;
+  } else if (system("nodejs -e 'process.exit(0);'") == 0) {
+    return nodejs;
   } else {
     fprintf(stderr, "Can not run node tests - node.js was not found.");
     return NULL;
@@ -86,7 +89,7 @@ void test_node(int tests) {
   char hostname[1024];
   char command_line[1024];
   int port;
-  char* nodejs_name = nodejs_command();
+  const char *nodejs_name = nodejs_command();
   if (nodejs_name == NULL) return;
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
@@ -102,20 +105,20 @@ void test_node(int tests) {
 }
 
 void test_run_all_tests_node() {
-  test_node(2 | 4 | 32);
+  test_node(TEST_S2C | TEST_C2S | TEST_META);
 }
 
 void test_node_meta_test() {
-  test_node(32);
+  test_node(TEST_META);
 }
 
 void test_run_two_tests_node() {
   // This test tickled a bug (now fixed) which caused the server to get stuck
   // in an infinite loop. Kept here to prevent regressions.
-  test_node(2 | 4);
+  test_node(TEST_S2C | TEST_C2S);
 }
 
-void run_ssl_test(void test_fn(int port, const char* hostname)) {
+void run_ssl_test(void test_fn(int port, const char *hostname)) {
   char private_key_file[] = "/tmp/web100srv_test_key.pem-XXXXXX";
   char certificate_file[] = "/tmp/web100srv_test_cert.pem-XXXXXX";
   char create_private_key_command_line[1024];
@@ -151,7 +154,7 @@ void run_ssl_test(void test_fn(int port, const char* hostname)) {
   waitpid(server_pid, &server_exit_code, 0);
 }
 
-void make_connection(int port, const char* hostname) {
+void make_connection(int port, const char *hostname) {
   char openssl_client_command_line[1024];
   int err;
   sprintf(openssl_client_command_line, "echo | openssl s_client -connect %s:%d",
@@ -165,9 +168,9 @@ void test_ssl_connection() {
   run_ssl_test(&make_connection);
 }
 
-void end_to_end_ssl_test(int port, const char* hostname, int tests) {
+void end_to_end_ssl_test(int port, const char *hostname, int tests) {
   char command_line[1024];
-  char* nodejs = nodejs_command();
+  const char *nodejs = nodejs_command();
   int err;
   if (nodejs == NULL) return;
   sprintf(command_line, "%s node_tests/ndt_client.js --server %s --port %d "
@@ -177,16 +180,16 @@ void end_to_end_ssl_test(int port, const char* hostname, int tests) {
   ASSERT(err == 0, "%s failed with error code %d", command_line, err);
 }
 
-void end_to_end_nodejs_ssl_test(int port, const char* hostname) {
-  end_to_end_ssl_test(port, hostname, 2 | 4 | 32);
+void end_to_end_nodejs_ssl_test(int port, const char *hostname) {
+  end_to_end_ssl_test(port, hostname, TEST_S2C | TEST_C2S | TEST_META);
 }
 
-void ndt_ssl_meta_test(int port, const char* hostname) {
-  end_to_end_ssl_test(port, hostname, 32);
+void ndt_ssl_meta_test(int port, const char *hostname) {
+  end_to_end_ssl_test(port, hostname, TEST_META);
 }
 
-void ndt_ssl_c2s_test(int port, const char* hostname) {
-  end_to_end_ssl_test(port, hostname, 2);
+void ndt_ssl_c2s_test(int port, const char *hostname) {
+  end_to_end_ssl_test(port, hostname, TEST_C2S);
 }
 
 void test_ssl_ndt() {

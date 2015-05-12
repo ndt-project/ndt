@@ -167,7 +167,10 @@ function ndt_s2c_test(sock) {
         if (state === "WAIT_FOR_TEST_PREPARE" && type === TEST_PREPARE) {
             server_port = Number(body.msg);
             // bind a connection to that port
-            test_connection = new WebSocket(url_protocol + "://" + server + ":" + server_port + "/ndt_protocol", {protocol: "s2c"});
+            test_connection = new WebSocket(
+                url_protocol + "://" + server + ":" + server_port + 
+                  "/ndt_protocol", 
+                {protocol: "s2c"});
             test_connection.on('open', on_open);
             test_connection.on('message', on_msg);
             test_connection.on('error', on_error);
@@ -240,7 +243,9 @@ function ndt_c2s_test() {
         if (state === "WAIT_FOR_TEST_PREPARE" && type === TEST_PREPARE) {
             server_port = Number(body.msg);
             log(url_protocol + "://" + server + ":" + server_port + "/ndt_protocol");
-            test_connection = new WebSocket(url_protocol + "://" + server + ":" + server_port + "/ndt_protocol", {protocol: "c2s"});
+            test_connection = new WebSocket(
+                url_protocol + "://" + server + ":" + server_port + "/ndt_protocol",
+                {protocol: "c2s"});
             test_connection.on('error', die);
             state = "WAIT_FOR_TEST_START";
             return "KEEP GOING";
