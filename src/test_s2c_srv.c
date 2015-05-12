@@ -496,8 +496,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         }
 
         // attempt to write random data into the client socket
-	// Using write() and SSL_write() in their raw forms to ensure that
-	// writes are done as fast as possible.
+        // Using write() and SSL_write() in their raw forms to ensure that
+        // writes are done as fast as possible.
         if (s2c_conn.ssl != NULL) {
           n = SSL_write(s2c_conn.ssl, buff, RECLTH);
         } else {
