@@ -719,110 +719,6 @@ static void LoadConfig(char *name, char **lbuf, size_t *lbuf_max) {
   fclose(conf);
 }
 
-/**
- *  This routine walks through the list of queued clients and kills off those
- * that don't respond.  New clients (after v3.5.5) will respond to this query
- * older clients wouldn't, so use the oldclient flag to tell them apart.
- * RAC 7/8/09
- * @param *head_ptr Pointer to the head of the list
- */
-/*
-void * zombieWorker(void *head_ptr) {
-  struct ndtchild *tmp_ptr, *tmp, *pre_ptr = NULL;
-  int i = 0, retcode;
-  struct timeval sel_tv;
-  fd_set rfd;
-  char buff[32];
-  int msgType, msgLen = 1;
-
-  tmp_ptr = (struct ndtchild *) head_ptr;
-  // walk through this chain until the 4th client is reached, this helps
-  // prevent cases where the current client finishes and the next one begins
-  // before we are done looking
-  for (i = 0; i < 4; i++) {
-    log_println(6, "Bumping queue pointer by 1 child=%d", tmp_ptr->pid);
-    if (i == 3)
-      pre_ptr = tmp_ptr;
-    tmp_ptr = tmp_ptr->next;
-  }
-  i = 0;
-  while (tmp_ptr != NULL) {
-    if (tmp_ptr->oldclient == 0) {
-      log_println(
-          6,
-          "old client found in queue, can't tell if it's a zombie, child=%d",
-          tmp_ptr->pid);
-      tmp_ptr = tmp_ptr->next;
-      pre_ptr = pre_ptr->next;
-      continue;
-    }
-    log_println(6, "New client found, checking for response, child=%d",
-                tmp_ptr->pid);
-
-    // send "keep-alive" SRV_QUEUE message to client and expect a response
-    retcode = send_json_message_any(tmp_ptr->ctl, SRV_QUEUE,
-      SRV_QUEUE_HEARTBEAT_STR,
-      strlen(SRV_QUEUE_HEARTBEAT_STR),
-      testopt.connection_flags, JSON_SINGLE_VALUE);
-    log_println(6,
-                "send_msg() returned %d during zombie check on client %d",
-                retcode, tmp_ptr->pid);
-    FD_ZERO(&rfd);
-    FD_SET(tmp_ptr->ctl, &rfd);
-    sel_tv.tv_sec = 1;
-    sel_tv.tv_usec = 500000;
-    for (;;) {
-      retcode = select((tmp_ptr->ctl->socket) + 1, &rfd, NULL, NULL,
-                       &sel_tv);
-      switch (retcode) {
-        case 0:
-          //  a timeout occurred, remove zombie client from list
-          log_println(
-              6,
-              "New client didn't respond - must be a zombie, get rid of it, "
-              "child=%d", tmp_ptr->pid);
-          while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-            log_println(
-                6,
-                "Waiting for ndtq semaphore to free - adding new client 1");
-            continue;
-          }
-          log_println(6, "removing client from FIFO, semaphore locked");
-          tmp = tmp_ptr;
-          pre_ptr->next = tmp_ptr->next;
-          tmp_ptr = tmp_ptr->next;
-          log_println(6, "timeout free tmp=0x%x", tmp);
-          free(tmp);
-          i++;
-          sem_post(&ndtq);
-          log_println(6, "Free'd semaphore lock - 4");
-          break;
-        default:
-          log_println(6,
-                      "%d new client(s) responded, bumping pointers child=%d",
-                      retcode, tmp_ptr->pid);
-          recv_msg_any(tmp_ptr->ctl, &msgType, buff, &msgLen);
-          tmp_ptr = tmp_ptr->next;
-          pre_ptr = pre_ptr->next;
-          break;
-        case -1:  // some error status
-          if (errno == EINTR) {
-            log_println(
-                6,
-                "select() interrupted by signal, continue waiting for action "
-                "or timeout");
-            continue;
-          }
-          log_println(6, "select returned errno=%d do nothing, child=%d",
-                      errno, tmp_ptr->pid);
-          break;
-      }
-    }
-  }
-  zombie_check = i;
-  return NULL;
-}
-*/
 
 /**
  * Capture CPU time details
@@ -1000,7 +896,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   /*  alarm(25); */
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctl, agent, &*testopt, conn_options, &c2sspd, set_buff,
-		      window, autotune, device, &options, record_reverse,
+                      window, autotune, device, &options, record_reverse,
                       count_vars, spds, &spd_index, ssl_context)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
@@ -1428,7 +1324,6 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   return (0);
 }
 
-static int time_to_wait = 300;
 
 /** The code run by the child process.  This function never returns, it only
  * calls exit().  It also has an alarm() timer which by default prevents any
@@ -1449,6 +1344,8 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   int t_opts = 0;
   int retcode;
   char buff[32];
+  int msg_type = 0;
+  int msg_len = 0;
   char test_suite[16];
   tcp_stat_agent *agent;
   Connection ctl = {0, NULL};
@@ -1523,14 +1420,29 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
     } else if (parent_message == SRV_QUEUE_HEARTBEAT) {
       // Perform the heartbeat check (if you can).  The heartbeat check failing
       // will cause the client to commit suicide.
-      // TODO(pboothe)
+      if (t_opts & TEST_STATUS) {
+        if (send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_HEARTBEAT_STR,
+                                  strlen(SRV_QUEUE_HEARTBEAT_STR),
+                                  testopt.connection_flags,
+                                  JSON_SINGLE_VALUE) != 0) {
+          exit(0);
+        }
+        msg_len = sizeof(buff);
+        if (recv_any_msg(&ctl, &msg_type, buff, &msg_len,
+                         testopt.connection_flags) != 0) {
+          exit(0);
+        }
+      }
     } else if (parent_message == SRV_QUEUE_SERVER_BUSY_60s) {
       // Send the 60s message to the client.  The server does not currently
       // send this message, although web100clt does have code to respond to it.
       // This message is likely obsolete.
-      send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_SERVER_BUSY_60s_STR,
-                            strlen(SRV_QUEUE_SERVER_BUSY_60s_STR),
-                            testopt.connection_flags, JSON_SINGLE_VALUE);
+      if (send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_SERVER_BUSY_60s_STR,
+                                strlen(SRV_QUEUE_SERVER_BUSY_60s_STR),
+                                testopt.connection_flags,
+                                JSON_SINGLE_VALUE) != 0) {
+        exit(0);
+      }
       alarm(120);
     } else {
       // If the number sent down the pipe is positive and not one of the magic
@@ -1538,8 +1450,11 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
       // will have to wait before its test starts.  Pass that info along.
       memset(buff, 0, sizeof(buff));
       sprintf(buff, "%d", parent_message);
-      send_json_message_any(&ctl, SRV_QUEUE, buff, strlen(buff),
-                            testopt.connection_flags, JSON_SINGLE_VALUE);
+      if (send_json_message_any(&ctl, SRV_QUEUE, buff, strlen(buff),
+                                testopt.connection_flags,
+                                JSON_SINGLE_VALUE) != 0) {
+        exit(0);
+      }
       // Set the watchdog timer to that # of minutes (plus a little extra slop
       // to prevent race conditions)
       alarm((parent_message + 1) * 60);
@@ -1665,6 +1580,7 @@ void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd) {
   char tmpstr[256];
   struct timeval sel_tv;
   struct ndtchild *tmp_ptr = NULL, *new_child = NULL, *mchild = NULL;
+  int tmp_pipe;
   int child_signal;
   socklen_t clilen;
   struct sockaddr_storage cli_addr;
@@ -1729,7 +1645,7 @@ void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd) {
 
       if (waiting > (2 * max_clients)) {
         int wait_data = -1;
-        int num_secs;
+        int num_secs = 0;
         for (i = max_clients; i <= waiting; i++) {
           if (tmp_ptr == NULL) break;
           if (i == (2 * max_clients)) {
@@ -2135,30 +2051,40 @@ void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd) {
           tmp_ptr = tmp_ptr->next;
           j--;
         }
-        /*
-          // more then 5 clients waiting, killing zombies Don't kill the
-          // zombies, just send messages to the child processes and ask them to
-          // run the status check. If the status check fails, the children will
-          // exit and then their entries will be cleaned up via the SIGCHLD
-          // handler.  Similarly, a frozen child will have its watchdog timer go
-          // off, which will kill the process, which will invoke the SIGCHLD
-          // handler.  TODO(pboothe): make sure this works.
-          if ((waiting > 5) && (zombie_check == 0)) {
-            zombie_check = -1;
-            log_println(4, "More than 5 clients in the queue, "
-                        "remove zombies");
-            if (pthread_create(&zombieThreadId, NULL, zombieWorker,
-                               (void *)head_ptr)) {
-              log_println(0, "Cannot create thread to kill off zombie "
-                          "clients!");
-              zombie_check = 0;
-            }
-            if (zombie_check > 0) {
-              waiting -= zombie_check;
-              zombie_check = 0;
-            }
+        
+        // more then 5 clients waiting, killing zombies, sending srv_queue
+        // messages to the child processes and ask them to run the status
+        // check. If the status check fails, the children will exit and then
+        // their entries will be cleaned up via the SIGCHLD handler.
+        // Similarly, a frozen child will have its watchdog timer go off, which
+        // will kill the process, which will invoke the SIGCHLD handler.
+        if ((waiting > 5) && (zombie_check == 0)) {
+          zombie_check = -1;
+          log_println(4, "More than 5 clients in the queue, "
+                      "remove zombies");
+          tmp_ptr = (struct ndtchild *)head_ptr;
+          // walk through this chain until the 4th client is reached, this helps
+          // prevent cases where the current client finishes and the next one begins
+          // before we are done looking
+          for (i = 0; i < 4; i++) { 
+            tmp_ptr = tmp_ptr->next;
           }
-        */
+          while (tmp_ptr != NULL) {
+            i = SRV_QUEUE_HEARTBEAT;
+            tmp_pipe = tmp_ptr->pipe;
+            // Advance the pointer before the write(), because a SIGPIPE or
+            // SIGCHLD caused by the write could cause the memory pointed to by
+            // tmp_ptr to be cleared out from underneath us.
+            tmp_ptr = tmp_ptr->next;
+            write(tmp_pipe, &i, sizeof(int));
+          }
+          zombie_check = 0;
+          if (zombie_check > 0) {
+            waiting -= zombie_check;
+            zombie_check = 0;
+          }
+        }
+        
       }
 
       // multi_client:
