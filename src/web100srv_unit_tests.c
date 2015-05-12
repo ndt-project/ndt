@@ -16,7 +16,7 @@ pid_t start_server(int port, ...) {
   va_list arg_list;
   int rv;
   char *args_for_exec[256] = {"./web100srv", "--port", NULL};
-  int i = 2;  // the first index of args_for_exec that is not NULL
+  int arg_index = 2;  // the first index of args_for_exec that is not NULL
   char *arg;
   pid_t server_pid;
   siginfo_t server_status;
@@ -24,15 +24,15 @@ pid_t start_server(int port, ...) {
   fprintf(stderr, "Starting the server\n");
   if ((server_pid = fork()) == 0) {
     sprintf(port_string, "%d", port);
-    args_for_exec[i++] = port_string;
+    args_for_exec[arg_index++] = port_string;
     va_start(arg_list, port);
     arg = va_arg(arg_list, char *);
     while (arg != NULL) {
-      CHECK((args_for_exec[i++] = strdup(arg)) != NULL);
+      CHECK((args_for_exec[arg_index++] = strdup(arg)) != NULL);
       arg = va_arg(arg_list, char *);
     }
     va_end(arg_list);
-    args_for_exec[i++] = NULL;
+    args_for_exec[arg_index++] = NULL;
     execv("./web100srv", args_for_exec);
     perror("SERVER START ERROR: SHOULD NEVER HAPPEN");
     FAIL("The server should never return - it should only be killed.");

@@ -590,7 +590,7 @@ static void print_10gvar_renamed(const char * old_name,
 
 /**
  * Collect Web100 stats from a snapshot and transmit to a receiver.
- * The transmission is done using a TES_MSG type message and sent to
+ * The transmission is done using a TEST_MSG type message and sent to
  * client reachable via the Connection
  *
  * @param snap pointer to a tcp_stat_snapshot taken earlier
