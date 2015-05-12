@@ -10,6 +10,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "network_clt.h"
 #include "network.h"
 #include "usage.h"
 #include "logging.h"
