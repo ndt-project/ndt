@@ -15,17 +15,23 @@ $(function(){
 
 var PHASE_LOADING   = 0;
 var PHASE_WELCOME   = 1;
-var PHASE_PREPARING = 2;
-var PHASE_UPLOAD    = 3;
-var PHASE_DOWNLOAD  = 4;
-var PHASE_RESULTS   = 5;
+var PHASE_INITIALIZING = 2;
+var PHASE_PREPARING = 3;
+var PHASE_UPLOAD    = 4;
+var PHASE_DOWNLOAD  = 5;
+var PHASE_RESULTS   = 6;
 
+
+var allowDebug = false;
 
 // STATUS VARIABLES
 
 var use_websocket_client = false;
 
 var websocket_client = null;
+
+var backendInitialized = false;
+var backendError = false;
 
 var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
@@ -60,25 +66,21 @@ function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
   createBackend();
-  if (!isPluginLoaded()) {
-    $('#warning-plugin').show();
-    return;
-  } 
-  $('#warning-plugin').hide();
   document.getElementById('javaButton').disabled = true;
   document.getElementById('websocketButton').disabled = true;
   showPage('test', resetGauges);
   document.getElementById('rttValue').innerHTML = "";
   if (simulate) return simulateTest();
-  currentPhase = PHASE_WELCOME;
-  testNDT().run_test();
+  setPhase(PHASE_INITIALIZING);
   monitorTest();
+  waitForBackend(5, 1000);
 }
 
 function simulateTest() {
   setPhase(PHASE_RESULTS);
   return;
-  setPhase(PHASE_PREPARING);
+  setPhase(PHASE_INITIALIZING);
+  setTimeout(function(){ setPhase(PHASE_PREPARING) }, 1000);
   setTimeout(function(){ setPhase(PHASE_UPLOAD) }, 2000);
   setTimeout(function(){ setPhase(PHASE_DOWNLOAD) }, 4000);
   setTimeout(function(){ setPhase(PHASE_RESULTS) }, 6000);
@@ -95,10 +97,9 @@ function monitorTest() {
   debug(diagnosis);
   */
 
-  if (message.match(/not run/) && currentPhase != PHASE_LOADING) {
-    setPhase(PHASE_WELCOME);
-    return false;
-  }
+  debug(currentStatus);
+  debug(message);
+
   if (message.match(/completed/) && currentPhase < PHASE_RESULTS) {
     setPhase(PHASE_RESULTS);
     return true;
@@ -120,7 +121,7 @@ function monitorTest() {
     setPhase(PHASE_UPLOAD);
   }
 
-  if (remoteServer() !== 'unknown' && currentPhase < PHASE_PREPARING) {
+  if (backendInitialized && currentPhase == PHASE_INITIALIZING) {
     setPhase(PHASE_PREPARING);
   }
 
@@ -139,16 +140,26 @@ function setPhase(phase) {
       showPage('welcome');
       break;
 
+    case PHASE_INITIALIZING:
+      debug("INITIALIZING BACKEND");
+      showPage('test', resetGauges);
+      $('#loading').hide();
+      $('#initializingBackend').show();
+      $('#upload').hide();
+      $('#download').hide();
+      break;
+
     case PHASE_PREPARING:
       uploadGauge.setValue(0);
       downloadGauge.setValue(0);
       debug("PREPARING TEST");
 
+
       $('#loading').show();
+      $('#initializingBackend').hide();
       $('#upload').hide();
       $('#download').hide();
-
-      showPage('test', resetGauges);
+      testNDT().run_test();
       break;
 
     case PHASE_UPLOAD:
@@ -192,7 +203,7 @@ function setPhase(phase) {
         updateGaugeValue();
       },1000);
 
-      $("#test .remote.location .address").get(0).innerHTML = remoteServer();
+      $("#testServerAddress").get(0).innerHTML = remoteServer();
       break;
 
     case PHASE_DOWNLOAD:
@@ -331,12 +342,12 @@ function updateGaugeValue() {
     uploadGauge.updateConfig({ 
 	  units: getSpeedUnit(uploadSpeedVal)
 	});
-	uploadGauge.setValue(getJustfiedSpeed(uploadSpeedVal));
+	uploadGauge.setValue(getJustifiedSpeed(uploadSpeedVal));
   } else if (currentPhase == PHASE_DOWNLOAD) {
     downloadGauge.updateConfig({ 
 	  units: getSpeedUnit(downloadSpeedVal) 
 	});
-    downloadGauge.setValue(getJustfiedSpeed(downloadSpeedVal));
+    downloadGauge.setValue(getJustifiedSpeed(downloadSpeedVal));
   } else {
     clearInterval(gaugeUpdateInterval);  
   }   
@@ -353,6 +364,14 @@ function testNDT() {
 }
 
 function testStatus() {
+  if (!backendInitialized) {
+    return "notStarted";
+  }
+
+  if (backendError) {
+    return "failed";
+  }
+
   return testNDT().get_status();
 }
 
@@ -361,6 +380,11 @@ function testDiagnosis() {
   
   if (simulate) {
     div.innerHTML = "Test diagnosis";
+    return div;
+  }
+
+  if (backendError) {
+    div.innerHTML = testError();
     return div;
   }
 
@@ -405,37 +429,48 @@ function testDiagnosis() {
 }
 
 function testError() {
+  if (backendError) {
+    return "Test failed: Backend did not load properly. Make sure that you have proper plugin installed, and that it is not being blocked by your browser.";
+  }
+
+  if (!backendInitialized) {
+    return "";
+  }
+
   return testNDT().get_errmsg();
 }
 
 function remoteServer() {
   if (simulate) return '0.0.0.0';
+  if (!backendInitialized || backendError) {
+    return "unknown";
+  }
   return testNDT().get_host();
 }
 
 function uploadSpeed(raw) {
-  if (simulate) return 0;
+  if (simulate || backendError) return 0;
   var speed = testNDT().getNDTvar("ClientToServerSpeed");
   return raw ? speed : parseFloat(speed);
 }
 
 function downloadSpeed() {
-  if (simulate) return 0;
+  if (simulate || backendError) return 0;
   return parseFloat(testNDT().getNDTvar("ServerToClientSpeed"));
 }
 
 function averageRoundTrip() {
-  if (simulate) return 0;
+  if (simulate || backendError) return 0;
   return parseFloat(testNDT().getNDTvar("avgrtt"));
 }
 
 function jitter() {
-  if (simulate) return 0;
+  if (simulate || backendError) return 0;
   return parseFloat(testNDT().getNDTvar("Jitter"));
 }
 
 function speedLimit() {
-  if (simulate) return 0;
+  if (simulate || backendError) return 0;
   return parseFloat(testNDT().get_PcBuffSpdLimit());
 }
 
@@ -462,20 +497,20 @@ function getSpeedUnit(speedInKB) {
   return unit[e];
 }
 
-function getJustfiedSpeed(speedInKB) {
+function getJustifiedSpeed(speedInKB) {
   var e = Math.floor(Math.log(speedInKB) / Math.log(1000));
   return (speedInKB / Math.pow(1000, e)).toFixed(2);
 }
 
 function printDownloadSpeed() {
   var downloadSpeedVal = downloadSpeed();
-  document.getElementById('download-speed').innerHTML = getJustfiedSpeed(downloadSpeedVal);  
+  document.getElementById('download-speed').innerHTML = getJustifiedSpeed(downloadSpeedVal);  
   document.getElementById('download-speed-units').innerHTML = getSpeedUnit(downloadSpeedVal);  
 }
 
 function printUploadSpeed() {
   var uploadSpeedVal = uploadSpeed(false);
-  document.getElementById('upload-speed').innerHTML = getJustfiedSpeed(uploadSpeedVal); 
+  document.getElementById('upload-speed').innerHTML = getJustifiedSpeed(uploadSpeedVal); 
   document.getElementById('upload-speed-units').innerHTML = getSpeedUnit(uploadSpeedVal);    
 }
 
@@ -490,6 +525,7 @@ function printNumberValue(value) {
 
 function testDetails() {
   if (simulate) return 'Test details';
+  if (backendError) return testError();
 
   var d = '';
 
@@ -567,6 +603,8 @@ function useJavaAsBackend() {
 
   use_websocket_client = false;
 
+  createBackend();
+
   $('#websocketButton').removeClass("active");
   $('#javaButton').addClass("active");
 }
@@ -578,6 +616,8 @@ function useWebsocketAsBackend() {
 
   use_websocket_client = true;
 
+  createBackend();
+
   $('#javaButton').removeClass("active");
   $('#websocketButton').addClass("active");
 }
@@ -585,8 +625,12 @@ function useWebsocketAsBackend() {
 function createBackend() {
   $('#backendContainer').empty();
 
+  backendInitialized = false;
+  backendError = false;
+
   if (use_websocket_client) {
     websocket_client = new NDTWrapper();
+    $("#backendDescription").get(0).innerHTML = "WebSocket";
   }
   else {
     var app = document.createElement('applet');
@@ -597,10 +641,27 @@ function createBackend() {
     app.width = '600';
     app.height = '10';
     $('#backendContainer').append(app);
+    $("#backendDescription").get(0).innerHTML = "Java";
   }
 }
 
 // UTILITIES
+
+/* Attempt to load the applet up to "X" times with a delay. If it succeeds, then execute the callback function. */
+function waitForBackend(attempts, delay) {
+  if (isPluginLoaded()) {
+    backendInitialized = true;
+  }
+  else if (attempts == 0) {
+    backendError = true;
+    backendInitialized = false;
+  }
+  else {
+    setTimeout(function () {
+      waitForBackend(--attempts, delay);
+    }, delay);
+  }
+}
 
 function debug(message) {
   if (allowDebug && window.console) console.debug(message);
@@ -608,7 +669,7 @@ function debug(message) {
 
 function isPluginLoaded() {
   try {
-    testStatus();
+    testNDT().get_status();
     return true;
   } catch(e) {
     return false;

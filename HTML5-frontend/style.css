@@ -159,7 +159,7 @@ body.initializing .page .status {
 
 /* Test */
 
-#test .locations {
+#test .bottomBar {
   width: 640px;
   position: absolute;
   left: 40px;
@@ -168,19 +168,19 @@ body.initializing .page .status {
   font-size: 32px;
   line-height: 32px;
 }
-#test .location {
+#test .bottomBarBox {
   position: absolute;
   top: 0;
 }
-#test .location.local {
+#test .bottomBarBox.right {
   right: 0;
   text-align: right;
 }
-#test .location.remote {
+#test .bottomBarBox.left {
   left: 0;
   text-align: left;
 }
-#test .location .address {
+#test .bottomBarBox .address {
   margin-top: 10px;
   color: black;
   font: bold 13px/13px verdana, helvetica, arial, sans-serif;

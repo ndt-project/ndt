@@ -31,10 +31,6 @@
     <div id="warning-environment">
     </div>
 
-    <div id="warning-plugin">
-        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and that it is not being blocked by your browser.</p>
-    </div>
-
     <div id="warning-websocket">
         <p>The WebSocket client currently in beta. Due to the nature of WebSocket support in various web browsers, the results may be notedly lower than those obtained with the Java plugin.</p>
     </div>
@@ -58,6 +54,9 @@
   </div>
   <div id="test" class="page">
     
+    <div id="initializingBackend">
+      <h2 class="centered">Initializing backend...</h2>
+    </div>
     <div id="loading">
       <h2 class="centered">Preparing your tests...</h2>
     </div>
@@ -74,14 +73,14 @@
     </div>
     <canvas id="downloadGauge"></canvas>
 
-    <div class="locations">
-      <div class="local location">
-        <div class="name">Your computer</div>
-        <div class="address"><?php print $local_ip ?></div>
+    <div class="bottomBar">
+      <div class="right bottomBarBox">
+        <div class="text">Backend</div>
+        <div id="backendDescription" class="value"></div>
       </div>
-      <div class="remote location">
-        <div class="name">Test server</div>
-        <div class="address"></div>
+      <div class="left bottomBarBox">
+        <div class="text">Test server</div>
+        <div id="testServerAddress" class="value"></div>
       </div>
     </div>
 
