@@ -50,6 +50,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
+  I2Addr sec_addr = NULL;
   I2Addr sec_addresses[7];  // server addresses per thread
   int inlth, retcode, one = 1, set_size;
   int inSocket[7]; // up to 7
@@ -66,9 +67,9 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 #endif
   int threadsnum = 1;      // specify the number of threads (parallel TCP connections)
   int activeThreads = 1;
-  int i, j;
+  int i;
   struct timeval sel_tv;
-  fd_set rfd[7], tmpRfd[7];
+  fd_set rfd, tmpRfd;
   char* ptr, *jsonMsgValue;
 
   // variables used for protocol validation logs
@@ -148,15 +149,16 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     optlen = sizeof(set_size);
     getsockopt(ctlSocket, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
 
+    // get "address details" of the server using the host name
+    if ((sec_addr = I2AddrByNode(get_errhandle(), host)) == NULL) {
+      log_println(0, "Unable to resolve server address: %s", strerror(errno));
+      return -3;
+    }
+    I2AddrSetPort(sec_addr, s2cport);  // set port to value obtained from server
+
     // Connect to the server; set socket options
     for (i = 0; i < threadsnum; ++i) {
-      // get "address details" of the server using the host name
-      if ((sec_addresses[i] = I2AddrByNode(get_errhandle(), host)) == NULL) {
-        log_println(0, "Unable to resolve server address: %s", strerror(errno));
-        return -3;
-      }
-      I2AddrSetPort(sec_addresses[i], s2cport + i);  // set port to value obtained from server
-
+      sec_addresses[i] = I2AddrCopy(sec_addr);
       if ((retcode = CreateConnectSocket(&inSocket[i], NULL, sec_addresses[i], conn_options, buf_size))) {
         log_println(0, "Connect() for Server to Client failed (connection %d)", strerror(errno), i+1);
         return -15;
@@ -197,23 +199,15 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 #endif
     sel_tv.tv_sec = testDuration + 5;
     sel_tv.tv_usec = 5;
-    
+    FD_ZERO(&rfd);
     activeThreads = threadsnum;
     for (i = 0; i < threadsnum; i++) {
-      FD_ZERO(&rfd[i]);
-      FD_SET(inSocket[i], &rfd[i]);
+      FD_SET(inSocket[i], &rfd);
     }
     // Read data sent by server as soon as it is available. Stop listening if timeout has been exceeded.
-    j = -1;
     for (;;) {
-      j += 1;
-
-      if (j >= threadsnum) {
-        j = 0;
-      }
-
-      tmpRfd[j] = rfd[j];
-      retcode = select(inSocket[threadsnum-1]+1, &tmpRfd[j], NULL, NULL, &sel_tv);
+      tmpRfd = rfd;
+      retcode = select(inSocket[threadsnum-1]+1, &tmpRfd, NULL, NULL, &sel_tv);
       if (secs() > t) {
         log_println(5, "Receive test running long, break out of read loop");
         break;
@@ -237,11 +231,11 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 #endif
       if (retcode > 0) {
         for (i = 0; i < threadsnum; i++) {
-          if (FD_ISSET(inSocket[i], &tmpRfd[i])) {
+          if (FD_ISSET(inSocket[i], &tmpRfd)) {
             inlth = read(inSocket[i], buff, sizeof(buff));
             if (inlth == 0) {
               activeThreads--;
-              FD_CLR(inSocket[i], &rfd[i]);
+              FD_CLR(inSocket[i], &rfd);
               if (activeThreads == 0) {
                 goto breakOuterLoop;
               }
@@ -333,6 +327,8 @@ breakOuterLoop:
       printf("%0.2f kb/s\n", spdin);
     else
       printf("%0.2f Mb/s\n", spdin/1000);
+
+    I2AddrFree(sec_addr);
 
     // send TEST_MSG to server with the client-calculated throughput
     snprintf(buff, sizeof(buff), "%0.0f", spdin);

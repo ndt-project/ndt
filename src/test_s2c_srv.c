@@ -119,12 +119,12 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   double testDuration = 10; // default test duration
   double x2cspd;  // s->c test throughput
   struct timeval sel_tv;  // time
-  fd_set rfd[7];  // receive file descriptor (up to 7)
+  fd_set rfd;  // receive file descriptor
   char buff[BUFFSIZE + 1];  // message payload buffer
   int bufctrlattempts = 0;  // number of buffer control attempts
   int i;  // temporary var used for iterators etc
   PortPair pair;  // socket ports
-  I2Addr s2csrv_addr[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};  // s2c test's server address (up to 7)
+  I2Addr s2csrv_addr = NULL;
   I2Addr src_addr = NULL;
   char listens2cport[10];
   int msgType;
@@ -132,8 +132,6 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int sndqueue;
   struct sigaction new, old;
   char* jsonMsgValue;
-  long port;
-  int s2csockfd[7];
 
   pthread_t workerThreadId;
   int nextseqtosend = 0, lastunackedseq = 0;
@@ -181,51 +179,49 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
       strlcpy(listens2cport, "0", sizeof(listens2cport));
     }
 
-#ifdef EXTTESTS_ENABLED 
-    if (testOptions->exttestsopt) {
-      threadsNum = options->dthreadsnum;
-      testDuration = options->dduration / 1000.0;
-    }
-#endif
-
-    port = strtol(testOptions->multiple ? mrange_next(listens2cport, sizeof(listens2cport)) : listens2cport, NULL, 0);
-
-    for (i = 0; i < threadsNum; ++i) {
-      snprintf(listens2cport, sizeof(listens2cport), "%ld", port + i);
-
-      // attempt to bind to a new port and obtain address structure with details
-      // of listening port
-      while (s2csrv_addr[i] == NULL) {
-        s2csrv_addr[i] = CreateListenSocket(NULL, listens2cport, conn_options, 0);
-        if (strcmp(listens2cport, "0") == 0) {
-          log_println(0, "WARNING: ephemeral port number was bound");
-          break;
-        }
-        if (testOptions->multiple == 0) {
-          break;
-        }
+    // attempt to bind to a new port and obtain address structure with details
+    // of listening port
+    while (s2csrv_addr == NULL) {
+      s2csrv_addr = CreateListenSocket(
+          NULL,
+          testOptions->multiple ?
+              mrange_next(listens2cport, sizeof(listens2cport)) :
+              listens2cport,
+          conn_options, 0);
+      if (s2csrv_addr == NULL) {
+        /*
+           log_println(1, " Calling KillHung() because s2csrv_address failed to bind");
+           if (KillHung() == 0)
+           continue;
+           */
       }
-      if (s2csrv_addr[i] == NULL) {
-        log_println(
+      if (strcmp(listens2cport, "0") == 0) {
+        log_println(0, "WARNING: ephemeral port number was bound");
+        break;
+      }
+      if (testOptions->multiple == 0) {
+        break;
+      }
+    }
+    if (s2csrv_addr == NULL) {
+      log_println(
           0,
           "Server (S2C throughput test): CreateListenSocket failed: %s",
           strerror(errno));
-        snprintf(buff,
+      snprintf(
+          buff,
           sizeof(buff),
           "Server (S2C throughput test): CreateListenSocket failed: %s",
           strerror(errno));
-        send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                          testOptions->json_support, JSON_SINGLE_VALUE);
-        return -1;
-      }
-
-      s2csockfd[i] = I2AddrFD(s2csrv_addr[i]);
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
+                        testOptions->json_support, JSON_SINGLE_VALUE);
+      return -1;
     }
 
     // get socket FD and the ephemeral port number that client will connect to
     // run tests
-    testOptions->s2csockfd = s2csockfd[0];
-    testOptions->s2csockport = I2AddrPort(s2csrv_addr[0]);
+    testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
+    testOptions->s2csockport = I2AddrPort(s2csrv_addr);
     log_println(1, "  -- s2c %d port: %d", testOptions->child0, testOptions->s2csockport);
 #ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt) {
@@ -270,15 +266,21 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                 testOptions->child0);
 
     clilen = sizeof(cli_addr[0]);
+    FD_ZERO(&rfd);
+    FD_SET(testOptions->s2csockfd, &rfd);
     sel_tv.tv_sec = 5;  // wait for 5 secs
     sel_tv.tv_usec = 0;
     i = 0;
+#ifdef EXTTESTS_ENABLED 
+    if (testOptions->exttestsopt) {
+      threadsNum = options->dthreadsnum;
+      testDuration = options->dduration / 1000.0;
+    }
+#endif
  
     for (j = 0; j < RETRY_COUNT*threadsNum; j++) {
-      FD_ZERO(&rfd[i]);
-      FD_SET(s2csockfd[i], &rfd[i]);
-
-      ret = select((s2csockfd[i]) + 1, &rfd[i], NULL, NULL, &sel_tv);
+      ret = select((testOptions->s2csockfd) + 1, &rfd, NULL, NULL,
+                   &sel_tv);
       if ((ret == -1) && (errno == EINTR))
         continue;
       if (ret == 0)
@@ -291,7 +293,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
       // If a valid connection request is received, client has connected.
       // Proceed.
       // Note the new socket fd - xmitfd - used in the throughput test
-ximfd: xmitsfd[i] = accept(s2csockfd[i], (struct sockaddr *) &cli_addr[i], &clilen);
+ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr[i], &clilen);
        if (xmitsfd[i] > 0) {
         i++;
          log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
@@ -580,22 +582,14 @@ ximfd: xmitsfd[i] = accept(s2csockfd[i], (struct sockaddr *) &cli_addr[i], &clil
                     s2c_childpid);
         testOptions->child2 = s2c_childpid;
         kill(s2c_childpid, SIGUSR2);
+        FD_ZERO(&rfd);
+        FD_SET(mon_pipe[0], &rfd);
         sel_tv.tv_sec = 1;
         sel_tv.tv_usec = 100000;
         i = 0;
-        j = -1;
 
         for (;;) {
-          j += 1;
-
-          if (j >= threadsNum) {
-            j = 0;
-          }
-
-          FD_ZERO(&rfd[j]);
-          FD_SET(mon_pipe[0], &rfd[j]);
-
-          ret = select(mon_pipe[0] + 1, &rfd[j], NULL, NULL, &sel_tv);
+          ret = select(mon_pipe[0] + 1, &rfd, NULL, NULL, &sel_tv);
           if ((ret == -1) && (errno == EINTR)) {
             log_println(
                 6,
