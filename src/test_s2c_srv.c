@@ -223,28 +223,24 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
     testOptions->s2csockport = I2AddrPort(s2csrv_addr);
     log_println(1, "  -- s2c %d port: %d", testOptions->child0, testOptions->s2csockport);
-#ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt) {
       log_println(1, "  -- s2c ext -- duration = %d", options->dduration);
       log_println(1, "  -- s2c ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
                           options->dthroughputsnaps ? "true" : "false", options->dsnapsdelay, options->dsnapsoffset);
       log_println(1, "  -- s2c ext -- number of threads: %d", options->dthreadsnum);
     }
-#endif
     pair.port1 = -1;
     pair.port2 = testOptions->s2csockport;
 
     // Data received from speed-chk. Send TEST_PREPARE "GO" signal with port
     // number
     snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
-#ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt) {
       snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->s2csockport,
                options->dduration, options->dthroughputsnaps,
                options->dsnapsdelay, options->dsnapsoffset, options->dthreadsnum);
       lastThroughputSnapshot = NULL;
     }
-#endif
     j = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
                           testOptions->json_support, JSON_SINGLE_VALUE);
     if (j == -1) {
@@ -271,12 +267,10 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sel_tv.tv_sec = 5;  // wait for 5 secs
     sel_tv.tv_usec = 0;
     i = 0;
-#ifdef EXTTESTS_ENABLED 
     if (testOptions->exttestsopt) {
       threadsNum = options->dthreadsnum;
       testDuration = options->dduration / 1000.0;
     }
-#endif
  
     for (j = 0; j < RETRY_COUNT*threadsNum; j++) {
       ret = select((testOptions->s2csockfd) + 1, &rfd, NULL, NULL,
@@ -715,7 +709,6 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       return -3;
     }
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
-#ifdef EXTTESTS_ENABLED 
     if (testOptions->exttestsopt && options->dthroughputsnaps) {
       char* strtokptr = strtok(buff, " ");
       while ((strtokptr = strtok(NULL, " ")) != NULL) {
@@ -732,7 +725,6 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
         lastThroughputSnapshot->throughput = atof(strtokptr);
       }
     }
-#endif
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client

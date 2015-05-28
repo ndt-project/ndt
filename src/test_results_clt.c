@@ -468,7 +468,6 @@ void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
          "'%3d'\n", s2c_linkspeed_data, s2c_linkspeed_ack);
 }
 
-#ifdef EXTTESTS_ENABLED
 /**
  * Print calculated throughput snapshots
  *
@@ -495,7 +494,6 @@ void print_throughput_snapshots(struct throughputSnapshot *dThroughputSnapshots,
     }
   }
 }
-#endif
 
 /**
  * A Network Address Translation (NAT) box is detected by

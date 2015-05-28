@@ -74,11 +74,9 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   double t, stop_time;  // test-time indicators
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method
-#ifdef EXTTESTS_ENABLED
   int throughputsnaps = 0; // enable the throughput snapshots writing
   int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
   int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
-#endif
   int threadsnum = 1;      // specify the number of threads (parallel TCP connections)
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
@@ -120,7 +118,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Server sends port number to bind to in the TEST_PREPARE. Check if this
     // message body (string) is a valid integral port number.
-#ifdef EXTTESTS_ENABLED
     if (tests & TEST_EXT) {
       strtokptr = strtok(buff, " ");
       c2sport = atoi(strtokptr);
@@ -147,12 +144,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
         return 4;
       }
     }
-#else
-    if (check_int(buff, &c2sport)) {
-      log_println(0, "Invalid port number");
-      return 4;
-    }
-#endif
 
     log_println(1, "  -- port: %d", c2sport);
 
@@ -274,7 +265,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     }
 
     c2sspd = atoi(buff);
-#ifdef EXTTESTS_ENABLED
     if (throughputsnaps != NULL) {
       char* strtokptr = strtok(buff, " ");
       while ((strtokptr = strtok(NULL, " ")) != NULL) {
@@ -291,7 +281,6 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
         lastThroughputSnapshot->throughput = atof(strtokptr);
       }
     }
-#endif
 
     // Print results in the most convenient units (kbps or Mbps)
     if (c2sspd < KILO)

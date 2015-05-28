@@ -78,9 +78,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   socklen_t clilen;
   char tmpstr[256];  // string array used for all sorts of temp storage purposes
   double tmptime;  // time indicator
-#ifdef EXTTESTS_ENABLED
   double throughputSnapshotTime; // specify the next snapshot time
-#endif
   double testDuration = 10; // default test duration
   double bytes_read = 0;  // number of bytes read during the throughput tests
   struct timeval sel_tv;  // time
@@ -166,14 +164,12 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
     log_println(1, "  -- c2s %d port: %d", testOptions->child0, testOptions->c2ssockport);
-#ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt) {
       log_println(1, "  -- c2s ext -- duration = %d", options->uduration);
       log_println(1, "  -- c2s ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
                           options->uthroughputsnaps ? "true" : "false", options->usnapsdelay, options->usnapsoffset);
       log_println(1, "  -- c2s ext -- number of threads: %d", options->uthreadsnum);
     }
-#endif
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
 
@@ -187,14 +183,12 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         "Sending 'GO' signal, to tell client %d to head for the next test",
         testOptions->child0);
     snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
-#ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt) {
       snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->c2ssockport,
                      options->uduration, options->uthroughputsnaps, 
                      options->usnapsdelay, options->usnapsoffset, options->uthreadsnum);
       lastThroughputSnapshot = NULL;
     }
-#endif
 
     // send TEST_PREPARE message with ephemeral port detail, indicating start
     // of tests
@@ -213,12 +207,10 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sel_tv.tv_sec = 5;
     sel_tv.tv_usec = 0;
     i = 0;
-#ifdef EXTTESTS_ENABLED 
     if (testOptions->exttestsopt) {
       threadsNum = options->uthreadsnum;
       testDuration = options->uduration / 1000.0;
     }
-#endif
 
     for (j = 0; j < RETRY_COUNT * threadsNum; j++) {
       msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL, &sel_tv); // TODO
@@ -358,9 +350,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                       meta.c2s_snaplog, options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
-#ifdef EXTTESTS_ENABLED
     throughputSnapshotTime = tmptime + (options->usnapsoffset / 1000.0);
-#endif
     sel_tv.tv_sec = testDuration + 1;  // time out after test duration + 1sec
     sel_tv.tv_usec = 0;
     FD_ZERO(&rfd);
@@ -372,7 +362,6 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 readMainLoop:
       tmpRfd = rfd;
       msgretvalue = select(recvsfd[threadsNum-1] + 1, &tmpRfd, NULL, NULL, &sel_tv);
-#ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt && options->uthroughputsnaps && secs() > throughputSnapshotTime) {
       if (lastThroughputSnapshot != NULL) {
         lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
@@ -388,7 +377,6 @@ readMainLoop:
                      lastThroughputSnapshot->time, bytes_read, lastThroughputSnapshot->throughput);
       throughputSnapshotTime += options->usnapsdelay / 1000.0;
     }
-#endif
       if ((msgretvalue == -1) && (errno == EINTR)) {
         // socket interrupted. Continue waiting for activity on socket
         continue;
@@ -430,7 +418,6 @@ breakMainLoop:
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
-#ifdef EXTTESTS_ENABLED
     if (uThroughputSnapshots != NULL) {
       struct throughputSnapshot *snapshotsPtr = uThroughputSnapshots;
       while (snapshotsPtr != NULL) {
@@ -439,7 +426,6 @@ breakMainLoop:
         snapshotsPtr = snapshotsPtr->next;
       }
     }
-#endif
     send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
 
     // get receiver side Web100 stats and write them to the log file. close

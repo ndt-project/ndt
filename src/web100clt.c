@@ -238,9 +238,7 @@ void testResults(char tests, char *testresult_str, char* host) {
       print_linkspeed_dataacks((tests & TEST_C2S), c2sData,
                                c2sAck, s2cData, s2cAck);
 
-#ifdef EXTTESTS_ENABLED
       print_throughput_snapshots(dThroughputSnapshots, uThroughputSnapshots);
-#endif
     }
   } else {
     printf("No %s data collected!  Possible Duplex Mismatch condition "
@@ -522,11 +520,7 @@ int main(int argc, char *argv[]) {
   char varstr[2*BUFFSIZE];  // temporary storage for S2C test results,
                             // 16384 = 2 * BUFFSIZE
   // which tests have been selectedto be performed?
-  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW |
-#ifdef EXTTESTS_ENABLED
-           TEST_EXT |
-#endif
-      TEST_STATUS | TEST_META;
+  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_EXT | TEST_STATUS | TEST_META;
   int ctlSocket;  // socket fd
   int ctlport = atoi(PORT);  // default port number
   int retcode;  // return code from protocol operations, mostly
@@ -539,10 +533,8 @@ int main(int argc, char *argv[]) {
   int conn_options = 0;  // connection options received from user
   int debug = 0;  // debug flag
   int testId;  // test ID received from server
-#ifdef EXTTESTS_ENABLED
   int serverWithExtendedTests = 0;
   char testsBuff[32];
-#endif
   int jsonSupport = 1; // indicates if client should sent messages in JSON format
   int retry = 0; // flag set after invalid login message is being received
   char *invalid_login_msg = "Invalid login message.";
@@ -673,11 +665,9 @@ int main(int argc, char *argv[]) {
     log_println(1, "* New Client, implements queuing feedback");
   }
 
-#ifdef EXTTESTS_ENABLED
-   if (tests & TEST_EXT) {
-       log_println(1, "* Extended tests supported");
-     }
-#endif
+  if (tests & TEST_EXT) {
+      log_println(1, "* Extended tests supported");
+  }
 
   log_println(1, "Requesting test suite:");
   if (tests & TEST_MID) {
@@ -875,7 +865,6 @@ int main(int argc, char *argv[]) {
   }
 
   log_println(5, "Server version: %s, type: %s", &buff[1], ServerType);
-#ifdef EXTTESTS_ENABLED
  if (strlen(buff) > 3) {
     if (strcmp(&buff[strlen(buff) - 3], "-et") == 0) {
       serverWithExtendedTests = 1;
@@ -884,7 +873,6 @@ int main(int argc, char *argv[]) {
   }
  
   log_println(5, "Server supports extended tests: %s", serverWithExtendedTests ? "true" : "false");
-#endif
 
   log_println(5, "Compare versions. Server:%s Client:%s Compare result: %i", &buff[1], VERSION, strcmp(&buff[1], VERSION));
   if (strcmp(&buff[1], VERSION)) { //older server did not send type server at the end
@@ -923,7 +911,6 @@ int main(int argc, char *argv[]) {
   }
   ptr = strtok_r(buff, " ", &strtokbuf);
 
-#ifdef EXTTESTS_ENABLED
   if (!serverWithExtendedTests) {
     snprintf(testsBuff, sizeof(testsBuff), "%d", tests);
     tests &= (~TEST_EXT);
@@ -931,7 +918,6 @@ int main(int argc, char *argv[]) {
       ptr = strtok_r(NULL, " ", &strtokbuf);
     }
   }
-#endif
 
   // Run all tests requested, based on the ID.
   while (ptr) {

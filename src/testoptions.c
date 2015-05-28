@@ -289,11 +289,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   // set_protologfile(get_remotehost(), protologlocalarr);
 
   if (!(useropt
-        & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS     
-#ifdef EXTTESTS_ENABLED
-           | TEST_EXT
-#endif
-           | TEST_META))) {
+        & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_EXT | TEST_META))) {
     // message received does not indicate a valid test!
     send_json_message(ctlsockfd, MSG_ERROR, invalid_test_suite,
                       strlen(invalid_test_suite), options->json_support, JSON_SINGLE_VALUE);

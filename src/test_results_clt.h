@@ -78,10 +78,8 @@ void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
                               int c2s_linkspeed_ack, int s2c_linkspeed_data,
                               int s2c_linkspeed_ack);
 
-#ifdef EXTTESTS_ENABLED
 void print_throughput_snapshots(struct throughputSnapshot *dThroughputSnapshots,
                                 struct throughputSnapshot *uThroughputSnapshots);
-#endif
 
 // Check if a Network Address translation box is modifying IP addresses
 // of server or client

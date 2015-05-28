@@ -59,12 +59,10 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   double testStartTime, t;
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method
-#ifdef EXTTESTS_ENABLED
   int throughputsnaps = 0; // enable the throughput snapshots writing
   int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
   int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
   double throughputSnapshotTime; // specify the next snapshot time
-#endif
   int threadsnum = 1;      // specify the number of threads (parallel TCP connections)
   int activeThreads = 1;
   int i;
@@ -106,7 +104,6 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Improper message");
       return 3;
     }
-#ifdef EXTTESTS_ENABLED
     if (tests & TEST_EXT) {
       strtokptr = strtok(buff, " ");
       s2cport = atoi(strtokptr);
@@ -133,12 +130,6 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         return 4;
       }
     }
-#else
-    if (check_int(buff, &s2cport)) {
-      log_println(0, "Invalid port number");
-      return 4;
-    }
-#endif
 
     log_println(1, "  -- port: %d", s2cport);
 
@@ -194,9 +185,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     bytes = 0;
     testStartTime = secs();
     t = testStartTime + testDuration + 5;
-#ifdef EXTTESTS_ENABLED
     throughputSnapshotTime = testStartTime + (snapsoffset / 1000.0);
-#endif
     sel_tv.tv_sec = testDuration + 5;
     sel_tv.tv_usec = 5;
     FD_ZERO(&rfd);
@@ -212,7 +201,6 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         log_println(5, "Receive test running long, break out of read loop");
         break;
       }
-#ifdef EXTTESTS_ENABLED
     if (throughputsnaps && secs() > throughputSnapshotTime) {
       if (lastThroughputSnapshot != NULL) {
         lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
@@ -228,7 +216,6 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
                      lastThroughputSnapshot->time, bytes, lastThroughputSnapshot->throughput);
       throughputSnapshotTime += snapsdelay / 1000.0;
     }
-#endif
       if (retcode > 0) {
         for (i = 0; i < threadsnum; i++) {
           if (FD_ISSET(inSocket[i], &tmpRfd)) {
@@ -332,7 +319,6 @@ breakOuterLoop:
 
     // send TEST_MSG to server with the client-calculated throughput
     snprintf(buff, sizeof(buff), "%0.0f", spdin);
-#ifdef EXTTESTS_ENABLED
     if (dThroughputSnapshots != NULL) {
       struct throughputSnapshot *snapshotsPtr = dThroughputSnapshots;
       while (snapshotsPtr != NULL) {
@@ -341,7 +327,6 @@ breakOuterLoop:
         snapshotsPtr = snapshotsPtr->next;
       }
     }
-#endif
     send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
                       jsonSupport, JSON_SINGLE_VALUE);
 

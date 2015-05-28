@@ -1,7 +1,7 @@
 /**
  * This file contains the functions to print usage screens.
  *
- * Jakub S³awiñski 2006-06-02
+ * Jakub Sï¿½awiï¿½ski 2006-06-02
  * jeremian@poczta.fm
  */
 
@@ -82,7 +82,6 @@ void srv_long_usage(char* info) {
   printf("  --cputime              - enable the cputime writing\n");
   printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
 #endif
-#if EXTTESTS_ENABLED
   printf(" Extended tests code:\n\n");
   printf("  --uduration #msec      - specify upload test duration (default 10000 msec)\n");
   printf("  --uthroughputsnaps     - enable the throughput snapshots for upload test writing\n");
@@ -98,7 +97,6 @@ void srv_long_usage(char* info) {
   printf("  --dsnapsoffset #msec   - specify the initial offset in the throughput snapshots thread for download test (default 1000 msec)\n");
   printf("                           Note: this doesn't enable 'dthroughputsnaps'\n");
   printf("  --dthreadsnum #num     - specify the number of threads (parallel TCP connections) for download test (default 1 thread, maximum 7)\n\n");
-#endif
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
   printf(" Database support:\n\n");
   printf("  --enableDBlogging      - enable the test results logging to the database\n");

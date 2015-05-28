@@ -160,7 +160,6 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
 
       addAdditionalMetaEntry(&new_entry, buff, value);
     }
-#ifdef EXTTESTS_ENABLED
     if (testOptions->exttestsopt) {
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->uduration);
       addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->uthroughputsnaps ? "true" : "false");
@@ -173,7 +172,6 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->dsnapsoffset);
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.threadsnum", options->dthreadsnum);
     }
-#endif
 
     // Finalize test by sending appropriate message, and setting status
     if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,

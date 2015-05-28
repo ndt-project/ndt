@@ -1080,7 +1080,6 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
         entry = entry->next;
       }
     }
-#ifdef EXTTESTS_ENABLED
     if (uThroughputSnapshots != NULL) {
       struct throughputSnapshot *snapshotsPtr = uThroughputSnapshots;
       while (snapshotsPtr != NULL) {
@@ -1095,7 +1094,6 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
         snapshotsPtr = snapshotsPtr->next;
       }
     }
-#endif
     fclose(fp);
   }
 }

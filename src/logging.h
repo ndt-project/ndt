@@ -54,7 +54,6 @@ struct metaentry {
   struct metaentry* next;  // pointer to next link
 };
 
-#ifdef EXTTESTS_ENABLED
 struct throughputSnapshot {
   double time;
   double throughput;
@@ -62,7 +61,6 @@ struct throughputSnapshot {
 };
 
 struct throughputSnapshot *dThroughputSnapshots, *uThroughputSnapshots, *lastThroughputSnapshot;
-#endif
 
 /**
  * Used to save results of meta tests.

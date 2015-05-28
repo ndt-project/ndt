@@ -169,7 +169,6 @@ static struct option long_options[] = {
   { "cputime", 0, 0, 309},
   { "limit", 1, 0, 'y'},
 #endif
-#ifdef EXTTESTS_ENABLED
   { "uduration", 1, 0, 314},
   { "uthroughputsnaps", 0, 0, 315},
   { "usnapsdelay", 1, 0, 316},
@@ -180,7 +179,6 @@ static struct option long_options[] = {
   { "dsnapsdelay", 1, 0, 320},
   { "dsnapsoffset", 1, 0, 321},
   { "dthreadsnum", 1, 0, 323},
-#endif
   { "buffer", 1, 0, 'b' },
   { "file", 1, 0, 'f' },
   { "interface", 1, 0, 'i' },
@@ -708,7 +706,6 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
     } else if (strncasecmp(key, "savewebvalues", 13) == 0) {
       webVarsValues = 1;
       continue;
-#ifdef EXTTESTS_ENABLED
     } else if (strncasecmp(key, "uduration", 9) == 0) {
       options.uduration = atoi(val);
       continue;
@@ -739,7 +736,6 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
     } else if (strncasecmp(key, "dthreadsnum", 11) == 0) {
       options.dthreadsnum = atoi(val);
       continue;
-#endif
     } else if (strncasecmp(key, "refresh", 5) == 0) {
       refresh = atoi(val);
       continue;
@@ -1021,11 +1017,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   conn = tcp_stat_connection_from_socket(agent, ctlsockfd);
   autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
 
-#ifdef EXTTESTS_ENABLED
 #define ADD_CAPABILITIES(x) x"-et"
-#else
-#define ADD_CAPABILITIES(x) x
-#endif
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", ADD_CAPABILITIES(VERSION) "-" TCP_STAT_NAME);
@@ -1926,7 +1918,6 @@ int main(int argc, char** argv) {
   }
   log_println(1, "\tDebug level set to %d", debug);
 
-#ifdef EXTTESTS_ENABLED
   log_println(3, "\tExtended tests options:");
   log_println(3, "\t\t * upload: duration = %d, threads = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
               options.uduration, options.uthreadsnum, options.uthroughputsnaps ? "true" : "false",
@@ -1934,7 +1925,6 @@ int main(int argc, char** argv) {
   log_println(3, "\t\t * download: duration = %d, threads = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
               options.dduration, options.dthreadsnum, options.dthroughputsnaps ? "true" : "false",
               options.dsnapsdelay, options.dsnapsoffset);
-#endif
 
   initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
@@ -2848,14 +2838,12 @@ mainloop: if (head_ptr == NULL)
               alarm(120);
               log_println(6, "setting master alarm() to 120 seconds, tests must complete before this timer expires");
 
-#ifdef EXTTESTS_ENABLED
               if (t_opts & TEST_EXT) {
                 testopt.exttestsopt = TOPT_ENABLED;
               alarm(100 + (options.uduration / 1000.0) + (options.dduration / 1000.0));
               log_println(6, " * changed master alarm() to %d due to enabled extended tests",
                     (int) (100 + (options.uduration / 1000.0) + (options.dduration / 1000.0)));
               }
-#endif
               
               // run tests based on options
               if (strncmp(test_suite, "Invalid", 7) != 0) {
