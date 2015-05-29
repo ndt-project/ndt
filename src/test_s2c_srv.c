@@ -90,15 +90,15 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
    */
-  web100_snapshot* tsnap[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-  web100_snapshot* rsnap[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-  web100_group* tgroup[7];
-  web100_group* rgroup[7];
+  web100_snapshot* tsnap[MAX_STREAMS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+  web100_snapshot* rsnap[MAX_STREAMS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+  web100_group* tgroup[MAX_STREAMS];
+  web100_group* rgroup[MAX_STREAMS];
   web100_var* var;
 #elif USE_WEB10G
-  estats_val_data* snap[7]; // up to 7 connections
+  estats_val_data* snap[MAX_STREAMS];
 #endif
-  tcp_stat_connection conn[7]; // up to 7 connections
+  tcp_stat_connection conn[MAX_STREAMS];
   /* Just a holder for web10g */
   tcp_stat_group* group = NULL;
   /* Pipe that handles returning packet pair timing */
@@ -106,13 +106,13 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
   int threadsNum = 1;
-  S2CWriteWorkerArgs writeWorkerArgs[7]; // write workers parameters
-  pthread_t writeWorkerIds[7];        // write workers ids
-  int xmitsfd[7];  // transmit (i.e server) socket fds (up to 7)
+  S2CWriteWorkerArgs writeWorkerArgs[MAX_STREAMS]; // write workers parameters
+  pthread_t writeWorkerIds[MAX_STREAMS];        // write workers ids
+  int xmitsfd[MAX_STREAMS];  // transmit (i.e server) socket fds (up to 7)
   pid_t s2c_childpid = 0;  // s2c_childpid
 
   char tmpstr[256];  // string array used for temp storage of many char*
-  struct sockaddr_storage cli_addr[7];
+  struct sockaddr_storage cli_addr[MAX_STREAMS];
   struct throughputSnapshot *lastThroughputSnapshot;
 
   socklen_t clilen;

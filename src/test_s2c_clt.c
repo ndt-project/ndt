@@ -52,9 +52,9 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
   I2Addr sec_addr = NULL;
-  I2Addr sec_addresses[7];  // server addresses per thread
+  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per thread
   int inlth, retcode, one = 1, set_size;
-  int inSocket[7]; // up to 7
+  int inSocket[MAX_STREAMS];
   socklen_t optlen;
   uint64_t bytes;
   double testStartTime, t;

@@ -66,12 +66,12 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   int msgLen, msgType;  // message related data
   int c2sport = atoi(PORT2);  // default C2S port
   I2Addr sec_addr = NULL;  // server address
-  I2Addr sec_addresses[7];  // server addresses per thread
+  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per thread
   int retcode;  // return code
   int one = 1;  // socket option store
   int i, k;  // temporary iterator
-  C2SWriteWorkerArgs writeWorkerArgs[7]; // write workers parameters
-  pthread_t writeWorkerIds[7];        // write workers ids
+  C2SWriteWorkerArgs writeWorkerArgs[MAX_STREAMS]; // write workers parameters
+  pthread_t writeWorkerIds[MAX_STREAMS];        // write workers ids
   double t, stop_time;  // test-time indicators
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method

@@ -28,6 +28,8 @@
 #define MSG_TYPE_DESC_SIZE 15
 #define MSG_BODY_FMT_SIZE 10  // max size for desc "NOT_KNOWN"
 
+#define MAX_STREAMS 7
+
 // port numbers
 #define PORT  "3001"
 #define PORT2 "3002"

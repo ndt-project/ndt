@@ -68,14 +68,14 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
-  int recvsfd[7];  // receiver socket file descriptors (up to 7)
+  int recvsfd[MAX_STREAMS];  // receiver socket file descriptors
   pid_t c2s_childpid = 0;  // child process pids
   int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
   int i, j;  // used as loop iterators
   int threadsNum = 1;
   int activeThreads = 1;
 
-  struct sockaddr_storage cli_addr[7];
+  struct sockaddr_storage cli_addr[MAX_STREAMS];
   struct throughputSnapshot *lastThroughputSnapshot;
 
   socklen_t clilen;

@@ -125,7 +125,7 @@ int tcp_stat_init(char *VarFileName) {
     // remove unwanted chars (right now, trailing/preceding chars from wb100
     // var names)
     trim(line, strlen(line), trimmedline, sizeof(trimmedline));
-    for (i = 0; i < 7; ++i) {
+    for (i = 0; i < MAX_STREAMS; ++i) {
       strlcpy(web_vars[i][count_vars].name, trimmedline, sizeof(web_vars[i][count_vars].name));
     }
     count_vars++;
@@ -522,9 +522,9 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 #if USE_WEB10G
 /* Persistent storage needed. These are filled by tcp_stat_get_data 
  * and later read by tcp_stat_logvars and free()'d */
-static estats_val_data* dataDumpSave[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-static int X_SndBuf[7] = {-1, -1, -1, -1, -1, -1, -1};
-static int X_RcvBuf[7] = {-1, -1, -1, -1, -1, -1, -1};
+static estats_val_data* dataDumpSave[MAX_STREAMS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static int X_SndBuf[MAX_STREAMS] = {-1, -1, -1, -1, -1, -1, -1};
+static int X_RcvBuf[MAX_STREAMS] = {-1, -1, -1, -1, -1, -1, -1};
 #endif
 
 

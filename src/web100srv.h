@@ -79,6 +79,8 @@
 #include <arpa/inet.h>
 #include <I2util/util.h>
 
+#include "ndtptestconstants.h"
+
 /* move version to configure.ac file for package name */
 /* #define VERSION   "3.0.7" */  // version number
 #define RECLTH    8192
@@ -181,7 +183,7 @@ struct spdpair {
 struct web100_variables {
   char name[256];  // key
   char value[256];  // value
-} web_vars[7][WEB100_VARS];
+} web_vars[MAX_STREAMS][WEB100_VARS];
 
 struct pseudo_hdr {  /* used to compute TCP checksum */
   uint64_t s_addr;  // source addr
