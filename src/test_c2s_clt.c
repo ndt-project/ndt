@@ -206,21 +206,16 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       writeWorkerArgs[i].buff = buff;
     }
 
-    if (threadsnum == 1) {
-      c2sWriteWorker((void*) &writeWorkerArgs[0]);
+    for (i = 0; i < threadsnum; ++i) {
+    if (pthread_create(&writeWorkerIds[i], NULL, c2sWriteWorker, (void*) &writeWorkerArgs[i])) {
+      log_println(0, "Cannot create write worker thread for throughput upload test!");
+      writeWorkerIds[i] = 0;
+      return -1;
+      }
     }
-    else {
-      for (i = 0; i < threadsnum; ++i) {
-        if (pthread_create(&writeWorkerIds[i], NULL, c2sWriteWorker, (void*) &writeWorkerArgs[i])) {
-          log_println(0, "Cannot create write worker thread for throughput upload test!");
-          writeWorkerIds[i] = 0;
-          return -1;
-        }
-      }
 
-      for (i = 0; i < threadsnum; ++i) {
-        pthread_join(writeWorkerIds[i], NULL);
-      }
+    for (i = 0; i < threadsnum; ++i) {
+      pthread_join(writeWorkerIds[i], NULL);
     }
  
     sigaction(SIGPIPE, &old, NULL);
