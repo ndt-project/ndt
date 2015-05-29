@@ -65,6 +65,7 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  * @param spd_index  index used for speed check array
  * @param count_vars count of web100 variables
  * @param peaks Cwnd peaks structure pointer
+ * @param dThroughputSnapshots Variable used to set s2c throughput snapshots
  *
  * @return 0 - success,
  *         >0 - error code.
@@ -83,7 +84,8 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
-             int* spd_index, int count_vars, CwndPeaks* peaks) {
+             int* spd_index, int count_vars, CwndPeaks* peaks,
+             struct throughputSnapshot **dThroughputSnapshots) {
 #if USE_WEB100
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -111,6 +113,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
   char tmpstr[256];  // string array used for temp storage of many char*
   struct sockaddr_storage cli_addr[7];
+  struct throughputSnapshot *lastThroughputSnapshot;
 
   socklen_t clilen;
   double bytes_written;  // bytes written in the throughput test
@@ -717,7 +720,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           lastThroughputSnapshot = lastThroughputSnapshot->next;
         }
         else {
-          dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          *dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
         }
         lastThroughputSnapshot->next = NULL;
         lastThroughputSnapshot->time = atof(strtokptr);

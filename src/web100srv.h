@@ -335,7 +335,8 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
 void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars);
 
 int KillHung(void);
-void writeMeta(int compress, int cputime, int snaplog, int tcpdump);
+void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
+               struct throughputSnapshot *dThroughputSnapshots, struct throughputSnapshot *uThroughputSnapshots);
 
 char *get_remotehost();
 

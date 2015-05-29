@@ -60,8 +60,6 @@ struct throughputSnapshot {
   struct throughputSnapshot* next;
 };
 
-struct throughputSnapshot *dThroughputSnapshots, *uThroughputSnapshots, *lastThroughputSnapshot;
-
 /**
  * Used to save results of meta tests.
  * These values (most) are thes logged in the

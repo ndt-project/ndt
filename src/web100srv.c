@@ -943,6 +943,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
   struct tcp_vars vars[7]; // up to 7 connections
+  struct throughputSnapshot *dThroughputSnapshots, *uThroughputSnapshots;
 
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
   // link speed. Transmitted but unused at client end , which has a similar
@@ -1080,7 +1081,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, count_vars, spds, &spd_index)) != 0) {
+                      record_reverse, count_vars, spds, &spd_index, &uThroughputSnapshots)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -1092,7 +1093,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks)) != 0) {
+                      &spd_index, count_vars, &peaks, &dThroughputSnapshots)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -1375,7 +1376,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
            peaks.amount);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-  writeMeta(options.compress, cputime, options.snaplog, dumptrace);
+  writeMeta(options.compress, cputime, options.snaplog, dumptrace, dThroughputSnapshots, uThroughputSnapshots);
 
   // Write into log files, DB
   fp = fopen(get_logfile(), "a");

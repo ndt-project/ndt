@@ -41,6 +41,7 @@ void* c2sWriteWorker(void* arg);
  * @param host		Server name string
  * @param conn_options Options to use while connecting to server(for ex, IPV4)
  * @param buf_size  TCP send/receive buffer size
+ * @param uThroughputSnapshots Variable used to set c2s throughput snapshots
  * @param jsonSupport Indicates if messages should be send using JSON format
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
@@ -54,7 +55,7 @@ void* c2sWriteWorker(void* arg);
  *
  */
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, int jsonSupport) {
+                 int buf_size, struct throughputSnapshot **uThroughputSnapshots, int jsonSupport) {
   /* char buff[BUFFSIZE+1]; */
   char buff[64 * KILO_BITS];  // message payload.
   // note that there is a size variation between server and CLT - do not
@@ -74,6 +75,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   double t, stop_time;  // test-time indicators
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method
+  struct throughputSnapshot *lastThroughputSnapshot;
   int throughputsnaps = 0; // enable the throughput snapshots writing
   int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
   int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
@@ -273,7 +275,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
           lastThroughputSnapshot = lastThroughputSnapshot->next;
         }
         else {
-          uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          *uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
         }
         lastThroughputSnapshot->next = NULL;
         lastThroughputSnapshot->time = atof(strtokptr);

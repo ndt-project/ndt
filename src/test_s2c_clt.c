@@ -46,7 +46,8 @@ double spdin, s2cspd;
  */
 
 int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, char* result_srv, int jsonSupport) {
+                 int buf_size, char* result_srv,
+                 struct throughputSnapshot **dThroughputSnapshots, int jsonSupport) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
@@ -59,6 +60,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   double testStartTime, t;
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method
+  struct throughputSnapshot *lastThroughputSnapshot;
   int throughputsnaps = 0; // enable the throughput snapshots writing
   int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
   int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
@@ -207,7 +209,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         lastThroughputSnapshot = lastThroughputSnapshot->next;
       }
       else {
-        dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        *dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
       }
       lastThroughputSnapshot->next = NULL;
       lastThroughputSnapshot->time = secs() - testStartTime;
@@ -319,8 +321,8 @@ breakOuterLoop:
 
     // send TEST_MSG to server with the client-calculated throughput
     snprintf(buff, sizeof(buff), "%0.0f", spdin);
-    if (dThroughputSnapshots != NULL) {
-      struct throughputSnapshot *snapshotsPtr = dThroughputSnapshots;
+    if (*dThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = *dThroughputSnapshots;
       while (snapshotsPtr != NULL) {
         int currBuffLength = strlen(buff);
         snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);

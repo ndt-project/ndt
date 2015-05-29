@@ -48,6 +48,7 @@
  * @param spds[] [] speed check array
  * @param spd_index  index used for speed check array
  * @param conn_options Connection options
+ * @param uThroughputSnapshots Variable used to set c2s throughput snapshots
  * @return 0 - success,
  *          >0 - error code
  *          Error codes:
@@ -61,7 +62,8 @@
 int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
-             int count_vars, char spds[4][256], int* spd_index) {
+             int count_vars, char spds[4][256], int* spd_index,
+             struct throughputSnapshot **uThroughputSnapshots) {
   tcp_stat_connection conn;
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
@@ -74,6 +76,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int activeThreads = 1;
 
   struct sockaddr_storage cli_addr[7];
+  struct throughputSnapshot *lastThroughputSnapshot;
 
   socklen_t clilen;
   char tmpstr[256];  // string array used for all sorts of temp storage purposes
@@ -368,7 +371,7 @@ readMainLoop:
         lastThroughputSnapshot = lastThroughputSnapshot->next;
       }
       else {
-        uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        *uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
       }
       lastThroughputSnapshot->next = NULL;
       lastThroughputSnapshot->time = secs() - tmptime;
@@ -418,8 +421,8 @@ breakMainLoop:
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
-    if (uThroughputSnapshots != NULL) {
-      struct throughputSnapshot *snapshotsPtr = uThroughputSnapshots;
+    if (*uThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = *uThroughputSnapshots;
       while (snapshotsPtr != NULL) {
         int currBuffLength = strlen(buff);
         snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);

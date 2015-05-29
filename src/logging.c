@@ -922,11 +922,14 @@ char * get_ISOtime(char *isoTime, int isotimearrsize) {
  * @param cputime integer flag indicating if cputime trace logging is on
  * @param snaplog integer flag indicating if snaplogging is enabled
  * @param tcpdump integer flag indicating if tcpdump trace logging is on
+ * @param dThroughputSnapshots s2c throughput snapshots
+ * @param uThroughputSnapshots c2s throughput snapshots
  *
  * RAC 7/7/09
  */
 
-void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
+void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
+        struct throughputSnapshot *dThroughputSnapshots, struct throughputSnapshot *uThroughputSnapshots) {
   FILE * fp;
   char tmpstr[256];
   // char dir[128];
