@@ -306,7 +306,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
             testOptions->child0, mon_pipe[0], mon_pipe[1]);
         log_println(2, "C2S test calling init_pkttrace() with pd=%p",
                     &cli_addr[0]);
-        init_pkttrace(src_addr, (struct sockaddr *) &cli_addr[0], clilen,
+        init_pkttrace(src_addr, cli_addr, threadsNum, clilen,
                       mon_pipe, device, &pair, "c2s", options->uduration / 1000.0);
         log_println(1, "c2s is exiting gracefully");
         /* Close the pipe */

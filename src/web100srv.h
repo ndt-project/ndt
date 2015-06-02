@@ -275,9 +275,9 @@ void init_vars(struct spdpair *cur);
 void print_bins(struct spdpair *cur, int monitor_pipe[2]);
 void calculate_spd(struct spdpair *cur, struct spdpair *cur2, int port2,
                    int port3);
-void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
+void init_pkttrace(I2Addr srcAddr, struct sockaddr_storage sock_addr[], int sockaddrArrayLength,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
-                   PortPair* pair, const char* direction, int expectedTestTime);
+                   PortPair* pair, const char *direction, int expectedTestTime);
 void force_breakloop();
 #endif
 

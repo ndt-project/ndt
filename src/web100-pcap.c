@@ -34,6 +34,7 @@ static int sigj = 0, sigk = 0;
 static int ifspeed;
 
 static struct spdpair fwd, rev;
+static uint16_t firstTcpStreamPort;
 
 /** Scan through interface device list and get names/speeds of each interface.
  *
@@ -518,6 +519,12 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
     current.ack = ntohl(tcp->ack_seq);
     current.win = ntohs(tcp->window);
 
+    /* currently only packets from first stream are being considered when calculating values,
+     * so if current packet is from different stream then just return */
+
+    if (current.sport != firstTcpStreamPort && current.dport != firstTcpStreamPort)
+      return;
+
     /* the current structure now has copies of the IP/TCP header values, if this is the
      * first packet, then there is nothing to compare them to, so just finish the initialization
      * step and return.
@@ -588,6 +595,12 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
     current.seq = ntohl(tcp->seq);
     current.ack = ntohl(tcp->ack_seq);
     current.win = ntohs(tcp->window);
+
+    /* currently only packets from first stream are being considered when calculating values,
+     * so if current packet is from different stream then just return */
+
+    if (current.sport != firstTcpStreamPort && current.dport != firstTcpStreamPort)
+      return;
 
     // The 1st packet has been received, finish the initialization process
     // and return.
@@ -690,7 +703,8 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
  * by the libpcap routines.  The print_speed function above, is passed
  * to the pcap_open_live() function as the pcap_handler.
  * @param srcAddr 	Source address
- * @param sock_addr socket address used to determine client address
+ * @param sock_addr array of socket addresses used to determine client addresses
+ * @param sockaddrArrayLength number of elements in sock_addr array
  * @param saddrlen  socket address length
  * @param monitor_pipe socket file descriptors used to read/write data (for interprocess communication)
  * @param device devive detail string
@@ -699,18 +713,20 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
  * @param expectedTestTime expected test time duration + 50seconds
  */
 
-void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
+void init_pkttrace(I2Addr srcAddr, struct sockaddr_storage sock_addr[], int sockaddrArrayLength,
                    socklen_t saddrlen, int monitor_pipe[2], char *device,
                    PortPair* pair, const char *direction, int expectedTestTime) {
   char cmdbuf[256], dir[256];
   pcap_handler printer;
   u_char * pcap_userdata = (u_char*) pair;
+  uint16_t port;
   struct bpf_program fcode;
   char errbuf[PCAP_ERRBUF_SIZE];
   int cnt, pflag = 0, i;
   char namebuf[200], isoTime[64];
   size_t nameBufLen = 199;
-  I2Addr sockAddr = NULL;
+  struct sockaddr *sock_address, *sock_address_temp;
+  I2Addr sockAddr = NULL, sockAddrTemp = NULL;
   struct sockaddr *src_addr;
   pcap_if_t *alldevs, *dp;
   pcap_addr_t *curAddr;
@@ -733,8 +749,9 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
   //  RAC 7/14/09
   init_iflist();
 
-  sockAddr = I2AddrBySAddr(get_errhandle(), sock_addr, saddrlen, 0, 0);
-  sock_addr = I2AddrSAddr(sockAddr, 0);
+  sock_address = (struct sockaddr*) &sock_addr[0];
+  sockAddr = I2AddrBySAddr(get_errhandle(), sock_address, saddrlen, 0, 0);
+  sock_address = I2AddrSAddr(sockAddr, 0);
   src_addr = I2AddrSAddr(srcAddr, 0);
 
   // Disable, device can be NULL trying to copy "lo" into
@@ -783,9 +800,9 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                   fwd.saddr[0] =
                       ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
                   fwd.daddr[0] =
-                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                      ((struct sockaddr_in *)sock_address)->sin_addr.s_addr;
                   rev.saddr[0] =
-                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                      ((struct sockaddr_in *)sock_address)->sin_addr.s_addr;
                   rev.daddr[0] =
                       ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
 
@@ -794,10 +811,10 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                           ((struct sockaddr_in *) src_addr)->sin_port);
                   fwd.dport =
                       ntohs(
-                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                          ((struct sockaddr_in *) sock_address)->sin_port);
                   rev.sport =
                       ntohs(
-                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                          ((struct sockaddr_in *) sock_address)->sin_port);
                   rev.dport =
                       ntohs(
                           ((struct sockaddr_in *) src_addr)->sin_port);
@@ -805,9 +822,9 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                   rev.saddr[0] =
                       ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
                   rev.daddr[0] =
-                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                      ((struct sockaddr_in *)sock_address)->sin_addr.s_addr;
                   fwd.saddr[0] =
-                      ((struct sockaddr_in *)sock_addr)->sin_addr.s_addr;
+                      ((struct sockaddr_in *)sock_address)->sin_addr.s_addr;
                   fwd.daddr[0] =
                       ((struct sockaddr_in *)src_addr)->sin_addr.s_addr;
 
@@ -816,10 +833,10 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                           ((struct sockaddr_in *) src_addr)->sin_port);
                   rev.dport =
                       ntohs(
-                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                          ((struct sockaddr_in *) sock_address)->sin_port);
                   fwd.sport =
                       ntohs(
-                          ((struct sockaddr_in *) sock_addr)->sin_port);
+                          ((struct sockaddr_in *) sock_address)->sin_port);
                   fwd.dport =
                       ntohs(
                           ((struct sockaddr_in *) src_addr)->sin_port);
@@ -847,7 +864,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
                 struct sockaddr_in6* src_addr6 =
                     (struct sockaddr_in6*)src_addr;
                 struct sockaddr_in6* sock_addr6 =
-                    (struct sockaddr_in6*)sock_addr;
+                    (struct sockaddr_in6*)sock_address;
 
                 if (direction[0] == 's') {
                   memcpy(fwd.saddr, src_addr6->sin6_addr.s6_addr, 16);
@@ -896,15 +913,15 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 
   log_println(2, "pcap_open_live() returned pointer %p", pd);
 
-  switch(sock_addr->sa_family) {
+  switch(sock_address->sa_family) {
       case AF_INET:
-          inet_ntop(AF_INET, &(((struct sockaddr_in *)sock_addr)->sin_addr),
+          inet_ntop(AF_INET, &(((struct sockaddr_in *)sock_address)->sin_addr),
                   namebuf, nameBufLen);
           break;
 
 #ifdef AF_INET6
       case AF_INET6:
-          inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sock_addr)->sin6_addr),
+          inet_ntop(AF_INET6, &(((struct sockaddr_in6 *)sock_address)->sin6_addr),
                   namebuf, nameBufLen);
           break;
 #endif
@@ -913,9 +930,21 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
           I2AddrNodeName(sockAddr, namebuf, &nameBufLen);
   }
 
+  firstTcpStreamPort = I2AddrPort(sockAddr);
   memset(cmdbuf, 0, sizeof(cmdbuf));
-  snprintf(cmdbuf, sizeof(cmdbuf), "host %s and port %d", namebuf,
-           I2AddrPort(sockAddr));
+  snprintf(cmdbuf, sizeof(cmdbuf), "host %s and (port %d", namebuf, firstTcpStreamPort);
+
+  // append remaining ports (from other opened streams)
+  for (i = 1; i < sockaddrArrayLength; i++) {
+    sock_address_temp = (struct sockaddr*) &sock_addr[i];
+    sockAddrTemp = I2AddrBySAddr(get_errhandle(), sock_address_temp, saddrlen, 0, 0);
+    port = I2AddrPort(sockAddrTemp);
+    if (port > 0)
+      snprintf(cmdbuf + strlen(cmdbuf), sizeof(cmdbuf), " or port %d", port);
+
+    free(sockAddrTemp);
+  }
+  snprintf(cmdbuf + strlen(cmdbuf), sizeof(cmdbuf), ")");
 
   log_println(1, "installing pkt filter for '%s'", cmdbuf);
   log_println(1, "Initial pkt src data = %p", fwd.saddr);
@@ -932,9 +961,8 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr *sock_addr,
 
   if (dumptrace == 1) {
     // Create log file
-    snprintf(dir, sizeof(dir), "%s_%s:%d.%s_ndttrace",
-             get_ISOtime(isoTime, sizeof(isoTime)), namebuf,
-             I2AddrPort(sockAddr), direction);
+    snprintf(dir, sizeof(dir), "%s_%s.%s_ndttrace",
+             get_ISOtime(isoTime, sizeof(isoTime)), namebuf, direction);
     create_named_logdir(logdir, sizeof(logdir), dir, 0);
     pdump = pcap_dump_open(pd, logdir);
     fprintf(stderr, "Opening '%s' log fine\n", logdir);

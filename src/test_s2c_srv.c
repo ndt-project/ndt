@@ -348,7 +348,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
               mon_pipe[0], mon_pipe[1]);
           log_println(2, "S2C test calling init_pkttrace() with pd=%p",
                       &cli_addr[0]);
-          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr[0],
+          init_pkttrace(src_addr, cli_addr, threadsNum,
                         clilen, mon_pipe, device, &pair, "s2c",
                         options->dduration / 1000.0);
           log_println(6,
