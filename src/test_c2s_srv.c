@@ -68,10 +68,11 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
-  int recvsfd[MAX_STREAMS];  // receiver socket file descriptors
+  int recvsfd[MAX_STREAMS] = {0};  // receiver socket file descriptors
   pid_t c2s_childpid = 0;  // child process pids
   int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
-  int i, j;  // used as loop iterators
+  int i, j, k;  // used as loop iterators
+  int retvalue = 0;
   int threadsNum = 1;
   int activeThreads = 1;
 
@@ -221,51 +222,62 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
       if ((msgretvalue == -1) && (errno == EINTR))
         continue;
       if (msgretvalue == 0)  // timeout
-        return -SOCKET_CONNECT_TIMEOUT;
+        retvalue = -SOCKET_CONNECT_TIMEOUT;
       if (msgretvalue < 0)  // other socket errors. exit
-        return -errno;
+        retvalue = -errno;
       if (j == (RETRY_COUNT*threadsNum - 1))  // retry exceeded. exit
-        return -RETRY_EXCEEDED_WAITING_CONNECT;
+        retvalue = -RETRY_EXCEEDED_WAITING_CONNECT;
+      if (!retvalue) {
  recfd:
 
-      // If a valid connection request is received, client has connected.
-      // Proceed.  Note the new socket fd - recvsfd- used in the throughput test
-      recvsfd[i] = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr[i], &clilen);
-      if (recvsfd[i] > 0) {
-        i++;
-        log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
+        // If a valid connection request is received, client has connected.
+        // Proceed.  Note the new socket fd - recvsfd- used in the throughput test
+        recvsfd[i] = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr[i], &clilen);
+        if (recvsfd[i] > 0) {
+          i++;
+          log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
 
-        if (i < threadsNum) {
-          continue;
+          if (i < threadsNum) {
+            continue;
+          }
+
+          // log protocol validation indicating client accept
+          procstatusenum = PROCESS_STARTED;
+          proctypeenum = CONNECT_TYPE;
+          protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[0]);
+          break;
+        }
+        // socket interrupted, wait some more
+        if ((recvsfd[i] == -1) && (errno == EINTR)) {
+          log_println(
+              6,
+              "Child %d interrupted while waiting for accept() to complete",
+              testOptions->child0);
+          goto recfd;
+        }
+        log_println(
+            6,
+            "-------     C2S connection setup for %d returned because (%d)",
+            testOptions->child0, errno);
+        if (recvsfd[i] < 0) {  // other socket errors, quit
+          retvalue =  -errno;
+        }
+        if (j == (RETRY_COUNT*threadsNum - 1)) {  // retry exceeded, quit
+          log_println(
+              6,
+              "c2s child %d, unable to open connection, return from test",
+              testOptions->child0);
+          retvalue = RETRY_EXCEEDED_WAITING_DATA;
+        }
+      }
+
+      if (retvalue) {
+        for (k = 0; k < threadsNum; k++) {
+          if (recvsfd[k] > 0)
+            close(recvsfd[i]);
         }
 
-        // log protocol validation indicating client accept
-        procstatusenum = PROCESS_STARTED;
-        proctypeenum = CONNECT_TYPE;
-        protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[0]);
-        break;
-      }
-      // socket interrupted, wait some more
-      if ((recvsfd[i] == -1) && (errno == EINTR)) {
-        log_println(
-            6,
-            "Child %d interrupted while waiting for accept() to complete",
-            testOptions->child0);
-        goto recfd;
-      }
-      log_println(
-          6,
-          "-------     C2S connection setup for %d returned because (%d)",
-          testOptions->child0, errno);
-      if (recvsfd[i] < 0) {  // other socket errors, quit
-        return -errno;
-      }
-      if (j == (RETRY_COUNT*threadsNum - 1)) {  // retry exceeded, quit
-        log_println(
-            6,
-            "c2s child %d, uable to open connection, return from test",
-            testOptions->child0);
-        return RETRY_EXCEEDED_WAITING_DATA;
+        return retvalue;
       }
     }
 

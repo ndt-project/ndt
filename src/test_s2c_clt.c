@@ -54,7 +54,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   I2Addr sec_addr = NULL;
   I2Addr sec_addresses[MAX_STREAMS];  // server addresses per thread
   int inlth, retcode, one = 1, set_size;
-  int inSocket[MAX_STREAMS];
+  int inSocket[MAX_STREAMS] = {0};
   socklen_t optlen;
   uint64_t bytes;
   double testStartTime, t;
@@ -154,6 +154,12 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       sec_addresses[i] = I2AddrCopy(sec_addr);
       if ((retcode = CreateConnectSocket(&inSocket[i], NULL, sec_addresses[i], conn_options, buf_size))) {
         log_println(0, "Connect() for Server to Client failed (connection %d)", strerror(errno), i+1);
+        for (i = 0; i < threadsnum; ++i) {
+          if (inSocket[i] > 0) {
+            shutdown(inSocket[i], SHUT_WR);
+            close(inSocket[i]);
+          }
+        }
         return -15;
       }
       setsockopt(inSocket[i], SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
