@@ -65,7 +65,7 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  * @param spd_index  index used for speed check array
  * @param count_vars count of web100 variables
  * @param peaks Cwnd peaks structure pointer
- * @param dThroughputSnapshots Variable used to set s2c throughput snapshots
+ * @param s2c_ThroughputSnapshots Variable used to set s2c throughput snapshots
  *
  * @return 0 - success,
  *         >0 - error code.
@@ -85,7 +85,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
              int* spd_index, int count_vars, CwndPeaks* peaks,
-             struct throughputSnapshot **dThroughputSnapshots) {
+             struct throughputSnapshot **s2c_ThroughputSnapshots) {
 #if USE_WEB100
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
@@ -105,7 +105,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int mon_pipe[2];
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
-  int threadsNum = 1;
+  int streamsNum = 1;
   S2CWriteWorkerArgs writeWorkerArgs[MAX_STREAMS]; // write workers parameters
   pthread_t writeWorkerIds[MAX_STREAMS];        // write workers ids
   int xmitsfd[MAX_STREAMS];  // transmit (i.e server) socket fds (up to 7)
@@ -227,10 +227,10 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     testOptions->s2csockport = I2AddrPort(s2csrv_addr);
     log_println(1, "  -- s2c %d port: %d", testOptions->child0, testOptions->s2csockport);
     if (testOptions->exttestsopt) {
-      log_println(1, "  -- s2c ext -- duration = %d", options->dduration);
+      log_println(1, "  -- s2c ext -- duration = %d", options->s2c_duration);
       log_println(1, "  -- s2c ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
-                          options->dthroughputsnaps ? "true" : "false", options->dsnapsdelay, options->dsnapsoffset);
-      log_println(1, "  -- s2c ext -- number of threads: %d", options->dthreadsnum);
+                          options->s2c_throughputsnaps ? "true" : "false", options->s2c_snapsdelay, options->s2c_snapsoffset);
+      log_println(1, "  -- s2c ext -- number of streams: %d", options->s2c_streamsnum);
     }
     pair.port1 = -1;
     pair.port2 = testOptions->s2csockport;
@@ -240,8 +240,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
     if (testOptions->exttestsopt) {
       snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->s2csockport,
-               options->dduration, options->dthroughputsnaps,
-               options->dsnapsdelay, options->dsnapsoffset, options->dthreadsnum);
+               options->s2c_duration, options->s2c_throughputsnaps,
+               options->s2c_snapsdelay, options->s2c_snapsoffset, options->s2c_streamsnum);
       lastThroughputSnapshot = NULL;
     }
     j = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
@@ -271,11 +271,11 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sel_tv.tv_usec = 0;
     i = 0;
     if (testOptions->exttestsopt) {
-      threadsNum = options->dthreadsnum;
-      testDuration = options->dduration / 1000.0;
+      streamsNum = options->s2c_streamsnum;
+      testDuration = options->s2c_duration / 1000.0;
     }
  
-    for (j = 0; j < RETRY_COUNT*threadsNum; j++) {
+    for (j = 0; j < RETRY_COUNT*streamsNum; j++) {
       ret = select((testOptions->s2csockfd) + 1, &rfd, NULL, NULL,
                    &sel_tv);
       if ((ret == -1) && (errno == EINTR))
@@ -284,7 +284,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         return SOCKET_CONNECT_TIMEOUT;  // timeout
       if (ret < 0)
         return -errno;  // other socket errors. exit
-      if (j == (RETRY_COUNT*threadsNum - 1))
+      if (j == (RETRY_COUNT*streamsNum - 1))
         return RETRY_EXCEEDED_WAITING_CONNECT;  // retry exceeded. exit
 
       // If a valid connection request is received, client has connected.
@@ -293,8 +293,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr[i], &clilen);
        if (xmitsfd[i] > 0) {
         i++;
-         log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
-         if (i < threadsNum) {
+         log_println(6, "accept(%d/%d) for %d completed", i, streamsNum, testOptions->child0);
+         if (i < streamsNum) {
            continue;
          }
          procstatusenum = PROCESS_STARTED;
@@ -316,7 +316,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
            testOptions->child0, errno);
        if (xmitsfd[i] < 0)   // other socket errors, quit
          return -errno;
-        if (j == (RETRY_COUNT*threadsNum - 1)) {  // retry exceeded, quit
+        if (j == (RETRY_COUNT*streamsNum - 1)) {  // retry exceeded, quit
          log_println(
              6,
              "s2c child %d, unable to open connection, return from test",
@@ -325,7 +325,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
        }
     }
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd[0], 0);
-    for (i = 0; i < threadsNum; ++i) {
+    for (i = 0; i < streamsNum; ++i) {
       conn[i] = tcp_stat_connection_from_socket(agent, xmitsfd[i]); 
     }
 
@@ -339,7 +339,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
         if ((s2c_childpid = fork()) == 0) {
           /* close(ctlsockfd); */
           close(testOptions->s2csockfd);
-          for (i = 0; i < threadsNum; i++) {
+          for (i = 0; i < streamsNum; i++) {
             close(xmitsfd[i]);
           }
           log_println(
@@ -348,9 +348,9 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
               mon_pipe[0], mon_pipe[1]);
           log_println(2, "S2C test calling init_pkttrace() with pd=%p",
                       &cli_addr[0]);
-          init_pkttrace(src_addr, cli_addr, threadsNum,
+          init_pkttrace(src_addr, cli_addr, streamsNum,
                         clilen, mon_pipe, device, &pair, "s2c",
-                        options->dduration / 1000.0);
+                        options->s2c_duration / 1000.0);
           log_println(6,
                       "S2C test ended, why is timer still running?");
           /* Close the pipe */
@@ -389,7 +389,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
         system("echo 1 > /proc/sys/net/ipv4/route/flush");
       }
-      for (i = 0; i < threadsNum; ++i) {
+      for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
         rgroup[i] = web100_group_find(agent, "read");
         rsnap[i] = web100_snapshot_alloc(rgroup[i], conn[i]);
@@ -440,7 +440,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       tmptime = secs();  // current time
       tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
 
-      for (i = 0; i < threadsNum; ++i) {  
+      for (i = 0; i < streamsNum; ++i) {  
         writeWorkerArgs[i].connectionId = i + 1;
         writeWorkerArgs[i].socketDescriptor = xmitsfd[i];
         writeWorkerArgs[i].stopTime = tx_duration; 
@@ -450,7 +450,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       log_println(6, "S2C child %d beginning test", testOptions->child0);
 
-      if (threadsNum == 1) {
+      if (streamsNum == 1) {
         while (secs() < tx_duration) {
         // Increment total attempts at sending-> buffer control
         bufctrlattempts++;
@@ -499,7 +499,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
         }  // Completed end of trying to transmit data for the goodput test
       }
       else {
-        for (i = 0; i < threadsNum; ++i) {
+        for (i = 0; i < streamsNum; ++i) {
           if (pthread_create(&writeWorkerIds[i], NULL, s2cWriteWorker, (void*) &writeWorkerArgs[i])) {
             log_println(0, "Cannot create write worker thread for throughput download test!");
             writeWorkerIds[i] = 0;
@@ -507,7 +507,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           }
         }
 
-        for (i = 0; i < threadsNum; ++i) {
+        for (i = 0; i < streamsNum; ++i) {
           pthread_join(writeWorkerIds[i], NULL);
         }
       }
@@ -518,7 +518,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       // finalize the midbox test ; disabling socket used for throughput test
       log_println(6, "S2C child %d finished test", testOptions->child0);
-      for (i = 0; i < threadsNum; i++) {
+      for (i = 0; i < streamsNum; i++) {
         shutdown(xmitsfd[i], SHUT_WR); /* end of write's */
       }
 
@@ -553,7 +553,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
               s2c_childpid);
       }
 
-      for (i = 0; i < threadsNum; ++i) {
+      for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
         web100_snap(rsnap[i]);
         web100_snap(tsnap[i]);
@@ -645,18 +645,18 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, threadsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
-     for (i = 0; i < threadsNum; ++i) {
+    ret = tcp_stat_get_data(tsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+     for (i = 0; i < streamsNum; ++i) {
       web100_snapshot_free(tsnap[i]);
     }
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, threadsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
-    for (i = 0; i < threadsNum; ++i) {
+    ret = tcp_stat_get_data(rsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    for (i = 0; i < streamsNum; ++i) {
       web100_snapshot_free(rsnap[i]); 
     }
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, threadsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
-    for (i = 0; i < threadsNum; ++i) {
+    ret = tcp_stat_get_data(snap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    for (i = 0; i < streamsNum; ++i) {
       estats_val_data_free(&snap[i]); 
     }
 #endif
@@ -712,7 +712,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       return -3;
     }
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
-    if (testOptions->exttestsopt && options->dthroughputsnaps) {
+    if (testOptions->exttestsopt && options->s2c_throughputsnaps) {
       char* strtokptr = strtok(buff, " ");
       while ((strtokptr = strtok(NULL, " ")) != NULL) {
         if (lastThroughputSnapshot != NULL) {
@@ -720,7 +720,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           lastThroughputSnapshot = lastThroughputSnapshot->next;
         }
         else {
-          *dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          *s2c_ThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
         }
         lastThroughputSnapshot->next = NULL;
         lastThroughputSnapshot->time = atof(strtokptr);
@@ -731,7 +731,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client
-    for (i = 0; i < threadsNum; i++) {
+    for (i = 0; i < streamsNum; i++) {
       close(xmitsfd[i]);
     }
     if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,

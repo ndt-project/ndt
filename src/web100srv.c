@@ -169,16 +169,16 @@ static struct option long_options[] = {
   { "cputime", 0, 0, 309},
   { "limit", 1, 0, 'y'},
 #endif
-  { "uduration", 1, 0, 314},
-  { "uthroughputsnaps", 0, 0, 315},
-  { "usnapsdelay", 1, 0, 316},
-  { "usnapsoffset", 1, 0, 317},
-  { "uthreadsnum", 1, 0, 322},
-  { "dduration", 1, 0, 318},
-  { "dthroughputsnaps", 0, 0, 319},
-  { "dsnapsdelay", 1, 0, 320},
-  { "dsnapsoffset", 1, 0, 321},
-  { "dthreadsnum", 1, 0, 323},
+  { "c2sduration", 1, 0, 314},
+  { "c2sthroughputsnaps", 0, 0, 315},
+  { "c2ssnapsdelay", 1, 0, 316},
+  { "c2ssnapsoffset", 1, 0, 317},
+  { "c2sstreamsnum", 1, 0, 322},
+  { "s2cduration", 1, 0, 318},
+  { "s2cthroughputsnaps", 0, 0, 319},
+  { "s2csnapsdelay", 1, 0, 320},
+  { "s2csnapsoffset", 1, 0, 321},
+  { "s2cstreamsnum", 1, 0, 323},
   { "buffer", 1, 0, 'b' },
   { "file", 1, 0, 'f' },
   { "interface", 1, 0, 'i' },
@@ -706,35 +706,35 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
     } else if (strncasecmp(key, "savewebvalues", 13) == 0) {
       webVarsValues = 1;
       continue;
-    } else if (strncasecmp(key, "uduration", 9) == 0) {
-      options.uduration = atoi(val);
+    } else if (strncasecmp(key, "c2sduration", 9) == 0) {
+      options.c2s_duration = atoi(val);
       continue;
-    } else if (strncasecmp(key, "uthroughputsnaps", 16) == 0) {
-      options.uthroughputsnaps = 1;
+    } else if (strncasecmp(key, "c2sthroughputsnaps", 16) == 0) {
+      options.c2s_throughputsnaps = 1;
       continue;
-    } else if (strncasecmp(key, "usnapsdelay", 11) == 0) {
-      options.usnapsdelay = atoi(val);
+    } else if (strncasecmp(key, "c2ssnapsdelay", 11) == 0) {
+      options.c2s_snapsdelay = atoi(val);
       continue;
-    } else if (strncasecmp(key, "usnapsoffset", 12) == 0) {
-      options.usnapsoffset = atoi(val);
+    } else if (strncasecmp(key, "c2ssnapsoffset", 12) == 0) {
+      options.c2s_snapsoffset = atoi(val);
       continue;
-    } else if (strncasecmp(key, "uthreadsnum", 11) == 0) {
-      options.uthreadsnum = atoi(val);
+    } else if (strncasecmp(key, "c2sstreamsnum", 11) == 0) {
+      options.c2s_streamsnum = atoi(val);
       continue;
-    } else if (strncasecmp(key, "dduration", 9) == 0) {
-      options.dduration = atoi(val);
+    } else if (strncasecmp(key, "s2cduration", 9) == 0) {
+      options.s2c_duration = atoi(val);
       continue;
-    } else if (strncasecmp(key, "dthroughputsnaps", 16) == 0) {
-      options.dthroughputsnaps = 1;
+    } else if (strncasecmp(key, "s2cthroughputsnaps", 16) == 0) {
+      options.s2c_throughputsnaps = 1;
       continue;
-    } else if (strncasecmp(key, "dsnapsdelay", 11) == 0) {
-      options.dsnapsdelay = atoi(val);
+    } else if (strncasecmp(key, "s2csnapsdelay", 11) == 0) {
+      options.s2c_snapsdelay = atoi(val);
       continue;
-    } else if (strncasecmp(key, "dsnapsoffset", 12) == 0) {
-      options.dsnapsoffset = atoi(val);
+    } else if (strncasecmp(key, "s2csnapsoffset", 12) == 0) {
+      options.s2c_snapsoffset = atoi(val);
       continue;
-    } else if (strncasecmp(key, "dthreadsnum", 11) == 0) {
-      options.dthreadsnum = atoi(val);
+    } else if (strncasecmp(key, "s2cstreamsnum", 11) == 0) {
+      options.s2c_streamsnum = atoi(val);
       continue;
     } else if (strncasecmp(key, "refresh", 5) == 0) {
       refresh = atoi(val);
@@ -943,7 +943,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
   struct tcp_vars vars[7]; // up to 7 connections
-  struct throughputSnapshot *dThroughputSnapshots, *uThroughputSnapshots;
+  struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
 
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
   // link speed. Transmitted but unused at client end , which has a similar
@@ -1081,7 +1081,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, count_vars, spds, &spd_index, &uThroughputSnapshots)) != 0) {
+                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -1093,7 +1093,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks, &dThroughputSnapshots)) != 0) {
+                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -1128,13 +1128,13 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // ...other variables
   memset(&vars, 0xFF, sizeof(vars));
-  for (i = 0; i < (testopt->exttestsopt ? options.dthreadsnum : 1); ++i) {
+  for (i = 0; i < (testopt->exttestsopt ? options.s2c_streamsnum : 1); ++i) {
     tcp_stat_logvars(&vars[i], i, count_vars);
   }
 
   if (webVarsValues) {
-    tcp_stat_logvars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.dthreadsnum : 1, vars);
-    tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.dthreadsnum : 1, vars);
+    tcp_stat_logvars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.s2c_streamsnum : 1, vars);
+    tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.s2c_streamsnum : 1, vars);
   }
 
   // end getting web100 variable values
@@ -1376,7 +1376,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
            peaks.amount);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-  writeMeta(options.compress, cputime, options.snaplog, dumptrace, dThroughputSnapshots, uThroughputSnapshots);
+  writeMeta(options.compress, cputime, options.snaplog, dumptrace, s2c_ThroughputSnapshots, c2s_ThroughputSnapshots);
 
   // Write into log files, DB
   fp = fopen(get_logfile(), "a");
@@ -1559,16 +1559,16 @@ int main(int argc, char** argv) {
   options.cwndDecrease = 0;
   memset(options.s2c_logname, 0, 256);
   memset(options.c2s_logname, 0, 256);
-  options.uduration = 10000;
-  options.uthroughputsnaps = 0;
-  options.usnapsdelay = 5000;
-  options.usnapsoffset = 1000;
-  options.uthreadsnum = 1;
-  options.dduration = 10000;
-  options.dthroughputsnaps = 0;
-  options.dsnapsdelay = 5000;
-  options.dsnapsoffset = 1000;
-  options.dthreadsnum = 1;
+  options.c2s_duration = 10000;
+  options.c2s_throughputsnaps = 0;
+  options.c2s_snapsdelay = 5000;
+  options.c2s_snapsoffset = 1000;
+  options.c2s_streamsnum = 1;
+  options.s2c_duration = 10000;
+  options.s2c_throughputsnaps = 0;
+  options.s2c_snapsdelay = 5000;
+  options.s2c_snapsoffset = 1000;
+  options.s2c_streamsnum = 1;
   peaks.min = -1;
   peaks.max = -1;
   peaks.amount = -1;
@@ -1788,40 +1788,40 @@ int main(int argc, char** argv) {
                     dbPWD = optarg;
                     break;
                   case 314:
-                    options.uduration = atoi(optarg);
+                    options.c2s_duration = atoi(optarg);
                     break;
                   case 315:
-                    options.uthroughputsnaps = 1;
+                    options.c2s_throughputsnaps = 1;
                     break;
                   case 316:
-                    options.usnapsdelay = atoi(optarg);
+                    options.c2s_snapsdelay = atoi(optarg);
                     break;
                   case 317:
-                    options.usnapsoffset = atoi(optarg);
+                    options.c2s_snapsoffset = atoi(optarg);
                     break;
                   case 322:
-                    if (check_rint(optarg, &options.uthreadsnum, 1, 7)) {
+                    if (check_rint(optarg, &options.c2s_streamsnum, 1, 7)) {
                       char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText), "Invalid number of threads for upload test: %s", optarg);
+                      snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for upload test: %s", optarg);
                       short_usage(argv[0], tmpText);
                     }
                     break;
                   case 318:
-                    options.dduration = atoi(optarg);
+                    options.s2c_duration = atoi(optarg);
                     break;
                   case 319:
-                    options.dthroughputsnaps = 1;
+                    options.s2c_throughputsnaps = 1;
                     break;
                   case 320:
-                    options.dsnapsdelay = atoi(optarg);
+                    options.s2c_snapsdelay = atoi(optarg);
                     break;
                   case 321:
-                    options.dsnapsoffset = atoi(optarg);
+                    options.s2c_snapsoffset = atoi(optarg);
                     break;
                   case 323:
-                    if (check_rint(optarg, &options.dthreadsnum, 1, 7)) {
+                    if (check_rint(optarg, &options.s2c_streamsnum, 1, 7)) {
                       char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText), "Invalid number of threads for download test: %s", optarg);
+                      snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for download test: %s", optarg);
                       short_usage(argv[0], tmpText);
                     }
                     break;
@@ -1920,12 +1920,12 @@ int main(int argc, char** argv) {
   log_println(1, "\tDebug level set to %d", debug);
 
   log_println(3, "\tExtended tests options:");
-  log_println(3, "\t\t * upload: duration = %d, threads = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
-              options.uduration, options.uthreadsnum, options.uthroughputsnaps ? "true" : "false",
-              options.usnapsdelay, options.usnapsoffset);
-  log_println(3, "\t\t * download: duration = %d, threads = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
-              options.dduration, options.dthreadsnum, options.dthroughputsnaps ? "true" : "false",
-              options.dsnapsdelay, options.dsnapsoffset);
+  log_println(3, "\t\t * upload: duration = %d, streams = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
+              options.c2s_duration, options.c2s_streamsnum, options.c2s_throughputsnaps ? "true" : "false",
+              options.c2s_snapsdelay, options.c2s_snapsoffset);
+  log_println(3, "\t\t * download: duration = %d, streams = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
+              options.s2c_duration, options.s2c_streamsnum, options.s2c_throughputsnaps ? "true" : "false",
+              options.s2c_snapsdelay, options.s2c_snapsoffset);
 
   initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
@@ -2841,9 +2841,9 @@ mainloop: if (head_ptr == NULL)
 
               if (t_opts & TEST_EXT) {
                 testopt.exttestsopt = TOPT_ENABLED;
-              alarm(100 + (options.uduration / 1000.0) + (options.dduration / 1000.0));
+              alarm(100 + (options.c2s_duration / 1000.0) + (options.s2c_duration / 1000.0));
               log_println(6, " * changed master alarm() to %d due to enabled extended tests",
-                    (int) (100 + (options.uduration / 1000.0) + (options.dduration / 1000.0)));
+                    (int) (100 + (options.c2s_duration / 1000.0) + (options.s2c_duration / 1000.0)));
               }
               
               // run tests based on options

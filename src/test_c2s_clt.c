@@ -41,7 +41,7 @@ void* c2sWriteWorker(void* arg);
  * @param host		Server name string
  * @param conn_options Options to use while connecting to server(for ex, IPV4)
  * @param buf_size  TCP send/receive buffer size
- * @param uThroughputSnapshots Variable used to set c2s throughput snapshots
+ * @param c2s_ThroughputSnapshots Variable used to set c2s throughput snapshots
  * @param jsonSupport Indicates if messages should be send using JSON format
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
@@ -55,7 +55,7 @@ void* c2sWriteWorker(void* arg);
  *
  */
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, struct throughputSnapshot **uThroughputSnapshots, int jsonSupport) {
+                 int buf_size, struct throughputSnapshot **c2s_ThroughputSnapshots, int jsonSupport) {
   /* char buff[BUFFSIZE+1]; */
   char buff[64 * KILO_BITS];  // message payload.
   // note that there is a size variation between server and CLT - do not
@@ -66,7 +66,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   int msgLen, msgType;  // message related data
   int c2sport = atoi(PORT2);  // default C2S port
   I2Addr sec_addr = NULL;  // server address
-  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per thread
+  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per stream
   int retcode;  // return code
   int one = 1;  // socket option store
   int i, k;  // temporary iterator
@@ -79,7 +79,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   int throughputsnaps = 0; // enable the throughput snapshots writing
   int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
   int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
-  int threadsnum = 1;      // specify the number of threads (parallel TCP connections)
+  int streamsnum = 1;      // specify the number of streams (parallel TCP connections)
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = C2S;
@@ -132,12 +132,12 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       strtokptr = strtok(NULL, " ");
       snapsoffset = atoi(strtokptr);
       strtokptr = strtok(NULL, " ");
-      threadsnum = atoi(strtokptr);
+      streamsnum = atoi(strtokptr);
 
       log_println(1, "  -- test duration: %.1fs", testDuration);
       log_println(1, "  -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
                            throughputsnaps ? "true" : "false", snapsdelay, snapsoffset);
-      log_println(1, "  -- threads: %d", threadsnum);
+      log_println(1, "  -- streams: %d", streamsnum);
       lastThroughputSnapshot = NULL;
     }
     else {
@@ -156,7 +156,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     }
     I2AddrSetPort(sec_addr, c2sport);  // set port value
 
-    for (i = 0; i < threadsnum; ++i) {
+    for (i = 0; i < streamsnum; ++i) {
       sec_addresses[i] = I2AddrCopy(sec_addr);
 
       if ((retcode = CreateConnectSocket(&(writeWorkerArgs[i].socketDescriptor), NULL, sec_addresses[i], conn_options, buf_size))) {
@@ -200,13 +200,13 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     new.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &new, &old);
 
-    for (i = 0; i < threadsnum; ++i) {
+    for (i = 0; i < streamsnum; ++i) {
       writeWorkerArgs[i].connectionId = i + 1;
       writeWorkerArgs[i].stopTime = stop_time;
       writeWorkerArgs[i].buff = buff;
     }
 
-    for (i = 0; i < threadsnum; ++i) {
+    for (i = 0; i < streamsnum; ++i) {
     if (pthread_create(&writeWorkerIds[i], NULL, c2sWriteWorker, (void*) &writeWorkerArgs[i])) {
       log_println(0, "Cannot create write worker thread for throughput upload test!");
       writeWorkerIds[i] = 0;
@@ -214,7 +214,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
       }
     }
 
-    for (i = 0; i < threadsnum; ++i) {
+    for (i = 0; i < streamsnum; ++i) {
       pthread_join(writeWorkerIds[i], NULL);
     }
  
@@ -223,7 +223,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // get actual duration for which data was sent to the server
     t = secs() - t;
-    for (i = 0; i < threadsnum; ++i) {
+    for (i = 0; i < streamsnum; ++i) {
       I2AddrFree(sec_addresses[i]);
     }
     I2AddrFree(sec_addr);
@@ -270,7 +270,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
           lastThroughputSnapshot = lastThroughputSnapshot->next;
         }
         else {
-          *uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+          *c2s_ThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
         }
         lastThroughputSnapshot->next = NULL;
         lastThroughputSnapshot->time = atof(strtokptr);

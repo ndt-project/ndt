@@ -592,7 +592,7 @@ static void print_10gvar_renamed(const char * old_name,
  * @param jsonSupport indicates if messages should be sent usin JSON format
  *
  */
-int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
                       tcp_stat_agent* agent, int count_vars, int jsonSupport) {
   char line[256];
 #if USE_WEB100
@@ -604,7 +604,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int c
   assert(snap);
   assert(agent);
 
-  for (t = 0; t < threadsNum; ++t) {
+  for (t = 0; t < streamsNum; ++t) {
     assert(snap[t]);
 
     for (i = 0; i < count_vars; i++) {
@@ -649,7 +649,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int c
 
   assert(snap);
 
-  for (t = 0; t < threadsNum; ++t) {
+  for (t = 0; t < streamsNum; ++t) {
     xbuf_size = sizeof(X_RcvBuf[t]);
     if (getsockopt(testsock[t], SOL_SOCKET, SO_RCVBUF, (void *)&X_RcvBuf[t], &xbuf_size) != 0) {
       log_println(0, "Error: failed to getsockopt() SO_RCVBUF");

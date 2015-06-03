@@ -230,7 +230,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	int _iC2sSFWResult = NDTConstants.SFW_NOTTESTED;
 	int _iS2cSFWResult = NDTConstants.SFW_NOTTESTED;
 
-	ThroughputSnapshot _uThroughputSnapshots, _dThroughputSnapshots;
+	ThroughputSnapshot _c2sThroughputSnapshots, _s2cThroughputSnapshots;
 
 	/*************************************************************************
 	 * JavaScript access API extension Added by Seth Peery and Gregory Wilson,
@@ -1757,7 +1757,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		Message msg = new Message();
 		boolean bThroughputsnaps;
 		final int iTestDuration;
-		int iSnapsdelay, iSnapsoffset, iThreadsnum;
+		int iSnapsdelay, iSnapsoffset, iStreamsnum;
 		// start C2S throughput tests
 		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // msg
@@ -1796,13 +1796,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				bThroughputsnaps = Integer.parseInt(sMsgBody[2]) == 1;
 				iSnapsdelay = Integer.parseInt(sMsgBody[3]);
 				iSnapsoffset = Integer.parseInt(sMsgBody[4]);
-				iThreadsnum = Integer.parseInt(sMsgBody[5]);
+				iStreamsnum = Integer.parseInt(sMsgBody[5]);
 			} else {
 				iTestDuration = 10000;
 				bThroughputsnaps = false;
 				iSnapsdelay = 5000;
 				iSnapsoffset = 1000;
-				iThreadsnum = 1;
+				iStreamsnum = 1;
 			}
 
 			showStatus(_resBundDisplayMsgs.getString("outboundTest"));
@@ -1819,9 +1819,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			pub_status = "runningOutboundTest";
 
 			// client connects to this port
-			List outSockets = new ArrayList(iThreadsnum);
+			List outSockets = new ArrayList(iStreamsnum);
 
-			for (int i = 0; i < iThreadsnum; ++i) {
+			for (int i = 0; i < iStreamsnum; ++i) {
 				try {
 					outSockets.add(new Socket(hostAddress, iC2sport));
 				} catch (UnknownHostException e) {
@@ -1879,9 +1879,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			_dTime = System.currentTimeMillis();
 			pub_time = _dTime;
 
-			Thread[] threads = new Thread[iThreadsnum];
+			Thread[] threads = new Thread[iStreamsnum];
 
-			for (int i = 0; i < iThreadsnum; ++i) {
+			for (int i = 0; i < iStreamsnum; ++i) {
 				final Socket outSocket = (Socket) outSockets.get(i);
 
 				C2SWriterWorker worker = new C2SWriterWorker(
@@ -1891,7 +1891,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				threads[i] = new Thread(worker);
 			}
 
-			for (int i = 0; i < iThreadsnum; ++i) {
+			for (int i = 0; i < iStreamsnum; ++i) {
 				threads[i].start();
 			}
 
@@ -1904,7 +1904,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}, 100, _c2sspdUpdateTime);
 
-			for (int i = 0; i < iThreadsnum; ++i) {
+			for (int i = 0; i < iStreamsnum; ++i) {
 				try {
 					threads[i].join();
 				} catch (InterruptedException e) {
@@ -1974,7 +1974,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						lastThroughputSnapshot.next = new ThroughputSnapshot();
 						lastThroughputSnapshot = lastThroughputSnapshot.next;
 					} else {
-						_uThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
+						_c2sThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
 					}
  
 					lastThroughputSnapshot.next = null;
@@ -2047,7 +2047,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		Message msg = new Message();
 		boolean bThroughputsnaps;
 		final int iTestDuration;
-		int iSnapsdelay, iSnapsoffset, iThreadsnum;
+		int iSnapsdelay, iSnapsoffset, iStreamsnum;
 
 		// start S2C tests
 		if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
@@ -2085,13 +2085,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				bThroughputsnaps = Integer.parseInt(sMsgBody[2]) == 1;
 				iSnapsdelay = Integer.parseInt(sMsgBody[3]);
 				iSnapsoffset = Integer.parseInt(sMsgBody[4]);
-				iThreadsnum = Integer.parseInt(sMsgBody[5]);
+				iStreamsnum = Integer.parseInt(sMsgBody[5]);
 			} else {
 				iTestDuration = 10000;
 				bThroughputsnaps = false;
 				iSnapsdelay = 5000;
 				iSnapsoffset = 1000; 
-				iThreadsnum = 1;
+				iStreamsnum = 1;
 			}
 
 			showStatus(_resBundDisplayMsgs.getString("inboundTest"));
@@ -2108,9 +2108,9 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			pub_status = "runningInboundTest";
 
 			// Create socket and bind to port as instructed by server
-			List inSockets = new ArrayList(iThreadsnum);
+			List inSockets = new ArrayList(iStreamsnum);
 
-			for (int i = 0; i < iThreadsnum; ++i) {
+			for (int i = 0; i < iStreamsnum; ++i) {
 				try {
 					Socket socket = new Socket(hostAddress, iS2cport);
 					socket.setSoTimeout(iTestDuration + 5000);
@@ -2167,20 +2167,20 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			ThroughputSnapshot lastThroughputSnapshot = null;
 			double throughputSnapshotTime = _dTime + iSnapsoffset;
-			boolean[] activeThreads = new boolean[iThreadsnum];
-			int numberOfActiveThreads = iThreadsnum;
+			boolean[] activeStreams = new boolean[iStreamsnum];
+			int numberOfActiveStreams = iStreamsnum;
 			int idx = 0;
 
- 			Arrays.fill(activeThreads, true);
+ 			Arrays.fill(activeStreams, true);
 
 			try {
-				while (numberOfActiveThreads > 0) {
+				while (numberOfActiveStreams > 0) {
 					if (bThroughputsnaps && System.currentTimeMillis() > throughputSnapshotTime) {
 						if (lastThroughputSnapshot != null) {
 							lastThroughputSnapshot.next = new ThroughputSnapshot();
 							lastThroughputSnapshot = lastThroughputSnapshot.next;
 						} else {
-							_dThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
+							_s2cThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
 						}
 
 						lastThroughputSnapshot.next = null;
@@ -2189,15 +2189,15 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						throughputSnapshotTime += iSnapsdelay;
 					}
 
-					if (activeThreads[idx]) {
+					if (activeStreams[idx]) {
 						Socket socket = (Socket) inSockets.get(idx);
 						InputStream stream = socket.getInputStream();
 
 						inlth = stream.read(buff, 0, buff.length);
 
 						if (inlth <= 0) {
-							--numberOfActiveThreads;
-							activeThreads[idx] = false;
+							--numberOfActiveStreams;
+							activeStreams[idx] = false;
  
 							stream.close();
 							socket.close();
@@ -2208,7 +2208,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 					++idx;
 
-					if (idx >= iThreadsnum) {
+					if (idx >= iStreamsnum) {
 						idx = 0;
 					}
 				}
@@ -2316,8 +2316,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// message
 			StringBuilder sb = new StringBuilder(Double.toString(_dS2cspd * NDTConstants.KILO));
 
-			if (_dThroughputSnapshots != null) {
-				ThroughputSnapshot snapshotsPtr = _dThroughputSnapshots;
+			if (_s2cThroughputSnapshots != null) {
+				ThroughputSnapshot snapshotsPtr = _s2cThroughputSnapshots;
 
 				while (snapshotsPtr != null) {
 					sb.append(" ")
@@ -3639,8 +3639,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					}
 				}
 
-				if (_uThroughputSnapshots != null) {
-					snapshot = _uThroughputSnapshots;
+				if (_c2sThroughputSnapshots != null) {
+					snapshot = _c2sThroughputSnapshots;
  
 					_txtStatistics.append("---"
 							+ _resBundDisplayMsgs.getString("c2sThroughputSnapshots")
@@ -3691,8 +3691,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					}
 				}
 
-				if (_dThroughputSnapshots != null) {
-					snapshot = _dThroughputSnapshots;
+				if (_s2cThroughputSnapshots != null) {
+					snapshot = _s2cThroughputSnapshots;
  
 					_txtStatistics.append("---"
 							+ _resBundDisplayMsgs.getString("s2cThroughputSnapshots")

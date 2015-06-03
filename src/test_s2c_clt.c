@@ -47,12 +47,12 @@ double spdin, s2cspd;
 
 int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
                  int buf_size, char* result_srv,
-                 struct throughputSnapshot **dThroughputSnapshots, int jsonSupport) {
+                 struct throughputSnapshot **s2c_ThroughputSnapshots, int jsonSupport) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
   I2Addr sec_addr = NULL;
-  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per thread
+  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per stream
   int inlth, retcode, one = 1, set_size;
   int inSocket[MAX_STREAMS] = {0};
   socklen_t optlen;
@@ -65,8 +65,8 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
   int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
   double throughputSnapshotTime; // specify the next snapshot time
-  int threadsnum = 1;      // specify the number of threads (parallel TCP connections)
-  int activeThreads = 1;
+  int streamsnum = 1;      // specify the number of streams (parallel TCP connections)
+  int activeStreams = 1;
   int i;
   struct timeval sel_tv;
   fd_set rfd, tmpRfd;
@@ -118,12 +118,12 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       strtokptr = strtok(NULL, " ");
       snapsoffset = atoi(strtokptr);
       strtokptr = strtok(NULL, " ");
-      threadsnum = atoi(strtokptr);
+      streamsnum = atoi(strtokptr);
  
       log_println(1, "  -- test duration: %.1fs", testDuration);
       log_println(1, "  -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
                            throughputsnaps ? "true" : "false", snapsdelay, snapsoffset);
-      log_println(1, "  -- threads: %d", threadsnum);
+      log_println(1, "  -- streams: %d", streamsnum);
       lastThroughputSnapshot = NULL;
     }
     else {
@@ -150,11 +150,11 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     I2AddrSetPort(sec_addr, s2cport);  // set port to value obtained from server
 
     // Connect to the server; set socket options
-    for (i = 0; i < threadsnum; ++i) {
+    for (i = 0; i < streamsnum; ++i) {
       sec_addresses[i] = I2AddrCopy(sec_addr);
       if ((retcode = CreateConnectSocket(&inSocket[i], NULL, sec_addresses[i], conn_options, buf_size))) {
         log_println(0, "Connect() for Server to Client failed (connection %d)", strerror(errno), i+1);
-        for (i = 0; i < threadsnum; ++i) {
+        for (i = 0; i < streamsnum; ++i) {
           if (inSocket[i] > 0) {
             shutdown(inSocket[i], SHUT_WR);
             close(inSocket[i]);
@@ -197,14 +197,14 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     sel_tv.tv_sec = testDuration + 5;
     sel_tv.tv_usec = 5;
     FD_ZERO(&rfd);
-    activeThreads = threadsnum;
-    for (i = 0; i < threadsnum; i++) {
+    activeStreams = streamsnum;
+    for (i = 0; i < streamsnum; i++) {
       FD_SET(inSocket[i], &rfd);
     }
     // Read data sent by server as soon as it is available. Stop listening if timeout has been exceeded.
     for (;;) {
       tmpRfd = rfd;
-      retcode = select(inSocket[threadsnum-1]+1, &tmpRfd, NULL, NULL, &sel_tv);
+      retcode = select(inSocket[streamsnum-1]+1, &tmpRfd, NULL, NULL, &sel_tv);
       if (secs() > t) {
         log_println(5, "Receive test running long, break out of read loop");
         break;
@@ -215,7 +215,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
         lastThroughputSnapshot = lastThroughputSnapshot->next;
       }
       else {
-        *dThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        *s2c_ThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
       }
       lastThroughputSnapshot->next = NULL;
       lastThroughputSnapshot->time = secs() - testStartTime;
@@ -225,13 +225,13 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       throughputSnapshotTime += snapsdelay / 1000.0;
     }
       if (retcode > 0) {
-        for (i = 0; i < threadsnum; i++) {
+        for (i = 0; i < streamsnum; i++) {
           if (FD_ISSET(inSocket[i], &tmpRfd)) {
             inlth = read(inSocket[i], buff, sizeof(buff));
             if (inlth == 0) {
-              activeThreads--;
+              activeStreams--;
               FD_CLR(inSocket[i], &rfd);
-              if (activeThreads == 0) {
+              if (activeStreams == 0) {
                 goto breakOuterLoop;
               }
             }
@@ -327,8 +327,8 @@ breakOuterLoop:
 
     // send TEST_MSG to server with the client-calculated throughput
     snprintf(buff, sizeof(buff), "%0.0f", spdin);
-    if (*dThroughputSnapshots != NULL) {
-      struct throughputSnapshot *snapshotsPtr = *dThroughputSnapshots;
+    if (*s2c_ThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = *s2c_ThroughputSnapshots;
       while (snapshotsPtr != NULL) {
         int currBuffLength = strlen(buff);
         snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);

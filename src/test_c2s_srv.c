@@ -48,7 +48,7 @@
  * @param spds[] [] speed check array
  * @param spd_index  index used for speed check array
  * @param conn_options Connection options
- * @param uThroughputSnapshots Variable used to set c2s throughput snapshots
+ * @param c2s_ThroughputSnapshots Variable used to set c2s throughput snapshots
  * @return 0 - success,
  *          >0 - error code
  *          Error codes:
@@ -63,7 +63,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
              int count_vars, char spds[4][256], int* spd_index,
-             struct throughputSnapshot **uThroughputSnapshots) {
+             struct throughputSnapshot **c2s_ThroughputSnapshots) {
   tcp_stat_connection conn;
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
@@ -73,8 +73,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
   int i, j, k;  // used as loop iterators
   int retvalue = 0;
-  int threadsNum = 1;
-  int activeThreads = 1;
+  int streamsNum = 1;
+  int activeStreams = 1;
 
   struct sockaddr_storage cli_addr[MAX_STREAMS];
   struct throughputSnapshot *lastThroughputSnapshot;
@@ -169,10 +169,10 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
     log_println(1, "  -- c2s %d port: %d", testOptions->child0, testOptions->c2ssockport);
     if (testOptions->exttestsopt) {
-      log_println(1, "  -- c2s ext -- duration = %d", options->uduration);
+      log_println(1, "  -- c2s ext -- duration = %d", options->c2s_duration);
       log_println(1, "  -- c2s ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
-                          options->uthroughputsnaps ? "true" : "false", options->usnapsdelay, options->usnapsoffset);
-      log_println(1, "  -- c2s ext -- number of threads: %d", options->uthreadsnum);
+                          options->c2s_throughputsnaps ? "true" : "false", options->c2s_snapsdelay, options->c2s_snapsoffset);
+      log_println(1, "  -- c2s ext -- number of streams: %d", options->c2s_streamsnum);
     }
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
@@ -189,8 +189,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
     if (testOptions->exttestsopt) {
       snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->c2ssockport,
-                     options->uduration, options->uthroughputsnaps, 
-                     options->usnapsdelay, options->usnapsoffset, options->uthreadsnum);
+                     options->c2s_duration, options->c2s_throughputsnaps,
+                     options->c2s_snapsdelay, options->c2s_snapsoffset, options->c2s_streamsnum);
       lastThroughputSnapshot = NULL;
     }
 
@@ -212,11 +212,11 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sel_tv.tv_usec = 0;
     i = 0;
     if (testOptions->exttestsopt) {
-      threadsNum = options->uthreadsnum;
-      testDuration = options->uduration / 1000.0;
+      streamsNum = options->c2s_streamsnum;
+      testDuration = options->c2s_duration / 1000.0;
     }
 
-    for (j = 0; j < RETRY_COUNT * threadsNum; j++) {
+    for (j = 0; j < RETRY_COUNT * streamsNum; j++) {
       msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL, &sel_tv); // TODO
       // socket interrupted. continue waiting for activity on socket
       if ((msgretvalue == -1) && (errno == EINTR))
@@ -225,7 +225,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         retvalue = -SOCKET_CONNECT_TIMEOUT;
       if (msgretvalue < 0)  // other socket errors. exit
         retvalue = -errno;
-      if (j == (RETRY_COUNT*threadsNum - 1))  // retry exceeded. exit
+      if (j == (RETRY_COUNT*streamsNum - 1))  // retry exceeded. exit
         retvalue = -RETRY_EXCEEDED_WAITING_CONNECT;
       if (!retvalue) {
  recfd:
@@ -235,9 +235,9 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         recvsfd[i] = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr[i], &clilen);
         if (recvsfd[i] > 0) {
           i++;
-          log_println(6, "accept(%d/%d) for %d completed", i, threadsNum, testOptions->child0);
+          log_println(6, "accept(%d/%d) for %d completed", i, streamsNum, testOptions->child0);
 
-          if (i < threadsNum) {
+          if (i < streamsNum) {
             continue;
           }
 
@@ -262,7 +262,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         if (recvsfd[i] < 0) {  // other socket errors, quit
           retvalue =  -errno;
         }
-        if (j == (RETRY_COUNT*threadsNum - 1)) {  // retry exceeded, quit
+        if (j == (RETRY_COUNT*streamsNum - 1)) {  // retry exceeded, quit
           log_println(
               6,
               "c2s child %d, unable to open connection, return from test",
@@ -272,7 +272,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
       }
 
       if (retvalue) {
-        for (k = 0; k < threadsNum; k++) {
+        for (k = 0; k < streamsNum; k++) {
           if (recvsfd[k] > 0)
             close(recvsfd[i]);
         }
@@ -297,7 +297,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
       if ((c2s_childpid = fork()) == 0) {
         /* close(ctlsockfd); */
         close(testOptions->c2ssockfd);
-        for (i = 0; i < threadsNum; i++) {
+        for (i = 0; i < streamsNum; i++) {
           close(recvsfd[i]);
         }
         log_println(
@@ -306,8 +306,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
             testOptions->child0, mon_pipe[0], mon_pipe[1]);
         log_println(2, "C2S test calling init_pkttrace() with pd=%p",
                     &cli_addr[0]);
-        init_pkttrace(src_addr, cli_addr, threadsNum, clilen,
-                      mon_pipe, device, &pair, "c2s", options->uduration / 1000.0);
+        init_pkttrace(src_addr, cli_addr, streamsNum, clilen,
+                      mon_pipe, device, &pair, "c2s", options->c2s_duration / 1000.0);
         log_println(1, "c2s is exiting gracefully");
         /* Close the pipe */
         close(mon_pipe[0]);
@@ -365,48 +365,48 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                       meta.c2s_snaplog, options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
-    throughputSnapshotTime = tmptime + (options->usnapsoffset / 1000.0);
+    throughputSnapshotTime = tmptime + (options->c2s_snapsoffset / 1000.0);
     sel_tv.tv_sec = testDuration + 1;  // time out after test duration + 1sec
     sel_tv.tv_usec = 0;
     FD_ZERO(&rfd);
-    activeThreads = threadsNum;
-    for (i = 0; i < threadsNum; i++) {
+    activeStreams = streamsNum;
+    for (i = 0; i < streamsNum; i++) {
       FD_SET(recvsfd[i], &rfd);
     }
     for (;;) {
 readMainLoop:
       tmpRfd = rfd;
-      msgretvalue = select(recvsfd[threadsNum-1] + 1, &tmpRfd, NULL, NULL, &sel_tv);
-    if (testOptions->exttestsopt && options->uthroughputsnaps && secs() > throughputSnapshotTime) {
+      msgretvalue = select(recvsfd[streamsNum-1] + 1, &tmpRfd, NULL, NULL, &sel_tv);
+    if (testOptions->exttestsopt && options->c2s_throughputsnaps && secs() > throughputSnapshotTime) {
       if (lastThroughputSnapshot != NULL) {
         lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
         lastThroughputSnapshot = lastThroughputSnapshot->next;
       }
       else {
-        *uThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        *c2s_ThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
       }
       lastThroughputSnapshot->next = NULL;
       lastThroughputSnapshot->time = secs() - tmptime;
       lastThroughputSnapshot->throughput = (8.e-3 * bytes_read) / (lastThroughputSnapshot->time);  // kbps
       log_println(6, " ---C->S: Throughput at %0.2f secs: Received %0.0f bytes, Spdin= %f",
                      lastThroughputSnapshot->time, bytes_read, lastThroughputSnapshot->throughput);
-      throughputSnapshotTime += options->usnapsdelay / 1000.0;
+      throughputSnapshotTime += options->c2s_snapsdelay / 1000.0;
     }
       if ((msgretvalue == -1) && (errno == EINTR)) {
         // socket interrupted. Continue waiting for activity on socket
         continue;
       }
       if (msgretvalue > 0) {  // read from socket
-        for (i = 0; i < threadsNum; i++) {
+        for (i = 0; i < streamsNum; i++) {
           if (FD_ISSET(recvsfd[i], &tmpRfd)) {
             tmpbytecount = read(recvsfd[i], buff, sizeof(buff));
             // read interrupted, continue waiting
             if ((tmpbytecount == -1) && (errno == EINTR))
               goto readMainLoop;
             if (tmpbytecount == 0) { // all data has been read
-               activeThreads--;
+               activeStreams--;
                FD_CLR(recvsfd[i], &rfd);
-               if (activeThreads == 0) {
+               if (activeStreams == 0) {
                  goto breakMainLoop;
                }
             }
@@ -433,8 +433,8 @@ breakMainLoop:
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
-    if (*uThroughputSnapshots != NULL) {
-      struct throughputSnapshot *snapshotsPtr = *uThroughputSnapshots;
+    if (*c2s_ThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = *c2s_ThroughputSnapshots;
       while (snapshotsPtr != NULL) {
         int currBuffLength = strlen(buff);
         snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);
@@ -449,7 +449,7 @@ breakMainLoop:
       tcp_stat_get_data_recv(recvsfd[0], agent, conn, count_vars);
 
 
-    for (i = 0; i < threadsNum; i++) {
+    for (i = 0; i < streamsNum; i++) {
       close(recvsfd[i]);
     }
     close(testOptions->c2ssockfd);

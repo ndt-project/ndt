@@ -161,16 +161,16 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
       addAdditionalMetaEntry(&new_entry, buff, value);
     }
     if (testOptions->exttestsopt) {
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->uduration);
-      addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->uthroughputsnaps ? "true" : "false");
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->usnapsdelay);
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->usnapsoffset);
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.threadsnum", options->uthreadsnum);
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->dduration);
-      addAdditionalMetaEntry(&new_entry, "ext.s2c.throughputsnaps", options->dthroughputsnaps ? "true" : "false");
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->dsnapsdelay);
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->dsnapsoffset);
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.threadsnum", options->dthreadsnum);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->c2s_duration);
+      addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->c2s_throughputsnaps ? "true" : "false");
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->c2s_snapsdelay);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->c2s_snapsoffset);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.streamsnum", options->c2s_streamsnum);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->s2c_duration);
+      addAdditionalMetaEntry(&new_entry, "ext.s2c.throughputsnaps", options->s2c_throughputsnaps ? "true" : "false");
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->s2c_snapsdelay);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->s2c_snapsoffset);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.streamsnum", options->s2c_streamsnum);
     }
 
     // Finalize test by sending appropriate message, and setting status

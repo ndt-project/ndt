@@ -112,24 +112,24 @@ typedef struct CwndPeaks {
 
 // Options to run test with
 typedef struct options {
-  u_int32_t limit;       // used to calculate receive window limit
-  int snapDelay;         // frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
-  char avoidSndBlockUp;  // flag set to indicate avoiding send buffer blocking in the S2C test
-  char snaplog;          // enable collecting snap log
-  char cwndDecrease;     // enable analysis of the cwnd changes (S2C test)
-  char s2c_logname[256]; // S2C log file name - size changed to 256
-  char c2s_logname[256]; // C2S log file name - size changed to 256
-  int compress;          // enable compressing log files
-  int uduration;         // upload test duration
-  char uthroughputsnaps; // enable the throughput snapshots for upload test writing
-  int usnapsdelay;       // specify the delay in the throughput snapshots thread for upload test
-  int usnapsoffset;      // specify the initial offset in the throughput snapshots thread for upload test
-  int uthreadsnum;       // specify the number of threads (parallel TCP connections) for upload test
-  int dduration;         // download test duration
-  char dthroughputsnaps; // enable the throughput snapshots for download test writing
-  int dsnapsdelay;       // specify the delay in the throughput snapshots thread for download test
-  int dsnapsoffset;      // specify the initial offset in the throughput snapshots thread for download test
-  int dthreadsnum;       // specify the number of threads (parallel TCP connections) for download test
+  u_int32_t limit;              // used to calculate receive window limit
+  int snapDelay;                // frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
+  char avoidSndBlockUp;         // flag set to indicate avoiding send buffer blocking in the S2C test
+  char snaplog;                 // enable collecting snap log
+  char cwndDecrease;            // enable analysis of the cwnd changes (S2C test)
+  char s2c_logname[256];        // S2C log file name - size changed to 256
+  char c2s_logname[256];        // C2S log file name - size changed to 256
+  int compress;                 // enable compressing log files
+  int c2s_duration;             // upload test duration
+  char c2s_throughputsnaps;     // enable the throughput snapshots for upload test writing
+  int c2s_snapsdelay;           // specify the delay in the throughput snapshots thread for upload test
+  int c2s_snapsoffset;          // specify the initial offset in the throughput snapshots thread for upload test
+  int c2s_streamsnum;           // specify the number of streams (parallel TCP connections) for upload test
+  int s2c_duration;             // download test duration
+  char s2c_throughputsnaps;     // enable the throughput snapshots for download test writing
+  int s2c_snapsdelay;           // specify the delay in the throughput snapshots thread for download test
+  int s2c_snapsoffset;          // specify the initial offset in the throughput snapshots thread for download test
+  int s2c_streamsnum;           // specify the number of streams (parallel TCP connections) for download test
 } Options;
 
 typedef struct portpair {
@@ -325,7 +325,7 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                    int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
-int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int threadsNum, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
                       tcp_stat_agent* agent, int count_vars, int jsonSupport);
 
 int CwndDecrease(char* logname,
@@ -338,7 +338,7 @@ void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct t
 
 int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
-               struct throughputSnapshot *dThroughputSnapshots, struct throughputSnapshot *uThroughputSnapshots);
+               struct throughputSnapshot *s2c_ThroughputSnapshots, struct throughputSnapshot *c2s_ThroughputSnapshots);
 
 char *get_remotehost();
 

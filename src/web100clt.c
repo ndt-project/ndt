@@ -51,7 +51,7 @@ double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
 /* Set to either Web10G or Web100 */
 const char *ServerType;
-struct throughputSnapshot *dThroughputSnapshots, *uThroughputSnapshots;
+struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
 
 static struct option long_options[] = {
   { "name", 1, 0, 'n' }, { "port", 1, 0, 'p' },
@@ -239,7 +239,7 @@ void testResults(char tests, char *testresult_str, char* host) {
       print_linkspeed_dataacks((tests & TEST_C2S), c2sData,
                                c2sAck, s2cData, s2cAck);
 
-      print_throughput_snapshots(dThroughputSnapshots, uThroughputSnapshots);
+      print_throughput_snapshots(s2c_ThroughputSnapshots, c2s_ThroughputSnapshots);
     }
   } else {
     printf("No %s data collected!  Possible Duplex Mismatch condition "
@@ -935,14 +935,14 @@ int main(int argc, char *argv[]) {
         }
         break;
       case TEST_C2S:
-        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, &uThroughputSnapshots, jsonSupport)) {
+        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, &c2s_ThroughputSnapshots, jsonSupport)) {
           log_println(0, "C2S throughput test FAILED!");
           tests &= (~TEST_C2S);
         }
         break;
       case TEST_S2C:
         if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
-                         resultstr, &dThroughputSnapshots, jsonSupport)) {
+                         resultstr, &s2c_ThroughputSnapshots, jsonSupport)) {
           log_println(0, "S2C throughput test FAILED!");
           tests &= (~TEST_S2C);
         }

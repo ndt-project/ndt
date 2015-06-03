@@ -83,20 +83,20 @@ void srv_long_usage(char* info) {
   printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
 #endif
   printf(" Extended tests code:\n\n");
-  printf("  --uduration #msec      - specify upload test duration (default 10000 msec)\n");
-  printf("  --uthroughputsnaps     - enable the throughput snapshots for upload test writing\n");
-  printf("  --usnapsdelay #msec    - specify the delay in the throughput snapshots thread for upload test (default 5000 msec)\n");
-  printf("                           Note: this doesn't enable 'uthroughputsnaps'\n");
-  printf("  --usnapsoffset #msec   - specify the initial offset in the throughput snapshots thread for upload test (default 1000 msec)\n");
-  printf("                           Note: this doesn't enable 'uthroughputsnaps'\n");
-  printf("  --uthreadsnum #num     - specify the number of threads (parallel TCP connections) for upload test (default 1 thread, maximum 7)\n");
-  printf("  --dduration #msec      - specify download test duration (default 10000 msec)\n");
-  printf("  --dthroughputsnaps     - enable the throughput snapshots for download test writing\n");
-  printf("  --dsnapsdelay #msec    - specify the delay in the throughput snapshots thread for download test (default 5000 msec)\n");
-  printf("                           Note: this doesn't enable 'dthroughputsnaps'\n");
-  printf("  --dsnapsoffset #msec   - specify the initial offset in the throughput snapshots thread for download test (default 1000 msec)\n");
-  printf("                           Note: this doesn't enable 'dthroughputsnaps'\n");
-  printf("  --dthreadsnum #num     - specify the number of threads (parallel TCP connections) for download test (default 1 thread, maximum 7)\n\n");
+  printf("  --c2sduration #msec    - specify upload test duration (default 10000 msec)\n");
+  printf("  --c2sthroughputsnaps   - enable the throughput snapshots for upload test writing\n");
+  printf("  --c2ssnapsdelay #msec  - specify the delay in the throughput snapshots thread for upload test (default 5000 msec)\n");
+  printf("                           Note: this doesn't enable 'c2sthroughputsnaps'\n");
+  printf("  --c2ssnapsoffset #msec - specify the initial offset in the throughput snapshots thread for upload test (default 1000 msec)\n");
+  printf("                           Note: this doesn't enable 'c2sthroughputsnaps'\n");
+  printf("  --c2sstreamsnum #num   - specify the number of streams (parallel TCP connections) for upload test (default 1 stream, maximum 7)\n");
+  printf("  --s2cduration #msec    - specify download test duration (default 10000 msec)\n");
+  printf("  --s2cthroughputsnaps   - enable the throughput snapshots for download test writing\n");
+  printf("  --s2csnapsdelay #msec  - specify the delay in the throughput snapshots thread for download test (default 5000 msec)\n");
+  printf("                           Note: this doesn't enable 's2cthroughputsnaps'\n");
+  printf("  --s2csnapsoffset #msec - specify the initial offset in the throughput snapshots thread for download test (default 1000 msec)\n");
+  printf("                           Note: this doesn't enable 's2cthroughputsnaps'\n");
+  printf("  --s2cstreamsnum #num   - specify the number of streams (parallel TCP connections) for download test (default 1 stream, maximum 7)\n\n");
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
   printf(" Database support:\n\n");
   printf("  --enableDBlogging      - enable the test results logging to the database\n");
