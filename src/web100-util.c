@@ -1073,17 +1073,18 @@ int tcp_stat_logvars(struct tcp_vars* vars, int connId, int count_vars) {
 
 void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars) {
   int a, i;
+
+  char webVarsFileName[256];
+  snprintf(webVarsFileName, strlen(webVarsValuesLog) - 10, "%s", webVarsValuesLog);
+  snprintf(&webVarsFileName[strlen(webVarsFileName)], sizeof(webVarsFileName)-strlen(webVarsFileName),
+    "_%s_vars.log", TCP_STAT_NAME);
+  FILE* file = fopen(webVarsFileName, "w");
+
+  if (!file) {
+    return;
+  }
+
   for (i = 0; i < connNum; ++i) {
-    char webVarsFileName[256];
-    snprintf(webVarsFileName, strlen(webVarsValuesLog) - 10, "%s", webVarsValuesLog);
-    snprintf(&webVarsFileName[strlen(webVarsFileName)], sizeof(webVarsFileName)-strlen(webVarsFileName),
-             "_%d_%s.log", i+1, TCP_STAT_NAME);
-    FILE* file = fopen(webVarsFileName, "w");
-
-    if (!file) {
-      return;
-    }
-
     for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
 #if USE_WEB100
     char* var_name = tcp_names[a].web100_name;
@@ -1094,11 +1095,11 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
     }
 #endif
       tcp_stat_var* var = &((tcp_stat_var *)&vars[i])[a];
-      fprintf(file, "%s: %"VARtype"\n", var_name, *var);
+      fprintf(file, "%s[%d]: %"VARtype"\n", var_name, i, *var);
     }
-
-    fclose(file);
   }
+
+  fclose(file);
 }
 
 tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {

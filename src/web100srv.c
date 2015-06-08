@@ -942,7 +942,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   char isoTime[64];
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
-  struct tcp_vars vars[7]; // up to 7 connections
+  struct tcp_vars vars[MAX_STREAMS];
   struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
 
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
