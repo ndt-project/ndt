@@ -76,9 +76,8 @@ void setCurrentTest(int testId);
 // void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
 void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
                        CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group);
+                       pthread_t *wrkrthreadidarg, char *metafilename,
+                       tcp_stat_connection conn, tcp_stat_group* group);
 
 void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
                       SnapArgs* snapArgs_ptr);

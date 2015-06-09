@@ -136,7 +136,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   struct sigaction new, old;
   char* jsonMsgValue;
 
-  pthread_t workerThreadId;
+  pthread_t workerThreadId[MAX_STREAMS];
   int nextseqtosend = 0, lastunackedseq = 0;
   int drainingqueuecount = 0, bufctlrnewdata = 0;
 
@@ -147,12 +147,15 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char snaplogsuffix[256] = "s2c_snaplog";
 
-  SnapArgs snapArgs;
-  snapArgs.snap = NULL;
+  SnapArgs snapArgs[MAX_STREAMS];
+
+  for (i = 0; i < MAX_STREAMS; i++) {
+    snapArgs[i].snap = NULL;
 #if USE_WEB100
-  snapArgs.log = NULL;
+    snapArgs[i].log = NULL;
 #endif
-  snapArgs.delay = options->snapDelay;
+    snapArgs[i].delay = options->snapDelay;
+  }
   wait_sig = 0;
 
   log_println(0, "test client version: %s", testOptions->client_version);
@@ -432,9 +435,15 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
         &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
         conn, group);*///new file changes
-      start_snap_worker(&snapArgs, agent, peaks, options->snaplog,
-                        &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
-                        conn[0], group);
+      for (i = 0; i < streamsNum; ++i) {
+          char snapLogFileName[1024];
+          snprintf(snapLogFileName, strlen(options->s2c_logname) - 12, "%s", options->s2c_logname);
+          snprintf(&snapLogFileName[strlen(snapLogFileName)], sizeof(snapLogFileName)-strlen(snapLogFileName),
+                      "_%d.s2c_snaplog", i);
+          start_snap_worker(&snapArgs[i], agent, peaks, options->snaplog,
+                            &workerThreadId[i], snapLogFileName,
+                            conn[i], group);
+      }
 
       /* alarm(20); */
       tmptime = secs();  // current time
@@ -460,17 +469,17 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
             // get details of next sequence # to be sent and fetch value from snap file
 #if USE_WEB100
             web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-            web100_snap_read(var, snapArgs.snap, tmpstr);
+            web100_snap_read(var, snapArgs[0].snap, tmpstr);
             nextseqtosend = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
             // get oldest un-acked sequence number
             web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-            web100_snap_read(var, snapArgs.snap, tmpstr);
+            web100_snap_read(var, snapArgs[0].snap, tmpstr);
             lastunackedseq = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
 #elif USE_WEB10G
             struct estats_val value;
-            web10g_find_val(snapArgs.snap, "SndNxt", &value);
+            web10g_find_val(snapArgs[0].snap, "SndNxt", &value);
             nextseqtosend = value.uv32;
-            web10g_find_val(snapArgs.snap, "SndUna", &value);
+            web10g_find_val(snapArgs[0].snap, "SndUna", &value);
             lastunackedseq = value.uv32;
 #endif
             pthread_mutex_unlock(&mainmutex);
@@ -530,7 +539,9 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       x2cspd = (8.e-3 * bytes_written) / tx_duration;
 
       // Release semaphore, and close snaplog file.  finalize other data
-      stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
+      for (i = 0; i < streamsNum; i++) {
+        stop_snap_worker(&workerThreadId[i], options->snaplog, &snapArgs);
+      }
 
       // send the x2cspd to the client
       memset(buff, 0, sizeof(buff));

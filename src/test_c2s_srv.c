@@ -362,7 +362,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         conn, group); */
     }
     start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
-                      meta.c2s_snaplog, options->c2s_logname, conn, group);
+                      options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
     throughputSnapshotTime = tmptime + (options->c2s_snapsoffset / 1000.0);

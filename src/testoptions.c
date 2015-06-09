@@ -320,16 +320,14 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
  * @param snaplogenabled Is snap logging enabled?
  * @param workerlooparg integer used to syncronize writing/reading from snaplog/tcp_stat snapshot
  * @param wrkrthreadidarg Thread Id of workera
- * @param metafilevariablename Which variable of the meta file gets assigned the snaplog name (unused now)
  * @param metafilename	value of metafile name
  * @param tcp_stat_connection connection pointer
  * @param tcp_stat_group group web100_group pointer
  */
 void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
                        CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group) {
+                       pthread_t *wrkrthreadidarg, char *metafilename,
+                       tcp_stat_connection conn, tcp_stat_group* group) {
   FILE *fplocal;
 
   WorkerArgs workerArgs;
