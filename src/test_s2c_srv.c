@@ -32,6 +32,23 @@ typedef struct s2cWriteWorkerArgs {
   double stopTime;
   char* buff;
 } S2CWriteWorkerArgs;
+
+typedef struct s2cServerStream {
+#if USE_WEB100
+  /* experimental code to capture and log multiple copies of the
+   * web100 variables using the web100_snap() & log() functions.
+   */
+  web100_snapshot* tsnap;
+  web100_snapshot* rsnap;
+  web100_group* tgroup;
+  web100_group* rgroup;
+#endif
+  tcp_stat_connection conn;
+  S2CWriteWorkerArgs writeWorkerArgs;
+  pthread_t writeWorkerIds;
+  SnapArgs snapArgs;
+  pthread_t workerThreadId;
+} S2CServerStream;
  
 void* s2cWriteWorker(void* arg);
 
@@ -87,28 +104,18 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int* spd_index, int count_vars, CwndPeaks* peaks,
              struct throughputSnapshot **s2c_ThroughputSnapshots) {
 #if USE_WEB100
-  /* experimental code to capture and log multiple copies of the
-   * web100 variables using the web100_snap() & log() functions.
-   */
-  web100_snapshot* tsnap[MAX_STREAMS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-  web100_snapshot* rsnap[MAX_STREAMS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-  web100_group* tgroup[MAX_STREAMS];
-  web100_group* rgroup[MAX_STREAMS];
   web100_var* var;
 #elif USE_WEB10G
   estats_val_data* snap[MAX_STREAMS];
 #endif
-  tcp_stat_connection conn[MAX_STREAMS];
   /* Just a holder for web10g */
   tcp_stat_group* group = NULL;
   /* Pipe that handles returning packet pair timing */
   int mon_pipe[2];
+  int xmitsfd[MAX_STREAMS];
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
   int streamsNum = 1;
-  S2CWriteWorkerArgs writeWorkerArgs[MAX_STREAMS]; // write workers parameters
-  pthread_t writeWorkerIds[MAX_STREAMS];        // write workers ids
-  int xmitsfd[MAX_STREAMS];  // transmit (i.e server) socket fds (up to 7)
   pid_t s2c_childpid = 0;  // s2c_childpid
 
   char tmpstr[256];  // string array used for temp storage of many char*
@@ -136,9 +143,10 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   struct sigaction new, old;
   char* jsonMsgValue;
 
-  pthread_t workerThreadId[MAX_STREAMS];
   int nextseqtosend = 0, lastunackedseq = 0;
   int drainingqueuecount = 0, bufctlrnewdata = 0;
+
+  S2CServerStream streams[MAX_STREAMS];
 
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
@@ -147,14 +155,14 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char snaplogsuffix[256] = "s2c_snaplog";
 
-  SnapArgs snapArgs[MAX_STREAMS];
-
   for (i = 0; i < MAX_STREAMS; i++) {
-    snapArgs[i].snap = NULL;
+    streams[i].snapArgs.snap = NULL;
 #if USE_WEB100
-    snapArgs[i].log = NULL;
+    streams[i].tsnap = NULL;
+    streams[i].rsnap = NULL;
+    streams[i].snapArgs.log = NULL;
 #endif
-    snapArgs[i].delay = options->snapDelay;
+    streams[i].snapArgs.delay = options->snapDelay;
   }
   wait_sig = 0;
 
@@ -267,7 +275,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     log_println(1, "%d waiting for data on testOptions->s2csockfd",
                 testOptions->child0);
 
-    clilen = sizeof(cli_addr[0]);
+    clilen = sizeof(cli_addr);
     FD_ZERO(&rfd);
     FD_SET(testOptions->s2csockfd, &rfd);
     sel_tv.tv_sec = 5;  // wait for 5 secs
@@ -329,7 +337,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
     }
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd[0], 0);
     for (i = 0; i < streamsNum; ++i) {
-      conn[i] = tcp_stat_connection_from_socket(agent, xmitsfd[i]); 
+      streams[i].conn = tcp_stat_connection_from_socket(agent, xmitsfd[i]);
     }
 
     // set up packet capture. The data collected is used for bottleneck link
@@ -377,7 +385,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       }
 
       /* experimental code, delete when finished */
-      setCwndlimit(conn[0], group, agent, options);
+      setCwndlimit(streams[0].conn, group, agent, options);
       /* End of test code */
 
       // create directory to write web100 snaplog trace
@@ -394,10 +402,10 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       }
       for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
-        rgroup[i] = web100_group_find(agent, "read");
-        rsnap[i] = web100_snapshot_alloc(rgroup[i], conn[i]);
-        tgroup[i] = web100_group_find(agent, "tune");
-        tsnap[i] = web100_snapshot_alloc(tgroup[i], conn[i]);
+        streams[i].rgroup = web100_group_find(agent, "read");
+        streams[i].rsnap = web100_snapshot_alloc(streams[i].rgroup, streams[i].conn);
+        streams[i].tgroup = web100_group_find(agent, "tune");
+        streams[i].tsnap = web100_snapshot_alloc(streams[i].tgroup, streams[i].conn);
 #elif USE_WEB10G
         estats_val_data_new(&snap[i]);
 #endif
@@ -440,9 +448,9 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           snprintf(snapLogFileName, strlen(options->s2c_logname) - 12, "%s", options->s2c_logname);
           snprintf(&snapLogFileName[strlen(snapLogFileName)], sizeof(snapLogFileName)-strlen(snapLogFileName),
                       "_%d.s2c_snaplog", i);
-          start_snap_worker(&snapArgs[i], agent, peaks, options->snaplog,
-                            &workerThreadId[i], snapLogFileName,
-                            conn[i], group);
+          start_snap_worker(&streams[i].snapArgs, agent, peaks, options->snaplog,
+                            &streams[i].workerThreadId, snapLogFileName,
+                            streams[i].conn, group);
       }
 
       /* alarm(20); */
@@ -450,10 +458,10 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
 
       for (i = 0; i < streamsNum; ++i) {  
-        writeWorkerArgs[i].connectionId = i + 1;
-        writeWorkerArgs[i].socketDescriptor = xmitsfd[i];
-        writeWorkerArgs[i].stopTime = tx_duration; 
-        writeWorkerArgs[i].buff = buff;
+        streams[i].writeWorkerArgs.connectionId = i + 1;
+        streams[i].writeWorkerArgs.socketDescriptor = xmitsfd[i];
+        streams[i].writeWorkerArgs.stopTime = tx_duration;
+        streams[i].writeWorkerArgs.buff = buff;
       }
 
 
@@ -469,17 +477,17 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
             // get details of next sequence # to be sent and fetch value from snap file
 #if USE_WEB100
             web100_agent_find_var_and_group(agent, "SndNxt", &group, &var);
-            web100_snap_read(var, snapArgs[0].snap, tmpstr);
+            web100_snap_read(var, streams[0].snapArgs.snap, tmpstr);
             nextseqtosend = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
             // get oldest un-acked sequence number
             web100_agent_find_var_and_group(agent, "SndUna", &group, &var);
-            web100_snap_read(var, snapArgs[0].snap, tmpstr);
+            web100_snap_read(var, streams[0].snapArgs.snap, tmpstr);
             lastunackedseq = atoi(web100_value_to_text(web100_get_var_type(var), tmpstr));
 #elif USE_WEB10G
             struct estats_val value;
-            web10g_find_val(snapArgs[0].snap, "SndNxt", &value);
+            web10g_find_val(streams[0].snapArgs.snap, "SndNxt", &value);
             nextseqtosend = value.uv32;
-            web10g_find_val(snapArgs[0].snap, "SndUna", &value);
+            web10g_find_val(streams[0].snapArgs.snap, "SndUna", &value);
             lastunackedseq = value.uv32;
 #endif
             pthread_mutex_unlock(&mainmutex);
@@ -509,15 +517,15 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       }
       else {
         for (i = 0; i < streamsNum; ++i) {
-          if (pthread_create(&writeWorkerIds[i], NULL, s2cWriteWorker, (void*) &writeWorkerArgs[i])) {
+          if (pthread_create(&streams[i].writeWorkerIds, NULL, s2cWriteWorker, (void*) &streams[i].writeWorkerArgs)) {
             log_println(0, "Cannot create write worker thread for throughput download test!");
-            writeWorkerIds[i] = 0;
+            streams[i].writeWorkerIds = 0;
             return -4;
           }
         }
 
         for (i = 0; i < streamsNum; ++i) {
-          pthread_join(writeWorkerIds[i], NULL);
+          pthread_join(streams[i].writeWorkerIds, NULL);
         }
       }
 
@@ -540,7 +548,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       // Release semaphore, and close snaplog file.  finalize other data
       for (i = 0; i < streamsNum; i++) {
-        stop_snap_worker(&workerThreadId[i], options->snaplog, &snapArgs);
+        stop_snap_worker(&streams[i].workerThreadId, options->snaplog, &streams[i].snapArgs);
       }
 
       // send the x2cspd to the client
@@ -566,10 +574,10 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
-        web100_snap(rsnap[i]);
-        web100_snap(tsnap[i]);
+        web100_snap(streams[i].rsnap);
+        web100_snap(streams[i].tsnap);
 #elif USE_WEB10G
-        estats_read_vars(snap[i], conn[i], agent);
+        estats_read_vars(snap[i], streams[i].conn, agent);
 #endif
       }
 
@@ -658,17 +666,17 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
     // send web100 data to client
     ret = tcp_stat_get_data(tsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
      for (i = 0; i < streamsNum; ++i) {
-      web100_snapshot_free(tsnap[i]);
+      web100_snapshot_free(streams[i].tsnap);
     }
     // send tuning-related web100 data collected to client
     ret = tcp_stat_get_data(rsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
     for (i = 0; i < streamsNum; ++i) {
-      web100_snapshot_free(rsnap[i]); 
+      web100_snapshot_free(streams[i].rsnap);
     }
 #elif USE_WEB10G
     ret = tcp_stat_get_data(snap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
     for (i = 0; i < streamsNum; ++i) {
-      estats_val_data_free(&snap[i]); 
+      estats_val_data_free(&snap[i]);
     }
 #endif
 

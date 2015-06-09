@@ -30,6 +30,12 @@ typedef struct c2sWriteWorkerArgs {
   char* buff;
 } C2SWriteWorkerArgs;
 
+typedef struct c2sClientStream {
+  I2Addr sec_addresses;
+  C2SWriteWorkerArgs writeWorkerArgs;
+  pthread_t writeWorkerIds;
+} C2SClientStream;
+
 void* c2sWriteWorker(void* arg);
 
 /**
@@ -62,16 +68,13 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   // know why this was changed from BUFFZISE, though
   // no specific problem is seen due to this
   char* jsonMsgValue; // temporary buffer for storing values from JSON message
-
+  C2SClientStream streams[MAX_STREAMS];
   int msgLen, msgType;  // message related data
   int c2sport = atoi(PORT2);  // default C2S port
   I2Addr sec_addr = NULL;  // server address
-  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per stream
   int retcode;  // return code
   int one = 1;  // socket option store
   int i, k;  // temporary iterator
-  C2SWriteWorkerArgs writeWorkerArgs[MAX_STREAMS]; // write workers parameters
-  pthread_t writeWorkerIds[MAX_STREAMS];        // write workers ids
   double t, stop_time;  // test-time indicators
   double testDuration = 10; // default test duration
   char* strtokptr;  // pointer used by the strtok method
@@ -157,13 +160,13 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     I2AddrSetPort(sec_addr, c2sport);  // set port value
 
     for (i = 0; i < streamsnum; ++i) {
-      sec_addresses[i] = I2AddrCopy(sec_addr);
+      streams[i].sec_addresses = I2AddrCopy(sec_addr);
 
-      if ((retcode = CreateConnectSocket(&(writeWorkerArgs[i].socketDescriptor), NULL, sec_addresses[i], conn_options, buf_size))) {
+      if ((retcode = CreateConnectSocket(&(streams[i].writeWorkerArgs.socketDescriptor), NULL, streams[i].sec_addresses, conn_options, buf_size))) {
         log_println(0, "Connect() for client to server failed (connection %d)", strerror(errno), i+1);
         return -11;
       }
-      setsockopt(writeWorkerArgs[i].socketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+      setsockopt(streams[i].writeWorkerArgs.socketDescriptor, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     }
 
     // Expect a TEST_START message from server now. Any other message
@@ -201,30 +204,30 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     sigaction(SIGPIPE, &new, &old);
 
     for (i = 0; i < streamsnum; ++i) {
-      writeWorkerArgs[i].connectionId = i + 1;
-      writeWorkerArgs[i].stopTime = stop_time;
-      writeWorkerArgs[i].buff = buff;
+      streams[i].writeWorkerArgs.connectionId = i + 1;
+      streams[i].writeWorkerArgs.stopTime = stop_time;
+      streams[i].writeWorkerArgs.buff = buff;
     }
 
     for (i = 0; i < streamsnum; ++i) {
-    if (pthread_create(&writeWorkerIds[i], NULL, c2sWriteWorker, (void*) &writeWorkerArgs[i])) {
+    if (pthread_create(&streams[i].writeWorkerIds, NULL, c2sWriteWorker, (void*) &streams[i].writeWorkerArgs)) {
       log_println(0, "Cannot create write worker thread for throughput upload test!");
-      writeWorkerIds[i] = 0;
+      streams[i].writeWorkerIds = 0;
       return -1;
       }
     }
 
     for (i = 0; i < streamsnum; ++i) {
-      pthread_join(writeWorkerIds[i], NULL);
+      pthread_join(streams[i].writeWorkerIds, NULL);
     }
  
     sigaction(SIGPIPE, &old, NULL);
-    sndqueue = sndq_len(writeWorkerArgs[0].socketDescriptor);  // get send-queue length
+    sndqueue = sndq_len(streams[0].writeWorkerArgs.socketDescriptor);  // get send-queue length
 
     // get actual duration for which data was sent to the server
     t = secs() - t;
     for (i = 0; i < streamsnum; ++i) {
-      I2AddrFree(sec_addresses[i]);
+      I2AddrFree(streams[i].sec_addresses);
     }
     I2AddrFree(sec_addr);
 

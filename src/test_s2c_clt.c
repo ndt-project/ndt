@@ -25,6 +25,11 @@ double spdin, s2cspd;
 #define UNSENT_DATA_AMOUNT "UnsentDataAmount"
 #define TOTALSENTBYTE "TotalSentByte"
 
+typedef struct s2cClientStream {
+  I2Addr sec_addresses;
+  int inSocket;
+} S2CClientStream;
+
 /**
  * S2C throughput test to measure network bandwidth
  * from server to client.
@@ -52,9 +57,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
   I2Addr sec_addr = NULL;
-  I2Addr sec_addresses[MAX_STREAMS];  // server addresses per stream
   int inlth, retcode, one = 1, set_size;
-  int inSocket[MAX_STREAMS] = {0};
   socklen_t optlen;
   uint64_t bytes;
   double testStartTime, t;
@@ -71,10 +74,15 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
   struct timeval sel_tv;
   fd_set rfd, tmpRfd;
   char* ptr, *jsonMsgValue;
+  S2CClientStream streams[MAX_STREAMS];
 
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = S2C;
+
+  for (i = 0; i < MAX_STREAMS; i++) {
+    streams[i].inSocket = 0;
+  }
 
   if (tests & TEST_S2C) {
     setCurrentTest(TEST_S2C);
@@ -151,18 +159,18 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Connect to the server; set socket options
     for (i = 0; i < streamsnum; ++i) {
-      sec_addresses[i] = I2AddrCopy(sec_addr);
-      if ((retcode = CreateConnectSocket(&inSocket[i], NULL, sec_addresses[i], conn_options, buf_size))) {
+      streams[i].sec_addresses = I2AddrCopy(sec_addr);
+      if ((retcode = CreateConnectSocket(&streams[i].inSocket, NULL, streams[i].sec_addresses, conn_options, buf_size))) {
         log_println(0, "Connect() for Server to Client failed (connection %d)", strerror(errno), i+1);
         for (i = 0; i < streamsnum; ++i) {
-          if (inSocket[i] > 0) {
-            shutdown(inSocket[i], SHUT_WR);
-            close(inSocket[i]);
+          if (streams[i].inSocket > 0) {
+            shutdown(streams[i].inSocket, SHUT_WR);
+            close(streams[i].inSocket);
           }
         }
         return -15;
       }
-      setsockopt(inSocket[i], SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+      setsockopt(streams[i].inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     }
 
     /* Linux updates the sel_tv time values everytime select returns.  This
@@ -199,12 +207,12 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     FD_ZERO(&rfd);
     activeStreams = streamsnum;
     for (i = 0; i < streamsnum; i++) {
-      FD_SET(inSocket[i], &rfd);
+      FD_SET(streams[i].inSocket, &rfd);
     }
     // Read data sent by server as soon as it is available. Stop listening if timeout has been exceeded.
     for (;;) {
       tmpRfd = rfd;
-      retcode = select(inSocket[streamsnum-1]+1, &tmpRfd, NULL, NULL, &sel_tv);
+      retcode = select(streams[streamsnum-1].inSocket+1, &tmpRfd, NULL, NULL, &sel_tv);
       if (secs() > t) {
         log_println(5, "Receive test running long, break out of read loop");
         break;
@@ -226,11 +234,11 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     }
       if (retcode > 0) {
         for (i = 0; i < streamsnum; i++) {
-          if (FD_ISSET(inSocket[i], &tmpRfd)) {
-            inlth = read(inSocket[i], buff, sizeof(buff));
+          if (FD_ISSET(streams[i].inSocket, &tmpRfd)) {
+            inlth = read(streams[i].inSocket, buff, sizeof(buff));
             if (inlth == 0) {
               activeStreams--;
-              FD_CLR(inSocket[i], &rfd);
+              FD_CLR(streams[i].inSocket, &rfd);
               if (activeStreams == 0) {
                 goto breakOuterLoop;
               }
