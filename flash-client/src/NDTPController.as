@@ -83,6 +83,7 @@ package  {
         if (Main.bad_runtime_action == NDTConstants.BAD_ENV_ERROR) {
           failNDTTest();
           TestResults.appendErrMsg(NDTConstants.BAD_ENV_MESG);
+          TestResults.ndt_test_results::ndtGuiErrMsg = NDTConstants.BAD_ENV_MESG;
           return;
         }
       }
@@ -298,6 +299,7 @@ package  {
     public function succeedNDTTest():void {
       TestResults.ndt_test_results::ndtTestFailed = false;
       NDTUtils.callExternalFunction("allTestsCompleted");
+      TestResults.ndt_test_results::ndtTestStatus = "allTestsCompleted";
       TestResults.appendDebugMsg("<font color=\"#7CFC00\">"
         + "All the tests completed successfully." + "</font>");
       finishNDTTest();

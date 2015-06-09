@@ -55,7 +55,13 @@ if [ ! $USE_FAKEWWW = 0 ]
 then
    if [ ! -n "`pidof $path/fakewww`" ]; then
       echo -n "Starting fakewww:"
-      $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
+
+      # Make sure that it can log
+      touch /var/log/ndt/fakewww_access.log
+      touch /var/log/ndt/fakewww_error.log
+      chown nobody:nobody /var/log/ndt/fakewww*log
+
+      runuser --session-command="$path/fakewww $FAKEWWW_OPTIONS" -s /bin/sh nobody &
       RETVAL=$?
       if [ $RETVAL = 0 ]
       then 
@@ -71,30 +77,6 @@ else
     echo "fakewww disabled - see /etc/sysconfig/ndt"
 fi
 }
-
-start_flashpolicyd ()
-{
-if [ ! $USE_FLASHPOLICYD = 0 ]
-then
-   if [ ! -n "`pidof -x $path/ndt-flashpolicyd`" ]; then
-      echo -n "Starting flashpolicyd:"
-      $path/ndt-flashpolicyd $FLASHPOLICYD_OPTIONS 2>/dev/null &
-      RETVAL=$?
-      if [ $RETVAL = 0 ]
-      then
-        success
-        touch /var/lock/subsys/ndt-flashpolicyd
-      else
-        failure
-      fi
-      echo
-   fi
-else
-    warning
-    echo "flashpolicyd disabled - see /etc/sysconfig/ndt"
-fi
-}
-
 
 stop_web100srv ()
 {
@@ -128,34 +110,12 @@ stop_fakewww ()
     fi
 }
 
-stop_flashpolicyd ()
-{
-    if [ ! $USE_FLASHPOLICYD = 0 ]
-    then
-        echo -n "Stopping flashpolicyd:"
-        killproc ndt-flashpolicyd -TERM
-        RETVAL=$?
-        echo
-        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/ndt-flashpolicyd
-    else
-        status ndt-flashpolicyd 2>/dev/null
-        RETVAL=$?
-        if [ $RETVAL -eq 0 ]
-        then
-            warning
-            echo "flashpolicyd disabled, but is running"
-        else
-            success
-            echo "flashpolicyd disabled, not running"
-         fi
-    fi
-}
-
-
 rhstatus() {
 	status web100srv
-	status fakewww
-	status ndt-flashpolicyd
+	if [ ! $USE_FAKEWWW = 0 ]
+	then
+		status fakewww
+	fi
 }
 
 stop() {
@@ -175,6 +135,25 @@ restart() {
 	start
 }
 
+condrestart() {
+	RUNNING=0
+	status web100srv
+        if [ $? -eq 0 ]; then
+		RUNNING=1
+        fi
+	if [ ! $USE_FAKEWWW = 0 ]
+	then
+		status fakewww
+	        if [ $? -eq 0 ]; then
+			RUNNING=1
+	        fi
+	fi
+
+	if [ $RUNNING -eq 1 ]; then
+		restart
+	fi
+}
+
 case "$1" in
 start)
    start
@@ -185,11 +164,14 @@ stop)
 status)
    rhstatus
    ;;
+condrestart)
+   condrestart
+   ;;
 restart|reload)
    restart
    ;;
 *)
-   echo $"Usage: $0 {start|stop|status|restart}"
+   echo $"Usage: $0 {start|stop|status|restart|condrestart}"
    exit 1
 esac
 

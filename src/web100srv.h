@@ -269,6 +269,9 @@ struct tcp_vars {
   tcp_stat_var ThruBytesAcked;
 };
 
+struct testoptions;
+struct throughputSnapshot;
+
 /* web100-pcap */
 #ifdef HAVE_LIBPCAP
 void init_vars(struct spdpair *cur);
@@ -326,7 +329,7 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
 int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars, int jsonSupport);
+                      tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions);
 
 int CwndDecrease(char* logname,
                  u_int32_t *dec_cnt, u_int32_t *same_cnt, u_int32_t *inc_cnt);
@@ -340,7 +343,7 @@ int KillHung(void);
 void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
                struct throughputSnapshot *s2c_ThroughputSnapshots, struct throughputSnapshot *c2s_ThroughputSnapshots);
 
-char *get_remotehost();
+char *get_remotehostaddress();
 
 /* global variables for signal processing */
 sig_atomic_t sig13;

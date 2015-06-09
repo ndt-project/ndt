@@ -155,6 +155,8 @@ package  {
       if (Main.bad_runtime_action != NDTConstants.ENV_OK) {
         this.addChild(_badRuntimeMessage);
         TestResults.appendDebugMsg("Bad Runtime detected");
+        TestResults.ndt_test_results::ndtBadRuntime = "true";
+        TestResults.ndt_test_results::ndtGuiMsg = NDTConstants.BAD_ENV_MESG;
       }
       if (Main.bad_runtime_action != NDTConstants.BAD_ENV_ERROR) {
         this.addChild(_startButton);

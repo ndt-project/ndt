@@ -30,11 +30,8 @@ if HAVE_GCJ
 SUBDIRS += Admin janalyze
 endif
 
-sbin_SCRIPTS = ndt-flashpolicyd
-
-
 ndtdir = $(prefix)/ndt
-ndt_DATA = admin_description.html admin.html flashpolicy.xml \
+ndt_DATA = admin_description.html admin.html \
 	   copyright.html web100variables.html web100_variables
 
 EXTRA_DIST = admin_description.html admin.html \

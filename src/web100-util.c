@@ -17,6 +17,7 @@
 #include "utils.h"
 #include "web100srv.h"
 #include "jsonutils.h"
+#include "testoptions.h"
 
 struct tcp_name {
   char* web100_name;
@@ -135,7 +136,11 @@ int tcp_stat_init(char *VarFileName) {
 
   return (count_vars);
 #elif USE_WEB10G
-  return TOTAL_INDEX_MAX;
+  #ifdef ESTATS_MIB_VAR_H
+    return TOTAL_NUM_VARS;
+  #else
+    return TOTAL_INDEX_MAX;
+  #endif
 #endif
 }
 
@@ -306,7 +311,8 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
     currentMSSval = MIDDLEBOX_PREDEFINED_MSS;
   }
   if (getuid() == 0) {
-    system("echo 1 > /proc/sys/net/ipv4/route/flush");
+    if (system("echo 1 > /proc/sys/net/ipv4/route/flush") != 0)
+      log_println(0, "Error calling system function: \"echo 1 > /proc/sys/net/ipv4/route/flush\"");
   }
 
   // fill send buffer with random printable data
@@ -544,7 +550,7 @@ static int X_RcvBuf[MAX_STREAMS] = {-1, -1, -1, -1, -1, -1, -1};
  * @param line A char* to write the line to
  * @param line_size Size of line in bytes
  * @param ctlsock The socket to write to
- * @param jsonSupport Indicates if messages should be sent using JSON format
+ * @param testoptions the options that determine how the data should be sent
  *
  * If this fails nothing is sent on the cltsocket and the error will
  * be logged.
@@ -552,7 +558,7 @@ static int X_RcvBuf[MAX_STREAMS] = {-1, -1, -1, -1, -1, -1, -1};
  */
 static void print_10gvar_renamed(const char * old_name,
       const char * new_name, const tcp_stat_snap* snap, char * line,
-      int line_size, int ctlsock, int jsonSupport) {
+      int line_size, int ctlsock, const struct testoptions* const testoptions) {
   int type;
   struct estats_val val;
   estats_error* err;
@@ -570,7 +576,7 @@ static void print_10gvar_renamed(const char * old_name,
       estats_error_free(&err);
     } else {
       snprintf(line, line_size, "%s: %s\n", new_name, str);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
       free(str);
       str = NULL;
     }
@@ -589,11 +595,11 @@ static void print_10gvar_renamed(const char * old_name,
  * @param ctlsock integer socket file descriptor indicating data recipient
  * @param agent pointer to a tcp_stat_agent
  * @param count_vars integer number of tcp_stat_variables to get value of
- * @param jsonSupport indicates if messages should be sent usin JSON format
+ * @param testoptions the options that determine how the data should be sent
  *
  */
 int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
-                      tcp_stat_agent* agent, int count_vars, int jsonSupport) {
+                      tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions) {
   char line[256];
 #if USE_WEB100
   int i, t;
@@ -634,7 +640,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       /* Why do we atoi after getting as text anyway ?? */
       if (t == 0) {
         snprintf(line, sizeof(line), "%s: %d\n", web_vars[t][i].name, atoi(web_vars[t][i].value));
-        send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+        send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
         log_print(9, "%s", line);
       }
     }
@@ -677,7 +683,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
           continue;
         }
         snprintf(line, sizeof(line), "%s: %s\n", estats_var_array[j].name, str);
-        send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+        send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
         log_print(9, "%s", line);
         free(str);
         str = NULL;
@@ -706,7 +712,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       static const char* frame_web100 = "-~~~Web100_old_var_names~~~-: 1\n";
       int type;
       char *str = NULL;
-      send_json_message(ctlsock, TEST_MSG, (const void *)frame_web100, strlen(frame_web100), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, (const void *)frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
     /* ECNEnabled -> ECN */
     type = web10g_find_val(snap[t], "ECN", &val);
@@ -714,7 +720,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find ECN bad type=%d", type);
     } else {
       snprintf(line, sizeof(line), "ECNEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* NagleEnabled -> Nagle */
@@ -723,7 +729,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find Nagle bad type=%d", type);
     } else {
       snprintf(line, sizeof(line), "NagleEnabled: %"PRId32"\n", (val.sv32 == 2) ? 1 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* SACKEnabled -> WillUseSACK & WillSendSACK */
@@ -733,7 +739,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
     } else {
     /* Yes this comes through as 3 from web100 */
       snprintf(line, sizeof(line), "SACKEnabled: %d\n", (val.sv32 == 1) ? 3 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* TimestampsEnabled -> TimeStamps */
@@ -742,32 +748,32 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find TimeStamps bad type=%d", type);
     } else {
       snprintf(line, sizeof(line), "TimestampsEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* PktsRetrans -> SegsRetrans */
-    print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* DataPktsOut -> DataSegsOut */
-    print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* MaxCwnd -> MAX(MaxSsCwnd, MaxCaCwnd) */
-    print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* SndLimTimeSender -> SndLimTimeSnd */
-    print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* DataBytesOut -> DataOctetsOut */
-    print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* SndLimTransSender -> SndLimTransSnd */
-    print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* PktsOut -> SegsOut */
-    print_10gvar_renamed("SegsOut", "PktsOut", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("SegsOut", "PktsOut", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* CongestionSignals -> CongSignals */
-    print_10gvar_renamed("CongSignals", "CongestionSignals", snap[t], line, sizeof(line), ctlsock, jsonSupport);
+    print_10gvar_renamed("CongSignals", "CongestionSignals", snap[t], line, sizeof(line), ctlsock, testoptions);
 
     /* RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1 */
     type = web10g_find_val(snap[t], "WinScaleSent", &val);
@@ -778,16 +784,16 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
         snprintf(line, sizeof(line), "RcvWinScale: %u\n", 0);
       else
         snprintf(line, sizeof(line), "RcvWinScale: %d\n", val.sv32);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* X_Rcvbuf & X_Sndbuf */
     snprintf(line, sizeof(line), "X_Rcvbuf: %d\n", X_RcvBuf[t]);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     snprintf(line, sizeof(line), "X_Sndbuf: %d\n", X_SndBuf[t]);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
-    send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), jsonSupport, JSON_SINGLE_VALUE);
+    send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
     log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
     }
@@ -1011,9 +1017,9 @@ int tcp_stat_logvars(struct tcp_vars* vars, int connId, int count_vars) {
     const char* web100_name = tcp_names[a].web100_name;
     if (web100_name == NULL)
       continue;
-  int PktsIn = -1;
-  int DataPktsIn = -1;
-  int has_AckPktsIn = 0;
+  //int PktsIn = -1;
+  //int DataPktsIn = -1;
+  //int has_AckPktsIn = 0;
 
     for (b = 0; b < count_vars; b++) {
       if (strcmp(web_vars[connId][b].name, web100_name) == 0) {
@@ -1104,8 +1110,8 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
 
 tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {
   int i;
-  tcp_stat_var varValue;
-  for (i = 0; i < connNum; ++i) {
+  tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
+  for (i = 1; i < connNum; ++i) {
     varValue += *&((tcp_stat_var *)&vars[i])[varId];
   }
   return varValue;
@@ -1135,8 +1141,8 @@ tcp_stat_var agg_vars_min(int connNum, int varId, struct tcp_vars* vars) {
 
 tcp_stat_var agg_vars_avg(int connNum, int varId, struct tcp_vars* vars) {
   int i;
-  tcp_stat_var varValue;
-  for (i = 0; i < connNum; ++i) {
+  tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
+  for (i = 1; i < connNum; ++i) {
     varValue += *&((tcp_stat_var *)&vars[i])[varId];
   }
   return varValue / connNum;

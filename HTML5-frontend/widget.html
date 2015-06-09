@@ -10,6 +10,8 @@
     <script type="text/javascript" src="jquery-1.4.4.min.js"></script>
     <script type="text/javascript" src="gauge.min.js"></script>
     <script type="text/javascript" src="script.js"></script>
+    <script type="text/javascript" src="ndt-browser-client.js"></script>
+    <script type="text/javascript" src="ndt-wrapper.js"></script>
     <script type="text/javascript" src="http://www.java.com/js/deployJava.js"></script>
     <script type="text/javascript">
     var simulate = false;
@@ -25,15 +27,21 @@
 
     <p>The Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
 
-    <p>NDT makes use of either Flash or Java plugins to perform the test. Make sure that the plugin you choose is not blocked by your browser</p>
+    <p>NDT can make use of either a Java plugin, or WebSockets to perform the test. Make sure that the method you choose is supported by your browser</p>
+    <div id="warning-environment">
+    </div>
 
-    <div id="warning">
-        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and is not being blocked by your browser.</p>
+    <div id="warning-plugin">
+        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and that it is not being blocked by your browser.</p>
+    </div>
+
+    <div id="warning-websocket">
+        <p>The WebSocket client currently in beta. Due to the nature of WebSocket support in various web browsers, the results may be notedly lower than those obtained with the Java plugin.</p>
     </div>
 
     <div>
-      <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Use Java</button>
-      <button id="flashButton" class="backendButton button" onclick="useFlashAsBackend()" type="button">Use Flash</button>
+      <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Java</button>
+      <button id="websocketButton" class="backendButton button" onclick="useWebsocketAsBackend()" type="button">WebSockets<sup><small>Beta</small></sup></button>
     </div>
 
     <div is="learn_more">
@@ -96,7 +104,7 @@
           <h3>Upload speed</h3>
           <p>
             <span class="number" id="upload-speed">0.00</span>
-            <span class="units">mb/s</span>
+            <span class="units" id="upload-speed-units">mb/s</span>
           </p>
         </div>
 
@@ -104,12 +112,12 @@
           <h3>Download speed</h3>
           <p>
             <span class="number" id="download-speed">0.00</span>
-            <span class="units">mb/s</span>
+            <span class="units" id="download-speed-units">mb/s</span>
         </div>
 
         <div class="other">
           <p class="latency"><b>Network latency:</b> <span id="latency">0.0</span> msec round trip time</p>
-          <p class="jitter"><b>Jitter:</b> <span id="jitter">0.0</span> msec</p>
+          <p class="jitter"><b>Jitter:</b> <span id="jitter">0.0 msec</span></p>
         </div>
 
       </div>
@@ -135,10 +143,6 @@
 </div>
 
 <div id="backendContainer">
-  <!--Use embed tag to have flash client being background for JS UI or applet tag if you want to use java applet instead. -->
-  <embed id="NDT" name="NDT" type="application/x-shockwave-flash" src="FlashClt.swf" width="600" height="10" />
-
-  <!--<applet id="NDT" width="600" height="10" name="NDT" code="edu.internet2.ndt.Tcpbw100.class" codebase="<?php print $applet_url ?>" archive="Tcpbw100.jar"     width="400" height="10"></applet>-->
 </div>
 
 </body>

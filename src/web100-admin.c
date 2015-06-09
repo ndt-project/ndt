@@ -68,126 +68,126 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
               int MaxRwinRcvd, int CurrentCwnd, int Sndbuf, int DataBytesOut,
               int mismatch, int bad_cable, int c2sspd, int s2cspd,
               int c2s_linkspeed_data, int s2c_linkspeed_ack, int view_flag) {
-  int congestion2 = 0, i;
+  int i;
   static int totalcnt;
   double rttsec;
-  double rwintime = 0, cwndtime = 0, sendtime = 0;
+  double rwintime = 0, cwndtime = 0;
   int totaltime = 0;
   char view_string[256], *str, tmpstr[32];
   FILE * fp;
 
   if (view_flag == 1) {
     fp = fopen("/tmp/view.string", "r");
-    fgets(view_string, 256, fp);
-    log_println(3, "View_string=%s", view_string);
-    str = view_string;
-    sscanf(str, "%[^,]s", tmpstr);
-    maxc2sspd = atoi(tmpstr);
+    if (fgets(view_string, 256, fp) != NULL) {
+      log_println(3, "View_string=%s", view_string);
+      str = view_string;
+      sscanf(str, "%[^,]s", tmpstr);
+      maxc2sspd = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    minc2sspd = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      minc2sspd = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    maxs2cspd = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      maxs2cspd = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    mins2cspd = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      mins2cspd = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    totalcnt = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      totalcnt = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    totmismatch = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      totmismatch = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    totbad_cable = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      totbad_cable = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[0] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[0] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[1] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[1] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[2] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[2] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[3] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[3] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[4] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[4] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[5] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[5] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[6] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[6] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[7] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[7] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[8] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[8] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[9] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[9] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[10] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[10] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[11] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[11] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[12] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[12] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[13] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[13] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[14] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[14] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    count[15] = atoi(tmpstr);
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      count[15] = atoi(tmpstr);
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    strlcpy(maxdate, tmpstr, sizeof(maxdate));
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      strlcpy(maxdate, tmpstr, sizeof(maxdate));
 
-    str = strchr(str, ',') + 1;
-    sscanf(str, "%[^,]s", tmpstr);
-    strlcpy(mindate, tmpstr, sizeof(mindate));
+      str = strchr(str, ',') + 1;
+      sscanf(str, "%[^,]s", tmpstr);
+      strlcpy(mindate, tmpstr, sizeof(mindate));
 
-    for (i = 0; i < strlen(mindate); i++)
-      if (mindate[i] == '\n')
-        break;
-    mindate[i] = '\0';
+      for (i = 0; i < strlen(mindate); i++)
+        if (mindate[i] == '\n')
+          break;
+      mindate[i] = '\0';
 
-    log_println(1, "Updating admin_view variables: Total count = %d",
-                totalcnt);
-
+      log_println(1, "Updating admin_view variables: Total count = %d",
+                  totalcnt);
+    }
     fclose(fp);
   }
 
@@ -266,7 +266,7 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
   cwndtime = calc_sendlimited_cong(SndLimTimeCwnd, totaltime);
   log_println(3, "cwndtime=%f", cwndtime);
   // time spent in being send-limited due to own fault
-  sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
+  //sendtime = calc_sendlimited_sndrfault(SndLimTimeSender, totaltime);
   timesec = totaltime / MEGA;  // total time in microsecs
 
   // calculate receive buffer delay, send buffer delay and congestion window
@@ -276,8 +276,8 @@ int calculate(char now[32], int SumRTT, int CountRTT, int CongestionSignals,
   sendbwd = ((Sndbuf * 8) / avgrtt) / 1000;
 
   // this is different from congestion window heuristic, but seems unused
-  if ((cwndtime > .02) && (mismatch == 0) && (cwndbwd < recvbwd))
-    congestion2 = 1;
+  /*if ((cwndtime > .02) && (mismatch == 0) && (cwndbwd < recvbwd))
+    congestion2 = 1;*/
 
   // if no web100 variables were read from the file, then assign values
   if (totalcnt == 0) {
@@ -352,7 +352,6 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
               int bad_cable, int totalcnt, int refresh) {
   FILE * fp;
   char view_string[256], tmpstr[256];
-  int i;
   struct flock lock;
 
   fp = fopen(AdminFileName, "w");
@@ -529,7 +528,7 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
   fclose(fp);
   snprintf(tmpstr, sizeof(tmpstr), "/bin/cat %s/admin_description.html >> %s",
            BASEDIR, AdminFileName);
-  system(tmpstr);
+  int ret = system(tmpstr);
 
   /* Save the current variables into a file for later use.  These
    * variables are updated by each child process at the end of every
@@ -542,7 +541,6 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
     return;
   }
   lock.l_type = F_WRLCK;
-  i = fcntl(fileno(fp), F_SETLKW, lock);
   log_println(1, "successfully locked '/tmp/view.string' for updating");
   snprintf(view_string, sizeof(view_string),
       "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
@@ -565,9 +563,8 @@ void gen_html(int c2sspd, int s2cspd, int MinRTT, int PktsRetrans, int Timeouts,
  * @param refresh time in seconds after which to refresh page
  */
 void view_init(int refresh) {
-  int Timeouts = 0, SumRTT, CountRTT, MinRTT = 0, PktsRetrans = 0, FastRetran,
-      DataPktsOut;
-  int AckPktsOut, CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd = 0, Sndbuf =
+  int Timeouts = 0, SumRTT, CountRTT, MinRTT = 0, PktsRetrans = 0;
+  int CurrentMSS, DupAcksIn, AckPktsIn, MaxRwinRcvd = 0, Sndbuf =
       0;
   // int CurrentCwnd = 0, SndLimTimeRwin, SndLimTimeCwnd, SndLimTimeSender,
   //                   DataBytesOut;
@@ -575,14 +572,12 @@ void view_init(int refresh) {
   int CurrentCwnd = 0, SndLimTimeRwin = 0, SndLimTimeCwnd = 0,
       SndLimTimeSender = 0, DataBytesOut = 0;
 
-  int SndLimTransRwin, SndLimTransCwnd, SndLimTransSender, MaxSsthresh;
-  int CurrentRTO, CurrentRwinRcvd, CongestionSignals, PktsOut = 0;
+  int CongestionSignals, PktsOut = 0;
   FILE * fp;
   int c2sspd = 0, s2cspd = 0;
   char ip_addr2[64], buff[512], *str, tmpstr[32];
-  int link = 0, mismatch = 0, bad_cable = 0, half_duplex = 0, congestion = 0;
-  int c2s_linkspeed_data = 0, c2s_linkspeed_ack, s2c_linkspeed_data,
-      s2c_linkspeed_ack = 0;
+  int mismatch = 0, bad_cable = 0;
+  int c2s_linkspeed_data = 0, s2c_linkspeed_ack = 0;
   int totalcnt = 0, view_flag = 0;
 
   if ((fp = fopen(get_logfile(), "r")) == NULL)
@@ -626,15 +621,15 @@ void view_init(int refresh) {
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      FastRetran = atoi(tmpstr);
+      //FastRetran = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      DataPktsOut = atoi(tmpstr);
+      //DataPktsOut = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      AckPktsOut = atoi(tmpstr);
+      //AckPktsOut = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
@@ -678,31 +673,31 @@ void view_init(int refresh) {
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      SndLimTransRwin = atoi(tmpstr);
+      //SndLimTransRwin = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      SndLimTransCwnd = atoi(tmpstr);
+      //SndLimTransCwnd = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      SndLimTransSender = atoi(tmpstr);
+      //SndLimTransSender = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      MaxSsthresh = atoi(tmpstr);
+      //MaxSsthresh = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      CurrentRTO = atoi(tmpstr);
+      //CurrentRTO = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      CurrentRwinRcvd = atoi(tmpstr);
+      //CurrentRwinRcvd = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      link = atoi(tmpstr);
+      //link = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
@@ -714,11 +709,11 @@ void view_init(int refresh) {
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      half_duplex = atoi(tmpstr);
+      //half_duplex = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      congestion = atoi(tmpstr);
+      //congestion = atoi(tmpstr);
 
       str = strchr(str, ',');
       if (str == NULL) {
@@ -731,11 +726,11 @@ void view_init(int refresh) {
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      c2s_linkspeed_ack = atoi(tmpstr);
+      //c2s_linkspeed_ack = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);
-      s2c_linkspeed_data = atoi(tmpstr);
+      //s2c_linkspeed_data = atoi(tmpstr);
 
       str = strchr(str, ',') + 1;
       sscanf(str, "%[^,]s", tmpstr);

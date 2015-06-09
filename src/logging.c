@@ -71,7 +71,7 @@ int zlib_def(char *src_fn) {
   strm.zalloc = Z_NULL;
   strm.zfree = Z_NULL;
   strm.opaque = Z_NULL;
-  ret = deflateInit(&strm, level);
+  ret = deflateInit2(&strm, level, Z_DEFLATED, MAX_WBITS + 16, 8, Z_DEFAULT_STRATEGY);
   if (ret != Z_OK) {
     log_println(6, "zlib deflateInit routine failed with %d", ret);
     return ret;

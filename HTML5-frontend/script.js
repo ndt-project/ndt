@@ -23,6 +23,10 @@ var PHASE_RESULTS   = 5;
 
 // STATUS VARIABLES
 
+var use_websocket_client = false;
+
+var websocket_client = null;
+
 var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
@@ -30,8 +34,7 @@ var transitionSpeed = 400;
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
 var gaugeUpdateInterval;
-var gaugeMaxValue = 100; // Mb/s
-
+var gaugeMaxValue = 1000; 
 
 // PRIMARY METHODS
 
@@ -56,13 +59,14 @@ function initializeTest() {
 function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
+  createBackend();
   if (!isPluginLoaded()) {
-    $('#warning').show();
+    $('#warning-plugin').show();
     return;
   } 
-  $('#warning').hide();
+  $('#warning-plugin').hide();
   document.getElementById('javaButton').disabled = true;
-  document.getElementById('flashButton').disabled = true;
+  document.getElementById('websocketButton').disabled = true;
   showPage('test', resetGauges);
   document.getElementById('rttValue').innerHTML = "";
   if (simulate) return simulateTest();
@@ -99,6 +103,10 @@ function monitorTest() {
     setPhase(PHASE_RESULTS);
     return true;
   }
+  if (message.match(/failed/) && currentPhase < PHASE_RESULTS) {
+    setPhase(PHASE_RESULTS);
+    return false;
+  }
   if (currentStatus.match(/Outbound/) && currentPhase < PHASE_UPLOAD) {
     setPhase(PHASE_UPLOAD);
   }
@@ -111,10 +119,12 @@ function monitorTest() {
     debug("Remote server is " + remoteServer());
     setPhase(PHASE_UPLOAD);
   }
+
   if (remoteServer() !== 'unknown' && currentPhase < PHASE_PREPARING) {
     setPhase(PHASE_PREPARING);
   }
-  setTimeout(monitorTest, 100);
+
+  setTimeout(monitorTest, 1000);
 }
 
 
@@ -151,7 +161,7 @@ function setPhase(phase) {
       if (isNaN(rtt)) {
         document.getElementById("rttValue").innerHTML = "n/a";
       } else {
-        document.getElementById("rttValue").innerHTML = rtt.toFixed(2).concat(" ms");
+        document.getElementById("rttValue").innerHTML = printNumberValue(Math.round(rtt)) + " ms";
       }
 
       if (!isNaN(pcBuffSpdLimit)) {
@@ -196,14 +206,13 @@ function setPhase(phase) {
       debug("SHOW RESULTS");
       debug('Testing complete');
 
-      document.getElementById('upload-speed').innerHTML = uploadSpeed().toPrecision(2); 
-      document.getElementById('download-speed').innerHTML = downloadSpeed().toPrecision(2); 
-      document.getElementById('latency').innerHTML = averageRoundTrip().toPrecision(2); 
-      document.getElementById('jitter').innerHTML = jitter().toPrecision(2); 
+      printDownloadSpeed();
+      printUploadSpeed();
+      document.getElementById('latency').innerHTML = printNumberValue(Math.round(averageRoundTrip())); 
+      document.getElementById('jitter').innerHTML = printJitter(false); 
       document.getElementById("test-details").innerHTML = testDetails();
       document.getElementById("test-advanced").appendChild(testDiagnosis());
       document.getElementById('javaButton').disabled = false;
-      document.getElementById('flashButton').disabled = false;
 
       showPage('results');
       break;
@@ -315,19 +324,32 @@ function resetGauges() {
 }
 
 function updateGaugeValue() {
+  var downloadSpeedVal = downloadSpeed();
+  var uploadSpeedVal = uploadSpeed(false);
+  
   if (currentPhase == PHASE_UPLOAD) {
-    uploadGauge.setValue(uploadSpeed(true));
+    uploadGauge.updateConfig({ 
+	  units: getSpeedUnit(uploadSpeedVal)
+	});
+	uploadGauge.setValue(getJustfiedSpeed(uploadSpeedVal));
   } else if (currentPhase == PHASE_DOWNLOAD) {
-    downloadGauge.setValue(downloadSpeed());
+    downloadGauge.updateConfig({ 
+	  units: getSpeedUnit(downloadSpeedVal) 
+	});
+    downloadGauge.setValue(getJustfiedSpeed(downloadSpeedVal));
   } else {
     clearInterval(gaugeUpdateInterval);  
   }   
 }
 
-// TESTING JAVA/FLASH CLIENT
+// TESTING JAVA/WEBSOCKET CLIENT
 
 function testNDT() {
-  return ndt = document.getElementById('NDT');
+  if (websocket_client) {
+    return websocket_client;
+  }
+
+  return document.getElementById('NDT');
 }
 
 function testStatus() {
@@ -375,7 +397,9 @@ function testDiagnosis() {
   );
   txt = txt + "=== Results sent by the server ===";
   div.innerHTML = txt;
-  div.appendChild(table);
+  if (isTable) {
+    div.appendChild(table);
+  }
 
   return div;
 }
@@ -415,49 +439,107 @@ function speedLimit() {
   return parseFloat(testNDT().get_PcBuffSpdLimit());
 }
 
+function printPacketLoss() {
+  var packetLoss = parseFloat(testNDT().getNDTvar("loss"));
+  packetLoss = (packetLoss*100).toFixed(2);
+  return packetLoss;
+}
+
+function printJitter(boldValue) {
+  var retStr = '';
+  var jitterValue = jitter();
+  if (jitterValue >= 1000) {
+    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue/1000) + (boldValue ? '</b>' : '') + ' sec';
+  } else {
+    retStr += (boldValue ? '<b>' : '') + printNumberValue(jitterValue) + (boldValue ? '</b>' : '') + ' msec';
+  }
+  return retStr;
+}
+
+function getSpeedUnit(speedInKB) {
+  var unit = ['kb/s', 'Mb/s', 'Gb/s', 'Tb/s', 'Pb/s', 'Eb/s'];
+  var e = Math.floor(Math.log(speedInKB*1000) / Math.log(1000));
+  return unit[e];
+}
+
+function getJustfiedSpeed(speedInKB) {
+  var e = Math.floor(Math.log(speedInKB) / Math.log(1000));
+  return (speedInKB / Math.pow(1000, e)).toFixed(2);
+}
+
+function printDownloadSpeed() {
+  var downloadSpeedVal = downloadSpeed();
+  document.getElementById('download-speed').innerHTML = getJustfiedSpeed(downloadSpeedVal);  
+  document.getElementById('download-speed-units').innerHTML = getSpeedUnit(downloadSpeedVal);  
+}
+
+function printUploadSpeed() {
+  var uploadSpeedVal = uploadSpeed(false);
+  document.getElementById('upload-speed').innerHTML = getJustfiedSpeed(uploadSpeedVal); 
+  document.getElementById('upload-speed-units').innerHTML = getSpeedUnit(uploadSpeedVal);    
+}
+
+function readNDTvar(variable) {
+  var ret = testNDT().getNDTvar(variable);
+  return !ret ? "-" : ret; 
+}
+
+function printNumberValue(value) {
+  return isNaN(value) ? "-" : value;
+}
+
 function testDetails() {
   if (simulate) return 'Test details';
 
-  var a = testNDT();
   var d = '';
 
-  d += "Your system: " + a.getNDTvar("OperatingSystem").bold() + "<br>";
-  d += "Plugin version: " + (a.getNDTvar("PluginVersion") + " (" + a.getNDTvar("OsArchitecture") + ")<br>").bold();
+  var errorMsg = testError();
+  if (errorMsg.match(/failed/)) {
+    d += "Error occured while performing test: <br>".bold();
+    if (errorMsg.match(/#2048/)) {
+      d += "Security error. This error may be caused by firewall issues, make sure that port 843 is available on the NDT server, and that you can access it.".bold().fontcolor("red") + "<br><br>";
+    } else {    
+      d += errorMsg.bold().fontcolor("red") + "<br><br>";
+    }
+  }
+
+  d += "Your system: " + readNDTvar("OperatingSystem").bold() + "<br>";
+  d += "Plugin version: " + (readNDTvar("PluginVersion") + " (" + readNDTvar("OsArchitecture") + ")<br>").bold();
 
   d += "<br>";
 
-  d += "TCP receive window: " + a.getNDTvar("CurRwinRcvd").bold() + " current, " + a.getNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
-  d += a.getNDTvar("loss").bold() + " packets lost during test<br>";
-  d += "Round trip time: " + a.getNDTvar("MinRTT").bold() + " msec (minimum), " + a.getNDTvar("MaxRTT").bold() + " msec (maximum), " + a.getNDTvar("avgrtt").bold() + " msec (average)<br>";
-  d += "Jitter: " + a.getNDTvar("Jitter").bold() + " msec<br>";
-  d += a.getNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
-  d += "TCP time-out counter: " + a.getNDTvar("CurRTO").bold() + "<br>";
-  d += a.getNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
+  d += "TCP receive window: " + readNDTvar("CurRwinRcvd").bold() + " current, " + readNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
+  d += "<b>" + printNumberValue(printPacketLoss()) + "</b> % of packets lost during test<br>";
+  d += "Round trip time: " + readNDTvar("MinRTT").bold() + " msec (minimum), " + readNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + printNumberValue(Math.round(averageRoundTrip())) + "</b> msec (average)<br>";
+  d += "Jitter: " + printNumberValue(printJitter(true)) + "<br>";
+  d += readNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
+  d += "TCP time-out counter: " + readNDTvar("CurRTO").bold() + "<br>";
+  d += readNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
 
   d += "<br>";
 
-  if (a.getNDTvar("mismatch") == "yes") {
+  if (readNDTvar("mismatch") == "yes") {
     d += "A duplex mismatch condition was detected.<br>".fontcolor("red").bold();
   }
   else {
     d += "No duplex mismatch condition was detected.<br>".fontcolor("green");
   }
 
-  if (a.getNDTvar("bad_cable") == "yes") {
+  if (readNDTvar("bad_cable") == "yes") {
     d += "The test detected a cable fault.<br>".fontcolor("red").bold();
   }
   else {
     d += "The test did not detect a cable fault.<br>".fontcolor("green");
   }
 
-  if (a.getNDTvar("congestion") == "yes") {
+  if (readNDTvar("congestion") == "yes") {
     d += "Network congestion may be limiting the connection.<br>".fontcolor("red").bold();
   }
   else {
     d += "No network congestion was detected.<br>".fontcolor("green");
   }
 
-  /*if (a.get_natStatus() == "yes") {
+  /*if (testNDT().get_natStatus() == "yes") {
     d += "A network address translation appliance was detected.<br>";
   }
   else {
@@ -466,50 +548,56 @@ function testDetails() {
 
   d += "<br>";
 
-  d += a.getNDTvar("cwndtime").bold() + "% of the time was not spent in a receiver limited or sender limited state.<br>";
-  d += a.getNDTvar("rwintime").bold() + "% of the time the connection is limited by the client machine's receive buffer.<br>";
-  d += "Optimal receive buffer: " + a.getNDTvar("optimalRcvrBuffer").bold() + " bytes<br>";
-  d += "Bottleneck link: " + a.getNDTvar("accessTech").bold() + "<br>";
-  d += a.getNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
+  d += printNumberValue(readNDTvar("cwndtime")).bold() + " % of the time was not spent in a receiver limited or sender limited state.<br>";
+  d += printNumberValue(readNDTvar("rwintime")).bold() + " % of the time the connection is limited by the client machine's receive buffer.<br>";
+  d += "Optimal receive buffer: " + printNumberValue(readNDTvar("optimalRcvrBuffer")).bold() + " bytes<br>";
+  d += "Bottleneck link: " + readNDTvar("accessTech").bold() + "<br>";
+  d += readNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
 
   return d;
 }
 
 // BACKEND METHODS
 function useJavaAsBackend() {
-  var backendContainer = document.getElementById('backendContainer');
-  while (backendContainer.firstChild) {
-    backendContainer.removeChild(backendContainer.firstChild);
-  } 
+  $('#warning-websocket').hide();
+  $("#rtt").show();  
+  $("#rttValue").show();  
 
-  var app = document.createElement('applet');
-  app.id = 'NDT';
-  app.name = 'NDT';
-  app.archive = 'Tcpbw100.jar';
-  app.code = 'edu.internet2.ndt.Tcpbw100.class';
-  app.width = '600';
-  app.height = '10';
-  document.getElementById('backendContainer').appendChild(app);
-  $('#flashButton').removeClass("active");
+  $('.warning-environment').innerHTML = "";
+
+  use_websocket_client = false;
+
+  $('#websocketButton').removeClass("active");
   $('#javaButton').addClass("active");
 }
 
-function useFlashAsBackend() {
-  var backendContainer = document.getElementById('backendContainer');
-  while (backendContainer.firstChild) {
-    backendContainer.removeChild(backendContainer.firstChild);
-  } 
+function useWebsocketAsBackend() {
+  $("#rtt").hide();  
+  $("#rttValue").hide();  
+  $('#warning-websocket').show();
 
-  var embed = document.createElement('embed');
-  embed.id = 'NDT';
-  embed.name = 'NDT';
-  embed.type = 'application/x-shockwave-flash';
-  embed.src = 'FlashClt.swf';
-  embed.width = '600';
-  embed.height = '10';
-  document.getElementById('backendContainer').appendChild(embed);
+  use_websocket_client = true;
+
   $('#javaButton').removeClass("active");
-  $('#flashButton').addClass("active");
+  $('#websocketButton').addClass("active");
+}
+
+function createBackend() {
+  $('#backendContainer').empty();
+
+  if (use_websocket_client) {
+    websocket_client = new NDTWrapper();
+  }
+  else {
+    var app = document.createElement('applet');
+    app.id = 'NDT';
+    app.name = 'NDT';
+    app.archive = 'Tcpbw100.jar';
+    app.code = 'edu.internet2.ndt.Tcpbw100.class';
+    app.width = '600';
+    app.height = '10';
+    $('#backendContainer').append(app);
+  }
 }
 
 // UTILITIES
@@ -528,30 +616,39 @@ function isPluginLoaded() {
 }
 
 function checkInstalledPlugins() {
-  var hasFlash = false, hasJava = false;
+  var hasJava = false;
+  var hasWebsockets = false;
 
-  $('#warning').hide();
-  try {
-    var activeXObject = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
-    if(activeXObject) hasFlash = true;
-  } catch(e) {
-    if(navigator.mimeTypes ["application/x-shockwave-flash"] != undefined) hasFlash = true;
-  }
-  
-  if (!hasFlash) {
-    document.getElementById('flashButton').disabled = true;
-  }
+  $('#warning-plugin').hide();
+  $('#warning-websocket').hide();
 
+  hasJava = true;
   if (deployJava.getJREs() == '') {
-    document.getElementById('javaButton').disabled = true;
-  } else {
-    hasJava = true;
+    hasJava = false;
   }
 
-  if (hasJava) {
-    useJavaAsBackend();  
-  } else if (hasFlash) {
-    useFlashAsBackend();
+  hasWebsockets = false;
+  try {
+    ndt_js = new NDTjs();
+    if (ndt_js.checkBrowserSupport()) {
+      hasWebsockets = true; 
+    }
+  } catch(e) {
+    hasWebsockets = false;
+  }
+
+  if (!hasWebsockets) {
+    document.getElementById('websocketButton').disabled = true;
+  }
+
+  if (!hasJava) {
+    document.getElementById('javaButton').disabled = true;
+  }
+ 
+  if (hasJava) { 
+    useJavaAsBackend();
+  }
+  else if (hasWebsockets) {
+    useWebsocketAsBackend();
   }
 }
-

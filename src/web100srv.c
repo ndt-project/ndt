@@ -87,6 +87,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 #include "heuristics.h"
 #include "tests_srv.h"
 #include "jsonutils.h"
+#include "websocket.h"
 
 static char lgfn[FILENAME_SIZE];  // log file name
 static char wvfn[FILENAME_SIZE];  // file name of web100-variables list
@@ -138,9 +139,10 @@ static char *SysLogFacility = NULL;
 static int syslogfacility = LOG_FACILITY;
 static char *ConfigFileName = NULL;
 static char buff[BUFFSIZE + 1];
-static char*rmt_host;
+static char rmt_host[256];
+static char rmt_addr[256];
 static char *device = NULL;
-static char* port = PORT;
+static char *port = PORT;
 static TestOptions testopt;
 
 static int conn_options = 0;
@@ -314,7 +316,7 @@ void child_sig(pid_t chld_pid) {
         5,
         "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x",
         pid, child_proc1->pid, child_proc1->host, child_proc1->addr,
-        (u_int64_t) child_proc1->next);
+        (uintptr_t) child_proc1->next);
     if (child_proc1->pid == pid) {
       log_println(4, "Main test process %d terminated, remove from queue",
                   pid);
@@ -341,7 +343,7 @@ void child_sig(pid_t chld_pid) {
       while (child_proc1 != NULL) {
         log_println(5, "\tChild %d, host: %s [%s], next=0x%x",
                     child_proc1->pid, child_proc1->host,
-                    child_proc1->addr, (u_int64_t) child_proc1->next);
+                    child_proc1->addr, (uintptr_t) child_proc1->next);
         if (child_proc1->next == NULL)
           break;
         child_proc1 = child_proc1->next;
@@ -407,7 +409,7 @@ void child_sig(pid_t chld_pid) {
       }
       child_proc1 = child_proc1->next;
       log_println(6, "Looping through service queue ptr = 0x%x",
-                  (u_int64_t) child_proc1);
+                  (uintptr_t) child_proc1);
     }
   }
   if (sig17 > 0)
@@ -828,7 +830,7 @@ void * zombieWorker(void *head_ptr) {
     retcode = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE,
       SRV_QUEUE_HEARTBEAT_STR,
       strlen(SRV_QUEUE_HEARTBEAT_STR),
-      testopt.json_support, JSON_SINGLE_VALUE);
+      testopt.connection_flags, JSON_SINGLE_VALUE);
     log_println(6,
                 "send_msg() returned %d during zombie check on client %d",
                 retcode, tmp_ptr->pid);
@@ -991,18 +993,14 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   double c2sspd;  // average throughput as calculated by C->S test
   double s2c2spd;  // average throughput as calculated by midbox test
   double realthruput;  // total send throughput in S->C
-  double acksratio;  // ratio of acks over packets sent
   double aspd = 0;
-  double tmoutsratio;  // timeouts fraction
-  // ratio of retransmissions and duplicate acks over packets sent
-  double rtranratio, dackratio;
   float runave[4];
 
   FILE * fp;
 
   // start with a clean slate of currently running test and direction
   setCurrentTest(TEST_NONE);
-  log_println(7, "Remote host= %s", get_remotehost());
+  log_println(7, "Remote host= %s", get_remotehostaddress());
 
   stime = time(0);
   log_println(4, "Child process %d started", getpid());
@@ -1022,13 +1020,13 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // client needs to be version compatible. Send current version
   snprintf(buff, sizeof(buff), "v%s", ADD_CAPABILITIES(VERSION) "-" TCP_STAT_NAME);
-  send_json_message(ctlsockfd, MSG_LOGIN, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_LOGIN, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // initiate test with MSG_LOGIN message.
   log_println(3, "run_test() routine, asking for test_suite = %s",
               test_suite);
   send_json_message(ctlsockfd, MSG_LOGIN, test_suite, strlen(test_suite),
-                    testopt->json_support, JSON_SINGLE_VALUE);
+                    testopt->connection_flags, JSON_SINGLE_VALUE);
   /* if ((n = initialize_tests(ctlsockfd, &testopt, conn_options))) {
      log_println(0, "ERROR: Tests initialization failed (%d)", n);
      return;
@@ -1177,10 +1175,10 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   RTOidle = calc_RTOIdle(vars[0].Timeouts, vars[0].CurrentRTO, timesec);
 
   // get timeout, retransmission, acks and dup acks ratios.
-  tmoutsratio = (double) vars[0].Timeouts / vars[0].PktsOut;
+  /*tmoutsratio = (double) vars[0].Timeouts / vars[0].PktsOut;
   rtranratio = (double) vars[0].PktsRetrans / vars[0].PktsOut;
   acksratio = (double) vars[0].AckPktsIn / vars[0].PktsOut;
-  dackratio = (double) vars[0].DupAcksIn / (double) vars[0].AckPktsIn;
+  dackratio = (double) vars[0].DupAcksIn / (double) vars[0].AckPktsIn;*/
 
   // get actual throughput in Mbps (totaltime is in microseconds)
   realthruput = calc_real_throughput(vars[0].DataBytesOut, totaltime);
@@ -1286,38 +1284,38 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   snprintf(buff, sizeof(buff), "c2sData: %d\nc2sAck: %d\ns2cData: %d\n"
            "s2cAck: %d\n", c2s_linkspeed_data, c2s_linkspeed_ack,
            s2c_linkspeed_data, s2c_linkspeed_ack);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "half_duplex: %d\nlink: %d\ncongestion: %d\nbad_cable: %d\n"
            "mismatch: %d\nspd: %0.2f\n", half_duplex, link, congestion,
            bad_cable, mismatch, realthruput);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "bw: %0.2f\nloss: %0.9f\navgrtt: %0.2f\nwaitsec: %0.2f\n"
            "timesec: %0.2f\norder: %0.4f\n", bw_theortcl, packetloss_s2c,
            avgrtt, waitsec, timesec, oo_order);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "rwintime: %0.4f\nsendtime: %0.4f\ncwndtime: %0.4f\n"
            "rwin: %0.4f\nswin: %0.4f\n", rwintime, sendtime, cwndtime, rwin,
            swin);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %"VARtype"\naspd: %0.5f\n"
            "CWND-Limited: %0.2f\n", cwin, rttsec, vars[0].Sndbuf, aspd, s2c2spd);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   snprintf(buff, sizeof(buff),
            "minCWNDpeak: %d\nmaxCWNDpeak: %d\nCWNDpeaks: %d\n",
            peaks.min, peaks.max, peaks.amount);
-  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_RESULTS, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // Signal end of test results to client
-  send_json_message(ctlsockfd, MSG_LOGOUT, "", 0, testopt->json_support, JSON_SINGLE_VALUE);
+  send_json_message(ctlsockfd, MSG_LOGOUT, "", 0, testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // Copy collected values into the meta data structures. This section
   // seems most readable, easy to debug here.
@@ -1325,9 +1323,9 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
            get_ISOtime(isoTime, sizeof(isoTime)));
 
   log_println(9, "meta.date=%s, meta.clientip =%s:%s:%d", meta.date,
-              meta.client_ip, rmt_host, strlen(rmt_host));
-  memcpy(meta.client_ip, rmt_host, strlen(rmt_host));
-  log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_host);
+              meta.client_ip, rmt_addr, strlen(rmt_addr));
+  memcpy(meta.client_ip, rmt_addr, strlen(rmt_addr));
+  log_println(9, "2. meta.clientip =%s:%s:%d", meta.client_ip, rmt_addr);
 
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%"VARtype",%"VARtype",%"
@@ -1389,7 +1387,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
     fprintf(fp, "%s,", date);
     fprintf(fp, "%s,%d,%d,%d,%"VARtype",%"VARtype",%"VARtype",%"
             VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
-            VARtype",%"VARtype",", rmt_host,
+            VARtype",%"VARtype",", rmt_addr,
             (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars[0].Timeouts,
             vars[0].SumRTT, vars[0].CountRTT, vars[0].PktsRetrans, vars[0].FastRetran,
             vars[0].DataPktsOut, vars[0].AckPktsOut, vars[0].CurrentMSS, vars[0].DupAcksIn,
@@ -1418,7 +1416,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
     fclose(fp);
   }
   db_insert(spds, runave, cputimelog, options.s2c_logname,
-            options.c2s_logname, testName, testPort, date, rmt_host, s2c2spd,
+            options.c2s_logname, testName, testPort, date, rmt_addr, s2c2spd,
             s2cspd, c2sspd, vars[0].Timeouts, vars[0].SumRTT, vars[0].CountRTT,
             vars[0].PktsRetrans, vars[0].FastRetran, vars[0].DataPktsOut,
             vars[0].AckPktsOut, vars[0].CurrentMSS, vars[0].DupAcksIn, vars[0].AckPktsIn,
@@ -1443,7 +1441,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
         "AckPktsOut=%"VARtype","
         "CurrentMSS=%"VARtype",DupAcksIn=%"VARtype","
         "AckPktsIn=%"VARtype",",
-        rmt_host, c2sspd, s2cspd, vars[0].Timeouts, vars[0].SumRTT, vars[0].CountRTT,
+        rmt_addr, c2sspd, s2cspd, vars[0].Timeouts, vars[0].SumRTT, vars[0].CountRTT,
         vars[0].PktsRetrans, vars[0].FastRetran, vars[0].DataPktsOut, vars[0].AckPktsOut,
         vars[0].CurrentMSS, vars[0].DupAcksIn, vars[0].AckPktsIn);
     snprintf(
@@ -1504,6 +1502,13 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   return (0);
 }
 
+/* web100srv.c contains both a main() that runs things, but is also a source of
+ * library code run by other parts of the program.  In order to test those
+ * other parts, we must be able to compile this file without the main()
+ * function.  To use this file as a library, pass in
+ * -DUSE_WEB100SRV_ONLY_AS_LIBRARY as a compile-time option.
+ */
+#ifndef USE_WEB100SRV_ONLY_AS_LIBRARY
 /**
  * Initializes data structures,
  *  web100 structures and logging systems.  Read/load configuration, get process
@@ -1541,7 +1546,6 @@ int main(int argc, char** argv) {
   int debug = 0;
 
   int j;
-  char *name;
 
   // variables used for protocol validation logs
   // char startsrvmsg[256];  // used to log start of server process
@@ -2099,7 +2103,7 @@ mainloop: if (head_ptr == NULL)
 
             /* if ((mchild->next == NULL) && (mchild->running == 0))
              *   mchild = tmp_ptr;
-             * if (mchild != head_ptr) {
+             * if (mchild != head_ptr) 
              */
             tmp_ptr = mchild;
 
@@ -2115,7 +2119,7 @@ mainloop: if (head_ptr == NULL)
                   break;
                 if (i == (2 * max_clients)) {
                   rac = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, "1", 1,
-                                          testopt.json_support, JSON_SINGLE_VALUE);
+                                          testopt.connection_flags, JSON_SINGLE_VALUE);
                   log_println(
                       6,
                       "sent 45 sec update message to client %d on fd=%d, "
@@ -2124,7 +2128,7 @@ mainloop: if (head_ptr == NULL)
                 }
                 if (i == (3 * max_clients)) {
                   rac = send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, "2", 1,
-                                          testopt.json_support, JSON_SINGLE_VALUE);
+                                          testopt.connection_flags, JSON_SINGLE_VALUE);
                   log_println(
                       6,
                       "sent 90 sec update message to client %d on fd=%d, "
@@ -2149,7 +2153,7 @@ mainloop: if (head_ptr == NULL)
               send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
 		strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		testopt.json_support, JSON_SINGLE_VALUE);
+		testopt.connection_flags, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2171,7 +2175,7 @@ mainloop: if (head_ptr == NULL)
               send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
 		strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		testopt.json_support, JSON_SINGLE_VALUE);
+		testopt.connection_flags, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2208,7 +2212,7 @@ mainloop: if (head_ptr == NULL)
               send_json_message(head_ptr->ctlsockfd, SRV_QUEUE,
 	        SRV_QUEUE_SERVER_BUSY_STR, 
 		strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		testopt.json_support, JSON_SINGLE_VALUE);
+		testopt.connection_flags, JSON_SINGLE_VALUE);
               shutdown(head_ptr->ctlsockfd, SHUT_WR);
               close(head_ptr->ctlsockfd);
               tpid = head_ptr->pid;
@@ -2282,7 +2286,6 @@ mainloop: if (head_ptr == NULL)
             if ((waiting > 0) && (testing == 0))  // no clients waiting, no test
                                                   // in progress
               goto ChldRdy;
-            /* } */
             clilen = sizeof(cli_addr);
             memset(&cli_addr, 0, clilen);
             log_println(6, "Select() found %d clients ready, highest fd=%d",
@@ -2307,12 +2310,15 @@ mainloop: if (head_ptr == NULL)
               memcpy(&meta.c_addr, &cli_addr, clilen);
               meta.family = ((struct sockaddr *) &cli_addr)->sa_family;
               
-              size_t tmpstrlen = sizeof(tmpstr);
-              memset(tmpstr, 0, tmpstrlen);
+              memset(rmt_addr, 0, sizeof(rmt_addr));
               // get addr details based on socket info available
               I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd,
                                                False);
-              I2AddrNodeName(tmp_addr, tmpstr, &tmpstrlen);
+              addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
+
+              size_t rmt_host_strlen = sizeof(rmt_host);
+              memset(rmt_host, 0, rmt_host_strlen);
+              I2AddrNodeName(tmp_addr, rmt_host, &rmt_host_strlen);
               /* I2AddrFree(tmp_addr); */
               log_println(4,
                           "New connection received from 0x%x [%s] sockfd=%d.",
@@ -2337,25 +2343,6 @@ mainloop: if (head_ptr == NULL)
                                   procstatusenum, ctlsockfd);
             }
 
-            // the specially crafted data that kicks off the old clients
-            for (i = 0; i < RETRY_COUNT; i++) {
-              retcode = write(ctlsockfd, "123456 654321", 13);
-              if ((retcode == -1) && (errno == EINTR))  // interrupted, retry
-                continue;
-              if (retcode == 13)  // 13 bytes correctly written, exit
-                break;
-              if (retcode == -1) {  // socket error hindering further retries
-                log_println(1,
-                            "Initial contact with client failed errno=%d",
-                            errno);
-                close(chld_pipe[0]);
-                close(chld_pipe[1]);
-                shutdown(ctlsockfd, SHUT_WR);
-                close(ctlsockfd);
-                goto mainloop;
-              }
-            }
-
             t_opts = initialize_tests(ctlsockfd, &testopt, test_suite,
                                       sizeof(test_suite));
             if (t_opts < 1) {  // some error in initialization routines
@@ -2368,9 +2355,6 @@ mainloop: if (head_ptr == NULL)
             new_child = (struct ndtchild *) malloc(sizeof(struct ndtchild));
             memset(new_child, 0, sizeof(struct ndtchild));
             tt = time(0);
-            name = tmpstr;
-
-            rmt_host = tmpstr;
 
             // At this point we have received a connection from a client,
             // meaning that a test is being requested.  At this point we should
@@ -2415,7 +2399,7 @@ mainloop: if (head_ptr == NULL)
                 send_json_message(ctlsockfd, SRV_QUEUE,
 		  SRV_QUEUE_SERVER_BUSY_STR, 
 		  strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		  testopt.json_support, JSON_SINGLE_VALUE);
+		  testopt.connection_flags, JSON_SINGLE_VALUE);
                 close(chld_pipe[0]);
                 close(chld_pipe[1]);
                 shutdown(ctlsockfd, SHUT_WR);
@@ -2436,10 +2420,10 @@ mainloop: if (head_ptr == NULL)
               log_println(6, "creating new child - semaphore locked");
               /*sigprocmask(SIG_BLOCK, &newmask, &oldmask); */
               new_child->pid = chld_pid;
-              /* strncpy(new_child->addr, rmt_host, strlen(rmt_host));
-                 strncpy(new_child->host, name, strlen(name));*/
-              strlcpy(new_child->addr, rmt_host, sizeof(new_child->addr));
-              strlcpy(new_child->host, name, sizeof(new_child->host));
+              /* strncpy(new_child->addr, rmt_addr, strlen(rmt_host));
+                 strncpy(new_child->host, rmt_host, strlen(name));*/
+              strlcpy(new_child->addr, rmt_addr, sizeof(new_child->addr));
+              strlcpy(new_child->host, rmt_host, sizeof(new_child->host));
 
               // compute start time based in the number of waiting clients
               // set other properties on this child process
@@ -2481,7 +2465,7 @@ mainloop: if (head_ptr == NULL)
                 send_json_message(new_child->ctlsockfd, SRV_QUEUE,
 		  SRV_QUEUE_SERVER_BUSY_STR, 
 		  strlen(SRV_QUEUE_SERVER_BUSY_STR),
-		  testopt.json_support, JSON_SINGLE_VALUE);
+		  testopt.connection_flags, JSON_SINGLE_VALUE);
                 close(chld_pipe[1]);
                 shutdown(new_child->ctlsockfd, SHUT_WR);
                 close(new_child->ctlsockfd);
@@ -2519,7 +2503,7 @@ mainloop: if (head_ptr == NULL)
                   while (tmp_ptr != NULL) {
                     log_println(4, "\tChild %d, host: %s [%s], next=0x%x",
                                 tmp_ptr->pid, tmp_ptr->host, tmp_ptr->addr,
-                                (u_int64_t) tmp_ptr->next);
+                                (uintptr_t) tmp_ptr->next);
                     if (tmp_ptr->next == NULL)
                       break;
                     tmp_ptr = tmp_ptr->next;
@@ -2540,7 +2524,7 @@ mainloop: if (head_ptr == NULL)
                     (waiting-1));
                 snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-1));
                 send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr),
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 continue;
               }
 
@@ -2551,7 +2535,7 @@ mainloop: if (head_ptr == NULL)
                             (waiting-max_clients), mchild->pid, xx);
                 snprintf(tmpstr, sizeof(tmpstr), "%d", xx);
                 send_json_message(mchild->ctlsockfd, SRV_QUEUE, tmpstr, strlen(tmpstr),
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 continue;
               }
 
@@ -2591,7 +2575,7 @@ mainloop: if (head_ptr == NULL)
 
                   snprintf(tmpstr, sizeof(tmpstr), "%d", (waiting-j));
                   send_json_message(tmp_ptr->ctlsockfd, SRV_QUEUE, tmpstr,
-                           strlen(tmpstr), testopt.json_support, JSON_SINGLE_VALUE);
+                           strlen(tmpstr), testopt.connection_flags, JSON_SINGLE_VALUE);
                   tmp_ptr = tmp_ptr->next;
                   j--;
                 }
@@ -2657,7 +2641,7 @@ mainloop: if (head_ptr == NULL)
                             tmpstr);
                 // test session starts now
                 send_json_message(mchild->ctlsockfd, SRV_QUEUE, "0", 1,
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 for (i = 0; i < 5; i++) {
                   retcode = write(mchild->pipe, tmpstr, strlen(tmpstr));
                   log_println(6, "write(%d) returned %d, errno=%d",
@@ -2689,7 +2673,7 @@ mainloop: if (head_ptr == NULL)
                 log_println(5, "sending 'GO' signal to client msg='%s'",
                             tmpstr);
                 send_json_message(head_ptr->ctlsockfd, SRV_QUEUE, "0", 1,
-                                  testopt.json_support, JSON_SINGLE_VALUE);
+                                  testopt.connection_flags, JSON_SINGLE_VALUE);
                 for (i = 0; i < 5; i++) {
                   retcode = write(head_ptr->pipe, tmpstr, strlen(tmpstr));
                   if ((retcode == -1) && (errno == EINTR))
@@ -2785,11 +2769,11 @@ mainloop: if (head_ptr == NULL)
                                                  False);
                 testPort = I2AddrPort(tmp_addr);
                 meta.ctl_port = testPort;
-                snprintf(testName, sizeof(testName), "%s", name);
+                snprintf(testName, sizeof(testName), "%s", rmt_host);
                 I2AddrFree(tmp_addr);
                 memset(cputimelog, 0, 256);
                 if (cputime) {
-                  snprintf(dir, sizeof(dir), "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort);
+                  snprintf(dir, sizeof(dir), "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort);
                   log_println(8, "CPUTIME:suffix=%s", dir);
                   create_named_logdir(cputimelog, sizeof(cputimelog), dir, 0);
                   memcpy(meta.CPU_time, dir, strlen(dir));
@@ -2803,7 +2787,7 @@ mainloop: if (head_ptr == NULL)
                 }
                 memset(webVarsValuesLog, 0, 256);
                 if (webVarsValues) {
-                  snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), name, testPort, TCP_STAT_NAME);
+                  snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort, TCP_STAT_NAME);
                   create_named_logdir(webVarsValuesLog, sizeof(webVarsValuesLog), dir, 0);
                   memcpy(meta.web_variables_log, dir, strlen(dir));
                 }
@@ -2814,7 +2798,7 @@ mainloop: if (head_ptr == NULL)
                 log_println(0, "Unable to open log file '%s', continuing on "
                             "without logging", get_logfile());
               } else {
-                fprintf(fp, "%15.15s  %s port %d\n", ctime(&tt)+4, name,
+                fprintf(fp, "%15.15s  %s port %d\n", ctime(&tt)+4, rmt_host,
                         testPort);
                 if (cputime && workerThreadId) {
                   log_println(1, "cputime trace file: %s\n", cputimelog);
@@ -2898,11 +2882,12 @@ mainloop: if (head_ptr == NULL)
           }
   }
 }
+#endif  // USE_WEB100SRV_ONLY_AS_LIBRARY
 
 /**
  * Method to get remote host's address.
- * @return remote host name
+ * @return remote host's address
  * */
-char *get_remotehost() {
-  return rmt_host;
+char *get_remotehostaddress() {
+  return rmt_addr;
 }

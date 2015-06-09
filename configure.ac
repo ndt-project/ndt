@@ -29,7 +29,7 @@
 # Process this file with autoconf to produce a configure script.
 # 
 # AC_PREREQ(2.57)
-AC_INIT([NDT],[3.7.0-rc1],[ndt-user@internet2.edu])
+AC_INIT([NDT],[3.7.0.1],[ndt-user@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
@@ -204,20 +204,35 @@ I2UTILLIBS=""
 I2UTILLIBDEPS=""
 I2UTILLIBMAKE=""
 I2UTILINCS=""
-if test "$with_I2util" != "no"; then
-	# first, check for directory given.
-	if test "$with_I2util" != "yes"; then
-		I2util_dir=${with_I2util}
-		case $I2util_dir in
-			/*) ;; # already an absolute path
-			*) I2util_dir="`pwd`/$I2util_dir" ;;
-		esac
-		I2util_include_dir=`dirname $with_I2util`/include
-		I2UTILINCS="-I$I2util_include_dir $I2UTILINCS"
-		I2UTILLDFLAGS="-L$I2util_dir $I2UTILLDFLAGS"
-		I2UTILLIBDEPS="$I2util_dir/libI2util.a"
+
+if test -n "$with_I2util" && test "$with_I2util" != "yes"; then
+	I2util_dir=${with_I2util}
+	case $I2util_dir in
+		/*) ;; # already an absolute path
+		*) I2util_dir="`pwd`/$I2util_dir" ;;
+	esac
+	I2util_include_dir=`dirname $with_I2util`/include
+	I2UTILINCS="-I$I2util_include_dir $I2UTILINCS"
+	I2UTILLDFLAGS="-L$I2util_dir $I2UTILLDFLAGS"
+	I2UTILLIBDEPS="$I2util_dir/libI2util.a"
+fi
+
+# Save the old CFLAGS and LDFLAGS
+OLD_LDFLAGS="$LDFLAGS"
+OLD_CFLAGS="$CFLAGS"
+
+CFLAGS="$CFLAGS $I2UTILINCS"
+LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
+
+AC_SEARCH_LIBS([I2AddrByNode],I2util, HAVE_I2UTIL_LIBS=1,HAVE_I2UTIL_LIBS=0)
+AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], HAVE_I2UTIL_HEADERS=1,HAVE_I2UTIL_HEADERS=0)
+
+LDFLAGS="$OLD_LDFLAGS"
+CFLAGS="$OLD_CFLAGS"
+
+if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
 	# now, check for sub-build/sub-configure
-	elif test -d I2util/I2util; then
+	if test -d I2util/I2util; then
 		AC_CONFIG_SUBDIRS(I2util)
 		TOP_BUILD_DIRS="I2util $TOP_BUILD_DIRS"
 		I2util_dir='${top_srcdir}/I2util'
@@ -225,13 +240,8 @@ if test "$with_I2util" != "no"; then
 		I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
 		I2UTILLIBMAKE="cd $I2util_dir; make"
-		
-	# now, check for installed I2util
-	elif test -d /usr/local/I2util; then
-		I2UTILINCS="-I/usr/local/I2util/include $I2UTILINCS"
-		I2UTILLDFLAGS="-L/usr/local/I2util/lib $I2UTILLDFLAGS"
-		I2UTILLIBDEPS="/usr/local/I2util/lib/libI2util.a"
-
+	else
+		AC_MSG_FAILURE([I2util required to build NDT])
 	fi
 
         # Save the old CFLAGS and LDFLAGS
@@ -249,6 +259,8 @@ if test "$with_I2util" != "no"; then
 
 	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 fi
+
+I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 
 AC_SUBST(I2UTILLDFLAGS)
 AC_SUBST(I2UTILLIBS)
@@ -410,6 +422,8 @@ AC_C_CONST
 AC_HEADER_TIME
 
 # Checks for library functions.
+AX_CHECK_OPENSSL(AM_CONDITIONAL(HAVE_SSL, true), AM_CONDITIONAL(HAVE_SSL, false))
+
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
 AC_FUNC_MALLOC
@@ -437,8 +451,13 @@ echo ""
 if test -z "$HAVE_WEB10G_TRUE" && test -n "$HAVE_WEB10G_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
+if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
   SUMMARY_WEB10GSRV="YES"
   SUMMARY_GENPLOT10G="YES"
+else
+  SUMMARY_GENPLOT10G="YES"
+  SUMMARY_WEB10GSRV="NO    (missing OpenSSL library)"
+fi
 else
   SUMMARY_GENPLOT10G="YES"
   SUMMARY_WEB10GSRV="NO    (missing jansson library)"
@@ -452,10 +471,14 @@ else
   SUMMARY_GENPLOT10G="NO (missing web10g userland library >=2.0.6.2)"
 fi
 
+if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
   SUMMARY_WEB100CLT="YES"
 else
   SUMMARY_WEB100CLT="NO    (missing jansson library)"
+fi
+else
+  SUMMARY_WEB100CLT="NO    (missing OpenSSL library)"
 fi
 
 if test "x$enable_fakewww" == "xno"; then
@@ -469,7 +492,11 @@ fi
 if test -z "$HAVE_WEB100_TRUE" && test -n "$HAVE_WEB100_FALSE"; then
 if test -z "$HAVE_PCAP_H_TRUE" && test -n "$HAVE_PCAP_H_FALSE"; then
 if test -z "$HAVE_JANSSON_TRUE" && test -n "$HAVE_JANSSON_FALSE"; then
+if test -z "$HAVE_SSL_TRUE" && test -n "$HAVE_SSL_FALSE"; then
 SUMMARY_WEB100SRV="YES"
+else
+SUMMARY_WEB100SRV="NO    (missing OpenSSL library)"
+fi
 else
 SUMMARY_WEB100SRV="NO    (missing jansson library)"
 fi

@@ -21,6 +21,7 @@
 #include "network.h"
 #include "mrange.h"
 #include "jsonutils.h"
+#include "websocket.h"
 
 /**
  * Perform the C2S Throughput test. This test intends to measure throughput
@@ -159,7 +160,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
                sizeof(buff),
                "Server (C2S throughput test): CreateListenSocket failed: %s",
                strerror(errno));
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -197,7 +198,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // send TEST_PREPARE message with ephemeral port detail, indicating start
     // of tests
     if ((msgretvalue = send_json_message(ctlsockfd, TEST_PREPARE, buff,
-                                strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE)) < 0) {
+                                strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE)) < 0) {
       return msgretvalue;
     }
 
@@ -245,6 +246,14 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           procstatusenum = PROCESS_STARTED;
           proctypeenum = CONNECT_TYPE;
           protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[0]);
+          // To preserve user privacy, make sure that the HTTP header
+          // processing is done prior to the start of packet capture, as many
+          // browsers have headers that uniquely identitfy a single user.
+          if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
+            if (initialize_websocket_connection(recvsfd[0], 0, "c2s") != 0) {
+              recvsfd[0] = 0;
+            }
+          }
           break;
         }
         // socket interrupted, wait some more
@@ -293,26 +302,31 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // set up packet tracing. Collected data is used for bottleneck link
     // calculations
     if (getuid() == 0) {
-      pipe(mon_pipe);
-      if ((c2s_childpid = fork()) == 0) {
-        /* close(ctlsockfd); */
-        close(testOptions->c2ssockfd);
-        for (i = 0; i < streamsNum; i++) {
-          close(recvsfd[i]);
+      if (pipe(mon_pipe) != 0) {
+        log_println(0, "C2S test error: can't create pipe.");
+      } else {
+        if ((c2s_childpid = fork()) == 0) {
+          /* close(ctlsockfd); */
+          close(testOptions->c2ssockfd);
+          for (i = 0; i < streamsNum; i++) {
+            close(recvsfd[i]);
+          }
+          log_println(
+              5,
+              "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
+              testOptions->child0, mon_pipe[0], mon_pipe[1]);
+          log_println(2, "C2S test calling init_pkttrace() with pd=%p",
+                      &cli_addr[0]);
+          init_pkttrace(src_addr, cli_addr, streamsNum, clilen,
+                        mon_pipe, device, &pair, "c2s", options->c2s_duration / 1000.0);
+          log_println(1, "c2s is exiting gracefully");
+          /* Close the pipe */
+          close(mon_pipe[0]);
+          close(mon_pipe[1]);
+          exit(0); /* Packet trace finished, terminate gracefully */
+        } else if (c2s_childpid < 0) {
+          log_println(0, "C2S test error: can't create child process.");
         }
-        log_println(
-            5,
-            "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
-            testOptions->child0, mon_pipe[0], mon_pipe[1]);
-        log_println(2, "C2S test calling init_pkttrace() with pd=%p",
-                    &cli_addr[0]);
-        init_pkttrace(src_addr, cli_addr, streamsNum, clilen,
-                      mon_pipe, device, &pair, "c2s", options->c2s_duration / 1000.0);
-        log_println(1, "c2s is exiting gracefully");
-        /* Close the pipe */
-        close(mon_pipe[0]);
-        close(mon_pipe[1]);
-        exit(0); /* Packet trace finished, terminate gracefully */
       }
 
       // Get data collected from packet tracing into the C2S "ndttrace" file
@@ -346,7 +360,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sleep(2);
 
     // send empty TEST_START indicating start of the test
-    send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->json_support, JSON_SINGLE_VALUE);
+    send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->connection_flags, JSON_SINGLE_VALUE);
     /* alarm(30); */  // reset alarm() again, this 10 sec test should finish
                       // before this signal is generated.
 
@@ -441,7 +455,7 @@ breakMainLoop:
         snapshotsPtr = snapshotsPtr->next;
       }
     }
-    send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support, JSON_SINGLE_VALUE);
+    send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE);
 
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
@@ -510,7 +524,7 @@ breakMainLoop:
     }
 
     // An empty TEST_FINALIZE message is sent to conclude the test
-    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, testOptions->json_support, JSON_SINGLE_VALUE);
+    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, testOptions->connection_flags, JSON_SINGLE_VALUE);
 
     //  Close opened resources for packet capture
     if (getuid() == 0) {

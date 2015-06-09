@@ -47,6 +47,7 @@ char* er_time_format = ER_TIME_FORMAT;
 char buff[BUFFSIZE];
 /* html message */
 char *MsgOK = "HTTP/1.0 200 OK\r\n\r\n";
+char *CSSMsgOK = "HTTP/1.0 200 OK\r\nContent-Type: text/css\r\n\r\n";
 char *MsgNope1 = "HTTP/1.0 404 Not found\r\n\r\n";
 char *MsgNope2 = "<HEAD><TITLE>File Not Found</TITLE></HEAD>\n"
 "<BODY><H1>The requested file could not be found</H1></BODY>\n";
@@ -76,7 +77,9 @@ char *okfile[] = { "/widget.html", "/Tcpbw100.class", "/Tcpbw100$1.class",
   "/lib/json-simple-1.1.1.jar", "/crossdomain.xml", 
   "/embed.html", "/tcpbw100.html", "/FlashClt.swf", "/script.js", "/ie.css",
   "/gauge.min.js", "/jquery-1.4.4.min.js", "/style.css", 
+  "/gauge.min.js", "/jquery-1.4.4.min.js", "/style.css", 
   "/fonts/digital-7-mono.ttf", "/fonts/League_Gothic.eot", "/fonts/League_Gothic.otf", 
+  "/ndt-wrapper.js", "/ndt-wrapper-ww.js", "/ndt-browser-client.js",
   "/images/mlab-logo.png", "/images/mlab-logo-small.png", 0 };
 
 typedef struct allowed {
@@ -381,7 +384,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
            char* ErLogFileName, int fed_mode, int max_ttl) {
   /* process web request */
   int fd, n, i, ok;
-  char *p, filename[256], line[256], *ctime();
+  char *p, filename[BUFFSIZE], line[256], *ctime();
   char htmlfile[256];
   u_int32_t IPlist[64], srv_addr;
 #ifdef AF_INET6
@@ -399,6 +402,7 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
   char useragentBuf[100];
   char refererBuf[100];
   int answerSize;
+  char *ok_msg;
 
   memset(nodename, 0, 200);
   I2AddrNodeName(addr, nodename, &nlen);
@@ -707,7 +711,14 @@ void dowww(int sd, I2Addr addr, char* port, char* AcLogFileName,
       fd = open("/tmp/rac-traceroute.pl", 0);
     }
 
-    writen(sd, MsgOK, strlen(MsgOK));
+    if (strcmp(htmlfile + strlen(htmlfile) - 4, ".css") == 0) {
+        ok_msg = CSSMsgOK;
+    }
+    else {
+        ok_msg = MsgOK;
+    }
+
+    writen(sd, ok_msg, strlen(ok_msg));
     answerSize = 0;
     while ((n = read(fd, buff, sizeof(buff))) > 0) {
       writen(sd, buff, n);

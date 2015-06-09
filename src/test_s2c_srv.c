@@ -22,6 +22,7 @@
 #include "network.h"
 #include "mrange.h"
 #include "jsonutils.h"
+#include "websocket.h"
 
 extern pthread_mutex_t mainmutex;
 extern pthread_cond_t maincond;
@@ -228,7 +229,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           "Server (S2C throughput test): CreateListenSocket failed: %s",
           strerror(errno));
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        testOptions->json_support, JSON_SINGLE_VALUE);
+                        testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -256,7 +257,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
       lastThroughputSnapshot = NULL;
     }
     j = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
-                          testOptions->json_support, JSON_SINGLE_VALUE);
+                          testOptions->connection_flags, JSON_SINGLE_VALUE);
     if (j == -1) {
       log_println(6, "S2C %d Error!, Test start message not sent!",
                   testOptions->child0);
@@ -310,7 +311,16 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
          }
          procstatusenum = PROCESS_STARTED;
          proctypeenum = CONNECT_TYPE;
-         protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, xmitsfd[0]);
+         protolog_procstatus(testOptions->child0, testids, proctypeenum,
+                             procstatusenum, xmitsfd[0]);
+         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
+	   // To preserve user privacy, make sure that the HTTP header
+	   // processing is done prior to the start of packet capture, as many
+	   // browsers have headers that uniquely identitfy a single user.
+           if (initialize_websocket_connection(xmitsfd[0], 0, "s2c") != 0) {
+             xmitsfd[0] = 0;
+           } 
+         } 
          break;
        }
        // socket interrupted, wait some more
@@ -346,28 +356,33 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       log_println(6, "S2C child %d, ready to fork()",
                   testOptions->child0);
       if (getuid() == 0) {
-        pipe(mon_pipe);
-        if ((s2c_childpid = fork()) == 0) {
-          /* close(ctlsockfd); */
-          close(testOptions->s2csockfd);
-          for (i = 0; i < streamsNum; i++) {
-            close(xmitsfd[i]);
+        if (pipe(mon_pipe) != 0) {
+          log_println(0, "S2C test error: can't create pipe.");
+        } else {
+          if ((s2c_childpid = fork()) == 0) {
+            /* close(ctlsockfd); */
+            close(testOptions->s2csockfd);
+            for (i = 0; i < streamsNum; i++) {
+              close(xmitsfd[i]);
+            }
+            log_println(
+                5,
+                "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
+                mon_pipe[0], mon_pipe[1]);
+            log_println(2, "S2C test calling init_pkttrace() with pd=%p",
+                        &cli_addr[0]);
+            init_pkttrace(src_addr, cli_addr, streamsNum,
+                          clilen, mon_pipe, device, &pair, "s2c",
+                          options->s2c_duration / 1000.0);
+            log_println(6,
+                        "S2C test ended, why is timer still running?");
+            /* Close the pipe */
+            close(mon_pipe[0]);
+            close(mon_pipe[1]);
+            exit(0); /* Packet trace finished, terminate gracefully */
+          } else if (s2c_childpid < 0){
+            log_println(0, "S2C test error: can't create child process.");
           }
-          log_println(
-              5,
-              "S2C test Child thinks pipe() returned fd0=%d, fd1=%d",
-              mon_pipe[0], mon_pipe[1]);
-          log_println(2, "S2C test calling init_pkttrace() with pd=%p",
-                      &cli_addr[0]);
-          init_pkttrace(src_addr, cli_addr, streamsNum,
-                        clilen, mon_pipe, device, &pair, "s2c",
-                        options->s2c_duration / 1000.0);
-          log_println(6,
-                      "S2C test ended, why is timer still running?");
-          /* Close the pipe */
-          close(mon_pipe[0]);
-          close(mon_pipe[1]);
-          exit(0); /* Packet trace finished, terminate gracefully */
         }
         memset(tmpstr, 0, 256);
         for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
@@ -398,7 +413,8 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
        */
       if (getuid() == 0) {
         // system("/sbin/sysctl -w net.ipv4.route.flush=1");
-        system("echo 1 > /proc/sys/net/ipv4/route/flush");
+        if (system("echo 1 > /proc/sys/net/ipv4/route/flush") != 0)
+          log_println(0, "C2S test error: error calling system function: \"echo 1 > /proc/sys/net/ipv4/route/flush\"");
       }
       for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
@@ -419,9 +435,32 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           k++;
         buff[j] = (k++ & 0x7f);
       }
+      if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
+        // Make sure the data has a websocket header
+        ((unsigned char*)buff)[0] = 0x82;  // One frame of binary data
+	// Depending on BUFFSIZE, the websocket header will be 2, 4, or 10
+	// bytes big.  This header is constructed to comply with RFC 6455.
+        if (BUFFSIZE < 126) {
+          buff[1] = (BUFFSIZE-2) & 0x7F;
+        } else if (BUFFSIZE < 65536) {
+          buff[1] = 126;
+          ((unsigned char*)buff)[2] = ((BUFFSIZE - 4) >> 8) & 0xFF;
+          ((unsigned char*)buff)[3] = (BUFFSIZE - 4) & 0xFF;
+        } else {
+          buff[1] = 127;
+          ((unsigned char*)buff)[2] = (((long long)BUFFSIZE - 10) >> 56) & 0xFF;
+          ((unsigned char*)buff)[3] = (((long long)BUFFSIZE - 10) >> 48) & 0xFF;
+          ((unsigned char*)buff)[4] = (((long long)BUFFSIZE - 10) >> 40) & 0xFF;
+          ((unsigned char*)buff)[5] = (((long long)BUFFSIZE - 10) >> 32) & 0xFF;
+          ((unsigned char*)buff)[6] = (((long long)BUFFSIZE - 10) >> 24) & 0xFF;
+          ((unsigned char*)buff)[7] = (((long long)BUFFSIZE - 10) >> 16) & 0xFF;
+          ((unsigned char*)buff)[8] = (((long long)BUFFSIZE - 10) >> 8) & 0xFF;
+          ((unsigned char*)buff)[9] = (BUFFSIZE - 10) & 0xFF;
+        }
+      }
 
       // Send message to client indicating TEST_START
-      if (send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->json_support,
+      if (send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->connection_flags,
                             JSON_SINGLE_VALUE) < 0)
         log_println(6,
                     "S2C test - Test-start message failed for pid=%d",
@@ -557,8 +596,8 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       // Send throughput, unsent byte count, total sent byte count to client
       snprintf(buff, sizeof(buff), "%0.0f %d %0.0f", x2cspd, sndqueue,
                bytes_written);
-      if (testOptions->json_support) {
-        if (send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support,
+      if (testOptions->connection_flags & JSON_SUPPORT) {
+        if (send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->connection_flags,
                           JSON_MULTIPLE_VALUES, RESULTS_KEYS, " ", buff, " ") < 0)
             log_println(6,
                 "S2C test - failed to send test message to pid=%d",
@@ -566,7 +605,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       }
       else {
         if (send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff),
-                              testOptions->json_support, JSON_SINGLE_VALUE) < 0)
+                              testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
           log_println(6,
               "S2C test - failed to send test message to pid=%d",
               s2c_childpid);
@@ -664,17 +703,17 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
 #if USE_WEB100
     // send web100 data to client
-    ret = tcp_stat_get_data(tsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    ret = tcp_stat_get_data(tsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions);
      for (i = 0; i < streamsNum; ++i) {
       web100_snapshot_free(streams[i].tsnap);
     }
     // send tuning-related web100 data collected to client
-    ret = tcp_stat_get_data(rsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    ret = tcp_stat_get_data(rsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions);
     for (i = 0; i < streamsNum; ++i) {
       web100_snapshot_free(streams[i].rsnap);
     }
 #elif USE_WEB10G
-    ret = tcp_stat_get_data(snap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions->json_support);
+    ret = tcp_stat_get_data(snap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions);
     for (i = 0; i < streamsNum; ++i) {
       estats_val_data_free(&snap[i]);
     }
@@ -685,7 +724,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       log_println(6, "S2C - No web100 data received for pid=%d",
                   s2c_childpid);
       snprintf(buff, sizeof(buff), "No Data Collected: 000000");
-      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->json_support,
+      send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->connection_flags,
                         JSON_SINGLE_VALUE);
     }
 
@@ -693,14 +732,14 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
     // value
     log_println(6, "S2CSPD reception starts");
     msgLen = sizeof(buff);
-    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
+    if (recv_any_msg(ctlsockfd, &msgType, buff, &msgLen, testOptions->connection_flags)) {
       log_println(0, "Protocol error!");
       snprintf(
           buff,
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        testOptions->json_support, JSON_SINGLE_VALUE);
+                        testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
     if (check_msg_type("S2C throughput test", TEST_MSG, msgType, buff,
@@ -710,11 +749,11 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        testOptions->json_support, JSON_SINGLE_VALUE);
+                        testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -2;
     }
     buff[msgLen] = 0;
-    if (testOptions->json_support) {
+    if (testOptions->connection_flags & JSON_SUPPORT) {
       jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
       strlcpy(buff, jsonMsgValue, sizeof(buff));
       msgLen = strlen(buff);
@@ -727,7 +766,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
           sizeof(buff),
           "Server (S2C throughput test): Invalid S2C throughput received");
       send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        testOptions->json_support, JSON_SINGLE_VALUE);
+                        testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -3;
     }
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
@@ -754,7 +793,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       close(xmitsfd[i]);
     }
     if (send_json_message(ctlsockfd, TEST_FINALIZE, "", 0,
-                          testOptions->json_support, JSON_SINGLE_VALUE) < 0)
+                          testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
       log_println(6,
                   "S2C test - failed to send finalize message to pid=%d",
                   s2c_childpid);
