@@ -84,6 +84,7 @@ const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
  * @param count_vars count of web100 variables
  * @param peaks Cwnd peaks structure pointer
  * @param s2c_ThroughputSnapshots Variable used to set s2c throughput snapshots
+ * @param extended indicates if extended s2c test should be performed
  *
  * @return 0 - success,
  *         >0 - error code.
@@ -103,7 +104,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* s2cspd, int set_buff, int window,
              int autotune, char* device, Options* options, char spds[4][256],
              int* spd_index, int count_vars, CwndPeaks* peaks,
-             struct throughputSnapshot **s2c_ThroughputSnapshots) {
+             struct throughputSnapshot **s2c_ThroughputSnapshots, int extended) {
 #if USE_WEB100
   web100_var* var;
 #elif USE_WEB10G
@@ -151,7 +152,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
-  enum TEST_ID testids = S2C;
+  enum TEST_ID testids = extended ? S2C_EXT : S2C;
   enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char snaplogsuffix[256] = "s2c_snaplog";
@@ -171,8 +172,11 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 
   // Determine port to be used. Compute based on options set earlier
   // by reading from config file, or use default port2 (3003)
-  if (testOptions->s2copt) {
-    setCurrentTest(TEST_S2C);
+  if ((!extended && testOptions->s2copt) || (extended && testOptions->s2cextopt)) {
+    if (extended)
+      setCurrentTest(TEST_S2C_EXT);
+    else
+      setCurrentTest(TEST_S2C);
     log_println(1, " <-- %d - S2C throughput test -->",
                 testOptions->child0);
 
@@ -238,7 +242,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     testOptions->s2csockfd = I2AddrFD(s2csrv_addr);
     testOptions->s2csockport = I2AddrPort(s2csrv_addr);
     log_println(1, "  -- s2c %d port: %d", testOptions->child0, testOptions->s2csockport);
-    if (testOptions->exttestsopt) {
+    if (extended) {
       log_println(1, "  -- s2c ext -- duration = %d", options->s2c_duration);
       log_println(1, "  -- s2c ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
                           options->s2c_throughputsnaps ? "true" : "false", options->s2c_snapsdelay, options->s2c_snapsoffset);
@@ -250,7 +254,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // Data received from speed-chk. Send TEST_PREPARE "GO" signal with port
     // number
     snprintf(buff, sizeof(buff), "%d", testOptions->s2csockport);
-    if (testOptions->exttestsopt) {
+    if (extended) {
       snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->s2csockport,
                options->s2c_duration, options->s2c_throughputsnaps,
                options->s2c_snapsdelay, options->s2c_snapsoffset, options->s2c_streamsnum);
@@ -282,7 +286,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sel_tv.tv_sec = 5;  // wait for 5 secs
     sel_tv.tv_usec = 0;
     i = 0;
-    if (testOptions->exttestsopt) {
+    if (extended) {
       streamsNum = options->s2c_streamsnum;
       testDuration = options->s2c_duration / 1000.0;
     }
@@ -770,7 +774,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       return -3;
     }
     *s2cspd = atoi(buff);  // save Throughput value as seen by client
-    if (testOptions->exttestsopt && options->s2c_throughputsnaps) {
+    if (extended && options->s2c_throughputsnaps) {
       char* strtokptr = strtok(buff, " ");
       while ((strtokptr = strtok(NULL, " ")) != NULL) {
         if (lastThroughputSnapshot != NULL) {
@@ -789,6 +793,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
     log_println(6, "S2CSPD from client %f", *s2cspd);
     // Final activities of ending tests. Close sockets, file descriptors,
     //    send finalise message to client
+    close(testOptions->s2csockfd);
     for (i = 0; i < streamsNum; i++) {
       close(xmitsfd[i]);
     }

@@ -490,9 +490,19 @@ void cleanup(int signo) {
                       "Received SIGALRM signal [C2S throughput test] pid=%d",
                       getpid());
           break;
+        case TEST_C2S_EXT:
+          log_println(6,
+                      "Received SIGALRM signal [Extended C2S throughput test] pid=%d",
+                      getpid());
+          break;
         case TEST_S2C:
           log_println(6,
                       "Received SIGALRM signal [S2C throughput test] pid=%d",
+                      getpid());
+          break;
+        case TEST_S2C_EXT:
+          log_println(6,
+                      "Received SIGALRM signal [Extended S2C throughput test] pid=%d",
                       getpid());
           break;
         case TEST_SFW:
@@ -519,8 +529,20 @@ void cleanup(int signo) {
             if (wait_sig == 1)
               return;
             break;
+          case TEST_C2S_EXT:
+            fprintf(fp, " [Extended C2S throughput test]\n");
+            /* break; */
+            if (wait_sig == 1)
+              return;
+            break;
           case TEST_S2C:
             fprintf(fp, " [S2C throughput test]\n");
+            /* break; */
+            if (wait_sig == 1)
+              return;
+            break;
+          case TEST_S2C_EXT:
+            fprintf(fp, " [Extended S2C throughput test]\n");
             /* break; */
             if (wait_sig == 1)
               return;
@@ -1016,10 +1038,8 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   conn = tcp_stat_connection_from_socket(agent, ctlsockfd);
   autotune = tcp_stat_autotune(ctlsockfd, agent, conn);
 
-#define ADD_CAPABILITIES(x) x"-et"
-
   // client needs to be version compatible. Send current version
-  snprintf(buff, sizeof(buff), "v%s", ADD_CAPABILITIES(VERSION) "-" TCP_STAT_NAME);
+  snprintf(buff, sizeof(buff), "v%s", VERSION "-" TCP_STAT_NAME);
   send_json_message(ctlsockfd, MSG_LOGIN, buff, strlen(buff), testopt->connection_flags, JSON_SINGLE_VALUE);
 
   // initiate test with MSG_LOGIN message.
@@ -1042,15 +1062,15 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   }
   if (testopt->c2sopt) {
     log_println(1, " > C2S throughput test");
-    if (testopt->exttestsopt) {
-      log_println(1, "   * Extended tests supported");
-    }
+  }
+  if (testopt->c2sextopt) {
+    log_println(1, " > Extended C2S throughput test");
   }
   if (testopt->s2copt) {
     log_println(1, " > S2C throughput test");
-    if (testopt->exttestsopt) {
-      log_println(1, "   * Extended tests supported");
-    }
+  }
+  if (testopt->s2cextopt) {
+    log_println(1, " > Extended S2C throughput test");
   }
   if (testopt->metaopt) {
     log_println(1, " > META test");
@@ -1079,7 +1099,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots)) != 0) {
+                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots, 0)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -1087,15 +1107,37 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
     return ret;
   }
 
+  log_println(6, "Starting extended c2s throughput test");
+  if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
+                      set_buff, window, autotune, device, &options,
+                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots, 1)) != 0) {
+    if (ret < 0)
+      log_println(6, "Extended C2S test failed with rc=%d", ret);
+    log_println(0, "Extended C2S throughput test FAILED!, rc=%d", ret);
+    testopt->c2sextopt = TOPT_DISABLED;
+    return ret;
+  }
+
   /*  alarm(25); */
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots)) != 0) {
+                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots, 0)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
     testopt->s2copt = TOPT_DISABLED;
+    return ret;
+  }
+
+  log_println(6, "Starting extended s2c throughput test");
+  if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
+                      set_buff, window, autotune, device, &options, spds,
+                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots, 1)) != 0) {
+    if (ret < 0)
+      log_println(6, "Extended S2C test failed with rc=%d", ret);
+    log_println(0, "Extended S2C throughput test FAILED!, rc=%d", ret);
+    testopt->s2cextopt = TOPT_DISABLED;
     return ret;
   }
 
@@ -1126,13 +1168,13 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
 
   // ...other variables
   memset(&vars, 0xFF, sizeof(vars));
-  for (i = 0; i < (testopt->exttestsopt ? options.s2c_streamsnum : 1); ++i) {
+  for (i = 0; i < (testopt->s2cextopt ? options.s2c_streamsnum : 1); ++i) {
     tcp_stat_logvars(&vars[i], i, count_vars);
   }
 
   if (webVarsValues) {
-    tcp_stat_logvars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.s2c_streamsnum : 1, vars);
-    tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->exttestsopt ? options.s2c_streamsnum : 1, vars);
+    tcp_stat_logvars_to_file(webVarsValuesLog, testopt->s2cextopt ? options.s2c_streamsnum : 1, vars);
+    tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->s2cextopt ? options.s2c_streamsnum : 1, vars);
   }
 
   // end getting web100 variable values
@@ -1530,7 +1572,7 @@ int main(int argc, char** argv) {
   char *lbuf = NULL, *ctime();
   char buff[32], tmpstr[256];
   char* testsBuff[32];
-  char test_suite[16];
+  char test_suite[24];
   FILE * fp;
   size_t lbuf_max = 0;
   fd_set rfd;
@@ -2808,6 +2850,7 @@ mainloop: if (head_ptr == NULL)
               }
               close(chld_pipe[0]);
 
+              int alarmTime = 120;
               // Set test options
               if (t_opts & TEST_MID)
                 testopt.midopt = TOPT_ENABLED;
@@ -2819,16 +2862,17 @@ mainloop: if (head_ptr == NULL)
                 testopt.c2sopt = TOPT_ENABLED;
               if (t_opts & TEST_S2C)
                 testopt.s2copt = TOPT_ENABLED;
-
-              alarm(120);
-              log_println(6, "setting master alarm() to 120 seconds, tests must complete before this timer expires");
-
-              if (t_opts & TEST_EXT) {
-                testopt.exttestsopt = TOPT_ENABLED;
-              alarm(100 + (options.c2s_duration / 1000.0) + (options.s2c_duration / 1000.0));
-              log_println(6, " * changed master alarm() to %d due to enabled extended tests",
-                    (int) (100 + (options.c2s_duration / 1000.0) + (options.s2c_duration / 1000.0)));
+              if (t_opts & TEST_C2S_EXT) {
+                testopt.c2sextopt = TOPT_ENABLED;
+                alarmTime += options.c2s_duration / 1000.0;
               }
+              if (t_opts & TEST_S2C_EXT) {
+                testopt.s2cextopt = TOPT_ENABLED;
+                alarmTime += options.s2c_duration / 1000.0;
+              }
+
+              alarm(alarmTime);
+              log_println(6, "setting master alarm() to %d seconds, tests must complete before this timer expires", alarmTime);
               
               // run tests based on options
               if (strncmp(test_suite, "Invalid", 7) != 0) {

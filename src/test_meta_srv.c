@@ -168,12 +168,14 @@ int test_meta_srv(int ctlsockfd, tcp_stat_agent* agent,
 
       addAdditionalMetaEntry(&new_entry, buff, value);
     }
-    if (testOptions->exttestsopt) {
+    if (testOptions->c2sextopt) {
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->c2s_duration);
       addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->c2s_throughputsnaps ? "true" : "false");
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->c2s_snapsdelay);
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->c2s_snapsoffset);
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.streamsnum", options->c2s_streamsnum);
+    }
+    if (testOptions->s2cextopt) {
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->s2c_duration);
       addAdditionalMetaEntry(&new_entry, "ext.s2c.throughputsnaps", options->s2c_throughputsnaps ? "true" : "false");
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->s2c_snapsdelay);

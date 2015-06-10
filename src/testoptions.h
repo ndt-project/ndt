@@ -46,7 +46,8 @@ typedef struct testoptions {
   int sfwopt;  // Is firewall test to be performed?
 
   int metaopt;  // meta test to be perfomed?
-  int exttestsopt; // extended tests supported?
+  int c2sextopt; // extended C2S test to be performed?
+  int s2cextopt; // extended S2C test to be performed?
 } TestOptions;
 
 // Snap log characteristics

@@ -148,7 +148,7 @@ struct ndtchild {
   int running;  // Is process running?
   int ctlsockfd;  // Socket file descriptor
   int oldclient;  // Is old client?
-  char tests[16];  // What tests are scheduled?
+  char tests[24];  // What tests are scheduled?
   struct ndtchild *next;  // next process in queue
 };
 

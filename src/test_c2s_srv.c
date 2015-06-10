@@ -50,6 +50,7 @@
  * @param spd_index  index used for speed check array
  * @param conn_options Connection options
  * @param c2s_ThroughputSnapshots Variable used to set c2s throughput snapshots
+ * @param extended indicates if extended c2s test should be performed
  * @return 0 - success,
  *          >0 - error code
  *          Error codes:
@@ -64,7 +65,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
              int count_vars, char spds[4][256], int* spd_index,
-             struct throughputSnapshot **c2s_ThroughputSnapshots) {
+             struct throughputSnapshot **c2s_ThroughputSnapshots, int extended) {
   tcp_stat_connection conn;
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
@@ -105,14 +106,17 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   wait_sig = 0;
 
   // Test ID and status descriptors
-  enum TEST_ID testids = C2S;
+  enum TEST_ID testids = extended ? C2S_EXT : C2S;
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char namesuffix[256] = "c2s_snaplog";
 
-  if (testOptions->c2sopt) {
-    setCurrentTest(TEST_C2S);
+  if ((!extended && testOptions->c2sopt) || (extended && testOptions->c2sextopt)) {
+    if (extended)
+      setCurrentTest(TEST_C2S_EXT);
+    else
+      setCurrentTest(TEST_C2S);
     log_println(1, " <-- %d - C2S throughput test -->",
                 testOptions->child0);
     strlcpy(listenc2sport, PORT2, sizeof(listenc2sport));
@@ -169,7 +173,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
     log_println(1, "  -- c2s %d port: %d", testOptions->child0, testOptions->c2ssockport);
-    if (testOptions->exttestsopt) {
+    if (extended) {
       log_println(1, "  -- c2s ext -- duration = %d", options->c2s_duration);
       log_println(1, "  -- c2s ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
                           options->c2s_throughputsnaps ? "true" : "false", options->c2s_snapsdelay, options->c2s_snapsoffset);
@@ -188,7 +192,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
         "Sending 'GO' signal, to tell client %d to head for the next test",
         testOptions->child0);
     snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
-    if (testOptions->exttestsopt) {
+    if (extended) {
       snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->c2ssockport,
                      options->c2s_duration, options->c2s_throughputsnaps,
                      options->c2s_snapsdelay, options->c2s_snapsoffset, options->c2s_streamsnum);
@@ -212,7 +216,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     sel_tv.tv_sec = 5;
     sel_tv.tv_usec = 0;
     i = 0;
-    if (testOptions->exttestsopt) {
+    if (extended) {
       streamsNum = options->c2s_streamsnum;
       testDuration = options->c2s_duration / 1000.0;
     }
@@ -391,7 +395,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
 readMainLoop:
       tmpRfd = rfd;
       msgretvalue = select(recvsfd[streamsNum-1] + 1, &tmpRfd, NULL, NULL, &sel_tv);
-    if (testOptions->exttestsopt && options->c2s_throughputsnaps && secs() > throughputSnapshotTime) {
+    if (extended && options->c2s_throughputsnaps && secs() > throughputSnapshotTime) {
       if (lastThroughputSnapshot != NULL) {
         lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
         lastThroughputSnapshot = lastThroughputSnapshot->next;

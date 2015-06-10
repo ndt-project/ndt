@@ -50,13 +50,14 @@ public class NDTConstants {
 	public static final String NDT_TITLE_STR = "Network Diagnostic Tool Client v";
 
 	// Section: Test type
-	public static final byte TEST_MID = (1 << 0);
-	public static final byte TEST_C2S = (1 << 1);
-	public static final byte TEST_S2C = (1 << 2);
-	public static final byte TEST_SFW = (1 << 3);
-	public static final byte TEST_STATUS = (1 << 4);
-	public static final byte TEST_META = (1 << 5);
-	public static final byte TEST_EXT = (1 << 6);
+	public static final int TEST_MID = (1 << 0);
+	public static final int TEST_C2S = (1 << 1);
+	public static final int TEST_S2C = (1 << 2);
+	public static final int TEST_SFW = (1 << 3);
+	public static final int TEST_STATUS = (1 << 4);
+	public static final int TEST_META = (1 << 5);
+	public static final int TEST_C2S_EXT = (1 << 6);
+	public static final int TEST_S2C_EXT = (1 << 7);
 
 	// Section: Firewall test status
 	public static final int SFW_NOTTESTED = 0;

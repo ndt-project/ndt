@@ -219,14 +219,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 	boolean _bIsApplication = false;
 	boolean _bTestInProgress = false;
-	boolean _bSupportExtTests = false;
 	String sHostName = null;
 	InetAddress hostAddress = null;
 	String _sTestResults, _sMidBoxTestResult;
-	byte _yTests = NDTConstants.TEST_MID | NDTConstants.TEST_C2S
-			| NDTConstants.TEST_S2C | NDTConstants.TEST_SFW
-			| NDTConstants.TEST_STATUS | NDTConstants.TEST_META
-			| NDTConstants.TEST_EXT;
+	byte _yTests = (byte) (NDTConstants.TEST_MID | NDTConstants.TEST_C2S | NDTConstants.TEST_C2S_EXT
+				| NDTConstants.TEST_S2C | NDTConstants.TEST_S2C_EXT | NDTConstants.TEST_SFW
+				| NDTConstants.TEST_STATUS | NDTConstants.TEST_META);
 	int _iC2sSFWResult = NDTConstants.SFW_NOTTESTED;
 	int _iS2cSFWResult = NDTConstants.SFW_NOTTESTED;
 
@@ -1741,6 +1739,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 *
 	 * @param paramProtoObj
 	 *            Protocol Object used to exchange messages
+	 * @param extended
+	 * 			  Indicates if extended c2s test should be performed
 	 * @return boolean, true if test was not completed, false if test was
 	 *         completed.
 	 * @throws IOException
@@ -1749,7 +1749,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab)
 	 *
 	 */
-	public boolean test_c2s(Protocol paramProtoObj) throws IOException {
+	public boolean test_c2s(Protocol paramProtoObj, boolean extended) throws IOException {
 
 		// byte buff2[] = new byte[8192];
 		// Initialise for 64 Kb
@@ -1759,7 +1759,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		final int iTestDuration;
 		int iSnapsdelay, iSnapsoffset, iStreamsnum;
 		// start C2S throughput tests
-		if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+		if ((!extended && (_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S)
+				|| (extended && (_yTests & NDTConstants.TEST_C2S_EXT) == NDTConstants.TEST_C2S_EXT)) {
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // msg
 																							// receive/read
 																							// error
@@ -1791,7 +1792,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 			int iC2sport = Integer.parseInt(sMsgBody[0]);
 
-			if (_bSupportExtTests) {
+			if (extended) {
 				iTestDuration = Integer.parseInt(sMsgBody[1]);
 				bThroughputsnaps = Integer.parseInt(sMsgBody[2]) == 1;
 				iSnapsdelay = Integer.parseInt(sMsgBody[3]);
@@ -1976,7 +1977,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					} else {
 						_c2sThroughputSnapshots = lastThroughputSnapshot = new ThroughputSnapshot();
 					}
- 
+
 					lastThroughputSnapshot.next = null;
 					lastThroughputSnapshot.time = Double.parseDouble(sMsgBody[i]);
 					lastThroughputSnapshot.throughput = Double.parseDouble(sMsgBody[i+1]);
@@ -2032,6 +2033,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 *            Protocol Object used to exchange messages
 	 * @param paramSocketObj
 	 *            Socket Object to write/read NDTProtocol control messages
+	 * @param extended
+	 * 			  Indicates if extended s2c test should be performed
 	 * @return boolean, true if test was not completed, false if test was
 	 *         completed.
 	 * @throws IOException
@@ -2040,7 +2043,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 	 * @see Protocol#send_json_msg(byte bParamType, byte[] baParamTab)
 	 *
 	 * */
-	public boolean test_s2c(Protocol paramProtoObj, Socket paramSocketObj)
+	public boolean test_s2c(Protocol paramProtoObj, Socket paramSocketObj, boolean extended)
 			throws IOException {
 		// byte buff[] = new byte[8192];
 		byte buff[] = new byte[NDTConstants.PREDEFINED_BUFFER_SIZE];
@@ -2050,7 +2053,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		int iSnapsdelay, iSnapsoffset, iStreamsnum;
 
 		// start S2C tests
-		if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+		if ((!extended && (_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C)
+				|| (extended && (_yTests & NDTConstants.TEST_S2C_EXT) == NDTConstants.TEST_S2C_EXT)) {
 			// Server sends TEST_PREPARE with port to bind to as message body
 			if (paramProtoObj.recv_msg(msg) != NDTConstants.PROTOCOL_MSG_READ_SUCCESS) { // read/receive
 																							// error
@@ -2079,8 +2083,8 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			int iS2cport = Integer.parseInt(sMsgBody[0]);
- 
-			if (_bSupportExtTests) {
+
+			if (extended) {
 				iTestDuration = Integer.parseInt(sMsgBody[1]);
 				bThroughputsnaps = Integer.parseInt(sMsgBody[2]) == 1;
 				iSnapsdelay = Integer.parseInt(sMsgBody[3]);
@@ -2090,7 +2094,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				iTestDuration = 10000;
 				bThroughputsnaps = false;
 				iSnapsdelay = 5000;
-				iSnapsoffset = 1000; 
+				iSnapsoffset = 1000;
 				iStreamsnum = 1;
 			}
 
@@ -2101,7 +2105,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 					+ " "
 					+ _resBundDisplayMsgs.getString("runningInboundTest")
 					+ " ";
- 
+
 			_resultsTxtPane.append(sMessage);
 			_txtStatistics.append(sMessage);
 			_sEmailText += sMessage;
@@ -2114,12 +2118,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				try {
 					Socket socket = new Socket(hostAddress, iS2cport);
 					socket.setSoTimeout(iTestDuration + 5000);
- 
+
 					inSockets.add(socket);
 				} catch (UnknownHostException e) {
 					System.err.println("Don't know about host: " + sHostName);
 					_sErrMsg = "unknown server\n";
-					return true; 
+					return true;
 				} catch (IOException e) {
 					System.err.println("Couldn't get 3rd connection to: "
 							+ sHostName);
@@ -2198,7 +2202,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 						if (inlth <= 0) {
 							--numberOfActiveStreams;
 							activeStreams[idx] = false;
- 
+
 							stream.close();
 							socket.close();
 						} else {
@@ -2328,7 +2332,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 			}
 
-			String tmpstr4 = sb.toString();	
+			String tmpstr4 = sb.toString();
 			buff = tmpstr4.getBytes();
 
 			System.out.println("Sending '" + tmpstr4 + "' back to server");
@@ -2845,11 +2849,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 		// If we have connected to a Web10G server rebrand ourselves as such
 		_sServerType = vVersion.endsWith("Web10G") ? "web10g" : "web100";
-		_bSupportExtTests = vVersion.contains("-et");
-
-		 if (_bSupportExtTests) {
-			_resultsTxtPane.append(_resBundDisplayMsgs.getString("extTestSupported") + "\n\n");
-		}
 
 		// Only create the windows once we have connected to the server so this works
 		createDiagnoseWindow();
@@ -2886,12 +2885,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			tmpstr = new String(msg.getBody());
 		}
 		StringTokenizer tokenizer = new StringTokenizer(tmpstr, " ");
-
-		// If the server does not support TEST_EXT it can send an invalid test sequence
-		// (redundant number at the beginning)
-		if (!_bSupportExtTests && tokenizer.hasMoreTokens()) {
-			tokenizer.nextToken();
-		}
 
 		// Run all tests requested, based on the ID. In each case, if tests
 		// cannot be successfully run,
@@ -2930,20 +2923,38 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				break;
 			case NDTConstants.TEST_C2S:
 				sPanel.setText(_resBundDisplayMsgs.getString("c2sThroughput"));
-				if (test_c2s(protocolObj)) {
+				if (test_c2s(protocolObj, false)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("c2sThroughputFailed") + "\n");
 					_yTests &= (~NDTConstants.TEST_C2S);
 				}
 				break;
+			case NDTConstants.TEST_C2S_EXT:
+				sPanel.setText(_resBundDisplayMsgs.getString("extendedC2sThroughput"));
+				if (test_c2s(protocolObj, true)) {
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundDisplayMsgs
+							.getString("extended c2sThroughputFailed") + "\n");
+					_yTests &= (~NDTConstants.TEST_C2S_EXT);
+				}
+				break;
 			case NDTConstants.TEST_S2C:
 				sPanel.setText(_resBundDisplayMsgs.getString("s2cThroughput"));
-				if (test_s2c(protocolObj, ctlSocket)) {
+				if (test_s2c(protocolObj, ctlSocket, false)) {
 					_resultsTxtPane.append(_sErrMsg);
 					_resultsTxtPane.append(_resBundDisplayMsgs
 							.getString("s2cThroughputFailed") + "\n");
 					_yTests &= (~NDTConstants.TEST_S2C);
+				}
+				break;
+			case NDTConstants.TEST_S2C_EXT:
+				sPanel.setText(_resBundDisplayMsgs.getString("extendedS2cThroughput"));
+				if (test_s2c(protocolObj, ctlSocket, true)) {
+					_resultsTxtPane.append(_sErrMsg);
+					_resultsTxtPane.append(_resBundDisplayMsgs
+							.getString("extended s2cThroughputFailed") + "\n");
+					_yTests &= (~NDTConstants.TEST_S2C_EXT);
 				}
 				break;
 			case NDTConstants.TEST_META:
@@ -2956,6 +2967,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 				break;
 			default:
+				System.out.println("TEST ID " + NDTConstants.TEST_S2C_EXT);
 				_sErrMsg = _resBundDisplayMsgs.getString("unknownID") + "\n";
 				_bFailed = true;
 				return;
@@ -3374,7 +3386,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			// C2S throughput test: Packet queuing
-			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+			if ((_yTests & (NDTConstants.TEST_C2S | NDTConstants.TEST_C2S_EXT)) > 0) {
 				if (_dSc2sspd < (_dC2sspd * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO: distinguish the host buffering from the middleboxes
 					// buffering (older "todo" left as is)
@@ -3395,7 +3407,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			}
 
 			// S2C throughput test: Packet queuing
-			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+			if ((_yTests & (NDTConstants.TEST_S2C | NDTConstants.TEST_S2C_EXT)) > 0) {
 				if (_dS2cspd < (_dSs2cspd * (1.0 - NDTConstants.VIEW_DIFF))) {
 					// TODO: distinguish the host buffering from the middleboxes
 					// buffering (older "todo" left as is)
@@ -3618,7 +3630,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// the statistics pane. Data is displayed as a percentage
 			ThroughputSnapshot snapshot;
 
-			if ((_yTests & NDTConstants.TEST_C2S) == NDTConstants.TEST_C2S) {
+			if ((_yTests & (NDTConstants.TEST_C2S | NDTConstants.TEST_C2S_EXT)) > 0) {
 				if (_dC2sspd > _dSc2sspd) {
 					if (_dSc2sspd < (_dC2sspd * (1.0 - NDTConstants.VIEW_DIFF))) {
 						_txtStatistics.append(_resBundDisplayMsgs
@@ -3641,12 +3653,12 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 
 				if (_c2sThroughputSnapshots != null) {
 					snapshot = _c2sThroughputSnapshots;
- 
+
 					_txtStatistics.append("---"
 							+ _resBundDisplayMsgs.getString("c2sThroughputSnapshots")
 							+ ":\n"
 					);
- 
+
 					while (snapshot != null) {
 						_txtStatistics.append("    * "
 								+_resBundDisplayMsgs.getString("testDuration")
@@ -3661,7 +3673,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 								+ " "
 								+ _resBundDisplayMsgs.getString("kbps")
 								+ "\n");
- 
+
 						snapshot = snapshot.next;
 					}
 				}
@@ -3670,7 +3682,7 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 			// Add Packet queuing details found during S2C throughput test to
 			// the statistics pane. Data is displayed as a percentage
 
-			if ((_yTests & NDTConstants.TEST_S2C) == NDTConstants.TEST_S2C) {
+			if ((_yTests & (NDTConstants.TEST_S2C | NDTConstants.TEST_S2C_EXT)) > 0) {
 				if (_dSs2cspd > _dS2cspd) {
 					if (_dSs2cspd < (_dSs2cspd * (1.0 - NDTConstants.VIEW_DIFF))) {
 						_txtStatistics.append(_resBundDisplayMsgs

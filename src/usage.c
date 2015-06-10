@@ -134,8 +134,10 @@ void clt_long_usage(char* info) {
   printf(" Configuration:\n\n");
   printf("  -b, --buffer #size     - set send/receive buffer to value\n");
   printf("  --disablemid           - disable the Middlebox test\n");
-  printf("  --disablec2s           - disable the C2S throughput test\n");
-  printf("  --disables2c           - disable the S2C throughput test\n");
+  printf("  --disablec2s           - disable basic C2S throughput test\n");
+  printf("  --disables2c           - disable basic S2C throughput test\n");
+  printf("  --enablec2sext         - enable extended C2S throughput test\n");
+  printf("  --enables2cext         - enable extended S2C throughput test\n");
   printf("  --disablesfw           - disable the Simple firewall test\n\n");
   printf("  -u, --protolog_dir DIR - specify the base directory for protocol validation logs \n");
   printf("  --enableprotolog        - enable protocol logging \n");

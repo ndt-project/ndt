@@ -103,6 +103,12 @@ char *get_currenttestdesc() {
     case TEST_META:
       currenttestId = META;
       break;
+    case TEST_C2S_EXT:
+      currenttestId = C2S_EXT;
+      break;
+    case TEST_S2C_EXT:
+      currenttestId = S2C_EXT;
+      break;
     case TEST_NONE:
     default:
       currenttestId = NONE;

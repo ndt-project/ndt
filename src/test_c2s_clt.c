@@ -49,6 +49,7 @@ void* c2sWriteWorker(void* arg);
  * @param buf_size  TCP send/receive buffer size
  * @param c2s_ThroughputSnapshots Variable used to set c2s throughput snapshots
  * @param jsonSupport Indicates if messages should be send using JSON format
+ * @param extended Indicates if extended c2s test should be performed
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
  * 		1: Error receiving protocol message
@@ -61,7 +62,8 @@ void* c2sWriteWorker(void* arg);
  *
  */
 int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, struct throughputSnapshot **c2s_ThroughputSnapshots, int jsonSupport) {
+                 int buf_size, struct throughputSnapshot **c2s_ThroughputSnapshots,
+                 int jsonSupport, int extended) {
   /* char buff[BUFFSIZE+1]; */
   char buff[64 * KILO_BITS];  // message payload.
   // note that there is a size variation between server and CLT - do not
@@ -85,13 +87,16 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
   int streamsnum = 1;      // specify the number of streams (parallel TCP connections)
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
-  enum TEST_ID testids = C2S;
+  enum TEST_ID testids = extended ? C2S_EXT : C2S;
 
 
-  if (tests & TEST_C2S) {  // C2S test has to be performed
+  if (((tests & TEST_C2S) && !extended) || ((tests & TEST_C2S_EXT) && extended)) {  // C2S test has to be performed
     struct sigaction new, old;
     log_println(1, " <-- C2S throughput test -->");
-    setCurrentTest(TEST_C2S);
+    if (extended)
+      setCurrentTest(TEST_C2S_EXT);
+    else
+      setCurrentTest(TEST_C2S);
     // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
@@ -123,7 +128,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // Server sends port number to bind to in the TEST_PREPARE. Check if this
     // message body (string) is a valid integral port number.
-    if (tests & TEST_EXT) {
+    if (extended) {
       strtokptr = strtok(buff, " ");
       c2sport = atoi(strtokptr);
       strtokptr = strtok(NULL, " ");

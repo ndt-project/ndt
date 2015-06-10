@@ -40,6 +40,7 @@ typedef struct s2cClientStream {
  * @param buf_size  	TCP send/receive buffer size
  * @param result_srv		result obtained from server (containing values of web100 variables)
  * @param jsonSupport 	Indicates if messages should be sent using JSON format
+ * @param extended      Indicates if extended s2c test should be performed
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
  * 		1: Error receiving protocol message
@@ -52,7 +53,8 @@ typedef struct s2cClientStream {
 
 int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
                  int buf_size, char* result_srv,
-                 struct throughputSnapshot **s2c_ThroughputSnapshots, int jsonSupport) {
+                 struct throughputSnapshot **s2c_ThroughputSnapshots,
+                 int jsonSupport, int extended) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
@@ -78,14 +80,17 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
-  enum TEST_ID testids = S2C;
+  enum TEST_ID testids = extended ? S2C_EXT : S2C;
 
   for (i = 0; i < MAX_STREAMS; i++) {
     streams[i].inSocket = 0;
   }
 
-  if (tests & TEST_S2C) {
-    setCurrentTest(TEST_S2C);
+  if (((tests & TEST_S2C) && !extended) || ((tests & TEST_S2C_EXT) && extended)) {
+    if (extended)
+      setCurrentTest(TEST_S2C_EXT);
+    else
+      setCurrentTest(TEST_S2C);
     // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
@@ -114,7 +119,7 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Improper message");
       return 3;
     }
-    if (tests & TEST_EXT) {
+    if (extended) {
       strtokptr = strtok(buff, " ");
       s2cport = atoi(strtokptr);
       strtokptr = strtok(NULL, " ");
