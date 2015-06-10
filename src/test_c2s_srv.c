@@ -451,7 +451,7 @@ breakMainLoop:
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
-    if (*c2s_ThroughputSnapshots != NULL) {
+    if (extended && options->c2s_throughputsnaps && *c2s_ThroughputSnapshots != NULL) {
       struct throughputSnapshot *snapshotsPtr = *c2s_ThroughputSnapshots;
       while (snapshotsPtr != NULL) {
         int currBuffLength = strlen(buff);

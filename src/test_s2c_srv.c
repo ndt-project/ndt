@@ -39,8 +39,7 @@ typedef struct s2cServerStream {
   /* experimental code to capture and log multiple copies of the
    * web100 variables using the web100_snap() & log() functions.
    */
-  web100_snapshot* tsnap;
-  web100_snapshot* rsnap;
+
   web100_group* tgroup;
   web100_group* rgroup;
 #endif
@@ -106,6 +105,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int* spd_index, int count_vars, CwndPeaks* peaks,
              struct throughputSnapshot **s2c_ThroughputSnapshots, int extended) {
 #if USE_WEB100
+  web100_snapshot* tsnap[MAX_STREAMS];
+  web100_snapshot* rsnap[MAX_STREAMS];
   web100_var* var;
 #elif USE_WEB10G
   estats_val_data* snap[MAX_STREAMS];
@@ -160,8 +161,8 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   for (i = 0; i < MAX_STREAMS; i++) {
     streams[i].snapArgs.snap = NULL;
 #if USE_WEB100
-    streams[i].tsnap = NULL;
-    streams[i].rsnap = NULL;
+    tsnap[i] = NULL;
+    rsnap[i] = NULL;
     streams[i].snapArgs.log = NULL;
 #endif
     streams[i].snapArgs.delay = options->snapDelay;
@@ -423,9 +424,9 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
         streams[i].rgroup = web100_group_find(agent, "read");
-        streams[i].rsnap = web100_snapshot_alloc(streams[i].rgroup, streams[i].conn);
+        rsnap[i] = web100_snapshot_alloc(streams[i].rgroup, streams[i].conn);
         streams[i].tgroup = web100_group_find(agent, "tune");
-        streams[i].tsnap = web100_snapshot_alloc(streams[i].tgroup, streams[i].conn);
+        tsnap[i] = web100_snapshot_alloc(streams[i].tgroup, streams[i].conn);
 #elif USE_WEB10G
         estats_val_data_new(&snap[i]);
 #endif
@@ -617,8 +618,8 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       for (i = 0; i < streamsNum; ++i) {
 #if USE_WEB100
-        web100_snap(streams[i].rsnap);
-        web100_snap(streams[i].tsnap);
+        web100_snap(rsnap[i]);
+        web100_snap(tsnap[i]);
 #elif USE_WEB10G
         estats_read_vars(snap[i], streams[i].conn, agent);
 #endif
@@ -709,12 +710,12 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
     // send web100 data to client
     ret = tcp_stat_get_data(tsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions);
      for (i = 0; i < streamsNum; ++i) {
-      web100_snapshot_free(streams[i].tsnap);
+      web100_snapshot_free(tsnap[i]);
     }
     // send tuning-related web100 data collected to client
     ret = tcp_stat_get_data(rsnap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions);
     for (i = 0; i < streamsNum; ++i) {
-      web100_snapshot_free(streams[i].rsnap);
+      web100_snapshot_free(rsnap[i]);
     }
 #elif USE_WEB10G
     ret = tcp_stat_get_data(snap, xmitsfd, streamsNum, ctlsockfd, agent, count_vars, testOptions);
