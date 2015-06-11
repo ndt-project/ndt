@@ -226,7 +226,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
           if (initialize_websocket_connection(&c2s_conn, 0, "c2s") != 0) {
             log_println(2, "Child %d failed to init websocket", getpid());
-            close_connection(&c2s_conn);
+            shutdown_connection(&c2s_conn);
             return -EIO;
           }
         }
@@ -284,7 +284,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
       } else {
         if ((c2s_childpid = fork()) == 0) {
           close(testOptions->c2ssockfd);
-          close(c2s_conn.socket);
+          close_connection(&c2s_conn);
           log_println(
               5,
               "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
@@ -407,7 +407,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     if (record_reverse == 1)
       tcp_stat_get_data_recv(c2s_conn.socket, agent, conn, count_vars);
 
-    close_connection(&c2s_conn);
+    shutdown_connection(&c2s_conn);
     close(testOptions->c2ssockfd);
 
     // Next, send speed-chk a flag to retrieve the data it collected.

@@ -262,7 +262,7 @@ int recv_msg_plus_websocket(Connection* ctl, TestOptions* test_options,
  *			-4 client timed out
  *
  */
-int initialize_tests(Connection* ctl, TestOptions* options, char* buff,
+int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
                      size_t buff_strlen) {
   char msgValue[CS_VERSION_LENGTH_MAX + 1] = {'\0'};
   unsigned char useropt = 0;
@@ -272,7 +272,7 @@ int initialize_tests(Connection* ctl, TestOptions* options, char* buff,
   char *invalid_test_suite = "Invalid test suite request.";
   char *invalid_test = "Invalid test request.";
   char *invalid_login_msg = "Invalid login message.";
-  char* jsonMsgValue;
+  char *jsonMsgValue;
 
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
