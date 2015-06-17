@@ -78,6 +78,7 @@ void test_queuing() {
   char command_line[1024];
   int port;
   int i;
+  time_t start_time, tt;
   const int num_clients = 20;
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
@@ -87,6 +88,7 @@ void test_queuing() {
   gethostname(hostname, sizeof(hostname) - 1);
   fprintf(stderr, "Starting %d clients, will attach to %s:%d\n", num_clients,
           hostname, port);
+  time(&start_time);
   for (i = 0; i < num_clients; i++) {
     if (fork() == 0) {
       sprintf(
@@ -103,7 +105,9 @@ void test_queuing() {
     ASSERT(WIFEXITED(client_exit_code) && WEXITSTATUS(client_exit_code) == 0,
            "client exited with non-zero error code %d",
            WEXITSTATUS(client_exit_code));
-    fprintf(stderr, "[test_queuing] %d/%d clients finished\n", i, num_clients);
+    time(&tt);
+    fprintf(stderr, "[test_queuing] %d/%d clients finished in %g seconds\n", i,
+            num_clients, (double)(tt - start_time));
   }
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
