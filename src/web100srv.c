@@ -1128,6 +1128,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
  * @param child A double pointer to the child to remove
  */
 void free_ndtchild(ndtchild **child) {
+  if (child == NULL || *child == NULL) return;
   close((*child)->pipe);
   free(*child);
   *child = NULL;
@@ -1423,7 +1424,7 @@ int wait_for_wakeup(int listenfd, int signalfd, int wait_forever) {
     sel_tv.tv_sec = 3;  // Timeout after 3 seconds
     sel_tv.tv_usec = 0;
     psel_tv = &sel_tv;
-  } else
+  }
   retcode = select(max(listenfd, signalfd) + 1, &fds, NULL, NULL, psel_tv);
   if (retcode == -1) {
     if (errno != EINTR) {
@@ -1568,20 +1569,15 @@ int server_is_overloaded(int queue_size) {
  * owns the memory containing the removed element.
  * @param head The head of the list - may not be NULL or point to NULL
  * @param okay_child The element before the element to remove - may be NULL
- * @return A pointer to the ndtchild in the list after the removed ndtchild
  */
-ndtchild* remove_next_element(ndtchild **head, ndtchild* okay_child) {
-  ndtchild* next_good_element;
+void remove_next_child(ndtchild **head, ndtchild* okay_child) {
   if (okay_child == NULL) {
     // We are removing the head
-    next_good_element = (*head)->next;
-    *head = next_good_element;
+    *head = (*head)->next;
   } else {
     // We are removing from the middle of the list
-    next_good_element = okay_child->next->next;
-    okay_child->next = next_good_element;
+    okay_child->next = okay_child->next->next;
   }
-  return next_good_element;
 }
 
 /**
@@ -1643,20 +1639,17 @@ void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
 /**
  * Returns true if a process is alive and a child of the current process.
  */
-int is_child_process_alive(pid_t pid) {
-  siginfo_t client_status;
+int is_child_process_alive(pid_t child_pid) {
+  siginfo_t child_status;
   int rv;
-  pid_t pgrp;
-  client_status.si_pid = 0;
-  rv = waitid(P_PID, pid, &client_status, WEXITED | WSTOPPED | WNOHANG);
-  if (rv == 0 && client_status.si_pid == 0) {
+  child_status.si_pid = 0;
+  rv = waitid(P_PID, child_pid, &child_status, WEXITED | WSTOPPED | WNOHANG);
+  if (rv == 0 && child_status.si_pid == 0) {
     // There is a running process with that PID, but is it one of ours?
-    pgrp = getpgid(pid);
-    return pgrp == getpgid(getpid());
+    return getpgid(child_pid) == getpgid(getpid());
   }
   return 0;
 }
-
 
 /**
  * Walk the list of connected clients, reaping those clients with dead PIDs.
@@ -1674,7 +1667,8 @@ void reap_dead_clients(ndtchild **head) {
       // Free the dead client and set *current to the next unexamined element
       // in the list.
       client_to_free = current;
-      current = remove_next_element(head, previous);
+      current = current->next;
+      remove_next_child(head, previous);
       free_ndtchild(&client_to_free);
     }
   }
