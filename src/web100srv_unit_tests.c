@@ -9,6 +9,7 @@
 
 #include "ndtptestconstants.h"
 #include "unit_testing.h"
+#include "web100srv.h"
 
 /** Starts the web100srv process. Has a variable number of arguments, the last
  * of which should be null. */
@@ -78,7 +79,7 @@ void test_queuing() {
   char command_line[1024];
   int port;
   int i;
-  time_t start_time, tt;
+  time_t start_time, current_time;
   const int num_clients = 20;
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
@@ -105,9 +106,9 @@ void test_queuing() {
     ASSERT(WIFEXITED(client_exit_code) && WEXITSTATUS(client_exit_code) == 0,
            "client exited with non-zero error code %d",
            WEXITSTATUS(client_exit_code));
-    time(&tt);
+    time(&current_time);
     fprintf(stderr, "[test_queuing] %d/%d clients finished in %g seconds\n", i,
-            num_clients, (double)(tt - start_time));
+            num_clients, (double)(current_time - start_time));
   }
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
@@ -233,21 +234,60 @@ void test_ssl_ndt() { run_ssl_test(&end_to_end_nodejs_ssl_test); }
 void test_ssl_meta_test() { run_ssl_test(&ndt_ssl_meta_test); }
 void test_ssl_c2s_test() { run_ssl_test(&ndt_ssl_c2s_test); }
 
+// A function in web100srv that we don't want to export, but we do want to test.
+int is_child_process_alive(pid_t pid);
+
+void test_is_child_process_alive() {
+  pid_t child_pid;
+  setpgid(0, 0);
+  child_pid = fork();
+  if (child_pid == 0) {
+    // This is the child.
+    sleep(10);
+    exit(0);
+  } else {
+    // This is the parent.
+    ASSERT(is_child_process_alive(child_pid), "The child should be alive");
+    kill(child_pid, SIGKILL);
+    sleep(1);  // Let the kill take effect
+    ASSERT(!is_child_process_alive(child_pid), "The child should be dead");
+  }
+}
+
+void test_is_child_process_alive_ignores_bad_pgid() {
+  pid_t child_pid;
+  setpgid(0, 0);
+  child_pid = fork();
+  if (child_pid == 0) {
+    // This is the child.
+    setpgid(0, 0);
+    sleep(10);
+    exit(0);
+  } else {
+    // This is the parent.
+    sleep(1);  // Make sure the child has a chance to set its pgid
+    CHECK(!is_child_process_alive(child_pid));  // No longer counts as a child
+    kill(child_pid, SIGKILL);
+  }
+}
+
 /** Runs each test, returns non-zero to the shell if any tests fail. */
 int main() {
-  // Formatted this way to allow developers to comment out individual
-  // end-to-end tests that are not relevant to their current task.  Running the
-  // full suite can take a long time, and can add unwanted latency to a
-  // compile-run-debug cycle.
+  // Formatted this way to allow developers to comment out individual tests
+  // that are not relevant to their current task.  Running the full suite can
+  // take a long time, and can add unwanted latency to a compile-run-debug
+  // cycle.
   return 
-      RUN_TEST(test_ssl_connection) | 
-      RUN_TEST(test_ssl_c2s_test) | 
-      RUN_TEST(test_ssl_ndt) | 
-      RUN_TEST(test_e2e) |
-      RUN_TEST(test_run_all_tests_node) |
-      RUN_TEST(test_run_two_tests_node) | 
-      RUN_TEST(test_node_meta_test) | 
-      RUN_TEST(test_ssl_meta_test) |
-      RUN_TEST(test_queuing) | 
+      RUN_TEST(test_is_child_process_alive) ||
+      RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||
+      RUN_TEST(test_ssl_connection) ||
+      RUN_TEST(test_ssl_c2s_test) ||
+      RUN_TEST(test_ssl_ndt) ||
+      RUN_TEST(test_e2e) ||
+      RUN_TEST(test_run_all_tests_node) ||
+      RUN_TEST(test_run_two_tests_node) ||
+      RUN_TEST(test_node_meta_test) ||
+      RUN_TEST(test_ssl_meta_test) ||
+      RUN_TEST(test_queuing) ||
       0;
 }
