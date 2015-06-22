@@ -1177,8 +1177,8 @@ void check_heartbeat(Connection *conn, TestOptions *testopt) {
     exit(0);
   }
   msg_len = sizeof(msg);
-  if (recv_any_msg(conn, &msg_type, msg, &msg_len,
-                   testopt->connection_flags) != 0) {
+  if (recv_any_msg(conn, &msg_type, msg, &msg_len, testopt->connection_flags) !=
+      0) {
     log_println(1, "Client failed to respond to heartbeat message");
     exit(0);
   }
@@ -1446,8 +1446,8 @@ int wait_for_wakeup(int listenfd, int signalfd, int wait_forever) {
  * connection, and fork off a new process to run all the associated tests.
  * @param listenfd The file descriptor which listens to the network
  * @param ssl_context The ssl_context for any new connections
- * @return NULL or a newly initialized ndtchild struct - the calling function
- *         owns the struct and its memory
+ * @return A newly initialized ndtchild struct - the calling function
+ *         owns the struct and its memory; NULL on error
  */
 ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   int child_pipe[2];
@@ -1461,8 +1461,14 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   // Accept the connection, initialize variables, fire up the new child.
   cli_addr_len = sizeof(cli_addr);
   ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
-  if (ctlsockfd < 0) return NULL;
-  if (cli_addr_len > sizeof(meta.c_addr)) return NULL;
+  if (ctlsockfd < 0) {
+    log_println(1, "accept() on ctlsockfd failed");
+    return NULL;
+  }
+  if (cli_addr_len > sizeof(meta.c_addr)) {
+    log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
+    return NULL;
+  }
   // Copy connection data into global variables for the run_test() function.
   // Get meta test details copied into results.
   memcpy(&meta.c_addr, &cli_addr, cli_addr_len);
@@ -1552,7 +1558,7 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
  * Returns true when the current queue size indicates that a new client would
  * overload the server.
  */
-int server_is_overloaded(int queue_size) {
+int server_queue_is_full(int queue_size) {
   if (queue) {
     if (multiple) {
       return queue_size >= 4 * max_clients;
@@ -1568,14 +1574,15 @@ int server_is_overloaded(int queue_size) {
  * Removes the element after okay_child from the list.  The calling function
  * owns the memory containing the removed element.
  * @param head The head of the list - may not be NULL or point to NULL
- * @param okay_child The element before the element to remove - may be NULL
+ * @param okay_child The element before the element to remove - may be NULL if
+ *                   the head of hte list is the element to be removed.
  */
-void remove_next_child(ndtchild **head, ndtchild* okay_child) {
+void remove_next_child(ndtchild **head, ndtchild *okay_child) {
   if (okay_child == NULL) {
     // We are removing the head
     *head = (*head)->next;
   } else {
-    // We are removing from the middle of the list
+    // We are removing a non-head element
     okay_child->next = okay_child->next->next;
   }
 }
@@ -1596,6 +1603,16 @@ void enqueue_child(ndtchild **head, ndtchild *new_child) {
     while (current->next != NULL) current = current->next;
     current->next = new_child;
   }
+  new_child->next = NULL;
+}
+
+/**
+ * Sends a message to the child process.
+ * @param pipefd The file descriptor of the pipe to write to
+ * @param message The message to send
+ */
+void send_message_to_child(int child_pipe, ParentChildSignal message) {
+  write(child_pipe, &message, sizeof(ParentChildSignal));
 }
 
 /**
@@ -1608,7 +1625,6 @@ void enqueue_child(ndtchild **head, ndtchild *new_child) {
  * @param head The head of the client queue
  */
 void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
-  ParentChildSignal child_signal;
   ndtchild *current;
   int client_count = 0;
   // Count the number of connected clients
@@ -1616,7 +1632,7 @@ void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
     client_count++;
   }
 
-  if (!server_is_overloaded(client_count)) {
+  if (!server_queue_is_full(client_count)) {
     // The server is not overloaded, so queue up the new client.
     enqueue_child(head, new_child);
   } else {
@@ -1625,8 +1641,7 @@ void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
                 "Too many clients/mclients (%d) waiting to be served, "
                 "Please try again later.",
                 new_child->pid);
-    child_signal = SRV_QUEUE_SERVER_BUSY;
-    write(new_child->pipe, &child_signal, sizeof(ParentChildSignal));
+    send_message_to_child(new_child->pipe, SRV_QUEUE_SERVER_BUSY);
     // Whether the write succeeds or not, we are done with this child. It
     // will either kill itself in response to this message, or it will kill
     // itself with its own watchdog timer. Either way, not our problem
@@ -1640,9 +1655,8 @@ void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
  * Returns true if a process is alive and a child of the current process.
  */
 int is_child_process_alive(pid_t child_pid) {
-  siginfo_t child_status;
+  siginfo_t child_status = {0};
   int rv;
-  child_status.si_pid = 0;
   rv = waitid(P_PID, child_pid, &child_status, WEXITED | WSTOPPED | WNOHANG);
   if (rv == 0 && child_status.si_pid == 0) {
     // There is a running process with that PID, but is it one of ours?
@@ -1691,7 +1705,6 @@ int max_simultaneous_tests() {
  * whom capacity has opened up on the server.
  */
 void perform_queue_maintenance(ndtchild **head) {
-  ParentChildSignal child_message;
   int queue_position;
   int running_count = 0;
   ndtchild *current;
@@ -1711,8 +1724,7 @@ void perform_queue_maintenance(ndtchild **head) {
   for (current = *head; current != NULL; current = current->next) {
     if (!current->running) {
       if (running_count < max_simultaneous_tests()) {
-        child_message = SRV_QUEUE_TEST_STARTS_NOW;
-        write(current->pipe, &child_message, sizeof(ParentChildSignal));
+        send_message_to_child(current->pipe, SRV_QUEUE_TEST_STARTS_NOW);
         current->running = 1;
         running_count++;
       } else {
@@ -1722,10 +1734,9 @@ void perform_queue_maintenance(ndtchild **head) {
         // tests we can service per minute. If the children are receiving too
         // many updates, don't change the update frequency here. Instead,
         // change how the children respond to updates in child_process().
-        child_message = max(queue_position / max_simultaneous_tests(), 1);
-        write(current->pipe, &child_message, sizeof(ParentChildSignal));
-        child_message = SRV_QUEUE_HEARTBEAT;
-        write(current->pipe, &child_message, sizeof(ParentChildSignal));
+        send_message_to_child(
+            current->pipe, max(queue_position / max_simultaneous_tests(), 1));
+        send_message_to_child(current->pipe, SRV_QUEUE_HEARTBEAT);
       }
     }
     queue_position++;
@@ -1751,7 +1762,7 @@ void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd, int signalfd) {
 }
 
 /**
- * Retrieve the error message from OpenSSL and print it out.
+ * Retrieve the error message from OpenSSL, print it out, and exit the process.
  * @param prefix The text to print out before the message
  * @param message An extra error message, to give context to the error
  */
@@ -1828,7 +1839,7 @@ int main(int argc, char **argv) {
   I2Addr listenaddr = NULL;
   int listenfd;
   char *srcname = NULL;
-  int tmp_pipe_fds[2];
+  int signalfd_pipe[2];
   int signalfd_read;
   int debug = 0;
 
@@ -2235,9 +2246,9 @@ int main(int argc, char **argv) {
   // Make the server part of a process group.
   setpgid(0, 0);
   options.compress = compress;
-  pipe(tmp_pipe_fds);
-  signalfd_read = tmp_pipe_fds[0];
-  global_signalfd_write = tmp_pipe_fds[1];
+  pipe(signalfd_pipe);
+  signalfd_read = signalfd_pipe[0];
+  global_signalfd_write = signalfd_pipe[1];
   NDT_server_main_loop(ssl_context, listenfd, signalfd_read);
   return 0;
 }
