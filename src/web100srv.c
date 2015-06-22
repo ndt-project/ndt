@@ -158,6 +158,9 @@ typedef char ServerWakeupMessage;
 // The file descriptor used to signal the main server process.
 static int global_signalfd_write;
 
+// When we support multiple clients, grow the queue by a constant factor
+#define QUEUE_SIZE_MULTIPLIER 4
+
 static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"debug", 0, 0, 'd'},
                                        {"help", 0, 0, 'h'},
@@ -1561,7 +1564,7 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
 int server_queue_is_full(int queue_size) {
   if (queue) {
     if (multiple) {
-      return queue_size >= 4 * max_clients;
+      return queue_size >= QUEUE_SIZE_MULTIPLIER * max_clients;
     } else {
       return queue_size >= max_clients;
     }
