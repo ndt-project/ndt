@@ -1439,6 +1439,134 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   return (0);
 }
 
+/**
+ * Closes the connection to a child and frees its memory.
+ * @param child A double pointer to the child to remove
+ */
+void free_ndtchild(ndtchild **child) {
+  if (child == NULL || *child == NULL) return;
+  close((*child)->pipe);
+  free(*child);
+  *child = NULL;
+}
+
+/**
+ * Read a single message sent from the parent server process to the child
+ * process, and perform any necessary communication that message necessitates.
+ * @param parent_pipe Where to read the message from
+ * @return The message value on success, a negative error code on failure
+ */
+int read_from_parent(int parent_pipe) {
+  ParentChildSignal parent_message;
+  int retcode;
+  retcode = read(parent_pipe, &parent_message, sizeof(ParentChildSignal));
+  log_println(6, "Child %d got '%d' from parent", getpid(), parent_message);
+  if (retcode < 0) {
+    retcode = errno;  // Save errno in case log_println sets it.
+    log_println(1, "Child %d couldn't read from the pipe.");
+    return -retcode;
+  }
+  if (parent_message < 0) {
+    // The message received is a negative number. This should never happen.
+    log_println(1, "Child %d got a negative number (%d) from the parent.",
+                getpid(), parent_message);
+    return -EBADMSG;
+  }
+  return parent_message;
+}
+
+/**
+ * Performs the heartbeat back & forth with the specified client. All errors in
+ * the heartbeat protcol are (and should be) fatal.
+ * @param conn The Connection on which we should communicate
+ * @param testopt The TestOptions for our communication
+ */
+void check_heartbeat(Connection *conn, TestOptions *testopt) {
+  char msg[256];
+  int msg_len;
+  int msg_type;
+  if (send_json_message_any(conn, SRV_QUEUE, SRV_QUEUE_HEARTBEAT_STR,
+                            strlen(SRV_QUEUE_HEARTBEAT_STR),
+                            testopt->connection_flags,
+                            JSON_SINGLE_VALUE) != 0) {
+    log_println(1, "Server failed to send heartbeat message");
+    exit(0);
+  }
+  msg_len = sizeof(msg);
+  if (recv_any_msg(conn, &msg_type, msg, &msg_len, testopt->connection_flags) !=
+      0) {
+    log_println(1, "Client failed to respond to heartbeat message");
+    exit(0);
+  }
+}
+
+/**
+ * Process a single parent message. If the message is fatal this will exit.
+ * @param parent_message The message to process.
+ * @param ctl The connection to the client
+ * @param testopt The TestOptions, required to communicate with the client
+ * @param t_opts The tests requested by the client
+ */
+void process_parent_message(int parent_message, Connection *ctl,
+                            TestOptions *testopt, int t_opts) {
+  char serialized_parent_message[256];
+  if (parent_message < 0) {
+    if (parent_message == -EINTR) {
+      // EINTR means that a signal handler fired or some other interruption
+      // occurred. It means that this read() failed, but the next might not.
+      return;
+    } else {
+      exit(0);
+    }
+  }
+  // Perform any I/O message entailed by parent_message
+  if (parent_message == SRV_QUEUE_HEARTBEAT) {
+    // Perform the heartbeat check (if we can).
+    if (t_opts & SRV_QUEUE) check_heartbeat(ctl, testopt);
+  } else {
+    // All other messages should pass-through to the client.
+    sprintf(serialized_parent_message, "%d", parent_message);
+    if (send_json_message_any(ctl, SRV_QUEUE, serialized_parent_message,
+                              strlen(serialized_parent_message),
+                              testopt->connection_flags,
+                              JSON_SINGLE_VALUE) != 0) {
+      log_println(1, "Client failed to send message");
+      exit(0);
+    }
+  }
+  // Update the child's local state based on the parent message
+  // This switch should include a case for every "magic value" specified for
+  // SRV_QUEUE messages in protocol.h
+  switch (parent_message) {
+    case SRV_QUEUE_TEST_STARTS_NOW:
+      log_println(0,
+                  "This should never happen - failed to start test when "
+                  "the code was SRV_QUEUE_TEST_STARTS_NOW");
+      break;
+    case SRV_QUEUE_SERVER_FAULT:
+      exit(0);
+      break;
+    case SRV_QUEUE_SERVER_BUSY:
+      exit(0);
+      break;
+    case SRV_QUEUE_HEARTBEAT:
+      break;
+    case SRV_QUEUE_SERVER_BUSY_60s:
+      // The SRV_QUEUE_SERVER_BUSY_60s message is not emitted by any
+      // codepaths in the server.  This message is likely obsolete.
+      // Set the watchdog alarm for 60 seconds, plus some slop.
+      alarm(120);
+      break;
+    default:
+      // If the message was not one of the magic values, then it is a number
+      // of minutes to wait until the test starts.  Set the watchdog alarm
+      // for that many minutes, plus a little bit extra to avoid race
+      // conditions.
+      alarm((parent_message + 1) * 60);
+      break;
+  }
+}
+
 /** The code run by the child process.  This function never returns, it only
  * calls exit().  It also has an alarm() timer which by default prevents any
  * client from living for more than 5 minutes.  The parent is in control, and
@@ -1636,6 +1764,349 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   if (testopt.child2 != 0)
     child_sig(testopt.child2);
   exit(0);
+}
+
+static int max(int a, int b) { return (a > b) ? a : b; }
+
+/**
+ * Waits for a new client to connect, for one of the child processes to die, or
+ * (optionally) until a timeout occurs.  If the select() is woken up by a new
+ * client connecting, then this routine will return true.
+ * @param listenfd The file descriptor which listens to the network
+ * @param signalfd The pipe which will be written to upon receipt of SIGCHILD
+ * @param wait_forever True if the server should wait forever
+ * @return True if there is a new client on listenfd
+ */
+int wait_for_wakeup(int listenfd, int signalfd, int wait_forever) {
+  fd_set fds;
+  int retcode;
+  ServerWakeupMessage signal_value;
+  struct timeval sel_tv, *psel_tv = NULL;
+
+  FD_ZERO(&fds);
+  FD_SET(listenfd, &fds);
+  FD_SET(signalfd, &fds);
+  if (!wait_forever) {
+    sel_tv.tv_sec = 3;  // Timeout after 3 seconds
+    sel_tv.tv_usec = 0;
+    psel_tv = &sel_tv;
+  }
+  retcode = select(max(listenfd, signalfd) + 1, &fds, NULL, NULL, psel_tv);
+  if (retcode == -1) {
+    if (errno != EINTR) {
+      // EINTR is expected every now and then due to signal handling.
+      log_println(0, "Error in server's select call: %d (%s)", errno,
+                  strerror(errno));
+    }
+    return 0;
+  }
+  // If we woke up due to data on the signalfd, then clear the buffer.
+  if (FD_ISSET(signalfd, &fds)) {
+    read(signalfd, &signal_value, sizeof(ServerWakeupMessage));
+  }
+  return FD_ISSET(listenfd, &fds);
+}
+
+/**
+ * There is a new client waiting to start on the listenfd socket. Accept the
+ * connection, and fork off a new process to run all the associated tests.
+ * @param listenfd The file descriptor which listens to the network
+ * @param ssl_context The ssl_context for any new connections
+ * @return A newly initialized ndtchild struct - the calling function
+ *         owns the struct and its memory; NULL on error
+ */
+ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
+  int child_pipe[2];
+  pid_t child_pid;
+  int ctlsockfd;
+  I2Addr cli_I2Addr;
+  socklen_t cli_addr_len;
+  struct sockaddr_storage cli_addr;
+  size_t rmt_host_strlen;
+  ndtchild *new_child = NULL;
+  // Accept the connection, initialize variables, fire up the new child.
+  cli_addr_len = sizeof(cli_addr);
+  ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+  if (ctlsockfd < 0) {
+    log_println(1, "accept() on ctlsockfd failed");
+    return NULL;
+  }
+  if (cli_addr_len > sizeof(meta.c_addr)) {
+    log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
+    return NULL;
+  }
+  // Copy connection data into global variables for the run_test() function.
+  // Get meta test details copied into results.
+  memcpy(&meta.c_addr, &cli_addr, cli_addr_len);
+  meta.family = ((struct sockaddr *)&cli_addr)->sa_family;
+
+  memset(rmt_addr, 0, sizeof(rmt_addr));
+  addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
+
+  // Get addr details based on socket info available.
+  cli_I2Addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
+  rmt_host_strlen = sizeof(rmt_host);
+  memset(rmt_host, 0, rmt_host_strlen);
+  I2AddrNodeName(cli_I2Addr, rmt_host, &rmt_host_strlen);
+  log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", cli_I2Addr,
+              rmt_host, ctlsockfd);
+  protolog_procstatus(getpid(), getCurrentTest(), CONNECT_TYPE, PROCESS_STARTED,
+                      ctlsockfd);
+
+  // Set up connection channel to the new child
+  if (pipe(child_pipe) == -1) {
+    log_println(6, "pipe() failed errno=%d", errno);
+    close(ctlsockfd);
+    return NULL;
+  }
+
+  // At this point we have received a connection from a client, meaning that
+  // a test is being requested.  At this point we should apply any policy or
+  // AAA functions to the incoming connection.  If we don't like the client,
+  // we can refuse the connection and loop back to the begining.  There
+  // would need to be some additional logic installed if this AAA test
+  // relied on more than the client's IP address.  The client would also
+  // require modification to allow more credentials to be created/passed
+  // between the user and this application.
+
+  child_pid = fork();
+  if (child_pid == -1) {
+    // An error occurred, log it and return.
+    log_println(0, "fork() failed, errno = %d (%s)", errno, strerror(errno));
+    close(child_pipe[0]);
+    close(child_pipe[1]);
+    close(ctlsockfd);
+    return NULL;
+  } else if (child_pid == 0) {
+    // This is the child. Clean up and close the resources the child does not
+    // need, then call the child_process routine which will initialize the
+    // connection and then wait for the go/queue/nogo signals from the parent
+    // process.
+    log_println(4, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d",
+                child_pipe[0], child_pipe[1], child_pid);
+    close(listenfd);
+    close(child_pipe[1]);
+    child_process(child_pipe[0], ssl_context, ctlsockfd);
+    log_println(1, "The child returned! This should never happen.");
+    exit(1);
+  }
+
+  // This is the parent process. Handle scheduling and queuing of multiple
+  // incoming clients.
+  log_println(5, "Parent process spawned child = %d", child_pid);
+  log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", child_pipe[0],
+              child_pipe[1]);
+
+  // Close the open resources that should only be used by the child.
+  close(child_pipe[0]);
+  close(ctlsockfd);
+
+  // Initialize the members of new_child
+  new_child = (ndtchild *)calloc(1, sizeof(ndtchild));
+  if (new_child == NULL) {
+    log_println(1, "calloc() failed errno=%d", errno);
+    close(child_pipe[1]);
+    kill(child_pid, SIGKILL);
+    return NULL;
+  }
+  new_child->pid = child_pid;
+  new_child->pipe = child_pipe[1];
+  strlcpy(new_child->addr, rmt_addr, sizeof(new_child->addr));
+  strlcpy(new_child->host, rmt_host, sizeof(new_child->host));
+  new_child->qtime = time(0);
+  new_child->running = 0;
+  new_child->next = NULL;
+
+  return new_child;
+}
+
+/**
+ * Returns true when the current queue size indicates that a new client would
+ * overload the server.
+ */
+int server_queue_is_full(int queue_size) {
+  if (queue) {
+    if (multiple) {
+      return queue_size >= QUEUE_SIZE_MULTIPLIER * max_clients;
+    } else {
+      return queue_size >= max_clients;
+    }
+  } else {
+    return queue_size >= 1;
+  }
+}
+
+/**
+ * Removes the element after okay_child from the list.  The calling function
+ * owns the memory containing the removed element.
+ * @param head The head of the list - may not be NULL or point to NULL
+ * @param okay_child The element before the element to remove - may be NULL if
+ *                   the head of the list is the element to be removed.
+ */
+void remove_next_child(ndtchild **head, ndtchild *okay_child) {
+  if (okay_child == NULL) {
+    // We are removing the head
+    *head = (*head)->next;
+  } else {
+    // We are removing a non-head element
+    okay_child->next = okay_child->next->next;
+  }
+}
+
+/**
+ * Enqueues a new child onto the list.
+ * @param head The head of the list
+ * @param new_child The child to enqueue
+ */
+void enqueue_child(ndtchild **head, ndtchild *new_child) {
+  ndtchild *current;
+  if (*head == NULL) {
+    // Enqueue onto the empty list
+    *head = new_child;
+  } else {
+    // Enqueue onto the end of a non-empty list
+    current = *head;
+    while (current->next != NULL) current = current->next;
+    current->next = new_child;
+  }
+  new_child->next = NULL;
+}
+
+/**
+ * Sends a message to the child process.
+ * @param child_pipe The file descriptor of the pipe to write to
+ * @param message The message to send
+ */
+void send_message_to_child(int child_pipe, ParentChildSignal message) {
+  write(child_pipe, &message, sizeof(ParentChildSignal));
+}
+
+/**
+ * Attempts to enqueue a new ndtchild struct onto the queue of clients to be
+ * run. This will not enqueue the child unless the server has spare capacity.
+ * This function takes ownership of the memory pointed to by new_child, and
+ * either frees that memory or passes ownership to the linked list that starts
+ * at *head.
+ * @param new_child The new client
+ * @param head The head of the client queue
+ */
+void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
+  ndtchild *current;
+  int client_count = 0;
+  // Count the number of connected clients
+  for (current = *head; current != NULL; current = current->next) {
+    client_count++;
+  }
+
+  if (!server_queue_is_full(client_count)) {
+    // The server is not overloaded, so queue up the new client.
+    enqueue_child(head, new_child);
+  } else {
+    // The server is overloaded. Reject the client and discard it.
+    log_println(0,
+                "Too many clients/mclients (%d) waiting to be served, "
+                "Please try again later.",
+                new_child->pid);
+    send_message_to_child(new_child->pipe, SRV_QUEUE_SERVER_BUSY);
+    // Whether the write succeeds or not, we are done with this child. It
+    // will either kill itself in response to this message, or it will kill
+    // itself with its own watchdog timer. Either way, not our problem
+    // anymore. Send the message, close the pipe, and move on.
+    log_println(6, "Too many clients, freeing child=0x%x", new_child);
+    free_ndtchild(&new_child);
+  }
+}
+
+/**
+ * Returns true if a process is alive and a child of the current process.
+ */
+int is_child_process_alive(pid_t child_pid) {
+  siginfo_t child_status = {0};
+  int rv;
+  rv = waitid(P_PID, child_pid, &child_status, WEXITED | WSTOPPED | WNOHANG);
+  if (rv == 0 && child_status.si_pid == 0) {
+    // There is a running process with that PID, but is it one of ours?
+    return getpgid(child_pid) == getpgid(getpid());
+  }
+  return 0;
+}
+
+/**
+ * Walk the list of connected clients, reaping those clients with dead PIDs.
+ * @param head The head of the list of clients
+ */
+void reap_dead_clients(ndtchild **head) {
+  ndtchild *current, *previous, *client_to_free;
+  current = *head;
+  previous = NULL;
+  while (current != NULL) {
+    if (is_child_process_alive(current->pid)) {
+      previous = current;
+      current = current->next;
+    } else {
+      // Free the dead client and set *current to the next unexamined element
+      // in the list.
+      client_to_free = current;
+      current = current->next;
+      remove_next_child(head, previous);
+      free_ndtchild(&client_to_free);
+    }
+  }
+}
+
+/**
+ * Returns the number of tests that may be run at the same time.
+ */
+int max_simultaneous_tests() {
+  if (!queue || !multiple) {
+    return 1;
+  } else {
+    return max_clients;
+  }
+}
+
+/**
+ * Reaps dead clients from the queue of clients and then updates all clients
+ * regarding their (possibly new) queue position and starts any new clients for
+ * whom capacity has opened up on the server.
+ */
+void perform_queue_maintenance(ndtchild **head) {
+  int queue_position;
+  int running_count = 0;
+  ndtchild *current;
+
+  reap_dead_clients(head);
+
+  // Count the number of clients and the number of running clients.
+  for (current = *head; current != NULL; current = current->next) {
+    if (current->running) {
+      running_count++;
+    }
+  }
+
+  // Walk the list of clients, sending the GO signal to clients that have
+  // reached the front part of the queue.
+  queue_position = 0;
+  for (current = *head; current != NULL; current = current->next) {
+    if (!current->running) {
+      if (running_count < max_simultaneous_tests()) {
+        send_message_to_child(current->pipe, SRV_QUEUE_TEST_STARTS_NOW);
+        current->running = 1;
+        running_count++;
+      } else {
+        // Assuming we can service max_simultaneous_tests per minute, then the
+        // amount of time (in minutes) that the child should expect to wait is
+        // equal to the number of tests ahead of it, divided by the number of
+        // tests we can service per minute. If the children are receiving too
+        // many updates, don't change the update frequency here. Instead,
+        // change how the children respond to updates in child_process().
+        send_message_to_child(
+            current->pipe, max(queue_position / max_simultaneous_tests(), 1));
+        send_message_to_child(current->pipe, SRV_QUEUE_HEARTBEAT);
+      }
+    }
+    queue_position++;
+  }
 }
 
 /**
