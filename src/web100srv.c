@@ -63,6 +63,7 @@ as Operator of Argonne National Laboratory (http://miranda.ctd.anl.gov:7123/).
 
 #include "../config.h"
 
+#include <assert.h>
 #include <time.h>
 #include <ctype.h>
 #include <getopt.h>
@@ -115,9 +116,6 @@ static int set_buff = 0;
 static int admin_view = 0;
 static int queue = 1;
 static int record_reverse = 0;
-static int testing;   // a test is currently being performed.
-static int waiting;   // # of many tests pending
-static int mclients;  // multiple client mode client count
 static int refresh = 30;
 static int old_mismatch = 0;  // use the old duplex mismatch detection heuristic
 /* int sig1, sig2, sig17; */
@@ -127,7 +125,7 @@ static CwndPeaks peaks;
 static int cputime = 0;
 static char cputimelog[256];
 static pthread_t workerThreadId;
-static int cputimeworkerLoop = 1, zombie_check = 0;
+static int cputimeworkerLoop = 1;
 
 static int useDB = 0;
 static char *dbDSN = NULL;
@@ -147,14 +145,21 @@ static char *port = PORT;
 static TestOptions testopt;
 
 static int conn_options = 0;
-static struct ndtchild *head_ptr;
 static int ndtpid;
 static int testPort;
 static char testName[256];
 
-/* create semaphore to allow only 1 process to modify the wait queue */
-#include <semaphore.h>
-sem_t ndtq;
+// The kind of data that is sent from the parent to the child.
+typedef int ParentChildSignal;
+
+// The kind of data that is sent to wake up the server.
+typedef char ServerWakeupMessage;
+
+// The file descriptor used to signal the main server process.
+static int global_signalfd_write;
+
+// When we support multiple clients, grow the queue by a constant factor
+#define QUEUE_SIZE_MULTIPLIER 4
 
 static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"debug", 0, 0, 'd'},
@@ -208,203 +213,13 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {0, 0, 0, 0}};
 
 /**
- * Process a SIGCHLD signal.
- * @param pid_t Process id to be processed
- * */
-void child_sig(pid_t chld_pid) {
-  int pid, status, retcode;
-  struct ndtchild *child_proc1, *child_proc2;
-
-  child_proc1 = head_ptr;
-  log_println(
-      2,
-      "Processing SIGCHLD signal for active web100srv process [%d], sig17=%d",
-      chld_pid, sig17);
-
-  /* this routine cleans up after a child process has terminated.  There are 3
-   * types of child processes.  The pkt-pair timing children are type 1 and the
-   * spawned children to run the test are type 0.  For the pkt-pair children,
-   * just acknowledge their signal to keep them from becoming defunct.  For the
-   * type 0 children, use wait3() to figure out which child terminated and then
-   * clean up the FIFO queue.
-   *
-   * The -1 type indicates a child has terminated due to a communications fault.
-   * For some reason the child is stuck in the FIFO queue and it needs to be
-   * removed.  In this case, the calling function will grab the head pointer's
-   * PID value, call this function with a -1 to remove the entry from the FIFO,
-   * issue a SIGTERM signal and call this function with the childs PID.  This
-   * should prevent the code from entering into a loop.
-   */
-  if (chld_pid > 0) {
-    while ((pid = wait4(chld_pid, &status, WNOHANG, (struct rusage *)0)) > -1) {
-      log_println(3, "wait4() returned %d for PID=%d", status, pid);
-      if (WIFEXITED(status) != 0) {
-        log_println(3, "wexitstatus = '%d'", WEXITSTATUS(status));
-        break;
-      }
-      if (WIFSIGNALED(status) == 1) {
-        log_println(3, "wtermsig = %d", WTERMSIG(status));
-      }
-      if (WIFSTOPPED(status) == 1) {
-        log_println(3, "wstopsig = %d", WSTOPSIG(status));
-      }
-      if (status != 0) {
-        log_println(
-            4, "child_sig() routine, wait4() non-zero status (%d) returned",
-            status);
-        return;
-      }
-    }
-    return;
-  }
-
-  if (chld_pid == 0) {
-    while ((pid = wait3(&status, WNOHANG, (struct rusage *)0)) > 0) {
-      log_println(3, "wait3() returned status=%d for PID=%d", status, pid);
-      if (WIFEXITED(status) != 0) {
-        log_println(3, "wexitstatus = '%d'", WEXITSTATUS(status));
-        break;
-      }
-      if (WIFSIGNALED(status) == 1) {
-        log_println(3, "wtermsig = %d", WTERMSIG(status));
-      }
-      if (WIFSTOPPED(status) == 1) {
-        log_println(3, "wstopsig = %d", WSTOPSIG(status));
-      }
-      if (status != 0) {
-        log_println(
-            4, "child_sig() routine, wait3() non-zero status (%d) returned",
-            status);
-        return;
-      }
-    }
-    log_println(6,
-                "child_sig() called pid=%d, wait returned child=%d - status=%d",
-                chld_pid, pid, status);
-    if (pid == 0) {
-      log_println(6, "wait3() failed to return non-zero PID, ignore it");
-      if (sig17 > 0) sig17--;
-      return;
-    }
-  } else {
-    // chld_pid must be -1, the error condition
-    pid = head_ptr->pid;
-    log_println(
-        6, "Stuck child at head of queue, set pid=%d and remove it from queue",
-        pid);
-  }
-
-  /* the pid variable now holds the PID of the child that exited.  Find out if
-   * this is one of the queued children, and if so remove it from the queue and
-   * relink everything.  At the end of this, update the sig17 counter.
-   */
-
-  if (head_ptr == NULL) return;
-  log_println(5, "checking for pktpair timing children, skip them");
-  child_proc1 = head_ptr;
-  while (child_proc1 != NULL) {
-    log_println(
-        5, "\tLooking for %d, curent queue Child %d, host: %s [%s], next=0x%x",
-        pid, child_proc1->pid, child_proc1->host, child_proc1->addr,
-        (uintptr_t)child_proc1->next);
-    if (child_proc1->pid == pid) {
-      log_println(4, "Main test process %d terminated, remove from queue", pid);
-      break;
-    }
-    child_proc1 = child_proc1->next;
-  }
-  if (child_proc1 == NULL) return;
-
-  if (multiple == 1) {
-    log_println(5, "mclient child '%d' (%d) has finished its test", mclients,
-                pid);
-    mclients--;
-  }
-
-  log_println(4, "Attempting to clean up child %d, head pid = %d", pid,
-              head_ptr->pid);
-  if (head_ptr->pid == pid) {
-    if (get_debuglvl() > 5) {
-      log_println(5, "Walkingqueue");
-      child_proc1 = head_ptr;
-      while (child_proc1 != NULL) {
-        log_println(5, "\tChild %d, host: %s [%s], next=0x%x", child_proc1->pid,
-                    child_proc1->host, child_proc1->addr,
-                    (uintptr_t)child_proc1->next);
-        if (child_proc1->next == NULL) break;
-        child_proc1 = child_proc1->next;
-      }
-    }
-
-    while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-      log_println(6, "Waiting for ndtq semaphore to free - 1");
-      continue;
-    }
-    log_println(5,
-                "Child process %d causing head pointer modification, "
-                "semaphore locked",
-                pid);
-    if (head_ptr != NULL) {
-      child_proc1 = head_ptr;
-      log_println(6, "modifying queue child_proc1=0x%x, head_ptr=0x%x",
-                  child_proc1, head_ptr);
-      head_ptr = head_ptr->next;
-      log_println(6, "free child_proc1=0x%x", child_proc1);
-      free(child_proc1);
-    }
-    if (head_ptr == NULL) testing = 0;
-    if (multiple == 0) testing = 0;
-    waiting--;
-    log_println(3,
-                "Removing Child from head, decremented waiting/mclients %d/%d",
-                waiting, mclients);
-    sem_post(&ndtq);
-    log_println(6, "Free'd ndtq semaphore lock - 3");
-    if (sig17 > 0) sig17--;
-    return;
-  } else {
-    child_proc1 = head_ptr;
-    while (child_proc1->next != NULL) {
-      if (child_proc1->next->pid == pid) {
-        while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-          log_println(6, "Waiting for ndtq semaphore to free - 2");
-          continue;
-        }
-        log_println(
-            4,
-            "Child process %d causing task list modification, semaphore locked",
-            chld_pid);
-        child_proc2 = child_proc1->next;
-        child_proc1->next = child_proc2->next;
-        log_println(6, "free child_proc2=0x%x", child_proc2);
-        free(child_proc2);
-        /* testing = 0; */
-        waiting--;
-        log_println(
-            3, "Removing Child from list, decremented waiting/mclients %d/%d",
-            waiting, mclients);
-        sem_post(&ndtq);
-        log_println(6, "Free'd ndtq semaphore lock - 4");
-        if (sig17 > 0) sig17--;
-        return;
-      }
-      child_proc1 = child_proc1->next;
-      log_println(6, "Looping through service queue ptr = 0x%x",
-                  (uintptr_t)child_proc1);
-    }
-  }
-  if (sig17 > 0) sig17--;
-  log_println(3, "SIGCHLD routine finished!, decremented sig17 counter now =%d",
-              sig17);
-  return;
-}
-
-/**
  * Catch termination signal(s) and print message in log file
  * @param signo Signal number
- * */
+ */
 void cleanup(int signo) {
   FILE *fp;
+  ServerWakeupMessage msg;
+  int status;
 
   if (signo != SIGINT && signo != SIGPIPE) {
     log_println(1, "Signal %d received by process %d", signo, getpid());
@@ -529,30 +344,33 @@ void cleanup(int signo) {
       count_vars = tcp_stat_init(VarFileName);
 
       // The administrator view automatically generates a usage page for the
-      // NDT server.  This page is then accessable to the general public.
+      // NDT server.  This page is then accessible to the general public.
       // At this point read the existing log file and generate the necessary
       // data.  This data is then updated at the end of each test.
       if (admin_view == 1) view_init(refresh);
       break;
 
     case SIGCHLD:
-      // Set a flag. The flag is checked near the top of the main wait loop, so
-      // it will only be accessed once and only the testing proces will attempt
-      // to do something with it.
-      if (ndtpid != getppid()) {
-        sig17++;
-        log_println(5, "Signal 17 (SIGCHLD) received - completed tests = %d",
-                    sig17);
+      // When a child exits, send a message to global_signalfd_write that will
+      // cause the server's select() to wake up.  Only send this message in the
+      // server process.
+      if (ndtpid == getpid()) {
+        msg = '0';  // garbage value, never examined at the other end.
+        write(global_signalfd_write, &msg, sizeof(ServerWakeupMessage));
+        log_println(5, "Signal 17 (SIGCHLD) received - completed tests");
       }
+      // To prevent zombies, make sure every child process is wait()ed upon.
+      waitpid(-1, &status, WNOHANG);
       break;
   }
 }
 
-/** LoadConfig routine copied from Internet2.
+/**
+ * LoadConfig routine copied from Internet2.
  * @param *name Pointer to Application name
- * @param **lbuf line buffer
- * @param *lbuf_max line buffer max - both help keep track of a dynamically
- *                       grown "line" buffer.
+ * @param **lbuf Line buffer
+ * @param *lbuf_max Line buffer max - both help keep track of a dynamically
+ *                  grown "line" buffer.
  */
 static void LoadConfig(char *name, char **lbuf, size_t *lbuf_max) {
   FILE *conf;
@@ -723,7 +541,7 @@ static void LoadConfig(char *name, char **lbuf, size_t *lbuf_max) {
 /**
  * Capture CPU time details
  *
- * @param arg* void pointer to the log file used to record CPU time details
+ * @param arg* Filename of the log file used to record CPU time details
  */
 void *cputimeWorker(void *arg) {
   char *logname = (char *)arg;
@@ -752,13 +570,12 @@ void *cputimeWorker(void *arg) {
 /**
  * Run all tests, process results, record them into relevant log files
  *
- * @param agent pointer to tcp_stat agent
+ * @param agent Pointer to tcp_stat agent
  * @param ctl Connection used for server->client communication
  * @param testopt TestOptions *
- * @param test_suite pointer to string indicating tests to be run
- * @param ssl_context pointer to the SSL context (may be null)
- * */
-
+ * @param test_suite Pointer to string indicating tests to be run
+ * @param ssl_context Pointer to the SSL context (may be null)
+ */
 int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
              char *test_suite, SSL_CTX *ssl_context) {
 #if USE_WEB100
@@ -820,11 +637,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   double c2sspd;          // average throughput as calculated by C->S test
   double s2c2spd;         // average throughput as calculated by midbox test
   double realthruput;     // total send throughput in S->C
-  double acksratio;       // ratio of acks over packets sent
   double aspd = 0;
-  double tmoutsratio;  // timeouts fraction
-  // ratio of retransmissions and duplicate acks over packets sent
-  double rtranratio, dackratio;
   float runave[4];
 
   FILE *fp;
@@ -878,7 +691,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   /*  alarm(15); */
   // Run scheduled test. Log error code if necessary
   log_println(6, "Starting middlebox test");
-  if ((ret = test_mid(ctl, agent, &*testopt, conn_options, &s2c2spd)) != 0) {
+  if ((ret = test_mid(ctl, agent, testopt, conn_options, &s2c2spd)) != 0) {
     if (ret < 0)
       log_println(6, "Middlebox test failed with rc=%d", ret);
     log_println(0, "Middlebox test FAILED!, rc=%d", ret);
@@ -888,14 +701,14 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   /*  alarm(20); */
   log_println(6, "Starting simple firewall test");
-  if ((ret = test_sfw_srv(ctl, agent, &*testopt, conn_options)) != 0) {
+  if ((ret = test_sfw_srv(ctl, agent, testopt, conn_options)) != 0) {
     if (ret < 0)
       log_println(6, "SFW test failed with rc=%d", ret);
   }
 
   /*  alarm(25); */
   log_println(6, "Starting c2s throughput test");
-  if ((ret = test_c2s(ctl, agent, &*testopt, conn_options, &c2sspd, set_buff,
+  if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd, set_buff,
                       window, autotune, device, &options, record_reverse,
                       count_vars, spds, &spd_index, ssl_context)) != 0) {
     if (ret < 0)
@@ -907,7 +720,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   /*  alarm(25); */
   log_println(6, "Starting s2c throughput test");
-  if ((ret = test_s2c(ctl, agent, &*testopt, conn_options, &s2cspd,
+  if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context)) != 0) {
     if (ret < 0)
@@ -918,7 +731,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting META test");
-  if ((ret = test_meta_srv(ctl, agent, &*testopt, conn_options)) != 0) {
+  if ((ret = test_meta_srv(ctl, agent, testopt, conn_options)) != 0) {
     if (ret < 0) {
       log_println(6, "META test failed with rc=%d", ret);
     }
@@ -983,12 +796,6 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   // get fraction of total test time waiting for packets to arrive
   RTOidle = calc_RTOIdle(vars.Timeouts, vars.CurrentRTO, timesec);
-
-  // get timeout, retransmission, acks and dup acks ratios.
-  tmoutsratio = (double) vars.Timeouts / vars.PktsOut;
-  rtranratio = (double) vars.PktsRetrans / vars.PktsOut;
-  acksratio = (double) vars.AckPktsIn / vars.PktsOut;
-  dackratio = (double) vars.DupAcksIn / (double) vars.AckPktsIn;
 
   // get actual throughput in Mbps (totaltime is in microseconds)
   realthruput = calc_real_throughput(vars.DataBytesOut, totaltime);
@@ -1297,11 +1104,10 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     close(testopt->s2csockfd);
   }
 
-  /* If the admin view is turned on then the client process is going to update
-   * these variables.  The need to be shipped back to the parent so the admin
-   * page can be updated.  Otherwise the changes are lost when the client
-   * terminates.
-   */
+  // If the admin view is turned on then the client process is going to update
+  // these variables.  They need to be shipped back to the parent so the admin
+  // page can be updated.  Otherwise the changes are lost when the client
+  // terminates.
   if (admin_view == 1) {
     totalcnt = calculate(date, vars.SumRTT, vars.CountRTT,
                          vars.CongestionSignals, vars.PktsOut, vars.DupAcksIn,
@@ -1315,17 +1121,141 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
              vars.Timeouts, vars.Sndbuf, vars.MaxRwinRcvd, vars.CurrentCwnd,
              mismatch, bad_cable, totalcnt, refresh);
   }
-  if (ctl->ssl != NULL) {
-    SSL_shutdown(ctl->ssl);
-  } else {
-    shutdown(ctl->socket, SHUT_WR);
-  }
-  /* shutdown(ctlsockfd, SHUT_RDWR); */
+  close_connection(ctl);
+  shutdown(ctl->socket, SHUT_WR);
   return (0);
 }
 
+/**
+ * Closes the connection to a child and frees its memory.
+ * @param child A double pointer to the child to remove
+ */
+void free_ndtchild(ndtchild **child) {
+  if (child == NULL || *child == NULL) return;
+  close((*child)->pipe);
+  free(*child);
+  *child = NULL;
+}
 
-/** The code run by the child process.  This function never returns, it only
+/**
+ * Read a single message sent from the parent server process to the child
+ * process, and perform any necessary communication that message necessitates.
+ * @param parent_pipe Where to read the message from
+ * @return The message value on success, a negative error code on failure
+ */
+int read_from_parent(int parent_pipe) {
+  ParentChildSignal parent_message;
+  int retcode;
+  retcode = read(parent_pipe, &parent_message, sizeof(ParentChildSignal));
+  log_println(6, "Child %d got '%d' from parent", getpid(), parent_message);
+  if (retcode < 0) {
+    retcode = errno;  // Save errno in case log_println sets it.
+    log_println(1, "Child %d couldn't read from the pipe.");
+    return -retcode;
+  }
+  if (parent_message < 0) {
+    // The message received is a negative number. This should never happen.
+    log_println(1, "Child %d got a negative number (%d) from the parent.",
+                getpid(), parent_message);
+    return -EBADMSG;
+  }
+  return parent_message;
+}
+
+/**
+ * Performs the heartbeat back & forth with the specified client. All errors in
+ * the heartbeat protcol are (and should be) fatal.
+ * @param conn The Connection on which we should communicate
+ * @param testopt The TestOptions for our communication
+ */
+void check_heartbeat(Connection *conn, TestOptions *testopt) {
+  char msg[256];
+  int msg_len;
+  int msg_type;
+  if (send_json_message_any(conn, SRV_QUEUE, SRV_QUEUE_HEARTBEAT_STR,
+                            strlen(SRV_QUEUE_HEARTBEAT_STR),
+                            testopt->connection_flags,
+                            JSON_SINGLE_VALUE) != 0) {
+    log_println(1, "Server failed to send heartbeat message");
+    exit(0);
+  }
+  msg_len = sizeof(msg);
+  if (recv_any_msg(conn, &msg_type, msg, &msg_len, testopt->connection_flags) !=
+      0) {
+    log_println(1, "Client failed to respond to heartbeat message");
+    exit(0);
+  }
+}
+
+/**
+ * Process a single parent message. If the message is fatal this will exit.
+ * @param parent_message The message to process.
+ * @param ctl The connection to the client
+ * @param testopt The TestOptions, required to communicate with the client
+ * @param t_opts The tests requested by the client
+ */
+void process_parent_message(int parent_message, Connection *ctl,
+                            TestOptions *testopt, int t_opts) {
+  char serialized_parent_message[256];
+  if (parent_message < 0) {
+    if (parent_message == -EINTR) {
+      // EINTR means that a signal handler fired or some other interruption
+      // occurred. It means that this read() failed, but the next might not.
+      return;
+    } else {
+      exit(0);
+    }
+  }
+  // Perform any I/O message entailed by parent_message
+  if (parent_message == SRV_QUEUE_HEARTBEAT) {
+    // Perform the heartbeat check (if we can).
+    if (t_opts & SRV_QUEUE) check_heartbeat(ctl, testopt);
+  } else {
+    // All other messages should pass-through to the client.
+    sprintf(serialized_parent_message, "%d", parent_message);
+    if (send_json_message_any(ctl, SRV_QUEUE, serialized_parent_message,
+                              strlen(serialized_parent_message),
+                              testopt->connection_flags,
+                              JSON_SINGLE_VALUE) != 0) {
+      log_println(1, "Client failed to send message");
+      exit(0);
+    }
+  }
+  // Update the child's local state based on the parent message
+  // This switch should include a case for every "magic value" specified for
+  // SRV_QUEUE messages in protocol.h
+  switch (parent_message) {
+    case SRV_QUEUE_TEST_STARTS_NOW:
+      log_println(0,
+                  "This should never happen - failed to start test when "
+                  "the code was SRV_QUEUE_TEST_STARTS_NOW");
+      break;
+    case SRV_QUEUE_SERVER_FAULT:
+      exit(0);
+      break;
+    case SRV_QUEUE_SERVER_BUSY:
+      exit(0);
+      break;
+    case SRV_QUEUE_HEARTBEAT:
+      break;
+    case SRV_QUEUE_SERVER_BUSY_60s:
+      // The SRV_QUEUE_SERVER_BUSY_60s message is not emitted by any
+      // codepaths in the server.  This message is likely obsolete.
+      // Set the watchdog alarm for 60 seconds, plus some slop.
+      alarm(120);
+      break;
+    default:
+      // If the message was not one of the magic values, then it is a number
+      // of minutes to wait until the test starts.  Set the watchdog alarm
+      // for that many minutes, plus a little bit extra to avoid race
+      // conditions.
+      alarm((parent_message + 1) * 60);
+      break;
+  }
+}
+
+/**
+ * The code run by the child process. This function never returns, it only
  * calls exit().  It also has an alarm() timer which by default prevents any
  * client from living for more than 5 minutes.  The parent is in control, and
  * will send this child a signal when it gets to the head of the testing queue
@@ -1336,17 +1266,11 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
  */
 void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   FILE *fp;
-  int parent_message;
   time_t tt;
   char isoTime[64], dir[256];
-  char ssl_error[255];
-  unsigned long ssl_err;
   int t_opts = 0;
-  int retcode;
-  char buff[32];
-  int msg_type = 0;
-  int msg_len = 0;
-  char test_suite[16];
+  int retcode = 0, parent_message;
+  char test_suite[256];
   tcp_stat_agent *agent;
   Connection ctl = {0, NULL};
   ctl.socket = ctlsockfd;
@@ -1357,25 +1281,13 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
 
   // Set up the connection with the client (with optional SSL and websockets)
   if (options.tls) {
-    ctl.ssl = SSL_new(ssl_context);
-    if (ctl.ssl == NULL) {
-      log_println(4, "SSL_new failed");
-      exit(-1);
-    }
-    if (SSL_set_fd(ctl.ssl, ctl.socket) == 0) {
-      log_println(4, "SSL_set_fd failed");
-      exit(-1);
-    }
-    if ((ssl_err = SSL_accept(ctl.ssl)) != 1) {
-      if (ssl_err == 0) {
-        ssl_err = SSL_get_error(ctl.ssl, ssl_err);
-      }
-      ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
-      log_println(4, "SSL_accept failed (%s)", ssl_error);
+    if (setup_SSL_connection(&ctl, ssl_context) != 0) {
+      log_println(1, "setup_SSL_connection failed");
       exit(-1);
     }
   }
 
+  // Read the login message and send the kickoff message (if applicable)
   t_opts = initialize_tests(&ctl, &testopt, test_suite, sizeof(test_suite));
   if (t_opts < 1) {  // some error in initialization routines
     log_println(3, "Invalid test suite received, terminate child");
@@ -1393,72 +1305,18 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
     exit(1);
   }
 #endif
-  for (;;) {
-    // the read() could return if an interrupt was caught.  This
-    // condition should be checked for and the read() restarted if
-    // necessary
-    retcode = read(parent_pipe, &parent_message, sizeof(int));
-    log_println(6, "Child %d got '%d' from parent", getpid(), parent_message);
-    if ((retcode == -1) && (errno == EINTR)) continue;
-    if (parent_message == SRV_QUEUE_TEST_STARTS_NOW) {
-      send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_TEST_STARTS_NOW_STR,
+  // Wait in the queue until the child process is told to start
+  while ((parent_message = read_from_parent(parent_pipe)) !=
+         SRV_QUEUE_TEST_STARTS_NOW) {
+    process_parent_message(parent_message, &ctl, &testopt, t_opts);
+  }
+
+  // Tell the client the test is about to start
+  if (send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_TEST_STARTS_NOW_STR,
                             strlen(SRV_QUEUE_TEST_STARTS_NOW_STR),
-                            testopt.connection_flags, JSON_SINGLE_VALUE);
-      break;
-    } else if (parent_message == SRV_QUEUE_SERVER_FAULT || parent_message < 0) {
-      // Send the SRV_FAULT message, exit
-      send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_SERVER_FAULT_STR,
-                            strlen(SRV_QUEUE_SERVER_FAULT_STR),
-                            testopt.connection_flags, JSON_SINGLE_VALUE);
-      exit(0);
-    } else if (parent_message == SRV_QUEUE_SERVER_BUSY) {
-      // Send the SRV_BUSY message, exit
-      send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_SERVER_BUSY_STR,
-                            strlen(SRV_QUEUE_SERVER_BUSY_STR),
-                            testopt.connection_flags, JSON_SINGLE_VALUE);
-      exit(0);
-    } else if (parent_message == SRV_QUEUE_HEARTBEAT) {
-      // Perform the heartbeat check (if you can).  The heartbeat check failing
-      // will cause the client to commit suicide.
-      if (t_opts & TEST_STATUS) {
-        if (send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_HEARTBEAT_STR,
-                                  strlen(SRV_QUEUE_HEARTBEAT_STR),
-                                  testopt.connection_flags,
-                                  JSON_SINGLE_VALUE) != 0) {
-          exit(0);
-        }
-        msg_len = sizeof(buff);
-        if (recv_any_msg(&ctl, &msg_type, buff, &msg_len,
-                         testopt.connection_flags) != 0) {
-          exit(0);
-        }
-      }
-    } else if (parent_message == SRV_QUEUE_SERVER_BUSY_60s) {
-      // Send the 60s message to the client.  The server does not currently
-      // send this message, although web100clt does have code to respond to it.
-      // This message is likely obsolete.
-      if (send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_SERVER_BUSY_60s_STR,
-                                strlen(SRV_QUEUE_SERVER_BUSY_60s_STR),
-                                testopt.connection_flags,
-                                JSON_SINGLE_VALUE) != 0) {
-        exit(0);
-      }
-      alarm(120);
-    } else {
-      // If the number sent down the pipe is positive and not one of the magic
-      // numbers, then it is an estimate of how many minutes the NDT client
-      // will have to wait before its test starts.  Pass that info along.
-      memset(buff, 0, sizeof(buff));
-      sprintf(buff, "%d", parent_message);
-      if (send_json_message_any(&ctl, SRV_QUEUE, buff, strlen(buff),
-                                testopt.connection_flags,
-                                JSON_SINGLE_VALUE) != 0) {
-        exit(0);
-      }
-      // Set the watchdog timer to that # of minutes (plus a little extra slop
-      // to prevent race conditions)
-      alarm((parent_message + 1) * 60);
-    }
+                            testopt.connection_flags, JSON_SINGLE_VALUE) != 0) {
+    log_println(1, "Error when sending SRV_QUEUE_TEST_STARTS_NOW to client");
+    exit(-1);
   }
 
   set_timestamp();
@@ -1527,42 +1385,365 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
     log_println(3, "Successfully returned from run_test() routine");
   } else {
     log_println(3,
-                "Child %d returned non-zero (%d) from "
-                "run_test() results some test failed!",
+                "Child %d returned non-zero (%d) from run_test() results some "
+                "test failed!",
                 getpid(), retcode);
-    child_sig(0);
   }
-  SSL_free(ctl.ssl);
-  close(ctl.socket);
+  close_connection(&ctl);
 #if USE_WEB100
   web100_detach(agent);
 #elif USE_WEB10G
   estats_nl_client_destroy(&agent);
 #endif
-  // log_free(); // Don't free the log we use it all the time
-  // log_println()
-  // Also makes valgrind angry
 
   if (cputime && workerThreadId) {
     cputimeworkerLoop = 0;
     pthread_join(workerThreadId, NULL);
   }
-
-  // At this point the tests have been run and we need to clean up
-  // and handle and child processes that might still be lying
-  // around.  If we don't we get zombies. The pkt-pair handling
-  // created 2 childern and we need to get rid of them. To know
-  // what PIDs to look for on 1/19/10 the run_test() routine was
-  // modified to pass around these values. The values are set in
-  // the proper routine in the testoptions.c file.
-  // Then add call to child_sig() routine and pass in these PID's
-  // so we handle each child in sequence
-
-  log_println(6, "remove pkt-pair children c2s=%d, s2c=%d", testopt.child1,
-              testopt.child2);
-  if (testopt.child1 != 0) child_sig(testopt.child1);
-  if (testopt.child2 != 0) child_sig(testopt.child2);
   exit(0);
+}
+
+static int max(int a, int b) { return (a > b) ? a : b; }
+
+/**
+ * Waits for a new client to connect, for one of the child processes to die, or
+ * (optionally) until a timeout occurs.  If the select() is woken up by a new
+ * client connecting, then this routine will return true.
+ * @param listenfd The file descriptor which listens to the network
+ * @param signalfd The pipe which will be written to upon receipt of SIGCHILD
+ * @param wait_forever True if the server should wait forever
+ * @return True if there is a new client on listenfd
+ */
+int wait_for_wakeup(int listenfd, int signalfd, int wait_forever) {
+  fd_set fds;
+  int retcode;
+  ServerWakeupMessage signal_value;
+  struct timeval sel_tv, *psel_tv = NULL;
+
+  FD_ZERO(&fds);
+  FD_SET(listenfd, &fds);
+  FD_SET(signalfd, &fds);
+  if (!wait_forever) {
+    sel_tv.tv_sec = 3;  // Timeout after 3 seconds
+    sel_tv.tv_usec = 0;
+    psel_tv = &sel_tv;
+  }
+  retcode = select(max(listenfd, signalfd) + 1, &fds, NULL, NULL, psel_tv);
+  if (retcode == -1) {
+    if (errno != EINTR) {
+      // EINTR is expected every now and then due to signal handling.
+      log_println(0, "Error in server's select call: %d (%s)", errno,
+                  strerror(errno));
+    }
+    return 0;
+  }
+  // If we woke up due to data on the signalfd, then clear the buffer.
+  if (FD_ISSET(signalfd, &fds)) {
+    read(signalfd, &signal_value, sizeof(ServerWakeupMessage));
+  }
+  return FD_ISSET(listenfd, &fds);
+}
+
+/**
+ * There is a new client waiting to start on the listenfd socket. Accept the
+ * connection, and fork off a new process to run all the associated tests.
+ * @param listenfd The file descriptor which listens to the network
+ * @param ssl_context The ssl_context for any new connections
+ * @return A newly initialized ndtchild struct - the calling function
+ *         owns the struct and its memory; NULL on error
+ */
+ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
+  int child_pipe[2];
+  pid_t child_pid;
+  int ctlsockfd;
+  I2Addr cli_I2Addr;
+  socklen_t cli_addr_len;
+  struct sockaddr_storage cli_addr;
+  size_t rmt_host_strlen;
+  ndtchild *new_child = NULL;
+  // Accept the connection, initialize variables, fire up the new child.
+  cli_addr_len = sizeof(cli_addr);
+  ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+  if (ctlsockfd < 0) {
+    log_println(1, "accept() on ctlsockfd failed");
+    return NULL;
+  }
+  if (cli_addr_len > sizeof(meta.c_addr)) {
+    log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
+    return NULL;
+  }
+  // Copy connection data into global variables for the run_test() function.
+  // Get meta test details copied into results.
+  memcpy(&meta.c_addr, &cli_addr, cli_addr_len);
+  meta.family = ((struct sockaddr *)&cli_addr)->sa_family;
+
+  memset(rmt_addr, 0, sizeof(rmt_addr));
+  addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
+
+  // Get addr details based on socket info available.
+  cli_I2Addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
+  rmt_host_strlen = sizeof(rmt_host);
+  memset(rmt_host, 0, rmt_host_strlen);
+  I2AddrNodeName(cli_I2Addr, rmt_host, &rmt_host_strlen);
+  log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", cli_I2Addr,
+              rmt_host, ctlsockfd);
+  protolog_procstatus(getpid(), getCurrentTest(), CONNECT_TYPE, PROCESS_STARTED,
+                      ctlsockfd);
+
+  // Set up connection channel to the new child
+  if (pipe(child_pipe) == -1) {
+    log_println(6, "pipe() failed errno=%d", errno);
+    close(ctlsockfd);
+    return NULL;
+  }
+
+  // At this point we have received a connection from a client, meaning that
+  // a test is being requested.  At this point we should apply any policy or
+  // AAA functions to the incoming connection.  If we don't like the client,
+  // we can refuse the connection and loop back to the begining.  There
+  // would need to be some additional logic installed if this AAA test
+  // relied on more than the client's IP address.  The client would also
+  // require modification to allow more credentials to be created/passed
+  // between the user and this application.
+
+  child_pid = fork();
+  if (child_pid == -1) {
+    // An error occurred, log it and return.
+    log_println(0, "fork() failed, errno = %d (%s)", errno, strerror(errno));
+    close(child_pipe[0]);
+    close(child_pipe[1]);
+    close(ctlsockfd);
+    return NULL;
+  } else if (child_pid == 0) {
+    // This is the child. Clean up and close the resources the child does not
+    // need, then call the child_process routine which will initialize the
+    // connection and then wait for the go/queue/nogo signals from the parent
+    // process.
+    log_println(4, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d",
+                child_pipe[0], child_pipe[1], child_pid);
+    close(listenfd);
+    close(child_pipe[1]);
+    child_process(child_pipe[0], ssl_context, ctlsockfd);
+    log_println(1, "The child returned! This should never happen.");
+    exit(1);
+  }
+
+  // This is the parent process. Handle scheduling and queuing of multiple
+  // incoming clients.
+  log_println(5, "Parent process spawned child = %d", child_pid);
+  log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d", child_pipe[0],
+              child_pipe[1]);
+
+  // Close the open resources that should only be used by the child.
+  close(child_pipe[0]);
+  close(ctlsockfd);
+
+  // Initialize the members of new_child
+  new_child = (ndtchild *)calloc(1, sizeof(ndtchild));
+  if (new_child == NULL) {
+    log_println(1, "calloc() failed errno=%d", errno);
+    close(child_pipe[1]);
+    kill(child_pid, SIGKILL);
+    return NULL;
+  }
+  new_child->pid = child_pid;
+  new_child->pipe = child_pipe[1];
+  strlcpy(new_child->addr, rmt_addr, sizeof(new_child->addr));
+  strlcpy(new_child->host, rmt_host, sizeof(new_child->host));
+  new_child->qtime = time(0);
+  new_child->running = 0;
+  new_child->next = NULL;
+
+  return new_child;
+}
+
+/**
+ * Returns true when the current queue size indicates that a new client would
+ * overload the server.
+ */
+int server_queue_is_full(int queue_size) {
+  if (queue) {
+    if (multiple) {
+      return queue_size >= QUEUE_SIZE_MULTIPLIER * max_clients;
+    } else {
+      return queue_size >= max_clients;
+    }
+  } else {
+    return queue_size >= 1;
+  }
+}
+
+/**
+ * Removes the element after okay_child from the list.  The calling function
+ * owns the memory containing the removed element.
+ * @param head The head of the list - may not be NULL or point to NULL
+ * @param okay_child The element before the element to remove - may be NULL if
+ *                   the head of the list is the element to be removed.
+ */
+void remove_next_child(ndtchild **head, ndtchild *okay_child) {
+  if (okay_child == NULL) {
+    // We are removing the head
+    *head = (*head)->next;
+  } else {
+    // We are removing a non-head element
+    okay_child->next = okay_child->next->next;
+  }
+}
+
+/**
+ * Enqueues a new child onto the list.
+ * @param head The head of the list
+ * @param new_child The child to enqueue
+ */
+void enqueue_child(ndtchild **head, ndtchild *new_child) {
+  ndtchild *current;
+  if (*head == NULL) {
+    // Enqueue onto the empty list
+    *head = new_child;
+  } else {
+    // Enqueue onto the end of a non-empty list
+    current = *head;
+    while (current->next != NULL) current = current->next;
+    current->next = new_child;
+  }
+  new_child->next = NULL;
+}
+
+/**
+ * Sends a message to the child process.
+ * @param child_pipe The file descriptor of the pipe to write to
+ * @param message The message to send
+ */
+void send_message_to_child(int child_pipe, ParentChildSignal message) {
+  write(child_pipe, &message, sizeof(ParentChildSignal));
+}
+
+/**
+ * Attempts to enqueue a new ndtchild struct onto the queue of clients to be
+ * run. This will not enqueue the child unless the server has spare capacity.
+ * This function takes ownership of the memory pointed to by new_child, and
+ * either frees that memory or passes ownership to the linked list that starts
+ * at *head.
+ * @param new_child The new client
+ * @param head The head of the client queue
+ */
+void attempt_enqueue(ndtchild *new_child, ndtchild **head) {
+  ndtchild *current;
+  int client_count = 0;
+  // Count the number of connected clients
+  for (current = *head; current != NULL; current = current->next) {
+    client_count++;
+  }
+
+  if (!server_queue_is_full(client_count)) {
+    // The server is not overloaded, so queue up the new client.
+    enqueue_child(head, new_child);
+  } else {
+    // The server is overloaded. Reject the client and discard it.
+    log_println(0,
+                "Too many clients/mclients (%d) waiting to be served, "
+                "Please try again later.",
+                new_child->pid);
+    send_message_to_child(new_child->pipe, SRV_QUEUE_SERVER_BUSY);
+    // Whether the write succeeds or not, we are done with this child. It
+    // will either kill itself in response to this message, or it will kill
+    // itself with its own watchdog timer. Either way, not our problem
+    // anymore. Send the message, close the pipe, and move on.
+    log_println(6, "Too many clients, freeing child=0x%x", new_child);
+    free_ndtchild(&new_child);
+  }
+}
+
+/**
+ * Returns true if a process is alive and a child of the current process.
+ */
+int is_child_process_alive(pid_t child_pid) {
+  siginfo_t child_status = {0};
+  int rv;
+  rv = waitid(P_PID, child_pid, &child_status, WEXITED | WSTOPPED | WNOHANG);
+  if (rv == 0 && child_status.si_pid == 0) {
+    // There is a running process with that PID, but is it one of ours?
+    return getpgid(child_pid) == getpgid(getpid());
+  }
+  return 0;
+}
+
+/**
+ * Walk the list of connected clients, reaping those clients with dead PIDs.
+ * @param head The head of the list of clients
+ */
+void reap_dead_clients(ndtchild **head) {
+  ndtchild *current, *previous, *client_to_free;
+  current = *head;
+  previous = NULL;
+  while (current != NULL) {
+    if (is_child_process_alive(current->pid)) {
+      previous = current;
+      current = current->next;
+    } else {
+      // Free the dead client and set *current to the next unexamined element
+      // in the list.
+      client_to_free = current;
+      current = current->next;
+      remove_next_child(head, previous);
+      free_ndtchild(&client_to_free);
+    }
+  }
+}
+
+/**
+ * Returns the number of tests that may be run at the same time.
+ */
+int max_simultaneous_tests() {
+  if (!queue || !multiple) {
+    return 1;
+  } else {
+    return max_clients;
+  }
+}
+
+/**
+ * Reaps dead clients from the queue of clients and then updates all clients
+ * regarding their (possibly new) queue position and starts any new clients for
+ * whom capacity has opened up on the server.
+ */
+void perform_queue_maintenance(ndtchild **head) {
+  int queue_position;
+  int running_count = 0;
+  ndtchild *current;
+
+  reap_dead_clients(head);
+
+  // Count the number of clients and the number of running clients.
+  for (current = *head; current != NULL; current = current->next) {
+    if (current->running) {
+      running_count++;
+    }
+  }
+
+  // Walk the list of clients, sending the GO signal to clients that have
+  // reached the front part of the queue.
+  queue_position = 0;
+  for (current = *head; current != NULL; current = current->next) {
+    if (!current->running) {
+      if (running_count < max_simultaneous_tests()) {
+        send_message_to_child(current->pipe, SRV_QUEUE_TEST_STARTS_NOW);
+        current->running = 1;
+        running_count++;
+      } else {
+        // Assuming we can service max_simultaneous_tests per minute, then the
+        // amount of time (in minutes) that the child should expect to wait is
+        // equal to the number of tests ahead of it, divided by the number of
+        // tests we can service per minute. If the children are receiving too
+        // many updates, don't change the update frequency here. Instead,
+        // change how the children respond to updates in child_process().
+        send_message_to_child(
+            current->pipe, max(queue_position / max_simultaneous_tests(), 1));
+        send_message_to_child(current->pipe, SRV_QUEUE_HEARTBEAT);
+      }
+    }
+    queue_position++;
+  }
 }
 
 /**
@@ -1570,604 +1751,67 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
  * processed and the server environment has been set up, will keep waiting for
  * new connections and then forking off children to handle those connections.
  */
-void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd) {
-  int child_pipe[2];
-  int tpid, mwaiting = 0;
-  fd_set rfd;
-  int retcode;
-  time_t tt;
-  int ctlsockfd;
-  char tmpstr[256];
-  struct timeval sel_tv;
-  struct ndtchild *tmp_ptr = NULL, *new_child = NULL, *mchild = NULL;
-  int tmp_pipe;
-  int child_signal;
-  socklen_t clilen;
-  struct sockaddr_storage cli_addr;
-  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
-  enum PROCESS_TYPE_INT proctypeenum = PROCESS_TYPE;
-  int chld_pipe[2];
-  pid_t chld_pid = -1;
-  int i, j;
+void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd, int signalfd) {
+  ndtchild *head_ptr = NULL, *new_child;
   for (;;) {
-  mainloop:
-    if (head_ptr == NULL)
-      log_println(3, "nothing in queue");
-    else
-      log_println(3,
-                  "Queue pointer=%d, testing=%d, waiting=%d, mclients=%d, "
-                  "zombie_check=%d",
-                  head_ptr->pid, testing, waiting, mclients, zombie_check);
-
-    if (sig17 > 0) {
-      log_println(5, "Handle pending SIGCHLD signal, count=%d", sig17);
-      child_sig(0);
+    // Wait for a new connection, an interruption, or a timeout.
+    if (wait_for_wakeup(listenfd, signalfd, (head_ptr == NULL))) {
+      new_child = spawn_new_child(listenfd, ssl_context);
+      if (new_child != NULL) attempt_enqueue(new_child, &head_ptr);
     }
-
-    if ((multiple == 1) && (mclients < max_clients) &&
-        (waiting >= max_clients)) {
-      // This condition means that there are clients waiting and there
-      // are open slots in the test queue, so dispatch another client.
-      //   RAC 12/11/09
-
-      log_println(5, "Empty slot in test queue, find new client to dispatch");
-      /* tmp_ptr = head_ptr; */
-      mchild = head_ptr;
-      i = 0;
-      while (mchild != NULL) {
-        i++;  // Keep count of how many times we go through this loop
-        log_println(2,
-                    "walking queue look for non-running client current=%d, "
-                    "running=%d, next=0x%x",
-                    mchild->pid, mchild->running, mchild->next);
-        if (mchild->running == 0) {
-          /* mchild = tmp_ptr; */
-          log_println(6,
-                      "found non-running client %d, update queue and dispatch "
-                      "this client",
-                      mchild->pid);
-          break;
-        }
-        mchild = mchild->next;
-      }
-      if (i > max_clients) {
-        log_println(6,
-                    "walked through running client list, no empty "
-                    "slots!");
-        continue;
-      }
-
-      tmp_ptr = mchild;
-
-      // Update queued clients, send message to client when it moves
-      //  up in the queue enough to get closer to running a test.  This
-      //  happens when the client falls into the next lower maxqueue bin
-
-      if (waiting > (2 * max_clients)) {
-        int wait_data = -1;
-        int num_secs = 0;
-        for (i = max_clients; i <= waiting; i++) {
-          if (tmp_ptr == NULL) break;
-          if (i == (2 * max_clients)) {
-            wait_data = 1;
-            num_secs = 45;
-          }
-          if (i == (3 * max_clients)) {
-            wait_data = 2;
-            num_secs = 90;
-          }
-          if (wait_data != -1) {
-            child_signal = wait_data;
-            write(tmp_ptr->pipe, &child_signal, sizeof(int));
-            log_println(6,
-                        "sent %d sec update message to client %d on fd=%d, "
-                        "send_msg() returned %d",
-                        num_secs, tmp_ptr->pid, tmp_ptr->pipe);
-          }
-          tmp_ptr = tmp_ptr->next;
-        }
-      }
-      goto dispatch_client;
-    }
-
-    if ((waiting < 0) || (mclients < 0)) {
-      log_println(6,
-                  "Fault: Negative number of clents waiting=%d, mclients=%d"
-                  ", nuke them",
-                  waiting, mclients);
-      while (head_ptr != NULL) {
-        // give message to server waiting in queue
-        child_signal = SRV_QUEUE_SERVER_BUSY;
-        write(head_ptr->pipe, &child_signal, sizeof(int));
-        close(head_ptr->pipe);
-        tpid = head_ptr->pid;
-        child_sig(-1);
-        kill(tpid, SIGTERM);
-        child_sig(tpid);
-      }
-      waiting = 0;
-      mclients = 0;
-      continue;
-    }
-
-    if ((waiting == 0) && (head_ptr != NULL)) {
-      log_println(6, "Fault: Something [%d] in queue, but no waiting clients",
-                  head_ptr->pid);
-      while (head_ptr != NULL) {
-        /* send_msg(head_ptr->ctlsockfd, SRV_QUEUE, "9977", 4); */
-        child_signal = SRV_QUEUE_SERVER_BUSY;
-        write(head_ptr->pipe, &child_signal, sizeof(int));
-        close(head_ptr->pipe);
-        tpid = head_ptr->pid;
-        child_sig(-1);
-        kill(tpid, SIGTERM);
-        child_sig(tpid);
-      }
-      waiting = 0;
-      mclients = 0;
-      continue;
-    }
-
-    if (head_ptr != NULL) {
-      if ((time(0) - head_ptr->stime) > 70) {  // 70 => WAIT-TIME-THRESH
-        log_println(6,
-                    "Fault: Something in queue, but child %d (fd=%d) has "
-                    "exceeded wait time",
-                    head_ptr->pid, head_ptr->pipe);
-        // Should send new 9977 'test aborted' signal to client.  Using
-        // this for now
-        // rac 3/26/10
-
-        log_println(6, "pid=%d, client='%s', stime=%ld, qtime=%ld now=%ld",
-                    head_ptr->pid, head_ptr->addr, head_ptr->stime,
-                    head_ptr->qtime, time(0));
-        log_println(6, "pipe-fd=%d, running=%d", head_ptr->pipe,
-                    head_ptr->running);
-        // boot the client
-        child_signal = SRV_QUEUE_SERVER_BUSY;
-        write(head_ptr->pipe, &child_signal, sizeof(int));
-        close(head_ptr->pipe);
-        tpid = head_ptr->pid;
-        child_sig(-1);
-        kill(tpid, SIGTERM);
-        child_sig(tpid);
-        continue;
-      }
-    }
-
-    if ((multiple == 1) && (mclients > waiting)) {
-      log_println(
-          5,
-          "Multi-client mode has uncaught terminated clients mclient=%d, "
-          "waiting=%d",
-          mclients, waiting);
-      while (mclients > waiting) {
-        child_sig(0);
-        mclients--;
-        log_println(5, "Removed terminated client from count mclients=%d",
-                    mclients);
-      }
-    }
-
-    FD_ZERO(&rfd);
-    FD_SET(listenfd, &rfd);
-    if (waiting > 0) {
-      // there are clients waiting
-      sel_tv.tv_sec = 3;  // 3 seconds == WAIT_TIME_SRVR
-      sel_tv.tv_usec = 0;
-      log_println(3, "Waiting for new connection, timer running");
-      do {
-        retcode = select(listenfd + 1, &rfd, NULL, NULL, &sel_tv);
-        // retry if a signal caused select() to exit.
-      } while ((retcode == -1) && (errno == EINTR));
-      tt = time(0);
-
-    } else {
-      // Nothing is in the queue, so wait forever until a new connection
-      // request arrives
-      log_println(3, "Timer not running, waiting for new connection");
-      mclients = 0;
-      do {
-        retcode = select(listenfd + 1, &rfd, NULL, NULL, NULL);
-        // retry if a signal caused the select() to exit
-      } while ((retcode == -1) && (errno == EINTR));
-    }
-
-    if (retcode < 0) {
-      // an interrupt or signal caused the select() to exit, go back and
-      // start over
-      log_println(5, "Select exited with return code = %d", retcode);
-      continue;
-    }
-
-    if (retcode == 0) {  // select exited due to timer expiration
-      log_println(3, "Timer expired while waiting for a new connection");
-      /* if ((waiting > 0) && (testing == 0)) */
-      if (multiple == 0) {
-        if ((waiting > 0) && (testing == 0)) goto ChldRdy;
-        continue;
-      } else {
-        if (waiting > 0) goto ChldRdy;
-        continue;
-      }
-    } else {
-      log_println(3,
-                  "New connection received, waiting for accept() to complete");
-      if ((waiting > 0) && (testing == 0)) {
-        // no clients waiting, no test in progress
-        goto ChldRdy;
-      }
-      clilen = sizeof(cli_addr);
-      memset(&cli_addr, 0, clilen);
-      log_println(6, "Select() found %d clients ready, highest fd=%d", retcode,
-                  listenfd);
-      if (retcode > 1) {
-        for (i = 3; i <= listenfd; i++) {
-          if (FD_ISSET(i, &rfd)) {
-            listenfd = i;
-            break;
-          }
-        }
-      }
-      for (i = 0; i < RETRY_COUNT; i++) {
-        ctlsockfd = 0;
-        ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &clilen);
-        // socket interrupted, retry
-        if ((ctlsockfd == -1) && (errno == EINTR)) continue;
-
-        // get meta test details copied into results
-        memcpy(&meta.c_addr, &cli_addr, clilen);
-        meta.family = ((struct sockaddr *)&cli_addr)->sa_family;
-
-        memset(rmt_addr, 0, sizeof(rmt_addr));
-        // get addr details based on socket info available
-        I2Addr tmp_addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
-        addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
-
-        size_t rmt_host_strlen = sizeof(rmt_host);
-        memset(rmt_host, 0, rmt_host_strlen);
-        I2AddrNodeName(tmp_addr, rmt_host, &rmt_host_strlen);
-        /* I2AddrFree(tmp_addr); */
-        log_println(4, "New connection received from 0x%x [%s] sockfd=%d.",
-                    tmp_addr, tmpstr, ctlsockfd);
-        break;
-      }
-
-      // verify that accept really worked and don't process connections
-      // that've failed
-      // RAC 2/11/10
-      if (ctlsockfd <= 0) {
-        log_println(4, "New connection request failed sockfd=%d reason-%d.",
-                    ctlsockfd, errno);
-        continue;
-      } else {
-        // accept worked, log protocol validation log to indicate that client
-        // tried connecting
-        procstatusenum = PROCESS_STARTED;
-        proctypeenum = CONNECT_TYPE;
-        protolog_procstatus(getpid(), getCurrentTest(), proctypeenum,
-                            procstatusenum, ctlsockfd);
-      }
-
-      new_child = (struct ndtchild *)malloc(sizeof(struct ndtchild));
-      memset(new_child, 0, sizeof(struct ndtchild));
-      tt = time(0);
-
-      // At this point we have received a connection from a client, meaning that
-      // a test is being requested.  At this point we should apply any policy or
-      // AAA functions to the incoming connection.  If we don't like the client,
-      // we can refuse the connection and loop back to the begining.  There
-      // would need to be some additional logic installed if this AAA test
-      // relied on more than the client's IP address.  The client would also
-      // require modification to allow more credentials to be created/passed
-      // between the user and this application.
-    }
-
-    if (pipe(chld_pipe) == -1) {
-      log_println(6, "pipe() failed errno=%d", errno);
-      close(ctlsockfd);
-      continue;
-    }
-
-    chld_pid = fork();
-    if (chld_pid == -1) {
-      // an error occured, log it and keep waiting
-      log_println(0, "fork() failed, errno = %d (%s)", errno, strerror(errno));
-      close(child_pipe[0]);
-      close(child_pipe[1]);
-      close(ctlsockfd);
-      continue;
-    } else if (chld_pid == 0) {
-      // This is the child. Clean up the copies of the resources the child does
-      // not need, then call the child_process routine which will initialize the
-      // connection and then wait for the go/nogo signal from the parent
-      // process.
-      log_println(4, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d",
-                  chld_pipe[0], chld_pipe[1], chld_pid);
-      close(listenfd);
-      close(chld_pipe[1]);
-      child_process(chld_pipe[0], ssl_context, ctlsockfd);
-      log_println(1, "The child returned! This should never happen.");
-      exit(1);
-    } else if (chld_pid == -1) {
-      // an error occured, log it and quit
-      log_println(0, "fork() failed, errno = %d", errno);
-      // todo: handle error and continue
-    } else {
-      // this is the parent process, handle scheduling and
-      // queuing of multiple incoming clients
-
-      log_println(5, "Parent process spawned child = %d", chld_pid);
-      log_println(5, "Parent thinks pipe() returned fd0=%d, fd1=%d",
-                  chld_pipe[0], chld_pipe[1]);
-
-      // Close the open resources that should only be used by the child.
-      close(chld_pipe[0]);
-      close(ctlsockfd);
-
-      // Check to see if we have more than max_clients waiting in the queue. If
-      // so, tell them to go away.
-      if (((multiple == 0) && (waiting >= (max_clients - 1))) ||
-          ((multiple == 1) && (waiting >= ((4 * max_clients) - 1)))) {
-        log_println(0,
-                    "Too many clients/mclients (%d) waiting to be served, "
-                    "Please try again later.",
-                    chld_pid);
-        child_signal = SRV_QUEUE_SERVER_BUSY;
-        write(child_pipe[1], &child_signal, sizeof(int));
-        // Whether the write succeeds or not, we are done with this child. It
-        // will either kill itself in response to this message, or it will kill
-        // itself with its own watchdog timer. Either way, not our problem
-        // anymore. Send the message, close the pipe, and move on.
-        close(child_pipe[1]);
-        if (new_child != NULL) {
-          log_println(6, "Too many clients, freeing child=0x%x", new_child);
-          free(new_child);
-        }
-        continue;
-      }
-      // socket interrupt, retry
-      while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-        log_println(6, "Waiting for ndtq semaphore to free - 1");
-        continue;
-      }
-      log_println(6, "creating new child - semaphore locked");
-      new_child->pid = chld_pid;
-      strlcpy(new_child->addr, rmt_addr, sizeof(new_child->addr));
-      strlcpy(new_child->host, rmt_host, sizeof(new_child->host));
-
-      // compute start time based in the number of waiting clients
-      // set other properties on this child process
-      if (multiple == 0) {
-        new_child->stime = tt + (waiting * 45);
-      } else {
-        new_child->stime = tt + ((waiting / max_clients) * 45);
-      }
-      new_child->qtime = tt;
-      new_child->pipe = chld_pipe[1];
-      new_child->running = 0;
-      new_child->next = NULL;
-      sem_post(&ndtq);
-      log_println(6, "Free'd ndtq semaphore lock - 1");
-      if (multiple == 1) mwaiting++;
-      mchild = new_child;
-
-      if ((testing == 1) && (queue == 0)) {
-        log_println(3,
-                    "queuing disabled and testing in progress, tell client no");
-        child_signal = SRV_QUEUE_SERVER_BUSY;
-        write(child_pipe[1], &child_signal, sizeof(int));
-        close(chld_pipe[1]);
-        log_println(6, "no queuing, free new_child=0x%x", new_child);
-        free(new_child);
-        continue;
-      }
-
-      waiting++;  // new client has arrived and is queue-able.
-                  // increment waiting
-      log_println(5, "Incrementing waiting variable now = %d", waiting);
-      if (head_ptr == NULL) {
-        head_ptr = new_child;
-      } else {
-        log_println(4, "New request has arrived, adding request to queue list");
-        while ((retcode = sem_wait(&ndtq)) == -1 && errno == EINTR) {
-          log_println(6,
-                      "Waiting for ndtq semaphore to free, adding "
-                      "new client 2");
-          continue;
-        }
-        log_println(6, "Adding new client to fifo queue - semaphore locked");
-        tmp_ptr = head_ptr;
-        while (tmp_ptr->next != NULL) tmp_ptr = tmp_ptr->next;
-        tmp_ptr->next = new_child;
-        sem_post(&ndtq);
-        log_println(6, "Free'd ndtq semaphore lock - 2");
-
-        if (get_debuglvl() > 3) {
-          log_println(4, "Walking scheduling queue");
-          tmp_ptr = head_ptr;
-          while (tmp_ptr != NULL) {
-            log_println(4, "\tChild %d, host: %s [%s], next=0x%x", tmp_ptr->pid,
-                        tmp_ptr->host, tmp_ptr->addr, (uintptr_t)tmp_ptr->next);
-            if (tmp_ptr->next == NULL) break;
-            tmp_ptr = tmp_ptr->next;
-          }
-        }
-      }
-
-      // At this point send a message to the client via the ctlsockfd
-      // saying that N clients are waiting in the queue & testing will
-      // begin within Nx60 seconds.  Only if (waiting > 0)
-      // Clients who leave will be handled in the run_test routine.
-      if ((multiple == 0) && (waiting > 1)) {
-        child_signal = waiting - 1;
-        log_println(3,
-                    "%d clients waiting, telling client (%d) testing will "
-                    "begin within %d minutes",
-                    child_signal, tmp_ptr->pid, child_signal);
-        write(child_pipe[1], &child_signal, sizeof(int));
-        continue;
-      }
-
-      if ((multiple == 1) && (waiting >= max_clients)) {
-        child_signal = waiting / max_clients;
-        log_println(3,
-                    "%d mclients waiting, tell client (%d) test "
-                    "will begin within %d minutes",
-                    (waiting - max_clients), mchild->pid, child_signal);
-        write(child_pipe[1], &child_signal, sizeof(int));
-        continue;
-      }
-
-      log_println(3,
-                  "Line just before ChldRdy: label, did't get here "
-                  "via the goto statement!");
-    ChldRdy:
-      log_println(3, "___-------______  client process is ready for testing!");
-
-      // There are clients waiting in the queue, but if running in
-      // multi-client mode and there are already the max number of
-      // mclients being served, then just continue
-      if ((multiple == 1) && (mclients >= max_clients)) continue;
-
-      testing = 1;
-
-      // update all the clients so they have some idea that progress
-      // is occurring
-      if ((multiple == 0) && (waiting > 1)) {
-        j = waiting - 1;
-        tmp_ptr = head_ptr->next;
-        if (tmp_ptr == NULL) {
-          // no more clients waiting after the current one
-          waiting = 1;
-        }
-        while (tmp_ptr != NULL) {
-          log_println(3,
-                      "%d clients waiting, updating client %d "
-                      "testing will begin within %d minutes",
-                      (waiting - 1), tmp_ptr->pid, (waiting - j));
-          child_signal = waiting - j;
-          write(child_pipe[1], &child_signal, sizeof(int));
-          tmp_ptr = tmp_ptr->next;
-          j--;
-        }
-        
-        // more then 5 clients waiting, killing zombies, sending srv_queue
-        // messages to the child processes and ask them to run the status
-        // check. If the status check fails, the children will exit and then
-        // their entries will be cleaned up via the SIGCHLD handler.
-        // Similarly, a frozen child will have its watchdog timer go off, which
-        // will kill the process, which will invoke the SIGCHLD handler.
-        if ((waiting > 5) && (zombie_check == 0)) {
-          zombie_check = -1;
-          log_println(4, "More than 5 clients in the queue, "
-                      "remove zombies");
-          tmp_ptr = (struct ndtchild *)head_ptr;
-          // walk through this chain until the 4th client is reached, this helps
-          // prevent cases where the current client finishes and the next one begins
-          // before we are done looking
-          for (i = 0; i < 4; i++) { 
-            tmp_ptr = tmp_ptr->next;
-          }
-          while (tmp_ptr != NULL) {
-            i = SRV_QUEUE_HEARTBEAT;
-            tmp_pipe = tmp_ptr->pipe;
-            // Advance the pointer before the write(), because a SIGPIPE or
-            // SIGCHLD caused by the write could cause the memory pointed to by
-            // tmp_ptr to be cleared out from underneath us.
-            tmp_ptr = tmp_ptr->next;
-            write(tmp_pipe, &i, sizeof(int));
-          }
-          zombie_check = 0;
-          if (zombie_check > 0) {
-            waiting -= zombie_check;
-            zombie_check = 0;
-          }
-        }
-        
-      }
-
-      // multi_client:
-      if ((multiple == 1) && (mclients < max_clients)) {
-        if (mwaiting == 0) continue;
-        mwaiting--;
-        log_println(3,
-                    "Multi-client mode operation, dispatch a new "
-                    "client pid=%d.",
-                    mchild->pid);
-      } else {
-        log_println(3, "Telling client %d testing will begin now",
-                    head_ptr->pid);
-      }
-
-    // At this point we have successfully set everything up and are
-    // ready to start testing.  The write() on the control socket
-    // tells the client that the applet should drop out of the wait
-    // loop and get ready to begin testing.  The write() on the pipe
-    // tells the child process it's at the head of the queue, or it's
-    // in multi-client mode, and its OK for this client process to
-    // wake up and begin testing.
-    //
-    //  This is the point in time where we can/should contact any meta
-    //  scheduler to verify that it is OK to really start a test.  If
-    //  we are sharing the server host with other applications, and we
-    //  want unfettered access to the link, now is the time to make
-    //  this request.
-
-    dispatch_client:
-      memset(tmpstr, 0, sizeof(tmpstr));
-      if (multiple == 1) {
-        if (mchild == NULL) mchild = head_ptr;
-        if (mchild->running == 1) continue;
-        log_println(3, "New mclient '%d'(%d) asking for service", mclients,
-                    mchild->pid);
-        mchild->stime = time(0);
-        mchild->running = 1;
-        mclients++;
-        log_println(5, "sending 'GO' signal to client");
-        for (i = 0; i < 5; i++) {
-          child_signal = SRV_QUEUE_TEST_STARTS_NOW;
-          retcode = write(mchild->pipe, &child_signal, sizeof(int));
-          log_println(6, "write(%d) returned %d, errno=%d", mchild->pid,
-                      retcode, errno);
-          if (retcode == sizeof(int)) break;
-          if ((retcode == -1) && (errno == EINTR)) continue;
-          log_println(5,
-                      "Failed to write 'GO' message to client %d, "
-                      "reason=%d, errno=%d",
-                      mchild->pid, retcode, errno);
-          // TODO: handle other error conditions
-          if (retcode == -1) {
-            log_println(1, "Dispatch multi-client failed because '%s'",
-                        strerror(errno));
-            close(mchild->pipe);
-            kill(chld_pid, SIGTERM);
-            goto mainloop;
-          }
-        }
-        close(mchild->pipe);
-      } else {  // multiple client loop complete
-        head_ptr->stime = time(0);
-        head_ptr->running = 1;
-        log_println(5, "sending 'GO' signal to client");
-        for (i = 0; i < 5; i++) {
-          child_signal = SRV_QUEUE_TEST_STARTS_NOW;
-          retcode = write(mchild->pipe, &child_signal, sizeof(int));
-          if (retcode == sizeof(int)) break;
-          if ((retcode == -1) && (errno == EINTR)) continue;
-          // TODO: handle other error conditions
-          if (retcode == -1) {
-            log_println(1, "Dispatch multi-client failed because '%s'",
-                        strerror(errno));
-            close(head_ptr->pipe);
-            kill(chld_pid, SIGTERM);
-            goto mainloop;
-          }
-        }
-        close(head_ptr->pipe);
-      }
-    }
+    // Perform queue maintenance: send messages to clients and reap the dead.
+    perform_queue_maintenance(&head_ptr);
   }
+}
+
+/**
+ * Retrieve the error message from OpenSSL, print it out, and exit the process.
+ * @param prefix The text to print out before the message
+ * @param message An extra error message, to give context to the error
+ */
+void report_SSL_error(const char *prefix, const char *message) {
+  char ssl_error_message[256];
+  unsigned long ssl_error;
+  ssl_error = ERR_get_error();
+  if (ssl_error != 0) {
+    ERR_error_string_n(ssl_error, ssl_error_message, sizeof(ssl_error_message));
+    log_println(0, "%s: %s", prefix, ssl_error_message);
+  }
+  log_println(0, "%s: %s", prefix, message);
+  exit(-1);
+}
+
+/**
+ * Set things up so that the server can accept incoming TLS connections.
+ * @param certificate_file The filename containing the certificate (.pem)
+ * @param private_key_file The filename containing the private key (.pem)
+ */
+SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
+  SSL_CTX *ssl_context;
+
+  SSL_library_init();
+  OpenSSL_add_all_algorithms();
+  SSL_load_error_strings();
+  ssl_context = SSL_CTX_new(SSLv23_server_method());
+  if (ssl_context == NULL) {
+    report_SSL_error("SSL_CTX_new", "SSL/TLS context could not be created.");
+  }
+  SSL_CTX_set_mode(ssl_context, SSL_MODE_AUTO_RETRY);
+  if (SSL_CTX_use_certificate_file(ssl_context, certificate_file,
+                                   SSL_FILETYPE_PEM) != 1) {
+    report_SSL_error("SSL_CTX_use_certificate_file",
+                     "SSL/TLS certificate file could not be loaded.");
+  }
+  if (SSL_CTX_use_PrivateKey_file(ssl_context, private_key_file,
+                                  SSL_FILETYPE_PEM) != 1) {
+    report_SSL_error("SSL_CTX_use_PrivateKey_file",
+                     "SSL/TLS private key file could not be loaded.");
+  }
+  if (!SSL_CTX_check_private_key(ssl_context)) {
+    report_SSL_error("SSL_CTX_check_private_key",
+                     "Private key and certificate do not match");
+  }
+  return ssl_context;
 }
 
 /* web100srv.c contains both a main() that runs things, but is also a source of
@@ -2178,15 +1822,15 @@ void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd) {
  */
 #ifndef USE_WEB100SRV_ONLY_AS_LIBRARY
 /**
- * Initializes data structures,
- *  web100 structures and logging systems.  Read/load configuration, get process
- *  execution options. Accept test requests and manage their execution order and
- *  initiate tests. Keep track of running processes.
+ * Initialize data structures, web100 structures and logging systems.
+ * Read/load configuration, get process execution options. Accept test requests
+ * and manage their execution order and initiate tests. Keep track of running
+ * processes.
  * @param argc Number of arguments
- * @param argv string command line arguments
- * */
+ * @param argv String command line arguments
+ */
 int main(int argc, char **argv) {
-  int c, i, loopcnt;
+  int c, i;
   struct sigaction new;
   char *lbuf = NULL, *ctime();
   FILE *fp;
@@ -2194,12 +1838,12 @@ int main(int argc, char **argv) {
   char *private_key_file = NULL;
   char *certificate_file = NULL;
   SSL_CTX *ssl_context = NULL;
-  char ssl_error[255];
-  unsigned long ssl_err;
   time_t tt;
   I2Addr listenaddr = NULL;
   int listenfd;
   char *srcname = NULL;
+  int signalfd_pipe[2];
+  int signalfd_read;
   int debug = 0;
 
   // variables used for protocol validation logs
@@ -2209,14 +1853,9 @@ int main(int argc, char **argv) {
   // // temp storage for process name
   // char statustemparr[PROCESS_STATUS_DESC_SIZE];
 
-  options.limit = 0;
+  memset(&options, 0, sizeof(options));
   options.snapDelay = 5;
-  options.avoidSndBlockUp = 0;
-  options.snaplog = 0;
-  options.cwndDecrease = 0;
-  options.tls = 0;
-  memset(options.s2c_logname, 0, 256);
-  memset(options.c2s_logname, 0, 256);
+
   peaks.min = -1;
   peaks.max = -1;
   peaks.amount = -1;
@@ -2237,28 +1876,24 @@ int main(int argc, char **argv) {
 #endif
 
   opterr = 0;
-  while ((c =
-          getopt_long(
-              argc,
-              argv,
-              GETOPT_LONG_INET6(
-                  GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:e:p:T:A:S:")),
-              long_options, 0)) != -1) {
-                switch (c) {
-                  case 'c':
-                    ConfigFileName = optarg;
-                    break;
-                  case 'd':
-                    debug++;
-                    break;
-                }
-              }
+  while (
+      (c = getopt_long(argc, argv, GETOPT_LONG_INET6(GETOPT_LONG_EXP(
+                                       "adhmoqrstvzc:x:b:f:i:l:u:e:p:T:A:S:")),
+                       long_options, 0)) != -1) {
+    switch (c) {
+      case 'c':
+        ConfigFileName = optarg;
+        break;
+      case 'd':
+        debug++;
+        break;
+    }
+  }
 
   // Initialize logging system, and then read configuration
   log_init(argv[0], debug);
 
-  if (ConfigFileName == NULL)
-    ConfigFileName = CONFIGFILE;
+  if (ConfigFileName == NULL) ConfigFileName = CONFIGFILE;
 
   // Load Config file.
   // lbuf/lbuf_max keep track of a dynamically grown "line" buffer.
@@ -2276,225 +1911,188 @@ int main(int argc, char **argv) {
   // end protocol logging
 
 #if USE_WEB10G
-  log_println(0, "WARNING: The Web10G NDT server is still in testing"
+  log_println(0,
+              "WARNING: The Web10G NDT server is still in testing"
               " and may contain bugs.");
 #endif
   // Get server execution options
-  while ((c =
-          getopt_long(
-              argc,
-              argv,
-              GETOPT_LONG_INET6(
-                  GETOPT_LONG_EXP("adhmoqrstvzc:x:b:f:i:l:u:e:p:T:A:S:")),
-              long_options, 0)) != -1) {
-                switch (c) {
-                  case '4':
-                    conn_options |= OPT_IPV4_ONLY;
-                    break;
-                  case '6':
-                    conn_options |= OPT_IPV6_ONLY;
-                    break;
-                  case 'r':
-                    record_reverse = 1;
-                    break;
-                  case 'h':
-                    srv_long_usage("ANL/Internet2 NDT version " VERSION
-                                   " (server)");
-                    break;
-                  case 'v':
-                    printf("ANL/Internet2 NDT version %s (server)\n", VERSION);
-                    exit(0);
-                    break;
-                  case 'p':
-                    port = optarg;
+  while (
+      (c = getopt_long(argc, argv, GETOPT_LONG_INET6(GETOPT_LONG_EXP(
+                                       "adhmoqrstvzc:x:b:f:i:l:u:e:p:T:A:S:")),
+                       long_options, 0)) != -1) {
+    switch (c) {
+      case '4':
+        conn_options |= OPT_IPV4_ONLY;
+        break;
+      case '6':
+        conn_options |= OPT_IPV6_ONLY;
+        break;
+      case 'r':
+        record_reverse = 1;
+        break;
+      case 'h':
+        srv_long_usage("ANL/Internet2 NDT version " VERSION " (server)");
+        break;
+      case 'v':
+        printf("ANL/Internet2 NDT version %s (server)\n", VERSION);
+        exit(0);
+        break;
+      case 'p':
+        port = optarg;
 
-                    if (check_int(port, &testopt.mainport)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText),
-                               "Invalid primary port number: " "%s", optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    break;
-                  case 302:
-                    if (check_int(optarg, &testopt.midsockport)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText),
-                               "Invalid Middlebox test port number: %s",
-                               optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    break;
-                  case 303:
-                    if (check_int(optarg, &testopt.c2ssockport)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText),
-                               "Invalid C2S throughput test port number: %s",
-                               optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    break;
-                  case 304:
-                    if (check_int(optarg, &testopt.s2csockport)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText),
-                               "Invalid S2C throughput test port number: %s",
-                               optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    break;
-                  case 'a':
-                    admin_view = 1;
-                    break;
-                  case 'f':
+        if (check_int(port, &testopt.mainport)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText), "Invalid primary port number: %s",
+                   optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 302:
+        if (check_int(optarg, &testopt.midsockport)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText),
+                   "Invalid Middlebox test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 303:
+        if (check_int(optarg, &testopt.c2ssockport)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText),
+                   "Invalid C2S throughput test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 304:
+        if (check_int(optarg, &testopt.s2csockport)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText),
+                   "Invalid S2C throughput test port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 'a':
+        admin_view = 1;
+        break;
+      case 'f':
 #if USE_WEB100
-                    VarFileName = optarg;
+        VarFileName = optarg;
 #elif USE_WEB10G
-                    log_println(2, "Web10G doesn't require varfile. Ignored.");
+        log_println(2, "Web10G doesn't require varfile. Ignored.");
 #endif
-                    break;
-                  case 'i':
-                    device = optarg;
-                    break;
-                  case 'l':
-                    set_logfile(optarg);
-                    break;
-                  case 'u':
-                    set_protologdir(optarg);
-                    break;
-                  case 'e':
-                    log_println(7, "Enabling protocol logging");
-                    enableprotocollogging();
-                    break;
-                  case 'o':
-                    old_mismatch = 1;
-                    break;
-                  case 301:
-                    if (mrange_parse(optarg)) {
-                      char tmpText[300];
-                      snprintf(tmpText, sizeof(tmpText), "Invalid range: %s",
-                               optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                  case 'z':
-                    compress = 0;
-                    break;
-                  case 'm':
-                    multiple = 1;
-                    break;
-                  case 'x':
-                    max_clients = atoi(optarg);
-                    break;
-                  case 'q':
-                    queue = 0;
-                    break;
-                  case 's':
-                    usesyslog = 1;
-                    break;
-                  case 't':
-                    dumptrace = 1;
-                    break;
-                  case 'b':
-                    if (check_int(optarg, &window)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText),
-                               "Invalid window size: %s", optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    set_buff = 1;
-                    break;
-                  case 'd':
-                    debug++;
-                    break;
-                  case 305:
-                    options.snapDelay = atoi(optarg);
-                    break;
-                  case 'y':
-                    options.limit = atoi(optarg);
-                    break;
-                  case 306:
-                    options.avoidSndBlockUp = 1;
-                    break;
-                  case 308:
-                    options.cwndDecrease = 1;
-                  case 307:
-                    options.snaplog = 1;
-                    break;
-                  case 309:
-                    cputime = 1;
-                    break;
-                  case 310:
-                    useDB = 1;
-                    break;
-                  case 311:
-                    dbDSN = optarg;
-                    break;
-                  case 312:
-                    dbUID = optarg;
-                    break;
-                  case 313:
-                    dbPWD = optarg;
-                    break;
-                  case 'T':
-                    refresh = atoi(optarg);
-                    break;
-                  case 'A':
-                    AdminFileName = optarg;
-                    break;
-                  case 'L':
-                    DataDirName = optarg;
-                    break;
-                  case 'S':
-                    SysLogFacility = optarg;
-                    break;
-                  case 314:
-                    options.tls = 1;
-                    break;
-                  case 315:
-                    private_key_file = optarg;
-                    break;
-                  case 316:
-                    certificate_file = optarg;
-                    break;
-                  case '?':
-                    short_usage(argv[0], "");
-                    break;
-                }
-              }
+        break;
+      case 'i':
+        device = optarg;
+        break;
+      case 'l':
+        set_logfile(optarg);
+        break;
+      case 'u':
+        set_protologdir(optarg);
+        break;
+      case 'e':
+        log_println(7, "Enabling protocol logging");
+        enableprotocollogging();
+        break;
+      case 'o':
+        old_mismatch = 1;
+        break;
+      case 301:
+        if (mrange_parse(optarg)) {
+          char tmpText[300];
+          snprintf(tmpText, sizeof(tmpText), "Invalid range: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+      case 'z':
+        compress = 0;
+        break;
+      case 'm':
+        multiple = 1;
+        break;
+      case 'x':
+        max_clients = atoi(optarg);
+        break;
+      case 'q':
+        queue = 0;
+        break;
+      case 's':
+        usesyslog = 1;
+        break;
+      case 't':
+        dumptrace = 1;
+        break;
+      case 'b':
+        if (check_int(optarg, &window)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText), "Invalid window size: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        set_buff = 1;
+        break;
+      case 'd':
+        debug++;
+        break;
+      case 305:
+        options.snapDelay = atoi(optarg);
+        break;
+      case 'y':
+        options.limit = atoi(optarg);
+        break;
+      case 306:
+        options.avoidSndBlockUp = 1;
+        break;
+      case 308:
+        options.cwndDecrease = 1;
+      case 307:
+        options.snaplog = 1;
+        break;
+      case 309:
+        cputime = 1;
+        break;
+      case 310:
+        useDB = 1;
+        break;
+      case 311:
+        dbDSN = optarg;
+        break;
+      case 312:
+        dbUID = optarg;
+        break;
+      case 313:
+        dbPWD = optarg;
+        break;
+      case 'T':
+        refresh = atoi(optarg);
+        break;
+      case 'A':
+        AdminFileName = optarg;
+        break;
+      case 'L':
+        DataDirName = optarg;
+        break;
+      case 'S':
+        SysLogFacility = optarg;
+        break;
+      case 314:
+        options.tls = 1;
+        break;
+      case 315:
+        private_key_file = optarg;
+        break;
+      case 316:
+        certificate_file = optarg;
+        break;
+      case '?':
+        short_usage(argv[0], "");
+        break;
+    }
+  }
 
   if (options.tls) {
     if (private_key_file == NULL || certificate_file == NULL) {
       short_usage(argv[0], "TLS requires a private key and a certificate");
     }
-
-    SSL_library_init();
-    OpenSSL_add_all_algorithms();
-    SSL_load_error_strings();
-    ssl_context = SSL_CTX_new(SSLv23_server_method());
-    if (ssl_context == NULL) {
-      ssl_err = ERR_get_error();
-      ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
-      printf("SSL_CTX_new: %s\n", ssl_error);
-      short_usage(argv[0], "SSL/TLS context could not be created.");
-    }
-    SSL_CTX_set_mode(ssl_context, SSL_MODE_AUTO_RETRY);
-    // SSL private key file initialization goes here
-    if (SSL_CTX_use_certificate_file(ssl_context, certificate_file,
-                                     SSL_FILETYPE_PEM) != 1) {
-      ssl_err = ERR_get_error();
-      ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
-      printf("SSL_CTX_use_certificate_file: %s\n", ssl_error);
-      short_usage(argv[0], "SSL/TLS certificate file could not be loaded.");
-    }
-    if (SSL_CTX_use_PrivateKey_file(ssl_context, private_key_file,
-                                    SSL_FILETYPE_PEM) != 1) {
-      ssl_err = ERR_get_error();
-      ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
-      printf("SSL_CTX_use_PrivateKey_file: %s\n", ssl_error);
-      short_usage(argv[0], "SSL/TLS private key file could not be loaded.");
-    }
-    if (!SSL_CTX_check_private_key(ssl_context)) {
-      short_usage(argv[0], "Private key does go with certificate.");
-    }
+    ssl_context = setup_SSL(certificate_file, private_key_file);
   }
 
   if (optind < argc) {
@@ -2513,8 +2111,7 @@ int main(int argc, char **argv) {
 
   if (getuid() != 0) {
     log_print(
-        0,
-        "Warning: This program must be run as root to enable the Link Type");
+        0, "Warning: This program must be run as root to enable the Link Type");
     log_println(
         0,
         " detection algorithm.\nContinuing execution without this algorithm");
@@ -2551,8 +2148,7 @@ int main(int argc, char **argv) {
     }
     if (facilitynames[i].c_name == NULL) {
       log_println(
-          0,
-          "Warning: Unknown syslog facility [%s] --> using default (%d)",
+          0, "Warning: Unknown syslog facility [%s] --> using default (%d)",
           SysLogFacility, syslogfacility);
       SysLogFacility = NULL;
     }
@@ -2577,8 +2173,7 @@ int main(int argc, char **argv) {
 
   // Grab all signals and run them through the cleanup routine.
   for (i = 1; i < 32; i++) {
-    if ((i == SIGKILL) || (i == SIGSTOP))
-      continue;
+    if ((i == SIGKILL) || (i == SIGSTOP)) continue;
     sigaction(i, &new, NULL);
   }
 
@@ -2587,9 +2182,9 @@ int main(int argc, char **argv) {
   if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
     err_sys("server: Invalid source address specified");
   }
-  if ((listenaddr =
-          CreateListenSocket(listenaddr, port, conn_options,
-                             ((set_buff > 0) ? window : 0))) == NULL) {
+  if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options,
+                                       ((set_buff > 0) ? window : 0))) ==
+      NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   listenfd = I2AddrFD(listenaddr);
@@ -2608,14 +2203,13 @@ int main(int argc, char **argv) {
     exit(-5);
   }
 
-  //   The administrator view automatically generates a usage page for the
-  //    NDT server.  This page is then accessible to the general public.
-  //    At this point read the existing log file and generate the necessary
-  //    data.  This data is then updated at the end of each test.
-  //    RAC 11/28/03
+  // The administrator view automatically generates a usage page for the NDT
+  // server.  This page is then accessible to the general public.  At this
+  // point read the existing log file and generate the necessary data.  This
+  // data is then updated at the end of each test.
+  // RAC 11/28/03
 
-  if (admin_view == 1)
-    view_init(refresh);
+  if (admin_view == 1) view_init(refresh);
 
   // Get the server's metadata info (OS name and kernel version
   // RAC 7/7/09
@@ -2634,7 +2228,6 @@ int main(int argc, char **argv) {
   }
 
   // create a log file entry every time the web100srv process starts up
-
   ndtpid = getpid();
   tt = time(0);
   log_println(6, "NDT server (v%s) process [%d] started at %15.15s", VERSION,
@@ -2645,26 +2238,21 @@ int main(int argc, char **argv) {
                 "Unable to open log file '%s', continuing on without logging",
                 get_logfile());
   } else {
-    fprintf(fp, "Web100srv (ver %s) process (%d) started %15.15s\n",
-            VERSION, ndtpid, ctime(&tt) + 4);
+    fprintf(fp, "Web100srv (ver %s) process (%d) started %15.15s\n", VERSION,
+            ndtpid, ctime(&tt) + 4);
     fclose(fp);
   }
   if (usesyslog == 1)
     syslog(LOG_FACILITY | LOG_INFO, "Web100srv (ver %s) process started",
            VERSION);
 
+  // Make the server part of a process group.
+  setpgid(0, 0);
   options.compress = compress;
-  // These flags keep track of running processes.  The 'testing' flag
-  // indicates a test is currently being performed.  The 'waiting' counter
-  // shows how many tests are pending.
-  testing = 0;
-  mclients = 0;
-  waiting = 0;
-  loopcnt = 0;
-  head_ptr = NULL;
-  sig17 = 0;
-  sem_init(&ndtq, 0, 1);
-  NDT_server_main_loop(ssl_context, listenfd);
+  pipe(signalfd_pipe);
+  signalfd_read = signalfd_pipe[0];
+  global_signalfd_write = signalfd_pipe[1];
+  NDT_server_main_loop(ssl_context, listenfd, signalfd_read);
   return 0;
 }
 #endif  // USE_WEB100SRV_ONLY_AS_LIBRARY
@@ -2672,5 +2260,5 @@ int main(int argc, char **argv) {
 /**
  * Method to get remote host's address.
  * @return remote host's address
- * */
+ */
 char *get_remotehostaddress() { return rmt_addr; }
