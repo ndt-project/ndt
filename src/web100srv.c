@@ -1575,7 +1575,7 @@ int server_queue_is_full(int queue_size) {
  * owns the memory containing the removed element.
  * @param head The head of the list - may not be NULL or point to NULL
  * @param okay_child The element before the element to remove - may be NULL if
- *                   the head of hte list is the element to be removed.
+ *                   the head of the list is the element to be removed.
  */
 void remove_next_child(ndtchild **head, ndtchild *okay_child) {
   if (okay_child == NULL) {
@@ -1608,7 +1608,7 @@ void enqueue_child(ndtchild **head, ndtchild *new_child) {
 
 /**
  * Sends a message to the child process.
- * @param pipefd The file descriptor of the pipe to write to
+ * @param child_pipe The file descriptor of the pipe to write to
  * @param message The message to send
  */
 void send_message_to_child(int child_pipe, ParentChildSignal message) {
@@ -1692,7 +1692,7 @@ void reap_dead_clients(ndtchild **head) {
  * Returns the number of tests that may be run at the same time.
  */
 int max_simultaneous_tests() {
-  if (!queue) {
+  if (!queue || !multiple) {
     return 1;
   } else {
     return max_clients;
