@@ -131,7 +131,7 @@ typedef struct portpair {
 } PortPair;
 
 // Structure defining NDT child process
-struct ndtchild {
+typedef struct ndtchild_s {
   int pid;  // process id
   char addr[64];  // IP Address
   char host[256];  // Hostname
@@ -139,8 +139,8 @@ struct ndtchild {
   time_t qtime;  // time when queued
   int running;  // Was this told to start running tests?
   int pipe;  // The writeable end of the pipe to the child
-  struct ndtchild *next;  // next process in queue
-};
+  struct ndtchild_s *next;  // next process in queue
+} ndtchild;
 
 /* structure used to collect speed data in bins */
 struct spdpair {

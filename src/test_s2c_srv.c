@@ -278,7 +278,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           // processing is done prior to the start of packet capture, as many
           // browsers have headers that uniquely identitfy a single user.
           if (initialize_websocket_connection(&s2c_conn, 0, "s2c") != 0) {
-            close_connection(&s2c_conn);
+            shutdown_connection(&s2c_conn);
             return -EIO;
           }
         }
@@ -657,7 +657,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     estats_val_data_free(&snap);
 #endif
 
-    close_connection(&s2c_conn);
+    shutdown_connection(&s2c_conn);
 
     // If sending web100 variables above failed, indicate to client
     if (ret < 0) {

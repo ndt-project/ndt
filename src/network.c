@@ -697,17 +697,29 @@ size_t readn_any(Connection *conn, void *buf, size_t amount) {
 }
 
 /**
- * Close the connection and free any resources associated with it.
+ * Shutdown the connection and free any resources associated with it.  After
+ * this, neither this process nor any other process may use the Connection or
+ * its underlying socket and SSL.
+ * @param conn The connection to shutdown
+ */
+void shutdown_connection(Connection *conn) {
+  if (conn->ssl != NULL) {
+    SSL_shutdown(conn->ssl);
+  }
+  SSL_free(conn->ssl);
+  conn->ssl = NULL;
+  shutdown(conn->socket, SHUT_RDWR);
+}
+
+/**
+ * Close the connection and free any resources associated with it.  Will not
+ * shut the connection down - it may still be used by a fork()ed process.
  * @param conn The connection to close
  */
 void close_connection(Connection *conn) {
-  if (conn->ssl != NULL) {
-    SSL_shutdown(conn->ssl);
-    SSL_free(conn->ssl);
-  }
+  SSL_free(conn->ssl);
   conn->ssl = NULL;
   close(conn->socket);
-  conn->socket = 0;
 }
 
 /**
@@ -718,9 +730,24 @@ void close_connection(Connection *conn) {
  * @return 0 or an error code
  */
 int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
+  char ssl_error[255];
+  unsigned long ssl_err;
   conn->ssl = SSL_new(ctx);
-  if (conn->ssl == NULL) return ENOMEM;
-  if (SSL_set_fd(conn->ssl, conn->socket) == 0) return EIO;
-  if (SSL_accept(conn->ssl) != 1) return EIO;
+  if (conn->ssl == NULL) {
+    log_println(4, "SSL_new failed");
+    return ENOMEM;
+  }
+  if (SSL_set_fd(conn->ssl, conn->socket) == 0) {
+    log_println(4, "SSL_set_fd failed");
+    return EIO;
+  }
+  if ((ssl_err = SSL_accept(conn->ssl)) != 1) {
+    if (ssl_err == 0) {
+      ssl_err = SSL_get_error(conn->ssl, ssl_err);
+    }
+    ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
+    log_println(4, "SSL_accept failed (%s)", ssl_error);
+    return EIO;
+  }
   return 0;
 }
