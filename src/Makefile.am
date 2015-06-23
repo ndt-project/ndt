@@ -79,7 +79,7 @@ endif
 
 noinst_PROGRAMS += $(TESTS)
 
-web100clt_SOURCES = web100clt.c network.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
+web100clt_SOURCES = web100clt.c network.c network_clt.c usage.c logging.c utils.c protocol.c runningtest.c ndtptestconstants.c \
                     test_sfw_clt.c test_mid_clt.c test_c2s_clt.c test_s2c_clt.c test_meta_clt.c strlutils.c \
                     test_results_clt.c jsonutils.c websocket.c
 web100clt_LDADD = $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
@@ -99,7 +99,7 @@ analyze_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)
 analyze_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100
 
 if BUILD_FAKEWWW
-fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c usage.c logging.c \
+fakewww_SOURCES = fakewww.c troute.c troute6.c tr-tree.c tr-tree6.c network.c network_clt.c usage.c logging.c \
                   runningtest.c ndtptestconstants.c strlutils.c jsonutils.c websocket.c
 fakewww_LDADD = $(I2UTILLIBDEPS) $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 fakewww_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' $(OPENSSL_INCLUDES)
