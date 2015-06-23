@@ -138,7 +138,7 @@ void testResults(char tests, char *testresult_str, char* host) {
 
   // If the S2C test was not performed, just interpret the C2S and SFW test
   // results
-  if (!(tests & TEST_S2C)) {
+  if (!(tests & (TEST_S2C | TEST_S2C_EXT))) {
     if (tests & (TEST_C2S | TEST_C2S_EXT)) {  // Was C2S test performed?
       check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
     }
@@ -187,7 +187,7 @@ void testResults(char tests, char *testresult_str, char* host) {
     if (tests & (TEST_C2S | TEST_C2S_EXT)) {
       check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
     }
-    if (tests & TEST_S2C) {
+    if (tests & (TEST_S2C | TEST_S2C_EXT)) {
       check_S2Cpacketqueuing(s2cspd, spdin, ssndqueue, sbytes);
     }
 
