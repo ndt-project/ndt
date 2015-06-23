@@ -1163,6 +1163,26 @@ int read_from_parent(int parent_pipe) {
 }
 
 /**
+ * Sends a single SRV_QUEUE message to client. Calls exit() if the sending
+ * fails.
+ * @param ctl The Connection to send the message on
+ * @param testopt The options used to determine how to talk on the Connection
+ * @param message The message to send
+ */
+void send_srv_queue_message_or_die(Connection *ctl, TestOptions *testopt,
+                                   int message) {
+  char serialized_message[16];
+  snprintf(serialized_message, sizeof(serialized_message), "%d", message);
+  if (send_json_message_any(ctl, SRV_QUEUE, serialized_message,
+                            strlen(serialized_message),
+                            testopt->connection_flags,
+                            JSON_SINGLE_VALUE) != 0) {
+    log_println(1, "Client failed to send message");
+    exit(1);
+  }
+}
+
+/**
  * Performs the heartbeat back & forth with the specified client. All errors in
  * the heartbeat protcol are (and should be) fatal.
  * @param conn The Connection on which we should communicate
@@ -1172,13 +1192,7 @@ void check_heartbeat(Connection *conn, TestOptions *testopt) {
   char msg[256];
   int msg_len;
   int msg_type;
-  if (send_json_message_any(conn, SRV_QUEUE, SRV_QUEUE_HEARTBEAT_STR,
-                            strlen(SRV_QUEUE_HEARTBEAT_STR),
-                            testopt->connection_flags,
-                            JSON_SINGLE_VALUE) != 0) {
-    log_println(1, "Server failed to send heartbeat message");
-    exit(0);
-  }
+  send_srv_queue_message_or_die(conn, testopt, SRV_QUEUE_HEARTBEAT);
   msg_len = sizeof(msg);
   if (recv_any_msg(conn, &msg_type, msg, &msg_len, testopt->connection_flags) !=
       0) {
@@ -1196,7 +1210,6 @@ void check_heartbeat(Connection *conn, TestOptions *testopt) {
  */
 void process_parent_message(int parent_message, Connection *ctl,
                             TestOptions *testopt, int t_opts) {
-  char serialized_parent_message[256];
   if (parent_message < 0) {
     if (parent_message == -EINTR) {
       // EINTR means that a signal handler fired or some other interruption
@@ -1212,14 +1225,7 @@ void process_parent_message(int parent_message, Connection *ctl,
     if (t_opts & SRV_QUEUE) check_heartbeat(ctl, testopt);
   } else {
     // All other messages should pass-through to the client.
-    sprintf(serialized_parent_message, "%d", parent_message);
-    if (send_json_message_any(ctl, SRV_QUEUE, serialized_parent_message,
-                              strlen(serialized_parent_message),
-                              testopt->connection_flags,
-                              JSON_SINGLE_VALUE) != 0) {
-      log_println(1, "Client failed to send message");
-      exit(0);
-    }
+    send_srv_queue_message_or_die(ctl, testopt, parent_message);
   }
   // Update the child's local state based on the parent message
   // This switch should include a case for every "magic value" specified for
@@ -1312,13 +1318,7 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   }
 
   // Tell the client the test is about to start
-  if (send_json_message_any(&ctl, SRV_QUEUE, SRV_QUEUE_TEST_STARTS_NOW_STR,
-                            strlen(SRV_QUEUE_TEST_STARTS_NOW_STR),
-                            testopt.connection_flags, JSON_SINGLE_VALUE) != 0) {
-    log_println(1, "Error when sending SRV_QUEUE_TEST_STARTS_NOW to client");
-    exit(-1);
-  }
-
+  send_srv_queue_message_or_die(&ctl, &testopt, SRV_QUEUE_TEST_STARTS_NOW);
   set_timestamp();
 
   // construct cputime log folder
@@ -1750,17 +1750,20 @@ void perform_queue_maintenance(ndtchild **head) {
  * The server's main loop.  This is the function that, once all arguments are
  * processed and the server environment has been set up, will keep waiting for
  * new connections and then forking off children to handle those connections.
+ * @param ssl_context The context to create new SSL connections - may be NULL
+ * @param listenfd The server socket on which to listen for new clients
+ * @param signalfd The socket used to wake up the server after a signal handler
  */
 void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd, int signalfd) {
-  ndtchild *head_ptr = NULL, *new_child;
+  ndtchild *queue_head = NULL, *new_child;
   for (;;) {
     // Wait for a new connection, an interruption, or a timeout.
-    if (wait_for_wakeup(listenfd, signalfd, (head_ptr == NULL))) {
+    if (wait_for_wakeup(listenfd, signalfd, (queue_head == NULL))) {
       new_child = spawn_new_child(listenfd, ssl_context);
-      if (new_child != NULL) attempt_enqueue(new_child, &head_ptr);
+      if (new_child != NULL) attempt_enqueue(new_child, &queue_head);
     }
     // Perform queue maintenance: send messages to clients and reap the dead.
-    perform_queue_maintenance(&head_ptr);
+    perform_queue_maintenance(&queue_head);
   }
 }
 
