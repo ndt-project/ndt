@@ -1173,10 +1173,9 @@ void send_srv_queue_message_or_die(Connection *ctl, TestOptions *testopt,
                                    int message) {
   char serialized_message[16];
   snprintf(serialized_message, sizeof(serialized_message), "%d", message);
-  if (send_json_message_any(ctl, SRV_QUEUE, serialized_message,
-                            strlen(serialized_message),
-                            testopt->connection_flags,
-                            JSON_SINGLE_VALUE) != 0) {
+  if (send_json_message_any(
+          ctl, SRV_QUEUE, serialized_message, strlen(serialized_message),
+          testopt->connection_flags, JSON_SINGLE_VALUE) != 0) {
     log_println(1, "Client failed to send message");
     exit(1);
   }
