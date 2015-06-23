@@ -8,6 +8,8 @@
 
 #include <assert.h>
 #include <netdb.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include <string.h>
 #include <unistd.h>
 #include "jsonutils.h"
@@ -370,8 +372,8 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
 }
 
 /**
- * Converts message to JSON format and sends it to the control socket.
- * @param ctlSocket control socket
+ * Converts message to JSON format and sends it to the control Connection.
+ * @param ctl control Connection
  * @param type type of the message
  * @param msg message to send
  * @param len length of the message
@@ -405,18 +407,18 @@ int CreateConnectSocket(int* sockfd, I2Addr local_addr, I2Addr server_addr,
  *        -4 - Cannot convert msg to JSON
  *
  */
-int send_json_msg(int ctlSocket, int type, const char* msg, int len,
-                  int connectionFlags, int jsonConvertType,
-                  const char *keys, const char *keysDelimiters,
-                  const char *values, char *valuesDelimiters) {
+int send_json_msg_any(Connection* ctl, int type, const char* msg, int len,
+                      int connectionFlags, int jsonConvertType,
+                      const char *keys, const char *keysDelimiters,
+                      const char *values, char *valuesDelimiters) {
   char* tempBuff;
   int ret = 0;
   // if JSON is not supported by second side, sends msg as it is
   if (!(connectionFlags & JSON_SUPPORT)) {
     if (connectionFlags & WEBSOCKET_SUPPORT) {
-      return send_websocket_msg(ctlSocket, type, msg, len);
+      return send_websocket_msg(ctl, type, msg, len);
     } else {
-      return send_msg(ctlSocket, type, msg, len);
+      return send_msg_any(ctl, type, msg, len);
     }
   }
 
@@ -430,9 +432,9 @@ int send_json_msg(int ctlSocket, int type, const char* msg, int len,
       tempBuff = json_create_from_key_value_pairs(msg); break;
     default:
       if (connectionFlags & WEBSOCKET_SUPPORT) {
-        return send_websocket_msg(ctlSocket, type, msg, len);
+        return send_websocket_msg(ctl, type, msg, len);
       } else {
-        return send_msg(ctlSocket, type, msg, len);
+        return send_msg_any(ctl, type, msg, len);
       }
   }
 
@@ -440,9 +442,9 @@ int send_json_msg(int ctlSocket, int type, const char* msg, int len,
     return -4;
   }
   if (connectionFlags & WEBSOCKET_SUPPORT) {
-    ret = send_websocket_msg(ctlSocket, type, tempBuff, strlen(tempBuff));
+    ret = send_websocket_msg(ctl, type, tempBuff, strlen(tempBuff));
   } else {
-    ret = send_msg(ctlSocket, type, tempBuff, strlen(tempBuff));
+    ret = send_msg_any(ctl, type, tempBuff, strlen(tempBuff));
   }
   free(tempBuff);
   return ret;
@@ -452,15 +454,15 @@ int send_json_msg(int ctlSocket, int type, const char* msg, int len,
  * Shortest version of send_json_msg method. Uses default NULL values for
  * JSON_MULTIPLE_VALUES convert type specific parameters.
  */
-int send_json_message(int ctlSocket, int type, const char* msg, int len,
+int send_json_message_any(Connection* ctl, int type, const char* msg, int len,
                       int connectionFlags, int jsonConvertType) {
-  return send_json_msg(ctlSocket, type, msg, len, connectionFlags, jsonConvertType,
-                       NULL, NULL, NULL, NULL);
+  return send_json_msg_any(ctl, type, msg, len, connectionFlags, jsonConvertType,
+                           NULL, NULL, NULL, NULL);
 }
 
 /**
- * Sends the protocol message to the control socket.
- * @param ctlSocket control socket
+ * Sends the protocol message to the control connection.
+ * @param ctl control Connection
  * @param type type of the message
  * @param msg message to send
  * @param len length of the message
@@ -470,7 +472,7 @@ int send_json_message(int ctlSocket, int type, const char* msg, int len,
  *        -2 - Cannot complete writing full message data into socket
  *        -3 - Cannot write after retries
  */
-int send_msg(int ctlSocket, int type, const void* msg, int len) {
+int send_msg_any(Connection* ctl, int type, const void* msg, int len) {
   unsigned char buff[3];
   int rc, i;
 
@@ -486,7 +488,7 @@ int send_msg(int ctlSocket, int type, const void* msg, int len) {
   // retry sending data 5 times
   for (i = 0; i < 5; i++) {
     // Write initial data about length and type to socket
-    rc = writen(ctlSocket, buff, 3);
+    rc = writen_any(ctl, buff, 3);
     if (rc == 3)  // write completed
       break;
     if (rc == 0)  // nothing written yet,
@@ -501,7 +503,7 @@ int send_msg(int ctlSocket, int type, const void* msg, int len) {
 
   // Now write the actual message
   for (i = 0; i < 5; i++) {
-    rc = writen(ctlSocket, msg, len);
+    rc = writen_any(ctl, msg, len);
     // all the data has been written successfully
     if (rc == len)
       break;
@@ -516,14 +518,14 @@ int send_msg(int ctlSocket, int type, const void* msg, int len) {
   log_println(8, ">>> send_msg: type=%d, len=%d, msg=%s, pid=%d", type, len,
               msg, getpid());
 
-  protolog_sendprintln(type, msg, len, getpid(), ctlSocket);
+  protolog_sendprintln(type, msg, len, getpid(), ctl->socket);
 
   return 0;
 }
 
 /**
  * Receive the protocol message from the control socket.
- * @param ctlSocket control socket
+ * @param ctl control Connection
  * @param type target place for type of the message
  * @param msg target place for the message body
  * @param len target place for the length of the message
@@ -533,7 +535,7 @@ int send_msg(int ctlSocket, int type, const void* msg, int len) {
  *          -2 : No of bytes received were lesser than expected byte count
  *          -3 : No of bytes received did not match expected byte count
  */
-int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
+int recv_msg_any(Connection* ctl, int* type, void* msg, int* len) {
   unsigned char buff[3];
   int length;
   char *msgtemp = (char*) msg;
@@ -543,7 +545,7 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
   assert(len);
 
   // if 3 bytes are not explicitly read, signal error
-  if (readn(ctlSocket, buff, 3) != 3) {
+  if (readn_any(ctl, buff, 3) != 3) {
     return -1;
   }
 
@@ -559,22 +561,22 @@ int recv_msg(int ctlSocket, int* type, void* msg, int* len) {
     return -2;
   }
   *len = length;
-  if (readn(ctlSocket, msg, length) != length) {
+  if (readn_any(ctl, msg, length) != length) {
     return -3;
   }
   log_println(8, "<<< recv_msg: type=%d, len=%d", *type, *len);
 
-  protolog_rcvprintln(*type, msgtemp, *len, getpid(), ctlSocket);
+  protolog_rcvprintln(*type, msgtemp, *len, getpid(), ctl->socket);
 
   return 0;
 }
 
-int recv_any_msg(int ctlSocket, int* type, void* msg, int* len,
+int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
                  int connectionFlags) {
   if (connectionFlags & WEBSOCKET_SUPPORT) {
-    return recv_websocket_ndt_msg(ctlSocket, type, msg, len);
+    return recv_websocket_ndt_msg(conn, type, msg, len);
   } else {
-    return recv_msg(ctlSocket, type, msg, len);
+    return recv_msg_any(conn, type, msg, len);
   }
 }
 
@@ -583,23 +585,26 @@ int recv_any_msg(int ctlSocket, int* type, void* msg, int* len,
  * @param conn the Connection
  * @param buf buffer with data to write
  * @param amount the size of the data
- * @return The amount of bytes written to the file descriptor
+ * @return The amount of bytes written to the Connection
  */
-
-int writen(int fd, const void* buf, int amount) {
+int writen_any(Connection* conn, const void* buf, int amount) {
   int sent, n;
   const char* ptr = buf;
   sent = 0;
   assert(amount >= 0);
   while (sent < amount) {
-    n = write(fd, ptr + sent, amount - sent);
+    if (conn->ssl == NULL) {
+      n = write(conn->socket, ptr + sent, amount - sent);
+    } else {
+      n = SSL_write(conn->ssl, ptr + sent, amount - sent);
+    }
     if (n == -1) {
       if (errno == EINTR)  // interrupted, retry writing again
         continue;
       if (errno != EAGAIN) {  // some genuine socket write error
         log_println(6,
-                    "writen() Error! write(%d) failed with err='%s(%d) pic=%d'",
-                    fd, strerror(errno), errno, getpid());
+                    "writen() Error! write(%d) failed with err='%s(%d) pid=%d'",
+                    conn->socket, strerror(errno), errno, getpid());
         return -1;
       }
     }
@@ -636,8 +641,6 @@ size_t readn_raw(int fd, void *buf, size_t amount) {
   struct timeval sel_tv;
   fd_set rfd;
 
-  assert(amount >= 0);
-
   FD_ZERO(&rfd);  // initialize with zeroes
   FD_SET(fd, &rfd);
   sel_tv.tv_sec = 600;
@@ -665,16 +668,13 @@ size_t readn_raw(int fd, void *buf, size_t amount) {
       continue;
     n = read(fd, ptr + received, amount - received);
     if (n == -1) {  // error
-      if (errno == EINTR)  // interrupted , try reading again
-        continue;
-      if (errno != EAGAIN)  // genuine socket read error, return
-        return -errno;
+      if (errno == EINTR) continue;  // interrupted, try reading again
+      if (errno != EAGAIN) return -errno;  // genuine socket error, return
     }
     if (n != -1) {  // if no errors reading, increment data byte count
       received += n;
     }
-    if (n == 0)
-      return 0;
+    if (n == 0) return 0;
   }
   return received;
 }
