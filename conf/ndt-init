@@ -60,7 +60,7 @@ then
       touch /var/log/ndt/fakewww_error.log
       chown nobody:nobody /var/log/ndt/fakewww*log
 
-      sudo -u nobody $path/fakewww $FAKEWWW_OPTIONS 2>/dev/null &
+      runuser --session-command="$path/fakewww $FAKEWWW_OPTIONS" -s /bin/sh nobody &
       RETVAL=$?
       if [ $RETVAL = 0 ]
       then 
@@ -133,8 +133,20 @@ restart() {
 }
 
 condrestart() {
-	rhstatus
-	if [ $? == 0 ]; then
+	RUNNING=0
+	status web100srv
+        if [ $? -eq 0 ]; then
+		RUNNING=1
+        fi
+	if [ ! $USE_FAKEWWW = 0 ]
+	then
+		status fakewww
+	        if [ $? -eq 0 ]; then
+			RUNNING=1
+	        fi
+	fi
+
+	if [ $RUNNING -eq 1 ]; then
 		restart
 	fi
 }
@@ -149,14 +161,14 @@ stop)
 status)
    rhstatus
    ;;
-cond-restart)
+condrestart)
    condrestart
    ;;
 restart|reload)
    restart
    ;;
 *)
-   echo $"Usage: $0 {start|stop|status|restart}"
+   echo $"Usage: $0 {start|stop|status|restart|condrestart}"
    exit 1
 esac
 
