@@ -32,15 +32,15 @@ int run_unit_test(const char* test_name, void (*test_func)()) {
     // Wait for the child process to exit, hopefully successfully.
     waitpid(child_test_pid, &test_exit_code, 0);
     if (WIFEXITED(test_exit_code) && WEXITSTATUS(test_exit_code) == 0) {
-      fprintf(stderr, " ...Success!\n");
+      fprintf(stderr, " ...Success! (%s)\n", test_name);
       return 0;
     } else {
       if (WIFEXITED(test_exit_code) &&
           WEXITSTATUS(test_exit_code) == FAILURE_EXIT_CODE) {
-        fprintf(stderr, " ...TEST FAILED.\n");
+        fprintf(stderr, " ...TEST FAILED. (%s)\n", test_name);
       } else {
-        fprintf(stderr, " ...TEST CRASHED (return code=%d, %s).\n",
-                test_exit_code, strerror(test_exit_code));
+        fprintf(stderr, " ...TEST CRASHED (%s, return code=%d, %s).\n",
+                test_name, test_exit_code, strerror(test_exit_code));
       }
       if (!WIFEXITED(test_exit_code)) {
         kill(child_test_pid, SIGKILL);

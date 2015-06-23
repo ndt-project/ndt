@@ -39,6 +39,8 @@ size_t readn(int fd, void* buf, size_t amount);
 int KillHung(void);
 
 int setup_SSL_connection(Connection *conn, SSL_CTX *ctx);
+
+void shutdown_connection(Connection *conn);
 void close_connection(Connection *conn);
 
 #endif  // SRC_NETWORK_H_

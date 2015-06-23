@@ -250,9 +250,10 @@ int recv_msg_plus_websocket(Connection* ctl, TestOptions* test_options,
 
 /**
  * Initialize the tests for the client.
- * @param ctlsockfd Client control socket descriptor
- * @param options   Test options
- * @param buff 		Connection options
+ * @param ctl Client connection
+ * @param options Test options
+ * @param buff The string to hold the tests
+ * @param buff_strlen The length of buff
  * @return integer the test codes OR'd together on success
  *          0 or less is an error.
  *          Error codes:
@@ -260,9 +261,8 @@ int recv_msg_plus_websocket(Connection* ctl, TestOptions* test_options,
  *			-2 Invalid test request
  *			-3 Invalid test suite request
  *			-4 client timed out
- *
  */
-int initialize_tests(Connection* ctl, TestOptions* options, char* buff,
+int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
                      size_t buff_strlen) {
   char msgValue[CS_VERSION_LENGTH_MAX + 1] = {'\0'};
   unsigned char useropt = 0;
@@ -272,7 +272,7 @@ int initialize_tests(Connection* ctl, TestOptions* options, char* buff,
   char *invalid_test_suite = "Invalid test suite request.";
   char *invalid_test = "Invalid test request.";
   char *invalid_login_msg = "Invalid login message.";
-  char* jsonMsgValue;
+  char *jsonMsgValue;
 
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();

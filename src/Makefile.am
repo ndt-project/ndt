@@ -114,17 +114,17 @@ web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 $(OPENSSL_INCLUDES)
 web100srv_DEPENDENCIES = $(I2UTILLIBDEPS)
 
-web100srv_unit_tests_SOURCES = web100srv_unit_tests.c unit_testing.c
+web100srv_unit_tests_SOURCES = web100srv_unit_tests.c unit_testing.c $(web100srv_SOURCES)
 web100srv_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
-web100srv_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -Wall -Werror -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
+web100srv_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
 web100srv_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web100_websocket_unit_tests_SOURCES = unit_testing.c websocket_unit_tests.c websocket.c \
                                network.c logging.c strlutils.c jsonutils.c ndtptestconstants.c runningtest.c
 web100_websocket_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100_websocket_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
-web100_websocket_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -Wall -Werror -Wno-unused-variable  -Wno-unused-function $(OPENSSL_INCLUDES)
+web100_websocket_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -Wall -Wno-unused-variable  -Wno-unused-function $(OPENSSL_INCLUDES)
 web100_websocket_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web100_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c unit_testing.c \
@@ -134,7 +134,7 @@ web100_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c u
                                  web100srv.c websocket.c
 web100_testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100_testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
-web100_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Werror -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
+web100_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
 
 web100_testoptions_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
@@ -151,7 +151,7 @@ web10g_websocket_unit_tests_SOURCES = unit_testing.c websocket_unit_tests.c webs
                                network.c logging.c strlutils.c jsonutils.c ndtptestconstants.c runningtest.c
 web10g_websocket_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web10g_websocket_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
-web10g_websocket_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB10G -Wall -Werror -Wno-unused-variable  -Wno-unused-function $(OPENSSL_INCLUDES)
+web10g_websocket_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB10G -Wall -Wno-unused-variable  -Wno-unused-function $(OPENSSL_INCLUDES)
 web10g_websocket_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web10g_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c unit_testing.c \
@@ -161,7 +161,7 @@ web10g_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c u
                                  web100srv.c web10g-util.c websocket.c usage.c web100-admin.c
 web10g_testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web10g_testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
-web10g_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB10G -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Werror -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
+web10g_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB10G -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
 
 web10g_testoptions_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
