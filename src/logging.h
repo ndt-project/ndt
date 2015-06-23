@@ -68,7 +68,7 @@ struct throughputSnapshot {
 struct metadata {
   char c2s_snaplog[FILENAME_SIZE];  // C->S test Snaplog file name
   char c2s_ndttrace[FILENAME_SIZE];  // C->S NDT trace file name
-  char s2c_snaplog[FILENAME_SIZE];  // S->C test Snaplog file name
+  char s2c_snaplog[MAX_STREAMS][FILENAME_SIZE];  // S->C test Snaplog file name
   char s2c_ndttrace[FILENAME_SIZE];  // S->C NDT trace file name
   char CPU_time[FILENAME_SIZE];  // CPU time file
   char web_variables_log[FILENAME_SIZE];  // web100/web10g variables log

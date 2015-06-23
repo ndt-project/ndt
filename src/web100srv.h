@@ -112,24 +112,24 @@ typedef struct CwndPeaks {
 
 // Options to run test with
 typedef struct options {
-  u_int32_t limit;              // used to calculate receive window limit
-  int snapDelay;                // frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
-  char avoidSndBlockUp;         // flag set to indicate avoiding send buffer blocking in the S2C test
-  char snaplog;                 // enable collecting snap log
-  char cwndDecrease;            // enable analysis of the cwnd changes (S2C test)
-  char s2c_logname[256];        // S2C log file name - size changed to 256
-  char c2s_logname[256];        // C2S log file name - size changed to 256
-  int compress;                 // enable compressing log files
-  int c2s_duration;             // upload test duration
-  char c2s_throughputsnaps;     // enable the throughput snapshots for upload test writing
-  int c2s_snapsdelay;           // specify the delay in the throughput snapshots thread for upload test
-  int c2s_snapsoffset;          // specify the initial offset in the throughput snapshots thread for upload test
-  int c2s_streamsnum;           // specify the number of streams (parallel TCP connections) for upload test
-  int s2c_duration;             // download test duration
-  char s2c_throughputsnaps;     // enable the throughput snapshots for download test writing
-  int s2c_snapsdelay;           // specify the delay in the throughput snapshots thread for download test
-  int s2c_snapsoffset;          // specify the initial offset in the throughput snapshots thread for download test
-  int s2c_streamsnum;           // specify the number of streams (parallel TCP connections) for download test
+  u_int32_t limit;                      // used to calculate receive window limit
+  int snapDelay;                        // frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
+  char avoidSndBlockUp;                 // flag set to indicate avoiding send buffer blocking in the S2C test
+  char snaplog;                         // enable collecting snap log
+  char cwndDecrease;                    // enable analysis of the cwnd changes (S2C test)
+  char s2c_logname[MAX_STREAMS][256];   // S2C log file name - size changed to 256
+  char c2s_logname[256];                // C2S log file name - size changed to 256
+  int compress;                         // enable compressing log files
+  int c2s_duration;                     // upload test duration
+  char c2s_throughputsnaps;             // enable the throughput snapshots for upload test writing
+  int c2s_snapsdelay;                   // specify the delay in the throughput snapshots thread for upload test
+  int c2s_snapsoffset;                  // specify the initial offset in the throughput snapshots thread for upload test
+  int c2s_streamsnum;                   // specify the number of streams (parallel TCP connections) for upload test
+  int s2c_duration;                     // download test duration
+  char s2c_throughputsnaps;             // enable the throughput snapshots for download test writing
+  int s2c_snapsdelay;                   // specify the delay in the throughput snapshots thread for download test
+  int s2c_snapsoffset;                  // specify the initial offset in the throughput snapshots thread for download test
+  int s2c_streamsnum;                   // specify the number of streams (parallel TCP connections) for download test
 } Options;
 
 typedef struct portpair {

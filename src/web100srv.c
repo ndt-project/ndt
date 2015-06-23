@@ -1161,7 +1161,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
   // ...determine number of times congestion window has been changed
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(options.s2c_logname[0], &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }
@@ -1457,7 +1457,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
     fprintf(fp, ",%d,%d,%d\n", peaks.min, peaks.max, peaks.amount);
     fclose(fp);
   }
-  db_insert(spds, runave, cputimelog, options.s2c_logname,
+  db_insert(spds, runave, cputimelog, options.s2c_logname[0],
             options.c2s_logname, testName, testPort, date, rmt_addr, s2c2spd,
             s2cspd, c2sspd, vars[0].Timeouts, vars[0].SumRTT, vars[0].CountRTT,
             vars[0].PktsRetrans, vars[0].FastRetran, vars[0].DataPktsOut,
@@ -1603,7 +1603,8 @@ int main(int argc, char** argv) {
   options.avoidSndBlockUp = 0;
   options.snaplog = 0;
   options.cwndDecrease = 0;
-  memset(options.s2c_logname, 0, 256);
+  for (i = 0; i < MAX_STREAMS; i++)
+    memset(options.s2c_logname[i], 0, 256);
   memset(options.c2s_logname, 0, 256);
   options.c2s_duration = 10000;
   options.c2s_throughputsnaps = 0;

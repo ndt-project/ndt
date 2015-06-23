@@ -935,7 +935,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
   // char dir[128];
   char dirpathstr[256]="";
   char *tempptr;
-  int ptrdiff = 0;
+  int ptrdiff = 0, i;
 
   // char isoTime[64];
   char filename[256];
@@ -1003,13 +1003,17 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
         strlcat(meta.c2s_snaplog, ".gz", sizeof(meta.c2s_snaplog));
 
       // Try compressing S->C test snaplogs
-      memset(filename, 0, sizeof(filename));
-      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
-               meta.s2c_snaplog);
-      if (zlib_def(filename) != 0)
-        log_println(0, "compression failed for file :%s", filename);
-      else
-        strlcat(meta.s2c_snaplog, ".gz", sizeof(meta.s2c_snaplog));
+      for (i = 0; i < MAX_STREAMS; i++) {
+        if (meta.s2c_snaplog[i] && meta.s2c_snaplog[i][0]) {
+          memset(filename, 0, sizeof(filename));
+          snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
+                   meta.s2c_snaplog[i]);
+          if (zlib_def(filename) != 0)
+            log_println(0, "compression failed for file :%s", filename);
+          else
+            strlcat(meta.s2c_snaplog[i], ".gz", sizeof(meta.s2c_snaplog[i]));
+        }
+      }
     }
 
     // If tcpdump file writing is enabled, compress those
@@ -1062,7 +1066,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
     fprintf(fp, "Date/Time: %s\n", meta.date);
     fprintf(fp, "c2s_snaplog file: %s\n", meta.c2s_snaplog);
     fprintf(fp, "c2s_ndttrace file: %s\n", meta.c2s_ndttrace);
-    fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_snaplog);
+    fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_snaplog[0]);
     fprintf(fp, "s2c_ndttrace file: %s\n", meta.s2c_ndttrace);
     fprintf(fp, "cputime file: %s\n", meta.CPU_time);
     fprintf(fp, "web values file: %s\n", meta.web_variables_log);

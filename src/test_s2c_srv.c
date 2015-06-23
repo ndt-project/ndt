@@ -144,7 +144,7 @@ int test_s2c(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   int msgLen;
   int sndqueue;
   struct sigaction new, old;
-  char* jsonMsgValue;
+  char *jsonMsgValue, *tempStr;
 
   int nextseqtosend = 0, lastunackedseq = 0;
   int drainingqueuecount = 0, bufctlrnewdata = 0;
@@ -410,8 +410,15 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       // create directory to write web100 snaplog trace
       create_client_logdir((struct sockaddr *) &cli_addr[0], clilen,
-                           options->s2c_logname, sizeof(options->s2c_logname),
+                           options->s2c_logname[0], sizeof(options->s2c_logname[0]),
                            snaplogsuffix, sizeof(snaplogsuffix));
+
+      for (i = 1; i < streamsNum; i++) {
+        tempStr = strrchr(options->s2c_logname[0], '.');
+        snprintf(options->s2c_logname[i], strlen(options->s2c_logname[0]) - strlen(tempStr) + 1, "%s", options->s2c_logname[0]);
+        snprintf(&options->s2c_logname[i][strlen(options->s2c_logname[i])], sizeof(options->s2c_logname[i])-strlen(options->s2c_logname[i]),
+                 "_%d.s2c_snaplog", i);
+      }
 
       /* Kludge way of nuking Linux route cache.  This should be done
        * using the sysctl interface.
@@ -481,19 +488,18 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
 
       // If snaplog option is enabled, save snaplog details in meta file
       if (options->snaplog) {
-        memcpy(meta.s2c_snaplog, snaplogsuffix, strlen(snaplogsuffix));
+        for (i = 0; i < streamsNum; i++) {
+          tempStr = strrchr(options->s2c_logname[i], '/');
+          memcpy(meta.s2c_snaplog[i], tempStr+1, strlen(tempStr));
+        }
       }
       // get web100 snapshot and also log it based on options
       /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
         &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
         conn, group);*///new file changes
       for (i = 0; i < streamsNum; ++i) {
-          char snapLogFileName[1024];
-          snprintf(snapLogFileName, strlen(options->s2c_logname) - 12, "%s", options->s2c_logname);
-          snprintf(&snapLogFileName[strlen(snapLogFileName)], sizeof(snapLogFileName)-strlen(snapLogFileName),
-                      "_%d.s2c_snaplog", i);
           start_snap_worker(&streams[i].snapArgs, agent, peaks, options->snaplog,
-                            &streams[i].workerThreadId, snapLogFileName,
+                            &streams[i].workerThreadId, options->s2c_logname[i],
                             streams[i].conn, group);
       }
 
