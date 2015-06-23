@@ -79,6 +79,8 @@
 #include <arpa/inet.h>
 #include <I2util/util.h>
 
+#include "connection.h"
+
 /* move version to configure.ac file for package name */
 /* #define VERSION   "3.0.7" */  // version number
 #define RECLTH    8192
@@ -120,6 +122,7 @@ typedef struct options {
   char s2c_logname[256];  // S2C log file name - size changed to 256
   char c2s_logname[256];  // C2S log file name - size changed to 256
   int compress;  // enable compressing log files
+  int tls;  // true if we should communicate over SSL
 } Options;
 
 typedef struct portpair {
@@ -128,19 +131,16 @@ typedef struct portpair {
 } PortPair;
 
 // Structure defining NDT child process
-struct ndtchild {
+typedef struct ndtchild_s {
   int pid;  // process id
   char addr[64];  // IP Address
   char host[256];  // Hostname
   time_t stime;  // estimated start time of test
   time_t qtime;  // time when queued
-  int pipe;  // writing end of pipe
-  int running;  // Is process running?
-  int ctlsockfd;  // Socket file descriptor
-  int oldclient;  // Is old client?
-  char tests[16];  // What tests are scheduled?
-  struct ndtchild *next;  // next process in queue
-};
+  int running;  // Was this told to start running tests?
+  int pipe;  // The writeable end of the pipe to the child
+  struct ndtchild_s *next;  // next process in queue
+} ndtchild;
 
 /* structure used to collect speed data in bins */
 struct spdpair {
@@ -317,7 +317,7 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
 
 struct testoptions;  // declare it, but don't define it
-int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, Connection* ctl,
                       tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions);
 
 int CwndDecrease(char* logname,

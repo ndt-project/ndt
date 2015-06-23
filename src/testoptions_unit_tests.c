@@ -36,35 +36,38 @@ void send_data_and_compare_response(const char* data, size_t data_len,
   int child_socket, parent_socket;
   int bytes_written;
   int return_value;
+  Connection conn = {0, NULL};
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
   child_socket = sockets[0];
   parent_socket = sockets[1];
   if ((child_pid = fork()) == 0) {
-    bytes_written = writen(child_socket, data, data_len);
+    conn.socket = child_socket;
+    bytes_written = writen_any(&conn, data, data_len);
     ASSERT(bytes_written == data_len, "write wrote %d bytes, and not %zu",
            bytes_written, data_len);
     if (expected_len) {
       received_data = (char*)malloc(expected_len * sizeof(char));
       CHECK(received_data != NULL);
-      CHECK(expected_len == readn(child_socket, received_data, expected_len));
+      CHECK(expected_len == readn_any(&conn, received_data, expected_len));
       CHECK(strncmp(received_data, expected, expected_len) == 0);
       free(received_data);
     }
     received_data = (char*)malloc(sizeof(end_msg));
     CHECK(received_data != NULL);
     CHECK(sizeof(end_msg) ==
-          readn(child_socket, received_data, sizeof(end_msg)));
+          readn_any(&conn, received_data, sizeof(end_msg)));
     ASSERT(strncmp(received_data, end_msg, sizeof(end_msg)) == 0,
            "Received_data (%s)", received_data);
     free(received_data);
     exit(0);
   } else {
-    return_value = initialize_tests(parent_socket, test_options, test_suite,
+    conn.socket = parent_socket;
+    return_value = initialize_tests(&conn, test_options, test_suite,
                                     test_suite_strlen);
     ASSERT(return_value == expected_return_value,
            "initialize_tests returned %d and not %d", return_value,
            expected_return_value);
-    CHECK(sizeof(end_msg) == writen(parent_socket, end_msg, sizeof(end_msg)));
+    CHECK(sizeof(end_msg) == writen_any(&conn, end_msg, sizeof(end_msg)));
     waitpid(child_pid, &child_exit_code, 0);
     CHECK(WIFEXITED(child_exit_code) && WEXITSTATUS(child_exit_code) == 0);
   }
