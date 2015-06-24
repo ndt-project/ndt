@@ -487,7 +487,7 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       // this snaplog
 
       // If snaplog option is enabled, save snaplog details in meta file
-      if (options->snaplog) {
+      if (options->snapshots && options->snaplog) {
         for (i = 0; i < streamsNum; i++) {
           tempStr = strrchr(options->s2c_logname[i], '/');
           memcpy(meta.s2c_snaplog[i], tempStr+1, strlen(tempStr));
@@ -497,12 +497,13 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
         &workerThreadId, meta.s2c_snaplog, options->s2c_logname,
         conn, group);*///new file changes
-      for (i = 0; i < streamsNum; ++i) {
-          start_snap_worker(&streams[i].snapArgs, agent, peaks, options->snaplog,
-                            &streams[i].workerThreadId, options->s2c_logname[i],
-                            streams[i].conn, group);
+      if (options->snapshots) {
+        for (i = 0; i < streamsNum; ++i) {
+            start_snap_worker(&streams[i].snapArgs, agent, peaks, options->snaplog,
+                              &streams[i].workerThreadId, options->s2c_logname[i],
+                              streams[i].conn, group);
+        }
       }
-
       /* alarm(20); */
       tmptime = secs();  // current time
       tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
@@ -597,8 +598,10 @@ ximfd: xmitsfd[i] = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr
       x2cspd = (8.e-3 * bytes_written) / tx_duration;
 
       // Release semaphore, and close snaplog file.  finalize other data
-      for (i = 0; i < streamsNum; i++) {
-        stop_snap_worker(&streams[i].workerThreadId, options->snaplog, &streams[i].snapArgs);
+      if (options->snapshots) {
+        for (i = 0; i < streamsNum; i++) {
+          stop_snap_worker(&streams[i].workerThreadId, options->snaplog, &streams[i].snapArgs);
+        }
       }
 
       // send the x2cspd to the client

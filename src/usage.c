@@ -75,6 +75,7 @@ void srv_long_usage(char* info) {
   printf(" Experimental code:\n\n");
   printf("  --avoidsndblockup      - enable code to avoid send buffers blocking in the S2C test\n");
   printf("  --snaplog              - enable the snaplog writing\n");
+  printf("  --disablesnaps         - disable snapshotting\n");
   printf("  --snapdelay #msec      - specify the delay in the snaplog thread (default 5 msec)\n");
   printf("                           Note: this doesn't enable 'snaplog'\n");
   printf("  --cwnddecrease         - enable analyzing of the cwnd changes during the S2C test\n");

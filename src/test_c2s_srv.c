@@ -373,14 +373,15 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     // This block is needed here since the meta file stores names without the
     // full directory but fopen needs full path. Else, it could have gone into
     // the "start_snap_worker" method
-    if (options->snaplog) {
+    if (options->snapshots && options->snaplog) {
       memcpy(meta.c2s_snaplog, namesuffix, strlen(namesuffix));
       /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
         &workerThreadId, meta.c2s_snaplog, options->c2s_logname,
         conn, group); */
     }
-    start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
-                      options->c2s_logname, conn, group);
+    if (options->snapshots)
+      start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
+                        options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
     throughputSnapshotTime = tmptime + (options->c2s_snapsoffset / 1000.0);
@@ -444,7 +445,8 @@ breakMainLoop:
 
     // c->s throuput value calculated and assigned ! Release resources, conclude
     // snap writing.
-    stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
+    if (options->snapshots)
+      stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
 
     // send the server calculated value of C->S throughput as result to client
     snprintf(buff, sizeof(buff), "%6.0f kbps outbound for child %d", *c2sspd,

@@ -166,6 +166,7 @@ static struct option long_options[] = {
 #ifdef EXPERIMENTAL_ENABLED
   { "avoidsndblockup", 0, 0, 306},
   { "snaplog", 0, 0, 307},
+  { "disablesnaps", 0, 0, 325},
   { "snapdelay", 1, 0, 305},
   { "cwnddecrease", 0, 0, 308},
   { "cputime", 0, 0, 309},
@@ -717,6 +718,9 @@ static void LoadConfig(char* name, char **lbuf, size_t *lbuf_max) {
       continue;
     } else if (strncasecmp(key, "snaplog", 5) == 0) {
       options.snaplog = 1;
+      continue;
+    } else if (strncasecmp(key, "disablesnaps", 5) == 0) {
+      options.snapshots = 0;
       continue;
     } else if (strncasecmp(key, "avoidsndblockup", 5) == 0) {
       options.avoidSndBlockUp = 1;
@@ -1416,7 +1420,7 @@ int run_test(tcp_stat_agent* agent, int ctlsockfd, TestOptions* testopt,
            peaks.amount);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-  writeMeta(options.compress, cputime, options.snaplog, dumptrace, s2c_ThroughputSnapshots, c2s_ThroughputSnapshots);
+  writeMeta(options.compress, cputime, options.snapshots, options.snaplog, dumptrace, s2c_ThroughputSnapshots, c2s_ThroughputSnapshots);
 
   // Write into log files, DB
   fp = fopen(get_logfile(), "a");
@@ -1602,6 +1606,7 @@ int main(int argc, char** argv) {
   options.snapDelay = 5;
   options.avoidSndBlockUp = 0;
   options.snaplog = 0;
+  options.snapshots = 1;
   options.cwndDecrease = 0;
   for (i = 0; i < MAX_STREAMS; i++)
     memset(options.s2c_logname[i], 0, 256);
@@ -1818,6 +1823,9 @@ int main(int argc, char** argv) {
                     options.cwndDecrease = 1;
                   case 307:
                     options.snaplog = 1;
+                    break;
+                  case 325:
+                    options.snapshots = 0;
                     break;
                   case 309:
                     cputime = 1;

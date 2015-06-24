@@ -920,6 +920,7 @@ char * get_ISOtime(char *isoTime, int isotimearrsize) {
  * @param compress integer flag indicating whether log file compression
  * 			is enabled
  * @param cputime integer flag indicating if cputime trace logging is on
+ * @param snapshotting integer flag indicating if snapshotting is enabled
  * @param snaplog integer flag indicating if snaplogging is enabled
  * @param tcpdump integer flag indicating if tcpdump trace logging is on
  * @param s2c_ThroughputSnapshots s2c throughput snapshots
@@ -928,7 +929,7 @@ char * get_ISOtime(char *isoTime, int isotimearrsize) {
  * RAC 7/7/09
  */
 
-void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
+void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcpdump,
         struct throughputSnapshot *s2c_ThroughputSnapshots, struct throughputSnapshot *c2s_ThroughputSnapshots) {
   FILE * fp;
   char tmpstr[256];
@@ -991,7 +992,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
     log_println(5,
                 "Compression is enabled, compress all files in '%s' basedir",
                 dirpathstr);
-    if (snaplog) {  // if snaplog is enabled, compress those into .gz formats
+    if (snapshotting && snaplog) {  // if snaplog is enabled, compress those into .gz formats
       // Try compressing C->S test snaplogs
       memset(filename, 0, sizeof(filename));
       snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,

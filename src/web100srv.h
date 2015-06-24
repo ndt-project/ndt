@@ -116,6 +116,7 @@ typedef struct options {
   int snapDelay;                        // frequency of snap log collection in milliseconds (i.e logged every snapDelay ms)
   char avoidSndBlockUp;                 // flag set to indicate avoiding send buffer blocking in the S2C test
   char snaplog;                         // enable collecting snap log
+  char snapshots;                       // enable snapshotting
   char cwndDecrease;                    // enable analysis of the cwnd changes (S2C test)
   char s2c_logname[MAX_STREAMS][256];   // S2C log file name - size changed to 256
   char c2s_logname[256];                // C2S log file name - size changed to 256
@@ -340,7 +341,7 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
 void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars);
 
 int KillHung(void);
-void writeMeta(int compress, int cputime, int snaplog, int tcpdump,
+void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcpdump,
                struct throughputSnapshot *s2c_ThroughputSnapshots, struct throughputSnapshot *c2s_ThroughputSnapshots);
 
 char *get_remotehostaddress();
