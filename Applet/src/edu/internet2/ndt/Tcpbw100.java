@@ -2886,6 +2886,13 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 		}
 		StringTokenizer tokenizer = new StringTokenizer(tmpstr, " ");
 
+		// if the server does not support extended tests it can send an invalid test sequence
+		// (redundant number at the beginning)
+		if (!tmpstr.contains(String.valueOf(NDTConstants.TEST_C2S_EXT))
+				&& !tmpstr.contains(String.valueOf(NDTConstants.TEST_S2C_EXT))) {
+			tokenizer.nextToken();
+		}
+
 		// Run all tests requested, based on the ID. In each case, if tests
 		// cannot be successfully run,
 		// indicate reason
@@ -2967,7 +2974,6 @@ public class Tcpbw100 extends JApplet implements ActionListener {
 				}
 				break;
 			default:
-				System.out.println("TEST ID " + NDTConstants.TEST_S2C_EXT);
 				_sErrMsg = _resBundDisplayMsgs.getString("unknownID") + "\n";
 				_bFailed = true;
 				return;

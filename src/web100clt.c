@@ -913,7 +913,15 @@ int main(int argc, char *argv[]) {
     log_println(0, "Malloc failed!");
     exit(6);
   }
-  ptr = strtok_r(buff, " ", &strtokbuf);
+
+  // if the server does not support extended tests it can send an invalid test sequence
+  // (redundant number at the beginning)
+  if (((tests & TEST_C2S_EXT) && !strstr(buff, "64"))
+       || ((tests & TEST_S2C_EXT) && !strstr(buff, "128"))) {
+    ptr = strtok_r(buff, " ", &strtokbuf);
+    ptr = strtok_r(NULL, " ", &strtokbuf);
+  } else
+    ptr = strtok_r(buff, " ", &strtokbuf);
 
   // Run all tests requested, based on the ID.
   while (ptr) {
