@@ -381,17 +381,15 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   if (useropt & TEST_SFW && !(options->connection_flags & WEBSOCKET_SUPPORT)) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_SFW);
   }
-  if (useropt & TEST_C2S) {
-    add_test_to_suite(&first, buff, buff_strlen, TEST_C2S);
-  }
   if (useropt & TEST_C2S_EXT) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_C2S_EXT);
-  }
-  if (useropt & TEST_S2C) {
-    add_test_to_suite(&first, buff, buff_strlen, TEST_S2C);
+  } else if (useropt & TEST_C2S) {
+    add_test_to_suite(&first, buff, buff_strlen, TEST_C2S);
   }
   if (useropt & TEST_S2C_EXT) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_S2C_EXT);
+  } else if (useropt & TEST_S2C) {
+    add_test_to_suite(&first, buff, buff_strlen, TEST_S2C);
   }
   if (useropt & TEST_META) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_META);

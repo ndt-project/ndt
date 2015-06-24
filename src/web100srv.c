@@ -2867,18 +2867,16 @@ mainloop: if (head_ptr == NULL)
                 testopt.sfwopt = TOPT_ENABLED;
               if (t_opts & TEST_META)
                 testopt.metaopt = TOPT_ENABLED;
-              if (t_opts & TEST_C2S)
-                testopt.c2sopt = TOPT_ENABLED;
-              if (t_opts & TEST_S2C)
-                testopt.s2copt = TOPT_ENABLED;
               if (t_opts & TEST_C2S_EXT) {
                 testopt.c2sextopt = TOPT_ENABLED;
                 alarmTime += options.c2s_duration / 1000.0;
-              }
+              } else if (t_opts & TEST_C2S)
+                testopt.c2sopt = TOPT_ENABLED;
               if (t_opts & TEST_S2C_EXT) {
                 testopt.s2cextopt = TOPT_ENABLED;
                 alarmTime += options.s2c_duration / 1000.0;
-              }
+              } else if (t_opts & TEST_S2C)
+                testopt.s2copt = TOPT_ENABLED;
 
               alarm(alarmTime);
               log_println(6, "setting master alarm() to %d seconds, tests must complete before this timer expires", alarmTime);
