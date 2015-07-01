@@ -89,6 +89,7 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
   double bytes_read = 0;  // number of bytes read during the throughput tests
   struct timeval sel_tv;  // time
   fd_set rfd, tmpRfd;  // receive file descriptors
+  int maxFdn; // max file descriptor number (used in select method)
   char buff[BUFFSIZE + 1];  // message "payload" buffer
   PortPair pair;  // socket ports
   I2Addr c2ssrv_addr = NULL;  // c2s test's server address
@@ -254,8 +255,8 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
           // processing is done prior to the start of packet capture, as many
           // browsers have headers that uniquely identitfy a single user.
           if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
-            if (initialize_websocket_connection(recvsfd[0], 0, "c2s") != 0) {
-              recvsfd[0] = 0;
+            if (initialize_websocket_connection(recvsfd[i], 0, "c2s") != 0) {
+              recvsfd[i] = 0;
             }
           }
           break;
@@ -394,8 +395,14 @@ int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
     }
     for (;;) {
 readMainLoop:
+      // find file descriptor with highest number
+      maxFdn = 0;
+      for (i = 0; i < streamsNum; i++) {
+        if (FD_ISSET(recvsfd[i], &rfd) && recvsfd[i] > maxFdn)
+          maxFdn = recvsfd[i];
+      }
       tmpRfd = rfd;
-      msgretvalue = select(recvsfd[streamsNum-1] + 1, &tmpRfd, NULL, NULL, &sel_tv);
+      msgretvalue = select(maxFdn + 1, &tmpRfd, NULL, NULL, &sel_tv);
     if (extended && options->c2s_throughputsnaps && secs() > throughputSnapshotTime) {
       if (lastThroughputSnapshot != NULL) {
         lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
