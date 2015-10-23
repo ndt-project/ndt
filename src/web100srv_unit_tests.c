@@ -7,33 +7,32 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "logging.h"
 #include "ndtptestconstants.h"
 #include "unit_testing.h"
 #include "web100srv.h"
 
-/** Starts the web100srv process. Has a variable number of arguments, the last
- * of which should be null. */
-pid_t start_server(int port, ...) {
-  va_list arg_list;
-  int rv;
+/** Starts the web100srv process. The last element of **args must be NULL. */
+pid_t start_server(int port, char **args) {
   char *args_for_exec[256] = {"./web100srv", "--port", NULL};
-  int arg_index = 2;  // the first index of args_for_exec that is not NULL
+  int args_index;
+  int exec_args_index = 0;  // the first index of args_for_exec that is NULL
   char *arg;
   pid_t server_pid;
   siginfo_t server_status;
   char port_string[6];  // 32767 is the max port
-  fprintf(stderr, "Starting the server\n");
+  int rv;
+  while (args_for_exec[exec_args_index] != NULL) exec_args_index++;
+  log_print(1, "Starting the server\n");
   if ((server_pid = fork()) == 0) {
     sprintf(port_string, "%d", port);
-    args_for_exec[arg_index++] = port_string;
-    va_start(arg_list, port);
-    arg = va_arg(arg_list, char *);
-    while (arg != NULL) {
-      CHECK((args_for_exec[arg_index++] = strdup(arg)) != NULL);
-      arg = va_arg(arg_list, char *);
+    args_for_exec[exec_args_index++] = port_string;
+    args_index = 0;
+    while (args != NULL && args[args_index] != NULL) {
+      CHECK((args_for_exec[exec_args_index++] = strdup(args[args_index++])) !=
+            NULL);
     }
-    va_end(arg_list);
-    args_for_exec[arg_index++] = NULL;
+    args_for_exec[exec_args_index++] = NULL;
     execv("./web100srv", args_for_exec);
     perror("SERVER START ERROR: SHOULD NEVER HAPPEN");
     FAIL("The server should never return - it should only be killed.");
@@ -50,7 +49,7 @@ pid_t start_server(int port, ...) {
 }
 
 /** Runs an end-to-end test of the server and client code. */
-void test_e2e() {
+void run_client(char *client_options, char **server_options) {
   pid_t server_pid;
   int server_exit_code;
   char hostname[1024];
@@ -58,16 +57,25 @@ void test_e2e() {
   int port;
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
-  server_pid = start_server(port, NULL);
+  server_pid = start_server(port, server_options);
   // Find out the hostname.  We can't use "localhost" because then the test
   // won't go through the TCP stack and so web100 won't work.
   gethostname(hostname, sizeof(hostname) - 1);
-  fprintf(stderr, "Starting the client, will attach to %s:%d\n", hostname,
-          port);
-  sprintf(command_line, "./web100clt --name=%s --port=%d", hostname, port);
+  log_println(1, "Starting the client, will attach to %s:%d\n", hostname,
+              port);
+  sprintf(command_line, "./web100clt --name=%s --port=%d %s", hostname, port,
+          client_options != NULL ? client_options : "");
   ASSERT(system(command_line) == 0, "%s did not exit with 0", command_line);
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
+}
+
+void test_e2e() { run_client(NULL, NULL); }
+
+void test_e2e_ext() {
+  char *server_args[] = {"--c2sduration", "8000", "--c2sstreamsnum", "4",
+                         "--s2cduration", "8000", "--s2cstreamsnum", "4", NULL};
+  run_client("-dddddddd --enables2cext --enablec2sext", server_args);
 }
 
 /** Runs 20 simultaneous tests, therefore exercising the queuing code. */
@@ -81,14 +89,15 @@ void test_queuing() {
   int i;
   time_t start_time, current_time;
   const int num_clients = 20;
+  char *server_args[] = {"--max_clients=5", "--multiple", NULL};
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
-  server_pid = start_server(port, "--max_clients=5", "--multiple", NULL);
+  server_pid = start_server(port, server_args);
   // Find out the hostname.  We can't use "localhost" because then the test
   // won't go through the TCP stack and so web100 won't work.
   gethostname(hostname, sizeof(hostname) - 1);
-  fprintf(stderr, "Starting %d clients, will attach to %s:%d\n", num_clients,
-          hostname, port);
+  log_print(1, "Starting %d clients, will attach to %s:%d\n", num_clients,
+            hostname, port);
   time(&start_time);
   for (i = 0; i < num_clients; i++) {
     if (fork() == 0) {
@@ -107,8 +116,8 @@ void test_queuing() {
            "client exited with non-zero error code %d",
            WEXITSTATUS(client_exit_code));
     time(&current_time);
-    fprintf(stderr, "[test_queuing] %d/%d clients finished in %g seconds\n", i,
-            num_clients, (double)(current_time - start_time));
+    log_print(1, "[test_queuing] %d/%d clients finished in %g seconds\n", i,
+              num_clients, (double)(current_time - start_time));
   }
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
@@ -122,7 +131,7 @@ const char *nodejs_command() {
   } else if (system("nodejs -e 'process.exit(0);'") == 0) {
     return nodejs;
   } else {
-    fprintf(stderr, "Can not run node tests - node.js was not found.");
+    fprintf(stderr, "Can not run node tests - node.js was not found.\n");
     return NULL;
   }
 }
@@ -166,6 +175,8 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   pid_t server_pid;
   int server_exit_code;
   int err;
+  char *server_args[] = {"--tls", "--private_key", private_key_file,
+                         "--certificate", certificate_file, NULL};
   // Set up certificates
   mkstemp(private_key_file);
   mkstemp(certificate_file);
@@ -181,8 +192,9 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   // Start the server with the right mode
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
-  server_pid = start_server(port, "--tls", "--private_key", private_key_file,
-                            "--certificate", certificate_file, NULL);
+  server_args[2] = private_key_file;
+  server_args[4] = certificate_file;
+  server_pid = start_server(port, server_args);
   gethostname(hostname, sizeof(hostname) - 1);
   // Run the passed-in test
   (*test_fn)(port, hostname);
@@ -197,7 +209,7 @@ void make_connection(int port, const char *hostname) {
   char openssl_client_command_line[1024];
   int err;
   sprintf(openssl_client_command_line,
-          "echo | openssl s_client -connect %s:%d > /dev/null", hostname, port);
+          "(echo | openssl s_client -connect %s:%d 2>&1) > /dev/null", hostname, port);
   err = system(openssl_client_command_line);
   ASSERT(err == 0, "%s failed with error code %d", openssl_client_command_line,
          err);
@@ -271,23 +283,52 @@ void test_is_child_process_alive_ignores_bad_pgid() {
   }
 }
 
+void test_c2s_speed() {
+  int port;
+  char* server_options[] = { NULL };
+  pid_t server_pid;
+  int server_exit_code;
+  struct addrinfo server_addrinfo;
+
+  srandom(time(NULL));
+  port = (random() % 30000) + 1024;
+  server_pid = start_server(port, server_options);
+
+  // Connect to the port.
+  //memset(0, server_addrinfo, sizeof(struct addrinfo));
+  //server_addrinfo.ai_family = AF_UNSPEC;
+  //server_addrinfo.ai_socktype = AF_UNSPEC;
+  
+  // Request c2s test
+  // Run c2s test
+  // Make sure to get more than 1000Mbps
+
+  kill(server_pid, SIGKILL);
+  waitpid(server_pid, &server_exit_code, 0);
+}
+
+#define RUN_LONG_TEST(TEST, TIME) run_unit_test(#TEST " - may take up to " TIME " to pass", &(TEST))
+
 /** Runs each test, returns non-zero to the shell if any tests fail. */
 int main() {
+  set_debuglvl(-1);
   // Formatted this way to allow developers to comment out individual tests
   // that are not relevant to their current task.  Running the full suite can
   // take a long time, and can add unwanted latency to a compile-run-debug
   // cycle.
   return 
+      RUN_TEST(test_c2s_speed) ||
       RUN_TEST(test_is_child_process_alive) ||
       RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||
+      RUN_LONG_TEST(test_run_all_tests_node, "30 seconds") ||
       RUN_TEST(test_ssl_connection) ||
-      RUN_TEST(test_ssl_c2s_test) ||
-      RUN_TEST(test_ssl_ndt) ||
-      RUN_TEST(test_e2e) ||
-      RUN_TEST(test_run_all_tests_node) ||
-      RUN_TEST(test_run_two_tests_node) ||
+      RUN_LONG_TEST(test_ssl_c2s_test, "15 seconds") ||
+      RUN_LONG_TEST(test_ssl_ndt, "30 seconds") ||
+      RUN_LONG_TEST(test_e2e, "30 seconds") ||
+      //RUN_TEST(test_e2e_ext) ||
+      RUN_LONG_TEST(test_run_two_tests_node, "30 seconds") ||
       RUN_TEST(test_node_meta_test) ||
       RUN_TEST(test_ssl_meta_test) ||
-      RUN_TEST(test_queuing) ||
+      RUN_LONG_TEST(test_queuing, "2 minutes") ||
       0;
 }

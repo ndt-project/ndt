@@ -14,6 +14,8 @@
 #define TEST_SFW (1L << 3)
 #define TEST_STATUS (1L << 4)
 #define TEST_META (1L << 5)
+#define TEST_C2S_EXT (1L << 6)
+#define TEST_S2C_EXT (1L << 7)
 
 // will hold "string "middlebox", which is the longest name
 #define TEST_NAME_DESC_SIZE 10
@@ -26,6 +28,8 @@
 // max size for now derived from "TEST_FINALIZE"
 #define MSG_TYPE_DESC_SIZE 15
 #define MSG_BODY_FMT_SIZE 10  // max size for desc "NOT_KNOWN"
+
+#define MAX_STREAMS 7
 
 // port numbers
 #define PORT  "3001"
@@ -47,7 +51,7 @@ enum TEST_STATUS_INT {
 
 // Test IDs
 enum TEST_ID {
-  NONE, MIDDLEBOX, SFW, C2S, S2C, META
+  NONE, MIDDLEBOX, SFW, C2S, S2C, META, C2S_EXT, S2C_EXT
 } testid;
 
 // Transmission direction

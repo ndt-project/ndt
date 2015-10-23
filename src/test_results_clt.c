@@ -469,6 +469,33 @@ void print_linkspeed_dataacks(int isC2S_enabled, int c2s_linkspeed_data,
 }
 
 /**
+ * Print calculated throughput snapshots
+ *
+ * @param s2c_ThroughputSnapshots Throughput snapshots calculated during s2c test
+ * @param c2s_ThroughputSnapshots Throughput snapshots calculated during c2s test
+ */
+void print_throughput_snapshots(struct throughputSnapshot *s2c_ThroughputSnapshots,
+                                struct throughputSnapshot *c2s_ThroughputSnapshots) {
+  struct throughputSnapshot *snapshotsPtr;
+  if (c2s_ThroughputSnapshots != NULL) {
+    snapshotsPtr = c2s_ThroughputSnapshots;
+    printf(" ---C->S (upload): Throughput snapshots:\n");
+    while (snapshotsPtr != NULL) {
+      printf("    * Test duration: %0.2f secs, Throughput: %f kbps\n", snapshotsPtr->time, snapshotsPtr->throughput);
+      snapshotsPtr = snapshotsPtr->next;
+    }
+  }
+  if (s2c_ThroughputSnapshots != NULL) {
+    snapshotsPtr = s2c_ThroughputSnapshots;
+    printf(" ---S->C (download): Throughput snapshots:\n");
+    while (snapshotsPtr != NULL) {
+      printf("    * Test duration: %0.2f secs, Throughput: %f kbps\n", snapshotsPtr->time, snapshotsPtr->throughput);
+      snapshotsPtr = snapshotsPtr->next;
+    }
+  }
+}
+
+/**
  * A Network Address Translation (NAT) box is detected by
  *  comparing the client/server IP addresses as seen from the server and the client boxes.
  * @param ssip Server side IP address string

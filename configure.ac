@@ -67,6 +67,17 @@ else
     AC_MSG_RESULT(yes)
 fi
 
+# Enabling/disabling extended tests code
+AC_MSG_CHECKING(whether to enable extended tests code)
+AC_ARG_ENABLE(exttests, [  --enable-exttests=[yes/no] turn on extended tests code
+              [default=yes]],, enable_exttests=yes)
+if test "x$enable_exttests" = "xno"; then
+    AC_MSG_RESULT(no)
+else
+    CFLAGS="$CFLAGS -DEXTTESTS_ENABLED"
+    AC_MSG_RESULT(yes)
+fi
+
 # Enabling/disabling database support
 AC_MSG_CHECKING(whether to enable database support)
 AC_ARG_ENABLE(database, [  --enable-database=[yes/no] turn on database support
@@ -232,6 +243,21 @@ if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
 	else
 		AC_MSG_FAILURE([I2util required to build NDT])
 	fi
+
+        # Save the old CFLAGS and LDFLAGS
+	OLD_LDFLAGS="$LDFLAGS"
+	OLD_CFLAGS="$CFLAGS"
+
+        CFLAGS="$CFLAGS $I2UTILINCS"
+        LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
+
+        AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
+        AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
+
+	LDFLAGS="$OLD_LDFLAGS"
+	CFLAGS="$OLD_CFLAGS"
+
+	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 fi
 
 I2UTILLIBS="$I2UTILLDFLAGS -lI2util"

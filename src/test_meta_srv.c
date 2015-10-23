@@ -22,12 +22,16 @@
 #include "strlutils.h"
 #include "websocket.h"
 
+ void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value);
+ void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value);
+
 /**
  * Performs the META test.
  * @param ctl Client control Connection
  * @param agent UNUSED Web100 agent used to track the connection
  * @param testOptions The test options
  * @param conn_options The connection options
+ * @param options Test Option variables
  * @return 0 - success,
  *         Error codes:
  *          -2 - Cannot write message data while attempting to send TEST_START
@@ -41,7 +45,7 @@
  */
 
 int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
-                  TestOptions *testOptions, int conn_options) {
+                  TestOptions *testOptions, int conn_options, Options* options) {
   int j;
   int64_t err;
   int msgLen, msgType;
@@ -152,19 +156,22 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
         snprintf(meta.client_browser, sizeof(meta.client_browser), "%s", value);
       }
 
-      // now get all the key-value tuples
-      if (new_entry) {
-        new_entry->next = (struct metaentry *)malloc(sizeof(struct metaentry));
-        new_entry = new_entry->next;
-      } else {
-        new_entry = (struct metaentry *)malloc(sizeof(struct metaentry));
-        meta.additional = new_entry;
-      }
-      snprintf(new_entry->key, sizeof(new_entry->key), "%s", buff);
-      snprintf(new_entry->value, sizeof(new_entry->value), "%s", value);
+      addAdditionalMetaEntry(&new_entry, buff, value);
     }
-    // ensure meta list ends here
-    new_entry->next = NULL;
+    if (testOptions->c2sextopt) {
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->c2s_duration);
+      addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->c2s_throughputsnaps ? "true" : "false");
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->c2s_snapsdelay);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->c2s_snapsoffset);
+      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.streamsnum", options->c2s_streamsnum);
+    }
+    if (testOptions->s2cextopt) {
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->s2c_duration);
+      addAdditionalMetaEntry(&new_entry, "ext.s2c.throughputsnaps", options->s2c_throughputsnaps ? "true" : "false");
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->s2c_snapsdelay);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->s2c_snapsoffset);
+      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.streamsnum", options->s2c_streamsnum);
+    }
 
     // Finalize test by sending appropriate message, and setting status
     if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
@@ -183,4 +190,23 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
     setCurrentTest(TEST_NONE);
   }
   return 0;
+}
+
+void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value) {
+  if (*ptr) {
+    (*ptr)->next = (struct metaentry *) malloc(sizeof(struct metaentry));
+    (*ptr) = (*ptr)->next;
+  } else {
+    (*ptr) = (struct metaentry *) malloc(sizeof(struct metaentry));
+    meta.additional = (*ptr);
+  }
+  (*ptr)->next = NULL;  // ensure meta list ends here
+  snprintf((*ptr)->key, sizeof((*ptr)->key), "%s", key);
+  snprintf((*ptr)->value, sizeof((*ptr)->value), "%s", value);
+}
+
+void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value) {
+  char tmpbuff[256];
+  snprintf(tmpbuff, sizeof(tmpbuff), "%d", value);
+  addAdditionalMetaEntry(ptr, key, tmpbuff);
 }

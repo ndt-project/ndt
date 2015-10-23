@@ -140,7 +140,7 @@ int test_mid(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
            */
       }
       if (strcmp(listenmidport, "0") == 0) {
-        log_println(0, "WARNING: ephemeral port number was bound");
+        log_println(1, "WARNING: ephemeral port number was bound");
         break;
       }
       if (options->multiple == 0) {

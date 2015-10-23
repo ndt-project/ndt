@@ -52,6 +52,7 @@ double order, rwintime, sendtime, cwndtime, rwin, swin, cwin;
 double mylink;
 /* Set to either Web10G or Web100 */
 const char *ServerType;
+struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
 
 static struct option long_options[] = {
   { "name", 1, 0, 'n' }, { "port", 1, 0, 'p' },
@@ -59,7 +60,8 @@ static struct option long_options[] = {
   { "msglvl", 0, 0, 'l' }, { "webvariables", 0, 0, 301 },
   { "buffer", 1, 0, 'b' }, { "disablemid", 0, 0, 302 },
   { "disablec2s", 0, 0, 303 }, { "disables2c", 0, 0, 304 },
-  { "disablesfw", 0, 0, 305 }, { "protocol_log", 1, 0, 'u' },
+  { "disablesfw", 0, 0, 305 }, { "enablec2sext", 0, 0, 306 },
+  { "enables2cext", 0, 0, 307 }, { "protocol_log", 1, 0, 'u' },
   { "enableprotolog", 0, 0, 'e' }, { "client_app_id", 1, 0, 'c' },
 #ifdef AF_INET6
   { "ipv4", 0, 0, '4'},
@@ -137,8 +139,8 @@ void testResults(char tests, char *testresult_str, char* host) {
 
   // If the S2C test was not performed, just interpret the C2S and SFW test
   // results
-  if (!(tests & TEST_S2C)) {
-    if (tests & TEST_C2S) {  // Was C2S test performed?
+  if (!(tests & (TEST_S2C | TEST_S2C_EXT))) {
+    if (tests & (TEST_C2S | TEST_C2S_EXT)) {  // Was C2S test performed?
       check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
     }
 
@@ -170,7 +172,7 @@ void testResults(char tests, char *testresult_str, char* host) {
   // CountRTT = 615596;
   if (CountRTT > 0) {  // The number of round trip time samples is finite
     // Get the link speed as determined during the C2S test. if it was performed
-    if (tests & TEST_C2S) {
+    if (tests & (TEST_C2S | TEST_C2S_EXT)) {
       mylink = get_linkspeed(c2sData, half_duplex);
     }
 
@@ -183,10 +185,10 @@ void testResults(char tests, char *testresult_str, char* host) {
                                  MaxRwinRcvd);
     }
 
-    if (tests & TEST_C2S) {
+    if (tests & (TEST_C2S | TEST_C2S_EXT)) {
       check_C2Spacketqueuing(c2sspd, spdout, sndqueue, pkts, lth);
     }
-    if (tests & TEST_S2C) {
+    if (tests & (TEST_S2C | TEST_S2C_EXT)) {
       check_S2Cpacketqueuing(s2cspd, spdin, ssndqueue, sbytes);
     }
 
@@ -236,8 +238,10 @@ void testResults(char tests, char *testresult_str, char* host) {
                              cwin, rttsec, estimate);
 
       // client and server's views of link speed
-      print_linkspeed_dataacks((tests & TEST_C2S), c2sData,
+      print_linkspeed_dataacks((tests & (TEST_C2S | TEST_C2S_EXT)), c2sData,
                                c2sAck, s2cData, s2cAck);
+
+      print_throughput_snapshots(s2c_ThroughputSnapshots, c2s_ThroughputSnapshots);
     }
   } else {
     printf("No %s data collected!  Possible Duplex Mismatch condition "
@@ -519,8 +523,7 @@ int main(int argc, char *argv[]) {
   char varstr[2*BUFFSIZE];  // temporary storage for S2C test results,
                             // 16384 = 2 * BUFFSIZE
   // which tests have been selectedto be performed?
-  unsigned char tests = TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW |
-      TEST_STATUS | TEST_META;
+  unsigned char tests = TEST_MID | TEST_SFW | TEST_C2S | TEST_S2C | TEST_STATUS | TEST_META;
   int ctlSocket;  // socket fd
   int ctlport = atoi(PORT);  // default port number
   int retcode;  // return code from protocol operations, mostly
@@ -534,6 +537,7 @@ int main(int argc, char *argv[]) {
   int conn_options = 0;  // connection options received from user
   int debug = 0;  // debug flag
   int testId;  // test ID received from server
+  char testsBuff[32];
   int jsonSupport = 1; // indicates if client should sent messages in JSON format
   int retry = 0; // flag set after invalid login message is being received
   char *invalid_login_msg = "Invalid login message.";
@@ -603,6 +607,12 @@ int main(int argc, char *argv[]) {
       case 305:
         tests &= (~TEST_SFW);
         break;
+      case 306:
+        tests |= TEST_C2S_EXT;
+        break;
+      case 307:
+        tests |= TEST_S2C_EXT;
+        break;
       case '?':
         short_usage(argv[0], "");
         break;
@@ -621,7 +631,7 @@ int main(int argc, char *argv[]) {
   failed = 0;
 
   // Check if user options do not include any test!
-  if (!(tests & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW))) {
+  if (!(tests & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_C2S_EXT | TEST_S2C_EXT))) {
     short_usage(argv[0], "Cannot perform empty test suites");
   }
 
@@ -677,8 +687,14 @@ int main(int argc, char *argv[]) {
   if (tests & TEST_C2S) {
     log_println(1, " > C2S throughput test");
   }
+  if (tests & TEST_C2S_EXT) {
+    log_println(1, " > Extended C2S throughput test");
+  }
   if (tests & TEST_S2C) {
     log_println(1, " > S2C throughput test");
+  }
+  if (tests & TEST_S2C_EXT) {
+    log_println(1, " > Extended S2C throughput test");
   }
   if (tests & TEST_META) {
     log_println(1, " > META test");
@@ -817,7 +833,7 @@ int main(int argc, char *argv[]) {
   /* add alarm() signal to kill off client if the server never finishes the tests
    * RAC 7/13/09
    */
-  alarm(90);
+  alarm(300);
 
   // Tests can be started. Read server response again.
   // The server must send MSG_LOGIN  message to verify version.
@@ -850,7 +866,6 @@ int main(int argc, char *argv[]) {
     log_println(0, "Incompatible version number");
     exit(4);
   }
-  log_println(5, "Server version: %s", &buff[1]);
 
   ServerType = "Web100";
   if (strlen(buff) > 8) {
@@ -863,6 +878,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  log_println(5, "Server version: %s, type: %s", &buff[1], ServerType);
   log_println(5, "Compare versions. Server:%s Client:%s Compare result: %i", &buff[1], VERSION, strcmp(&buff[1], VERSION));
   if (strcmp(&buff[1], VERSION)) { //older server did not send type server at the end
     log_println(1, "WARNING: NDT server has different version number (%s)", &buff[1]);
@@ -898,7 +914,15 @@ int main(int argc, char *argv[]) {
     log_println(0, "Malloc failed!");
     exit(6);
   }
-  ptr = strtok_r(buff, " ", &strtokbuf);
+
+  // if the server does not support extended tests it can send an invalid test sequence
+  // (redundant number at the beginning)
+  if (((tests & TEST_C2S_EXT) && !strstr(buff, "64"))
+       || ((tests & TEST_S2C_EXT) && !strstr(buff, "128"))) {
+    ptr = strtok_r(buff, " ", &strtokbuf);
+    ptr = strtok_r(NULL, " ", &strtokbuf);
+  } else
+    ptr = strtok_r(buff, " ", &strtokbuf);
 
   // Run all tests requested, based on the ID.
   while (ptr) {
@@ -915,16 +939,29 @@ int main(int argc, char *argv[]) {
         }
         break;
       case TEST_C2S:
-        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, jsonSupport)) {
+        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, &c2s_ThroughputSnapshots, jsonSupport, 0)) {
           log_println(0, "C2S throughput test FAILED!");
           tests &= (~TEST_C2S);
         }
         break;
+      case TEST_C2S_EXT:
+        if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, &c2s_ThroughputSnapshots, jsonSupport, 1)) {
+          log_println(0, "Extended S2C throughput test FAILED!");
+          tests &= (~TEST_C2S_EXT);
+        }
+        break;
       case TEST_S2C:
         if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
-                         resultstr, jsonSupport)) {
+                         resultstr, &s2c_ThroughputSnapshots, jsonSupport, 0)) {
           log_println(0, "S2C throughput test FAILED!");
           tests &= (~TEST_S2C);
+        }
+        break;
+      case TEST_S2C_EXT:
+        if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
+                         resultstr, &s2c_ThroughputSnapshots, jsonSupport, 1)) {
+          log_println(0, "Extended S2C throughput test FAILED!");
+          tests &= (~TEST_S2C_EXT);
         }
         break;
       case TEST_SFW:
@@ -944,7 +981,7 @@ int main(int argc, char *argv[]) {
         }
         break;
       default:
-        log_println(0, "Unknown test ID");
+        log_println(0, "Unknown test ID: %d", testId);
         exit(5);
     }
     ptr = strtok_r(NULL, " ", &strtokbuf);
@@ -1000,7 +1037,7 @@ int main(int argc, char *argv[]) {
   I2AddrFree(server_addr);
 
   // print extra information collected from web100 variables
-  if ((tests & TEST_S2C) && (msglvl > 1))
+  if ((tests & (TEST_S2C | TEST_S2C_EXT)) && (msglvl > 1))
     printVariables(varstr);
   return 0;
 }

@@ -2,7 +2,7 @@
  * This file contains the functions needed to handle S2C throughput
  * test (client part).
  *
- * Jakub S�awi�ski 2006-08-02
+ * Jakub Sławiński 2006-08-02
  * jeremian@poczta.fm
  */
 
@@ -26,6 +26,11 @@ double spdin, s2cspd;
 #define UNSENT_DATA_AMOUNT "UnsentDataAmount"
 #define TOTALSENTBYTE "TotalSentByte"
 
+typedef struct s2cClientStream {
+  I2Addr sec_addresses;
+  int inSocket;
+} S2CClientStream;
+
 /**
  * S2C throughput test to measure network bandwidth
  * from server to client.
@@ -36,6 +41,7 @@ double spdin, s2cspd;
  * @param buf_size  	TCP send/receive buffer size
  * @param result_srv		result obtained from server (containing values of web100 variables)
  * @param jsonSupport 	Indicates if messages should be sent using JSON format
+ * @param extended      Indicates if extended s2c test should be performed
  * @return integer > 0 if successful, < 0 in case of error
  * 		Return codes:
  * 		1: Error receiving protocol message
@@ -47,26 +53,45 @@ double spdin, s2cspd;
  */
 
 int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
-                 int buf_size, char* result_srv, int jsonSupport) {
+                 int buf_size, char* result_srv,
+                 struct throughputSnapshot **s2c_ThroughputSnapshots,
+                 int jsonSupport, int extended) {
   char buff[BUFFSIZE + 1];
   int msgLen, msgType;
   int s2cport = atoi(PORT3);
   I2Addr sec_addr = NULL;
   int inlth, retcode, one = 1, set_size;
-  int inSocket;
   socklen_t optlen;
   uint64_t bytes;
-  double t;
+  double testStartTime, t;
+  double testDuration = 10; // default test duration
+  char* strtokptr;  // pointer used by the strtok method
+  struct throughputSnapshot *lastThroughputSnapshot;
+  int throughputsnaps = 0; // enable the throughput snapshots writing
+  int snapsdelay = 5000;   // specify the delay in the throughput snapshots thread
+  int snapsoffset = 1000;  // specify the initial offset in the throughput snapshots thread
+  double throughputSnapshotTime; // specify the next snapshot time
+  int streamsnum = 1;      // specify the number of streams (parallel TCP connections)
+  int activeStreams = 1;
+  int i;
   struct timeval sel_tv;
-  fd_set rfd;
+  fd_set rfd, tmpRfd;
   char* ptr, *jsonMsgValue;
+  S2CClientStream streams[MAX_STREAMS];
 
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
-  enum TEST_ID testids = S2C;
+  enum TEST_ID testids = extended ? S2C_EXT : S2C;
 
-  if (tests & TEST_S2C) {
-    setCurrentTest(TEST_S2C);
+  for (i = 0; i < MAX_STREAMS; i++) {
+    streams[i].inSocket = 0;
+  }
+
+  if (((tests & TEST_S2C) && !extended) || ((tests & TEST_S2C_EXT) && extended)) {
+    if (extended)
+      setCurrentTest(TEST_S2C_EXT);
+    else
+      setCurrentTest(TEST_S2C);
     // protocol logs
     teststatuses = TEST_STARTED;
     protolog_status(getpid(), testids, teststatuses, ctlSocket);
@@ -95,10 +120,33 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       log_println(0, "Improper message");
       return 3;
     }
-    if (check_int(buff, &s2cport)) {
-      log_println(0, "Invalid port number");
-      return 4;
+    if (extended) {
+      strtokptr = strtok(buff, " ");
+      s2cport = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      testDuration = atoi(strtokptr) / 1000.0;
+      strtokptr = strtok(NULL, " ");
+      throughputsnaps = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      snapsdelay = atoi(strtokptr); 
+      strtokptr = strtok(NULL, " ");
+      snapsoffset = atoi(strtokptr);
+      strtokptr = strtok(NULL, " ");
+      streamsnum = atoi(strtokptr);
+ 
+      log_println(1, "  -- test duration: %.1fs", testDuration);
+      log_println(1, "  -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
+                           throughputsnaps ? "true" : "false", snapsdelay, snapsoffset);
+      log_println(1, "  -- streams: %d", streamsnum);
+      lastThroughputSnapshot = NULL;
     }
+    else {
+      if (check_int(buff, &s2cport)) {
+        log_println(0, "Invalid port number");
+        return 4;
+      }
+    }
+
     log_println(1, "  -- port: %d", s2cport);
 
     /* Cygwin seems to want/need this extra getsockopt() function
@@ -116,13 +164,20 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
     I2AddrSetPort(sec_addr, s2cport);  // set port to value obtained from server
 
     // Connect to the server; set socket options
-    if ((retcode = CreateConnectSocket(&inSocket, NULL, sec_addr, conn_options,
-                                       buf_size))) {
-      log_println(0, "Connect() for Server to Client failed", strerror(errno));
-      return -15;
+    for (i = 0; i < streamsnum; ++i) {
+      streams[i].sec_addresses = I2AddrCopy(sec_addr);
+      if ((retcode = CreateConnectSocket(&streams[i].inSocket, NULL, streams[i].sec_addresses, conn_options, buf_size))) {
+        log_println(0, "Connect() for Server to Client failed (connection %d)", strerror(errno), i+1);
+        for (i = 0; i < streamsnum; ++i) {
+          if (streams[i].inSocket > 0) {
+            shutdown(streams[i].inSocket, SHUT_WR);
+            close(streams[i].inSocket);
+          }
+        }
+        return -15;
+      }
+      setsockopt(streams[i].inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
     }
-
-    setsockopt(inSocket, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
 
     /* Linux updates the sel_tv time values everytime select returns.  This
      * means that eventually the timer will reach 0 seconds and select will
@@ -145,33 +200,61 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
       return 2;
     }
 
-    // server performs the S->C throughput test now. Get data sent by server.
-
-    printf("running 10s inbound test (server to client) . . . . . . ");
+    printf("running %.1fs inbound test (server to client) . . . . . ", testDuration);
     fflush(stdout);
 
-    // Set socket timeout to 15 seconds
+    // Set socket timeout to testDuration seconds
     bytes = 0;
-    t = secs() + 15.0;
-    sel_tv.tv_sec = 15;
+    testStartTime = secs();
+    t = testStartTime + testDuration + 5;
+    throughputSnapshotTime = testStartTime + (snapsoffset / 1000.0);
+    sel_tv.tv_sec = testDuration + 5;
     sel_tv.tv_usec = 5;
     FD_ZERO(&rfd);
-    FD_SET(inSocket, &rfd);
-    // Read data sent by server as soon as it is available. Stop listening if
-    // ...timeout has been exceeded.
+    activeStreams = streamsnum;
+    for (i = 0; i < streamsnum; i++) {
+      FD_SET(streams[i].inSocket, &rfd);
+    }
+    // Read data sent by server as soon as it is available. Stop listening if timeout has been exceeded.
     for (;;) {
-      retcode = select(inSocket+1, &rfd, NULL, NULL, &sel_tv);
+      tmpRfd = rfd;
+      retcode = select(streams[streamsnum-1].inSocket+1, &tmpRfd, NULL, NULL, &sel_tv);
       if (secs() > t) {
         log_println(5, "Receive test running long, break out of read loop");
         break;
       }
+    if (throughputsnaps && secs() > throughputSnapshotTime) {
+      if (lastThroughputSnapshot != NULL) {
+        lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        lastThroughputSnapshot = lastThroughputSnapshot->next;
+      }
+      else {
+        *s2c_ThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+      }
+      lastThroughputSnapshot->next = NULL;
+      lastThroughputSnapshot->time = secs() - testStartTime;
+      lastThroughputSnapshot->throughput = ((BITS_8_FLOAT * bytes) / KILO) / (lastThroughputSnapshot->time);  // kbps
+      log_println(6, " ---S->C: Throughput at %0.2f secs: Received %lld bytes, Spdin= %f kbps",
+                     lastThroughputSnapshot->time, bytes, lastThroughputSnapshot->throughput);
+      throughputSnapshotTime += snapsdelay / 1000.0;
+    }
       if (retcode > 0) {
-        inlth = read(inSocket, buff, sizeof(buff));
-        if (inlth == 0)
-          break;
-        bytes += inlth;
+        for (i = 0; i < streamsnum; i++) {
+          if (FD_ISSET(streams[i].inSocket, &tmpRfd)) {
+            inlth = read(streams[i].inSocket, buff, sizeof(buff));
+            if (inlth == 0) {
+              activeStreams--;
+              FD_CLR(streams[i].inSocket, &rfd);
+              if (activeStreams == 0) {
+                goto breakOuterLoop;
+              }
+            }
+            bytes += inlth;
+          }
+        }
         continue;
       }
+breakOuterLoop:
       if (get_debuglvl() > 5) {
         log_println(0, "s2c read loop exiting:", strerror(errno));
       }
@@ -180,11 +263,10 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // get actual time for which data was received, and calculate throughput
     // based on it.
-    t = secs() - t + 15.0;
+    t = secs() - testStartTime;
     spdin = ((BITS_8_FLOAT * bytes) / KILO) / t;  // kbps
 
-    // log_println(0,"S->C: Received %d bytes in %0.2f secs: Spdin= %f", bytes,
-    //             t, spdin);
+    log_println(6, " ---S->C: Received %lld bytes in %0.2f secs: Spdin= %f", bytes, t, spdin);
 
     // Server sends calculated throughput value, unsent data amount in the
     // socket queue and overall number of sent bytes in a TEST_MSG
@@ -259,6 +341,14 @@ int test_s2c_clt(int ctlSocket, char tests, char* host, int conn_options,
 
     // send TEST_MSG to server with the client-calculated throughput
     snprintf(buff, sizeof(buff), "%0.0f", spdin);
+    if (*s2c_ThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = *s2c_ThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        int currBuffLength = strlen(buff);
+        snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
+      }
+    }
     send_json_message(ctlSocket, TEST_MSG, buff, strlen(buff),
                       jsonSupport, JSON_SINGLE_VALUE);
 

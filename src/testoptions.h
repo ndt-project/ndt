@@ -51,6 +51,8 @@ typedef struct testoptions {
 
   int sfwopt;  // Is firewall test to be performed?
   int metaopt;  // meta test to be perfomed?
+  int c2sextopt; // extended C2S test to be performed?
+  int s2cextopt; // extended S2C test to be performed?
 } TestOptions;
 
 // Snap log characteristics
@@ -70,8 +72,9 @@ void catch_s2c_alrm(int signo);
 
 int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
                  int conn_options);
-int test_meta_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
-                  int conn_options);
+int test_meta_srv(Connection* ctl, tcp_stat_agent* agent,
+                  TestOptions* test_options, int conn_options,
+                  Options* options);
 
 int getCurrentTest();
 void setCurrentTest(int testId);
@@ -79,9 +82,8 @@ void setCurrentTest(int testId);
 // void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
 void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent *agentarg,
                        CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group);
+                       pthread_t *wrkrthreadidarg, char *metafilename,
+                       tcp_stat_connection conn, tcp_stat_group* group);
 
 void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
                       SnapArgs* snapArgs_ptr);

@@ -346,7 +346,7 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
     free(jsonMsgValue);
     if (msgLen >= 1 && msgLen <= (CS_VERSION_LENGTH_MAX + 1)) {
       memcpy(options->client_version, msgValue + 1, msgLen - 1);
-      log_println(0, "Client version: %s-\n", options->client_version);
+      log_println(1, "Client version: %s-\n", options->client_version);
     } else {
       send_json_message_any(ctl, MSG_ERROR, invalid_test, strlen(invalid_test),
                             options->connection_flags, JSON_SINGLE_VALUE);
@@ -359,15 +359,14 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
 
   // client connect received correctly. Logging activity
   // log that client connected, and create log file
-  log_println(0,
+  log_println(1,
               "Client connect received from :IP %s to some server on socket %d",
               get_remotehostaddress(), ctl->socket);
 
   // set_protologfile(get_remotehost(), protologlocalarr);
 
   if (!(useropt
-        & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS
-           | TEST_META))) {
+        & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META | TEST_C2S_EXT | TEST_S2C_EXT))) {
     // message received does not indicate a valid test!
     send_json_message_any(ctl, MSG_ERROR, invalid_test_suite,
                           strlen(invalid_test_suite), options->connection_flags,
@@ -383,10 +382,14 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
   if (useropt & TEST_SFW && !(options->connection_flags & WEBSOCKET_SUPPORT)) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_SFW);
   }
-  if (useropt & TEST_C2S) {
+  if (useropt & TEST_C2S_EXT) {
+    add_test_to_suite(&first, buff, buff_strlen, TEST_C2S_EXT);
+  } else if (useropt & TEST_C2S) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_C2S);
   }
-  if (useropt & TEST_S2C) {
+  if (useropt & TEST_S2C_EXT) {
+    add_test_to_suite(&first, buff, buff_strlen, TEST_S2C_EXT);
+  } else if (useropt & TEST_S2C) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_S2C);
   }
   if (useropt & TEST_META) {
@@ -401,16 +404,14 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
  * @param snaplogenabled Is snap logging enabled?
  * @param workerlooparg integer used to syncronize writing/reading from snaplog/tcp_stat snapshot
  * @param wrkrthreadidarg Thread Id of workera
- * @param metafilevariablename Which variable of the meta file gets assigned the snaplog name (unused now)
  * @param metafilename	value of metafile name
  * @param tcp_stat_connection connection pointer
  * @param tcp_stat_group group web100_group pointer
  */
 void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
                        CwndPeaks* peaks, char snaplogenabled,
-                       pthread_t *wrkrthreadidarg, char *metafilevariablename,
-                       char *metafilename, tcp_stat_connection conn,
-                       tcp_stat_group* group) {
+                       pthread_t *wrkrthreadidarg, char *metafilename,
+                       tcp_stat_connection conn, tcp_stat_group* group) {
   FILE *fplocal;
 
   WorkerArgs workerArgs;
@@ -445,7 +446,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
           "Unable to open log file '%s', continuing on without logging",
           get_logfile());
     } else {
-      log_println(0, "Snaplog file: %s\n", metafilename);
+      log_println(1, "Snaplog file: %s\n", metafilename);
       fprintf(fplocal, "Snaplog file: %s\n", metafilename);
       fclose(fplocal);
     }
@@ -453,7 +454,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 
   if (pthread_create(wrkrthreadidarg, NULL, snapWorker,
                      (void*) &workerArgs)) {
-    log_println(0, "Cannot create worker thread for writing snap log!");
+    log_println(1, "Cannot create worker thread for writing snap log!");
     *wrkrthreadidarg = 0;
   }
 
@@ -501,62 +502,6 @@ void stop_snap_worker(pthread_t *workerThreadId, char snaplogenabled,
   }
   estats_val_data_free(&snapArgs_ptr->snap);
 #endif
-}
-
-/**
- * Start packet tracing for this client
- * @param socketfdarg socket file descriptor to initialize packet trace from
- * @param socketfdarg socket file descriptor to close
- * @param childpid pid resulting from fork()
- * @param imonarg int array of socket fd from pipe
- * @param cliaddrarg sock_addr used to determine client IP
- * @param clilenarg socket length
- * @param device device type
- * @param pairarg portpair struct instance
- * @param testindicator string indicating C2S/S2c test
- * @param iscompressionenabled  is compression enabled  (for log files)?
- * @param copylocationarg memory location to copy resulting string (from packet trace) into
- * */
-
-void start_packet_trace(int socketfdarg, int socketfdarg2, pid_t *childpid,
-                        int *imonarg, struct sockaddr *cliaddrarg,
-                        socklen_t clilenarg, char* device, PortPair* pairarg,
-                        const char* testindicatorarg, int iscompressionenabled,
-                        char *copylocationarg) {
-  char tmpstr[256];
-  int i, readretval;
-
-  I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), socketfdarg, 0);
-
-  if ((*childpid = fork()) == 0) {
-    close(socketfdarg2);
-    close(socketfdarg);
-    log_println(0, "%s test Child thinks pipe() returned fd0=%d, fd1=%d",
-                testindicatorarg, imonarg[0], imonarg[1]);
-
-    init_pkttrace(src_addr, cliaddrarg, clilenarg, imonarg, device,
-                  pairarg, testindicatorarg, iscompressionenabled);
-
-    exit(0);  // Packet trace finished, terminate gracefully
-  }
-  memset(tmpstr, 0, 256);
-  for (i = 0; i < 5; i++) {  // read nettrace file name into "tmpstr"
-    readretval = read(imonarg[0], tmpstr, 128);
-    if ((readretval == -1) && (errno == EINTR))
-      // socket interrupted, try reading again
-      continue;
-    break;
-  }
-
-  // name of nettrace file passed back from pcap child copied into meta
-  // structure
-  if (strlen(tmpstr) > 5) {
-    memcpy(copylocationarg, tmpstr, strlen(tmpstr));
-    log_println(8, "**start pkt trace, memcopied dir name %s", tmpstr);
-  }
-
-  // free this address now.
-  I2AddrFree(src_addr);
 }
 
 /**
