@@ -2,38 +2,24 @@ package edu.internet2.ndt;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.DecimalFormat;
 import java.util.ResourceBundle;
 
 /**
  * Class that defines utility methods used by the NDT code
  */
  public class NDTUtils {
+ 	static DecimalFormat decimalFormat = new DecimalFormat("#0.00");
 	
 	/**
 	 * Utility method to print double value up to the hundredth place.
 	 * 
-	 * @param paramDblToFormat
-	 *            Double numbers to format
+	 * @param paramDblToFormat Double numbers to format
 	 * @return String value of double number
 	 */
 	public static String prtdbl(double paramDblToFormat) {
-		String str = null;
-		int i;
-
-		if (paramDblToFormat == 0) {
-			return ("0");
-		}
-		str = Double.toString(paramDblToFormat);
-		i = str.indexOf(".");
-		i = i + 3;
-		if (i > str.length()) {
-			i = i - 1;
-		}
-		if (i > str.length()) {
-			i = i - 1;
-		}
-		return (str.substring(0, i));
-	} // prtdbl() method ends
+		return decimalFormat.format(paramDblToFormat);
+	}
 
 	
 	/**
@@ -104,7 +90,7 @@ import java.util.ResourceBundle;
 	 * @return true is the given string is not empty; otherwise false
 	 */
 	public static boolean isNotEmpty(String str) {
-	    return !isEmpty(str);
+		return !isEmpty(str);
 	} // isNotEmpty() method ends
 
 

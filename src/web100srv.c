@@ -122,6 +122,8 @@ static int old_mismatch = 0;  // use the old duplex mismatch detection heuristic
 
 static Options options;
 static CwndPeaks peaks;
+static int webVarsValues = 0;
+static char webVarsValuesLog[256];
 static int cputime = 0;
 static char cputimelog[256];
 static pthread_t workerThreadId;
@@ -178,11 +180,22 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
 #ifdef EXPERIMENTAL_ENABLED
                                        {"avoidsndblockup", 0, 0, 306},
                                        {"snaplog", 0, 0, 307},
+  { "disablesnaps", 0, 0, 325},
                                        {"snapdelay", 1, 0, 305},
                                        {"cwnddecrease", 0, 0, 308},
                                        {"cputime", 0, 0, 309},
                                        {"limit", 1, 0, 'y'},
 #endif
+  { "c2sduration", 1, 0, 314},
+  { "c2sthroughputsnaps", 0, 0, 315},
+  { "c2ssnapsdelay", 1, 0, 316},
+  { "c2ssnapsoffset", 1, 0, 317},
+  { "c2sstreamsnum", 1, 0, 322},
+  { "s2cduration", 1, 0, 318},
+  { "s2cthroughputsnaps", 0, 0, 319},
+  { "s2csnapsdelay", 1, 0, 320},
+  { "s2csnapsoffset", 1, 0, 321},
+  { "s2cstreamsnum", 1, 0, 323},
                                        {"buffer", 1, 0, 'b'},
                                        {"file", 1, 0, 'f'},
                                        {"interface", 1, 0, 'i'},
@@ -197,6 +210,7 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"adminfile", 1, 0, 'A'},
                                        {"log_dir", 1, 0, 'L'},
                                        {"logfacility", 1, 0, 'S'},
+  { "savewebvalues", 0, 0, 324},
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
                                        {"enableDBlogging", 0, 0, 310},
                                        {"dbDSN", 1, 0, 311},
@@ -282,8 +296,18 @@ void cleanup(int signo) {
           log_println(6, "Received SIGALRM signal [C2S throughput test] pid=%d",
                       getpid());
           break;
+        case TEST_C2S_EXT:
+          log_println(6,
+                      "Received SIGALRM signal [Extended C2S throughput test] pid=%d",
+                      getpid());
+          break;
         case TEST_S2C:
           log_println(6, "Received SIGALRM signal [S2C throughput test] pid=%d",
+                      getpid());
+          break;
+        case TEST_S2C_EXT:
+          log_println(6,
+                      "Received SIGALRM signal [Extended S2C throughput test] pid=%d",
                       getpid());
           break;
         case TEST_SFW:
@@ -310,10 +334,22 @@ void cleanup(int signo) {
             /* break; */
             if (wait_sig == 1) return;
             break;
+          case TEST_C2S_EXT:
+            fprintf(fp, " [Extended C2S throughput test]\n");
+            /* break; */
+            if (wait_sig == 1)
+              return;
+            break;
           case TEST_S2C:
             fprintf(fp, " [S2C throughput test]\n");
             /* break; */
             if (wait_sig == 1) return;
+            break;
+          case TEST_S2C_EXT:
+            fprintf(fp, " [Extended S2C throughput test]\n");
+            /* break; */
+            if (wait_sig == 1)
+              return;
             break;
           case TEST_SFW:
             fprintf(fp, " [Simple firewall test]\n");
@@ -481,6 +517,9 @@ static void LoadConfig(char *name, char **lbuf, size_t *lbuf_max) {
     } else if (strncasecmp(key, "snaplog", 5) == 0) {
       options.snaplog = 1;
       continue;
+    } else if (strncasecmp(key, "disablesnaps", 5) == 0) {
+      options.snapshots = 0;
+      continue;
     } else if (strncasecmp(key, "avoidsndblockup", 5) == 0) {
       options.avoidSndBlockUp = 1;
       continue;
@@ -489,6 +528,39 @@ static void LoadConfig(char *name, char **lbuf, size_t *lbuf_max) {
       continue;
     } else if (strncasecmp(key, "limit", 5) == 0) {
       options.limit = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "savewebvalues", 13) == 0) {
+      webVarsValues = 1;
+      continue;
+    } else if (strncasecmp(key, "c2sduration", 9) == 0) {
+      options.c2s_duration = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "c2sthroughputsnaps", 16) == 0) {
+      options.c2s_throughputsnaps = 1;
+      continue;
+    } else if (strncasecmp(key, "c2ssnapsdelay", 11) == 0) {
+      options.c2s_snapsdelay = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "c2ssnapsoffset", 12) == 0) {
+      options.c2s_snapsoffset = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "c2sstreamsnum", 11) == 0) {
+      options.c2s_streamsnum = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "s2cduration", 9) == 0) {
+      options.s2c_duration = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "s2cthroughputsnaps", 16) == 0) {
+      options.s2c_throughputsnaps = 1;
+      continue;
+    } else if (strncasecmp(key, "s2csnapsdelay", 11) == 0) {
+      options.s2c_snapsdelay = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "s2csnapsoffset", 12) == 0) {
+      options.s2c_snapsoffset = atoi(val);
+      continue;
+    } else if (strncasecmp(key, "s2cstreamsnum", 11) == 0) {
+      options.s2c_streamsnum = atoi(val);
       continue;
     } else if (strncasecmp(key, "refresh", 5) == 0) {
       refresh = atoi(val);
@@ -590,7 +662,8 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   char isoTime[64];
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
-  struct tcp_vars vars;
+  struct tcp_vars vars[MAX_STREAMS];
+  struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
 
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
   // link speed. Transmitted but unused at client end , which has a similar
@@ -610,6 +683,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   int s2c_linkspeed_data = 0;
   int s2c_linkspeed_ack = 0;
   // int j;        // commented out -> calc_linkspeed
+  int i;
   int totalcnt;
   int autotune;
   // values collected from the speed tests
@@ -681,8 +755,14 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   if (testopt->c2sopt) {
     log_println(1, " > C2S throughput test");
   }
+  if (testopt->c2sextopt) {
+    log_println(1, " > Extended C2S throughput test");
+  }
   if (testopt->s2copt) {
     log_println(1, " > S2C throughput test");
+  }
+  if (testopt->s2cextopt) {
+    log_println(1, " > Extended S2C throughput test");
   }
   if (testopt->metaopt) {
     log_println(1, " > META test");
@@ -710,7 +790,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd, set_buff,
                       window, autotune, device, &options, record_reverse,
-                      count_vars, spds, &spd_index, ssl_context)) != 0) {
+                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots, 0)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -718,11 +798,22 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     return ret;
   }
 
+  log_println(6, "Starting extended c2s throughput test");
+  if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
+                      set_buff, window, autotune, device, &options,
+                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots, 1)) != 0) {
+    if (ret < 0)
+      log_println(6, "Extended C2S test failed with rc=%d", ret);
+    log_println(0, "Extended C2S throughput test FAILED!, rc=%d", ret);
+    testopt->c2sextopt = TOPT_DISABLED;
+    return ret;
+  }
+
   /*  alarm(25); */
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks, ssl_context)) != 0) {
+                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots, 0)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -730,8 +821,19 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     return ret;
   }
 
+  log_println(6, "Starting extended s2c throughput test");
+  if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
+                      set_buff, window, autotune, device, &options, spds,
+                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots, 1)) != 0) {
+    if (ret < 0)
+      log_println(6, "Extended S2C test failed with rc=%d", ret);
+    log_println(0, "Extended S2C throughput test FAILED!, rc=%d", ret);
+    testopt->s2cextopt = TOPT_DISABLED;
+    return ret;
+  }
+
   log_println(6, "Starting META test");
-  if ((ret = test_meta_srv(ctl, agent, testopt, conn_options)) != 0) {
+  if ((ret = test_meta_srv(ctlsockfd, agent, &*testopt, conn_options, &options)) != 0) {
     if (ret < 0) {
       log_println(6, "META test failed with rc=%d", ret);
     }
@@ -750,58 +852,69 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   // ...determine number of times congestion window has been changed
   if (options.cwndDecrease) {
     dec_cnt = inc_cnt = same_cnt = 0;
-    CwndDecrease(options.s2c_logname, &dec_cnt, &same_cnt, &inc_cnt);
+    CwndDecrease(options.s2c_logname[0], &dec_cnt, &same_cnt, &inc_cnt);
     log_println(2, "####### decreases = %d, increases = %d, no change = %d",
                 dec_cnt, inc_cnt, same_cnt);
   }
 
   // ...other variables
   memset(&vars, 0xFF, sizeof(vars));
-  tcp_stat_logvars(&vars, count_vars);
+  for (i = 0; i < (testopt->s2cextopt ? options.s2c_streamsnum : 1); ++i) {
+    tcp_stat_logvars(&vars[i], i, count_vars);
+  }
+
+  if (webVarsValues) {
+    tcp_stat_logvars_to_file(webVarsValuesLog, testopt->s2cextopt ? options.s2c_streamsnum : 1, vars);
+    tcp_stat_log_agg_vars_to_file(webVarsValuesLog, testopt->s2cextopt ? options.s2c_streamsnum : 1, vars);
+  }
 
   // end getting web100 variable values
 
   // section to calculate duplex mismatch
   // Calculate average round trip time and convert to seconds
-  rttsec = calc_avg_rtt(vars.SumRTT, vars.CountRTT, &avgrtt);
+  rttsec = calc_avg_rtt(vars[0].SumRTT, vars[0].CountRTT, &avgrtt);
   // Calculate packet loss
-  packetloss_s2c = calc_packetloss(vars.CongestionSignals, vars.PktsOut,
+  packetloss_s2c = calc_packetloss(vars[0].CongestionSignals, vars[0].PktsOut,
                                    c2s_linkspeed_data);
 
   // Calculate ratio of packets arriving out of order
-  oo_order = calc_packets_outoforder(vars.DupAcksIn, vars.AckPktsIn);
+  oo_order = calc_packets_outoforder(vars[0].DupAcksIn, vars[0].AckPktsIn);
 
   // calculate theoretical maximum goodput in bits
-  bw_theortcl = calc_max_theoretical_throughput(vars.CurrentMSS, rttsec,
+  bw_theortcl = calc_max_theoretical_throughput(vars[0].CurrentMSS, rttsec,
                                                 packetloss_s2c);
 
   // get window sizes
-  calc_window_sizes(&vars.SndWinScale, &vars.RcvWinScale, vars.Sndbuf,
-                    vars.MaxRwinRcvd, vars.MaxCwnd, &rwin, &swin, &cwin);
+  calc_window_sizes(&vars[0].SndWinScale, &vars[0].RcvWinScale, vars[0].Sndbuf,
+                    vars[0].MaxRwinRcvd, vars[0].MaxCwnd, &rwin, &swin, &cwin);
 
   // Total test time
-  totaltime = calc_totaltesttime(vars.SndLimTimeRwin, vars.SndLimTimeCwnd,
-                                 vars.SndLimTimeSender);
+  totaltime = calc_totaltesttime(vars[0].SndLimTimeRwin, vars[0].SndLimTimeCwnd,
+                                 vars[0].SndLimTimeSender);
 
   // time spent being send-limited due to client's recv window
-  rwintime = calc_sendlimited_rcvrfault(vars.SndLimTimeRwin, totaltime);
+  rwintime = calc_sendlimited_rcvrfault(vars[0].SndLimTimeRwin, totaltime);
 
   // time spent in being send-limited due to congestion window
-  cwndtime = calc_sendlimited_cong(vars.SndLimTimeCwnd, totaltime);
+  cwndtime = calc_sendlimited_cong(vars[0].SndLimTimeCwnd, totaltime);
 
   // time spent in being send-limited due to own fault
-  sendtime = calc_sendlimited_sndrfault(vars.SndLimTimeSender, totaltime);
+  sendtime = calc_sendlimited_sndrfault(vars[0].SndLimTimeSender, totaltime);
 
   timesec = totaltime / MEGA;  // total time in microsecs
 
   // get fraction of total test time waiting for packets to arrive
-  RTOidle = calc_RTOIdle(vars.Timeouts, vars.CurrentRTO, timesec);
+  RTOidle = calc_RTOIdle(vars[0].Timeouts, vars[0].CurrentRTO, timesec);
 
+  /*tmoutsratio = (double) vars[0].Timeouts / vars[0].PktsOut;
+  rtranratio = (double) vars[0].PktsRetrans / vars[0].PktsOut;
+  acksratio = (double) vars[0].AckPktsIn / vars[0].PktsOut;
+  dackratio = (double) vars[0].DupAcksIn / (double) vars[0].AckPktsIn;*/
   // get actual throughput in Mbps (totaltime is in microseconds)
-  realthruput = calc_real_throughput(vars.DataBytesOut, totaltime);
+  realthruput = calc_real_throughput(vars[0].DataBytesOut, totaltime);
 
   // total time spent waiting
-  waitsec = cal_totalwaittime(vars.CurrentRTO, vars.Timeouts);
+  waitsec = cal_totalwaittime(vars[0].CurrentRTO, vars[0].Timeouts);
 
   log_println(2, "CWND limited test = %0.2f while unlimited = %0.2f", s2c2spd,
               s2cspd);
@@ -823,8 +936,8 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   old_mismatch = 1;
 
   if (old_mismatch == 1) {
-    if (detect_duplexmismatch(cwndtime, bw_theortcl, vars.PktsRetrans, timesec,
-                              vars.MaxSsthresh, RTOidle, link, s2cspd, s2c2spd,
+    if (detect_duplexmismatch(cwndtime, bw_theortcl, vars[0].PktsRetrans, timesec,
+                              vars[0].MaxSsthresh, RTOidle, link, s2cspd, s2c2spd,
                               multiple)) {
       if (is_c2s_throughputbetter(c2sspd, s2cspd)) {
         // also, S->C throughput is lesser than C->S throughput
@@ -861,7 +974,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   // Faulty hardware link heuristic.
   if (detect_faultyhardwarelink(packetloss_s2c, cwndtime, timesec,
-                                vars.MaxSsthresh))
+                                vars[0].MaxSsthresh))
     bad_cable = POSSIBLE_BAD_CABLE;
 
   // test for Ethernet link (assume Fast E.)
@@ -871,13 +984,13 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   // test for wireless link
   if (detect_wirelesslink(sendtime, realthruput, bw_theortcl,
-                          vars.SndLimTransRwin, vars.SndLimTransCwnd, rwintime,
+                          vars[0].SndLimTransRwin, vars[0].SndLimTransCwnd, rwintime,
                           link)) {
     link = LINK_WIRELESS;
   }
 
   // test for DSL/Cable modem link
-  if (detect_DSLCablelink(vars.SndLimTimeSender, vars.SndLimTransSender,
+  if (detect_DSLCablelink(vars[0].SndLimTimeSender, vars[0].SndLimTransSender,
                           realthruput, bw_theortcl, link)) {
     link = LINK_DSLORCABLE;
   }
@@ -889,7 +1002,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   //  ...and the number of transitions into the 'Sender Limited' state is
   //  greater than 30 per second
 
-  if (detect_halfduplex(rwintime, vars.SndLimTransRwin, vars.SndLimTransSender,
+  if (detect_halfduplex(rwintime, vars[0].SndLimTransRwin, vars[0].SndLimTransSender,
                         timesec))
     half_duplex = POSSIBLE_HALF_DUPLEX;
 
@@ -927,7 +1040,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   snprintf(buff, sizeof(buff),
            "cwin: %0.4f\nrttsec: %0.6f\nSndbuf: %"VARtype"\naspd: %0.5f\n"
-           "CWND-Limited: %0.2f\n", cwin, rttsec, vars.Sndbuf, aspd, s2c2spd);
+           "CWND-Limited: %0.2f\n", cwin, rttsec, vars[0].Sndbuf, aspd, s2c2spd);
   send_json_message_any(ctl, MSG_RESULTS, buff, strlen(buff),
                         testopt->connection_flags, JSON_SINGLE_VALUE);
 
@@ -955,19 +1068,19 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   snprintf(tmpstr, sizeof(tmpstr), "%d,%d,%d,%"VARtype",%"VARtype",%"
            VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
            VARtype",%"VARtype",%"VARtype",",
-           (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
-           vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
-           vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
-           vars.AckPktsIn);
+           (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars[0].Timeouts,
+           vars[0].SumRTT, vars[0].CountRTT, vars[0].PktsRetrans, vars[0].FastRetran,
+           vars[0].DataPktsOut, vars[0].AckPktsOut, vars[0].CurrentMSS, vars[0].DupAcksIn,
+           vars[0].AckPktsIn);
   memcpy(meta.summary, tmpstr, strlen(tmpstr));
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), "%"VARtype",%"VARtype",%"VARtype",%"
            VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype
            ",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",",
-           vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
-           vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
-           vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
-           vars.MaxSsthresh, vars.CurrentRTO, vars.CurrentRwinRcvd);
+           vars[0].MaxRwinRcvd, vars[0].Sndbuf, vars[0].MaxCwnd, vars[0].SndLimTimeRwin,
+           vars[0].SndLimTimeCwnd, vars[0].SndLimTimeSender, vars[0].DataBytesOut,
+           vars[0].SndLimTransRwin, vars[0].SndLimTransCwnd, vars[0].SndLimTransSender,
+           vars[0].MaxSsthresh, vars[0].CurrentRTO, vars[0].CurrentRwinRcvd);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
@@ -979,18 +1092,18 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   snprintf(tmpstr, sizeof(tmpstr), ",%d,%d,%d,%d,%"VARtype",%"VARtype
            ",%"VARtype",%"VARtype",%d",
            c2s_linkspeed_data, c2s_linkspeed_ack, s2c_linkspeed_data,
-           s2c_linkspeed_ack, vars.CongestionSignals, vars.PktsOut, vars.MinRTT,
-           vars.RcvWinScale, autotune);
+           s2c_linkspeed_ack, vars[0].CongestionSignals, vars[0].PktsOut, vars[0].MinRTT,
+           vars[0].RcvWinScale, autotune);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
   snprintf(tmpstr, sizeof(tmpstr), ",%"VARtype",%"VARtype",%"VARtype",%"
            VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
            VARtype",%"VARtype,
-           vars.CongAvoid, vars.CongestionOverCount, vars.MaxRTT,
-           vars.OtherReductions, vars.CurTimeoutCount, vars.AbruptTimeouts,
-           vars.SendStall, vars.SlowStart, vars.SubsequentTimeouts,
-           vars.ThruBytesAcked);
+           vars[0].CongAvoid, vars[0].CongestionOverCount, vars[0].MaxRTT,
+           vars[0].OtherReductions, vars[0].CurTimeoutCount, vars[0].AbruptTimeouts,
+           vars[0].SendStall, vars[0].SlowStart, vars[0].SubsequentTimeouts,
+           vars[0].ThruBytesAcked);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
   memset(tmpstr, 0, sizeof(tmpstr));
@@ -998,7 +1111,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
            peaks.amount);
 
   strlcat(meta.summary, tmpstr, sizeof(meta.summary));
-  writeMeta(options.compress, cputime, options.snaplog, dumptrace);
+  writeMeta(options.compress, cputime, options.snapshots, options.snaplog, dumptrace, s2c_ThroughputSnapshots, c2s_ThroughputSnapshots);
 
   // Write into log files, DB
   fp = fopen(get_logfile(), "a");
@@ -1012,49 +1125,49 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     fprintf(fp, "%s,%d,%d,%d,%"VARtype",%"VARtype",%"VARtype",%"
             VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
             VARtype",%"VARtype",", rmt_addr,
-            (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars.Timeouts,
-            vars.SumRTT, vars.CountRTT, vars.PktsRetrans, vars.FastRetran,
-            vars.DataPktsOut, vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn,
-            vars.AckPktsIn);
+            (int) s2c2spd, (int) s2cspd, (int) c2sspd, vars[0].Timeouts,
+            vars[0].SumRTT, vars[0].CountRTT, vars[0].PktsRetrans, vars[0].FastRetran,
+            vars[0].DataPktsOut, vars[0].AckPktsOut, vars[0].CurrentMSS, vars[0].DupAcksIn,
+            vars[0].AckPktsIn);
     fprintf(fp, "%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype","
             "%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"
-            VARtype",%"VARtype",%"VARtype",", vars.MaxRwinRcvd,
-            vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin, vars.SndLimTimeCwnd,
-            vars.SndLimTimeSender, vars.DataBytesOut, vars.SndLimTransRwin,
-            vars.SndLimTransCwnd, vars.SndLimTransSender, vars.MaxSsthresh,
-            vars.CurrentRTO, vars.CurrentRwinRcvd);
+            VARtype",%"VARtype",%"VARtype",", vars[0].MaxRwinRcvd,
+            vars[0].Sndbuf, vars[0].MaxCwnd, vars[0].SndLimTimeRwin, vars[0].SndLimTimeCwnd,
+            vars[0].SndLimTimeSender, vars[0].DataBytesOut, vars[0].SndLimTransRwin,
+            vars[0].SndLimTransCwnd, vars[0].SndLimTransSender, vars[0].MaxSsthresh,
+            vars[0].CurrentRTO, vars[0].CurrentRwinRcvd);
     fprintf(fp, "%d,%d,%d,%d,%d", link, mismatch, bad_cable, half_duplex,
             congestion);
     fprintf(fp, ",%d,%d,%d,%d,%"VARtype",%"VARtype",%"VARtype",%"VARtype",%d",
             c2s_linkspeed_data,
             c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
-            vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale,
+            vars[0].CongestionSignals, vars[0].PktsOut, vars[0].MinRTT, vars[0].RcvWinScale,
             autotune);
     fprintf(fp, ",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype
             ",%"VARtype",%"VARtype",%"VARtype",%"VARtype",%"VARtype,
-            vars.CongAvoid,
-            vars.CongestionOverCount, vars.MaxRTT, vars.OtherReductions,
-            vars.CurTimeoutCount, vars.AbruptTimeouts, vars.SendStall,
-            vars.SlowStart, vars.SubsequentTimeouts, vars.ThruBytesAcked);
+            vars[0].CongAvoid,
+            vars[0].CongestionOverCount, vars[0].MaxRTT, vars[0].OtherReductions,
+            vars[0].CurTimeoutCount, vars[0].AbruptTimeouts, vars[0].SendStall,
+            vars[0].SlowStart, vars[0].SubsequentTimeouts, vars[0].ThruBytesAcked);
     fprintf(fp, ",%d,%d,%d\n", peaks.min, peaks.max, peaks.amount);
     fclose(fp);
   }
-  db_insert(spds, runave, cputimelog, options.s2c_logname,
+  db_insert(spds, runave, cputimelog, options.s2c_logname[0],
             options.c2s_logname, testName, testPort, date, rmt_addr, s2c2spd,
-            s2cspd, c2sspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
-            vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut,
-            vars.AckPktsOut, vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn,
-            vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
-            vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
-            vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
-            vars.MaxSsthresh, vars.CurrentRTO, vars.CurrentRwinRcvd, link,
+            s2cspd, c2sspd, vars[0].Timeouts, vars[0].SumRTT, vars[0].CountRTT,
+            vars[0].PktsRetrans, vars[0].FastRetran, vars[0].DataPktsOut,
+            vars[0].AckPktsOut, vars[0].CurrentMSS, vars[0].DupAcksIn, vars[0].AckPktsIn,
+            vars[0].MaxRwinRcvd, vars[0].Sndbuf, vars[0].MaxCwnd, vars[0].SndLimTimeRwin,
+            vars[0].SndLimTimeCwnd, vars[0].SndLimTimeSender, vars[0].DataBytesOut,
+            vars[0].SndLimTransRwin, vars[0].SndLimTransCwnd, vars[0].SndLimTransSender,
+            vars[0].MaxSsthresh, vars[0].CurrentRTO, vars[0].CurrentRwinRcvd, link,
             mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
             c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
-            vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale,
-            autotune, vars.CongAvoid, vars.CongestionOverCount, vars.MaxRTT,
-            vars.OtherReductions, vars.CurTimeoutCount, vars.AbruptTimeouts,
-            vars.SendStall, vars.SlowStart, vars.SubsequentTimeouts,
-            vars.ThruBytesAcked, peaks.min, peaks.max, peaks.amount);
+            vars[0].CongestionSignals, vars[0].PktsOut, vars[0].MinRTT, vars[0].RcvWinScale,
+            autotune, vars[0].CongAvoid, vars[0].CongestionOverCount, vars[0].MaxRTT,
+            vars[0].OtherReductions, vars[0].CurTimeoutCount, vars[0].AbruptTimeouts,
+            vars[0].SendStall, vars[0].SlowStart, vars[0].SubsequentTimeouts,
+            vars[0].ThruBytesAcked, peaks.min, peaks.max, peaks.amount);
   if (usesyslog == 1) {
     snprintf(
         logstr1, sizeof(logstr1),
@@ -1065,9 +1178,9 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
         "AckPktsOut=%"VARtype","
         "CurrentMSS=%"VARtype",DupAcksIn=%"VARtype","
         "AckPktsIn=%"VARtype",",
-        rmt_addr, c2sspd, s2cspd, vars.Timeouts, vars.SumRTT, vars.CountRTT,
-        vars.PktsRetrans, vars.FastRetran, vars.DataPktsOut, vars.AckPktsOut,
-        vars.CurrentMSS, vars.DupAcksIn, vars.AckPktsIn);
+        rmt_addr, c2sspd, s2cspd, vars[0].Timeouts, vars[0].SumRTT, vars[0].CountRTT,
+        vars[0].PktsRetrans, vars[0].FastRetran, vars[0].DataPktsOut, vars[0].AckPktsOut,
+        vars[0].CurrentMSS, vars[0].DupAcksIn, vars[0].AckPktsIn);
     snprintf(
         logstr2, sizeof(logstr2),
         "MaxRwinRcvd=%"VARtype",Sndbuf=%"VARtype","
@@ -1078,10 +1191,10 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
         "SndLimTransSender=%"VARtype","
         "MaxSsthresh=%"VARtype",CurrentRTO=%"VARtype","
         "CurrentRwinRcvd=%"VARtype",",
-        vars.MaxRwinRcvd, vars.Sndbuf, vars.MaxCwnd, vars.SndLimTimeRwin,
-        vars.SndLimTimeCwnd, vars.SndLimTimeSender, vars.DataBytesOut,
-        vars.SndLimTransRwin, vars.SndLimTransCwnd, vars.SndLimTransSender,
-        vars.MaxSsthresh, vars.CurrentRTO, vars.CurrentRwinRcvd);
+        vars[0].MaxRwinRcvd, vars[0].Sndbuf, vars[0].MaxCwnd, vars[0].SndLimTimeRwin,
+        vars[0].SndLimTimeCwnd, vars[0].SndLimTimeSender, vars[0].DataBytesOut,
+        vars[0].SndLimTransRwin, vars[0].SndLimTransCwnd, vars[0].SndLimTransSender,
+        vars[0].MaxSsthresh, vars[0].CurrentRTO, vars[0].CurrentRwinRcvd);
     strlcat(logstr1, logstr2, sizeof(logstr1));
     snprintf(
         logstr2, sizeof(logstr2),
@@ -1091,7 +1204,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
         VARtype",RcvWinScale=%"VARtype"\n",
         link, mismatch, bad_cable, half_duplex, congestion, c2s_linkspeed_data,
         c2s_linkspeed_ack, s2c_linkspeed_data, s2c_linkspeed_ack,
-        vars.CongestionSignals, vars.PktsOut, vars.MinRTT, vars.RcvWinScale);
+        vars[0].CongestionSignals, vars[0].PktsOut, vars[0].MinRTT, vars[0].RcvWinScale);
     strlcat(logstr1, logstr2, sizeof(logstr1));
     syslog(LOG_FACILITY | LOG_INFO, "%s", logstr1);
     closelog();
@@ -1109,16 +1222,16 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   // page can be updated.  Otherwise the changes are lost when the client
   // terminates.
   if (admin_view == 1) {
-    totalcnt = calculate(date, vars.SumRTT, vars.CountRTT,
-                         vars.CongestionSignals, vars.PktsOut, vars.DupAcksIn,
-                         vars.AckPktsIn, vars.CurrentMSS, vars.SndLimTimeRwin,
-                         vars.SndLimTimeCwnd, vars.SndLimTimeSender,
-                         vars.MaxRwinRcvd, vars.CurrentCwnd, vars.Sndbuf,
-                         vars.DataBytesOut, mismatch, bad_cable, (int) c2sspd,
+    totalcnt = calculate(date, vars[0].SumRTT, vars[0].CountRTT,
+                         vars[0].CongestionSignals, vars[0].PktsOut, vars[0].DupAcksIn,
+                         vars[0].AckPktsIn, vars[0].CurrentMSS, vars[0].SndLimTimeRwin,
+                         vars[0].SndLimTimeCwnd, vars[0].SndLimTimeSender,
+                         vars[0].MaxRwinRcvd, vars[0].CurrentCwnd, vars[0].Sndbuf,
+                         vars[0].DataBytesOut, mismatch, bad_cable, (int) c2sspd,
                          (int) s2cspd, c2s_linkspeed_data, s2c_linkspeed_ack,
                          1);
-    gen_html((int) c2sspd, (int) s2cspd, vars.MinRTT, vars.PktsRetrans,
-             vars.Timeouts, vars.Sndbuf, vars.MaxRwinRcvd, vars.CurrentCwnd,
+    gen_html((int) c2sspd, (int) s2cspd, vars[0].MinRTT, vars[0].PktsRetrans,
+             vars[0].Timeouts, vars[0].Sndbuf, vars[0].MaxRwinRcvd, vars[0].CurrentCwnd,
              mismatch, bad_cable, totalcnt, refresh);
   }
   close_connection(ctl);
@@ -1835,6 +1948,8 @@ int main(int argc, char **argv) {
   int c, i;
   struct sigaction new;
   char *lbuf = NULL, *ctime();
+  char* testsBuff[32];
+  char test_suite[24];
   FILE *fp;
   size_t lbuf_max = 0;
   char *private_key_file = NULL;
@@ -1858,6 +1973,19 @@ int main(int argc, char **argv) {
   memset(&options, 0, sizeof(options));
   options.snapDelay = 5;
 
+  options.snapshots = 1;
+  for (i = 0; i < MAX_STREAMS; i++)
+    memset(options.s2c_logname[i], 0, 256);
+  options.c2s_duration = 10000;
+  options.c2s_throughputsnaps = 0;
+  options.c2s_snapsdelay = 5000;
+  options.c2s_snapsoffset = 1000;
+  options.c2s_streamsnum = 1;
+  options.s2c_duration = 10000;
+  options.s2c_throughputsnaps = 0;
+  options.s2c_snapsdelay = 5000;
+  options.s2c_snapsoffset = 1000;
+  options.s2c_streamsnum = 1;
   peaks.min = -1;
   peaks.max = -1;
   peaks.amount = -1;
@@ -2048,6 +2176,9 @@ int main(int argc, char **argv) {
       case 307:
         options.snaplog = 1;
         break;
+                  case 325:
+                    options.snapshots = 0;
+                    break;
       case 309:
         cputime = 1;
         break;
@@ -2063,6 +2194,47 @@ int main(int argc, char **argv) {
       case 313:
         dbPWD = optarg;
         break;
+                  case 314:
+                    options.c2s_duration = atoi(optarg);
+                    break;
+                  case 315:
+                    options.c2s_throughputsnaps = 1;
+                    break;
+                  case 316:
+                    options.c2s_snapsdelay = atoi(optarg);
+                    break;
+                  case 317:
+                    options.c2s_snapsoffset = atoi(optarg);
+                    break;
+                  case 322:
+                    if (check_rint(optarg, &options.c2s_streamsnum, 1, 7)) {
+                      char tmpText[200];
+                      snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for upload test: %s", optarg);
+                      short_usage(argv[0], tmpText);
+                    }
+                    break;
+                  case 318:
+                    options.s2c_duration = atoi(optarg);
+                    break;
+                  case 319:
+                    options.s2c_throughputsnaps = 1;
+                    break;
+                  case 320:
+                    options.s2c_snapsdelay = atoi(optarg);
+                    break;
+                  case 321:
+                    options.s2c_snapsoffset = atoi(optarg);
+                    break;
+                  case 323:
+                    if (check_rint(optarg, &options.s2c_streamsnum, 1, 7)) {
+                      char tmpText[200];
+                      snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for download test: %s", optarg);
+                      short_usage(argv[0], tmpText);
+                    }
+                    break;
+                  case 324:
+                    webVarsValues = 1;
+                    break;
       case 'T':
         refresh = atoi(optarg);
         break;
@@ -2168,6 +2340,14 @@ int main(int argc, char **argv) {
   }
   log_println(1, "\tDebug level set to %d", debug);
 
+  log_println(3, "\tExtended tests options:");
+  log_println(3, "\t\t * upload: duration = %d, streams = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
+              options.c2s_duration, options.c2s_streamsnum, options.c2s_throughputsnaps ? "true" : "false",
+              options.c2s_snapsdelay, options.c2s_snapsoffset);
+  log_println(3, "\t\t * download: duration = %d, streams = %d, throughput snapshots: enabled = %s, delay = %d, offset = %d",
+              options.s2c_duration, options.s2c_streamsnum, options.s2c_throughputsnaps ? "true" : "false",
+              options.s2c_snapsdelay, options.s2c_snapsoffset);
+
   initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
   memset(&new, 0, sizeof(new));
@@ -2256,6 +2436,25 @@ int main(int argc, char **argv) {
   global_signalfd_write = signalfd_pipe[1];
   NDT_server_main_loop(ssl_context, listenfd, signalfd_read);
   return 0;
+              snprintf(testsBuff, sizeof(testsBuff), "%d", t_opts);
+              memcpy(test_suite, buff+3+strlen(testsBuff), (strlen(buff+3+strlen(testsBuff))));
+              log_println(5, "extrafing test_suite '%s' and t_opts '%x' from "
+                  snprintf(dir, sizeof(dir), "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort);
+                memset(webVarsValuesLog, 0, 256);
+                if (webVarsValues) {
+                  snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort, TCP_STAT_NAME);
+                  create_named_logdir(webVarsValuesLog, sizeof(webVarsValuesLog), dir, 0);
+                  memcpy(meta.web_variables_log, dir, strlen(dir));
+                }
+              int alarmTime = 120;
+              if (t_opts & TEST_C2S_EXT) {
+                testopt.c2sextopt = TOPT_ENABLED;
+                alarmTime += options.c2s_duration / 1000.0;
+              } else if (t_opts & TEST_C2S)
+              if (t_opts & TEST_S2C_EXT) {
+                testopt.s2cextopt = TOPT_ENABLED;
+                alarmTime += options.s2c_duration / 1000.0;
+              } else if (t_opts & TEST_S2C)
 }
 #endif  // USE_WEB100SRV_ONLY_AS_LIBRARY
 

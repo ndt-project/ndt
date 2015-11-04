@@ -1,7 +1,7 @@
 /**
  * This file contains the functions to print usage screens.
  *
- * Jakub S³awiñski 2006-06-02
+ * Jakub Sï¿½awiï¿½ski 2006-06-02
  * jeremian@poczta.fm
  */
 
@@ -69,18 +69,13 @@ void srv_long_usage(char* info) {
   printf("  -L, --log_dir DIR      - specify the base directory for snaplog and tcpdump files\n");
   printf("                           (default %s/serverdata)\n", BASEDIR);
   printf("  -S, --logfacility #F   - specify syslog facility name\n");
-  printf("                           Note: this doesn't enable 'syslog'\n\n");
-  printf("  --tls                  - Use SSL or TLS sockets to conduct the tests.\n");
-  printf("                           Note: This disables all tests which require the \n");
-  printf("                           server to open a socket to the client (MID, SFW),\n");
-  printf("                           and requires the --certificate and --private-key\n");
-  printf("                           options also be set.\n");
-  printf(" --private_key           - the private key (.pem format) to use for TLS/SSL\n");
-  printf(" --certificate           - the certificate (.pem format) to use for TLS/SSL\n");
+  printf("                           Note: this doesn't enable 'syslog'\n");
+  printf("  --savewebvalues        - enable web values writing to a separate file\n\n");
 #ifdef EXPERIMENTAL_ENABLED
   printf(" Experimental code:\n\n");
   printf("  --avoidsndblockup      - enable code to avoid send buffers blocking in the S2C test\n");
   printf("  --snaplog              - enable the snaplog writing\n");
+  printf("  --disablesnaps         - disable snapshotting\n");
   printf("  --snapdelay #msec      - specify the delay in the snaplog thread (default 5 msec)\n");
   printf("                           Note: this doesn't enable 'snaplog'\n");
   printf("  --cwnddecrease         - enable analyzing of the cwnd changes during the S2C test\n");
@@ -88,6 +83,21 @@ void srv_long_usage(char* info) {
   printf("  --cputime              - enable the cputime writing\n");
   printf("  -y, --limit #limit     - enable the throughput limiting code\n\n");
 #endif
+  printf(" Extended tests code:\n\n");
+  printf("  --c2sduration #msec    - specify upload test duration (default 10000 msec)\n");
+  printf("  --c2sthroughputsnaps   - enable the throughput snapshots for upload test writing\n");
+  printf("  --c2ssnapsdelay #msec  - specify the delay in the throughput snapshots thread for upload test (default 5000 msec)\n");
+  printf("                           Note: this doesn't enable 'c2sthroughputsnaps'\n");
+  printf("  --c2ssnapsoffset #msec - specify the initial offset in the throughput snapshots thread for upload test (default 1000 msec)\n");
+  printf("                           Note: this doesn't enable 'c2sthroughputsnaps'\n");
+  printf("  --c2sstreamsnum #num   - specify the number of streams (parallel TCP connections) for upload test (default 1 stream, maximum 7)\n");
+  printf("  --s2cduration #msec    - specify download test duration (default 10000 msec)\n");
+  printf("  --s2cthroughputsnaps   - enable the throughput snapshots for download test writing\n");
+  printf("  --s2csnapsdelay #msec  - specify the delay in the throughput snapshots thread for download test (default 5000 msec)\n");
+  printf("                           Note: this doesn't enable 's2cthroughputsnaps'\n");
+  printf("  --s2csnapsoffset #msec - specify the initial offset in the throughput snapshots thread for download test (default 1000 msec)\n");
+  printf("                           Note: this doesn't enable 's2cthroughputsnaps'\n");
+  printf("  --s2cstreamsnum #num   - specify the number of streams (parallel TCP connections) for download test (default 1 stream, maximum 7)\n\n");
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
   printf(" Database support:\n\n");
   printf("  --enableDBlogging      - enable the test results logging to the database\n");
@@ -100,6 +110,7 @@ void srv_long_usage(char* info) {
   printf("  -4, --ipv4             - use IPv4 addresses only\n");
   printf("  -6, --ipv6             - use IPv6 addresses only\n\n");
 #endif
+
   exit(0);
 }
 
@@ -124,8 +135,10 @@ void clt_long_usage(char* info) {
   printf(" Configuration:\n\n");
   printf("  -b, --buffer #size     - set send/receive buffer to value\n");
   printf("  --disablemid           - disable the Middlebox test\n");
-  printf("  --disablec2s           - disable the C2S throughput test\n");
-  printf("  --disables2c           - disable the S2C throughput test\n");
+  printf("  --disablec2s           - disable basic C2S throughput test\n");
+  printf("  --disables2c           - disable basic S2C throughput test\n");
+  printf("  --enablec2sext         - enable extended C2S throughput test\n");
+  printf("  --enables2cext         - enable extended S2C throughput test\n");
   printf("  --disablesfw           - disable the Simple firewall test\n\n");
   printf("  -u, --protolog_dir DIR - specify the base directory for protocol validation logs \n");
   printf("  --enableprotolog        - enable protocol logging \n");

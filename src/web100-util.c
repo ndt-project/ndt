@@ -107,7 +107,7 @@ int tcp_stat_init(char *VarFileName) {
 #if USE_WEB100
   FILE * fp;
   char line[256], trimmedline[256];
-  int count_vars = 0;
+  int count_vars = 0, i;
 
   assert(VarFileName);
 
@@ -126,8 +126,9 @@ int tcp_stat_init(char *VarFileName) {
     // remove unwanted chars (right now, trailing/preceding chars from wb100
     // var names)
     trim(line, strlen(line), trimmedline, sizeof(trimmedline));
-    strlcpy(web_vars[count_vars].name, trimmedline,
-            sizeof(web_vars[count_vars].name));
+    for (i = 0; i < MAX_STREAMS; ++i) {
+      strlcpy(web_vars[i][count_vars].name, trimmedline, sizeof(web_vars[i][count_vars].name));
+    }
     count_vars++;
   }
   fclose(fp);
@@ -468,10 +469,8 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 #if USE_WEB100
   int ok = 1;
   for (i = 0; i < count_vars; i++) {
-    if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
-                                         &var)) != WEB100_ERR_SUCCESS) {
-      log_println(1, "Variable %d (%s) not found in KIS", i,
-                  web_vars[i].name);
+    if ((web100_agent_find_var_and_group(agent, web_vars[0][i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
+      log_println(1, "Variable %d (%s) not found in KIS", i, web_vars[0][i].name);
       ok = 0;
       continue;
     }
@@ -489,11 +488,10 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
       continue;
     }
     if (ok == 1) {
-      snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
-               web100_value_to_text(web100_get_var_type(var), buf));
+      snprintf(web_vars[0][i].value, sizeof(web_vars[0][i].value), "%s", web100_value_to_text(web100_get_var_type(var), buf));
       if (fp)
-        fprintf(fp, "%d;", (int32_t) atoi(web_vars[i].value));
-      log_println(9, "%s: %d", web_vars[i].name, atoi(web_vars[i].value));
+        fprintf(fp, "%d;", (int32_t) atoi(web_vars[0][i].value));
+      log_println(9, "%s: %d", web_vars[0][i].name, atoi(web_vars[0][i].value));
     }
     ok = 1;
   }
@@ -530,9 +528,9 @@ void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
 #if USE_WEB10G
 /* Persistent storage needed. These are filled by tcp_stat_get_data 
  * and later read by tcp_stat_logvars and free()'d */
-static estats_val_data* dataDumpSave = NULL;
-static int X_SndBuf = -1;
-static int X_RcvBuf = -1;
+static estats_val_data* dataDumpSave[MAX_STREAMS] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static int X_SndBuf[MAX_STREAMS] = {-1, -1, -1, -1, -1, -1, -1};
+static int X_RcvBuf[MAX_STREAMS] = {-1, -1, -1, -1, -1, -1, -1};
 #endif
 
 
@@ -590,21 +588,21 @@ static void print_10gvar_renamed(const char * old_name,
 
 /**
  * Collect Web100 stats from a snapshot and transmit to a receiver.
- * The transmission is done using a TEST_MSG type message and sent to
- * client reachable via the Connection
+ * The transmission is done using a TES_MSG type message and sent to
+ * client reachable via the input parameter socket FD.
  *
  * @param snap pointer to a tcp_stat_snapshot taken earlier
- * @param ctl Connection indicating data recipient
+ * @param ctlsock integer socket file descriptor indicating data recipient
  * @param agent pointer to a tcp_stat_agent
  * @param count_vars integer number of tcp_stat_variables to get value of
  * @param testoptions the options that determine how the data should be sent
  *
  */
-int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, Connection* ctl,
+int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
                       tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions) {
   char line[256];
 #if USE_WEB100
-  int i;
+  int i, t;
   web100_var* var;
   web100_group* group;
   char buf[32];
@@ -612,209 +610,194 @@ int tcp_stat_get_data(tcp_stat_snap* snap, int testsock, Connection* ctl,
   assert(snap);
   assert(agent);
 
-  for (i = 0; i < count_vars; i++) {
-    if ((web100_agent_find_var_and_group(agent, web_vars[i].name, &group,
-                                         &var)) != WEB100_ERR_SUCCESS) {
-      log_println(9, "Variable %d (%s) not found in KIS: ", i,
-                  web_vars[i].name);
-      continue;
-    }
+  for (t = 0; t < streamsNum; ++t) {
+    assert(snap[t]);
 
-    // if no snapshot provided, no way to get values
-    if (snap == NULL) {
-      fprintf(stderr,
-              "Web100_get_data() failed, return to testing routine\n");
-      log_println(6,
-                  "Web100_get_data() failed, return to testing routine\n");
-      return (-1);
-    }
-
-    // handle an unsuccessful data retrieval
-    if ((web100_snap_read(var, snap, buf)) != WEB100_ERR_SUCCESS) {
-      if (get_debuglvl() > 9) {
-        log_print(9, "Variable %d (%s): ", i, web_vars[i].name);
-        web100_perror("web100_snap_read()");
+    for (i = 0; i < count_vars; i++) {
+      if ((web100_agent_find_var_and_group(agent, web_vars[t][i].name, &group, &var)) != WEB100_ERR_SUCCESS) {
+        log_println(9, "Variable %d (%s) not found in KIS: ", i, web_vars[t][i].name);
+        continue;
       }
-      continue;
-    }
 
-    // assign values and transmit message with all web100 variables to socket
-    // receiver end
-    snprintf(web_vars[i].value, sizeof(web_vars[i].value), "%s",
-             web100_value_to_text(web100_get_var_type(var), buf));
-    /* Why do we atoi after getting as text anyway ?? */
-    snprintf(line, sizeof(line), "%s: %d\n", web_vars[i].name,
-             atoi(web_vars[i].value));
-    send_json_message_any(ctl, TEST_MSG, line, strlen(line),
-                          testoptions->connection_flags, JSON_SINGLE_VALUE);
-    log_print(9, "%s", line);
+      // if no snapshot provided, no way to get values
+      if (snap[t] == NULL) {
+        fprintf(stderr, "Web100_get_data() failed, return to testing routine\n");
+        log_println(6, "Web100_get_data() failed, return to testing routine\n");
+        return (-1);
+      }
+
+      // handle an unsuccessful data retrieval
+      if ((web100_snap_read(var, snap[t], buf)) != WEB100_ERR_SUCCESS) {
+        if (get_debuglvl() > 9) {
+          log_print(9, "Variable %d (%s): ", i, web_vars[t][i].name);
+          web100_perror("web100_snap_read()");
+        }
+        continue;
+      }
+
+      // assign values and transmit message with all web100 variables to socket receiver end
+      snprintf(web_vars[t][i].value, sizeof(web_vars[t][i].value), "%s", web100_value_to_text(web100_get_var_type(var), buf));
+      /* Why do we atoi after getting as text anyway ?? */
+      if (t == 0) {
+        snprintf(line, sizeof(line), "%s: %d\n", web_vars[t][i].name, atoi(web_vars[t][i].value));
+        send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+        log_print(9, "%s", line);
+      }
+    }
   }
   log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return (0);
 #elif USE_WEB10G
-  int j;
+  int j, t;
   unsigned int xbuf_size;
   struct estats_val val;
   estats_error* err;
 
-  xbuf_size = sizeof(X_RcvBuf);
-  if (getsockopt(testsock,
-        SOL_SOCKET, SO_RCVBUF, (void *)&X_RcvBuf, &xbuf_size) != 0) {
-    log_println(0, "Error: failed to getsockopt() SO_RCVBUF");
-  }
-  xbuf_size = sizeof(X_SndBuf);
-  if (getsockopt(testsock,
-        SOL_SOCKET, SO_SNDBUF, (void *)&X_SndBuf, &xbuf_size) != 0) {
-    log_println(0, "Error: failed to getsockopt() SO_RCVBUF");
-  }
-
   assert(snap);
 
-  /* Need to save this for later */
-  estats_val_data_new(&dataDumpSave);
-  memcpy(dataDumpSave, snap, sizeof(struct estats_val_data)
-                          + (sizeof(struct estats_val) * snap->length));
-
-  for (j = 0; j < snap->length; j++) {
-    char *str;
-    if (snap->val[j].masked) continue;
-
-    if ((err = estats_val_as_string(&str, &snap->val[j],
-                              estats_var_array[j].valtype)) != NULL) {
-      log_println(0, "In tcp_stat_get_data() estats_val_as_string()"
-                          " failed for %s", estats_var_array[j].name);
-      estats_error_print(stderr, err);
-      estats_error_free(&err);
-      continue;
+  for (t = 0; t < streamsNum; ++t) {
+    xbuf_size = sizeof(X_RcvBuf[t]);
+    if (getsockopt(testsock[t], SOL_SOCKET, SO_RCVBUF, (void *)&X_RcvBuf[t], &xbuf_size) != 0) {
+      log_println(0, "Error: failed to getsockopt() SO_RCVBUF");
     }
-    snprintf(line, sizeof(line), "%s: %s\n",
-                 estats_var_array[j].name, str);
-    send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-    log_print(9, "%s", line);
-    free(str);
-    str = NULL;
-  }
+    xbuf_size = sizeof(X_SndBuf[t]);
+    if (getsockopt(testsock[t], SOL_SOCKET, SO_SNDBUF, (void *)&X_SndBuf[t], &xbuf_size) != 0) {
+      log_println(0, "Error: failed to getsockopt() SO_RCVBUF");
+    }
 
-  /* This is the list of changed variable names that the client tries to read.
-   * Web100 -> Web10g
-   * ECNEnabled -> ECN
-   * NagleEnabled -> Nagle
-   * SACKEnabled -> WillSendSACK & WillUseSACK
-   * TimestampsEnabled -> TimeStamps
-   * PktsRetrans -> SegsRetrans
-   * X_Rcvbuf -> Not in web10g not used by client but send anyway
-   * X_Sndbuf -> Not in web10g but could be interesting for the client
-   * DataPktsOut -> DataSegsOut
-   * AckPktsOut -> Depreciated
-   * MaxCwnd -> MaxSsCwnd MaxCaCwnd
-   * SndLimTimeSender -> SndLimTimeSnd
-   * DataBytesOut -> DataOctetsOut
-   * AckPktsIn -> Depreciated
-   * SndLimTransSender -> SndLimTransSnd
-   * PktsOut -> SegsOut
-   * CongestionSignals -> CongSignals
-   * RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1
-   */
-  static const char* frame_web100 = "-~~~Web100_old_var_names~~~-: 1\n";
-  int type;
-  char *str = NULL;
-  send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    assert(snap[t]);
 
-  /* ECNEnabled -> ECN */
-  type = web10g_find_val(snap, "ECN", &val);
-  if (type != ESTATS_SIGNED32) {
-    log_println(0, "In tcp_stat_get_data(), web10g_find_val()"
-                    " failed to find ECN bad type=%d", type);
-  } else {
-    snprintf(line, sizeof(line), "ECNEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
+     /* Need to save this for later */
+    estats_val_data_new(&dataDumpSave[t]);
+    memcpy(dataDumpSave[t], snap[t], sizeof(struct estats_val_data) + (sizeof(struct estats_val) * snap[t]->length));
+
+    if (t == 0) {
+      for (j = 0; j < snap[t]->length; j++) {
+        char *str;
+        if (snap[t]->val[j].masked) continue;
+
+        if ((err = estats_val_as_string(&str, &snap[t]->val[j], estats_var_array[j].valtype)) != NULL) {
+          log_println(0, "In tcp_stat_get_data() estats_val_as_string() failed for %s", estats_var_array[j].name);
+          estats_error_print(stderr, err);
+          estats_error_free(&err);
+          continue;
+        }
+        snprintf(line, sizeof(line), "%s: %s\n", estats_var_array[j].name, str);
+        send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+        log_print(9, "%s", line);
+        free(str);
+        str = NULL;
+      }
+
+      /* This is the list of changed variable names that the client tries to read.
+       * Web100 -> Web10g
+       * ECNEnabled -> ECN
+       * NagleEnabled -> Nagle
+       * SACKEnabled -> WillSendSACK & WillUseSACK
+       * TimestampsEnabled -> TimeStamps
+       * PktsRetrans -> SegsRetrans
+       * X_Rcvbuf -> Not in web10g not used by client but send anyway
+       * X_Sndbuf -> Not in web10g but could be interesting for the client
+       * DataPktsOut -> DataSegsOut
+       * AckPktsOut -> Depreciated
+       * MaxCwnd -> MaxSsCwnd MaxCaCwnd
+       * SndLimTimeSender -> SndLimTimeSnd
+       * DataBytesOut -> DataOctetsOut
+       * AckPktsIn -> Depreciated
+       * SndLimTransSender -> SndLimTransSnd
+       * PktsOut -> SegsOut
+       * CongestionSignals -> CongSignals
+       * RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1
+       */
+      static const char* frame_web100 = "-~~~Web100_old_var_names~~~-: 1\n";
+      int type;
+      char *str = NULL;
+      send_json_message(ctlsock, TEST_MSG, (const void *)frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
+
+    /* ECNEnabled -> ECN */
+    type = web10g_find_val(snap[t], "ECN", &val);
+    if (type != ESTATS_SIGNED32) {
+      log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find ECN bad type=%d", type);
+    } else {
+      snprintf(line, sizeof(line), "ECNEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    }
+
+    /* NagleEnabled -> Nagle */
+    type = web10g_find_val(snap[t], "Nagle", &val);
+    if (type != ESTATS_SIGNED32) {
+      log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find Nagle bad type=%d", type);
+    } else {
+      snprintf(line, sizeof(line), "NagleEnabled: %"PRId32"\n", (val.sv32 == 2) ? 1 : 0);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    }
+
+    /* SACKEnabled -> WillUseSACK & WillSendSACK */
+    type = web10g_find_val(snap[t], "WillUseSACK", &val);
+    if (type == -1) {
+      log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find WillUseSACK bad type=%d", type);
+    } else {
+    /* Yes this comes through as 3 from web100 */
+      snprintf(line, sizeof(line), "SACKEnabled: %d\n", (val.sv32 == 1) ? 3 : 0);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    }
+
+    /* TimestampsEnabled -> TimeStamps */
+    type = web10g_find_val(snap[t], "TimeStamps", &val);
+    if (type != ESTATS_SIGNED32) {
+      log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find TimeStamps bad type=%d", type);
+    } else {
+      snprintf(line, sizeof(line), "TimestampsEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    }
+
+    /* PktsRetrans -> SegsRetrans */
+    print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* DataPktsOut -> DataSegsOut */
+    print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* MaxCwnd -> MAX(MaxSsCwnd, MaxCaCwnd) */
+    print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* SndLimTimeSender -> SndLimTimeSnd */
+    print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* DataBytesOut -> DataOctetsOut */
+    print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* SndLimTransSender -> SndLimTransSnd */
+    print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* PktsOut -> SegsOut */
+    print_10gvar_renamed("SegsOut", "PktsOut", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* CongestionSignals -> CongSignals */
+    print_10gvar_renamed("CongSignals", "CongestionSignals", snap[t], line, sizeof(line), ctlsock, testoptions);
+
+    /* RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1 */
+    type = web10g_find_val(snap[t], "WinScaleSent", &val);
+    if (type == -1) {
+      log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find WinScaleSent");
+    } else {
+      if (val.sv32 == -1)
+        snprintf(line, sizeof(line), "RcvWinScale: %u\n", 0);
+      else
+        snprintf(line, sizeof(line), "RcvWinScale: %d\n", val.sv32);
+      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    }
+
+    /* X_Rcvbuf & X_Sndbuf */
+    snprintf(line, sizeof(line), "X_Rcvbuf: %d\n", X_RcvBuf[t]);
     send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-  }
-
-  /* NagleEnabled -> Nagle */
-  type = web10g_find_val(snap, "Nagle", &val);
-  if (type != ESTATS_SIGNED32) {
-    log_println(0, "In tcp_stat_get_data(), web10g_find_val()"
-                    " failed to find Nagle bad type=%d", type);
-  } else {
-    snprintf(line, sizeof(line), "NagleEnabled: %"PRId32"\n", (val.sv32 == 2) ? 1 : 0);
+    snprintf(line, sizeof(line), "X_Sndbuf: %d\n", X_SndBuf[t]);
     send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+
+    send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
+
+    log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
+    }
   }
-
-  /* SACKEnabled -> WillUseSACK & WillSendSACK */
-  type = web10g_find_val(snap, "WillUseSACK", &val);
-  if (type == -1) {
-    log_println(0, "In tcp_stat_get_data(), web10g_find_val()"
-                    " failed to find WillUseSACK bad type=%d", type);
-  } else {
-  /* Yes this comes through as 3 from web100 */
-    snprintf(line, sizeof(line), "SACKEnabled: %d\n", (val.sv32 == 1) ? 3 : 0);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-  }
-
-  /* TimestampsEnabled -> TimeStamps */
-  type = web10g_find_val(snap, "TimeStamps", &val);
-  if (type != ESTATS_SIGNED32) {
-    log_println(0, "In tcp_stat_get_data(), web10g_find_val()"
-                    " failed to find TimeStamps bad type=%d", type);
-  } else {
-    snprintf(line, sizeof(line), "TimestampsEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-  }
-
-  /* PktsRetrans -> SegsRetrans */
-  print_10gvar_renamed("SegsRetrans", "PktsRetrans", snap, line,
-                              sizeof(line), ctlsock, testoptions);
-
-  /* DataPktsOut -> DataSegsOut */
-  print_10gvar_renamed("DataSegsOut", "DataPktsOut", snap, line,
-                              sizeof(line), ctlsock, testoptions);
-
-  /* MaxCwnd -> MAX(MaxSsCwnd, MaxCaCwnd) */
-  print_10gvar_renamed("MaxCwnd", "MaxCwnd", snap, line,
-                              sizeof(line), ctlsock, testoptions);
-
-  /* SndLimTimeSender -> SndLimTimeSnd */
-  print_10gvar_renamed("SndLimTimeSnd", "SndLimTimeSender", snap, line,
-                              sizeof(line), ctlsock, testoptions);
-
-  /* DataBytesOut -> DataOctetsOut */
-  print_10gvar_renamed("HCDataOctetsOut", "DataBytesOut", snap, line,
-                              sizeof(line), ctlsock, testoptions);
-
-  /* SndLimTransSender -> SndLimTransSnd */
-  print_10gvar_renamed("SndLimTransSnd", "SndLimTransSender", snap, line,
-                            sizeof(line), ctlsock, testoptions);
-
-  /* PktsOut -> SegsOut */
-  print_10gvar_renamed("SegsOut", "PktsOut", snap, line,
-                            sizeof(line), ctlsock, testoptions);
-
-  /* CongestionSignals -> CongSignals */
-  print_10gvar_renamed("CongSignals", "CongestionSignals", snap, line,
-                            sizeof(line), ctlsock, testoptions);
-
-  /* RcvWinScale -> Same as WinScaleSent if WinScaleSent != -1 */
-  type = web10g_find_val(snap, "WinScaleSent", &val);
-  if (type == -1) {
-    log_println(0, "In tcp_stat_get_data(), web10g_find_val()"
-                    " failed to find WinScaleSent");
-  } else {
-    if (val.sv32 == -1)
-      snprintf(line, sizeof(line), "RcvWinScale: %u\n", 0);
-    else
-      snprintf(line, sizeof(line), "RcvWinScale: %d\n", val.sv32);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-  }
-
-  /* X_Rcvbuf & X_Sndbuf */
-  snprintf(line, sizeof(line), "X_Rcvbuf: %d\n", X_RcvBuf);
-  send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-  snprintf(line, sizeof(line), "X_Sndbuf: %d\n", X_SndBuf);
-  send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
-
-  send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
-
-  log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
   return 0;
 #endif
 }
@@ -1027,7 +1010,7 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
  * @param tcp_vars to local copies of tcp_stat variables
  * @return integer 0
  */
-int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
+int tcp_stat_logvars(struct tcp_vars* vars, int connId, int count_vars) {
 #if USE_WEB100
   int a, b;
   for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
@@ -1039,10 +1022,10 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
   //int has_AckPktsIn = 0;
 
     for (b = 0; b < count_vars; b++) {
-      if (strcmp(web_vars[b].name, web100_name) == 0) {
+      if (strcmp(web_vars[connId][b].name, web100_name) == 0) {
         tcp_stat_var* var = &((tcp_stat_var *)vars)[a];
-        *var = atoi(web_vars[b].value);
-        log_println(5, "Found %s : %i", web100_name, *var);
+        *var = atoi(web_vars[connId][b].value);
+        log_println(5, "Found %s : %"VARtype, web100_name, *var);
         break;
       }
     }
@@ -1053,7 +1036,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
 #elif USE_WEB10G
   int a;
   estats_val val;
-  assert(dataDumpSave);
+  assert(dataDumpSave[connId]);
 
   for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
     const char* web10g_name = tcp_names[a].web10g_name;
@@ -1062,7 +1045,7 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
       continue;
 
     /* Find each item in the list */
-    if ((vartype = web10g_find_val(dataDumpSave, web10g_name, &val)) == -1) {
+    if ((vartype = web10g_find_val(dataDumpSave[connId], web10g_name, &val)) == -1) {
       log_println(1, "WARNING: Failed to find Web10g var %s", web10g_name);
     } else {
       tcp_stat_var* var = &((tcp_stat_var *)vars)[a];
@@ -1083,17 +1066,136 @@ int tcp_stat_logvars(struct tcp_vars* vars, int count_vars) {
           *var = (tcp_stat_var) val.uv8;
           break;
       }
-      log_println(5, "Found %s : %i", web10g_name, *var);
+      log_println(5, "Found %s : %"VARtype, web10g_name, *var);
     }
   }
   /* Our special case */
-  vars->Sndbuf = X_SndBuf;
+  vars->Sndbuf = X_SndBuf[connId];
 
-  estats_val_data_free(&dataDumpSave);
+  estats_val_data_free(&dataDumpSave[connId]);
 #endif
   return 0;
 }
 
+void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars) {
+  int a, i;
+
+  char webVarsFileName[256];
+  snprintf(webVarsFileName, strlen(webVarsValuesLog) - 10, "%s", webVarsValuesLog);
+  snprintf(&webVarsFileName[strlen(webVarsFileName)], sizeof(webVarsFileName)-strlen(webVarsFileName),
+    "_%s_vars.log", TCP_STAT_NAME);
+  FILE* file = fopen(webVarsFileName, "w");
+
+  if (!file) {
+    return;
+  }
+
+  for (i = 0; i < connNum; ++i) {
+    for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
+#if USE_WEB100
+    char* var_name = tcp_names[a].web100_name;
+#elif USE_WEB10G
+    char* var_name = tcp_names[a].web10g_name;
+    if ((var_name == NULL) && (strcmp("X_Sndbuf", tcp_names[a].web100_name) == 0)) {
+      var_name = "Sndbuf";
+    }
+#endif
+      tcp_stat_var* var = &((tcp_stat_var *)&vars[i])[a];
+      fprintf(file, "%s[%d]: %"VARtype"\n", var_name, i, *var);
+    }
+  }
+
+  fclose(file);
+}
+
+tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {
+  int i;
+  tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
+  for (i = 1; i < connNum; ++i) {
+    varValue += *&((tcp_stat_var *)&vars[i])[varId];
+  }
+  return varValue;
+}
+
+tcp_stat_var agg_vars_max(int connNum, int varId, struct tcp_vars* vars) {
+  int i;
+  tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
+  for (i = 1; i < connNum; ++i) {
+    if (*&((tcp_stat_var *)&vars[i])[varId] > varValue) {
+      varValue = *&((tcp_stat_var *)&vars[i])[varId];
+    }
+  }
+  return varValue;
+}
+
+tcp_stat_var agg_vars_min(int connNum, int varId, struct tcp_vars* vars) {
+  int i;
+  tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
+  for (i = 1; i < connNum; ++i) {
+    if (*&((tcp_stat_var *)&vars[i])[varId] < varValue) {
+      varValue = *&((tcp_stat_var *)&vars[i])[varId];
+    }
+  }
+  return varValue;
+}
+
+tcp_stat_var agg_vars_avg(int connNum, int varId, struct tcp_vars* vars) {
+  int i;
+  tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
+  for (i = 1; i < connNum; ++i) {
+    varValue += *&((tcp_stat_var *)&vars[i])[varId];
+  }
+  return varValue / connNum;
+}
+
+void tcp_stat_log_agg_vars_to_file(char* webVarsValuesLog, int connNum, struct tcp_vars* vars) {
+  int a;
+  tcp_stat_var varValue;
+
+  FILE* file = fopen(webVarsValuesLog, "w");
+
+  if (!file) {
+    return;
+  }
+
+  for (a = 0; a < sizeof(struct tcp_vars) / sizeof(tcp_stat_var); ++a) {
+#if USE_WEB100
+    char* var_name = tcp_names[a].web100_name;
+#elif USE_WEB10G
+    char* var_name = tcp_names[a].web10g_name;
+    if ((var_name == NULL) && (strcmp("X_Sndbuf", tcp_names[a].web100_name) == 0)) {
+      var_name = "Sndbuf";
+    }
+#endif
+    if ((strcmp("MinRTT", tcp_names[a].web100_name) == 0)) {
+      varValue = agg_vars_min(connNum, a, vars);
+      fprintf(file, "MIN(%s): %"VARtype"\n", var_name, varValue);
+    }
+    else if ((strcmp("CurRTO", tcp_names[a].web100_name) == 0)) {
+      varValue = agg_vars_avg(connNum, a, vars);
+      fprintf(file, "AVG(%s): %"VARtype"\n", var_name, varValue);
+    }
+    else if ((strcmp("CurMSS", tcp_names[a].web100_name) == 0) ||
+             (strcmp("MaxRwinRcvd", tcp_names[a].web100_name) == 0) ||
+             (strcmp("X_Sndbuf", tcp_names[a].web100_name) == 0) ||
+             (strcmp("CurCwnd", tcp_names[a].web100_name) == 0) ||
+             (strcmp("MaxSsthresh", tcp_names[a].web100_name) == 0) ||
+             (strcmp("CurRwinRcvd", tcp_names[a].web100_name) == 0) ||
+             (strcmp("MaxCwnd", tcp_names[a].web100_name) == 0) ||
+             (strcmp("RcvWinScale", tcp_names[a].web100_name) == 0) ||
+             (strcmp("SndWinScale", tcp_names[a].web100_name) == 0) ||
+             (strcmp("MaxRTT", tcp_names[a].web100_name) == 0)) {
+      varValue = agg_vars_max(connNum, a, vars);
+      fprintf(file, "MAX(%s): %"VARtype"\n", var_name, varValue);
+    }
+    else {
+      varValue = agg_vars_sum(connNum, a, vars);
+      fprintf(file, "SUM(%s): %"VARtype"\n", var_name, varValue);
+    }
+  }
+
+  fclose(file);
+}
 
 /**
  * Routine to read snaplog file and determine the number of times the

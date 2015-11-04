@@ -27,6 +27,7 @@ path=/usr/sbin
 
 [ -f $path/web100srv ] || exit 0
 [ -f $path/fakewww ] || exit 0
+[ -f $path/ndt-flashpolicyd ] || exit 0
 
 RETVAL=0
 
@@ -120,11 +121,13 @@ rhstatus() {
 stop() {
 	stop_web100srv
 	stop_fakewww
+	stop_flashpolicyd 
 }
 
 start () {
 	start_web100srv
 	start_fakewww
+	start_flashpolicyd
 }
 
 restart() {

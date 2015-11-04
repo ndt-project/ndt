@@ -920,19 +920,23 @@ char * get_ISOtime(char *isoTime, int isotimearrsize) {
  * @param compress integer flag indicating whether log file compression
  * 			is enabled
  * @param cputime integer flag indicating if cputime trace logging is on
+ * @param snapshotting integer flag indicating if snapshotting is enabled
  * @param snaplog integer flag indicating if snaplogging is enabled
  * @param tcpdump integer flag indicating if tcpdump trace logging is on
+ * @param s2c_ThroughputSnapshots s2c throughput snapshots
+ * @param c2s_ThroughputSnapshots c2s throughput snapshots
  *
  * RAC 7/7/09
  */
 
-void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
+void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcpdump,
+        struct throughputSnapshot *s2c_ThroughputSnapshots, struct throughputSnapshot *c2s_ThroughputSnapshots) {
   FILE * fp;
   char tmpstr[256];
   // char dir[128];
   char dirpathstr[256]="";
   char *tempptr;
-  int ptrdiff = 0;
+  int ptrdiff = 0, i;
 
   // char isoTime[64];
   char filename[256];
@@ -988,7 +992,7 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
     log_println(5,
                 "Compression is enabled, compress all files in '%s' basedir",
                 dirpathstr);
-    if (snaplog) {  // if snaplog is enabled, compress those into .gz formats
+    if (snapshotting && snaplog) {  // if snaplog is enabled, compress those into .gz formats
       // Try compressing C->S test snaplogs
       memset(filename, 0, sizeof(filename));
       snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
@@ -1000,13 +1004,17 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
         strlcat(meta.c2s_snaplog, ".gz", sizeof(meta.c2s_snaplog));
 
       // Try compressing S->C test snaplogs
-      memset(filename, 0, sizeof(filename));
-      snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
-               meta.s2c_snaplog);
-      if (zlib_def(filename) != 0)
-        log_println(0, "compression failed for file :%s", filename);
-      else
-        strlcat(meta.s2c_snaplog, ".gz", sizeof(meta.s2c_snaplog));
+      for (i = 0; i < MAX_STREAMS; i++) {
+        if (meta.s2c_snaplog[i] && meta.s2c_snaplog[i][0]) {
+          memset(filename, 0, sizeof(filename));
+          snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
+                   meta.s2c_snaplog[i]);
+          if (zlib_def(filename) != 0)
+            log_println(0, "compression failed for file :%s", filename);
+          else
+            strlcat(meta.s2c_snaplog[i], ".gz", sizeof(meta.s2c_snaplog[i]));
+        }
+      }
     }
 
     // If tcpdump file writing is enabled, compress those
@@ -1059,9 +1067,10 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
     fprintf(fp, "Date/Time: %s\n", meta.date);
     fprintf(fp, "c2s_snaplog file: %s\n", meta.c2s_snaplog);
     fprintf(fp, "c2s_ndttrace file: %s\n", meta.c2s_ndttrace);
-    fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_snaplog);
+    fprintf(fp, "s2c_snaplog file: %s\n", meta.s2c_snaplog[0]);
     fprintf(fp, "s2c_ndttrace file: %s\n", meta.s2c_ndttrace);
     fprintf(fp, "cputime file: %s\n", meta.CPU_time);
+    fprintf(fp, "web values file: %s\n", meta.web_variables_log);
     fprintf(fp, "server IP address: %s\n", meta.server_ip);
     fprintf(fp, "server hostname: %s\n", meta.server_name);
     fprintf(fp, "server kernel version: %s\n", meta.server_os);
@@ -1077,6 +1086,20 @@ void writeMeta(int compress, int cputime, int snaplog, int tcpdump) {
       while (entry) {
         fprintf(fp, "%s: %s\n", entry->key, entry->value);
         entry = entry->next;
+      }
+    }
+    if (c2s_ThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = c2s_ThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        fprintf(fp, "c2s.throughput.snapshot.%0.2f: %f\n", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
+      }
+    }
+    if (s2c_ThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = s2c_ThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        fprintf(fp, "s2c.throughput.snapshot.%0.2f: %f\n", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
       }
     }
     fclose(fp);

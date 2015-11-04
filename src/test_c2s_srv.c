@@ -34,7 +34,7 @@
  * When the Client stops streaming the test data (or the server test routine times out),
  * the Server sends the Client its calculated throughput value.
  *
- * @param ctl Client control Connection
+ * @param ctlsockfd Client control socket descriptor
  * @param agent Web100 agent used to track the connection
  * @param testOptions Test options
  * @param conn_options connection options
@@ -49,37 +49,47 @@
  * @param spds[] [] speed check array
  * @param spd_index  index used for speed check array
  * @param conn_options Connection options
- * @param ctx The SSL context (possibly NULL)
- * @return 0 on success, an error code otherwise
- *         Error codes:
- *           -1 - Listener socket creation failed
- *           -100 - Timeout while waiting for client to connect to server's ephemeral port
- *           -101 - Retries exceeded while waiting for client to connect
- *           -102 - Retries exceeded while waiting for data from connected client
- *           -errno - Other specific socket error numbers
+ * @param c2s_ThroughputSnapshots Variable used to set c2s throughput snapshots
+ * @param extended indicates if extended c2s test should be performed
+ * @return 0 - success,
+ *          >0 - error code
+ *          Error codes:
+ *          -1 - Listener socket creation failed
+ *          -100 - timeout while waiting for client to connect to server�s ephemeral port
+ * 			-errno - Other specific socket error numbers
+ *			-101 - Retries exceeded while waiting for client to connect
+ *			-102 - Retries exceeded while waiting for data from connected client
+ *
  */
-int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
+int test_c2s(int ctlsockfd, tcp_stat_agent* agent, TestOptions* testOptions,
              int conn_options, double* c2sspd, int set_buff, int window,
              int autotune, char* device, Options* options, int record_reverse,
-             int count_vars, char spds[4][256], int* spd_index, SSL_CTX* ctx) {
+             int count_vars, char spds[4][256], int* spd_index,
+             struct throughputSnapshot **c2s_ThroughputSnapshots, int extended) {
   tcp_stat_connection conn;
   tcp_stat_group* group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
-  int recvsfd;  // receiver socket file descriptor
+  int recvsfd[MAX_STREAMS] = {0};  // receiver socket file descriptors
   pid_t c2s_childpid = 0;  // child process pids
   int msgretvalue, tmpbytecount;  // used during the "read"/"write" process
-  int i, j;  // used as loop iterators
+  int i, j, k;  // used as loop iterators
+  int retvalue = 0;
+  int streamsNum = 1;
+  int activeStreams = 1;
 
-  struct sockaddr_storage cli_addr;
-  Connection c2s_conn = {0, NULL};
+  struct sockaddr_storage cli_addr[MAX_STREAMS];
+  struct throughputSnapshot *lastThroughputSnapshot;
 
   socklen_t clilen;
   char tmpstr[256];  // string array used for all sorts of temp storage purposes
   double tmptime;  // time indicator
+  double throughputSnapshotTime; // specify the next snapshot time
+  double testDuration = 10; // default test duration
   double bytes_read = 0;  // number of bytes read during the throughput tests
   struct timeval sel_tv;  // time
-  fd_set rfd;  // receive file descriptor
+  fd_set rfd, tmpRfd;  // receive file descriptors
+  int maxFdn; // max file descriptor number (used in select method)
   char buff[BUFFSIZE + 1];  // message "payload" buffer
   PortPair pair;  // socket ports
   I2Addr c2ssrv_addr = NULL;  // c2s test's server address
@@ -97,19 +107,24 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
   wait_sig = 0;
 
   // Test ID and status descriptors
-  enum TEST_ID testids = C2S;
+  enum TEST_ID testids = extended ? C2S_EXT : C2S;
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
+  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
+  enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char namesuffix[256] = "c2s_snaplog";
 
-  if (testOptions->c2sopt) {
-    setCurrentTest(TEST_C2S);
+  if ((!extended && testOptions->c2sopt) || (extended && testOptions->c2sextopt)) {
+    if (extended)
+      setCurrentTest(TEST_C2S_EXT);
+    else
+      setCurrentTest(TEST_C2S);
     log_println(1, " <-- %d - C2S throughput test -->",
                 testOptions->child0);
     strlcpy(listenc2sport, PORT2, sizeof(listenc2sport));
 
     // log protocol validation logs
     teststatuses = TEST_STARTED;
-    protolog_status(testOptions->child0, testids, teststatuses, ctl->socket);
+    protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     // Determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port2 (3002).
@@ -146,11 +161,11 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
           0,
           "Server (C2S throughput test): CreateListenSocket failed: %s",
           strerror(errno));
-      snprintf(buff, sizeof(buff),
+      snprintf(buff,
+               sizeof(buff),
                "Server (C2S throughput test): CreateListenSocket failed: %s",
                strerror(errno));
-      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
-                            testOptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -158,7 +173,13 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     // run tests
     testOptions->c2ssockfd = I2AddrFD(c2ssrv_addr);
     testOptions->c2ssockport = I2AddrPort(c2ssrv_addr);
-    log_println(1, "  -- port: %d", testOptions->c2ssockport);
+    log_println(1, "  -- c2s %d port: %d", testOptions->child0, testOptions->c2ssockport);
+    if (extended) {
+      log_println(1, "  -- c2s ext -- duration = %d", options->c2s_duration);
+      log_println(1, "  -- c2s ext -- throughput snapshots: enabled = %s, delay = %d, offset = %d",
+                          options->c2s_throughputsnaps ? "true" : "false", options->c2s_snapsdelay, options->c2s_snapsoffset);
+      log_println(1, "  -- c2s ext -- number of streams: %d", options->c2s_streamsnum);
+    }
     pair.port1 = testOptions->c2ssockport;
     pair.port2 = -1;
 
@@ -172,14 +193,17 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
         "Sending 'GO' signal, to tell client %d to head for the next test",
         testOptions->child0);
     snprintf(buff, sizeof(buff), "%d", testOptions->c2ssockport);
+    if (extended) {
+      snprintf(buff, sizeof(buff), "%d %d %d %d %d %d", testOptions->c2ssockport,
+                     options->c2s_duration, options->c2s_throughputsnaps,
+                     options->c2s_snapsdelay, options->c2s_snapsoffset, options->c2s_streamsnum);
+      lastThroughputSnapshot = NULL;
+    }
 
     // send TEST_PREPARE message with ephemeral port detail, indicating start
     // of tests
-    if ((msgretvalue = send_json_message_any(
-             ctl, TEST_PREPARE, buff, strlen(buff),
-             testOptions->connection_flags, JSON_SINGLE_VALUE)) < 0) {
-      log_println(2, "Child %d could not send details about ephemeral port",
-                  getpid());
+    if ((msgretvalue = send_json_message(ctlsockfd, TEST_PREPARE, buff,
+                                strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE)) < 0) {
       return msgretvalue;
     }
 
@@ -192,107 +216,114 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     FD_SET(testOptions->c2ssockfd, &rfd);
     sel_tv.tv_sec = 5;
     sel_tv.tv_usec = 0;
+    i = 0;
+    if (extended) {
+      streamsNum = options->c2s_streamsnum;
+      testDuration = options->c2s_duration / 1000.0;
+    }
 
-    for (j = 0; j < RETRY_COUNT; j++) {
-      msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL,
-                           &sel_tv);
+    for (j = 0; j < RETRY_COUNT * streamsNum; j++) {
+      msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL, &sel_tv); // TODO
       // socket interrupted. continue waiting for activity on socket
       if ((msgretvalue == -1) && (errno == EINTR))
         continue;
       if (msgretvalue == 0)  // timeout
-        return -SOCKET_CONNECT_TIMEOUT;
+        retvalue = -SOCKET_CONNECT_TIMEOUT;
       if (msgretvalue < 0)  // other socket errors. exit
-        return -errno;
-      if (j == (RETRY_COUNT - 1))  // retry exceeded. exit
-        return -RETRY_EXCEEDED_WAITING_CONNECT;
+        retvalue = -errno;
+      if (j == (RETRY_COUNT*streamsNum - 1))  // retry exceeded. exit
+        retvalue = -RETRY_EXCEEDED_WAITING_CONNECT;
+      if (!retvalue) {
  recfd:
 
-      // If a valid connection request is received, client has connected.
-      // The new connection (c2s_conn) should be used in the throughput test.
-      c2s_conn.socket = accept(testOptions->c2ssockfd,
-                               (struct sockaddr *)&cli_addr, &clilen);
-      if (c2s_conn.socket > 0) {
-        log_println(6, "accept() for %d completed", testOptions->child0);
+        // If a valid connection request is received, client has connected.
+        // Proceed.  Note the new socket fd - recvsfd- used in the throughput test
+        recvsfd[i] = accept(testOptions->c2ssockfd, (struct sockaddr *) &cli_addr[i], &clilen);
+        if (recvsfd[i] > 0) {
+          i++;
+          log_println(6, "accept(%d/%d) for %d completed", i, streamsNum, testOptions->child0);
 
-        // log protocol validation indicating client accept
-        protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
-                            PROCESS_STARTED, c2s_conn.socket);
-        if (testOptions->connection_flags & TLS_SUPPORT) {
-          errno = setup_SSL_connection(&c2s_conn, ctx);
-          if (errno != 0) return -errno;
-        }
-        // To preserve user privacy, make sure that the HTTP header
-        // processing is done prior to the start of packet capture.
-        if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
-          if (initialize_websocket_connection(&c2s_conn, 0, "c2s") != 0) {
-            log_println(2, "Child %d failed to init websocket", getpid());
-            shutdown_connection(&c2s_conn);
-            return -EIO;
+          if (i < streamsNum) {
+            continue;
           }
+
+          // log protocol validation indicating client accept
+          procstatusenum = PROCESS_STARTED;
+          proctypeenum = CONNECT_TYPE;
+          protolog_procstatus(testOptions->child0, testids, proctypeenum, procstatusenum, recvsfd[0]);
+          // To preserve user privacy, make sure that the HTTP header
+          // processing is done prior to the start of packet capture, as many
+          // browsers have headers that uniquely identitfy a single user.
+          if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
+            if (initialize_websocket_connection(recvsfd[i], 0, "c2s") != 0) {
+              recvsfd[i] = 0;
+            }
+          }
+          break;
         }
-        break;
-      }
-      // socket interrupted, wait some more
-      if ((c2s_conn.socket == -1) && (errno == EINTR)) {
+        // socket interrupted, wait some more
+        if ((recvsfd[i] == -1) && (errno == EINTR)) {
+          log_println(
+              6,
+              "Child %d interrupted while waiting for accept() to complete",
+              testOptions->child0);
+          goto recfd;
+        }
         log_println(
             6,
-            "Child %d interrupted while waiting for accept() to complete",
-            testOptions->child0);
-        goto recfd;
+            "-------     C2S connection setup for %d returned because (%d)",
+            testOptions->child0, errno);
+        if (recvsfd[i] < 0) {  // other socket errors, quit
+          retvalue =  -errno;
+        }
+        if (j == (RETRY_COUNT*streamsNum - 1)) {  // retry exceeded, quit
+          log_println(
+              6,
+              "c2s child %d, unable to open connection, return from test",
+              testOptions->child0);
+          retvalue = RETRY_EXCEEDED_WAITING_DATA;
+        }
       }
-      log_println(
-          6,
-          "-------     C2S connection setup for %d returned because (%d)",
-          testOptions->child0, errno);
-      if (c2s_conn.socket < 0) {  // other socket errors, quit
-        return -errno;
-      }
-      if (j == (RETRY_COUNT - 1)) {  // retry exceeded, quit
-        log_println(
-            6,
-            "c2s child %d, uable to open connection, return from test",
-            testOptions->child0);
-        return -RETRY_EXCEEDED_WAITING_DATA;
+
+      if (retvalue) {
+        for (k = 0; k < streamsNum; k++) {
+          if (recvsfd[k] > 0)
+            close(recvsfd[i]);
+        }
+
+        return retvalue;
       }
     }
 
     // Get address associated with the throughput test. Used for packet tracing
-    log_println(6, "child %d - c2s ready for test with fd=%d",
-                testOptions->child0, c2s_conn.socket);
+    log_println(6, "child %d - c2s ready for test with fd=%d", testOptions->child0, recvsfd[0]);
 
     // commenting out below to move to init_pkttrace function
-    I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), c2s_conn.socket, 0);
+    I2Addr src_addr = I2AddrByLocalSockFD(get_errhandle(), recvsfd[0], 0);
 
     // Get tcp_stat connection. Used to collect tcp_stat variable statistics
-    conn = tcp_stat_connection_from_socket(agent, c2s_conn.socket);
+    conn = tcp_stat_connection_from_socket(agent, recvsfd[0]);
 
     // set up packet tracing. Collected data is used for bottleneck link
     // calculations
     if (getuid() == 0) {
-      /*
-         pipe(mon_pipe1);
-         log_println(0, "%s test calling pkt_trace_start() with pd=%d for device %s, addr %s",
-         currenttestdesc, clilen, device , src_addr);
-
-         start_packet_trace(recvsfd, testOptions->c2ssockfd, &c2s_childpid,
-         mon_pipe1, (struct sockaddr *) &cli_addr, clilen, device,
-         &pair, currenttestdesc, options->compress, meta.c2s_ndttrace);
-         */
-
       if (pipe(mon_pipe) != 0) {
         log_println(0, "C2S test error: can't create pipe.");
       } else {
         if ((c2s_childpid = fork()) == 0) {
+          /* close(ctlsockfd); */
           close(testOptions->c2ssockfd);
-          close_connection(&c2s_conn);
+          for (i = 0; i < streamsNum; i++) {
+            close(recvsfd[i]);
+          }
           log_println(
               5,
               "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
               testOptions->child0, mon_pipe[0], mon_pipe[1]);
           log_println(2, "C2S test calling init_pkttrace() with pd=%p",
-                      &cli_addr);
-          init_pkttrace(src_addr, (struct sockaddr *) &cli_addr, clilen,
-                        mon_pipe, device, &pair, "c2s", options->compress);
+                      &cli_addr[0]);
+          init_pkttrace(src_addr, cli_addr, streamsNum, clilen,
+                        mon_pipe, device, &pair, "c2s", options->c2s_duration / 1000.0);
           log_println(1, "c2s is exiting gracefully");
           /* Close the pipe */
           close(mon_pipe[0]);
@@ -327,17 +358,14 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // Create C->S snaplog directories, and perform some initialization based on
     // options
-    create_client_logdir((struct sockaddr *) &cli_addr, clilen,
+    create_client_logdir((struct sockaddr *) &cli_addr[0], clilen,
                          options->c2s_logname, sizeof(options->c2s_logname),
-                         namesuffix, sizeof(namesuffix));
-    // At 150k tests per day, this one sleep(2) wastes 83 hours of peoples'
-    // lives every day.
-    // TODO: solve the race conditions some other way.
+                         namesuffix,
+                         sizeof(namesuffix));
     sleep(2);
 
     // send empty TEST_START indicating start of the test
-    send_json_message_any(ctl, TEST_START, "", 0, testOptions->connection_flags,
-                          JSON_SINGLE_VALUE);
+    send_json_message(ctlsockfd, TEST_START, "", 0, testOptions->connection_flags, JSON_SINGLE_VALUE);
     /* alarm(30); */  // reset alarm() again, this 10 sec test should finish
                       // before this signal is generated.
 
@@ -346,42 +374,74 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     // This block is needed here since the meta file stores names without the
     // full directory but fopen needs full path. Else, it could have gone into
     // the "start_snap_worker" method
-    if (options->snaplog) {
+    if (options->snapshots && options->snaplog) {
       memcpy(meta.c2s_snaplog, namesuffix, strlen(namesuffix));
       /*start_snap_worker(&snapArgs, agent, options->snaplog, &workerLoop,
         &workerThreadId, meta.c2s_snaplog, options->c2s_logname,
         conn, group); */
     }
-    start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
-                      meta.c2s_snaplog, options->c2s_logname, conn, group);
+    if (options->snapshots)
+      start_snap_worker(&snapArgs, agent, NULL, options->snaplog, &workerThreadId,
+                        options->c2s_logname, conn, group);
     // Wait on listening socket and read data once ready.
     tmptime = secs();
-    sel_tv.tv_sec = 11;  // time out after 11 seconds
+    throughputSnapshotTime = tmptime + (options->c2s_snapsoffset / 1000.0);
+    sel_tv.tv_sec = testDuration + 1;  // time out after test duration + 1sec
     sel_tv.tv_usec = 0;
     FD_ZERO(&rfd);
-    FD_SET(c2s_conn.socket, &rfd);
+    activeStreams = streamsNum;
+    for (i = 0; i < streamsNum; i++) {
+      FD_SET(recvsfd[i], &rfd);
+    }
     for (;;) {
-      msgretvalue = select(c2s_conn.socket + 1, &rfd, NULL, NULL, &sel_tv);
+readMainLoop:
+      // find file descriptor with highest number
+      maxFdn = 0;
+      for (i = 0; i < streamsNum; i++) {
+        if (FD_ISSET(recvsfd[i], &rfd) && recvsfd[i] > maxFdn)
+          maxFdn = recvsfd[i];
+      }
+      tmpRfd = rfd;
+      msgretvalue = select(maxFdn + 1, &tmpRfd, NULL, NULL, &sel_tv);
+    if (extended && options->c2s_throughputsnaps && secs() > throughputSnapshotTime) {
+      if (lastThroughputSnapshot != NULL) {
+        lastThroughputSnapshot->next = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+        lastThroughputSnapshot = lastThroughputSnapshot->next;
+      }
+      else {
+        *c2s_ThroughputSnapshots = lastThroughputSnapshot = (struct throughputSnapshot*) malloc(sizeof(struct throughputSnapshot));
+      }
+      lastThroughputSnapshot->next = NULL;
+      lastThroughputSnapshot->time = secs() - tmptime;
+      lastThroughputSnapshot->throughput = (8.e-3 * bytes_read) / (lastThroughputSnapshot->time);  // kbps
+      log_println(6, " ---C->S: Throughput at %0.2f secs: Received %0.0f bytes, Spdin= %f",
+                     lastThroughputSnapshot->time, bytes_read, lastThroughputSnapshot->throughput);
+      throughputSnapshotTime += options->c2s_snapsdelay / 1000.0;
+    }
       if ((msgretvalue == -1) && (errno == EINTR)) {
         // socket interrupted. Continue waiting for activity on socket
         continue;
       }
-      if (msgretvalue > 0) {
-	// Use read or SSL_read in their raw forms.  We want this to go as fast
-	// as possible and we do not care about the contents of buff.
-        if (c2s_conn.ssl != NULL) {
-          tmpbytecount = SSL_read(c2s_conn.ssl, buff, sizeof(buff));
-        } else {
-          tmpbytecount = read(c2s_conn.socket, buff, sizeof(buff));
+      if (msgretvalue > 0) {  // read from socket
+        for (i = 0; i < streamsNum; i++) {
+          if (FD_ISSET(recvsfd[i], &tmpRfd)) {
+            tmpbytecount = read(recvsfd[i], buff, sizeof(buff));
+            // read interrupted, continue waiting
+            if ((tmpbytecount == -1) && (errno == EINTR))
+              goto readMainLoop;
+            if (tmpbytecount == 0) { // all data has been read
+               activeStreams--;
+               FD_CLR(recvsfd[i], &rfd);
+               if (activeStreams == 0) {
+                 goto breakMainLoop;
+               }
+            }
+            bytes_read += tmpbytecount;  // data byte count has to be increased
+          }
         }
-        // read interrupted, continue waiting
-        if ((tmpbytecount == -1) && (errno == EINTR))
-          continue;
-        if (tmpbytecount == 0)  // all data has been read
-          break;
-        bytes_read += tmpbytecount;  // data byte count has to be increased
         continue;
       }
+breakMainLoop:
       break;
     }
 
@@ -392,22 +452,33 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
 
     // c->s throuput value calculated and assigned ! Release resources, conclude
     // snap writing.
-    stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
+    if (options->snapshots)
+      stop_snap_worker(&workerThreadId, options->snaplog, &snapArgs);
 
     // send the server calculated value of C->S throughput as result to client
     snprintf(buff, sizeof(buff), "%6.0f kbps outbound for child %d", *c2sspd,
              testOptions->child0);
     log_println(1, "%s", buff);
     snprintf(buff, sizeof(buff), "%0.0f", *c2sspd);
-    send_json_message_any(ctl, TEST_MSG, buff, strlen(buff),
-                          testOptions->connection_flags, JSON_SINGLE_VALUE);
+    if (extended && options->c2s_throughputsnaps && *c2s_ThroughputSnapshots != NULL) {
+      struct throughputSnapshot *snapshotsPtr = *c2s_ThroughputSnapshots;
+      while (snapshotsPtr != NULL) {
+        int currBuffLength = strlen(buff);
+        snprintf(&buff[currBuffLength], sizeof(buff)-currBuffLength, " %0.2f %0.2f", snapshotsPtr->time, snapshotsPtr->throughput);
+        snapshotsPtr = snapshotsPtr->next;
+      }
+    }
+    send_json_message(ctlsockfd, TEST_MSG, buff, strlen(buff), testOptions->connection_flags, JSON_SINGLE_VALUE);
 
     // get receiver side Web100 stats and write them to the log file. close
     // sockets
     if (record_reverse == 1)
-      tcp_stat_get_data_recv(c2s_conn.socket, agent, conn, count_vars);
+      tcp_stat_get_data_recv(recvsfd[0], agent, conn, count_vars);
 
-    shutdown_connection(&c2s_conn);
+
+    for (i = 0; i < streamsNum; i++) {
+      close(recvsfd[i]);
+    }
     close(testOptions->c2ssockfd);
 
     // Next, send speed-chk a flag to retrieve the data it collected.
@@ -466,8 +537,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     }
 
     // An empty TEST_FINALIZE message is sent to conclude the test
-    send_json_message_any(ctl, TEST_FINALIZE, "", 0,
-                          testOptions->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, testOptions->connection_flags, JSON_SINGLE_VALUE);
 
     //  Close opened resources for packet capture
     if (getuid() == 0) {
@@ -478,7 +548,7 @@ int test_c2s(Connection* ctl, tcp_stat_agent* agent, TestOptions* testOptions,
     log_println(1, " <----------- %d -------------->", testOptions->child0);
     // protocol logs
     teststatuses = TEST_ENDED;
-    protolog_status(testOptions->child0, testids, teststatuses, ctl->socket);
+    protolog_status(testOptions->child0, testids, teststatuses, ctlsockfd);
 
     // set current test status and free address
     setCurrentTest(TEST_NONE);
