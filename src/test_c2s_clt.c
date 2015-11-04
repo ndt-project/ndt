@@ -130,6 +130,7 @@ int test_c2s_clt(int ctlSocket, char tests, char* host, int conn_options,
     // Server sends port number to bind to in the TEST_PREPARE. Check if this
     // message body (string) is a valid integral port number.
     if (extended) {
+      fprintf(stderr, "BUFF = %s\n", buff);
       strtokptr = strtok(buff, " ");
       c2sport = atoi(strtokptr);
       strtokptr = strtok(NULL, " ");

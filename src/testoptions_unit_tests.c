@@ -150,7 +150,6 @@ void test_initialize_websocket_tests() {
   websocket_payload[1] = 0;
   websocket_payload[2] = strlen((char*)&(websocket_payload[3]));
   websocket_header[1] |= websocket_payload_len;
-  fprintf(stderr, "Predicted length = %d\n", websocket_header[1] & 0x7F);
   for (i = 0; i < websocket_payload_len; i++) {
     websocket_payload[i] ^= websocket_header[2 + (i % 4)];
   }
@@ -171,7 +170,7 @@ void test_initialize_websocket_tests() {
 }
 
 int main() {
-  set_debuglvl(1024);
+  set_debuglvl(-1);
   return RUN_TEST(test_initialize_MSG_LOGIN_tests) |
          RUN_TEST(test_initialize_MSG_EXTENDED_LOGIN_tests) |
          RUN_TEST(test_initialize_websocket_tests);

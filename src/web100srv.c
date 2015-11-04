@@ -160,6 +160,9 @@ typedef char ServerWakeupMessage;
 // The file descriptor used to signal the main server process.
 static int global_signalfd_write;
 
+// Whether extended c2s and s2c tests should be allowed.
+static int global_extended_tests_allowed = 1;
+
 // When we support multiple clients, grow the queue by a constant factor
 #define QUEUE_SIZE_MULTIPLIER 4
 
@@ -180,22 +183,11 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
 #ifdef EXPERIMENTAL_ENABLED
                                        {"avoidsndblockup", 0, 0, 306},
                                        {"snaplog", 0, 0, 307},
-  { "disablesnaps", 0, 0, 325},
                                        {"snapdelay", 1, 0, 305},
                                        {"cwnddecrease", 0, 0, 308},
                                        {"cputime", 0, 0, 309},
                                        {"limit", 1, 0, 'y'},
 #endif
-  { "c2sduration", 1, 0, 314},
-  { "c2sthroughputsnaps", 0, 0, 315},
-  { "c2ssnapsdelay", 1, 0, 316},
-  { "c2ssnapsoffset", 1, 0, 317},
-  { "c2sstreamsnum", 1, 0, 322},
-  { "s2cduration", 1, 0, 318},
-  { "s2cthroughputsnaps", 0, 0, 319},
-  { "s2csnapsdelay", 1, 0, 320},
-  { "s2csnapsoffset", 1, 0, 321},
-  { "s2cstreamsnum", 1, 0, 323},
                                        {"buffer", 1, 0, 'b'},
                                        {"file", 1, 0, 'f'},
                                        {"interface", 1, 0, 'i'},
@@ -206,24 +198,36 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"midport", 1, 0, 302},
                                        {"c2sport", 1, 0, 303},
                                        {"s2cport", 1, 0, 304},
-                                       {"refresh", 1, 0, 'T'},
-                                       {"adminfile", 1, 0, 'A'},
-                                       {"log_dir", 1, 0, 'L'},
-                                       {"logfacility", 1, 0, 'S'},
-  { "savewebvalues", 0, 0, 324},
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
                                        {"enableDBlogging", 0, 0, 310},
                                        {"dbDSN", 1, 0, 311},
                                        {"dbUID", 1, 0, 312},
                                        {"dbPWD", 1, 0, 313},
 #endif
+                                       {"refresh", 1, 0, 'T'},
+                                       {"adminfile", 1, 0, 'A'},
+                                       {"log_dir", 1, 0, 'L'},
+                                       {"logfacility", 1, 0, 'S'},
+                                       {"c2sduration", 1, 0, 314},
+                                       {"c2sthroughputsnaps", 0, 0, 315},
+                                       {"c2ssnapsdelay", 1, 0, 316},
+                                       {"c2ssnapsoffset", 1, 0, 317},
+                                       {"c2sstreamsnum", 1, 0, 322},
+                                       {"s2cduration", 1, 0, 318},
+                                       {"s2cthroughputsnaps", 0, 0, 319},
+                                       {"s2csnapsdelay", 1, 0, 320},
+                                       {"s2csnapsoffset", 1, 0, 321},
+                                       {"s2cstreamsnum", 1, 0, 323},
+                                       {"logfacility", 1, 0, 'S' },
+                                       {"savewebvalues", 0, 0, 324},
 #ifdef AF_INET6
                                        {"ipv4", 0, 0, '4'},
                                        {"ipv6", 0, 0, '6'},
 #endif
-                                       {"tls", 0, 0, 314},
-                                       {"private_key", 1, 0, 315},
-                                       {"certificate", 1, 0, 316},
+                                       {"tls", 0, 0, 325},
+                                       {"private_key", 1, 0, 326},
+                                       {"certificate", 1, 0, 327},
+                                       {"disable_extended_tests", 0, 0, 328},
                                        {0, 0, 0, 0}};
 
 /**
@@ -790,7 +794,8 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   log_println(6, "Starting c2s throughput test");
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd, set_buff,
                       window, autotune, device, &options, record_reverse,
-                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots, 0)) != 0) {
+                      count_vars, spds, &spd_index, ssl_context,
+                      &c2s_ThroughputSnapshots, 0)) != 0) {
     if (ret < 0)
       log_println(6, "C2S test failed with rc=%d", ret);
     log_println(0, "C2S throughput test FAILED!, rc=%d", ret);
@@ -799,9 +804,10 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended c2s throughput test");
-  if ((ret = test_c2s(ctlsockfd, agent, &*testopt, conn_options, &c2sspd,
+  if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
-                      record_reverse, count_vars, spds, &spd_index, &c2s_ThroughputSnapshots, 1)) != 0) {
+                      record_reverse, count_vars, spds, &spd_index,
+                      ssl_context, &c2s_ThroughputSnapshots, 1)) != 0) {
     if (ret < 0)
       log_println(6, "Extended C2S test failed with rc=%d", ret);
     log_println(0, "Extended C2S throughput test FAILED!, rc=%d", ret);
@@ -813,7 +819,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   log_println(6, "Starting s2c throughput test");
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots, 0)) != 0) {
+                      &spd_index, count_vars, &peaks, ssl_context, &s2c_ThroughputSnapshots, 0)) != 0) {
     if (ret < 0)
       log_println(6, "S2C test failed with rc=%d", ret);
     log_println(0, "S2C throughput test FAILED!, rc=%d", ret);
@@ -822,9 +828,10 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended s2c throughput test");
-  if ((ret = test_s2c(ctlsockfd, agent, &*testopt, conn_options, &s2cspd,
+  if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
-                      &spd_index, count_vars, &peaks, &s2c_ThroughputSnapshots, 1)) != 0) {
+                      &spd_index, count_vars, &peaks, ssl_context,
+                      &s2c_ThroughputSnapshots, 1)) != 0) {
     if (ret < 0)
       log_println(6, "Extended S2C test failed with rc=%d", ret);
     log_println(0, "Extended S2C throughput test FAILED!, rc=%d", ret);
@@ -833,7 +840,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting META test");
-  if ((ret = test_meta_srv(ctlsockfd, agent, &*testopt, conn_options, &options)) != 0) {
+  if ((ret = test_meta_srv(ctl, agent, testopt, conn_options, &options)) != 0) {
     if (ret < 0) {
       log_println(6, "META test failed with rc=%d", ret);
     }
@@ -906,10 +913,12 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   // get fraction of total test time waiting for packets to arrive
   RTOidle = calc_RTOIdle(vars[0].Timeouts, vars[0].CurrentRTO, timesec);
 
+  // get timeout, retransmission, acks and dup acks ratios.
   /*tmoutsratio = (double) vars[0].Timeouts / vars[0].PktsOut;
   rtranratio = (double) vars[0].PktsRetrans / vars[0].PktsOut;
   acksratio = (double) vars[0].AckPktsIn / vars[0].PktsOut;
   dackratio = (double) vars[0].DupAcksIn / (double) vars[0].AckPktsIn;*/
+
   // get actual throughput in Mbps (totaltime is in microseconds)
   realthruput = calc_real_throughput(vars[0].DataBytesOut, totaltime);
 
@@ -1389,6 +1398,7 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   int t_opts = 0;
   int retcode = 0, parent_message;
   char test_suite[256];
+  int alarm_time = 120;
   tcp_stat_agent *agent;
   Connection ctl = {0, NULL};
   ctl.socket = ctlsockfd;
@@ -1454,6 +1464,12 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
         memset(cputimelog, 0, 256);
       }
     }
+    memset(webVarsValuesLog, 0, 256);
+    if (webVarsValues) {
+      snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort, TCP_STAT_NAME);
+      create_named_logdir(webVarsValuesLog, sizeof(webVarsValuesLog), dir, 0);
+      memcpy(meta.web_variables_log, dir, strlen(dir));
+    }
   }
 
   // write the incoming connection data into the log file
@@ -1478,8 +1494,16 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   if (t_opts & TEST_META) testopt.metaopt = TOPT_ENABLED;
   if (t_opts & TEST_C2S) testopt.c2sopt = TOPT_ENABLED;
   if (t_opts & TEST_S2C) testopt.s2copt = TOPT_ENABLED;
+  if (global_extended_tests_allowed && t_opts & TEST_C2S_EXT) {
+    testopt.c2sextopt = TOPT_ENABLED;
+    alarm_time += options.c2s_duration / 1000.0;
+  }
+  if (global_extended_tests_allowed && t_opts & TEST_S2C_EXT) {
+    testopt.s2cextopt = TOPT_ENABLED;
+    alarm_time += options.s2c_duration / 1000.0;
+  }
   // die in 120 seconds, but only if a test doesn't get started
-  alarm(120);
+  alarm(alarm_time);
   // reset alarm() before every test
   log_println(6,
               "setting master alarm() to 120 seconds, tests must start "
@@ -1948,8 +1972,6 @@ int main(int argc, char **argv) {
   int c, i;
   struct sigaction new;
   char *lbuf = NULL, *ctime();
-  char* testsBuff[32];
-  char test_suite[24];
   FILE *fp;
   size_t lbuf_max = 0;
   char *private_key_file = NULL;
@@ -1972,10 +1994,13 @@ int main(int argc, char **argv) {
 
   memset(&options, 0, sizeof(options));
   options.snapDelay = 5;
-
+  options.avoidSndBlockUp = 0;
+  options.snaplog = 0;
   options.snapshots = 1;
+  options.cwndDecrease = 0;
   for (i = 0; i < MAX_STREAMS; i++)
     memset(options.s2c_logname[i], 0, 256);
+  memset(options.c2s_logname, 0, 256);
   options.c2s_duration = 10000;
   options.c2s_throughputsnaps = 0;
   options.c2s_snapsdelay = 5000;
@@ -1986,6 +2011,7 @@ int main(int argc, char **argv) {
   options.s2c_snapsdelay = 5000;
   options.s2c_snapsoffset = 1000;
   options.s2c_streamsnum = 1;
+
   peaks.min = -1;
   peaks.max = -1;
   peaks.amount = -1;
@@ -2176,9 +2202,6 @@ int main(int argc, char **argv) {
       case 307:
         options.snaplog = 1;
         break;
-                  case 325:
-                    options.snapshots = 0;
-                    break;
       case 309:
         cputime = 1;
         break;
@@ -2194,47 +2217,47 @@ int main(int argc, char **argv) {
       case 313:
         dbPWD = optarg;
         break;
-                  case 314:
-                    options.c2s_duration = atoi(optarg);
-                    break;
-                  case 315:
-                    options.c2s_throughputsnaps = 1;
-                    break;
-                  case 316:
-                    options.c2s_snapsdelay = atoi(optarg);
-                    break;
-                  case 317:
-                    options.c2s_snapsoffset = atoi(optarg);
-                    break;
-                  case 322:
-                    if (check_rint(optarg, &options.c2s_streamsnum, 1, 7)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for upload test: %s", optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    break;
-                  case 318:
-                    options.s2c_duration = atoi(optarg);
-                    break;
-                  case 319:
-                    options.s2c_throughputsnaps = 1;
-                    break;
-                  case 320:
-                    options.s2c_snapsdelay = atoi(optarg);
-                    break;
-                  case 321:
-                    options.s2c_snapsoffset = atoi(optarg);
-                    break;
-                  case 323:
-                    if (check_rint(optarg, &options.s2c_streamsnum, 1, 7)) {
-                      char tmpText[200];
-                      snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for download test: %s", optarg);
-                      short_usage(argv[0], tmpText);
-                    }
-                    break;
-                  case 324:
-                    webVarsValues = 1;
-                    break;
+      case 314:
+        options.c2s_duration = atoi(optarg);
+        break;
+      case 315:
+        options.c2s_throughputsnaps = 1;
+        break;
+      case 316:
+        options.c2s_snapsdelay = atoi(optarg);
+        break;
+      case 317:
+        options.c2s_snapsoffset = atoi(optarg);
+        break;
+      case 322:
+        if (check_rint(optarg, &options.c2s_streamsnum, 1, 7)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for upload test: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 318:
+        options.s2c_duration = atoi(optarg);
+        break;
+      case 319:
+        options.s2c_throughputsnaps = 1;
+        break;
+      case 320:
+        options.s2c_snapsdelay = atoi(optarg);
+        break;
+      case 321:
+        options.s2c_snapsoffset = atoi(optarg);
+        break;
+      case 323:
+        if (check_rint(optarg, &options.s2c_streamsnum, 1, 7)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText), "Invalid number of streams for download test: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
+        break;
+      case 324:
+        webVarsValues = 1;
+        break;
       case 'T':
         refresh = atoi(optarg);
         break;
@@ -2247,14 +2270,17 @@ int main(int argc, char **argv) {
       case 'S':
         SysLogFacility = optarg;
         break;
-      case 314:
+      case 325:
         options.tls = 1;
         break;
-      case 315:
+      case 326:
         private_key_file = optarg;
         break;
-      case 316:
+      case 327:
         certificate_file = optarg;
+        break;
+      case 328:
+        global_extended_tests_allowed = 0;
         break;
       case '?':
         short_usage(argv[0], "");
@@ -2285,9 +2311,9 @@ int main(int argc, char **argv) {
 
   if (getuid() != 0) {
     log_print(
-        0, "Warning: This program must be run as root to enable the Link Type");
+        1, "Warning: This program must be run as root to enable the Link Type");
     log_println(
-        0,
+        1,
         " detection algorithm.\nContinuing execution without this algorithm");
   }
 
@@ -2434,27 +2460,9 @@ int main(int argc, char **argv) {
   pipe(signalfd_pipe);
   signalfd_read = signalfd_pipe[0];
   global_signalfd_write = signalfd_pipe[1];
+
   NDT_server_main_loop(ssl_context, listenfd, signalfd_read);
   return 0;
-              snprintf(testsBuff, sizeof(testsBuff), "%d", t_opts);
-              memcpy(test_suite, buff+3+strlen(testsBuff), (strlen(buff+3+strlen(testsBuff))));
-              log_println(5, "extrafing test_suite '%s' and t_opts '%x' from "
-                  snprintf(dir, sizeof(dir), "%s_%s:%d.cputime", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort);
-                memset(webVarsValuesLog, 0, 256);
-                if (webVarsValues) {
-                  snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort, TCP_STAT_NAME);
-                  create_named_logdir(webVarsValuesLog, sizeof(webVarsValuesLog), dir, 0);
-                  memcpy(meta.web_variables_log, dir, strlen(dir));
-                }
-              int alarmTime = 120;
-              if (t_opts & TEST_C2S_EXT) {
-                testopt.c2sextopt = TOPT_ENABLED;
-                alarmTime += options.c2s_duration / 1000.0;
-              } else if (t_opts & TEST_C2S)
-              if (t_opts & TEST_S2C_EXT) {
-                testopt.s2cextopt = TOPT_ENABLED;
-                alarmTime += options.s2c_duration / 1000.0;
-              } else if (t_opts & TEST_S2C)
 }
 #endif  // USE_WEB100SRV_ONLY_AS_LIBRARY
 
