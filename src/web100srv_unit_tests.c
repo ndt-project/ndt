@@ -22,8 +22,8 @@ pid_t start_server(int port, char **extra_args) {
   char port_string[6];  // 32767 is the max port, so must hold 5 digits + \0
   int rv;
   char *args_for_exec[256] = {"./web100srv", "--port", NULL};
+  int exec_args_index = 0;
   // Should be set to the first index of args_for_exec that is NULL
-  int exec_args_index = 0;  
   while (args_for_exec[exec_args_index] != NULL) exec_args_index++;
   log_print(1, "Starting the server\n");
   if ((server_pid = fork()) == 0) {
@@ -39,13 +39,17 @@ pid_t start_server(int port, char **extra_args) {
     FAIL("The server should never return - it should only be killed.");
     exit(1);
   }
-  // Wait until the server port (hopefully) becomes available
+  // Wait until the server port (hopefully) becomes available. The server PID is
+  // available imeediately, but we need to make sure to lose the race condition
+  // with the server startup process, so that the NDT port is open and ready to
+  // receive traffic and we won't begin the test before the server's startup
+  // routines are complete.
   sleep(1);
   // Double-check that the server didn't crash on startup.
   server_status.si_pid = 0;
   rv = waitid(P_PID, server_pid, &server_status, WEXITED | WSTOPPED | WNOHANG);
   ASSERT(rv == 0 && server_status.si_pid == 0,
-         "The server did not start successfully");
+         "The server did not start successfully (exit code %d)", rv);
   return server_pid;
 }
 
@@ -296,7 +300,7 @@ int main() {
   // that are not relevant to their current task.  Running the full suite can
   // take a long time and can add unwanted latency to a compile-run-debug
   // cycle.
-  return 
+  return
       RUN_TEST(test_is_child_process_alive) ||
       RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||
       RUN_LONG_TEST(test_run_all_tests_node, "30 seconds") ||

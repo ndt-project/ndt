@@ -1468,7 +1468,13 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
     if (webVarsValues) {
       snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort, TCP_STAT_NAME);
       create_named_logdir(webVarsValuesLog, sizeof(webVarsValuesLog), dir, 0);
-      strncpy(meta.web_variables_log, dir, strlen(dir) + 1);
+      if (sizeof(meta.web_variables_log) >= (strlen(dir) + 1)) {
+        strncpy(meta.web_variables_log, dir, strlen(dir) + 1);
+      } else {
+	log_println(
+             0,
+            "Not enough space in meta.web_variables_log to store dir.");
+      }
     }
   }
 

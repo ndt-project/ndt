@@ -49,7 +49,7 @@ typedef struct s2cServerStream {
   SnapArgs snapArgs;
   pthread_t workerThreadId;
 } S2CServerStream;
- 
+
 void* s2cWriteWorker(void* arg);
 
 const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
@@ -136,7 +136,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
   int streamsNum = 1;
-  int stream, retries;
+  int stream, attempts;
   pid_t s2c_childpid = 0;  // s2c_childpid
 
   char tmpstr[256];  // string array used for temp storage of many char*
@@ -306,10 +306,11 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       streamsNum = options->s2c_streamsnum;
       testDuration = options->s2c_duration / 1000.0;
     }
- 
-    for (stream = 0, retries = 0;
-         retries < RETRY_COUNT * streamsNum && stream < streamsNum;
-         retries++) {
+
+    stream = 0;
+    for (attempts = 0;
+         attempts < RETRY_COUNT * streamsNum && stream < streamsNum;
+         attempts++) {
       ret = select((testOptions->s2csockfd) + 1, &rfd, NULL, NULL,
                    &sel_tv);
       if ((ret == -1) && (errno == EINTR))
@@ -335,13 +336,13 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           // browsers have headers that uniquely identitfy a single user.
           if (initialize_websocket_connection(&xmitsfd[stream], 0, "s2c") != 0) {
             close_connection(&xmitsfd[stream]);
-          } 
-        } 
+          }
+        }
         stream++;
         if (stream == streamsNum) {
           protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
                               PROCESS_STARTED, xmitsfd[0].socket);
-        } 
+        }
       } else {
         // socket interrupted, wait some more
         if ((xmitsfd[stream].socket == -1) && (errno == EINTR)) {
@@ -358,7 +359,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         if (xmitsfd[stream].socket < 0)   // other socket errors, quit
           return -errno;
       }
-      if (stream != streamsNum && retries == (RETRY_COUNT*streamsNum - 1)) {
+      if (stream != streamsNum && attempts == (RETRY_COUNT*streamsNum - 1)) {
         log_println(
             6,
             "s2c child %d, unable to open connection, return from test",
@@ -522,7 +523,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       tmptime = secs();  // current time
       tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
 
-      for (i = 0; i < streamsNum; ++i) {  
+      for (i = 0; i < streamsNum; ++i) {
         streams[i].writeWorkerArgs.connectionId = i + 1;
         streams[i].writeWorkerArgs.connection = &xmitsfd[i];
         streams[i].writeWorkerArgs.stopTime = tx_duration;
@@ -814,7 +815,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       }
     }
     log_println(6, "S2CSPD from client %f", *s2cspd);
-    // Final activities of ending tests. Close sockets, file descriptors,
+    // Final activities of ending tests. Close file descriptors and
     // send finalise message to client
     if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
                               testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
@@ -846,8 +847,8 @@ void* s2cWriteWorker(void* arg) {
   double threadBytes = 0;
   int threadPackets = 0, n;
   double threadTime = secs();
- 
- 
+
+
   while (secs() < stopTime) {
     // attempt to write random data into the client socket
     n = raw_write(conn, threadBuff, RECLTH); // TODO avoid snd block
@@ -859,9 +860,9 @@ void* s2cWriteWorker(void* arg) {
     threadPackets++;
     threadBytes += n;
   }
- 
+
   log_println(6, " ---S->C thread %d (sc %d): speed=%0.0f, bytes=%0.0f, pkts=%d, lth=%d, time=%0.0f", connectionId, conn->socket,
                  ((BITS_8_FLOAT * threadBytes) / KILO) / (secs() - threadTime), threadBytes, threadPackets, RECLTH, secs() - threadTime);
- 
+
   return NULL;
 }

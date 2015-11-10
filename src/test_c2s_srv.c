@@ -24,7 +24,9 @@
 #include "websocket.h"
 
 /**
- * Reads all the streams that are in the FD_SET.
+ * Reads all the streams that are in the FD_SET.  The data is put into buff,
+ * but the intention is for buff to be just temporary storage, and that the
+ * contents of the received data are completely irrelevant.
  * @param rfd The fd_set containing all streams that can be read
  * @param c2s_conns An array of all possible connections that could be read
  * @param c2s_conn_length The length of the array
@@ -51,9 +53,6 @@ int read_ready_streams(fd_set *rfd, Connection *c2s_conns, int c2s_conn_length,
           return SSL_get_error(c2s_conns[i].ssl, current_bytes_read);
         }
       }
-      if (current_bytes_read == 0) {
-        // all data has been read on that Connection, so mark it done
-      }
       *bytes_read += current_bytes_read;
     }
   }
@@ -65,20 +64,21 @@ int read_ready_streams(fd_set *rfd, Connection *c2s_conns, int c2s_conn_length,
  * @param connections The array of Connections
  * @param connections_length The length of that array
  * @param fd_set An outparam to hold the set we will create
- * @param maxfd An outparam to hold the max file descriptor we encounter
+ * @param max_fd An outparam to hold the max file descriptor we encounter
  * @returns The number of active streams
  */
 int connections_to_fd_set(Connection *connections, int connections_length,
-                          fd_set *fds, int *maxfd) {
+                          fd_set *fds, int *max_fd) {
   int active_streams = 0;
-  *maxfd = 0;
+  int i;
+  *max_fd = 0;
   FD_ZERO(fds);
-  for (int i = 0; i < connections_length; i++) {
+  for (i = 0; i < connections_length; i++) {
     if (connections[i].socket > 0) {
       active_streams++;
       FD_SET(connections[i].socket, fds);
-      *maxfd = (connections[i].socket > *maxfd) ? connections[i].socket
-                                                : *maxfd;
+      *max_fd = (connections[i].socket > *max_fd) ? connections[i].socket
+                                                : *max_fd;
     }
   }
   return active_streams;
@@ -152,7 +152,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   pid_t c2s_childpid = 0;       // child process pids
   int msgretvalue, read_error;  // used during the "read"/"write" process
   int i;                  // used as loop iterator
-  int conn_index, retries;
+  int conn_index, attempts;
   int retvalue = 0;
   int streamsNum = 1;
   int activeStreams = 1;
@@ -169,7 +169,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   double bytes_read = 0;    // number of bytes read during the throughput tests
   struct timeval sel_tv;    // time
   fd_set rfd;       // receive file descriptors
-  int maxfd;
+  int max_fd;
   char buff[BUFFSIZE + 1];  // message "payload" buffer
   PortPair pair;            // socket ports
   I2Addr c2ssrv_addr = NULL;  // c2s test's server address
@@ -311,9 +311,10 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     testDuration = options->c2s_duration / 1000.0;
   }
 
-  for (conn_index = 0, retries = 0;
-       retries < RETRY_COUNT * streamsNum && conn_index < streamsNum;
-       retries++) {
+  conn_index = 0;
+  for (attempts = 0;
+       attempts < RETRY_COUNT * streamsNum && conn_index < streamsNum;
+       attempts++) {
     msgretvalue = select((testOptions->c2ssockfd) + 1, &rfd, NULL, NULL,
                          &sel_tv);  // TODO
     // socket interrupted. continue waiting for activity on socket
@@ -324,7 +325,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       retvalue = -SOCKET_CONNECT_TIMEOUT;
     if (msgretvalue < 0)  // other socket errors. exit
       retvalue = -errno;
-    if (retries == (RETRY_COUNT*streamsNum - 1))  // retry exceeded. exit
+    if (attempts == (RETRY_COUNT*streamsNum - 1))  // retry exceeded. exit
       retvalue = -RETRY_EXCEEDED_WAITING_CONNECT;
     if (!retvalue) {
       // If a valid connection request is received, client has connected.
@@ -367,12 +368,8 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       }
 
       conn_index++;
-      log_println(
-          6,
-          "-------     C2S connection setup for %d returned because (%d)",
-          testOptions->child0, errno);
       // If retry count is exceeded, quit.
-      if (conn_index != streamsNum && retries == (RETRY_COUNT*streamsNum - 1)) {
+      if (conn_index != streamsNum && attempts == (RETRY_COUNT*streamsNum - 1)) {
         log_println(
             6,
             "c2s child %d, unable to open connection, return from test",
@@ -382,6 +379,10 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     }
 
     if (retvalue) {
+      log_println(
+          6,
+          "-------     C2S connection setup for %d returned because (%d)",
+          testOptions->child0, retvalue);
       close_all_connections(c2s_conns, streamsNum);
       return retvalue;
     }
@@ -480,7 +481,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   start_time = secs();
   throughputSnapshotTime = start_time + (options->c2s_snapsoffset / 1000.0);
 
-  activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &maxfd);
+  activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &max_fd);
 
   while (activeStreams > 0 && (secs() - start_time) < testDuration) {
     // POSIX says "Upon successful completion, the select() function may
@@ -488,14 +489,17 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     // Therefore sel_tv is undefined afterwards and we must set it every time.
     sel_tv.tv_sec = testDuration + 1;  // time out after test duration + 1sec
     sel_tv.tv_usec = 0;
-    msgretvalue = select(maxfd + 1, &rfd, NULL, NULL, &sel_tv);
-    if ((msgretvalue == -1) && (errno == EINTR)) {
-      // select interrupted. Continue waiting for activity on socket
-      continue;
-    } else if (msgretvalue == -1) {
-      log_println(1, "Error while trying to wait for incoming data in c2s: %s",
-                  strerror(errno));
-      break;
+    msgretvalue = select(max_fd + 1, &rfd, NULL, NULL, &sel_tv);
+    if (msgretvalue == -1) {
+      if (errno == EINTR) {
+        // select interrupted. Continue waiting for activity on socket
+        continue;
+      } else {
+        log_println(1,
+                    "Error while trying to wait for incoming data in c2s: %s",
+                    strerror(errno));
+        break;
+      }
     }
     if (extended && options->c2s_throughputsnaps && secs() > throughputSnapshotTime) {
       if (lastThroughputSnapshot != NULL) {
@@ -523,7 +527,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     }
 
     // Set up the FD_SET and activeStreams for the next select.
-    activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &maxfd);
+    activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &max_fd);
   }
 
   measured_test_duration = secs() - start_time;
