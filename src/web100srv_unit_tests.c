@@ -12,25 +12,26 @@
 #include "unit_testing.h"
 #include "web100srv.h"
 
-/** Starts the web100srv process. The last element of **args must be NULL. */
-pid_t start_server(int port, char **args) {
-  char *args_for_exec[256] = {"./web100srv", "--port", NULL};
-  int args_index;
-  int exec_args_index = 0;  // the first index of args_for_exec that is NULL
+/** Starts the web100srv process. Either args must be NULL or the last element
+ *  of **args must be NULL. */
+pid_t start_server(int port, char **extra_args) {
+  int extra_args_index = 0;
   char *arg;
   pid_t server_pid;
   siginfo_t server_status;
-  char port_string[6];  // 32767 is the max port
+  char port_string[6];  // 32767 is the max port, so must hold 5 digits + \0
   int rv;
+  char *args_for_exec[256] = {"./web100srv", "--port", NULL};
+  // Should be set to the first index of args_for_exec that is NULL
+  int exec_args_index = 0;  
   while (args_for_exec[exec_args_index] != NULL) exec_args_index++;
   log_print(1, "Starting the server\n");
   if ((server_pid = fork()) == 0) {
     sprintf(port_string, "%d", port);
     args_for_exec[exec_args_index++] = port_string;
-    args_index = 0;
-    while (args != NULL && args[args_index] != NULL) {
-      CHECK((args_for_exec[exec_args_index++] = strdup(args[args_index++])) !=
-            NULL);
+    while (extra_args != NULL && extra_args[extra_args_index] != NULL) {
+      CHECK((args_for_exec[exec_args_index++] =
+             strdup(extra_args[extra_args_index++])) != NULL);
     }
     args_for_exec[exec_args_index++] = NULL;
     execv("./web100srv", args_for_exec);
@@ -49,7 +50,7 @@ pid_t start_server(int port, char **args) {
 }
 
 /** Runs an end-to-end test of the server and client code. */
-void run_client(char *client_options, char **server_options) {
+void run_client(char *client_command_line_suffix, char **server_options) {
   pid_t server_pid;
   int server_exit_code;
   char hostname[1024];
@@ -64,14 +65,17 @@ void run_client(char *client_options, char **server_options) {
   log_println(1, "Starting the client, will attach to %s:%d\n", hostname,
               port);
   sprintf(command_line, "./web100clt --name=%s --port=%d %s", hostname, port,
-          client_options != NULL ? client_options : "");
+          client_command_line_suffix == NULL ? ""
+                                             : client_command_line_suffix);
   ASSERT(system(command_line) == 0, "%s did not exit with 0", command_line);
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
 }
 
+/** Run an end-to-end test using the CLI client and no special args. */
 void test_e2e() { run_client(NULL, NULL); }
 
+/** Run an end-to-end test of the multiport tests. */
 void test_e2e_ext() {
   char *server_args[] = {"--c2sduration", "8000", "--c2sstreamsnum", "4",
                          "--s2cduration", "8000", "--s2cstreamsnum", "4", NULL};
@@ -131,7 +135,7 @@ const char *nodejs_command() {
   } else if (system("nodejs -e 'process.exit(0);'") == 0) {
     return nodejs;
   } else {
-    fprintf(stderr, "Can not run node tests - node.js was not found.\n");
+    log_print(0, "Cannot run node tests - node.js was not found.\n");
     return NULL;
   }
 }
@@ -283,30 +287,6 @@ void test_is_child_process_alive_ignores_bad_pgid() {
   }
 }
 
-void test_c2s_speed() {
-  int port;
-  char* server_options[] = { NULL };
-  pid_t server_pid;
-  int server_exit_code;
-  struct addrinfo server_addrinfo;
-
-  srandom(time(NULL));
-  port = (random() % 30000) + 1024;
-  server_pid = start_server(port, server_options);
-
-  // Connect to the port.
-  //memset(0, server_addrinfo, sizeof(struct addrinfo));
-  //server_addrinfo.ai_family = AF_UNSPEC;
-  //server_addrinfo.ai_socktype = AF_UNSPEC;
-  
-  // Request c2s test
-  // Run c2s test
-  // Make sure to get more than 1000Mbps
-
-  kill(server_pid, SIGKILL);
-  waitpid(server_pid, &server_exit_code, 0);
-}
-
 #define RUN_LONG_TEST(TEST, TIME) run_unit_test(#TEST " - may take up to " TIME " to pass", &(TEST))
 
 /** Runs each test, returns non-zero to the shell if any tests fail. */
@@ -314,10 +294,9 @@ int main() {
   set_debuglvl(-1);
   // Formatted this way to allow developers to comment out individual tests
   // that are not relevant to their current task.  Running the full suite can
-  // take a long time, and can add unwanted latency to a compile-run-debug
+  // take a long time and can add unwanted latency to a compile-run-debug
   // cycle.
   return 
-      RUN_TEST(test_c2s_speed) ||
       RUN_TEST(test_is_child_process_alive) ||
       RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||
       RUN_LONG_TEST(test_run_all_tests_node, "30 seconds") ||

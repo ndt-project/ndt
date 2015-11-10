@@ -55,6 +55,21 @@ void* s2cWriteWorker(void* arg);
 const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 
 /**
+ * Use write or SSL_write() in their raw forms for maximum speed.
+ * @param conn The Connection to use
+ * @param buff The data to send
+ * @param buff_len The length of the data
+ * @return The number of bytes written or a negative failure code
+ */
+int raw_write(Connection *conn, char *buff, int buff_len) {
+  if (conn->ssl != NULL) {
+    return SSL_write(conn->ssl, buff, buff_len);
+  } else {
+    return write(conn->socket, buff, buff_len);
+  }
+}
+
+/**
  * Perform the S2C Throughput test. This throughput test tests the achievable
  * network bandwidth from the Server to the Client by performing a 10 seconds
  * memory-to-memory data transfer.
@@ -121,6 +136,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   int ret;  // ctrl protocol read/write return status
   int j, k, n;
   int streamsNum = 1;
+  int stream, retries;
   pid_t s2c_childpid = 0;  // s2c_childpid
 
   char tmpstr[256];  // string array used for temp storage of many char*
@@ -156,8 +172,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   // variables used for protocol validation logs
   enum TEST_STATUS_INT teststatuses = TEST_NOT_STARTED;
   enum TEST_ID testids = extended ? S2C_EXT : S2C;
-  enum PROCESS_STATUS_INT procstatusenum = UNKNOWN;
-  enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
   char snaplogsuffix[256] = "s2c_snaplog";
 
   for (i = 0; i < MAX_STREAMS; i++) {
@@ -293,7 +307,9 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       testDuration = options->s2c_duration / 1000.0;
     }
  
-    for (i = 0, j = 0; j < RETRY_COUNT*streamsNum && i < streamsNum; j++) {
+    for (stream = 0, retries = 0;
+         retries < RETRY_COUNT * streamsNum && stream < streamsNum;
+         retries++) {
       ret = select((testOptions->s2csockfd) + 1, &rfd, NULL, NULL,
                    &sel_tv);
       if ((ret == -1) && (errno == EINTR))
@@ -302,58 +318,52 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         return SOCKET_CONNECT_TIMEOUT;  // timeout
       if (ret < 0)
         return -errno;  // other socket errors. exit
-      if (j == (RETRY_COUNT*streamsNum - 1))
-        return RETRY_EXCEEDED_WAITING_CONNECT;  // retry exceeded. exit
 
       // If a valid connection request is received, client has connected.
       // Proceed.
-    // Note the new socket fd - xmitfd - used in the throughput test
-    ximfd:
-      xmitsfd[i].socket = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr[i], &clilen);
-      if (xmitsfd[i].socket > 0) {
-        log_println(6, "accept(%d/%d) for %d completed", i, streamsNum, testOptions->child0);
+      // Note the new connection - xmitsfd - used in the throughput test
+      xmitsfd[stream].socket = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr[stream], &clilen);
+      if (xmitsfd[stream].socket > 0) {
+        log_println(6, "accept(%d/%d) for %d completed", stream, streamsNum, testOptions->child0);
         if (testOptions->connection_flags & TLS_SUPPORT) {
-          errno = setup_SSL_connection(&xmitsfd[i], ctx);
+          errno = setup_SSL_connection(&xmitsfd[stream], ctx);
           if (errno != 0) return -errno;
         }
         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
-	  // To preserve user privacy, make sure that the HTTP header
-	  // processing is done prior to the start of packet capture, as many
-	  // browsers have headers that uniquely identitfy a single user.
-          if (initialize_websocket_connection(&xmitsfd[i], 0, "s2c") != 0) {
-            close_connection(&xmitsfd[i]);
+          // To preserve user privacy, make sure that the HTTP header
+          // processing is done prior to the start of packet capture, as many
+          // browsers have headers that uniquely identitfy a single user.
+          if (initialize_websocket_connection(&xmitsfd[stream], 0, "s2c") != 0) {
+            close_connection(&xmitsfd[stream]);
           } 
         } 
-        i++;
-        if (i < streamsNum) {
-          continue;
+        stream++;
+        if (stream == streamsNum) {
+          protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
+                              PROCESS_STARTED, xmitsfd[0].socket);
         } 
-        procstatusenum = PROCESS_STARTED;
-        proctypeenum = CONNECT_TYPE;
-        protolog_procstatus(testOptions->child0, testids, proctypeenum,
-                            procstatusenum, xmitsfd[0].socket);
-        break;
-      }
-      // socket interrupted, wait some more
-      if ((xmitsfd[i].socket == -1) && (errno == EINTR)) {
+      } else {
+        // socket interrupted, wait some more
+        if ((xmitsfd[stream].socket == -1) && (errno == EINTR)) {
+          log_println(
+              6,
+              "Child %d interrupted while waiting for accept() to complete",
+              testOptions->child0);
+          continue;
+        }
         log_println(
             6,
-            "Child %d interrupted while waiting for accept() to complete",
-            testOptions->child0);
-        goto ximfd;
+            "-------     S2C connection setup for %d returned because (%d)",
+            testOptions->child0, errno);
+        if (xmitsfd[stream].socket < 0)   // other socket errors, quit
+          return -errno;
       }
-      log_println(
-          6,
-          "-------     S2C connection setup for %d returned because (%d)",
-          testOptions->child0, errno);
-      if (xmitsfd[i].socket < 0)   // other socket errors, quit
-        return -errno;
-      if (j == (RETRY_COUNT*streamsNum - 1)) {  // retry exceeded, quit
+      if (stream != streamsNum && retries == (RETRY_COUNT*streamsNum - 1)) {
         log_println(
             6,
             "s2c child %d, unable to open connection, return from test",
             testOptions->child0);
-        return -102;
+        return RETRY_EXCEEDED_WAITING_CONNECT;  // retry exceeded. exit
       }
     }
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd[0].socket, 0);
@@ -556,14 +566,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
             }
           }
 
-          // attempt to write random data into the client socket
-          // Using write() and SSL_write() in their raw forms to ensure that
-          // writes are done as fast as possible.
-          if (xmitsfd[0].ssl != NULL) {
-            n = SSL_write(xmitsfd[0].ssl, buff, RECLTH);
-          } else {
-            n = write(xmitsfd[0].socket, buff, RECLTH);
-          }
+          n = raw_write(&xmitsfd[0], buff, RECLTH);
           // socket interrupted, continue attempting to write
           if ((n == -1) && (errno == EINTR))
             continue;
@@ -571,18 +574,8 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
             break;  // all data written. Exit
           bytes_written += n;
 
-	  if (options->avoidSndBlockUp) {
+          if (options->avoidSndBlockUp) {
             bufctlrnewdata++;  // increment "sent data" queue
-            n = write(xmitsfd[0].socket, buff, RECLTH);
-            // socket interrupted, continue attempting to write
-            if ((n == -1) && (errno == EINTR)) continue;
-            if (n < 0)
-              break;  // all data written. Exit
-            bytes_written += n;
-
-            if (options->avoidSndBlockUp) {
-              bufctlrnewdata++;  // increment "sent data" queue
-            }
           }
         }  // Completed end of trying to transmit data for the goodput test
       }
@@ -857,11 +850,7 @@ void* s2cWriteWorker(void* arg) {
  
   while (secs() < stopTime) {
     // attempt to write random data into the client socket
-    if (conn->ssl != NULL) {
-      n = SSL_write(conn->ssl, threadBuff, RECLTH);
-    } else {
-      n = write(conn->socket, threadBuff, RECLTH); // TODO avoid snd block
-    }
+    n = raw_write(conn, threadBuff, RECLTH); // TODO avoid snd block
     // socket interrupted, continue attempting to write
     if ((n == -1) && (errno == EINTR))
       continue;

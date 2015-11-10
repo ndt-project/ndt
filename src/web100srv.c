@@ -198,16 +198,16 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"midport", 1, 0, 302},
                                        {"c2sport", 1, 0, 303},
                                        {"s2cport", 1, 0, 304},
+                                       {"refresh", 1, 0, 'T'},
+                                       {"adminfile", 1, 0, 'A'},
+                                       {"log_dir", 1, 0, 'L'},
+                                       {"logfacility", 1, 0, 'S'},
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
                                        {"enableDBlogging", 0, 0, 310},
                                        {"dbDSN", 1, 0, 311},
                                        {"dbUID", 1, 0, 312},
                                        {"dbPWD", 1, 0, 313},
 #endif
-                                       {"refresh", 1, 0, 'T'},
-                                       {"adminfile", 1, 0, 'A'},
-                                       {"log_dir", 1, 0, 'L'},
-                                       {"logfacility", 1, 0, 'S'},
                                        {"c2sduration", 1, 0, 314},
                                        {"c2sthroughputsnaps", 0, 0, 315},
                                        {"c2ssnapsdelay", 1, 0, 316},
@@ -218,7 +218,6 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"s2csnapsdelay", 1, 0, 320},
                                        {"s2csnapsoffset", 1, 0, 321},
                                        {"s2cstreamsnum", 1, 0, 323},
-                                       {"logfacility", 1, 0, 'S' },
                                        {"savewebvalues", 0, 0, 324},
 #ifdef AF_INET6
                                        {"ipv4", 0, 0, '4'},
@@ -1398,6 +1397,7 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   int t_opts = 0;
   int retcode = 0, parent_message;
   char test_suite[256];
+  // Initial length (in seconds) of the child's watchdog timer.
   int alarm_time = 120;
   tcp_stat_agent *agent;
   Connection ctl = {0, NULL};
@@ -1450,7 +1450,7 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
     meta.ctl_port = testPort;
     snprintf(testName, sizeof(testName), "%s", rmt_host);
     I2AddrFree(tmp_addr);
-    memset(cputimelog, 0, 256);
+    memset(cputimelog, 0, sizeof(cputimelog));
     if (cputime) {
       snprintf(dir, sizeof(dir), "%s_%s:%d.cputime",
                get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort);
@@ -1461,14 +1461,14 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
                          (void *)cputimelog)) {
         log_println(0, "Cannot create worker thread for writing cpu usage!");
         workerThreadId = 0;
-        memset(cputimelog, 0, 256);
+        memset(cputimelog, 0, sizeof(cputimelog));
       }
     }
-    memset(webVarsValuesLog, 0, 256);
+    memset(webVarsValuesLog, 0, sizeof(webVarsValuesLog));
     if (webVarsValues) {
       snprintf(dir, sizeof(dir), "%s_%s:%d_%s.log", get_ISOtime(isoTime, sizeof(isoTime)), rmt_host, testPort, TCP_STAT_NAME);
       create_named_logdir(webVarsValuesLog, sizeof(webVarsValuesLog), dir, 0);
-      memcpy(meta.web_variables_log, dir, strlen(dir));
+      strncpy(meta.web_variables_log, dir, strlen(dir) + 1);
     }
   }
 
@@ -2000,7 +2000,7 @@ int main(int argc, char **argv) {
   options.cwndDecrease = 0;
   for (i = 0; i < MAX_STREAMS; i++)
     memset(options.s2c_logname[i], 0, 256);
-  memset(options.c2s_logname, 0, 256);
+  memset(options.c2s_logname, 0, sizeof(options.c2s_logname));
   options.c2s_duration = 10000;
   options.c2s_throughputsnaps = 0;
   options.c2s_snapsdelay = 5000;
