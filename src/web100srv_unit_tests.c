@@ -40,7 +40,7 @@ pid_t start_server(int port, char **extra_args) {
     exit(1);
   }
   // Wait until the server port (hopefully) becomes available. The server PID is
-  // available imeediately, but we need to make sure to lose the race condition
+  // available immediately, but we need to make sure to lose the race condition
   // with the server startup process, so that the NDT port is open and ready to
   // receive traffic and we won't begin the test before the server's startup
   // routines are complete.

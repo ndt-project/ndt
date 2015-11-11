@@ -1471,8 +1471,8 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
       if (sizeof(meta.web_variables_log) >= (strlen(dir) + 1)) {
         strncpy(meta.web_variables_log, dir, strlen(dir) + 1);
       } else {
-	log_println(
-             0,
+        log_println(
+            0,
             "Not enough space in meta.web_variables_log to store dir.");
       }
     }

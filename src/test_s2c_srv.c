@@ -339,10 +339,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           }
         }
         stream++;
-        if (stream == streamsNum) {
-          protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
-                              PROCESS_STARTED, xmitsfd[0].socket);
-        }
       } else {
         // socket interrupted, wait some more
         if ((xmitsfd[stream].socket == -1) && (errno == EINTR)) {
@@ -359,14 +355,18 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         if (xmitsfd[stream].socket < 0)   // other socket errors, quit
           return -errno;
       }
-      if (stream != streamsNum && attempts == (RETRY_COUNT*streamsNum - 1)) {
-        log_println(
+    }
+    // If we didn't make enough streams then we can't run the test.
+    if (stream != streamsNum) {
+      // Loop exited without creating all the necessary streams
+      log_println(
             6,
             "s2c child %d, unable to open connection, return from test",
             testOptions->child0);
-        return RETRY_EXCEEDED_WAITING_CONNECT;  // retry exceeded. exit
-      }
+      return RETRY_EXCEEDED_WAITING_CONNECT;  // retry exceeded. exit
     }
+    protolog_procstatus(testOptions->child0, testids, CONNECT_TYPE,
+                        PROCESS_STARTED, xmitsfd[0].socket);
     src_addr = I2AddrByLocalSockFD(get_errhandle(), xmitsfd[0].socket, 0);
     for (i = 0; i < streamsNum; ++i) {
       streams[i].conn = tcp_stat_connection_from_socket(agent, xmitsfd[i].socket);
@@ -815,8 +815,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       }
     }
     log_println(6, "S2CSPD from client %f", *s2cspd);
-    // Final activities of ending tests. Close file descriptors and
-    // send finalise message to client
+    // Final activities of ending tests.
     if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
                               testOptions->connection_flags, JSON_SINGLE_VALUE) < 0)
       log_println(6,
