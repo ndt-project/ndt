@@ -135,7 +135,6 @@ web100_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c u
 web100_testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100_testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 web100_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
-
 web100_testoptions_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 
 web10gsrv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
@@ -162,9 +161,7 @@ web10g_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c u
 web10g_testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web10g_testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 web10g_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB10G -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
-
 web10g_testoptions_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
-
 
 viewtrace_SOURCES = viewtrace.c usage.c logging.c utils.c runningtest.c ndtptestconstants.c strlutils.c
 viewtrace_LDADD = $(NDTLIBS) $(I2UTILLIBDEPS) $(ZLIB)

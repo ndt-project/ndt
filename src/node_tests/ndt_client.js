@@ -47,7 +47,7 @@ var argv = require('minimist')(process.argv.slice(2),
     test_url = url_protocol + "://" + server + ":" + port + "/ndt_protocol",
     ws;
 
-console.log("Running NDT test to " + test_url);
+log("Running NDT test to " + test_url);
 if (argv['acceptinvalidcerts']) {
   // This allows Node.js to accept a self-signed cert
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
@@ -117,7 +117,7 @@ function ndt_meta_test(sock) {
         }
         if (state === "WAIT_FOR_TEST_FINALIZE" && type === TEST_FINALIZE) {
             log("ndt_meta_test is done");
-            console.log("META test complete using " + url_protocol);
+            log("META test complete using " + url_protocol);
             return "DONE";
         }
         die("Bad state and message combo for META test: ", state, type, body.msg);
@@ -198,7 +198,7 @@ function ndt_s2c_test(sock) {
             return "KEEP GOING";
         }
         if (state === "WAIT_FOR_TEST_MSG_OR_TEST_FINISH" && type === TEST_FINALIZE) {
-            console.log("S2C test complete using " + url_protocol);
+            log("S2C test complete using " + url_protocol);
             log("Test is over! ", body.msg);
             return "DONE";
         }
@@ -212,10 +212,10 @@ function ndt_c2s_test() {
         server_port,
         test_connection,
         TRANSMITTED_BYTES = 0,
-	// The NDT protocol wants 8192 bytes at a time, and with masking
-	// (required for all clients) the websocket header is 8 bytes, which
-	// means we want to have a message payload of (8192 - 8) bytes to bring
-	// the total up to precisely 8192.
+        // The NDT protocol wants 8192 bytes at a time, and with masking
+        // (required for all clients) the websocket header is 8 bytes, which
+        // means we want to have a message payload of (8192 - 8) bytes to bring
+        // the total up to precisely 8192.
         data_to_send = new Uint8Array(8192 - 8),
         i,
         test_start,
@@ -223,7 +223,7 @@ function ndt_c2s_test() {
 
     for (i = 0; i < data_to_send.length; i += 1) {
         // All the characters must be printable, and the printable range of
-	// ASCII is from 32 to 126.
+        // ASCII is from 32 to 126.
         data_to_send[i] = 32 + Math.floor(Math.random() * (126 - 32));
     }
 
@@ -262,7 +262,7 @@ function ndt_c2s_test() {
         }
         if (state === "WAIT_FOR_TEST_FINALIZE" && type === TEST_FINALIZE) {
             state = "DONE";
-            console.log("C2S test complete using " + url_protocol);
+            log("C2S test complete using " + url_protocol);
             log("C2S rate: ", 8 * TRANSMITTED_BYTES / 1000 / (test_end - test_start));
             return "DONE";
         }
@@ -312,6 +312,8 @@ function ndt_coordinator(sock) {
                     sock.send(make_ndt_msg(MSG_WAITING, ""), { binary: true, mask: true });
                 } else if (body.msg === "9977") {    // Test failed
                     die("server terminated test with SRV_QUEUE 9977");
+                } else {
+                    log("There will be a", body.msg, "minute wait for the test to start");
                 }
                 log("Got SRV_QUEUE.    Ignoring and waiting for MSG_LOGIN");
             } else if (type === MSG_LOGIN) {

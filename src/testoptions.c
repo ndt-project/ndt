@@ -346,7 +346,7 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
     free(jsonMsgValue);
     if (msgLen >= 1 && msgLen <= (CS_VERSION_LENGTH_MAX + 1)) {
       memcpy(options->client_version, msgValue + 1, msgLen - 1);
-      log_println(0, "Client version: %s-\n", options->client_version);
+      log_println(1, "Client version: %s-\n", options->client_version);
     } else {
       send_json_message_any(ctl, MSG_ERROR, invalid_test, strlen(invalid_test),
                             options->connection_flags, JSON_SINGLE_VALUE);
@@ -359,7 +359,7 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
 
   // client connect received correctly. Logging activity
   // log that client connected, and create log file
-  log_println(0,
+  log_println(1,
               "Client connect received from :IP %s to some server on socket %d",
               get_remotehostaddress(), ctl->socket);
 
@@ -446,7 +446,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
           "Unable to open log file '%s', continuing on without logging",
           get_logfile());
     } else {
-      log_println(0, "Snaplog file: %s\n", metafilename);
+      log_println(1, "Snaplog file: %s\n", metafilename);
       fprintf(fplocal, "Snaplog file: %s\n", metafilename);
       fclose(fplocal);
     }
@@ -454,7 +454,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 
   if (pthread_create(wrkrthreadidarg, NULL, snapWorker,
                      (void*) &workerArgs)) {
-    log_println(0, "Cannot create worker thread for writing snap log!");
+    log_println(1, "Cannot create worker thread for writing snap log!");
     *wrkrthreadidarg = 0;
   }
 

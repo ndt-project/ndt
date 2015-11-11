@@ -278,7 +278,7 @@ void tcp_stat_middlebox(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
   strlcat(results_values, line, results_strlen);
 
   log_println(3, "");
-  log_println(0, "Sending %d Byte packets over the network, and data=%s",
+  log_println(1, "Sending %d Byte packets over the network, and data=%s",
               currentMSSval, line);
 
   /* The initial check has been completed, now stream data to the remote client
@@ -576,7 +576,7 @@ static void print_10gvar_renamed(const char * old_name,
       estats_error_free(&err);
     } else {
       snprintf(line, line_size, "%s: %s\n", new_name, str);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
       free(str);
       str = NULL;
     }
@@ -588,17 +588,17 @@ static void print_10gvar_renamed(const char * old_name,
 
 /**
  * Collect Web100 stats from a snapshot and transmit to a receiver.
- * The transmission is done using a TES_MSG type message and sent to
- * client reachable via the input parameter socket FD.
+ * The transmission is done using a TEST_MSG type message and sent to
+ * client reachable via the Connection
  *
  * @param snap pointer to a tcp_stat_snapshot taken earlier
- * @param ctlsock integer socket file descriptor indicating data recipient
+ * @param ctl Connection indicating data recipient
  * @param agent pointer to a tcp_stat_agent
  * @param count_vars integer number of tcp_stat_variables to get value of
  * @param testoptions the options that determine how the data should be sent
  *
  */
-int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
+int tcp_stat_get_data(tcp_stat_snap** snap, Connection* testsock, int streamsNum, Connection* ctl,
                       tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions) {
   char line[256];
 #if USE_WEB100
@@ -640,7 +640,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       /* Why do we atoi after getting as text anyway ?? */
       if (t == 0) {
         snprintf(line, sizeof(line), "%s: %d\n", web_vars[t][i].name, atoi(web_vars[t][i].value));
-        send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+        send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
         log_print(9, "%s", line);
       }
     }
@@ -657,11 +657,11 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
 
   for (t = 0; t < streamsNum; ++t) {
     xbuf_size = sizeof(X_RcvBuf[t]);
-    if (getsockopt(testsock[t], SOL_SOCKET, SO_RCVBUF, (void *)&X_RcvBuf[t], &xbuf_size) != 0) {
+    if (getsockopt(testsock[t].socket, SOL_SOCKET, SO_RCVBUF, (void *)&X_RcvBuf[t], &xbuf_size) != 0) {
       log_println(0, "Error: failed to getsockopt() SO_RCVBUF");
     }
     xbuf_size = sizeof(X_SndBuf[t]);
-    if (getsockopt(testsock[t], SOL_SOCKET, SO_SNDBUF, (void *)&X_SndBuf[t], &xbuf_size) != 0) {
+    if (getsockopt(testsock[t].socket, SOL_SOCKET, SO_SNDBUF, (void *)&X_SndBuf[t], &xbuf_size) != 0) {
       log_println(0, "Error: failed to getsockopt() SO_RCVBUF");
     }
 
@@ -683,7 +683,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
           continue;
         }
         snprintf(line, sizeof(line), "%s: %s\n", estats_var_array[j].name, str);
-        send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+        send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
         log_print(9, "%s", line);
         free(str);
         str = NULL;
@@ -712,7 +712,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       static const char* frame_web100 = "-~~~Web100_old_var_names~~~-: 1\n";
       int type;
       char *str = NULL;
-      send_json_message(ctlsock, TEST_MSG, (const void *)frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, (const void *)frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
     /* ECNEnabled -> ECN */
     type = web10g_find_val(snap[t], "ECN", &val);
@@ -720,7 +720,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find ECN bad type=%d", type);
     } else {
       snprintf(line, sizeof(line), "ECNEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* NagleEnabled -> Nagle */
@@ -729,7 +729,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find Nagle bad type=%d", type);
     } else {
       snprintf(line, sizeof(line), "NagleEnabled: %"PRId32"\n", (val.sv32 == 2) ? 1 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* SACKEnabled -> WillUseSACK & WillSendSACK */
@@ -739,7 +739,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
     } else {
     /* Yes this comes through as 3 from web100 */
       snprintf(line, sizeof(line), "SACKEnabled: %d\n", (val.sv32 == 1) ? 3 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* TimestampsEnabled -> TimeStamps */
@@ -748,7 +748,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
       log_println(0, "In tcp_stat_get_data(), web10g_find_val() failed to find TimeStamps bad type=%d", type);
     } else {
       snprintf(line, sizeof(line), "TimestampsEnabled: %"PRId32"\n", (val.sv32 == 1) ? 1 : 0);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* PktsRetrans -> SegsRetrans */
@@ -784,16 +784,16 @@ int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int c
         snprintf(line, sizeof(line), "RcvWinScale: %u\n", 0);
       else
         snprintf(line, sizeof(line), "RcvWinScale: %d\n", val.sv32);
-      send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     }
 
     /* X_Rcvbuf & X_Sndbuf */
     snprintf(line, sizeof(line), "X_Rcvbuf: %d\n", X_RcvBuf[t]);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
     snprintf(line, sizeof(line), "X_Sndbuf: %d\n", X_SndBuf[t]);
-    send_json_message(ctlsock, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, TEST_MSG, line, strlen(line), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
-    send_json_message(ctlsock, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, TEST_MSG, frame_web100, strlen(frame_web100), testoptions->connection_flags, JSON_SINGLE_VALUE);
 
     log_println(6, "S2C test - Send web100 data to client pid=%d", getpid());
     }
