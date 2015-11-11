@@ -333,7 +333,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
           // To preserve user privacy, make sure that the HTTP header
           // processing is done prior to the start of packet capture, as many
-          // browsers have headers that uniquely identitfy a single user.
+          // browsers have headers that uniquely identify a single user.
           if (initialize_websocket_connection(&xmitsfd[stream], 0, "s2c") != 0) {
             close_connection(&xmitsfd[stream]);
           }

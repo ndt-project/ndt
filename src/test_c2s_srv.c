@@ -325,8 +325,6 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       retvalue = -SOCKET_CONNECT_TIMEOUT;
     if (msgretvalue < 0)  // other socket errors. exit
       retvalue = -errno;
-    if (attempts == (RETRY_COUNT*streamsNum - 1))  // retry exceeded. exit
-      retvalue = -RETRY_EXCEEDED_WAITING_CONNECT;
     if (!retvalue) {
       // If a valid connection request is received, client has connected.
       // Proceed.
@@ -358,7 +356,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
       // To preserve user privacy, make sure that the HTTP header
       // processing is done prior to the start of packet capture, as many
-      // browsers have headers that uniquely identitfy a single user.
+      // browsers have headers that uniquely identify a single user.
       if (testOptions->connection_flags & WEBSOCKET_SUPPORT) {
         if (initialize_websocket_connection(&c2s_conns[conn_index], 0, "c2s") !=
             0) {
@@ -368,14 +366,6 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       }
 
       conn_index++;
-      // If retry count is exceeded, quit.
-      if (conn_index != streamsNum && attempts == (RETRY_COUNT*streamsNum - 1)) {
-        log_println(
-            6,
-            "c2s child %d, unable to open connection, return from test",
-            testOptions->child0);
-        retvalue = RETRY_EXCEEDED_WAITING_DATA;
-      }
     }
 
     if (retvalue) {
@@ -386,6 +376,15 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       close_all_connections(c2s_conns, streamsNum);
       return retvalue;
     }
+  }
+  // If we haven't created enough streams after the loop is over, quit.
+  if (conn_index != streamsNum) {
+    log_println(
+        6,
+        "c2s child %d, unable to open connection, return from test",
+        testOptions->child0);
+     close_all_connections(c2s_conns, streamsNum);
+     return RETRY_EXCEEDED_WAITING_DATA;
   }
 
   // Get address associated with the throughput test. Used for packet tracing
@@ -456,12 +455,14 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   // lives every day.
   // TODO: solve the race conditions some other way.
   sleep(2);
+  // Reset alarm() again. This 10 sec test should finish before this signal is
+  // generated, but sleep() can render existing alarm()s invalid, and alarm() is
+  // our watchdog timer.
+  alarm(30);
 
   // send empty TEST_START indicating start of the test
   send_json_message_any(ctl, TEST_START, "", 0, testOptions->connection_flags,
                         JSON_SINGLE_VALUE);
-  /* alarm(30); */  // reset alarm() again, this 10 sec test should finish
-                    // before this signal is generated.
 
   // If snaplog recording is enabled, update meta file to indicate the same
   // and proceed to get snapshot and log it.
