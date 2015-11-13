@@ -36,7 +36,7 @@ void compare_sent_and_received(const unsigned char* raw_data_to_send,
   pid_t writer_pid;
   int writer_exit_code;
   int bytes_written;
-  Connection child_conn = {0, NULL}, parent_conn = {0, NULL};
+  Connection child_conn = {-1, NULL}, parent_conn = {-1, NULL};
   int i;
 
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
@@ -191,7 +191,7 @@ void test_messages_too_large() {
   unsigned char expected[5];  // space for the Hello to be read
   int64_t err;
   char* err_str = "no error";
-  Connection child_conn = {0, NULL}, parent_conn = {0, NULL};
+  Connection child_conn = {-1, NULL}, parent_conn = {-1, NULL};
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
   child_conn.socket = sockets[0];
   parent_conn.socket = sockets[1];
@@ -241,7 +241,7 @@ void test_recv_websocket_ndt_msg() {
   int sockets[2];
   pid_t child_pid;
   int child_exit_code;
-  Connection child_conn = {0, NULL}, parent_conn = {0, NULL};
+  Connection child_conn = {-1, NULL}, parent_conn = {-1, NULL};
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
   child_conn.socket = sockets[0];
   parent_conn.socket = sockets[1];
@@ -279,7 +279,7 @@ void check_websocket_handshake(const char* header, const char* response) {
   int bytes_written, bytes_read;
   int err;
   int i;
-  Connection conn = {0, NULL};
+  Connection conn = {-1, NULL};
 
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
   child_socket = sockets[0];
@@ -380,7 +380,7 @@ void check_send_digest_base64(const unsigned char* digest,
   int child_exit_code;
   char scratch[1024];
   int sockets[2];
-  Connection child_conn = {0, NULL}, parent_conn = {0, NULL};
+  Connection child_conn = {-1, NULL}, parent_conn = {-1, NULL};
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
   child_conn.socket = sockets[0];
   parent_conn.socket = sockets[1];

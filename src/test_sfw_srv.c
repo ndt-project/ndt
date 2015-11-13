@@ -56,7 +56,7 @@ test_osfw_srv(void* vptr) {
   int sfwsock;
   struct sigaction new, old;
   TestOptions* options = (TestOptions*)vptr;
-  Connection conn = {0, NULL};
+  Connection conn = {-1, NULL};
 
   // ignore the alarm signal
   memset(&new, 0, sizeof(new));
@@ -149,7 +149,7 @@ int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
   int maxRTT, maxRTO;
   char hostname[256];
   int rc;
-  Connection sfw_conn = {0, NULL};
+  Connection sfw_conn = {-1, NULL};
 
   // variables used for protocol validation
   enum TEST_ID thistestId = NONE;

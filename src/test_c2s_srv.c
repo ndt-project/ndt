@@ -23,6 +23,28 @@
 #include "jsonutils.h"
 #include "websocket.h"
 
+/** 
+ * Use read or SSL_read in their raw forms. We want this to go as fast
+ * as possible and we do not care about the contents of buff.
+ * @param conn The Connection to use
+ * @param buff The buffer to hold the read data
+ * @param buff_size The size of the buffer
+ * @param bytes_read The number of bytes read - possibly negative on error
+ * @return 0 on success, an error code otherwise
+ */
+int raw_read(Connection *conn, char* buff, size_t buff_size,
+             ssize_t *bytes_read) {
+  if (conn->ssl == NULL) {
+    *bytes_read = read(conn->socket, buff, buff_size);
+    if (*bytes_read <= -1) return errno;
+  } else {
+    // TODO: Keep track of the number of SSL renegotiations that occur
+    *bytes_read = SSL_read(conn->ssl, buff, buff_size);
+    if (*bytes_read <= -1) return SSL_get_error(conn->ssl, *bytes_read);
+  }
+  return 0;
+}
+
 /**
  * Reads all the streams that are in the FD_SET.  The data is put into buff,
  * but the intention is for buff to be just temporary storage, and that the
@@ -38,21 +60,12 @@
 int read_ready_streams(fd_set *rfd, Connection *c2s_conns, int c2s_conn_length,
                        char *buff, size_t buff_size, double *bytes_read) {
   int i;
+  int error;
   ssize_t current_bytes_read;
   for (i = 0; i < c2s_conn_length; i++) {
     if (FD_ISSET(c2s_conns[i].socket, rfd)) {
-      // Use read or SSL_read in their raw forms. We want this to go as fast
-      // as possible and we do not care about the contents of buff.
-      if (c2s_conns[i].ssl == NULL) {
-        current_bytes_read = read(c2s_conns[i].socket, buff, buff_size);
-        if (current_bytes_read <= -1) return errno;
-      } else {
-        // TODO: Keep track of the number of SSL renegotiations that occur
-        current_bytes_read = SSL_read(c2s_conns[i].ssl, buff, buff_size);
-        if (current_bytes_read <= -1) {
-          return SSL_get_error(c2s_conns[i].ssl, current_bytes_read);
-        }
-      }
+      error = raw_read(&c2s_conns[i], buff, buff_size, &current_bytes_read);
+      if (error != 0) return error;
       *bytes_read += current_bytes_read;
     }
   }

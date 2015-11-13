@@ -330,7 +330,6 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
 
-struct testoptions;  // declare it, but don't define it
 int tcp_stat_get_data(tcp_stat_snap** snap, Connection* testsock, int streamsNum, Connection* ctl,
                       tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions);
 

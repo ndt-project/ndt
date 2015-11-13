@@ -36,7 +36,7 @@ void send_data_and_compare_response(const char* data, size_t data_len,
   int child_socket, parent_socket;
   int bytes_written;
   int return_value;
-  Connection conn = {0, NULL};
+  Connection conn = {-1, NULL};
   CHECK(socketpair(AF_UNIX, SOCK_STREAM, 0, sockets) == 0);
   child_socket = sockets[0];
   parent_socket = sockets[1];

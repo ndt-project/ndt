@@ -1400,7 +1400,7 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   // Initial length (in seconds) of the child's watchdog timer.
   int alarm_time = 120;
   tcp_stat_agent *agent;
-  Connection ctl = {0, NULL};
+  Connection ctl = {-1, NULL};
   ctl.socket = ctlsockfd;
   // this is the child process, it handles the connection with the client and
   // runs the actual tests.
