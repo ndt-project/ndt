@@ -717,6 +717,9 @@ void shutdown_connection(Connection *conn) {
  * @param conn The connection to close
  */
 void close_connection(Connection *conn) {
+  if (conn->ssl != NULL) {
+    SSL_shutdown(conn->ssl);
+  }
   SSL_free(conn->ssl);
   conn->ssl = NULL;
   close(conn->socket);
