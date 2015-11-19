@@ -46,11 +46,11 @@
  *			Other used return codes:
  *				1 - Message reception errors/inconsistencies
  *				2 - Unexpected message type received/no message received due to timeout
- *				3 � Received message is invalid
+ *				3 - Received message is invalid
  *
  */
 
-int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
+int test_mid(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
              int conn_options, double* s2c_throughput_mid) {
   int maxseg = ETHERNET_MTU_SIZE;
   /* int maxseg=1456, largewin=16*1024*1024; */
@@ -80,7 +80,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
   enum PROCESS_STATUS_INT procstatusenum = PROCESS_STARTED;
   enum PROCESS_TYPE_INT proctypeenum = CONNECT_TYPE;
 
-  assert(ctlsockfd != -1);
+  assert(ctl != NULL);
   assert(agent);
   assert(options);
   assert(s2c_throughput_mid);
@@ -93,7 +93,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     // protocol validation logs indicating start of tests
     thistestId = MIDDLEBOX;
     teststatusnow = TEST_STARTED;
-    protolog_status(options->child0, thistestId, teststatusnow, ctlsockfd);
+    protolog_status(options->child0, thistestId, teststatusnow, ctl->socket);
 
     // determine port to be used. Compute based on options set earlier
     // by reading from config file, or use default port3 (3003),
@@ -140,7 +140,7 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
            */
       }
       if (strcmp(listenmidport, "0") == 0) {
-        log_println(0, "WARNING: ephemeral port number was bound");
+        log_println(1, "WARNING: ephemeral port number was bound");
         break;
       }
       if (options->multiple == 0) {
@@ -156,8 +156,8 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
       snprintf(buff, sizeof(buff),
                "Server (Middlebox test): CreateListenSocket failed: %s",
                strerror(errno));
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return -1;
     }
 
@@ -168,8 +168,8 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
 
     // send this port number to client
     snprintf(buff, sizeof(buff), "%d", options->midsockport);
-    if ((msgretvalue = send_json_message(ctlsockfd, TEST_PREPARE, buff, strlen(buff),
-                                         options->connection_flags, JSON_SINGLE_VALUE))
+    if ((msgretvalue = send_json_message_any(ctl, TEST_PREPARE, buff, strlen(buff),
+                                             options->connection_flags, JSON_SINGLE_VALUE))
         < 0)
       return msgretvalue;
 
@@ -254,20 +254,20 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     tcp_stat_middlebox(midsfd, agent, conn, results_keys, sizeof(results_keys), buff, sizeof(buff));
 
     // Transmit results in the form of a TEST_MSG message
-    send_json_msg(ctlsockfd, TEST_MSG, buff, strlen(buff), options->connection_flags, JSON_MULTIPLE_VALUES,
-                  results_keys, ";", buff, ";");
+    send_json_msg_any(ctl, TEST_MSG, buff, strlen(buff), options->connection_flags, JSON_MULTIPLE_VALUES,
+                      results_keys, ";", buff, ";");
 
     // Expect client to send throughput as calculated at its end
     msgLen = sizeof(buff);
     // message reception error
-    if (recv_msg(ctlsockfd, &msgType, buff, &msgLen)) {
+    if (recv_msg_any(ctl, &msgType, buff, &msgLen)) {
       log_println(0, "Protocol error!");
       snprintf(
           buff,
           sizeof(buff),
           "Server (Middlebox test): Invalid CWND limited throughput received");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return 1;
     }
     if (check_msg_type("Middlebox test", TEST_MSG, msgType, buff,
@@ -276,8 +276,8 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
           buff,
           sizeof(buff),
           "Server (Middlebox test): Invalid CWND limited throughput received");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return 2;
     }
     buff[msgLen] = 0;
@@ -293,8 +293,8 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
           buff,
           sizeof(buff),
           "Server (Middlebox test): Invalid CWND limited throughput received");
-      send_json_message(ctlsockfd, MSG_ERROR, buff, strlen(buff),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return 3;
     }
 
@@ -308,13 +308,13 @@ int test_mid(int ctlsockfd, tcp_stat_agent* agent, TestOptions* options,
     shutdown(midsfd, SHUT_WR);
     close(midsfd);
     close(options->midsockfd);
-    send_json_message(ctlsockfd, TEST_FINALIZE, "", 0, options->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, TEST_FINALIZE, "", 0, options->connection_flags, JSON_SINGLE_VALUE);
     log_println(1, " <--------- %d ----------->", options->child0);
 
     // log end of test into protocol doc, just to delimit.
     teststatusnow = TEST_ENDED;
     // protolog_status(1, options->child0, thistestId, teststatusnow);
-    protolog_status(options->child0, thistestId, teststatusnow, ctlsockfd);
+    protolog_status(options->child0, thistestId, teststatusnow, ctl->socket);
 
     setCurrentTest(TEST_NONE);
     /* I2AddrFree(midsrv_addr); */

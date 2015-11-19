@@ -20,7 +20,7 @@ int run_unit_test(const char* test_name, void (*test_func)()) {
   int test_exit_code;
   int scratch;
   pid_t child_test_pid;
-  fprintf(stderr, "Running test %s...\n", test_name);
+  fprintf(stderr, "Running test %s. ", test_name);
   //  Run each child test in its own subprocess to help prevent tests from
   //  interfering with one another.
   if ((child_test_pid = fork()) == 0) {
@@ -32,15 +32,15 @@ int run_unit_test(const char* test_name, void (*test_func)()) {
     // Wait for the child process to exit, hopefully successfully.
     waitpid(child_test_pid, &test_exit_code, 0);
     if (WIFEXITED(test_exit_code) && WEXITSTATUS(test_exit_code) == 0) {
-      fprintf(stderr, " ...Success!\n");
+      fprintf(stderr, "\r Passed\n");
       return 0;
     } else {
       if (WIFEXITED(test_exit_code) &&
           WEXITSTATUS(test_exit_code) == FAILURE_EXIT_CODE) {
-        fprintf(stderr, " ...TEST FAILED.\n");
+        fprintf(stderr, " TEST FAILED. (%s)\n", test_name);
       } else {
-        fprintf(stderr, " ...TEST CRASHED (return code=%d, %s).\n",
-                test_exit_code, strerror(test_exit_code));
+        fprintf(stderr, " TEST CRASHED (%s, return code=%d, %s).\n",
+                test_name, test_exit_code, strerror(test_exit_code));
       }
       if (!WIFEXITED(test_exit_code)) {
         kill(child_test_pid, SIGKILL);

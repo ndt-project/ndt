@@ -196,14 +196,14 @@ void add_test_to_suite(int* first, char * buff, size_t buff_strlen,
 /**
  * Kick off old clients.  Send the special code which causes old clients to
  * disconnect.
- * @param ctlsockfd Control socket file descriptor.
+ * @param ctl Control socket Connection
  */
-int kick_off_old_clients(int ctlsockfd) {
+int kick_off_old_clients(Connection* ctl) {
   int retcode;
   int i;
   for (i = 0; i < RETRY_COUNT; i++) {
     // the specially crafted data that kicks off the old clients
-    retcode = write(ctlsockfd, "123456 654321", 13);
+    retcode = writen_any(ctl, "123456 654321", 13);
     if ((retcode == -1) && (errno == EINTR))  // interrupted, retry
       continue;
     if (retcode == 13)  // 13 bytes correctly written, exit successfully
@@ -221,20 +221,20 @@ int kick_off_old_clients(int ctlsockfd) {
  * message, and instead it may be the beginning of the websocket handshake. In
  * that case, set up the websocket handshake and then receive the message.
  */
-int recv_msg_plus_websocket(int ctlsockfd, TestOptions* test_options,
+int recv_msg_plus_websocket(Connection* ctl, TestOptions* test_options,
 			    int* msg_type, char* msg_value, int* msg_len) {
   char header[3] = {0};
   int64_t err;
   int received_length;
-  if (readn(ctlsockfd, header, sizeof(header)) != sizeof(header)) {
+  if (readn_any(ctl, header, sizeof(header)) != sizeof(header)) {
     return EIO;
   }
   if (strncmp(header, "GET", 3) == 0) {
     // GET starts HTTP stuff, so try and perform the websocket handshake
-    err = initialize_websocket_connection(ctlsockfd, sizeof(header), "ndt");
+    err = initialize_websocket_connection(ctl, sizeof(header), "ndt");
     if (err) return err;
     test_options->connection_flags |= WEBSOCKET_SUPPORT;
-    err = recv_websocket_ndt_msg(ctlsockfd, msg_type, msg_value, msg_len);
+    err = recv_websocket_ndt_msg(ctl, msg_type, msg_value, msg_len);
     return (err < 0) ? -err : 0;
   } else {
     // It didn't start with GET so it's not a websocket connection
@@ -243,16 +243,17 @@ int recv_msg_plus_websocket(int ctlsockfd, TestOptions* test_options,
     received_length = (header[1] << 8) + header[2];
     if (received_length > *msg_len) return EMSGSIZE;
     *msg_len = received_length;
-    if (readn(ctlsockfd, msg_value, *msg_len) != *msg_len) return EIO;
+    if (readn_any(ctl, msg_value, *msg_len) != *msg_len) return EIO;
     return 0;
   }
 }
 
 /**
  * Initialize the tests for the client.
- * @param ctlsockfd Client control socket descriptor
- * @param options   Test options
- * @param buff 		Connection options
+ * @param ctl Client connection
+ * @param options Test options
+ * @param buff The string to hold the tests
+ * @param buff_strlen The length of buff
  * @return integer the test codes OR'd together on success
  *          0 or less is an error.
  *          Error codes:
@@ -260,9 +261,8 @@ int recv_msg_plus_websocket(int ctlsockfd, TestOptions* test_options,
  *			-2 Invalid test request
  *			-3 Invalid test suite request
  *			-4 client timed out
- *
  */
-int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
+int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
                      size_t buff_strlen) {
   char msgValue[CS_VERSION_LENGTH_MAX + 1] = {'\0'};
   unsigned char useropt = 0;
@@ -272,22 +272,24 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   char *invalid_test_suite = "Invalid test suite request.";
   char *invalid_test = "Invalid test request.";
   char *invalid_login_msg = "Invalid login message.";
-  char* jsonMsgValue;
+  char *jsonMsgValue;
 
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
 
-  assert(ctlsockfd != -1);
+  assert(ctl.socket != -1);
   assert(options);
 
   memset(options->client_version, 0, sizeof(options->client_version));
 
+  if (ctl->ssl != NULL) {
+    options->connection_flags |= TLS_SUPPORT;
+  }
   // read the test suite request, if we get what looks like a websocket HTTP
   // request then set up the websocket, and then read the test suite request.
-  if (recv_msg_plus_websocket(ctlsockfd, options, &msgType, msgValue, 
-                              &msgLen)) {
-    send_msg(ctlsockfd, MSG_ERROR, invalid_test_suite,
-             strlen(invalid_test_suite));
+  if (recv_msg_plus_websocket(ctl, options, &msgType, msgValue, &msgLen)) {
+    send_msg_any(ctl, MSG_ERROR, invalid_test_suite,
+                 strlen(invalid_test_suite));
     return (-1);
   }
   if (msgLen == -1) {
@@ -296,7 +298,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   }
 
   if (!(options->connection_flags & WEBSOCKET_SUPPORT)) {
-    if (kick_off_old_clients(ctlsockfd) != KICK_SUCCESS) return -1;
+    if (kick_off_old_clients(ctl) != KICK_SUCCESS) return -1;
   }
   /*
    * Expecting a MSG_LOGIN or MSG_EXTENDED_LOGIN with payload byte indicating
@@ -318,7 +320,7 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
   if (msgType == MSG_LOGIN) { /* Case 1 */
     options->connection_flags &= ~JSON_SUPPORT;
     if (msgLen != 1) {
-      send_msg(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test));
+      send_msg_any(ctl, MSG_ERROR, invalid_test, strlen(invalid_test));
       return (-2);
     }
     useropt = msgValue[0];
@@ -327,16 +329,16 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
     options->connection_flags |= JSON_SUPPORT;
     jsonMsgValue = json_read_map_value(msgValue, "tests");
     if (jsonMsgValue == NULL) {
-      send_json_message(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, invalid_test, strlen(invalid_test),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return (-2);
     }
     useropt = atoi(jsonMsgValue);
     free(jsonMsgValue);
     jsonMsgValue = json_read_map_value(msgValue, DEFAULT_KEY);
     if (jsonMsgValue == NULL) {
-      send_json_message(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, invalid_test, strlen(invalid_test),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return (-2);
     }
     strlcpy(msgValue, jsonMsgValue, sizeof(msgValue));
@@ -344,32 +346,31 @@ int initialize_tests(int ctlsockfd, TestOptions* options, char * buff,
     free(jsonMsgValue);
     if (msgLen >= 1 && msgLen <= (CS_VERSION_LENGTH_MAX + 1)) {
       memcpy(options->client_version, msgValue + 1, msgLen - 1);
-      log_println(0, "Client version: %s-\n", options->client_version);
+      log_println(1, "Client version: %s-\n", options->client_version);
     } else {
-      send_json_message(ctlsockfd, MSG_ERROR, invalid_test, strlen(invalid_test),
-                        options->connection_flags, JSON_SINGLE_VALUE);
+      send_json_message_any(ctl, MSG_ERROR, invalid_test, strlen(invalid_test),
+                            options->connection_flags, JSON_SINGLE_VALUE);
       return (-2);
     }
   } else { /* Case 3 */
-    send_msg(ctlsockfd, MSG_ERROR,
-             invalid_login_msg, 
-             strlen(invalid_login_msg));
+    send_msg_any(ctl, MSG_ERROR, invalid_login_msg, strlen(invalid_login_msg));
     return (-2);
   }
 
   // client connect received correctly. Logging activity
   // log that client connected, and create log file
-  log_println(0,
+  log_println(1,
               "Client connect received from :IP %s to some server on socket %d",
-              get_remotehostaddress(), ctlsockfd);
+              get_remotehostaddress(), ctl->socket);
 
   // set_protologfile(get_remotehost(), protologlocalarr);
 
   if (!(useropt
         & (TEST_MID | TEST_C2S | TEST_S2C | TEST_SFW | TEST_STATUS | TEST_META | TEST_C2S_EXT | TEST_S2C_EXT))) {
     // message received does not indicate a valid test!
-    send_json_message(ctlsockfd, MSG_ERROR, invalid_test_suite,
-                      strlen(invalid_test_suite), options->connection_flags, JSON_SINGLE_VALUE);
+    send_json_message_any(ctl, MSG_ERROR, invalid_test_suite,
+                          strlen(invalid_test_suite), options->connection_flags,
+                          JSON_SINGLE_VALUE);
     return (-3);
   }
   // construct test suite request based on user options received
@@ -445,7 +446,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
           "Unable to open log file '%s', continuing on without logging",
           get_logfile());
     } else {
-      log_println(0, "Snaplog file: %s\n", metafilename);
+      log_println(1, "Snaplog file: %s\n", metafilename);
       fprintf(fplocal, "Snaplog file: %s\n", metafilename);
       fclose(fplocal);
     }
@@ -453,7 +454,7 @@ void start_snap_worker(SnapArgs *snaparg, tcp_stat_agent* agentarg,
 
   if (pthread_create(wrkrthreadidarg, NULL, snapWorker,
                      (void*) &workerArgs)) {
-    log_println(0, "Cannot create worker thread for writing snap log!");
+    log_println(1, "Cannot create worker thread for writing snap log!");
     *wrkrthreadidarg = 0;
   }
 

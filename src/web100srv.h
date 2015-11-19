@@ -79,6 +79,7 @@
 #include <arpa/inet.h>
 #include <I2util/util.h>
 
+#include "connection.h"
 #include "ndtptestconstants.h"
 
 /* move version to configure.ac file for package name */
@@ -131,6 +132,7 @@ typedef struct options {
   int s2c_snapsdelay;                   // specify the delay in the throughput snapshots thread for download test
   int s2c_snapsoffset;                  // specify the initial offset in the throughput snapshots thread for download test
   int s2c_streamsnum;                   // specify the number of streams (parallel TCP connections) for download test
+  int tls;                              // true if we should communicate over SSL
 } Options;
 
 typedef struct portpair {
@@ -139,19 +141,17 @@ typedef struct portpair {
 } PortPair;
 
 // Structure defining NDT child process
-struct ndtchild {
+typedef struct ndtchild_s {
   int pid;  // process id
   char addr[64];  // IP Address
   char host[256];  // Hostname
   time_t stime;  // estimated start time of test
   time_t qtime;  // time when queued
-  int pipe;  // writing end of pipe
-  int running;  // Is process running?
-  int ctlsockfd;  // Socket file descriptor
-  int oldclient;  // Is old client?
+  int running;  // Was this told to start running tests?
+  int pipe;  // The writeable end of the pipe to the child
   char tests[24];  // What tests are scheduled?
-  struct ndtchild *next;  // next process in queue
-};
+  struct ndtchild_s *next;  // next process in queue
+} ndtchild;
 
 /* structure used to collect speed data in bins */
 struct spdpair {
@@ -329,7 +329,8 @@ int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
                    int autotune);/* Not used so no web10g version */
 void tcp_stat_get_data_recv(int sock, tcp_stat_agent* agent,
                             tcp_stat_connection cn, int count_vars);
-int tcp_stat_get_data(tcp_stat_snap** snap, int* testsock, int streamsNum, int ctlsock,
+
+int tcp_stat_get_data(tcp_stat_snap** snap, Connection* testsock, int streamsNum, Connection* ctl,
                       tcp_stat_agent* agent, int count_vars, const struct testoptions* const testoptions);
 
 int CwndDecrease(char* logname,
