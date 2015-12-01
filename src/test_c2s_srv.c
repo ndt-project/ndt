@@ -419,6 +419,9 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       if ((c2s_childpid = fork()) == 0) {
         close(testOptions->c2ssockfd);
         close_all_connections(c2s_conns, streamsNum);
+        // Don't capture more than 14 seconds of packet traces:
+        //   2 seconds of sleep + 10 seconds of test + 2 seconds of slop
+        alarm(14);
         log_println(
             5,
             "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
