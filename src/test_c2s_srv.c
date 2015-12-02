@@ -113,7 +113,7 @@ void close_all_connections(Connection *connections, int connections_length) {
 // At 150k tests per day, this one sleep(2) wastes 83 hours of peoples'
 // lives every day.
 // TODO: solve the race conditions some other way.
-#define LOSE_RACE_CONDITION 2
+const static int RACE_CONDITION_WAIT_TIME = 2;
 
 /**
  * Perform the C2S Throughput test. This test intends to measure throughput
@@ -427,7 +427,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         close_all_connections(c2s_conns, streamsNum);
         // Don't capture more than 14 seconds of packet traces:
         //   2 seconds of sleep + 10 seconds of test + 2 seconds of slop
-        alarm(testDuration + LOSE_RACE_CONDITION + 2);
+        alarm(testDuration + RACE_CONDITION_WAIT_TIME + 2);
         log_println(
             5,
             "C2S test Child %d thinks pipe() returned fd0=%d, fd1=%d",
@@ -473,7 +473,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   create_client_logdir((struct sockaddr *) &cli_addr[0], clilen,
                        options->c2s_logname, sizeof(options->c2s_logname),
                        namesuffix, sizeof(namesuffix));
-  sleep(LOSE_RACE_CONDITION);
+  sleep(RACE_CONDITION_WAIT_TIME);
   // Reset alarm() again. This 10 sec test should finish before this signal is
   // generated, but sleep() can render existing alarm()s invalid, and alarm() is
   // our watchdog timer.
