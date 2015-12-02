@@ -73,7 +73,7 @@ void srv_long_usage(char* info) {
   printf("  --tls_port #port       - Use this port for TLS sockets to conduct the tests.\n");
   printf("                           Note: TLS tests can't do tests which require the \n");
   printf("                           server to open a socket to the client (MID, SFW),\n");
-  printf("                           and also require the --certificate and --private-key\n");
+  printf("                           and also require the --certificate and --private_key\n");
   printf("                           options be set. If this is unset, TLS is not used.\n");
   printf(" --private_key           - the private key (.pem format) to use for TLS/SSL\n");
   printf(" --certificate           - the certificate (.pem format) to use for TLS/SSL\n");
