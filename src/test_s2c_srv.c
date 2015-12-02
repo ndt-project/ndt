@@ -384,7 +384,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           if ((s2c_childpid = fork()) == 0) {
             // Don't capture more than 12 seconds of packet traces:
             //   10 second test + 2 seconds of slop
-            alarm(12);
+            alarm(testDuration + 2);
             close(testOptions->s2csockfd);
             for (i = 0; i < streamsNum; i++) {
               close(xmitsfd[i].socket);
