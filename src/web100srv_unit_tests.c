@@ -12,6 +12,24 @@
 #include "unit_testing.h"
 #include "web100srv.h"
 
+// Creates the required certificate files according to the passed-in specs
+void make_certificate_files(char *private_key_file, char *certificate_file) {
+  char create_private_key_command_line[1024];
+  char create_certificate_command_line[1024];
+  // Set up certificates
+  mkstemp(private_key_file);
+  mkstemp(certificate_file);
+  sprintf(create_private_key_command_line,
+          "( openssl genrsa -out %s 2>&1 ) > /dev/null", private_key_file);
+  CHECK(system(create_private_key_command_line) == 0);
+  sprintf(create_certificate_command_line,
+          "( openssl req -new -x509 -key %s -out %s -days 2 -subj "
+          "/C=XX/ST=State/L=Locality/O=Org/OU=Unit/CN=Name"
+          "/emailAddress=test@email.address 2>&1 ) > /dev/null",
+          private_key_file, certificate_file);
+  CHECK(system(create_certificate_command_line) == 0);
+}
+
 /** Starts the web100srv process. Either args must be NULL or the last element
  *  of **args must be NULL. */
 pid_t start_server(int port, char **extra_args) {
@@ -68,9 +86,9 @@ void run_client(char *client_command_line_suffix, char **server_options) {
   gethostname(hostname, sizeof(hostname) - 1);
   log_println(1, "Starting the client, will attach to %s:%d\n", hostname,
               port);
-  sprintf(command_line, "./web100clt --name=%s --port=%d %s", hostname, port,
-          client_command_line_suffix == NULL ? ""
-                                             : client_command_line_suffix);
+  sprintf(command_line, "(./web100clt --name=%s --port=%d %s 2>&1 ) > /dev/null",
+          hostname, port,
+          client_command_line_suffix == NULL ? "" : client_command_line_suffix);
   ASSERT(system(command_line) == 0, "%s did not exit with 0", command_line);
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
@@ -83,52 +101,7 @@ void test_e2e() { run_client(NULL, NULL); }
 void test_e2e_ext() {
   char *server_args[] = {"--c2sduration", "8000", "--c2sstreamsnum", "4",
                          "--s2cduration", "8000", "--s2cstreamsnum", "4", NULL};
-  run_client("-dddddddd --enables2cext --enablec2sext", server_args);
-}
-
-/** Runs 20 simultaneous tests, therefore exercising the queuing code. */
-void test_queuing() {
-  pid_t server_pid;
-  int server_exit_code;
-  int client_exit_code;
-  char hostname[1024];
-  char command_line[1024];
-  int port;
-  int i;
-  time_t start_time, current_time;
-  const int num_clients = 20;
-  char *server_args[] = {"--max_clients=5", "--multiple", NULL};
-  srandom(time(NULL));
-  port = (random() % 30000) + 1024;
-  server_pid = start_server(port, server_args);
-  // Find out the hostname.  We can't use "localhost" because then the test
-  // won't go through the TCP stack and so web100 won't work.
-  gethostname(hostname, sizeof(hostname) - 1);
-  log_print(1, "Starting %d clients, will attach to %s:%d\n", num_clients,
-            hostname, port);
-  time(&start_time);
-  for (i = 0; i < num_clients; i++) {
-    if (fork() == 0) {
-      sprintf(
-          command_line,
-          "(./web100clt --name=%s --port=%d 2>&1) > /dev/null; echo %d done",
-          hostname, port, i);
-      ASSERT(system(command_line) == 0, "%s did not exit with 0", command_line);
-      exit(0);
-    }
-  }
-  i = 0;
-  while (i < num_clients) {
-    if (wait(&client_exit_code) != -1) i++;
-    ASSERT(WIFEXITED(client_exit_code) && WEXITSTATUS(client_exit_code) == 0,
-           "client exited with non-zero error code %d",
-           WEXITSTATUS(client_exit_code));
-    time(&current_time);
-    log_print(1, "[test_queuing] %d/%d clients finished in %g seconds\n", i,
-              num_clients, (double)(current_time - start_time));
-  }
-  kill(server_pid, SIGKILL);
-  waitpid(server_pid, &server_exit_code, 0);
+  run_client("--enables2cext --enablec2sext", server_args);
 }
 
 const char *nodejs_command() {
@@ -144,6 +117,19 @@ const char *nodejs_command() {
   }
 }
 
+void run_node_client(int port, int tests, char *protocol) {
+  char hostname[1024];
+  char command_line[1024];
+  const char *nodejs_name = nodejs_command();
+  if (nodejs_name == NULL) return;
+  gethostname(hostname, sizeof(hostname) - 1);
+  sprintf(command_line,
+          "%s node_tests/ndt_client.js --server %s --protocol %s --port %d --tests %d --acceptinvalidcerts",
+          nodejs_name, hostname, protocol, port, tests);
+  ASSERT(system(command_line) == 0, "%s exited with non-zero exit code",
+         command_line);
+}
+
 /** Runs an end-to-end test of the server over websockets. */
 void test_node(int tests) {
   pid_t server_pid;
@@ -156,12 +142,7 @@ void test_node(int tests) {
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
   server_pid = start_server(port, NULL);
-  gethostname(hostname, sizeof(hostname) - 1);
-  sprintf(command_line,
-          "%s node_tests/ndt_client.js --server %s --port %d --tests %d",
-          nodejs_name, hostname, port, tests);
-  ASSERT(system(command_line) == 0, "%s exited with non-zero exit code",
-         command_line);
+  run_node_client(port, tests, "ws");
   kill(server_pid, SIGKILL);
   waitpid(server_pid, &server_exit_code, 0);
 }
@@ -176,36 +157,27 @@ void test_run_two_tests_node() { test_node(TEST_S2C | TEST_C2S); }
 void run_ssl_test(void test_fn(int port, const char *hostname)) {
   char private_key_file[] = "/tmp/web100srv_test_key.pem-XXXXXX";
   char certificate_file[] = "/tmp/web100srv_test_cert.pem-XXXXXX";
-  char create_private_key_command_line[1024];
-  char create_certificate_command_line[1024];
   char hostname[1024];
+  char tls_port_string[6];  // Max port # has 5 digits and then a NULL
   int port;
+  int tls_port;
   pid_t server_pid;
   int server_exit_code;
   int err;
-  char *server_args[] = {"--tls", "--private_key", private_key_file,
-                         "--certificate", certificate_file, NULL};
+  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, NULL};
   // Set up certificates
-  mkstemp(private_key_file);
-  mkstemp(certificate_file);
-  sprintf(create_private_key_command_line,
-          "( openssl genrsa -out %s 2>&1 ) > /dev/null", private_key_file);
-  CHECK(system(create_private_key_command_line) == 0);
-  sprintf(create_certificate_command_line,
-          "( openssl req -new -x509 -key %s -out %s -days 2 -subj "
-          "/C=XX/ST=State/L=Locality/O=Org/OU=Unit/CN=Name"
-          "/emailAddress=test@email.address 2>&1 ) > /dev/null",
-          private_key_file, certificate_file);
-  CHECK(system(create_certificate_command_line) == 0);
+  make_certificate_files(private_key_file, certificate_file);
   // Start the server with the right mode
   srandom(time(NULL));
   port = (random() % 30000) + 1024;
-  server_args[2] = private_key_file;
-  server_args[4] = certificate_file;
+  do {
+    tls_port = (random() % 30000) + 1024;
+  } while (tls_port == port);
+  sprintf(tls_port_string, "%d", tls_port);
   server_pid = start_server(port, server_args);
   gethostname(hostname, sizeof(hostname) - 1);
   // Run the passed-in test
-  (*test_fn)(port, hostname);
+  (*test_fn)(tls_port, hostname);
   // Free our resources
   unlink(private_key_file);
   unlink(certificate_file);
@@ -291,6 +263,67 @@ void test_is_child_process_alive_ignores_bad_pgid() {
   }
 }
 
+/** Runs 20 simultaneous tests, therefore exercising the queuing code. */
+void test_queuing() {
+  char private_key_file[] = "/tmp/web100srv_test_key.pem-XXXXXX";
+  char certificate_file[] = "/tmp/web100srv_test_cert.pem-XXXXXX";
+  pid_t server_pid;
+  int server_exit_code;
+  int client_exit_code;
+  char hostname[1024];
+  char command_line[1024];
+  int port, tls_port;
+  char tls_port_string[6];  // Maximum of 5 digits plus NULL
+  int i;
+  time_t start_time, current_time;
+  const int num_clients = 20;
+  char *server_args[] = {"--max_clients=5", "--tls_port", tls_port_string,
+                         "--private_key", private_key_file,
+                         "--certificate", certificate_file, "--multiple", NULL};
+  srandom(time(NULL));
+  port = (random() % 30000) + 1024;
+  do {
+    tls_port = (random() % 30000) + 1024;
+  } while (tls_port == port);
+  sprintf(tls_port_string, "%d", tls_port);
+  make_certificate_files(private_key_file, certificate_file);
+  server_pid = start_server(port, server_args);
+  // Find out the hostname.  We can't use "localhost" because then the test
+  // won't go through the TCP stack and so web100 won't work.
+  gethostname(hostname, sizeof(hostname) - 1);
+  log_print(1, "Starting %d clients, will attach to %s:%d\n", num_clients,
+            hostname, port);
+  time(&start_time);
+  for (i = 0; i < num_clients; i++) {
+    if (fork() == 0) {
+      if (i % 3 == 0) {
+        sprintf(
+            command_line,
+            "(./web100clt --name=%s --port=%d 2>&1) > /dev/null && echo %d done",
+            hostname, port, i);
+        ASSERT(system(command_line) == 0, "%s did not exit with 0", command_line);
+      } else if (i % 3 == 1) {
+        run_node_client(port, TEST_C2S | TEST_S2C | TEST_META, "ws");
+      } else {
+        run_node_client(tls_port, TEST_C2S | TEST_S2C | TEST_META, "wss");
+      }
+      exit(0);
+    }
+  }
+  i = 0;
+  while (i < num_clients) {
+    if (wait(&client_exit_code) != -1) i++;
+    ASSERT(WIFEXITED(client_exit_code) && WEXITSTATUS(client_exit_code) == 0,
+           "client exited with non-zero error code %d",
+           WEXITSTATUS(client_exit_code));
+    time(&current_time);
+    log_print(1, "[test_queuing] %d/%d clients finished in %g seconds\n", i,
+              num_clients, (double)(current_time - start_time));
+  }
+  kill(server_pid, SIGKILL);
+  waitpid(server_pid, &server_exit_code, 0);
+}
+
 #define RUN_LONG_TEST(TEST, TIME) run_unit_test(#TEST " - may take up to " TIME " to pass", &(TEST))
 
 /** Runs each test, returns non-zero to the shell if any tests fail. */
@@ -303,15 +336,15 @@ int main() {
   return
       RUN_TEST(test_is_child_process_alive) ||
       RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||
-      RUN_LONG_TEST(test_run_all_tests_node, "30 seconds") ||
+      RUN_TEST(test_node_meta_test) ||
       RUN_TEST(test_ssl_connection) ||
+      RUN_TEST(test_ssl_meta_test) ||
       RUN_LONG_TEST(test_ssl_c2s_test, "15 seconds") ||
+      RUN_LONG_TEST(test_run_all_tests_node, "30 seconds") ||
       RUN_LONG_TEST(test_ssl_ndt, "30 seconds") ||
       RUN_LONG_TEST(test_e2e, "30 seconds") ||
       //RUN_TEST(test_e2e_ext) ||
       RUN_LONG_TEST(test_run_two_tests_node, "30 seconds") ||
-      RUN_TEST(test_node_meta_test) ||
-      RUN_TEST(test_ssl_meta_test) ||
       RUN_LONG_TEST(test_queuing, "2 minutes") ||
       0;
 }

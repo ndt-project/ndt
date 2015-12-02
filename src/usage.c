@@ -70,11 +70,11 @@ void srv_long_usage(char* info) {
   printf("                           (default %s/serverdata)\n", BASEDIR);
   printf("  -S, --logfacility #F   - specify syslog facility name\n");
   printf("                           Note: this doesn't enable 'syslog'\n\n");
-  printf("  --tls                  - Use SSL or TLS sockets to conduct the tests.\n");
-  printf("                           Note: This disables all tests which require the \n");
+  printf("  --tls_port #port       - Use this port for TLS sockets to conduct the tests.\n");
+  printf("                           Note: TLS tests can't do tests which require the \n");
   printf("                           server to open a socket to the client (MID, SFW),\n");
-  printf("                           and requires the --certificate and --private-key\n");
-  printf("                           options also be set.\n");
+  printf("                           and also require the --certificate and --private-key\n");
+  printf("                           options be set. If this is unset, TLS is not used.\n");
   printf(" --private_key           - the private key (.pem format) to use for TLS/SSL\n");
   printf(" --certificate           - the certificate (.pem format) to use for TLS/SSL\n");
   printf("  --savewebvalues        - enable web values writing to a separate file\n\n");

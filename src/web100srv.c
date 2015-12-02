@@ -223,7 +223,7 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"ipv4", 0, 0, '4'},
                                        {"ipv6", 0, 0, '6'},
 #endif
-                                       {"tls", 0, 0, 325},
+                                       {"tls_port", 1, 0, 325},
                                        {"private_key", 1, 0, 326},
                                        {"certificate", 1, 0, 327},
                                        {"disable_extended_tests", 0, 0, 328},
@@ -1408,7 +1408,7 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   alarm(300);
 
   // Set up the connection with the client (with optional SSL and websockets)
-  if (options.tls) {
+  if (ssl_context != NULL) {
     if (setup_SSL_connection(&ctl, ssl_context) != 0) {
       log_println(1, "setup_SSL_connection failed");
       exit(-1);
@@ -1551,39 +1551,34 @@ static int max(int a, int b) { return (a > b) ? a : b; }
  * Waits for a new client to connect, for one of the child processes to die, or
  * (optionally) until a timeout occurs.  If the select() is woken up by a new
  * client connecting, then this routine will return true.
- * @param listenfd The file descriptor which listens to the network
+ * @param fds A pointer to the set of file descriptors for the client sockets
  * @param signalfd The pipe which will be written to upon receipt of SIGCHILD
  * @param wait_forever True if the server should wait forever
- * @return True if there is a new client on listenfd
  */
-int wait_for_wakeup(int listenfd, int signalfd, int wait_forever) {
-  fd_set fds;
+void wait_for_wakeup(fd_set *fds, int fd_max, int signalfd, int wait_forever) {
   int retcode;
   ServerWakeupMessage signal_value;
   struct timeval sel_tv, *psel_tv = NULL;
 
-  FD_ZERO(&fds);
-  FD_SET(listenfd, &fds);
-  FD_SET(signalfd, &fds);
+  FD_SET(signalfd, fds);
   if (!wait_forever) {
     sel_tv.tv_sec = 3;  // Timeout after 3 seconds
     sel_tv.tv_usec = 0;
     psel_tv = &sel_tv;
   }
-  retcode = select(max(listenfd, signalfd) + 1, &fds, NULL, NULL, psel_tv);
+  retcode = select(max(fd_max, signalfd) + 1, fds, NULL, NULL, psel_tv);
   if (retcode == -1) {
     if (errno != EINTR) {
       // EINTR is expected every now and then due to signal handling.
       log_println(0, "Error in server's select call: %d (%s)", errno,
                   strerror(errno));
     }
-    return 0;
+    return;
   }
   // If we woke up due to data on the signalfd, then clear the buffer.
-  if (FD_ISSET(signalfd, &fds)) {
+  if (FD_ISSET(signalfd, fds)) {
     read(signalfd, &signal_value, sizeof(ServerWakeupMessage));
   }
-  return FD_ISSET(listenfd, &fds);
 }
 
 /**
@@ -1892,16 +1887,37 @@ void perform_queue_maintenance(ndtchild **head) {
  * The server's main loop.  This is the function that, once all arguments are
  * processed and the server environment has been set up, will keep waiting for
  * new connections and then forking off children to handle those connections.
- * @param ssl_context The context to create new SSL connections - may be NULL
+ * @param ssl_context The context to create new TLS connections - may be NULL
+ * @param tls_listenfd The server socket on which to listen for new TLS clients
  * @param listenfd The server socket on which to listen for new clients
  * @param signalfd The socket used to wake up the server after a signal handler
  */
-void NDT_server_main_loop(SSL_CTX *ssl_context, int listenfd, int signalfd) {
+void NDT_server_main_loop(SSL_CTX *ssl_context, int tls_listenfd, int listenfd,
+                          int signalfd) {
   ndtchild *queue_head = NULL, *new_child;
+  fd_set fds;
+  int maxfd;
+
+  maxfd = listenfd;
+  if (ssl_context != NULL) {
+    maxfd = max(listenfd, tls_listenfd);
+  }
   for (;;) {
+    // Set up the fd_set to contain the right sockets
+    FD_ZERO(&fds);
+    FD_SET(listenfd, &fds);
+    if (ssl_context != NULL) {
+      FD_SET(tls_listenfd, &fds);
+    }
     // Wait for a new connection, an interruption, or a timeout.
-    if (wait_for_wakeup(listenfd, signalfd, (queue_head == NULL))) {
-      new_child = spawn_new_child(listenfd, ssl_context);
+    wait_for_wakeup(&fds, maxfd, signalfd, (queue_head == NULL));
+    // After wakeup, check where there may be clients waiting
+    if (FD_ISSET(listenfd, &fds)) {
+      new_child = spawn_new_child(listenfd, NULL);
+      if (new_child != NULL) attempt_enqueue(new_child, &queue_head);
+    }
+    if (ssl_context != NULL && FD_ISSET(tls_listenfd, &fds)) {
+      new_child = spawn_new_child(tls_listenfd, ssl_context);
       if (new_child != NULL) attempt_enqueue(new_child, &queue_head);
     }
     // Perform queue maintenance: send messages to clients and reap the dead.
@@ -1982,11 +1998,12 @@ int main(int argc, char **argv) {
   size_t lbuf_max = 0;
   char *private_key_file = NULL;
   char *certificate_file = NULL;
+  int tls_port = -1;
+  char *tls_port_string = NULL;
   SSL_CTX *ssl_context = NULL;
   time_t tt;
-  I2Addr listenaddr = NULL;
-  int listenfd;
-  char *srcname = NULL;
+  I2Addr listenaddr = NULL, tls_listenaddr = NULL;
+  int listenfd, tls_listenfd = -1;
   int signalfd_pipe[2];
   int signalfd_read;
   int debug = 0;
@@ -2278,6 +2295,12 @@ int main(int argc, char **argv) {
         break;
       case 325:
         options.tls = 1;
+        tls_port_string = optarg;
+        if (check_int(optarg, &tls_port)) {
+          char tmpText[200];
+          snprintf(tmpText, sizeof(tmpText), "Bad tls_port number: %s", optarg);
+          short_usage(argv[0], tmpText);
+        }
         break;
       case 326:
         private_key_file = optarg;
@@ -2295,8 +2318,9 @@ int main(int argc, char **argv) {
   }
 
   if (options.tls) {
-    if (private_key_file == NULL || certificate_file == NULL) {
-      short_usage(argv[0], "TLS requires a private key and a certificate");
+    if (private_key_file == NULL || certificate_file == NULL || tls_port < 0) {
+      short_usage(argv[0],
+                  "TLS requires a tls_port, a private key, and a certificate");
     }
     ssl_context = setup_SSL(certificate_file, private_key_file);
   }
@@ -2392,18 +2416,23 @@ int main(int argc, char **argv) {
   }
 
   // Bind our local address so that the client can send to us.
-
-  if (srcname && !(listenaddr = I2AddrByNode(get_errhandle(), srcname))) {
-    err_sys("server: Invalid source address specified");
-  }
   if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options,
                                        ((set_buff > 0) ? window : 0))) ==
       NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   listenfd = I2AddrFD(listenaddr);
+  // Bind the tls stuff
+  if (options.tls) {
+    if ((tls_listenaddr =
+             CreateListenSocket(tls_listenaddr, tls_port_string, conn_options,
+                                ((set_buff > 0) ? window : 0))) == NULL) {
+      err_sys("server: CreateListenSocket failed");
+    }
+    tls_listenfd = I2AddrFD(tls_listenaddr);
+  }
 
-  if (listenfd == -1) {
+  if (listenfd == -1 || (options.tls && tls_listenfd == -1)) {
     log_println(0, "ERROR: Socket already in use.");
     return 0;
   }
@@ -2467,7 +2496,7 @@ int main(int argc, char **argv) {
   signalfd_read = signalfd_pipe[0];
   global_signalfd_write = signalfd_pipe[1];
 
-  NDT_server_main_loop(ssl_context, listenfd, signalfd_read);
+  NDT_server_main_loop(ssl_context, tls_listenfd, listenfd, signalfd_read);
   return 0;
 }
 #endif  // USE_WEB100SRV_ONLY_AS_LIBRARY
