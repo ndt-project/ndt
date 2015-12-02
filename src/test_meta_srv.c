@@ -22,8 +22,9 @@
 #include "strlutils.h"
 #include "websocket.h"
 
- void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value);
- void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value);
+void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value);
+void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value);
+void addAdditionalMetaBoolEntry(struct metaentry **ptr, char* key, int value);
 
 /**
  * Performs the META test.
@@ -160,18 +161,22 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
     }
     if (testOptions->c2sextopt) {
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->c2s_duration);
-      addAdditionalMetaEntry(&new_entry, "ext.c2s.throughputsnaps", options->c2s_throughputsnaps ? "true" : "false");
+      addAdditionalMetaBoolEntry(&new_entry, "ext.c2s.throughputsnaps", options->c2s_throughputsnaps);
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->c2s_snapsdelay);
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->c2s_snapsoffset);
       addAdditionalMetaIntEntry(&new_entry, "ext.c2s.streamsnum", options->c2s_streamsnum);
     }
     if (testOptions->s2cextopt) {
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->s2c_duration);
-      addAdditionalMetaEntry(&new_entry, "ext.s2c.throughputsnaps", options->s2c_throughputsnaps ? "true" : "false");
+      addAdditionalMetaBoolEntry(&new_entry, "ext.s2c.throughputsnaps", options->s2c_throughputsnaps);
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->s2c_snapsdelay);
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->s2c_snapsoffset);
       addAdditionalMetaIntEntry(&new_entry, "ext.s2c.streamsnum", options->s2c_streamsnum);
     }
+    addAdditionalMetaBoolEntry(&new_entry, "websockets",
+			       (testOptions->connection_flags & WEBSOCKET_SUPPORT));
+    addAdditionalMetaBoolEntry(&new_entry, "tls",
+			       (testOptions->connection_flags & TLS_SUPPORT));
 
     // Finalize test by sending appropriate message, and setting status
     if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
@@ -209,4 +214,8 @@ void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value) {
   char tmpbuff[256];
   snprintf(tmpbuff, sizeof(tmpbuff), "%d", value);
   addAdditionalMetaEntry(ptr, key, tmpbuff);
+}
+
+void addAdditionalMetaBoolEntry(struct metaentry **ptr, char* key, int value) {
+  addAdditionalMetaEntry(ptr, key, value ? "true" : "false");
 }
