@@ -1942,9 +1942,9 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
     report_SSL_error("SSL_CTX_new", "SSL/TLS context could not be created.");
   }
   SSL_CTX_set_mode(ssl_context, SSL_MODE_AUTO_RETRY);
-  if (SSL_CTX_use_certificate_file(ssl_context, certificate_file,
+  if (SSL_CTX_use_certificate_chain_file(ssl_context, certificate_file,
                                    SSL_FILETYPE_PEM) != 1) {
-    report_SSL_error("SSL_CTX_use_certificate_file",
+    report_SSL_error("SSL_CTX_use_certificate_chain_file",
                      "SSL/TLS certificate file could not be loaded.");
   }
   if (SSL_CTX_use_PrivateKey_file(ssl_context, private_key_file,
