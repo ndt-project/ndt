@@ -14,19 +14,21 @@
 
 // Creates the required certificate files according to the passed-in specs
 void make_certificate_files(char *private_key_file, char *certificate_file) {
-  char create_private_key_command_line[1024];
-  char create_certificate_command_line[1024];
+  char create_private_key_command_line[10240];
+  char create_certificate_command_line[10240];
   // Set up certificates
   mkstemp(private_key_file);
   mkstemp(certificate_file);
-  sprintf(create_private_key_command_line,
-          "( openssl genrsa -out %s 2>&1 ) > /dev/null", private_key_file);
+  snprintf(create_private_key_command_line,
+           sizeof(create_private_key_command_line),
+           "( openssl genrsa -out %s 2>&1 ) > /dev/null", private_key_file);
   CHECK(system(create_private_key_command_line) == 0);
-  sprintf(create_certificate_command_line,
-          "( openssl req -new -x509 -key %s -out %s -days 2 -subj "
-          "/C=XX/ST=State/L=Locality/O=Org/OU=Unit/CN=Name"
-          "/emailAddress=test@email.address 2>&1 ) > /dev/null",
-          private_key_file, certificate_file);
+  snprintf(create_certificate_command_line,
+           sizeof(create_certificate_command_line),
+           "( openssl req -new -x509 -key %s -out %s -days 2 -subj "
+           "/C=XX/ST=State/L=Locality/O=Org/OU=Unit/CN=Name"
+           "/emailAddress=test@email.address 2>&1 ) > /dev/null",
+           private_key_file, certificate_file);
   CHECK(system(create_certificate_command_line) == 0);
 }
 
@@ -71,6 +73,17 @@ pid_t start_server(int port, char **extra_args) {
   return server_pid;
 }
 
+// Choose random non-conflicting ports on which to run the server.
+void choose_random_ports(int *port, int *tls_port) {
+  srandom(time(NULL));
+  *port = (random() % 30000) + 1024;
+  if (tls_port != NULL) {
+    do {
+      *tls_port = (random() % 30000) + 1024;
+    } while (*tls_port == *port);
+  }
+}
+
 /** Runs an end-to-end test of the server and client code. */
 void run_client(char *client_command_line_suffix, char **server_options) {
   pid_t server_pid;
@@ -78,8 +91,7 @@ void run_client(char *client_command_line_suffix, char **server_options) {
   char hostname[1024];
   char command_line[1024];
   int port;
-  srandom(time(NULL));
-  port = (random() % 30000) + 1024;
+  choose_random_ports(&port, NULL);
   server_pid = start_server(port, server_options);
   // Find out the hostname.  We can't use "localhost" because then the test
   // won't go through the TCP stack and so web100 won't work.
@@ -139,8 +151,7 @@ void test_node(int tests) {
   int port;
   const char *nodejs_name = nodejs_command();
   if (nodejs_name == NULL) return;
-  srandom(time(NULL));
-  port = (random() % 30000) + 1024;
+  choose_random_ports(&port, NULL);
   server_pid = start_server(port, NULL);
   run_node_client(port, tests, "ws");
   kill(server_pid, SIGKILL);
@@ -168,11 +179,7 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   // Set up certificates
   make_certificate_files(private_key_file, certificate_file);
   // Start the server with the right mode
-  srandom(time(NULL));
-  port = (random() % 30000) + 1024;
-  do {
-    tls_port = (random() % 30000) + 1024;
-  } while (tls_port == port);
+  choose_random_ports(&port, &tls_port);
   sprintf(tls_port_string, "%d", tls_port);
   server_pid = start_server(port, server_args);
   gethostname(hostname, sizeof(hostname) - 1);
@@ -280,11 +287,7 @@ void test_queuing() {
   char *server_args[] = {"--max_clients=5", "--tls_port", tls_port_string,
                          "--private_key", private_key_file,
                          "--certificate", certificate_file, "--multiple", NULL};
-  srandom(time(NULL));
-  port = (random() % 30000) + 1024;
-  do {
-    tls_port = (random() % 30000) + 1024;
-  } while (tls_port == port);
+  choose_random_ports(&port, &tls_port);
   sprintf(tls_port_string, "%d", tls_port);
   make_certificate_files(private_key_file, certificate_file);
   server_pid = start_server(port, server_args);
@@ -333,6 +336,7 @@ int main() {
   // that are not relevant to their current task.  Running the full suite can
   // take a long time and can add unwanted latency to a compile-run-debug
   // cycle.
+  // The tests are ordered by expected runtime in an effort to fail fast.
   return
       RUN_TEST(test_is_child_process_alive) ||
       RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||

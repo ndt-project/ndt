@@ -1549,9 +1549,11 @@ static int max(int a, int b) { return (a > b) ? a : b; }
 
 /**
  * Waits for a new client to connect, for one of the child processes to die, or
- * (optionally) until a timeout occurs.  If the select() is woken up by a new
- * client connecting, then this routine will return true.
- * @param fds A pointer to the set of file descriptors for the client sockets
+ * (optionally) until a timeout occurs.
+ * @param fds A pointer to the set of file descriptors for the client sockets.
+ *            This argument is modified in place, and so should be reset for
+ *            every call to this function.
+ * @param fd_max The value of the largest descriptor in the set
  * @param signalfd The pipe which will be written to upon receipt of SIGCHILD
  * @param wait_forever True if the server should wait forever
  */
@@ -1888,19 +1890,21 @@ void perform_queue_maintenance(ndtchild **head) {
  * processed and the server environment has been set up, will keep waiting for
  * new connections and then forking off children to handle those connections.
  * @param ssl_context The context to create new TLS connections - may be NULL
- * @param tls_listenfd The server socket on which to listen for new TLS clients
- * @param listenfd The server socket on which to listen for new clients
+ * @param tls_listenfd The server socket on which to listen for new TLS
+ *                     clients. Ignored when ssl_context is NULL.
+ * @param listenfd The server socket on which to listen for new clients over a
+ *                 non-TLS socket.
  * @param signalfd The socket used to wake up the server after a signal handler
  */
 void NDT_server_main_loop(SSL_CTX *ssl_context, int tls_listenfd, int listenfd,
                           int signalfd) {
   ndtchild *queue_head = NULL, *new_child;
   fd_set fds;
-  int maxfd;
+  int fd_max;
 
-  maxfd = listenfd;
+  fd_max = listenfd;
   if (ssl_context != NULL) {
-    maxfd = max(listenfd, tls_listenfd);
+    fd_max = max(listenfd, tls_listenfd);
   }
   for (;;) {
     // Set up the fd_set to contain the right sockets
@@ -1910,7 +1914,7 @@ void NDT_server_main_loop(SSL_CTX *ssl_context, int tls_listenfd, int listenfd,
       FD_SET(tls_listenfd, &fds);
     }
     // Wait for a new connection, an interruption, or a timeout.
-    wait_for_wakeup(&fds, maxfd, signalfd, (queue_head == NULL));
+    wait_for_wakeup(&fds, fd_max, signalfd, (queue_head == NULL));
     // After wakeup, check where there may be clients waiting
     if (FD_ISSET(listenfd, &fds)) {
       new_child = spawn_new_child(listenfd, NULL);
@@ -1958,9 +1962,8 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
     report_SSL_error("SSL_CTX_new", "SSL/TLS context could not be created.");
   }
   SSL_CTX_set_mode(ssl_context, SSL_MODE_AUTO_RETRY);
-  if (SSL_CTX_use_certificate_file(ssl_context, certificate_file,
-                                   SSL_FILETYPE_PEM) != 1) {
-    report_SSL_error("SSL_CTX_use_certificate_file",
+  if (SSL_CTX_use_certificate_chain_file(ssl_context, certificate_file) != 1) {
+    report_SSL_error("SSL_CTX_use_certificate_chain_file",
                      "SSL/TLS certificate file could not be loaded.");
   }
   if (SSL_CTX_use_PrivateKey_file(ssl_context, private_key_file,
@@ -2007,6 +2010,7 @@ int main(int argc, char **argv) {
   int signalfd_pipe[2];
   int signalfd_read;
   int debug = 0;
+  int sock_win;
 
   // variables used for protocol validation logs
   // char startsrvmsg[256];  // used to log start of server process
@@ -2320,7 +2324,7 @@ int main(int argc, char **argv) {
   if (options.tls) {
     if (private_key_file == NULL || certificate_file == NULL || tls_port < 0) {
       short_usage(argv[0],
-                  "TLS requires a tls_port, a private key, and a certificate");
+                  "TLS requires --tls_port, --private_key, and --certificate");
     }
     ssl_context = setup_SSL(certificate_file, private_key_file);
   }
@@ -2415,18 +2419,21 @@ int main(int argc, char **argv) {
     sigaction(i, &new, NULL);
   }
 
+  if (set_buff) {
+    sock_win = window;
+  } else {
+    sock_win = 0;
+  }
   // Bind our local address so that the client can send to us.
-  if ((listenaddr = CreateListenSocket(listenaddr, port, conn_options,
-                                       ((set_buff > 0) ? window : 0))) ==
+  if ((listenaddr = CreateListenSocket(NULL, port, conn_options, sock_win)) ==
       NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   listenfd = I2AddrFD(listenaddr);
   // Bind the tls stuff
   if (options.tls) {
-    if ((tls_listenaddr =
-             CreateListenSocket(tls_listenaddr, tls_port_string, conn_options,
-                                ((set_buff > 0) ? window : 0))) == NULL) {
+    if ((tls_listenaddr = CreateListenSocket(NULL, tls_port_string,
+                                             conn_options, sock_win)) == NULL) {
       err_sys("server: CreateListenSocket failed");
     }
     tls_listenfd = I2AddrFD(tls_listenaddr);
