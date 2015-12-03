@@ -2010,7 +2010,7 @@ int main(int argc, char **argv) {
   int signalfd_pipe[2];
   int signalfd_read;
   int debug = 0;
-  int sock_win;
+  int socket_window;
 
   // variables used for protocol validation logs
   // char startsrvmsg[256];  // used to log start of server process
@@ -2420,20 +2420,20 @@ int main(int argc, char **argv) {
   }
 
   if (set_buff) {
-    sock_win = window;
+    socket_window = window;
   } else {
-    sock_win = 0;
+    socket_window = 0;
   }
   // Bind our local address so that the client can send to us.
-  if ((listenaddr = CreateListenSocket(NULL, port, conn_options, sock_win)) ==
-      NULL) {
+  if ((listenaddr = CreateListenSocket(NULL, port, conn_options,
+                                       socket_window)) == NULL) {
     err_sys("server: CreateListenSocket failed");
   }
   listenfd = I2AddrFD(listenaddr);
   // Bind the tls stuff
   if (options.tls) {
-    if ((tls_listenaddr = CreateListenSocket(NULL, tls_port_string,
-                                             conn_options, sock_win)) == NULL) {
+    if ((tls_listenaddr = CreateListenSocket(
+             NULL, tls_port_string, conn_options, socket_window)) == NULL) {
       err_sys("server: CreateListenSocket failed");
     }
     tls_listenfd = I2AddrFD(tls_listenaddr);

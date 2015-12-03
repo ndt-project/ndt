@@ -335,8 +335,8 @@ int main() {
   // Formatted this way to allow developers to comment out individual tests
   // that are not relevant to their current task.  Running the full suite can
   // take a long time and can add unwanted latency to a compile-run-debug
-  // cycle.
-  // The tests are ordered by expected runtime in an effort to fail fast.
+  // cycle.  The tests are in ascending order by expected runtime in an effort
+  // to fail fast.
   return
       RUN_TEST(test_is_child_process_alive) ||
       RUN_TEST(test_is_child_process_alive_ignores_bad_pgid) ||
