@@ -211,6 +211,7 @@ function ndt_c2s_test() {
     var state = "WAIT_FOR_TEST_PREPARE",
         server_port,
         test_connection,
+        connection_open = false,
         TRANSMITTED_BYTES = 0,
         // The NDT protocol wants 8192 bytes at a time, and with masking
         // (required for all clients) the websocket header is 8 bytes, which
@@ -229,8 +230,10 @@ function ndt_c2s_test() {
 
     // A while loop, encoded as a setTimeout callback.
     function keep_sending_data() {
-        test_connection.send(data_to_send);
-        TRANSMITTED_BYTES += 8192;
+        if (connection_open) {
+            test_connection.send(data_to_send);
+            TRANSMITTED_BYTES += 8192;
+        }
         if (Date.now() / 1000 < test_start + 10) {
             setTimeout(keep_sending_data, 0);
         } else {
@@ -246,6 +249,8 @@ function ndt_c2s_test() {
             test_connection = new WebSocket(
                 url_protocol + "://" + server + ":" + server_port + "/ndt_protocol",
                 {protocol: "c2s"});
+            test_connection.on('open', function() { connection_open = true; });
+            test_connection.on('close', function() { connection_open = false; });
             test_connection.on('error', die);
             state = "WAIT_FOR_TEST_START";
             return "KEEP GOING";
