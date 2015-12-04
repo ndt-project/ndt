@@ -382,6 +382,9 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           log_println(0, "S2C test error: can't create pipe.");
         } else {
           if ((s2c_childpid = fork()) == 0) {
+            // Don't capture more than 12 seconds of packet traces:
+            //   10 second test + 2 seconds of slop
+            alarm(testDuration + 2);
             close(testOptions->s2csockfd);
             for (i = 0; i < streamsNum; i++) {
               close(xmitsfd[i].socket);

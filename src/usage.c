@@ -70,13 +70,14 @@ void srv_long_usage(char* info) {
   printf("                           (default %s/serverdata)\n", BASEDIR);
   printf("  -S, --logfacility #F   - specify syslog facility name\n");
   printf("                           Note: this doesn't enable 'syslog'\n\n");
-  printf("  --tls                  - Use SSL or TLS sockets to conduct the tests.\n");
-  printf("                           Note: This disables all tests which require the \n");
+  printf("  --tls_port #port       - Use this port for TLS sockets to conduct the tests.\n");
+  printf("                           This option requires the --certificate and --private_key\n");
+  printf("                           options be set. If this option is unset, NDT does\n");
+  printf("                           not use TLS.\n");
+  printf("                           Note: TLS tests can't do tests which require the \n");
   printf("                           server to open a socket to the client (MID, SFW),\n");
-  printf("                           and requires the --certificate and --private-key\n");
-  printf("                           options also be set.\n");
-  printf(" --private_key           - the private key (.pem format) to use for TLS/SSL\n");
-  printf(" --certificate           - the certificate (.pem format) to use for TLS/SSL\n");
+  printf("  --private_key          - the private key (.pem format) to use for TLS/SSL\n");
+  printf("  --certificate          - the certificate (.pem format) to use for TLS/SSL\n");
   printf("  --savewebvalues        - enable web values writing to a separate file\n\n");
 #ifdef EXPERIMENTAL_ENABLED
   printf(" Experimental code:\n\n");
@@ -104,7 +105,9 @@ void srv_long_usage(char* info) {
   printf("                           Note: this doesn't enable 's2cthroughputsnaps'\n");
   printf("  --s2csnapsoffset #msec - specify the initial offset in the throughput snapshots thread for download test (default 1000 msec)\n");
   printf("                           Note: this doesn't enable 's2cthroughputsnaps'\n");
-  printf("  --s2cstreamsnum #num   - specify the number of streams (parallel TCP connections) for download test (default 1 stream, maximum 7)\n\n");
+  printf("  --s2cstreamsnum #num   - specify the number of streams (parallel TCP connections) for download test (default 1 stream, maximum 7)\n");
+  printf("  --disable_extended_tests\n");
+  printf("                         - Disable support for extended tests.\n\n");
 #if defined(HAVE_ODBC) && defined(DATABASE_ENABLED) && defined(HAVE_SQL_H)
   printf(" Database support:\n\n");
   printf("  --enableDBlogging      - enable the test results logging to the database\n");
