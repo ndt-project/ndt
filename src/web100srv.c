@@ -1575,6 +1575,7 @@ void wait_for_wakeup(fd_set *fds, int fd_max, int signalfd, int wait_forever) {
       log_println(0, "Error in server's select call: %d (%s)", errno,
                   strerror(errno));
     }
+    FD_ZERO(fds);
     return;
   }
   // If we woke up due to data on the signalfd, then clear the buffer.
