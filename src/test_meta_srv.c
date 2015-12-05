@@ -48,7 +48,7 @@ void addAdditionalMetaBoolEntry(struct metaentry **ptr, char* key, int value);
 int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
                   TestOptions *testOptions, int conn_options, Options* options) {
   int j;
-  int64_t err;
+  int err;
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
   struct metaentry *new_entry = NULL;
@@ -90,7 +90,7 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
                          testOptions->connection_flags);
       if (err) {
         // message reading error
-        log_println(0, "Protocol error!");
+        log_println(0, "Protocol error! (%d)", err);
         snprintf(buff, sizeof(buff),
                  "Server (META test): Invalid meta data received");
         send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),

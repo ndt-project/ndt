@@ -175,7 +175,7 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   pid_t server_pid;
   int server_exit_code;
   int err;
-  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, NULL};
+  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, "--snaplog", "--log_dir", "/tmp", NULL};
   // Set up certificates
   make_certificate_files(private_key_file, certificate_file);
   // Start the server with the right mode
@@ -286,7 +286,8 @@ void test_queuing() {
   const int num_clients = 20;
   char *server_args[] = {"--max_clients=5", "--tls_port", tls_port_string,
                          "--private_key", private_key_file,
-                         "--certificate", certificate_file, "--multiple", NULL};
+                         "--certificate", certificate_file, "--multiple",
+                         "--disable_extended_tests", NULL};
   choose_random_ports(&port, &tls_port);
   sprintf(tls_port_string, "%d", tls_port);
   make_certificate_files(private_key_file, certificate_file);

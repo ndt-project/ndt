@@ -840,7 +840,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   log_println(6, "Starting META test");
   if ((ret = test_meta_srv(ctl, agent, testopt, conn_options, &options)) != 0) {
-    if (ret < 0) {
+    if (ret != 0) {
       log_println(6, "META test failed with rc=%d", ret);
     }
   }
@@ -1601,13 +1601,20 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   struct sockaddr_storage cli_addr;
   size_t rmt_host_strlen;
   ndtchild *new_child = NULL;
+  int accept_errno;
   // Accept the connection, initialize variables, fire up the new child.
   cli_addr_len = sizeof(cli_addr);
-  ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
-  if (ctlsockfd < 0) {
-    log_println(1, "accept() on ctlsockfd failed");
-    return NULL;
-  }
+  
+  do {
+    accept_errno = 0;
+    ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+    if (ctlsockfd < 0) {
+      accept_errno = errno;
+      log_println(1, "accept() on ctlsockfd failed");
+      log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
+      if (accept_errno != EINTR) return NULL;
+    }
+  } while (accept_errno == EINTR);
   if (cli_addr_len > sizeof(meta.c_addr)) {
     log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
     return NULL;
@@ -2020,6 +2027,7 @@ int main(int argc, char **argv) {
   // // temp storage for process name
   // char statustemparr[PROCESS_STATUS_DESC_SIZE];
 
+  memset(&meta, 0, sizeof(meta));
   memset(&options, 0, sizeof(options));
   options.snapDelay = 5;
   options.avoidSndBlockUp = 0;
