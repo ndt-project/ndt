@@ -90,7 +90,7 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
                          testOptions->connection_flags);
       if (err) {
         // message reading error
-        log_println(0, "Protocol error!");
+        log_println(0, "Protocol error! (%d)", err);
         snprintf(buff, sizeof(buff),
                  "Server (META test): Invalid meta data received");
         send_json_message_any(ctl, MSG_ERROR, buff, strlen(buff),

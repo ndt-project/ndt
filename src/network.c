@@ -596,6 +596,8 @@ int writen_any(Connection* conn, const void* buf, int amount) {
     if (conn->ssl == NULL) {
       n = write(conn->socket, ptr + sent, amount - sent);
     } else {
+      // TODO: SSL_write's error semantics are not the same as write() and
+      //       should be handled differently.
       n = SSL_write(conn->ssl, ptr + sent, amount - sent);
     }
     if (n == -1) {
@@ -617,21 +619,30 @@ int writen_any(Connection* conn, const void* buf, int amount) {
 }
 
 size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
-  const char *error_file;
-  int error_line;
-  size_t received = 0;
+  int received = 0;
   char error_string[120] = {0};
   int ssl_err;
   char *ptr = buf;
+  size_t total_amount_read = 0;
   // To read from OpenSSL, just read.  SSL_read has its own timeout.
-  received = SSL_read(ssl, ptr, amount);
-  if (received <= 0) {
-    ssl_err = ERR_get_error_line(&error_file, &error_line);
-    ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
-    log_println(2, "SSL failed due to %s (%d)\n", error_string, ssl_err);
-    log_println(2, "File: %s line: %d\n", error_file, error_line);
-  }
-  return received;
+  do {
+    received = SSL_read(ssl, ptr + total_amount_read,
+                        amount - total_amount_read);
+    if (received <= 0) {
+      ssl_err = SSL_get_error(ssl, received);
+      // received < 0 represents a possibly recoverable error
+      if (received < 0) { 
+        if (ssl_err == SSL_ERROR_WANT_READ) continue;
+        // TODO: Cover the complete error space, e.g. SSL_ERROR_WANT_WRITE to
+        //       recover from other kinds of error.
+      }
+      ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
+      log_println(2, "SSL_read failed due to %s (%d)\n", error_string, ssl_err);
+      return total_amount_read;
+    } 
+    total_amount_read += received;
+  } while (total_amount_read < amount);
+  return total_amount_read;
 }
 
 size_t readn_raw(int fd, void *buf, size_t amount) {

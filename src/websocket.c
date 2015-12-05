@@ -114,6 +114,7 @@ int64_t recv_websocket_msg(Connection* conn, void* data, int64_t max_len) {
   uint64_t next_offset;
   int first_frame = 1;
   size_t extra_len_bytes = 0;
+  size_t bytes_read;
   if (max_len < 0) return -EINVAL;
   // Read frames until you find a FIN frame ending the message.  The first
   // frame may be (and in many cases probably is) the final frame.
@@ -142,7 +143,10 @@ int64_t recv_websocket_msg(Connection* conn, void* data, int64_t max_len) {
     // +---------------------------------------------------------------+
     // Read the header all the way up to the beginning of Payload Data
     // First read the 2-byte required header
-    if (readn_any(conn, scratch, 2) != 2) return -EIO;
+    if ((bytes_read = readn_any(conn, scratch, 2)) != 2) {
+      log_println(1, "Failed to read the 2 byte websocket header (%u)", bytes_read);
+      return -EIO;
+    }
     fin = scratch[0] & FIN_BIT;
     opcode = scratch[0] & 0x0F;
     mask = scratch[1] & MASK_BIT;
@@ -156,8 +160,10 @@ int64_t recv_websocket_msg(Connection* conn, void* data, int64_t max_len) {
     }
     // Read the extra length bytes, if required.
     if (extra_len_bytes > 0) {
-      if (readn_any(conn, scratch, extra_len_bytes) != extra_len_bytes)
+      if ((bytes_read = readn_any(conn, scratch, extra_len_bytes)) != extra_len_bytes) {
+        log_println(1, "Failed to read the %u extra length bytes (%u)", extra_len_bytes, bytes_read);
         return -EIO;
+      }
       len = 0ULL;
       for (i = 0; i < extra_len_bytes; i++) {
         len = (len << 8) + scratch[i];
