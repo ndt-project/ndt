@@ -48,7 +48,7 @@ void addAdditionalMetaBoolEntry(struct metaentry **ptr, char* key, int value);
 int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
                   TestOptions *testOptions, int conn_options, Options* options) {
   int j;
-  int64_t err;
+  int err;
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
   struct metaentry *new_entry = NULL;

@@ -65,8 +65,10 @@ struct throughputSnapshot {
  * These values (most) are thes logged in the
  *  meta data file created  for every session
  * */
-// TODO: ensure every write to a char array will always result in a
-//       null-terminated string of less than the buffer size.
+// TODO: ensure every write to a char array in meta will always result in a
+//       null-terminated string of less than the buffer size.  This will also
+//       require auditing of FILENAME_SIZE and the constants used in
+//       writeMeta() in web100srv.c
 struct metadata {
   char c2s_snaplog[FILENAME_SIZE];  // C->S test Snaplog file name
   char c2s_ndttrace[FILENAME_SIZE];  // C->S NDT trace file name
