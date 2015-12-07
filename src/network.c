@@ -581,6 +581,66 @@ int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
 }
 
 /**
+ * Try a single write to a socket.
+ * @param socketfd The socket
+ * @param buf The data
+ * @param amount The data size
+ * @return The number of bytes written, 0 on fatal error, and -1 on recoverable
+ *         error.
+ */
+int write_raw(int socketfd, const char* buf, int amount) {
+  int n;
+  n = write(socketfd, buf, amount);
+  if (n == -1) {
+    if (errno == EINTR || errno == EAGAIN) {
+      // Recoverable errors
+      return -1;
+    } else {
+      // Everything else is unrecoverable
+      log_println(6,
+                  "write_raw() Error! write(%d) failed with err=%s (%d) pid=%d",
+                  socketfd, strerror(errno), errno, getpid());
+      return 0;
+    }
+  } else {
+    // Success!
+    return n;
+  }
+}
+
+/**
+ * Try a single SSL_write to a socket.
+ * @param ssl The ssl connection
+ * @param buf The data
+ * @param amount The data size
+ * @return The number of bytes written, 0 on fatal error, and -1 on recoverable
+ *         error.
+ */
+int write_ssl(SSL* ssl, const char* buf, int amount) {
+  int n, ssl_error;
+  n = SSL_write(ssl, buf, amount);
+  if (n == 0) {
+    // 0 represents fatal errors for SSL_write
+    log_println(6, "write_ssl() Error! SSL_write() failed unrecoverably pid=%d",
+                getpid());
+    return 0;
+  } else if (n < 0) {
+    // Possibly a recoverable error
+    ssl_error = SSL_get_error(ssl, n);
+    if (ssl_error == SSL_ERROR_WANT_READ || ssl_error == SSL_ERROR_WANT_WRITE) {
+      return -1;
+    } else {
+      log_println(6, "write_ssl() Error! SSL_write() failed with err=%d pid=%d",
+                  ssl_error, getpid());
+      return 0;
+    }
+  } else {
+    // Success!
+    return n;
+  }
+}
+
+/**
  * Write the given amount of data to the Connection.
  * @param conn the Connection
  * @param buf buffer with data to write
@@ -594,21 +654,9 @@ int writen_any(Connection* conn, const void* buf, int amount) {
   assert(amount >= 0);
   while (sent < amount) {
     if (conn->ssl == NULL) {
-      n = write(conn->socket, ptr + sent, amount - sent);
+      n = write_raw(conn->socket, ptr + sent, amount - sent);
     } else {
-      // TODO: SSL_write's error semantics are not the same as write() and
-      //       should be handled differently.
-      n = SSL_write(conn->ssl, ptr + sent, amount - sent);
-    }
-    if (n == -1) {
-      if (errno == EINTR)  // interrupted, retry writing again
-        continue;
-      if (errno != EAGAIN) {  // some genuine socket write error
-        log_println(6,
-                    "writen() Error! write(%d) failed with err='%s(%d) pid=%d'",
-                    conn->socket, strerror(errno), errno, getpid());
-        return -1;
-      }
+      n = write_ssl(conn->ssl, ptr + sent, amount - sent);
     }
     assert(n != 0);
     if (n != -1) {  // success writing "n" bytes. Increment total bytes written
@@ -626,20 +674,20 @@ size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
   size_t total_amount_read = 0;
   // To read from OpenSSL, just read.  SSL_read has its own timeout.
   do {
-    received = SSL_read(ssl, ptr + total_amount_read,
-                        amount - total_amount_read);
+    received =
+        SSL_read(ssl, ptr + total_amount_read, amount - total_amount_read);
     if (received <= 0) {
       ssl_err = SSL_get_error(ssl, received);
       // received < 0 represents a possibly recoverable error
-      if (received < 0) { 
-        if (ssl_err == SSL_ERROR_WANT_READ) continue;
-        // TODO: Cover the complete error space, e.g. SSL_ERROR_WANT_WRITE to
-        //       recover from other kinds of error.
+      if (received < 0) {
+        if (ssl_err == SSL_ERROR_WANT_READ || ssl_err == SSL_ERROR_WANT_WRITE) {
+          continue;
+        }
       }
       ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
       log_println(2, "SSL_read failed due to %s (%d)\n", error_string, ssl_err);
       return total_amount_read;
-    } 
+    }
     total_amount_read += received;
   } while (total_amount_read < amount);
   return total_amount_read;
