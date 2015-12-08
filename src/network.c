@@ -693,6 +693,20 @@ size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
   return total_amount_read;
 }
 
+/**
+ * Reads from a raw socket. This function turned ugly at some point and still
+ * seems to work, but it has become hard to analyze. Please do not base any new
+ * code off of it. Instead, if you want to write code that works for both ssl
+ * and insecure sockets, please base your changes off of writen_any(), which is
+ * easier to read and refactored in a nicer way.
+ *
+ * TODO: clean this up and model it after writen_any() and writen_raw()
+ *
+ * @param fd The file descriptor to read from
+ * @param buf The buffer to read into
+ * @param amount The the amount of data that can be read into buf
+ * @return The number of bytes read
+ */
 size_t readn_raw(int fd, void *buf, size_t amount) {
   size_t received = 0;
   int n, rc;
