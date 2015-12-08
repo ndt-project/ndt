@@ -249,8 +249,14 @@ function ndt_c2s_test() {
             test_connection = new WebSocket(
                 url_protocol + "://" + server + ":" + server_port + "/ndt_protocol",
                 {protocol: "c2s"});
-            test_connection.on('open', function() { connection_open = true; });
-            test_connection.on('close', function() { connection_open = false; });
+            test_connection.on('open', function() { 
+                  log("Connection opened to " + url_protocol + "://" + server + ":" + server_port + "/ndt_protocol");
+                  connection_open = true; 
+                });
+            test_connection.on('close', function() { 
+                  log("Connection CLOSED to " + url_protocol + "://" + server + ":" + server_port + "/ndt_protocol");
+                  connection_open = false; 
+               });
             test_connection.on('error', die);
             state = "WAIT_FOR_TEST_START";
             return "KEEP GOING";
@@ -266,6 +272,9 @@ function ndt_c2s_test() {
             return "KEEP GOING";
         }
         if (state === "WAIT_FOR_TEST_FINALIZE" && type === TEST_FINALIZE) {
+            if (TRANSMITTED_BYTES === 0) {
+              die("NO DATA TRANSMITTED");
+            }
             state = "DONE";
             log("C2S test complete using " + url_protocol);
             log("C2S rate: ", 8 * TRANSMITTED_BYTES / 1000 / (test_end - test_start));
