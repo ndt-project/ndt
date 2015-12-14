@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include "ndtptestconstants.h"
 #include "runningtest.h"  // protocol validation
 #define LOG_FACILITY LOG_LOCAL0  /* Syslog facility to log at */
@@ -30,8 +31,12 @@ int get_debuglvl();
 char* get_logfile();
 
 I2ErrHandle get_errhandle();
-void log_print(int lvl, const char* format, ...);
-void log_println(int lvl, const char* format, ...);
+
+#define log_print log_println
+void log_println_impl(int lvl, const char* file, int line, const char* format, ...);
+#define log_println(lvl, ...) \
+    log_println_impl((lvl), __FILE__, __LINE__, __VA_ARGS__)
+
 void log_free(void);
 void set_timestamp();
 time_t get_timestamp();

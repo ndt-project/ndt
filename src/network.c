@@ -193,7 +193,7 @@ I2Addr CreateListenSocket(I2Addr addr, char* serv, int options, int buf_size) {
   optlen = sizeof(set_size);
   // get send buffer size
   getsockopt(fd, SOL_SOCKET, SO_SNDBUF, &set_size, &optlen);
-  log_print(5, "\nSend buffer initialized to %d, ", set_size);
+  log_println(5, "Send buffer initialized to %d, ", set_size);
 
   // get receive buffer size
   getsockopt(fd, SOL_SOCKET, SO_RCVBUF, &set_size, &optlen);
