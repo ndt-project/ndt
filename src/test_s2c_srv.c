@@ -55,21 +55,6 @@ void* s2cWriteWorker(void* arg);
 const char RESULTS_KEYS[] = "ThroughputValue UnsentDataAmount TotalSentByte";
 
 /**
- * Use write or SSL_write() in their raw forms for maximum speed.
- * @param conn The Connection to use
- * @param buff The data to send
- * @param buff_len The length of the data
- * @return The number of bytes written or a negative failure code
- */
-int raw_write(Connection *conn, char *buff, int buff_len) {
-  if (conn->ssl != NULL) {
-    return SSL_write(conn->ssl, buff, buff_len);
-  } else {
-    return write(conn->socket, buff, buff_len);
-  }
-}
-
-/**
  * Perform the S2C Throughput test. This throughput test tests the achievable
  * network bandwidth from the Server to the Client by performing a 10 seconds
  * memory-to-memory data transfer.
@@ -570,7 +555,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
             }
           }
 
-          n = raw_write(&xmitsfd[0], buff, RECLTH);
+          n = writen_any(&xmitsfd[0], buff, RECLTH);
           // socket interrupted, continue attempting to write
           if ((n == -1) && (errno == EINTR))
             continue;
@@ -853,12 +838,8 @@ void* s2cWriteWorker(void* arg) {
 
   while (secs() < stopTime) {
     // attempt to write random data into the client socket
-    n = raw_write(conn, threadBuff, RECLTH); // TODO avoid snd block
-    // socket interrupted, continue attempting to write
-    if ((n == -1) && (errno == EINTR))
-      continue;
-    if (n < 0)
-      break;  // all data written. Exit
+    n = writen_any(conn, threadBuff, RECLTH); // TODO avoid snd block
+    if (n <= 0) break;  // writen_any has failed unrecoverably
     threadPackets++;
     threadBytes += n;
   }
