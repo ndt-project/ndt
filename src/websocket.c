@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "logging.h"
 #include "network.h"
 #include "third_party/safe_iop.h"
 #include "websocket.h"

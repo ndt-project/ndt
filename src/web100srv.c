@@ -367,14 +367,24 @@ void cleanup(int signo) {
       }
       exit(0);
     case SIGPIPE:
-      // SIGPIPE is an expected signal due to race conditions regarding the
-      // possibility of writing a message to an already-terminated child.  Do
-      // not let it kill the process.  The SIGCHLD handler will take care of
-      // child process cleanup.
-      fp = fopen(get_logfile(), "a");
-      if ((fp != NULL) && (get_debuglvl() > 4)) {
-        fprintf(fp, "Received SIGPIPE: a child has terminated early.\n");
-        fclose(fp);
+      if (ndtpid == getpid()) {
+        // SIGPIPE is an expected signal due to race conditions regarding the
+        // possibility of writing a message to an already-terminated child.  Do
+        // not let it kill the process.  The SIGCHLD handler will take care of
+        // child process cleanup.
+        fp = fopen(get_logfile(), "a");
+        if (fp != NULL) {
+          if (get_debuglvl() > 4) {
+            fprintf(fp, "Received SIGPIPE: a child has terminated early.\n");
+          }
+          fclose(fp);
+        }
+      } else {
+        // This is the SIGPIPE handler for a child. SIGPIPE should only
+        // happen if the client disconnected mid-test, and if the client does
+        // that, we should cause the child to exit.
+        log_println(1, "Child received SIGPIPE, exiting");
+        exit(0);
       }
       break;
 
@@ -2353,11 +2363,9 @@ int main(int argc, char **argv) {
   // userid to non-root user until needed.
 
   if (getuid() != 0) {
-    log_print(
-        1, "Warning: This program must be run as root to enable the Link Type");
     log_println(
-        1,
-        " detection algorithm.\nContinuing execution without this algorithm");
+        1, "Warning: This program must be run as root to enable the Link Type "
+           "detection algorithm.  Continuing execution without this algorithm.");
   }
 
   if (VarFileName == NULL) {
@@ -2398,8 +2406,8 @@ int main(int argc, char **argv) {
   }
 
   log_println(1, "ANL/Internet2 NDT ver %s", VERSION);
-  log_println(1, "\tVariables file = %s\n\tlog file = %s", VarFileName,
-              get_logfile());
+  log_println(1, "\tVariables file = %s", VarFileName);
+  log_println(1, "\tlog file = %s", get_logfile());
   if (admin_view) {
     log_println(1, "\tAdmin file = %s", AdminFileName);
   }

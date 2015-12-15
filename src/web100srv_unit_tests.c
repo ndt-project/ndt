@@ -45,7 +45,7 @@ pid_t start_server(int port, char **extra_args) {
   int exec_args_index = 0;
   // Should be set to the first index of args_for_exec that is NULL
   while (args_for_exec[exec_args_index] != NULL) exec_args_index++;
-  log_print(1, "Starting the server\n");
+  log_println(1, "Starting the server");
   if ((server_pid = fork()) == 0) {
     sprintf(port_string, "%d", port);
     args_for_exec[exec_args_index++] = port_string;
