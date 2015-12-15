@@ -380,10 +380,10 @@ void cleanup(int signo) {
           fclose(fp);
         }
       } else {
-	// This is the SIGPIPE handler for a child. SIGPIPE should only
-	// happen if the client disconnected mid-test, and if the client does
-	// that, we should cause the child to exit.
-	log_println(1, "Child received SIGPIPE, exiting");
+        // This is the SIGPIPE handler for a child. SIGPIPE should only
+        // happen if the client disconnected mid-test, and if the client does
+        // that, we should cause the child to exit.
+        log_println(1, "Child received SIGPIPE, exiting");
         exit(0);
       }
       break;
@@ -2364,7 +2364,7 @@ int main(int argc, char **argv) {
 
   if (getuid() != 0) {
     log_println(
-	1, "Warning: This program must be run as root to enable the Link Type "
+        1, "Warning: This program must be run as root to enable the Link Type "
            "detection algorithm.  Continuing execution without this algorithm.");
   }
 

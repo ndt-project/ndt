@@ -32,6 +32,9 @@ char* get_logfile();
 
 I2ErrHandle get_errhandle();
 
+// TODO: audit all the calls to log_print and log_println to maxmise ease of
+//       grepping through logs and eliminate the possibility of loglines that
+//       don't start with the timestamp/pid/level/file/line prefix.
 #define log_print log_println
 void log_println_impl(int lvl, const char* file, int line, const char* format, ...);
 #define log_println(lvl, ...) \
