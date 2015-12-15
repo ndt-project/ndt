@@ -12,6 +12,31 @@
 #include "unit_testing.h"
 #include "web100srv.h"
 
+/* On some of Measurement Lab's test servers, the value returned by gethostname
+ * is incorrect. This function allows someone running tests to overwrite the
+ * value returned by gethostname() by setting the environment variable
+ * NDT_HOSTNAME. If that variable is set, then the name gets a copy of that
+ * variable. If that variable is not set, then the name gets whatever
+ * gethostname() puts in.
+ * @param name The place to copy the hostname to
+ * @param len The size of the buffer available
+ * @return 0 on success, -1 otherwise
+ */
+int ndt_gethostname(char *name, size_t len) {
+  char* env_value;
+  env_value = getenv("NDT_HOSTNAME");
+  if (env_value == NULL) {
+    return gethostname(name, len);
+  } else if (strlen(env_value) < len - 1) {
+    strncpy(name, env_value, len);
+    return 0;
+  } else {
+    FAIL("String not large enough to contain hostname");
+    errno = E2BIG;
+    return -1;
+  }
+}
+
 // Creates the required certificate files according to the passed-in specs
 void make_certificate_files(char *private_key_file, char *certificate_file) {
   char create_private_key_command_line[10240];
@@ -95,7 +120,7 @@ void run_client(char *client_command_line_suffix, char **server_options) {
   server_pid = start_server(port, server_options);
   // Find out the hostname.  We can't use "localhost" because then the test
   // won't go through the TCP stack and so web100 won't work.
-  gethostname(hostname, sizeof(hostname) - 1);
+  ndt_gethostname(hostname, sizeof(hostname) - 1);
   log_println(1, "Starting the client, will attach to %s:%d\n", hostname,
               port);
   sprintf(command_line, "(./web100clt --name=%s --port=%d %s 2>&1 ) > /dev/null",
@@ -134,7 +159,7 @@ void run_node_client(int port, int tests, char *protocol) {
   char command_line[1024];
   const char *nodejs_name = nodejs_command();
   if (nodejs_name == NULL) return;
-  gethostname(hostname, sizeof(hostname) - 1);
+  ndt_gethostname(hostname, sizeof(hostname) - 1);
   sprintf(command_line,
           "%s node_tests/ndt_client.js --server %s --protocol %s --port %d --tests %d --acceptinvalidcerts",
           nodejs_name, hostname, protocol, port, tests);
@@ -182,7 +207,7 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   choose_random_ports(&port, &tls_port);
   sprintf(tls_port_string, "%d", tls_port);
   server_pid = start_server(port, server_args);
-  gethostname(hostname, sizeof(hostname) - 1);
+  ndt_gethostname(hostname, sizeof(hostname) - 1);
   // Run the passed-in test
   (*test_fn)(tls_port, hostname);
   // Free our resources
@@ -294,7 +319,7 @@ void test_queuing() {
   server_pid = start_server(port, server_args);
   // Find out the hostname.  We can't use "localhost" because then the test
   // won't go through the TCP stack and so web100 won't work.
-  gethostname(hostname, sizeof(hostname) - 1);
+  ndt_gethostname(hostname, sizeof(hostname) - 1);
   log_print(1, "Starting %d clients, will attach to %s:%d\n", num_clients,
             hostname, port);
   time(&start_time);

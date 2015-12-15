@@ -556,9 +556,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           }
 
           n = writen_any(&xmitsfd[0], buff, RECLTH);
-          // socket interrupted, continue attempting to write
-          if ((n == -1) && (errno == EINTR))
-            continue;
           if (n < 0)
             break;  // all data written. Exit
           bytes_written += n;
