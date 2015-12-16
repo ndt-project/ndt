@@ -145,7 +145,8 @@ int64_t recv_websocket_msg(Connection* conn, void* data, int64_t max_len) {
     // Read the header all the way up to the beginning of Payload Data
     // First read the 2-byte required header
     if ((bytes_read = readn_any(conn, scratch, 2)) != 2) {
-      log_println(1, "Failed to read the 2 byte websocket header (%u)", bytes_read);
+      log_println(1, "Failed to read the 2 byte websocket header (%u)",
+                  bytes_read);
       return -EIO;
     }
     fin = scratch[0] & FIN_BIT;
@@ -161,8 +162,10 @@ int64_t recv_websocket_msg(Connection* conn, void* data, int64_t max_len) {
     }
     // Read the extra length bytes, if required.
     if (extra_len_bytes > 0) {
-      if ((bytes_read = readn_any(conn, scratch, extra_len_bytes)) != extra_len_bytes) {
-        log_println(1, "Failed to read the %u extra length bytes (%u)", extra_len_bytes, bytes_read);
+      if ((bytes_read = readn_any(conn, scratch, extra_len_bytes)) !=
+          extra_len_bytes) {
+        log_println(1, "Failed to read the %u extra length bytes (%u)",
+                    extra_len_bytes, bytes_read);
         return -EIO;
       }
       len = 0ULL;
@@ -207,8 +210,7 @@ int64_t recv_websocket_msg(Connection* conn, void* data, int64_t max_len) {
       // Make sure it is safe to cast len to a size_t
       if (!sop_addx(NULL, sop_szt(0), sop_u64(len))) return -EOVERFLOW;
       // Read the frame data into memory
-      if (readn_any(conn, &(((char*)data)[current_offset]), (size_t)len) !=
-          len)
+      if (readn_any(conn, &(((char*)data)[current_offset]), (size_t)len) != len)
         return -EIO;
       // Unmask the data, if required
       if (mask) {
@@ -402,7 +404,8 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
   for (i = 0; i < MAX_HEADER_COUNT; i++) {
     if (strcasecmp(line, UPGRADE_HEADER) == 0) {
       validated_upgrade = 1;
-    } else if (strncmp(line, CONNECTION_HEADER, strlen(CONNECTION_HEADER)) == 0) {
+    } else if (strncmp(line, CONNECTION_HEADER, strlen(CONNECTION_HEADER)) ==
+               0) {
       if (strstr(line, CONNECTION_HEADER_VALUE) != NULL) {
         validated_connection = 1;
       }
@@ -427,12 +430,16 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
       validated_version && validated_protocol) {
     return 0;
   } else {
-    if (strcmp(line, "") != 0) log_println(1, "Websocket connection failed: bad last line of HTTP header");
-    if (!validated_connection) log_println(1, "Websocket connection failed: bad Connection: header");
-    if (!validated_upgrade) log_println(1, "Websocket connection failed: bad Upgrade: header");
-    if (!validated_version) log_println(1, "Websocket connection failed: bad websocket version");
-    if (!validated_protocol) log_println(1, "Websocket connection failed: bad websocket protocol");
-    fprintf(stderr, "BABDBABAD %d %d %d %d %d \n", strcmp(line, "") == 0, validated_connection, validated_upgrade, validated_version, validated_protocol);
+    if (strcmp(line, "") != 0)
+      log_println(1, "Websocket connection failed: bad last line of header");
+    if (!validated_connection)
+      log_println(1, "Websocket connection failed: bad Connection: header");
+    if (!validated_upgrade)
+      log_println(1, "Websocket connection failed: bad Upgrade: header");
+    if (!validated_version)
+      log_println(1, "Websocket connection failed: bad websocket version");
+    if (!validated_protocol)
+      log_println(1, "Websocket connection failed: bad websocket protocol");
     return EBADMSG;
   }
 }
@@ -516,7 +523,8 @@ int initialize_websocket_connection(Connection* conn, unsigned int skip_bytes,
  * @param msg A pointer to the data to be sent
  * @param len The number of bytes to be sent
  */
-int send_websocket_msg(Connection* conn, int type, const void* msg, uint64_t len) {
+int send_websocket_msg(Connection* conn, int type, const void* msg,
+                       uint64_t len) {
   int websocket_hdr_len;
   int err;
   int i;
@@ -553,8 +561,7 @@ int send_websocket_msg(Connection* conn, int type, const void* msg, uint64_t len
     }
   }
   // Send the header
-  if (writen_any(conn, websocket_msg, websocket_hdr_len) !=
-      websocket_hdr_len) {
+  if (writen_any(conn, websocket_msg, websocket_hdr_len) != websocket_hdr_len) {
     return EIO;
   }
   // Websocket server -> client messages are not masked, so we can just send it
