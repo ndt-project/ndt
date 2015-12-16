@@ -434,7 +434,7 @@ void test_send_digest_base64() {
 }
 
 int main() {
-  set_debuglvl(1);
+  set_debuglvl(-1);
   return RUN_TEST(test_messages_too_large) | RUN_TEST(test_recv_jumbo_msg) |
          RUN_TEST(test_recv_large_msg) | RUN_TEST(test_recv_masked_msg) |
          RUN_TEST(test_recv_unmasked_msg_closes_connection) |
