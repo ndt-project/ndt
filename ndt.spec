@@ -1,5 +1,5 @@
 Name:           ndt
-Version:        3.7.0.1
+Version:        4.0.0.1
 Release:        2%{?dist}
 Summary:        Network Diagnostic Tool
 
