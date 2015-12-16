@@ -556,12 +556,12 @@ int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
  * @param buf The data
  * @param amount The data size
  * @return The number of bytes written, -1 on fatal error, and 0 on recoverable
- *         error, just like write().
+ *         error.
  */
 int write_raw(int socketfd, const char* buf, int amount) {
   int n;
   n = write(socketfd, buf, amount);
-  if (n == 0) {
+  if (n == -1) {
     if (errno == EINTR || errno == EAGAIN) {
       // Recoverable errors
       return 0;
@@ -584,7 +584,7 @@ int write_raw(int socketfd, const char* buf, int amount) {
  * @param buf The data
  * @param amount The data size
  * @return The number of bytes written, -1 on fatal error, and 0 on recoverable
- *         error, just like write().
+ *         error.
  */
 int write_ssl(SSL* ssl, const char* buf, int amount) {
   int n, ssl_error;
