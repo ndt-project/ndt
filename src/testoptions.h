@@ -94,4 +94,8 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
 int is_buffer_clogged(int nextseqtosend, int lastunackedseq);
 void stop_packet_trace(int *monpipe_arr);
 
+void addAdditionalMetaEntry(char* key, char* value);
+void addAdditionalMetaIntEntry(char* key, int value);
+void addAdditionalMetaBoolEntry(char* key, int value);
+
 #endif  // SRC_TESTOPTIONS_H_

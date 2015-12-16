@@ -22,10 +22,6 @@
 #include "strlutils.h"
 #include "websocket.h"
 
-void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value);
-void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value);
-void addAdditionalMetaBoolEntry(struct metaentry **ptr, char* key, int value);
-
 /**
  * Performs the META test.
  * @param ctl Client control Connection
@@ -51,7 +47,6 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
   int err;
   int msgLen, msgType;
   char buff[BUFFSIZE + 1];
-  struct metaentry *new_entry = NULL;
   char *value, *jsonMsgValue;
 
   // protocol validation logs
@@ -157,26 +152,22 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
         snprintf(meta.client_browser, sizeof(meta.client_browser), "%s", value);
       }
 
-      addAdditionalMetaEntry(&new_entry, buff, value);
+      addAdditionalMetaEntry(buff, value);
     }
     if (testOptions->c2sextopt) {
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.duration", options->c2s_duration);
-      addAdditionalMetaBoolEntry(&new_entry, "ext.c2s.throughputsnaps", options->c2s_throughputsnaps);
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsdelay", options->c2s_snapsdelay);
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.snapsoffset", options->c2s_snapsoffset);
-      addAdditionalMetaIntEntry(&new_entry, "ext.c2s.streamsnum", options->c2s_streamsnum);
+      addAdditionalMetaIntEntry("ext.c2s.duration", options->c2s_duration);
+      addAdditionalMetaBoolEntry("ext.c2s.throughputsnaps", options->c2s_throughputsnaps);
+      addAdditionalMetaIntEntry("ext.c2s.snapsdelay", options->c2s_snapsdelay);
+      addAdditionalMetaIntEntry("ext.c2s.snapsoffset", options->c2s_snapsoffset);
+      addAdditionalMetaIntEntry("ext.c2s.streamsnum", options->c2s_streamsnum);
     }
     if (testOptions->s2cextopt) {
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.duration", options->s2c_duration);
-      addAdditionalMetaBoolEntry(&new_entry, "ext.s2c.throughputsnaps", options->s2c_throughputsnaps);
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsdelay", options->s2c_snapsdelay);
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.snapsoffset", options->s2c_snapsoffset);
-      addAdditionalMetaIntEntry(&new_entry, "ext.s2c.streamsnum", options->s2c_streamsnum);
+      addAdditionalMetaIntEntry("ext.s2c.duration", options->s2c_duration);
+      addAdditionalMetaBoolEntry("ext.s2c.throughputsnaps", options->s2c_throughputsnaps);
+      addAdditionalMetaIntEntry("ext.s2c.snapsdelay", options->s2c_snapsdelay);
+      addAdditionalMetaIntEntry("ext.s2c.snapsoffset", options->s2c_snapsoffset);
+      addAdditionalMetaIntEntry("ext.s2c.streamsnum", options->s2c_streamsnum);
     }
-    addAdditionalMetaBoolEntry(&new_entry, "websockets",
-			       (testOptions->connection_flags & WEBSOCKET_SUPPORT));
-    addAdditionalMetaBoolEntry(&new_entry, "tls",
-			       (testOptions->connection_flags & TLS_SUPPORT));
 
     // Finalize test by sending appropriate message, and setting status
     if (send_json_message_any(ctl, TEST_FINALIZE, "", 0,
@@ -195,27 +186,4 @@ int test_meta_srv(Connection *ctl, tcp_stat_agent *agent,
     setCurrentTest(TEST_NONE);
   }
   return 0;
-}
-
-void addAdditionalMetaEntry(struct metaentry **ptr, char* key, char* value) {
-  if (*ptr) {
-    (*ptr)->next = (struct metaentry *) malloc(sizeof(struct metaentry));
-    (*ptr) = (*ptr)->next;
-  } else {
-    (*ptr) = (struct metaentry *) malloc(sizeof(struct metaentry));
-    meta.additional = (*ptr);
-  }
-  (*ptr)->next = NULL;  // ensure meta list ends here
-  snprintf((*ptr)->key, sizeof((*ptr)->key), "%s", key);
-  snprintf((*ptr)->value, sizeof((*ptr)->value), "%s", value);
-}
-
-void addAdditionalMetaIntEntry(struct metaentry **ptr, char* key, int value) {
-  char tmpbuff[256];
-  snprintf(tmpbuff, sizeof(tmpbuff), "%d", value);
-  addAdditionalMetaEntry(ptr, key, tmpbuff);
-}
-
-void addAdditionalMetaBoolEntry(struct metaentry **ptr, char* key, int value) {
-  addAdditionalMetaEntry(ptr, key, value ? "true" : "false");
 }
