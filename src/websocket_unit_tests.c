@@ -364,6 +364,30 @@ void test_firefox_websocket_handshake() {
   check_websocket_handshake(header, response);
 }
 
+void test_ie11_websocket_handshake() {
+  const char* header = 
+       "GET /ndt_protocol HTTP/1.1\r\n"
+       "Origin: http://internethealthtest.org\r\n"
+       "Sec-WebSocket-Protocol: ndt\r\n"
+       "Sec-WebSocket-Key: 3XPlfzNozv805tiHXD6ZyA==\r\n"
+       "Connection: Upgrade\r\n"
+       "Upgrade: Websocket\r\n"  // Thanks IE11, for capitalizing Websocket
+       "Sec-WebSocket-Version: 13\r\n"
+       "User-Agent: Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko\r\n"
+       "Host: ndt.iupui.mlab1.mia05.measurement-lab.org:3001\r\n"
+       "DNT: 1\r\n"
+       "Cache-Control: no-cache\r\n"
+       "\r\n";
+  const char* response =
+      "HTTP/1.1 101 Switching Protocols\r\n"
+      "Upgrade: websocket\r\n"
+      "Connection: Upgrade\r\n"
+      "Sec-WebSocket-Protocol: ndt\r\n"
+      "Sec-WebSocket-Accept: LHroUp9DVDHErY83w6Bm0zUY9kg=\r\n"
+      "\r\n";
+  check_websocket_handshake(header, response);
+}
+
 void test_websocket_sha() {
   const char key[] = "dGhlIHNhbXBsZSBub25jZQ==";
   const unsigned char expected_digest[20] = {
@@ -410,7 +434,7 @@ void test_send_digest_base64() {
 }
 
 int main() {
-  set_debuglvl(-1);
+  set_debuglvl(1);
   return RUN_TEST(test_messages_too_large) | RUN_TEST(test_recv_jumbo_msg) |
          RUN_TEST(test_recv_large_msg) | RUN_TEST(test_recv_masked_msg) |
          RUN_TEST(test_recv_unmasked_msg_closes_connection) |
@@ -421,5 +445,6 @@ int main() {
          RUN_TEST(test_send_digest_base64) |
 	 RUN_TEST(test_websocket_handshake) |
          RUN_TEST(test_firefox_websocket_handshake) |
+         RUN_TEST(test_ie11_websocket_handshake) |
          RUN_TEST(test_websocket_sha);
 }

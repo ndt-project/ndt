@@ -400,7 +400,7 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
   // check (i.e. have no data we need for later) are handled as they arrive.
   if (ws_readline(conn, line, sizeof(line)) < 0) return EIO;
   for (i = 0; i < MAX_HEADER_COUNT; i++) {
-    if (strcmp(line, UPGRADE_HEADER) == 0) {
+    if (strcasecmp(line, UPGRADE_HEADER) == 0) {
       validated_upgrade = 1;
     } else if (strncmp(line, CONNECTION_HEADER, strlen(CONNECTION_HEADER)) == 0) {
       if (strstr(line, CONNECTION_HEADER_VALUE) != NULL) {
@@ -427,6 +427,12 @@ int read_websocket_header(Connection* conn, unsigned int skip_bytes,
       validated_version && validated_protocol) {
     return 0;
   } else {
+    if (strcmp(line, "") != 0) log_println(1, "Websocket connection failed: bad last line of HTTP header");
+    if (!validated_connection) log_println(1, "Websocket connection failed: bad Connection: header");
+    if (!validated_upgrade) log_println(1, "Websocket connection failed: bad Upgrade: header");
+    if (!validated_version) log_println(1, "Websocket connection failed: bad websocket version");
+    if (!validated_protocol) log_println(1, "Websocket connection failed: bad websocket protocol");
+    fprintf(stderr, "BABDBABAD %d %d %d %d %d \n", strcmp(line, "") == 0, validated_connection, validated_upgrade, validated_version, validated_protocol);
     return EBADMSG;
   }
 }
