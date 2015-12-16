@@ -466,15 +466,10 @@ int send_json_message_any(Connection* ctl, int type, const char* msg, int len,
  * @param type type of the message
  * @param msg message to send
  * @param len length of the message
- * @return 0 on success, error code otherwise
- *        Error codes:
- *        -1 - Cannot write to socket at all
- *        -2 - Cannot complete writing full message data into socket
- *        -3 - Cannot write after retries
+ * @return 0 on success, -1 otherwise
  */
 int send_msg_any(Connection* ctl, int type, const void* msg, int len) {
   unsigned char buff[3];
-  int rc, i;
 
   assert(msg);
   assert(len >= 0);
@@ -485,36 +480,11 @@ int send_msg_any(Connection* ctl, int type, const void* msg, int len) {
   buff[1] = len >> 8;
   buff[2] = len;
 
-  // retry sending data 5 times
-  for (i = 0; i < 5; i++) {
-    // Write initial data about length and type to socket
-    rc = writen_any(ctl, buff, 3);
-    if (rc == 3)  // write completed
-      break;
-    if (rc == 0)  // nothing written yet,
-      continue;
-    if (rc == -1)  // error writing to socket..cannot continue
-      return -1;
-  }
-
-  // Exceeded retries, return as "failed trying to write"
-  if (i == 5)
-    return -3;
+  // Write initial data about length and type to socket
+  if (writen_any(ctl, buff, 3) != 3) return -1;
 
   // Now write the actual message
-  for (i = 0; i < 5; i++) {
-    rc = writen_any(ctl, msg, len);
-    // all the data has been written successfully
-    if (rc == len)
-      break;
-    // data writing not complete, continue
-    if (rc == 0)
-      continue;
-    if (rc == -1)  // error writing to socket, cannot continue writing data
-      return -2;
-  }
-  if (i == 5)
-    return -3;
+  if (writen_any(ctl, msg, len) != len) return -1;
   log_println(8, ">>> send_msg: type=%d, len=%d, msg=%s, pid=%d", type, len,
               msg, getpid());
 
@@ -585,7 +555,7 @@ int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
  * @param socketfd The socket
  * @param buf The data
  * @param amount The data size
- * @return The number of bytes written, 0 on fatal error, and -1 on recoverable
+ * @return The number of bytes written, -1 on fatal error, and 0 on recoverable
  *         error.
  */
 int write_raw(int socketfd, const char* buf, int amount) {
@@ -594,13 +564,13 @@ int write_raw(int socketfd, const char* buf, int amount) {
   if (n == -1) {
     if (errno == EINTR || errno == EAGAIN) {
       // Recoverable errors
-      return -1;
+      return 0;
     } else {
       // Everything else is unrecoverable
       log_println(6,
                   "write_raw() Error! write(%d) failed with err=%s (%d) pid=%d",
                   socketfd, strerror(errno), errno, getpid());
-      return 0;
+      return -1;
     }
   } else {
     // Success!
@@ -613,7 +583,7 @@ int write_raw(int socketfd, const char* buf, int amount) {
  * @param ssl The ssl connection
  * @param buf The data
  * @param amount The data size
- * @return The number of bytes written, 0 on fatal error, and -1 on recoverable
+ * @return The number of bytes written, -1 on fatal error, and 0 on recoverable
  *         error.
  */
 int write_ssl(SSL* ssl, const char* buf, int amount) {
@@ -623,16 +593,17 @@ int write_ssl(SSL* ssl, const char* buf, int amount) {
     // 0 represents fatal errors for SSL_write
     log_println(6, "write_ssl() Error! SSL_write() failed unrecoverably pid=%d",
                 getpid());
-    return 0;
+    return -1;
   } else if (n < 0) {
     // Possibly a recoverable error
     ssl_error = SSL_get_error(ssl, n);
+    // The only recoverable errors
     if (ssl_error == SSL_ERROR_WANT_READ || ssl_error == SSL_ERROR_WANT_WRITE) {
-      return -1;
+      return 0;
     } else {
       log_println(6, "write_ssl() Error! SSL_write() failed with err=%d pid=%d",
                   ssl_error, getpid());
-      return 0;
+      return -1;
     }
   } else {
     // Success!
@@ -641,11 +612,21 @@ int write_ssl(SSL* ssl, const char* buf, int amount) {
 }
 
 /**
- * Write the given amount of data to the Connection.
+ * Write the given amount of data to the Connection. When this function writes,
+ * it will not return until all data is written, and it is insensitive to
+ * EINTR. This means that when it writes to a bad pipe and gets errno set to
+ * EINTR and then the process receives the SIGPIPE signal, it is incumbent upon
+ * the SIGPIPE handler to exit the process.
+ *
+ * In the context of web100srv, this means that the server main loop should
+ * never call writen, only the child should call writen, and that the signal
+ * handler for SIGPIPE needs to exit() when a child receives SIGPIPE.
+ *
  * @param conn the Connection
  * @param buf buffer with data to write
  * @param amount the size of the data
- * @return The amount of bytes written to the Connection
+ * @return The amount of bytes written to the Connection.
+ *         -1 when it gets an unrecoverable error, just like write().
  */
 int writen_any(Connection* conn, const void* buf, int amount) {
   int sent, n;
@@ -658,10 +639,9 @@ int writen_any(Connection* conn, const void* buf, int amount) {
     } else {
       n = write_ssl(conn->ssl, ptr + sent, amount - sent);
     }
-    assert(n != 0);
-    if (n != -1) {  // success writing "n" bytes. Increment total bytes written
-      sent += n;
-    }
+    if (n == -1) return -1;
+    // success writing "n" bytes. Increment total bytes written
+    sent += n;
   }
   return sent;
 }
