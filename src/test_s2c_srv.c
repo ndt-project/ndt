@@ -557,7 +557,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
           n = writen_any(&xmitsfd[0], buff, RECLTH);
           if (n < 0)
-            break;  // all data written. Exit
+            break;  // writen_any returned a fatal error.
           bytes_written += n;
 
           if (options->avoidSndBlockUp) {

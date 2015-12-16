@@ -612,7 +612,16 @@ int write_ssl(SSL* ssl, const char* buf, int amount) {
 }
 
 /**
- * Write the given amount of data to the Connection.
+ * Write the given amount of data to the Connection. When this function writes,
+ * it will not return until all data is written, and it is insensitive to
+ * EINTR. This means that when it writes to a bad pipe and gets errno set to
+ * EINTR and then the process receives the SIGPIPE signal, it is incumbent upon
+ * the SIGPIPE handler to exit the process.
+ *
+ * In the context of web100srv, this means that the server main loop should
+ * never call writen, only the child should call writen, and that the signal
+ * handler for SIGPIPE needs to exit() when a child receives SIGPIPE.
+ *
  * @param conn the Connection
  * @param buf buffer with data to write
  * @param amount the size of the data
