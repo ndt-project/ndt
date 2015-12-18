@@ -795,9 +795,7 @@ int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
     return EIO;
   }
   if ((ssl_err = SSL_accept(conn->ssl)) != 1) {
-    if (ssl_err == 0) {
-      ssl_err = SSL_get_error(conn->ssl, ssl_err);
-    }
+    ssl_err = SSL_get_error(conn->ssl, ssl_err);
     ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
     log_println(4, "SSL_accept failed (%s)", ssl_error);
     return EIO;

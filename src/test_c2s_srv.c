@@ -203,7 +203,6 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   snapArgs.log = NULL;
 #endif
   snapArgs.delay = options->snapDelay;
-  wait_sig = 0;
 
   // Test ID and status descriptors
   enum TEST_ID testids = extended ? C2S_EXT : C2S;

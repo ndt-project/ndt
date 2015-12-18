@@ -66,7 +66,7 @@ pid_t start_server(int port, char **extra_args) {
   siginfo_t server_status;
   char port_string[6];  // 32767 is the max port, so must hold 5 digits + \0
   int rv;
-  char *args_for_exec[256] = {"./web100srv", "--port", NULL};
+  char *args_for_exec[256] = {"./web100srv", "--snaplog", "--tcpdump", "--cputime", "--log_dir", "/tmp", "--port", NULL};
   int exec_args_index = 0;
   // Should be set to the first index of args_for_exec that is NULL
   while (args_for_exec[exec_args_index] != NULL) exec_args_index++;
@@ -200,7 +200,7 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   pid_t server_pid;
   int server_exit_code;
   int err;
-  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, "--snaplog", "--log_dir", "/tmp", NULL};
+  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, NULL};
   // Set up certificates
   make_certificate_files(private_key_file, certificate_file);
   // Start the server with the right mode
