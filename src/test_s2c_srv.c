@@ -159,6 +159,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   enum TEST_ID testids = extended ? S2C_EXT : S2C;
   char snaplogsuffix[256] = "s2c_snaplog";
 
+  memset(xmitsfd, 0, sizeof(xmitsfd));
   for (i = 0; i < MAX_STREAMS; i++) {
     streams[i].snapArgs.snap = NULL;
 #if USE_WEB100
