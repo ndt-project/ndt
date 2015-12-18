@@ -205,7 +205,7 @@ function ndt_s2c_test(sock) {
             TEST_DURATION_SECONDS = test_end - test_start;
             // Calculation per NDT spec
             THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / TEST_DURATION_SECONDS;
-            log(INFO, "Measured download rate of %d", THROUGHPUT_VALUE);
+            log(INFO, "Measured download rate of %d Kbps", THROUGHPUT_VALUE);
             sock.send(make_ndt_msg(TEST_MSG, String(THROUGHPUT_VALUE)), { binary: true, mask: true });
             return "KEEP GOING";
         }
@@ -296,7 +296,7 @@ function ndt_c2s_test() {
             log(DEBUG, "C2S test complete using " + url_protocol);
             LOCAL_THROUGHPUT_VALUE = 8 * TRANSMITTED_BYTES / 1000 / (test_end - test_start);
             log(DEBUG, "C2S rate: ", LOCAL_THROUGHPUT_VALUE);
-            log(INFO, "Measured upload rate of %d", LOCAL_THROUGHPUT_VALUE);
+            log(INFO, "Measured upload rate of %d Kbps", LOCAL_THROUGHPUT_VALUE);
             return "DONE";
         }
         die("C2S: State = " + state + " type = " + type + "(" + msg_name[type] + ") message = ", body);
