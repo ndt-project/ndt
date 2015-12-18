@@ -276,7 +276,7 @@ void sigsafe_debug_log(int lvl, int signal, const char *msg) {
   pid = getpid();
   write(fd, "[", 1);
   write_long(fd, t);
-  write(fd, leader_string, sizeof(leader_string) - 1);
+  write(fd, leader_string, strlen(leader_string));
   write_long(fd, pid);
   write(fd, loglevel_string, strlen(loglevel_string));
   write_long(fd, lvl);

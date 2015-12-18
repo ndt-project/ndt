@@ -200,7 +200,7 @@ void run_ssl_test(void test_fn(int port, const char *hostname)) {
   pid_t server_pid;
   int server_exit_code;
   int err;
-  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, "--snaplog", "--tcpdump", "--cputime", "--multiple", "--max_clients=40", "--log_dir", "/tmp", NULL};
+  char *server_args[] = {"--tls_port", tls_port_string, "--private_key", private_key_file, "--certificate", certificate_file, NULL};
   // Set up certificates
   make_certificate_files(private_key_file, certificate_file);
   // Start the server with the right mode
