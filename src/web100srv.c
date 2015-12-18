@@ -296,9 +296,6 @@ void sigsafe_debug_log(int lvl, int signal, const char *msg) {
  * This means no fopen (or fwrite) and no printf and no malloc, among others.
  * For the full list of allowable function calls, read 'man 7 signal'.
  *
- * TODO: audit the signals caught and determine which ones need to be caught,
- * and which ones we should be using the default handler for.
- *
  * @param signo Signal number
  */
 void cleanup(int signo) {
@@ -311,21 +308,13 @@ void cleanup(int signo) {
       sigsafe_debug_log(1, signo, "Unexpected signal received, process may terminate");
       break;
     case SIGSEGV:
+      // TODO: Remove support for SIGSEGV.
       if (getpid() != ndtpid) {
         sigsafe_debug_log(6, signo, "caught SIGSEGV signal and terminated process");
         exit(-2);
       } else {
         sigsafe_debug_log(0, signo, "SERVER caught SIGSEGV signal.");
       }
-      break;
-    case SIGINT:
-      exit(0);
-    case SIGTERM:
-      if (getpid() == ndtpid) {
-        sigsafe_debug_log(6, signo, "SIGTERM signal received for server process, ignoring it");
-        break;
-      }
-      exit(0);
       break;
     case SIGUSR1:
       /* SIGUSR1 is used exclusively by C2S, to interrupt the pcap capture*/
@@ -2007,7 +1996,7 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
  */
 int main(int argc, char **argv) {
   int c, i;
-  struct sigaction new;
+  struct sigaction web100srv_sigaction;
   char *lbuf = NULL, *ctime();
   FILE *fp;
   size_t lbuf_max = 0;
@@ -2421,14 +2410,22 @@ int main(int argc, char **argv) {
 
   initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
-  memset(&new, 0, sizeof(new));
-  new.sa_handler = cleanup;
+  // Do not override the default handlers for:
+  //   SIGTSTP (ctrl-z), SIGINT (ctrl-c), or SIGTERM (default kill signal).
+  // Only register handlers for signals acted on in `cleanup`.
+  memset(&web100srv_sigaction, 0, sizeof(web100srv_sigaction));
+  web100srv_sigaction.sa_handler = cleanup;
 
-  // Grab all signals and run them through the cleanup routine.
-  for (i = 1; i < 32; i++) {
-    if ((i == SIGKILL) || (i == SIGSTOP)) continue;
-    sigaction(i, &new, NULL);
-  }
+  sigaction(SIGALRM, &web100srv_sigaction, NULL);
+  sigaction(SIGCHLD, &web100srv_sigaction, NULL);
+  sigaction(SIGHUP, &web100srv_sigaction, NULL);
+  sigaction(SIGPIPE, &web100srv_sigaction, NULL);
+  sigaction(SIGUSR1, &web100srv_sigaction, NULL);
+  sigaction(SIGUSR2, &web100srv_sigaction, NULL);
+
+  // TODO: Remove support for SIGSEGV. We must preserve SIGSEGV now because
+  // child processes receive SIGSEGV, indicating a bug that should be fixed.
+  sigaction(SIGSEGV, &web100srv_sigaction, NULL);
 
   if (set_buff) {
     socket_window = window;
