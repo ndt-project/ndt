@@ -63,8 +63,6 @@ typedef struct snapArgs {
   int delay;  // periodicity, in ms, of collecting snap
 } SnapArgs;
 
-int wait_sig;
-
 int initialize_tests(Connection* ctl, TestOptions* testOptions,
                      char* test_suite, size_t test_suite_strlen);
 

@@ -169,7 +169,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 #endif
     streams[i].snapArgs.delay = options->snapDelay;
   }
-  wait_sig = 0;
 
   log_println(1, "test client version: %s", testOptions->client_version);
 
