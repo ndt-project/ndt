@@ -502,7 +502,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
   activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &max_fd);
 
-  while (activeStreams > 0 && (secs() - start_time) < testDuration) {
+  while (activeStreams > 0 && (secs() - start_time - 1) < testDuration) {
     // POSIX says "Upon successful completion, the select() function may
     // modify the object pointed to by the timeout argument."
     // Therefore sel_tv is undefined afterwards and we must set it every time.
