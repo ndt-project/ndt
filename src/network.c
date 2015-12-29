@@ -685,7 +685,7 @@ size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
  * @param fd The file descriptor to read from
  * @param buf The buffer to read into
  * @param amount The the amount of data that can be read into buf
- * @return The number of bytes read
+ * @return The number of bytes read, or a negative error code.
  */
 size_t readn_raw(int fd, void *buf, size_t amount) {
   size_t received = 0;
@@ -694,40 +694,60 @@ size_t readn_raw(int fd, void *buf, size_t amount) {
   struct timeval sel_tv;
   fd_set rfd;
 
-  FD_ZERO(&rfd);  // initialize with zeroes
+  FD_ZERO(&rfd);
   FD_SET(fd, &rfd);
-  sel_tv.tv_sec = 600;
-  sel_tv.tv_usec = 0;
 
-  /* Using a select() call to timeout if no read occurs after 10 minutes of waiting.
-   * This should fix a bug where the server hangs at it looks like it's in this read
-   * state.  The select() should check to see if there is anything to read on this socket.
-   * if not, and the 3 second timer goes off, exit out and clean up.
-   *
-   * Now that the server does no reading of any sockets (only the child process
-   * reads any sockets), this fix may no longer be necessary, as a long wait
-   * will eventually get interrupted by the child's alarm().
-   */
+  // Using a select() call to timeout if no read occurs after 10 seconds of
+  // waiting.  This should fix a bug where the server hangs during read().  The
+  // select() should check to see if there is anything to read on this socket.
+  // If not, and the 10 second timer goes off, exit out and clean up.
+  //
+  // Now that the server does no reading of any sockets (only the child process
+  // reads any sockets), this fix may no longer be necessary, as a long wait
+  // should eventually get interrupted by the child's alarm().
   while (received < amount) {
-    // check if fd+1 socket is ready to be read
+    // The values for the timeout are undefined after select() is called, so we
+    // must re-set them every time.
+    sel_tv.tv_sec = 10;
+    sel_tv.tv_usec = 0;
+    // Check if the socket is ready to be read
     rc = select(fd + 1, &rfd, NULL, NULL, &sel_tv);
     if (rc == 0) {
-      /* A timeout occurred, nothing to read from socket after 3 seconds */
+      // A timeout occurred, nothing to read from socket after 10 seconds
       log_println(6, "readn() routine timeout occurred, return error signal "
                   "and kill off child");
       return received;
+    } else if (rc == -1) {
+      // select() failed
+      if (errno == EINTR) { 
+        // A signal was processed, ignore this error and retry
+        // On error, the fd sets become undefined and must be reinitialized
+        FD_ZERO(&rfd);
+        FD_SET(fd, &rfd);
+      } else {
+        log_println(3, "readn_raw failed: %s (%d)", strerror(errno), errno);
+        return received;
+      }
+    } else if (rc == 1) {
+      // A file descriptor can be read
+      n = read(fd, ptr + received, amount - received);
+      if (n <= -1) {
+        if (errno != EINTR) {
+          // An unrecoverable error occurred
+          log_println(3, "readn_raw failed: %s (%d)", strerror(errno), errno);
+          return -errno;  // genuine socket error, return
+        }
+      } else if (n == 0) {
+        return received;
+      } else {
+        // No errors reading, increment data byte count
+        received += n;
+      }
+    } else {
+      // Should never happen
+      log_println(0, "Unhandled return value from select(): %d", rc);
+      return -EIO;
     }
-    if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
-      continue;
-    n = read(fd, ptr + received, amount - received);
-    if (n == -1) {  // error
-      if (errno == EINTR) continue;  // interrupted, try reading again
-      if (errno != EAGAIN) return -errno;  // genuine socket error, return
-    }
-    if (n != -1) {  // if no errors reading, increment data byte count
-      received += n;
-    }
-    if (n == 0) return 0;
   }
   return received;
 }
