@@ -19,10 +19,6 @@
 #define RETRY_EXCEEDED_WAITING_DATA -102
 #define SOCKET_STATUS_FAILED -1
 
-#define JSON_SUPPORT 1
-#define WEBSOCKET_SUPPORT 2
-#define TLS_SUPPORT 4
-
 typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
