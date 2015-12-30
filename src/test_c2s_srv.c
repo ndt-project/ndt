@@ -627,7 +627,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
   // As a kindness to old clients, drain their queues for a second or two.
   // TODO: Fix client code to eliminate the need for this.  Clients that need
-  //       this line should be removed from their respective teme pools and
+  //       this line should be removed from their respective gene pools and
   //       this code should be deleted.
   drain_old_clients(c2s_conns, streamsNum, buff, sizeof(buff));
 
