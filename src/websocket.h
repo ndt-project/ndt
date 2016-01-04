@@ -1,7 +1,7 @@
 #ifndef SRC_WEBSOCKET_H
 #define SRC_WEBSOCKET_H
 
-#include "testoptions.h"
+#include "connection.h"
 
 int initialize_websocket_connection(Connection* conn, unsigned int skip_bytes,
                                     char* protocol);
