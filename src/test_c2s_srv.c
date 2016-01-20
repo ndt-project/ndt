@@ -113,13 +113,13 @@ const static int DRAIN_TIME = 1;
 
 /**
  * web100clt currently (as of 2015-12-21) requires that its output queue be
- * drained at the end of the c2s test and crashes if it is not. We don't want
- * to break it, but that extra second or so should not be part of our measured
+ * drained at the end of the c2s test and hangs if it is not. We don't want to
+ * break it, but that extra second or so should not be part of our measured
  * transmitted data, because the spec says that it's a 10 second upload from
  * client to server, not a "10 seconds or a little bit more depending on when
  * the client starts counting" upload.  Therefore, here we read from the
  * sockets for just a little longer, but ignore the resulting data, so that old
- * clients don't crash, but newer clients are not penalized for quitting after
+ * clients don't hang, but newer clients are not penalized for quitting after
  * 10 seconds, just like the spec says they can.
  *
  * TODO: Fix the clients to eliminate the need for this function.
