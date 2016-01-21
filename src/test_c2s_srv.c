@@ -122,7 +122,7 @@ const static int DRAIN_TIME = 1;
  * clients don't hang, but newer clients are not penalized for quitting after
  * 10 seconds, just like the spec says they can.
  *
- * TODO: Fix the clients to eliminate the need for this function.
+ * TODO: Fix web100clt to eliminate the need for this function.
  * TODO: Make this function happen in a separate thread (but not a forked
  *       subprocess due to SSL issues). That way old clients being dumb doesn't
  *       slow down new clients' tests.  Currently it wastes 1 second per test,
@@ -626,9 +626,9 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   *c2sspd = (8.0e-3 * bytes_read) / measured_test_duration;
 
   // As a kindness to old clients, drain their queues for a second or two.
-  // TODO: Fix client code to eliminate the need for this.  Clients that need
-  //       this line should be removed from their respective gene pools and
-  //       this code should be deleted.
+  // TODO: Fix web100clt code to eliminate the need for this.  In general,
+  //       clients that need this line should be removed from their respective
+  //       gene pools and this code should be deleted.
   drain_old_clients(c2s_conns, streamsNum, buff, sizeof(buff));
 
   // c->s throuput value calculated and assigned ! Release resources, conclude
