@@ -650,86 +650,49 @@ size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
   int received = 0;
   char error_string[120] = {0};
   int ssl_err;
-  char *ptr = buf;
-  size_t total_amount_read = 0;
-  // To read from OpenSSL, just read.  SSL_read has its own timeout.
-  do {
-    received =
-        SSL_read(ssl, ptr + total_amount_read, amount - total_amount_read);
-    if (received <= 0) {
-      ssl_err = SSL_get_error(ssl, received);
-      // received < 0 represents a possibly recoverable error
-      if (received < 0) {
-        if (ssl_err == SSL_ERROR_WANT_READ || ssl_err == SSL_ERROR_WANT_WRITE) {
-          continue;
-        }
+
+  received = SSL_read(ssl, buf, amount);
+  if (received <= 0) {
+    ssl_err = SSL_get_error(ssl, received);
+    // received < 0 represents a possibly recoverable error
+    if (received < 0) {
+      if (ssl_err == SSL_ERROR_WANT_READ || ssl_err == SSL_ERROR_WANT_WRITE) {
+        return 0;
       }
-      ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
-      log_println(2, "SSL_read failed due to %s (%d)\n", error_string, ssl_err);
-      return total_amount_read;
     }
-    total_amount_read += received;
-  } while (total_amount_read < amount);
-  return total_amount_read;
+    ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
+    log_println(2, "SSL_read failed due to %s (%d)\n", error_string, ssl_err);
+    return -1;
+  }
+  return received;
 }
 
 /**
- * Reads from a raw socket. This function turned ugly at some point and still
- * seems to work, but it has become hard to analyze. Please do not base any new
- * code off of it. Instead, if you want to write code that works for both ssl
- * and insecure sockets, please base your changes off of writen_any(), which is
- * easier to read and refactored in a nicer way.
- *
- * TODO: clean this up and model it after writen_any() and writen_raw()
+ * Reads from a raw socket.
  *
  * @param fd The file descriptor to read from
  * @param buf The buffer to read into
  * @param amount The the amount of data that can be read into buf
- * @return The number of bytes read
+ * @return The number of bytes read, or a negative error code.
  */
-size_t readn_raw(int fd, void *buf, size_t amount) {
-  size_t received = 0;
-  int n, rc;
-  char *ptr = buf;
-  struct timeval sel_tv;
-  fd_set rfd;
-
-  FD_ZERO(&rfd);  // initialize with zeroes
-  FD_SET(fd, &rfd);
-  sel_tv.tv_sec = 600;
-  sel_tv.tv_usec = 0;
-
-  /* Using a select() call to timeout if no read occurs after 10 minutes of waiting.
-   * This should fix a bug where the server hangs at it looks like it's in this read
-   * state.  The select() should check to see if there is anything to read on this socket.
-   * if not, and the 3 second timer goes off, exit out and clean up.
-   *
-   * Now that the server does no reading of any sockets (only the child process
-   * reads any sockets), this fix may no longer be necessary, as a long wait
-   * will eventually get interrupted by the child's alarm().
-   */
-  while (received < amount) {
-    // check if fd+1 socket is ready to be read
-    rc = select(fd + 1, &rfd, NULL, NULL, &sel_tv);
-    if (rc == 0) {
-      /* A timeout occurred, nothing to read from socket after 3 seconds */
-      log_println(6, "readn() routine timeout occurred, return error signal "
-                  "and kill off child");
-      return received;
+int readn_raw(int fd, void *buf, size_t amount) {
+  ssize_t received = 0;
+  int error;  // A local variable to hold the contents of errno
+  received = read(fd, buf, amount);
+  if (received <= -1) {
+    if ((error = errno) == EINTR) {
+      return 0;
+    } else {
+      // An unrecoverable error occurred
+      log_println(3, "readn_raw failed: %s (%d)", strerror(error), error);
+      return -error;  // genuine socket error, return
     }
-    if ((rc == -1) && (errno == EINTR)) /* a signal was processed, ignore it */
-      continue;
-    n = read(fd, ptr + received, amount - received);
-    if (n == -1) {  // error
-      if (errno == EINTR) continue;  // interrupted, try reading again
-      if (errno != EAGAIN) return -errno;  // genuine socket error, return
-    }
-    if (n != -1) {  // if no errors reading, increment data byte count
-      received += n;
-    }
-    if (n == 0) return 0;
+  } else if (received == 0) {
+    // read() returning 0 means the fd is at EOF, which is a fatal error here.
+    return -1;
+  } else {
+    return received;
   }
-  return received;
 }
 
 /**
@@ -741,12 +704,20 @@ size_t readn_raw(int fd, void *buf, size_t amount) {
  */
 size_t readn_any(Connection *conn, void *buf, size_t amount) {
   assert(amount >= 0);
+  size_t total_read = 0;
+  char *ptr = buf;
+  int received;
 
-  if (conn->ssl != NULL) {
-    return readn_ssl(conn->ssl, buf, amount);
-  } else {
-    return readn_raw(conn->socket, buf, amount);
+  while (total_read < amount) {
+    if (conn->ssl != NULL) {
+      received = readn_ssl(conn->ssl, ptr + total_read, amount - total_read);
+    } else {
+      received = readn_raw(conn->socket, ptr + total_read, amount - total_read);
+    }
+    if (received < 0) return 0;
+    total_read += received;
   }
+  return total_read;
 }
 
 /**
