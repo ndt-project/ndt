@@ -604,7 +604,7 @@ void print_speed(u_char *user, const struct pcap_pkthdr *h, const u_char *p) {
     // and return.
 
     if (fwd.seq == 0) {
-      log_println(1, "New IPv6 packet trace started -- "
+      log_println(4, "New IPv6 packet trace started -- "
                   "initializing counters");
       fwd.seq = current.seq;
       fwd.st_sec = current.sec;
@@ -963,7 +963,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr_storage sock_addr[], int sock
              get_ISOtime(isoTime, sizeof(isoTime)), namebuf, direction);
     create_named_logdir(logdir, sizeof(logdir), dir, 0);
     pdump = pcap_dump_open(pd, logdir);
-    fprintf(stderr, "Opening '%s' log fine\n", logdir);
+    log_println(1, "Opening '%s' log file", logdir);
     if (pdump == NULL) {
       fprintf(stderr, "Unable to create trace file '%s'\n", logdir);
       dumptrace = 0;

@@ -395,6 +395,9 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
   if (useropt & TEST_META) {
     add_test_to_suite(&first, buff, buff_strlen, TEST_META);
   }
+  // Meta data that should be unconditionally saved is set here.
+  addAdditionalMetaBoolEntry("websockets", (options->connection_flags & WEBSOCKET_SUPPORT));
+  addAdditionalMetaBoolEntry("tls", (options->connection_flags & TLS_SUPPORT));
   return useropt;
 }
 
@@ -593,4 +596,39 @@ int is_buffer_clogged(int nextseqtosend, int lastunackedseq) {
     recclog = 1;
   }
   return recclog;
+}
+
+/**
+ * Adds data to the `meta` global variable.  All meta entries are key: value
+ * pairs mapping strings to strings.
+ * @param key the key for the entry
+ * @param value the value of the entry
+ */
+void addAdditionalMetaEntry(char* key, char* value) {
+  struct metaentry * new_entry;
+  new_entry = (struct metaentry *)calloc(1, sizeof(struct metaentry));
+  if (meta.additional) {
+    new_entry->next = meta.additional;
+  } else {
+    new_entry->next = NULL;
+  }
+  snprintf(new_entry->key, sizeof(new_entry->key) - 1, "%s", key);
+  snprintf(new_entry->value, sizeof(new_entry->value) - 1, "%s", value);
+  meta.additional = new_entry;
+}
+
+/**
+ * A helper method to add a meta entry when the value is an int.
+ */
+void addAdditionalMetaIntEntry(char* key, int value) {
+  char tmpbuff[256] = {0};
+  snprintf(tmpbuff, sizeof(tmpbuff) - 1, "%d", value);
+  addAdditionalMetaEntry(key, tmpbuff);
+}
+
+/**
+ * A helper method to add a meta entry when the value is a bool.
+ */
+void addAdditionalMetaBoolEntry(char* key, int value) {
+  addAdditionalMetaEntry(key, value ? "true" : "false");
 }

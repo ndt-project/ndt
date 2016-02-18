@@ -95,7 +95,7 @@ void calc_linkspeed(char spds[4][256], int spd_index, int *c2s_linkspeed_data,
       index = -1;
 
     // log
-    log_println(0, "spds[%d] = '%s' max=%d [%0.2f%%]\n", n, spds[n], max,
+    log_println(1, "spds[%d] = '%s' max=%d [%0.2f%%]\n", n, spds[n], max,
                 (float) max * 100 / total);
 
     // Assign values based on whether C2S or S2C test

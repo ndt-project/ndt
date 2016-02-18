@@ -19,10 +19,6 @@
 #define RETRY_EXCEEDED_WAITING_DATA -102
 #define SOCKET_STATUS_FAILED -1
 
-#define JSON_SUPPORT 1
-#define WEBSOCKET_SUPPORT 2
-#define TLS_SUPPORT 4
-
 typedef struct testoptions {
   int multiple;  // multiples tests enabled
   int mainport;  // main port used for test
@@ -63,8 +59,6 @@ typedef struct snapArgs {
   int delay;  // periodicity, in ms, of collecting snap
 } SnapArgs;
 
-int wait_sig;
-
 int initialize_tests(Connection* ctl, TestOptions* testOptions,
                      char* test_suite, size_t test_suite_strlen);
 
@@ -93,5 +87,9 @@ void setCwndlimit(tcp_stat_connection connarg, tcp_stat_group* grouparg,
 
 int is_buffer_clogged(int nextseqtosend, int lastunackedseq);
 void stop_packet_trace(int *monpipe_arr);
+
+void addAdditionalMetaEntry(char* key, char* value);
+void addAdditionalMetaIntEntry(char* key, int value);
+void addAdditionalMetaBoolEntry(char* key, int value);
 
 #endif  // SRC_TESTOPTIONS_H_

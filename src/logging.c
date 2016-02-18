@@ -350,8 +350,7 @@ I2ErrHandle get_errhandle() {
  * @param format format of the message
  *            ... - the additional arguments
  */
-
-void log_print(int lvl, const char* format, ...) {
+void log_print_impl(int lvl, const char* format, ...) {
   va_list ap;
 
   if (lvl > _debuglevel) {
@@ -367,17 +366,27 @@ void log_print(int lvl, const char* format, ...) {
  * Log the message with the given level. New line character
  *              is appended to the error stream.
  * @param lvl     level of the message
+ * @param file    filename where the log occurred
+ * @param line    line number in the file
+ * @param lvl     level of the message
  * @param format  format of the message
  *            ... - the additional arguments
  */
 
-void log_println(int lvl, const char* format, ...) {
+void log_println_impl(int lvl, const char* file, int line, const char* format, ...) {
   va_list ap;
+  struct timeval tv;
+  struct tm local_time;
+  char time_string[128];
 
   if (lvl > _debuglevel) {
     return;
   }
-
+  gettimeofday(&tv, NULL);
+  localtime_r(&tv.tv_sec, &local_time);
+  strftime(time_string, sizeof(time_string), "%FT%T", &local_time);
+  log_print_impl(lvl, "[%s.%06ldZ pid=%d loglevel=%d %18s:%-4d] ", time_string,
+                 tv.tv_usec, getpid(), lvl, file, line);
   va_start(ap, format);
   I2ErrLogVT(_errorhandler_nl, -1, 0, format, ap);
   va_end(ap);
@@ -998,7 +1007,7 @@ void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcp
       snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
                meta.c2s_snaplog);
       if (zlib_def(filename) != 0)
-        log_println(0, "compression failed for file:%s: %s.", filename,
+        log_println(1, "compression failed for file:%s: %s.", filename,
                     dirpathstr);
       else
         strlcat(meta.c2s_snaplog, ".gz", sizeof(meta.c2s_snaplog));
@@ -1010,7 +1019,7 @@ void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcp
           snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
                    meta.s2c_snaplog[i]);
           if (zlib_def(filename) != 0)
-            log_println(0, "compression failed for file :%s", filename);
+            log_println(1, "compression failed for file :%s", filename);
           else
             strlcat(meta.s2c_snaplog[i], ".gz", sizeof(meta.s2c_snaplog[i]));
         }
@@ -1025,7 +1034,7 @@ void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcp
       snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
                meta.c2s_ndttrace);
       if (zlib_def(filename) != 0)
-        log_println(0, "compression failed for tcpdump file %s =%s",
+        log_println(1, "compression failed for tcpdump file %s =%s",
                     filename, meta.c2s_ndttrace);
       else
         strlcat(meta.c2s_ndttrace, ".gz", sizeof(meta.c2s_ndttrace));
@@ -1035,7 +1044,7 @@ void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcp
       snprintf(filename, sizeof(filename), "%s/%s", dirpathstr,
                meta.s2c_ndttrace);
       if (zlib_def(filename) != 0)
-        log_println(0, "compression failed for tcpdump file %s =%s",
+        log_println(1, "compression failed for tcpdump file %s =%s",
                     filename, meta.s2c_ndttrace);
       else
         strlcat(meta.s2c_ndttrace, ".gz", sizeof(meta.s2c_ndttrace));
@@ -1046,7 +1055,7 @@ void writeMeta(int compress, int cputime, int snapshotting, int snaplog, int tcp
       memset(filename, 0, sizeof(filename));
       snprintf(filename, sizeof(filename), "%s/%s", dirpathstr, meta.CPU_time);
       if (zlib_def(filename) != 0)
-        log_println(0, "compression failed");
+        log_println(1, "compression failed");
       else
         strlcat(meta.CPU_time, ".gz", sizeof(meta.CPU_time));
     } else {

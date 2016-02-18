@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include "ndtptestconstants.h"
 #include "runningtest.h"  // protocol validation
 #define LOG_FACILITY LOG_LOCAL0  /* Syslog facility to log at */
@@ -21,7 +22,7 @@
 #define PROTOLOGFILE "web100srvprotocol.log"  // name of protocol log file
 #define PROTOLOGPREFIX "web100srvprotocol_"  // prefix for protocol log file
 #define PROTOLOGSUFFIX ".log"  // suffix for protocol validation log file
-#define FILENAME_SIZE 256
+#define FILENAME_SIZE 1024
 /* #define PROTOLOGDIR "protocollog"     Protocol log dir */
 void log_init(char* progname, int debuglvl);
 void set_debuglvl(int debuglvl);
@@ -30,8 +31,15 @@ int get_debuglvl();
 char* get_logfile();
 
 I2ErrHandle get_errhandle();
-void log_print(int lvl, const char* format, ...);
-void log_println(int lvl, const char* format, ...);
+
+// TODO: audit all the calls to log_print and log_println to maxmise ease of
+//       grepping through logs and eliminate the possibility of loglines that
+//       don't start with the timestamp/pid/level/file/line prefix.
+#define log_print log_println
+void log_println_impl(int lvl, const char* file, int line, const char* format, ...);
+#define log_println(lvl, ...) \
+    log_println_impl((lvl), __FILE__, __LINE__, __VA_ARGS__)
+
 void log_free(void);
 void set_timestamp();
 time_t get_timestamp();
@@ -49,8 +57,8 @@ int zlib_def(char *src_fn);
  * Format used to exchange meta test data between client->server.
  * */
 struct metaentry {
-  char key[64];  // key name
-  char value[256];  // value associated with this meta key
+  char key[1024];  // key name
+  char value[1024];  // value associated with this meta key
   struct metaentry* next;  // pointer to next link
 };
 
@@ -65,6 +73,10 @@ struct throughputSnapshot {
  * These values (most) are thes logged in the
  *  meta data file created  for every session
  * */
+// TODO: ensure every write to a char array in meta will always result in a
+//       null-terminated string of less than the buffer size.  This will also
+//       require auditing of FILENAME_SIZE and the constants used in
+//       writeMeta() in web100srv.c
 struct metadata {
   char c2s_snaplog[FILENAME_SIZE];  // C->S test Snaplog file name
   char c2s_ndttrace[FILENAME_SIZE];  // C->S NDT trace file name
@@ -72,19 +84,19 @@ struct metadata {
   char s2c_ndttrace[FILENAME_SIZE];  // S->C NDT trace file name
   char CPU_time[FILENAME_SIZE];  // CPU time file
   char web_variables_log[FILENAME_SIZE];  // web100/web10g variables log
-  char summary[256];  // Summary data
-  char date[32];  // Date and,
-  char time[16];  // time
-  char client_ip[64];  // Client IP Address
+  char summary[1024];  // Summary data
+  char date[1024];  // Date and,
+  char time[1024];  // time
+  char client_ip[1024];  // Client IP Address
   struct sockaddr_storage c_addr;  // client socket details, not logged
-  char client_name[64];  // client's host-name
-  char client_os[32];  // client OS name
-  char client_browser[32];  // client's browser name
-  char client_application[32];  // client application name
+  char client_name[1024];  // client's host-name
+  char client_os[1024];  // client OS name
+  char client_browser[1024];  // client's browser name
+  char client_application[1024];  // client application name
   int ctl_port;  // ctl port
-  char server_ip[64];  // server IP address
-  char server_name[64];  // server's host-name
-  char server_os[32];  // server os name
+  char server_ip[1024];  // server IP address
+  char server_name[1024];  // server's host-name
+  char server_os[1024];  // server os name
   int family;  // IP family
   struct metaentry* additional;  // all other additional data
 };

@@ -109,6 +109,77 @@ void close_all_connections(Connection *connections, int connections_length) {
   }
 }
 
+const static int DRAIN_TIME = 1;
+
+/**
+ * web100clt currently (as of 2015-12-21) requires that its output queue be
+ * drained at the end of the c2s test and hangs if it is not. We don't want to
+ * break it, but that extra second or so should not be part of our measured
+ * transmitted data, because the spec says that it's a 10 second upload from
+ * client to server, not a "10 seconds or a little bit more depending on when
+ * the client starts counting" upload.  Therefore, here we read from the
+ * sockets for just a little longer, but ignore the resulting data, so that old
+ * clients don't hang, but newer clients are not penalized for quitting after
+ * 10 seconds, just like the spec says they can.
+ *
+ * TODO: Fix web100clt to eliminate the need for this function.
+ * TODO: Make this function happen in a separate thread (but not a forked
+ *       subprocess due to SSL issues). That way old clients being dumb doesn't
+ *       slow down new clients' tests.  Currently it wastes 1 second per test,
+ *       which at 150k tests per day is a waste of 40+ hours of peoples' lives
+ *       every day.
+ *
+ * @param c2s_conns The connections to drain
+ * @param streamsNum The number of connections
+ * @param buff The buffer into which we should read data
+ * @param buff_size The size of said buffer
+ */
+void drain_old_clients(Connection* c2s_conns, int streamsNum, char* buff, size_t buff_size) {
+  int activeStreams;
+  double trash = 0;  // A byte count we ignore.
+  fd_set rfd;
+  int max_fd;
+  double start_time;
+  int msgretvalue, read_error;
+  struct timeval sel_tv;
+
+  start_time = secs();
+  activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &max_fd);
+  while (activeStreams > 0 && (secs() - start_time) < DRAIN_TIME) {
+    sel_tv.tv_sec = DRAIN_TIME;
+    sel_tv.tv_usec = 0;
+    msgretvalue = select(max_fd + 1, &rfd, NULL, NULL, &sel_tv);
+    if (msgretvalue == -1) {
+      if (errno == EINTR) {
+        // select interrupted. Continue waiting for activity on socket
+        continue;
+      } else {
+        log_println(5,
+                    "Socket error while draining the client's send queue: %s. This is likely ok.",
+                    strerror(errno));
+        return;
+      }
+    } else if (msgretvalue == 0) {
+      log_println(5, "Done draining the client's send queue.");
+      return;
+    } else if (msgretvalue > 0) {
+      read_error = read_ready_streams(&rfd, c2s_conns, streamsNum, buff, buff_size, &trash);
+      if (read_error != 0 && read_error != EINTR) {
+        // EINTR is expected, but all other errors are actually errors
+        log_println(5, "Error while trying to drain client's send queue: %s. This is likely ok.",
+                    strerror(read_error));
+        return;
+      }
+    } else {
+      // This should never happen. select() returns -1, 0, or a positive number says POSIX.
+      log_println(0, "Unhandled return value from select: %d.", msgretvalue);
+      return;
+    }
+    // Set up the FD_SET and activeStreams for the next select.
+    activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &max_fd);
+  }
+}
+
 // How long to sleep to avoid a race condition.  This is a bad hack.
 // At 150k tests per day, this one sleep(2) wastes 83 hours of peoples'
 // lives every day.
@@ -203,7 +274,6 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   snapArgs.log = NULL;
 #endif
   snapArgs.delay = options->snapDelay;
-  wait_sig = 0;
 
   // Test ID and status descriptors
   enum TEST_ID testids = extended ? C2S_EXT : C2S;
@@ -549,11 +619,17 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     // Set up the FD_SET and activeStreams for the next select.
     activeStreams = connections_to_fd_set(c2s_conns, streamsNum, &rfd, &max_fd);
   }
-
   measured_test_duration = secs() - start_time;
+  // From the NDT spec:
   //  throughput in kilo bits per sec =
   //  (transmitted_byte_count * 8) / (time_duration)*(1000)
   *c2sspd = (8.0e-3 * bytes_read) / measured_test_duration;
+
+  // As a kindness to old clients, drain their queues for a second or two.
+  // TODO: Fix web100clt code to eliminate the need for this.  In general,
+  //       clients that need this line should be removed from their respective
+  //       gene pools and this code should be deleted.
+  drain_old_clients(c2s_conns, streamsNum, buff, sizeof(buff));
 
   // c->s throuput value calculated and assigned ! Release resources, conclude
   // snap writing.

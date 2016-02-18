@@ -229,155 +229,149 @@ static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"disable_extended_tests", 0, 0, 328},
                                        {0, 0, 0, 0}};
 
+/** Writes a number (up to 16 digits) to a file pointer. Safe to be called
+ * inside a signal handler. We had to write this because sprintf is not on the
+ * list of signal-safe functions.
+ *
+ * @param fd the file descriptor to which we write
+ * @param val the value we write
+ */
+void write_long(int fd, long long val) {
+  long long digit = 1000000000000;
+  long long current_digit;
+  const char error[] = "TOOBIG";
+  char single_digit[] = "0";
+  if (val < 0) { 
+    write(fd, "-", 1);
+    val *= -1;
+  }
+  if (digit < val) {
+    write(fd, error, strlen(error));
+    return;  // Don't pretend that we write too-large numbers.
+  }
+  while (digit > val) digit /= 10;
+  while (digit > 0) {
+    current_digit = (val / digit) % 10;
+    single_digit[0] = '0' + (char)current_digit;
+    write(fd, single_digit, 1);
+    digit /= 10;
+  }
+}
+
+/** Writes a debug message in a signal-safe way.
+ * @param lvl The debug level of the message
+ * @param signal The signal that we are talking about
+ * @param msg The debug message to save
+ */
+void sigsafe_debug_log(int lvl, int signal, const char *msg) {
+  const char leader_string[] = " SIGNAL_HANDLER pid=";
+  const char loglevel_string[] = " loglevel=";
+  const char signal_string[] = " signal=";
+  const char *signal_name;
+  const int fd = 2;  // File descriptor 2 is standard error.
+  time_t t;
+  pid_t pid;
+  if (get_debuglvl() < lvl) return;
+  time(&t);
+  pid = getpid();
+  write(fd, "[", 1);
+  write_long(fd, t);
+  write(fd, leader_string, strlen(leader_string));
+  write_long(fd, pid);
+  write(fd, loglevel_string, strlen(loglevel_string));
+  write_long(fd, lvl);
+  write(fd, signal_string, strlen(signal_string));
+  write_long(fd, signal);
+  write(fd, " (", 2);
+  signal_name = sys_siglist[signal];
+  write(fd, signal_name, strlen(signal_name));
+  write(fd, ")] ", 3);
+  write(fd, msg, strlen(msg));
+  write(fd, "\n", 1);
+}
+
 /**
- * Catch termination signal(s) and print message in log file
+ * Catch signal and print message in log file.  This function can only call the
+ * list of functions which are safe to be called from within a signal handler.
+ * This means no fopen (or fwrite) and no printf and no malloc, among others.
+ * For the full list of allowable function calls, read 'man 7 signal'.
+ *
  * @param signo Signal number
  */
 void cleanup(int signo) {
-  FILE *fp;
   ServerWakeupMessage msg;
   int status;
 
-  if (signo != SIGINT && signo != SIGPIPE) {
-    log_println(1, "Signal %d received by process %d", signo, getpid());
-    if (get_debuglvl() > 0) {
-      fp = fopen(get_logfile(), "a");
-      if (fp != NULL) {
-        fprintf(fp, "Signal %d received by process %d\n", signo, getpid());
-        fclose(fp);
-      }
-    }
-  }
+  sigsafe_debug_log(1, signo, "Received a signal");
   switch (signo) {
     default:
-      fp = fopen(get_logfile(), "a");
-      if (fp != NULL) {
-        fprintf(fp,
-                "Unexpected signal (%d) received, process (%d) may terminate\n",
-                signo, getpid());
-        fclose(fp);
-      }
+      sigsafe_debug_log(1, signo, "Unexpected signal received, process may terminate");
       break;
     case SIGSEGV:
-      log_println(6, "DEBUG, caught SIGSEGV signal and terminated process (%d)",
-                  getpid());
-      if (getpid() != ndtpid) exit(-2);
-      break;
-    case SIGINT:
-      exit(0);
-    case SIGTERM:
-      if (getpid() == ndtpid) {
-        log_println(
-            6,
-            "DEBUG, SIGTERM signal received for parent process (%d), ignore it",
-            ndtpid);
-        break;
+      // TODO: Remove support for SIGSEGV.
+      if (getpid() != ndtpid) {
+        sigsafe_debug_log(6, signo, "caught SIGSEGV signal and terminated process");
+        exit(-2);
+      } else {
+        sigsafe_debug_log(0, signo, "SERVER caught SIGSEGV signal.");
       }
-      exit(0);
+      break;
     case SIGUSR1:
       /* SIGUSR1 is used exclusively by C2S, to interrupt the pcap capture*/
-      log_println(6,
-                  "DEBUG, caught SIGUSR1, setting sig1 flag and calling "
-                  "force_breakloop");
+      sigsafe_debug_log(6, signo, "caught SIGUSR1, setting sig1 flag and calling force_breakloop");
       force_breakloop();
       break;
 
     case SIGUSR2:
       /* SIGUSR2 is used exclusively by S2C, to interrupt the pcap capture*/
-      log_println(6,
-                  "DEBUG, caught SIGUSR2, setting sig2 flag and calling "
-                  "force_breakloop");
+      sigsafe_debug_log(6, signo, "caught SIGUSR2, setting sig2 flag and calling force_breakloop");
       force_breakloop();
       break;
 
     case SIGALRM:
       switch (getCurrentTest()) {
         case TEST_MID:
-          log_println(6, "Received SIGALRM signal [Middlebox test]");
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [Middlebox test]");
           break;
         case TEST_C2S:
-          log_println(6, "Received SIGALRM signal [C2S throughput test] pid=%d",
-                      getpid());
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [C2S throughput test]");
           break;
         case TEST_C2S_EXT:
-          log_println(6,
-                      "Received SIGALRM signal [Extended C2S throughput test] pid=%d",
-                      getpid());
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [Extended C2S throughput test]");
           break;
         case TEST_S2C:
-          log_println(6, "Received SIGALRM signal [S2C throughput test] pid=%d",
-                      getpid());
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [S2C throughput test]");
           break;
         case TEST_S2C_EXT:
-          log_println(6,
-                      "Received SIGALRM signal [Extended S2C throughput test] pid=%d",
-                      getpid());
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [Extended S2C throughput test]");
           break;
         case TEST_SFW:
-          log_println(6, "Received SIGALRM signal [Simple firewall test]");
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [Simple firewall test]");
           break;
         case TEST_META:
-          log_println(6, "Received SIGALRM signal [META test]");
+          sigsafe_debug_log(6, signo, "Received SIGALRM signal [META test]");
+          break;
+        default:
+          sigsafe_debug_log(1, signo, "Received SIGALRM signal [UNKNOWN test]");
           break;
       }
-      fp = fopen(get_logfile(), "a");
-      if (fp != NULL) {
-        if (get_debuglvl() > 4)
-          fprintf(
-              fp,
-              "Received SIGALRM signal: terminating active web100srv process "
-              "[%d]",
-              getpid());
-        switch (getCurrentTest()) {
-          case TEST_MID:
-            fprintf(fp, " [Middlebox test]\n");
-            break;
-          case TEST_C2S:
-            fprintf(fp, " [C2S throughput test]\n");
-            /* break; */
-            if (wait_sig == 1) return;
-            break;
-          case TEST_C2S_EXT:
-            fprintf(fp, " [Extended C2S throughput test]\n");
-            /* break; */
-            if (wait_sig == 1)
-              return;
-            break;
-          case TEST_S2C:
-            fprintf(fp, " [S2C throughput test]\n");
-            /* break; */
-            if (wait_sig == 1) return;
-            break;
-          case TEST_S2C_EXT:
-            fprintf(fp, " [Extended S2C throughput test]\n");
-            /* break; */
-            if (wait_sig == 1)
-              return;
-            break;
-          case TEST_SFW:
-            fprintf(fp, " [Simple firewall test]\n");
-            break;
-          case TEST_META:
-            fprintf(fp, " [META test]\n");
-            break;
-          default:
-            fprintf(fp, "\n");
-        }
-        fclose(fp);
-      }
+      sigsafe_debug_log(1, signo, "Received SIGALRM signal: terminating active web100srv process");
       exit(0);
     case SIGPIPE:
-      // SIGPIPE is an expected signal due to race conditions regarding the
-      // possibility of writing a message to an already-terminated child.  Do
-      // not let it kill the process.  The SIGCHLD handler will take care of
-      // child process cleanup.
-      fp = fopen(get_logfile(), "a");
-      if ((fp != NULL) && (get_debuglvl() > 4)) {
-        fprintf(fp, "Received SIGPIPE: a child has terminated early.\n");
-        fclose(fp);
+      if (ndtpid == getpid()) {
+        // SIGPIPE is an expected signal due to race conditions regarding the
+        // possibility of writing a message to an already-terminated child.  Do
+        // not let it kill the process.  The SIGCHLD handler will take care of
+        // child process cleanup.
+        sigsafe_debug_log(4, signo, "Received SIGPIPE: a child has terminated early.\n");
+      } else {
+        // This is the SIGPIPE handler for a child. SIGPIPE should only
+        // happen if the client disconnected mid-test, and if the client does
+        // that, we should cause the child to exit.
+        sigsafe_debug_log(2, signo, "Child received SIGPIPE, exiting");
+        exit(0);
       }
       break;
-
     case SIGHUP:
       // Initialize Web100 structures
       count_vars = tcp_stat_init(VarFileName);
@@ -388,7 +382,6 @@ void cleanup(int signo) {
       // data.  This data is then updated at the end of each test.
       if (admin_view == 1) view_init(refresh);
       break;
-
     case SIGCHLD:
       // When a child exits, send a message to global_signalfd_write that will
       // cause the server's select() to wake up.  Only send this message in the
@@ -396,7 +389,7 @@ void cleanup(int signo) {
       if (ndtpid == getpid()) {
         msg = '0';  // garbage value, never examined at the other end.
         write(global_signalfd_write, &msg, sizeof(ServerWakeupMessage));
-        log_println(5, "Signal 17 (SIGCHLD) received - completed tests");
+        sigsafe_debug_log(5, signo, "Signal 17 (SIGCHLD) received - completed tests");
       }
       // To prevent zombies, make sure every child process is wait()ed upon.
       waitpid(-1, &status, WNOHANG);
@@ -840,7 +833,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   log_println(6, "Starting META test");
   if ((ret = test_meta_srv(ctl, agent, testopt, conn_options, &options)) != 0) {
-    if (ret < 0) {
+    if (ret != 0) {
       log_println(6, "META test failed with rc=%d", ret);
     }
   }
@@ -1575,6 +1568,7 @@ void wait_for_wakeup(fd_set *fds, int fd_max, int signalfd, int wait_forever) {
       log_println(0, "Error in server's select call: %d (%s)", errno,
                   strerror(errno));
     }
+    FD_ZERO(fds);
     return;
   }
   // If we woke up due to data on the signalfd, then clear the buffer.
@@ -1600,13 +1594,20 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   struct sockaddr_storage cli_addr;
   size_t rmt_host_strlen;
   ndtchild *new_child = NULL;
+  int accept_errno;
   // Accept the connection, initialize variables, fire up the new child.
   cli_addr_len = sizeof(cli_addr);
-  ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
-  if (ctlsockfd < 0) {
-    log_println(1, "accept() on ctlsockfd failed");
-    return NULL;
-  }
+  
+  do {
+    accept_errno = 0;
+    ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+    if (ctlsockfd < 0) {
+      accept_errno = errno;
+      log_println(1, "accept() on ctlsockfd failed");
+      log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
+      if (accept_errno != EINTR) return NULL;
+    }
+  } while (accept_errno == EINTR);
   if (cli_addr_len > sizeof(meta.c_addr)) {
     log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
     return NULL;
@@ -1995,7 +1996,7 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
  */
 int main(int argc, char **argv) {
   int c, i;
-  struct sigaction new;
+  struct sigaction web100srv_sigaction;
   char *lbuf = NULL, *ctime();
   FILE *fp;
   size_t lbuf_max = 0;
@@ -2019,6 +2020,7 @@ int main(int argc, char **argv) {
   // // temp storage for process name
   // char statustemparr[PROCESS_STATUS_DESC_SIZE];
 
+  memset(&meta, 0, sizeof(meta));
   memset(&options, 0, sizeof(options));
   options.snapDelay = 5;
   options.avoidSndBlockUp = 0;
@@ -2344,11 +2346,9 @@ int main(int argc, char **argv) {
   // userid to non-root user until needed.
 
   if (getuid() != 0) {
-    log_print(
-        1, "Warning: This program must be run as root to enable the Link Type");
     log_println(
-        1,
-        " detection algorithm.\nContinuing execution without this algorithm");
+        1, "Warning: This program must be run as root to enable the Link Type "
+           "detection algorithm.  Continuing execution without this algorithm.");
   }
 
   if (VarFileName == NULL) {
@@ -2389,8 +2389,8 @@ int main(int argc, char **argv) {
   }
 
   log_println(1, "ANL/Internet2 NDT ver %s", VERSION);
-  log_println(1, "\tVariables file = %s\n\tlog file = %s", VarFileName,
-              get_logfile());
+  log_println(1, "\tVariables file = %s", VarFileName);
+  log_println(1, "\tlog file = %s", get_logfile());
   if (admin_view) {
     log_println(1, "\tAdmin file = %s", AdminFileName);
   }
@@ -2410,14 +2410,22 @@ int main(int argc, char **argv) {
 
   initialize_db(useDB, dbDSN, dbUID, dbPWD);
 
-  memset(&new, 0, sizeof(new));
-  new.sa_handler = cleanup;
+  // Do not override the default handlers for:
+  //   SIGTSTP (ctrl-z), SIGINT (ctrl-c), or SIGTERM (default kill signal).
+  // Only register handlers for signals acted on in `cleanup`.
+  memset(&web100srv_sigaction, 0, sizeof(web100srv_sigaction));
+  web100srv_sigaction.sa_handler = cleanup;
 
-  // Grab all signals and run them through the cleanup routine.
-  for (i = 1; i < 32; i++) {
-    if ((i == SIGKILL) || (i == SIGSTOP)) continue;
-    sigaction(i, &new, NULL);
-  }
+  sigaction(SIGALRM, &web100srv_sigaction, NULL);
+  sigaction(SIGCHLD, &web100srv_sigaction, NULL);
+  sigaction(SIGHUP, &web100srv_sigaction, NULL);
+  sigaction(SIGPIPE, &web100srv_sigaction, NULL);
+  sigaction(SIGUSR1, &web100srv_sigaction, NULL);
+  sigaction(SIGUSR2, &web100srv_sigaction, NULL);
+
+  // TODO: Remove support for SIGSEGV. We must preserve SIGSEGV now because
+  // child processes receive SIGSEGV, indicating a bug that should be fixed.
+  sigaction(SIGSEGV, &web100srv_sigaction, NULL);
 
   if (set_buff) {
     socket_window = window;
