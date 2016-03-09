@@ -31,29 +31,16 @@ var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
 
-
-/**
- * TODO: There must be an easier way to determine the absolute path of the
- * currently running script.
- *
- * 'new Worker()' (referenced in ndt-wrapper.js) apparently only accepts an
- * absolute path to a script file. If everything is running out of the root
- * directory, then no problem, but in instances where the HTML is in a separate
- * directory from the javascript files, you have to hardcode the path to the
- * WebWorker javascript file. This backbending attempts to determine if there
- * are any subdirectories between the root and the script file and passes that
- * on to .run_test(baseUrl), so that 'new Worker()' will look in the right
- * location.
- */
-var scripts = document.getElementsByTagName('script');
-var base = scripts[scripts.length-1].baseURI;
-var re = new RegExp(base + '(.*)?\/script\.js$');
-var basePath = scripts[scripts.length-1].src.match(re)[1];
-
 // TEST VARIABLES
 var mlabNsUrl = 'https://mlab-ns.appspot.com/';
 var testProtocol = 'https:' == document.location.protocol ? 'wss' : 'ws';
 var ndtServer;
+
+if (typeof window.ndtBasePath === 'undefined') {
+  var ndtBasePath = '';
+} else {
+  console.log('BASEPATH: ' + window.ndtBasePath);
+}
 
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
@@ -98,7 +85,7 @@ function startTest(evt) {
   $('#rttValue').html('');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test(basePath);
+  testNDT().run_test(window.ndtBasePath);
   monitorTest();
 }
 

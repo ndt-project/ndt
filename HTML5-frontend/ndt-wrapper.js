@@ -29,7 +29,6 @@ function NDTWrapper(server) {
       this.use_web_worker = false;
     }
 
-
     this._hostname = server;
     this._port = testProtocol == 'wss' ? 3010 : 3001;
     this._path = '/ndt_protocol';
@@ -64,7 +63,7 @@ NDTWrapper.prototype.run_test = function (basePath) {
 
     if (this.use_web_worker) {
       console.log('Generating new worker');
-      this.worker = new Worker(basePath + '/ndt-wrapper-ww.js');
+      this.worker = new Worker(basePath + 'ndt-wrapper-ww.js');
       this.worker.addEventListener('message', function (e) {
         var msg = e.data;
         switch (msg.cmd) {
