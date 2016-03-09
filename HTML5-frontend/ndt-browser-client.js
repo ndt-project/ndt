@@ -12,12 +12,12 @@ function NDTjs(server, serverPort, serverPath, callbacks, updateInterval) {
   this.server = server;
   this.serverPort = serverPort || 3001;
   this.serverPath = serverPath || '/ndt_protocol';
+  this.testProtocol = 'https:' == location.protocol ? 'wss' : 'ws';
   this.updateInterval = updateInterval / 1000.0 || false;
   this.results = {
     c2sRate: undefined,
     s2cRate: undefined
   };
-  this.mlabServer = undefined;
   this.SEND_BUFFER_SIZE = 1048576;
 
   // Someone may want to run this test without callbacks (perhaps for
@@ -87,32 +87,6 @@ NDTjs.prototype.checkBrowserSupport = function () {
     throw this.UnsupportedBrowser('No Websockets');
   }
   return true;
-};
-
-/**
- * Make an asynchronous AJAX request to M-Lab NS for the closest NDT service.
- */
-NDTjs.prototype.findNdtServer = function () {
-  var mlabNsRequest = new XMLHttpRequest(),
-    mlabNsUrl = 'http://mlab-ns.appspot.com/ndt?format=json',
-    that = this;
-  mlabNsRequest.open('GET', mlabNsUrl, false);
-  mlabNsRequest.send();
-
-  mlabNsRequest.onreadystatechange = function () {
-    if (mlabNsRequest.readyState === 4) {
-      if (mlabNsRequest.status === 200) {
-        that.mlabServer = JSON.parse(mlabNsRequest.responseText);
-        that.mlabServer.metro = that.mlabServer.site.slice(0, 3);
-        that.logger('M-Lab NS lookup answer:' + that.mlabServer);
-      } else {
-        that.mlabServer = undefined;
-        that.logger('M-Lab NS lookup failed.');
-      }
-    }
-  };
-  mlabNsRequest.open("GET", mlabNsUrl, false);
-  mlabNsRequest.send();
 };
 
 /**
@@ -223,8 +197,9 @@ NDTjs.prototype.TestFailureException = function (message) {
  */
 NDTjs.prototype.createWebsocket = function (serverAddress, serverPort, urlPath,
                                             protocol) {
-  var createdWebsocket = new WebSocket('ws://' + serverAddress + ':' +
-                                       serverPort + urlPath, protocol);
+  var createdWebsocket = new WebSocket(this.testProtocol + '://' +
+                                       serverAddress + ':' + serverPort +
+                                       urlPath, protocol);
   createdWebsocket.binaryType = 'arraybuffer';
   return createdWebsocket;
 };
