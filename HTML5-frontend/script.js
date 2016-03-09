@@ -4,7 +4,6 @@ $(function(){
     setTimeout(initializeTest, 1000);
     return;
   }
-  getNdtServerName();
   checkInstalledPlugins();
   initializeTest();
 });
@@ -28,10 +27,28 @@ var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
 
+/**
+ * TODO: There must be an easier way to determine the absolute path of the
+ * currently running script.
+ *
+ * 'new Worker()' (referenced in ndt-wrapper.js) apparently only accepts an
+ * absolute path to a script file. If everything is running out of the root
+ * directory, then no problem, but in instances where the HTML is in a separate
+ * directory from the javascript files, you have to hardcode the path to the
+ * WebWorker javascript file. This backbending attempts to determine if there
+ * are any subdirectories between the root and the script file and passes that
+ * on to .run_test(baseUrl), so that 'new Worker()' will look in the right
+ * location.
+ */
+var scripts = document.getElementsByTagName('script');
+var base = scripts[scripts.length-1].baseURI;
+var re = new RegExp(base + '(.*)?\/script\.js$');
+var basePath = scripts[scripts.length-1].src.match(re)[1];
+
 // TEST VARIABLES
 var mlabNsUrl = 'https://mlab-ns.appspot.com/';
 var testProtocol = 'https:' == document.location.protocol ? 'wss' : 'ws';
-var ndtServerName;
+var ndtServer;
 
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
@@ -41,11 +58,8 @@ var gaugeMaxValue = 1000;
 // PRIMARY METHODS
 
 function initializeTest() {
-  // Don't start the test unless we have a server name
-  if (!ndtServerName) {
-    console.log('Could not determine NDT server. Aborting...');
-    return false;
-  }
+  // Determine which NDT server to test against
+  findNdtServer();
 
   // Initialize gauges
   initializeGauges();
@@ -58,6 +72,7 @@ function initializeTest() {
   $('#results .view-selector .details').click(showResultsDetails);
   $('#results .view-selector .advanced').click(showResultsAdvanced);
 
+  $('body').removeClass('initializing');
   $('body').addClass('ready');
   //return showPage('results');
   setPhase(PHASE_WELCOME);
@@ -72,19 +87,18 @@ function startTest(evt) {
     return;
   }
   $('#warning-plugin').hide();
-  $('#javaButton').prop('disabled', true);
-  $('#websocketButton').prop('disabled', true);
+  $('#javaButton').attr('disabled', true);
+  $('#websocketButton').attr('disabled', true);
   showPage('test', resetGauges);
   $('#rttValue').html('');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test();
+  testNDT().run_test(basePath);
   monitorTest();
 }
 
 function simulateTest() {
   setPhase(PHASE_RESULTS);
-  return;
   setPhase(PHASE_PREPARING);
   setTimeout(function(){ setPhase(PHASE_UPLOAD) }, 2000);
   setTimeout(function(){ setPhase(PHASE_DOWNLOAD) }, 4000);
@@ -219,7 +233,7 @@ function setPhase(phase) {
       $('#jitter').html(printJitter(false));
       $('#test-details').html(testDetails());
       $('#test-advanced').append(testDiagnosis());
-      $('#javaButton').prop('disabled', false);
+      $('#javaButton').attr('disabled', false);
 
       showPage('results');
       break;
@@ -549,7 +563,7 @@ function testDetails() {
   d += '<br>';
 
   d += printNumberValue(readNDTvar('cwndtime')).bold() + ' % of the time was not spent in a receiver limited or sender limited state.<br>';
-  d += printNumberValue(readNDTvar('rwintime')).bold() + ' % of the time the connection is limited by the client machine's receive buffer.<br>';
+  d += printNumberValue(readNDTvar('rwintime')).bold() + ' % of the time the connection is limited by the client machine\'s receive buffer.<br>';
   d += 'Optimal receive buffer: ' + printNumberValue(readNDTvar('optimalRcvrBuffer')).bold() + ' bytes<br>';
   d += 'Bottleneck link: ' + readNDTvar('accessTech').bold() + '<br>';
   d += readNDTvar('DupAcksIn').bold() + ' duplicate ACKs set<br>';
@@ -586,7 +600,7 @@ function createBackend() {
   $('#backendContainer').empty();
 
   if (use_websocket_client) {
-    websocket_client = new NDTWrapper(ndtServerName);
+    websocket_client = new NDTWrapper(ndtServer);
   }
   else {
     var app = document.createElement('applet');
@@ -615,7 +629,7 @@ function isPluginLoaded() {
   }
 }
 
-function getNdtServerName() {
+function findNdtServer() {
   // If the port is not 7123, then assume that this is running from outside
   // of the NDT server (not fakewww), and use mlab-ns to lookup the server.
   if (location.port != '7123') {
@@ -623,13 +637,17 @@ function getNdtServerName() {
     $.ajax({
         url: mlabNsUrl + mlabNsService,
         dataType: 'json',
+        async: false,
         success: function(resp) {
             console.log('Using NDT server: ' + resp.fqdn);
-            ndtServerName = resp.fqdn;
+            ndtServer = resp.fqdn;
+        },
+        error: function(resp) {
+            console.log('mlab-ns lookup failed.');
         }
     });
   } else {
-    ndtServerName = 'localhost';
+    ndtServerName = location.hostname;
   }
 }
 
@@ -641,13 +659,14 @@ function checkInstalledPlugins() {
   $('#warning-websocket').hide();
 
   hasJava = true;
-  if (deployJava.getJREs() == '') {
-    hasJava = false;
+  if (typeof deployJava != 'undefined') {
+    if (deployJava.getJREs() == '') {
+      hasJava = false;
+    }
   }
-
   hasWebsockets = false;
   try {
-    ndt_js = new NDTjs();
+    var ndt_js = new NDTjs();
     if (ndt_js.checkBrowserSupport()) {
       hasWebsockets = true;
     }
@@ -656,11 +675,11 @@ function checkInstalledPlugins() {
   }
 
   if (!hasWebsockets) {
-    $('#websocketButton').prop('disabled', true);
+    $('#websocketButton').attr('disabled', true);
   }
 
   if (!hasJava) {
-    $('#javaButton').prop('disabled', true);
+    $('#javaButton').attr('disabled', true);
   }
 
   if (hasWebsockets) {
