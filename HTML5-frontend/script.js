@@ -639,7 +639,7 @@ function findNdtServer() {
         }
     });
   } else {
-    ndtServerName = location.hostname;
+    ndtServer = location.hostname;
   }
 }
 
