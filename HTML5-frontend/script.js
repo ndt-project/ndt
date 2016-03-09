@@ -36,10 +36,8 @@ var mlabNsUrl = 'https://mlab-ns.appspot.com/';
 var testProtocol = 'https:' == document.location.protocol ? 'wss' : 'ws';
 var ndtServer;
 
-if (typeof window.ndtBasePath === 'undefined') {
-  var ndtBasePath = '';
-} else {
-  console.log('BASEPATH: ' + window.ndtBasePath);
+if (typeof window.ndtScriptPath === 'undefined') {
+  var ndtScriptPath = '';
 }
 
 // Gauges used for showing download/upload speed
@@ -85,7 +83,7 @@ function startTest(evt) {
   $('#rttValue').html('');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test(window.ndtBasePath);
+  testNDT().run_test(window.ndtScriptPath);
   monitorTest();
 }
 
