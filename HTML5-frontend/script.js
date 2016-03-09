@@ -1,3 +1,7 @@
+if (typeof simulate === 'undefined') {
+  var simulate = false;
+}
+
 $(function(){
   jQuery.fx.interval = 50;
   if (simulate) {
@@ -26,6 +30,7 @@ var websocket_client = null;
 var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
+
 
 /**
  * TODO: There must be an easier way to determine the absolute path of the
@@ -617,7 +622,9 @@ function createBackend() {
 // UTILITIES
 
 function debug(message) {
-  if (allowDebug && window.console) console.debug(message);
+  if (typeof allowDebug !== 'undefined') {
+    if (allowDebug && window.console) console.debug(message);
+  }
 }
 
 function isPluginLoaded() {
