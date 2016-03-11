@@ -651,7 +651,7 @@ function checkInstalledPlugins() {
   $('#warning-websocket').hide();
 
   hasJava = true;
-  if (typeof deployJava != 'undefined') {
+  if (typeof deployJava !== 'undefined') {
     if (deployJava.getJREs() == '') {
       hasJava = false;
     }
