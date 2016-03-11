@@ -31,9 +31,6 @@ var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
 
-// TEST VARIABLES
-var testProtocol = 'https:' == document.location.protocol ? 'wss' : 'ws';
-
 // A front-end implementation could define some specific server. If not, then
 // just use the current server's hostname.
 if (typeof window.ndtServer === 'undefined') {
@@ -80,7 +77,7 @@ function startTest(evt) {
   $('#rttValue').html('');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test();
+  testNDT().run_test(ndtServer);
   monitorTest();
 }
 
