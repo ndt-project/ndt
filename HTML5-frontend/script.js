@@ -93,6 +93,7 @@ function startTest(evt) {
 
 function simulateTest() {
   setPhase(PHASE_RESULTS);
+  return;
   setPhase(PHASE_PREPARING);
   setTimeout(function(){ setPhase(PHASE_UPLOAD) }, 2000);
   setTimeout(function(){ setPhase(PHASE_DOWNLOAD) }, 4000);
