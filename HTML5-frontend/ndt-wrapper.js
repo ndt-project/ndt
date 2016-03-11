@@ -123,14 +123,9 @@ NDTWrapper.prototype.run_test = function (basePath) {
         }
       };
 
-      if (this._hostname) {
-        this.client = new NDTjs(this._hostname, this._port, this._path,
-                                this.callbacks, this._update_interval);
-        this.client.startTest();
-      } else {
-        console.log('Could not determine a suitable NDT server. Aborting.');
-        return false;
-      }
+      this.client = new NDTjs(this._hostname, this._port, this._path,
+                              this.callbacks, this._update_interval);
+      this.client.startTest();
     }
 };
 
