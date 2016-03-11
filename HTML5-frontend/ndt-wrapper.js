@@ -69,7 +69,8 @@ NDTWrapper.prototype.run_test = function (basePath) {
 
     if (this.use_web_worker) {
       console.log('Generating new worker');
-      this.worker = new Worker(basePath + 'ndt-wrapper-ww.js');
+      var scriptPath = getScriptPath('ndt-wrapper.js');
+      this.worker = new Worker(scriptPath + '/ndt-wrapper-ww.js');
       this.worker.addEventListener('message', function (e) {
         var msg = e.data;
         switch (msg.cmd) {

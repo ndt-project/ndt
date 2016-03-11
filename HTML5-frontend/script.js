@@ -661,3 +661,18 @@ function checkInstalledPlugins() {
     useJavaAsBackend();
   }
 }
+
+function getScriptPath(scriptName) {
+  var scripts = document.getElementsByTagName('SCRIPT');
+  var regex = new RegExp('/' + scriptName + '$');
+  var path = '';
+  if (scripts && scripts.length > 0) {
+    for(var i in scripts) {
+      if(scripts[i].src && scripts[i].src.match(regex)) {
+        path = scripts[i].src.replace(regex, '');
+        break;
+      }
+    }
+  }
+  return path.substring(location.origin.length);
+};
