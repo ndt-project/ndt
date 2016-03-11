@@ -8,11 +8,12 @@
 
 'use strict';
 
-function NDTjs(server, serverPort, serverPath, callbacks, updateInterval) {
+function NDTjs(server, serverPort, serverProtocol, serverPath, callbacks,
+               updateInterval) {
   this.server = server;
   this.serverPort = serverPort || 3001;
   this.serverPath = serverPath || '/ndt_protocol';
-  this.testProtocol = 'https:' == location.protocol ? 'wss' : 'ws';
+  this.serverProtocol = serverProtocol || 'ws';
   this.updateInterval = updateInterval / 1000.0 || false;
   this.results = {
     c2sRate: undefined,
@@ -195,9 +196,9 @@ NDTjs.prototype.TestFailureException = function (message) {
  * @param {string} protocol The WebSocket protocol to build for.
  * @returns {Websocket} The WebSocket we created;
  */
-NDTjs.prototype.createWebsocket = function (serverAddress, serverPort, urlPath,
-                                            protocol) {
-  var createdWebsocket = new WebSocket(this.testProtocol + '://' +
+NDTjs.prototype.createWebsocket = function (serverProtocol, serverAddress,
+                                            serverPort, urlPath, protocol) {
+  var createdWebsocket = new WebSocket(serverProtocol + '://' +
                                        serverAddress + ':' + serverPort +
                                        urlPath, protocol);
   createdWebsocket.binaryType = 'arraybuffer';
@@ -262,8 +263,8 @@ NDTjs.prototype.ndtC2sTest = function () {
         messageType === that.TEST_PREPARE) {
       that.callbacks.onstatechange('preparing_c2s', that.results);
       serverPort = Number(messageContent.msg);
-      testConnection = that.createWebsocket(that.server, serverPort,
-                                            that.serverPath, 'c2s');
+      testConnection = that.createWebsocket(that.serverProtocol, that.server,
+                                            serverPort, that.serverPath, 'c2s');
       state = 'WAIT_FOR_TEST_START';
       return false;
     }
@@ -316,8 +317,8 @@ NDTjs.prototype.ndtS2cTest = function (ndtSocket) {
         messageType === that.TEST_PREPARE) {
       that.callbacks.onstatechange('preparing_s2c', that.results);
       serverPort = Number(messageContent.msg);
-      testConnection = that.createWebsocket(that.server, serverPort,
-                                            that.serverPath, 's2c');
+      testConnection = that.createWebsocket(that.serverProtocol, that.server,
+                                            serverPort, that.serverPath, 's2c');
       testConnection.onopen = function () {
         that.logger('Successfully opened S2C test connection.');
         testStart = Date.now() / 1000;
@@ -445,8 +446,8 @@ NDTjs.prototype.startTest = function () {
   this.checkBrowserSupport();
   this.logger('Test started.  Waiting for connection to server...');
   this.callbacks.onstart(this.server);
-  ndtSocket = this.createWebsocket(this.server, this.serverPort,
-                                   this.serverPath, 'ndt');
+  ndtSocket = this.createWebsocket(this.serverProtocol, this.server,
+                                   this.serverPort, this.serverPath, 'ndt');
 
   /** When the NDT control socket is opened, send a message requesting a
    * TEST_S2C, TEST_C2S, and TEST_META.
