@@ -30,7 +30,8 @@ function NDTWrapper(server) {
     }
 
     this._hostname = server;
-    this._port = testProtocol == 'wss' ? 3010 : 3001;
+    this._port = 'https:' == location.protocol ? 3010 : 3001;
+    this._protocol = 'https:' == location.protocol ? 'wss' : 'ws';
     this._path = '/ndt_protocol';
     this._update_interval = 1000;
 
@@ -97,7 +98,7 @@ NDTWrapper.prototype.run_test = function () {
         'cmd': 'start',
         'hostname': this._hostname,
         'port': this._port,
-        'protocol': testProtocol,
+        'protocol': this._protocol,
         'path': this._path,
         'update_interval': this._update_interval
       });
