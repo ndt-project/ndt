@@ -56,7 +56,7 @@ NDTWrapper.prototype.reset = function () {
   this._diagnosis = '';
 };
 
-NDTWrapper.prototype.run_test = function (basePath) {
+NDTWrapper.prototype.run_test = function () {
     var _this = this;
 
     this.reset();
@@ -64,8 +64,8 @@ NDTWrapper.prototype.run_test = function (basePath) {
     if (this.use_web_worker) {
       console.log('Generating new worker');
       // 'new Worker()' only accepts absolute paths to script files, so
-	  // determine the path to the location of the ndt-wrapper.js script, and
-	  // ndt-wrapper-ww.js should be in the same place.
+      // determine the path to the location of the ndt-wrapper.js script, and
+      // ndt-wrapper-ww.js should be in the same place.
       var scriptPath = getScriptPath('ndt-wrapper.js');
       this.worker = new Worker(scriptPath + '/ndt-wrapper-ww.js');
       this.worker.addEventListener('message', function (e) {

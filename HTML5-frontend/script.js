@@ -40,10 +40,6 @@ if (typeof window.ndtServer === 'undefined') {
   var ndtServer = location.hostname;
 }
 
-if (typeof window.ndtScriptPath === 'undefined') {
-  var ndtScriptPath = '';
-}
-
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
 var gaugeUpdateInterval;
@@ -84,7 +80,7 @@ function startTest(evt) {
   $('#rttValue').html('');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test(window.ndtScriptPath);
+  testNDT().run_test();
   monitorTest();
 }
 
@@ -663,7 +659,8 @@ function checkInstalledPlugins() {
 }
 
 // Attempts to determine the absolute path of a script, minus the name of the
-// script.
+// script itself.  The parameter scriptName should be a bare script file name
+// e.g., "ndt-wrapper.js".
 function getScriptPath(scriptName) {
   var scripts = document.getElementsByTagName('SCRIPT');
   var regex = new RegExp('/' + scriptName + '$');
