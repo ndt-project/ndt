@@ -32,9 +32,13 @@ var currentPage = 'welcome';
 var transitionSpeed = 400;
 
 // TEST VARIABLES
-var mlabNsUrl = 'https://mlab-ns.appspot.com/';
 var testProtocol = 'https:' == document.location.protocol ? 'wss' : 'ws';
-var ndtServer;
+
+// A front-end implementation could define some specific server. If not, then
+// just use the current server's hostname.
+if (typeof window.ndtServer === 'undefined') {
+  var window.ndtServer = location.hostname;
+}
 
 if (typeof window.ndtScriptPath === 'undefined') {
   var ndtScriptPath = '';
@@ -590,7 +594,7 @@ function createBackend() {
   $('#backendContainer').empty();
 
   if (use_websocket_client) {
-    websocket_client = new NDTWrapper(ndtServer);
+    websocket_client = new NDTWrapper(window.ndtServer);
   }
   else {
     var app = document.createElement('applet');
@@ -618,28 +622,6 @@ function isPluginLoaded() {
     return true;
   } catch(e) {
     return false;
-  }
-}
-
-function findNdtServer() {
-  // If the port is not 7123, then assume that this is running from outside
-  // of the NDT server (not fakewww), and use mlab-ns to lookup the server.
-  if (location.port != '7123') {
-    var mlabNsService = testProtocol == 'wss' ? 'ndt_ssl' : 'ndt';
-    $.ajax({
-        url: mlabNsUrl + mlabNsService,
-        dataType: 'json',
-        async: false,
-        success: function(resp) {
-            console.log('Using NDT server: ' + resp.fqdn);
-            ndtServer = resp.fqdn;
-        },
-        error: function(resp) {
-            console.log('mlab-ns lookup failed.');
-        }
-    });
-  } else {
-    ndtServer = location.hostname;
   }
 }
 
