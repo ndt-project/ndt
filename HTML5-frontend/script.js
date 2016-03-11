@@ -662,6 +662,8 @@ function checkInstalledPlugins() {
   }
 }
 
+// Attempts to determine the absolute path of a script, minus the name of the
+// script.
 function getScriptPath(scriptName) {
   var scripts = document.getElementsByTagName('SCRIPT');
   var regex = new RegExp('/' + scriptName + '$');

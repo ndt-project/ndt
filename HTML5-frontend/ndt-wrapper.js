@@ -56,12 +56,6 @@ NDTWrapper.prototype.reset = function () {
   this._diagnosis = '';
 };
 
-/**
- * 'new Worker()' only accepts absolute paths to script files, so basePath is a
- * way for the caller (script.js) to specify an alternate location. This is
- * useful for front-end implementations in which the path to these scripts could
- * be essentially anything.
- */
 NDTWrapper.prototype.run_test = function (basePath) {
     var _this = this;
 
@@ -69,6 +63,9 @@ NDTWrapper.prototype.run_test = function (basePath) {
 
     if (this.use_web_worker) {
       console.log('Generating new worker');
+      // 'new Worker()' only accepts absolute paths to script files, so
+	  // determine the path to the location of the ndt-wrapper.js script, and
+	  // ndt-wrapper-ww.js should be in the same place.
       var scriptPath = getScriptPath('ndt-wrapper.js');
       this.worker = new Worker(scriptPath + '/ndt-wrapper-ww.js');
       this.worker.addEventListener('message', function (e) {
