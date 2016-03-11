@@ -37,7 +37,7 @@ var testProtocol = 'https:' == document.location.protocol ? 'wss' : 'ws';
 // A front-end implementation could define some specific server. If not, then
 // just use the current server's hostname.
 if (typeof window.ndtServer === 'undefined') {
-  var window.ndtServer = location.hostname;
+  var ndtServer = location.hostname;
 }
 
 if (typeof window.ndtScriptPath === 'undefined') {
@@ -52,9 +52,6 @@ var gaugeMaxValue = 1000;
 // PRIMARY METHODS
 
 function initializeTest() {
-  // Determine which NDT server to test against
-  findNdtServer();
-
   // Initialize gauges
   initializeGauges();
 
