@@ -67,7 +67,7 @@ NDTWrapper.prototype.run_test = function () {
       // 'new Worker()' only accepts absolute paths to script files, so
       // determine the path to the location of the ndt-wrapper.js script, and
       // ndt-wrapper-ww.js should be in the same place.
-      var scriptPath = getScriptPath('ndt-wrapper.js');
+      var scriptPath = getScriptPath();
       this.worker = new Worker(scriptPath + '/ndt-wrapper-ww.js');
       this.worker.addEventListener('message', function (e) {
         var msg = e.data;

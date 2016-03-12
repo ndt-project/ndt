@@ -658,14 +658,14 @@ function checkInstalledPlugins() {
 // Attempts to determine the absolute path of a script, minus the name of the
 // script itself.  The parameter scriptName should be a bare script file name
 // e.g., "ndt-wrapper.js".
-function getScriptPath(scriptName) {
+function getScriptPath() {
   var scripts = document.getElementsByTagName('SCRIPT');
-  var regex = new RegExp('/' + scriptName + '$');
+  var fileRegex = new RegExp('\/ndt-wrapper\.js$');
   var path = '';
   if (scripts && scripts.length > 0) {
     for(var i in scripts) {
-      if(scripts[i].src && scripts[i].src.match(regex)) {
-        path = scripts[i].src.replace(regex, '');
+      if(scripts[i].src && scripts[i].src.match(fileRegex)) {
+        path = scripts[i].src.replace(fileRegex, '');
         break;
       }
     }
