@@ -656,8 +656,7 @@ function checkInstalledPlugins() {
 }
 
 // Attempts to determine the absolute path of a script, minus the name of the
-// script itself.  The parameter scriptName should be a bare script file name
-// e.g., "ndt-wrapper.js".
+// script itself.
 function getScriptPath() {
   var scripts = document.getElementsByTagName('SCRIPT');
   var fileRegex = new RegExp('\/ndt-wrapper\.js$');
