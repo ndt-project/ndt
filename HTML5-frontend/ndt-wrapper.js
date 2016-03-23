@@ -29,15 +29,10 @@ function NDTWrapper(server) {
       this.use_web_worker = false;
     }
 
-    if (server) {
-        this._hostname = server;
-    }
-    else {
-        this._hostname = location.hostname;
-    }
-
-    this._port = 3001;
-    this._path = "/ndt_protocol";
+    this._hostname = server;
+    this._port = 'https:' == location.protocol ? 3010 : 3001;
+    this._protocol = 'https:' == location.protocol ? 'wss' : 'ws';
+    this._path = '/ndt_protocol';
     this._update_interval = 1000;
 
     this.reset();
@@ -57,9 +52,9 @@ NDTWrapper.prototype.reset = function () {
   }
 
   this._ndt_vars = { 'ClientToServerSpeed': 0, 'ServerToClientSpeed': 0 };
-  this._errmsg = "";
-  this._status = "notStarted";
-  this._diagnosis = "";
+  this._errmsg = '';
+  this._status = 'notStarted';
+  this._diagnosis = '';
 };
 
 NDTWrapper.prototype.run_test = function () {
@@ -68,8 +63,12 @@ NDTWrapper.prototype.run_test = function () {
     this.reset();
 
     if (this.use_web_worker) {
-      console.log("Generating new worker");
-      this.worker = new Worker('ndt-wrapper-ww.js');
+      console.log('Generating new worker');
+      // 'new Worker()' only accepts absolute paths to script files, so
+      // determine the path to the location of the ndt-wrapper.js script, and
+      // ndt-wrapper-ww.js should be in the same place.
+      var scriptPath = getScriptPath();
+      this.worker = new Worker(scriptPath + '/ndt-wrapper-ww.js');
       this.worker.addEventListener('message', function (e) {
         var msg = e.data;
         switch (msg.cmd) {
@@ -99,6 +98,7 @@ NDTWrapper.prototype.run_test = function () {
         'cmd': 'start',
         'hostname': this._hostname,
         'port': this._port,
+        'protocol': this._protocol,
         'path': this._path,
         'update_interval': this._update_interval
       });
@@ -122,7 +122,9 @@ NDTWrapper.prototype.run_test = function () {
         }
       };
 
-      this.client = new NDTjs(this._hostname, this._port, this._path, this.callbacks, this._update_interval);
+      this.client = new NDTjs(this._hostname, this._port, this._protocol,
+                              this._path, this.callbacks,
+                              this._update_interval);
       this.client.startTest();
     }
 };

@@ -14,7 +14,8 @@ self.addEventListener('message', function (e) {
   var msg = e.data;
   switch (msg.cmd) {
     case 'start':
-      startNDT(msg.hostname, msg.port, msg.path, msg.update_interval);
+      startNDT(msg.hostname, msg.port, msg.protocol, msg.path,
+               msg.update_interval);
       break;
     case 'stop':
       self.close();
@@ -25,7 +26,7 @@ self.addEventListener('message', function (e) {
   };
 }, false);
 
-function startNDT(hostname, port, path, update_interval) {
+function startNDT(hostname, port, protocol, path, update_interval) {
   var callbacks = {
     'onstart': function(server) {
       self.postMessage({
@@ -61,6 +62,7 @@ function startNDT(hostname, port, path, update_interval) {
     }
   };
 
-  var client = new NDTjs(hostname, port, path, callbacks, update_interval);
+  var client = new NDTjs(hostname, port, protocol, path, callbacks,
+                         update_interval);
   client.startTest();
 }

@@ -1,3 +1,6 @@
+if (typeof simulate === 'undefined') {
+  var simulate = false;
+}
 
 $(function(){
   jQuery.fx.interval = 50;
@@ -22,24 +25,26 @@ var PHASE_RESULTS   = 5;
 
 
 // STATUS VARIABLES
-
 var use_websocket_client = false;
-
 var websocket_client = null;
-
 var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
 var transitionSpeed = 400;
 
+// A front-end implementation could define some specific server. If not, then
+// just use the current server's hostname.
+if (typeof window.ndtServer === 'undefined') {
+  var ndtServer = location.hostname;
+}
+
 // Gauges used for showing download/upload speed
 var downloadGauge, uploadGauge;
 var gaugeUpdateInterval;
-var gaugeMaxValue = 1000; 
+var gaugeMaxValue = 1000;
 
 // PRIMARY METHODS
 
 function initializeTest() {
-
   // Initialize gauges
   initializeGauges();
 
@@ -47,11 +52,12 @@ function initializeTest() {
   $('.start.button').click(startTest);
 
   // Results view selector
-  $("#results .view-selector .summary").click(showResultsSummary);
-  $("#results .view-selector .details").click(showResultsDetails);
-  $("#results .view-selector .advanced").click(showResultsAdvanced);
+  $('#results .view-selector .summary').click(showResultsSummary);
+  $('#results .view-selector .details').click(showResultsDetails);
+  $('#results .view-selector .advanced').click(showResultsAdvanced);
 
-  document.body.className = 'ready';
+  $('body').removeClass('initializing');
+  $('body').addClass('ready');
   //return showPage('results');
   setPhase(PHASE_WELCOME);
 }
@@ -63,15 +69,15 @@ function startTest(evt) {
   if (!isPluginLoaded()) {
     $('#warning-plugin').show();
     return;
-  } 
+  }
   $('#warning-plugin').hide();
-  document.getElementById('javaButton').disabled = true;
-  document.getElementById('websocketButton').disabled = true;
+  $('#javaButton').attr('disabled', true);
+  $('#websocketButton').attr('disabled', true);
   showPage('test', resetGauges);
-  document.getElementById('rttValue').innerHTML = "";
+  $('#rttValue').html('');
   if (simulate) return simulateTest();
   currentPhase = PHASE_WELCOME;
-  testNDT().run_test();
+  testNDT().run_test(ndtServer);
   monitorTest();
 }
 
@@ -114,9 +120,9 @@ function monitorTest() {
     setPhase(PHASE_DOWNLOAD);
   }
 
-  if (!currentStatus.match(/Middleboxes/) && !currentStatus.match(/notStarted/) 
+  if (!currentStatus.match(/Middleboxes/) && !currentStatus.match(/notStarted/)
         && !remoteServer().match(/ndt/) && currentPhase == PHASE_PREPARING) {
-    debug("Remote server is " + remoteServer());
+    debug('Remote server is ' + remoteServer());
     setPhase(PHASE_UPLOAD);
   }
 
@@ -135,14 +141,14 @@ function setPhase(phase) {
   switch (phase) {
 
     case PHASE_WELCOME:
-      debug("WELCOME");
+      debug('WELCOME');
       showPage('welcome');
       break;
 
     case PHASE_PREPARING:
       uploadGauge.setValue(0);
       downloadGauge.setValue(0);
-      debug("PREPARING TEST");
+      debug('PREPARING TEST');
 
       $('#loading').show();
       $('#upload').hide();
@@ -153,20 +159,20 @@ function setPhase(phase) {
 
     case PHASE_UPLOAD:
       var pcBuffSpdLimit, rtt, gaugeConfig = [];
-      debug("UPLOAD TEST");
+      debug('UPLOAD TEST');
 
       pcBuffSpdLimit = speedLimit();
       rtt = averageRoundTrip();
 
       if (isNaN(rtt)) {
-        document.getElementById("rttValue").innerHTML = "n/a";
+        $('#rttValue').html('n/a');
       } else {
-        document.getElementById("rttValue").innerHTML = printNumberValue(Math.round(rtt)) + " ms";
+        $('rttValue').html(printNumberValue(Math.round(rtt)) + ' ms');
       }
 
       if (!isNaN(pcBuffSpdLimit)) {
         if (pcBuffSpdLimit > gaugeMaxValue) {
-          pcBuffSpdLimit = gaugeMaxValue; 
+          pcBuffSpdLimit = gaugeMaxValue;
         }
         gaugeConfig.push({
           from: 0,   to: pcBuffSpdLimit, color: 'rgb(0, 255, 0)'
@@ -176,11 +182,11 @@ function setPhase(phase) {
           from: pcBuffSpdLimit, to: gaugeMaxValue, color: 'rgb(255, 0, 0)'
         });
 
-        uploadGauge.updateConfig({ 
+        uploadGauge.updateConfig({
           highlights: gaugeConfig
         });
 
-        downloadGauge.updateConfig({ 
+        downloadGauge.updateConfig({
           highlights: gaugeConfig
         });
       }
@@ -192,27 +198,27 @@ function setPhase(phase) {
         updateGaugeValue();
       },1000);
 
-      $("#test .remote.location .address").get(0).innerHTML = remoteServer();
+      $('#test .remote.location .address').get(0).innerHTML = remoteServer();
       break;
 
     case PHASE_DOWNLOAD:
-      debug("DOWNLOAD TEST");
+      debug('DOWNLOAD TEST');
 
       $('#upload').hide();
       $('#download').show();
       break;
 
     case PHASE_RESULTS:
-      debug("SHOW RESULTS");
+      debug('SHOW RESULTS');
       debug('Testing complete');
 
       printDownloadSpeed();
       printUploadSpeed();
-      document.getElementById('latency').innerHTML = printNumberValue(Math.round(averageRoundTrip())); 
-      document.getElementById('jitter').innerHTML = printJitter(false); 
-      document.getElementById("test-details").innerHTML = testDetails();
-      document.getElementById("test-advanced").appendChild(testDiagnosis());
-      document.getElementById('javaButton').disabled = false;
+      $('#latency').html(printNumberValue(Math.round(averageRoundTrip())));
+      $('#jitter').html(printJitter(false));
+      $('#test-details').html(testDetails());
+      $('#test-advanced').append(testDiagnosis());
+      $('#javaButton').attr('disabled', false);
 
       showPage('results');
       break;
@@ -227,19 +233,19 @@ function setPhase(phase) {
 // PAGES
 
 function showPage(page, callback) {
-  debug("Show page: " + page);
+  debug('Show page: ' + page);
   if (page == currentPage) {
     if (callback !== undefined) callback();
     return true;
   }
   if (currentPage !== undefined) {
-    $("#" + currentPage).fadeOut(transitionSpeed, function(){
-      $("#" + page).fadeIn(transitionSpeed, callback);
+    $('#' + currentPage).fadeOut(transitionSpeed, function(){
+      $('#' + page).fadeIn(transitionSpeed, callback);
     });
   }
   else {
-    debug("No current page");
-    $("#" + page).fadeIn(transitionSpeed, callback);
+    debug('No current page');
+    $('#' + page).fadeIn(transitionSpeed, callback);
   }
   currentPage = page;
 }
@@ -248,22 +254,22 @@ function showPage(page, callback) {
 // RESULTS
 
 function showResultsSummary() {
-  showResultsPage("summary");
+  showResultsPage('summary');
 }
 
 function showResultsDetails() {
-  showResultsPage("details");
+  showResultsPage('details');
 }
 
 function showResultsAdvanced() {
-  showResultsPage("advanced");
+  showResultsPage('advanced');
 }
 
 function showResultsPage(page) {
-  debug("Results: show " + page);
-  var pages = ["summary", "details", "advanced"];
+  debug('Results: show ' + page);
+  var pages = ['summary', 'details', 'advanced'];
   for (var i=0, len=pages.length; i < len; i++) {
-    $("#results")[(page == pages[i]) ? "addClass" : "removeClass"](pages[i]);
+    $('#results')[(page == pages[i]) ? 'addClass' : 'removeClass'](pages[i]);
   }
 }
 
@@ -281,7 +287,7 @@ function initializeGauges() {
     width       : 270,
     height      : 270,
     units       : 'Mb/s',
-    title       : "Upload",
+    title       : 'Upload',
     minValue    : 0,
     maxValue    : gaugeMaxValue,
     majorTicks  : gaugeValues,
@@ -297,7 +303,7 @@ function initializeGauges() {
     width       : 270,
     height      : 270,
     units       : 'Mb/s',
-    title       : "Download",
+    title       : 'Download',
     minValue    : 0,
     maxValue    : gaugeMaxValue,
     majorTicks  : gaugeValues,
@@ -310,14 +316,14 @@ function resetGauges() {
 
   gaugeConfig.push({
     from: 0, to: gaugeMaxValue, color: 'rgb(0, 255, 0)'
-  });  
+  });
 
   uploadGauge.updateConfig({
     highlights: gaugeConfig
   });
   uploadGauge.setValue(0);
 
-  downloadGauge.updateConfig({ 
+  downloadGauge.updateConfig({
     highlights: gaugeConfig
   });
   downloadGauge.setValue(0);
@@ -326,20 +332,20 @@ function resetGauges() {
 function updateGaugeValue() {
   var downloadSpeedVal = downloadSpeed();
   var uploadSpeedVal = uploadSpeed(false);
-  
+
   if (currentPhase == PHASE_UPLOAD) {
-    uploadGauge.updateConfig({ 
+    uploadGauge.updateConfig({
 	  units: getSpeedUnit(uploadSpeedVal)
 	});
 	uploadGauge.setValue(getJustfiedSpeed(uploadSpeedVal));
   } else if (currentPhase == PHASE_DOWNLOAD) {
-    downloadGauge.updateConfig({ 
-	  units: getSpeedUnit(downloadSpeedVal) 
+    downloadGauge.updateConfig({
+	  units: getSpeedUnit(downloadSpeedVal)
 	});
     downloadGauge.setValue(getJustfiedSpeed(downloadSpeedVal));
   } else {
-    clearInterval(gaugeUpdateInterval);  
-  }   
+    clearInterval(gaugeUpdateInterval);
+  }
 }
 
 // TESTING JAVA/WEBSOCKET CLIENT
@@ -349,7 +355,7 @@ function testNDT() {
     return websocket_client;
   }
 
-  return document.getElementById('NDT');
+  return $('#NDT');
 }
 
 function testStatus() {
@@ -357,10 +363,10 @@ function testStatus() {
 }
 
 function testDiagnosis() {
-  var div = document.createElement("div");
-  
+  var div = document.createElement('div');
+
   if (simulate) {
-    div.innerHTML = "Test diagnosis";
+    div.innerHTML = 'Test diagnosis';
     return div;
   }
 
@@ -370,32 +376,32 @@ function testDiagnosis() {
   var isTable = false;
 
   diagnosisArray.forEach(
-    function addRow(value) { 
+    function addRow(value) {
       if (isTable) {
         rowArray = value.split(':');
         if (rowArray.length>1) {
           var row = table.insertRow(-1);
           rowArray.forEach(
-            function addCell(cellValue, idx) { 
+            function addCell(cellValue, idx) {
               var cell =row.insertCell(idx);
               cell.innerHTML = cellValue;
             }
           );
-        } else { 
+        } else {
           isTable = false;
           txt = txt + value;
         }		
-      } else {  
-        if (value.indexOf('=== Results sent by the server ===') != -1) { 
-          table = document.createElement("table");
+      } else {
+        if (value.indexOf('=== Results sent by the server ===') != -1) {
+          table = document.createElement('table');
           isTable = true;
         } else {
-          txt = txt + value + "\n";
+          txt = txt + value + '\n';
         }
       }
     }
   );
-  txt = txt + "=== Results sent by the server ===";
+  txt = txt + '=== Results sent by the server ===';
   div.innerHTML = txt;
   if (isTable) {
     div.appendChild(table);
@@ -415,23 +421,23 @@ function remoteServer() {
 
 function uploadSpeed(raw) {
   if (simulate) return 0;
-  var speed = testNDT().getNDTvar("ClientToServerSpeed");
+  var speed = testNDT().getNDTvar('ClientToServerSpeed');
   return raw ? speed : parseFloat(speed);
 }
 
 function downloadSpeed() {
   if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar("ServerToClientSpeed"));
+  return parseFloat(testNDT().getNDTvar('ServerToClientSpeed'));
 }
 
 function averageRoundTrip() {
   if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar("avgrtt"));
+  return parseFloat(testNDT().getNDTvar('avgrtt'));
 }
 
 function jitter() {
   if (simulate) return 0;
-  return parseFloat(testNDT().getNDTvar("Jitter"));
+  return parseFloat(testNDT().getNDTvar('Jitter'));
 }
 
 function speedLimit() {
@@ -440,7 +446,7 @@ function speedLimit() {
 }
 
 function printPacketLoss() {
-  var packetLoss = parseFloat(testNDT().getNDTvar("loss"));
+  var packetLoss = parseFloat(testNDT().getNDTvar('loss'));
   packetLoss = (packetLoss*100).toFixed(2);
   return packetLoss;
 }
@@ -469,23 +475,23 @@ function getJustfiedSpeed(speedInKB) {
 
 function printDownloadSpeed() {
   var downloadSpeedVal = downloadSpeed();
-  document.getElementById('download-speed').innerHTML = getJustfiedSpeed(downloadSpeedVal);  
-  document.getElementById('download-speed-units').innerHTML = getSpeedUnit(downloadSpeedVal);  
+  $('#download-speed').html(getJustfiedSpeed(downloadSpeedVal));
+  $('#download-speed-units').html(getSpeedUnit(downloadSpeedVal));
 }
 
 function printUploadSpeed() {
   var uploadSpeedVal = uploadSpeed(false);
-  document.getElementById('upload-speed').innerHTML = getJustfiedSpeed(uploadSpeedVal); 
-  document.getElementById('upload-speed-units').innerHTML = getSpeedUnit(uploadSpeedVal);    
+  $('#upload-speed').html(getJustfiedSpeed(uploadSpeedVal));
+  $('#upload-speed-units').html(getSpeedUnit(uploadSpeedVal));
 }
 
 function readNDTvar(variable) {
   var ret = testNDT().getNDTvar(variable);
-  return !ret ? "-" : ret; 
+  return !ret ? '-' : ret;
 }
 
 function printNumberValue(value) {
-  return isNaN(value) ? "-" : value;
+  return isNaN(value) ? '-' : value;
 }
 
 function testDetails() {
@@ -495,64 +501,57 @@ function testDetails() {
 
   var errorMsg = testError();
   if (errorMsg.match(/failed/)) {
-    d += "Error occured while performing test: <br>".bold();
+    d += 'Error occured while performing test: <br>'.bold();
     if (errorMsg.match(/#2048/)) {
-      d += "Security error. This error may be caused by firewall issues, make sure that port 843 is available on the NDT server, and that you can access it.".bold().fontcolor("red") + "<br><br>";
-    } else {    
-      d += errorMsg.bold().fontcolor("red") + "<br><br>";
+      d += 'Security error. This error may be caused by firewall issues, make sure that port 843 is available on the NDT server, and that you can access it.'.bold().fontcolor('red') + '<br><br>';
+    } else {
+      d += errorMsg.bold().fontcolor('red') + '<br><br>';
     }
   }
 
-  d += "Your system: " + readNDTvar("OperatingSystem").bold() + "<br>";
-  d += "Plugin version: " + (readNDTvar("PluginVersion") + " (" + readNDTvar("OsArchitecture") + ")<br>").bold();
+  d += 'Your system: ' + readNDTvar('OperatingSystem').bold() + '<br>';
+  d += 'Plugin version: ' + (readNDTvar('PluginVersion') + ' (' + readNDTvar('OsArchitecture') + ')<br>').bold();
 
-  d += "<br>";
+  d += '<br>';
 
-  d += "TCP receive window: " + readNDTvar("CurRwinRcvd").bold() + " current, " + readNDTvar("MaxRwinRcvd").bold() + " maximum<br>";
-  d += "<b>" + printNumberValue(printPacketLoss()) + "</b> % of packets lost during test<br>";
-  d += "Round trip time: " + readNDTvar("MinRTT").bold() + " msec (minimum), " + readNDTvar("MaxRTT").bold() + " msec (maximum), <b>" + printNumberValue(Math.round(averageRoundTrip())) + "</b> msec (average)<br>";
-  d += "Jitter: " + printNumberValue(printJitter(true)) + "<br>";
-  d += readNDTvar("waitsec").bold() + " seconds spend waiting following a timeout<br>";
-  d += "TCP time-out counter: " + readNDTvar("CurRTO").bold() + "<br>";
-  d += readNDTvar("SACKsRcvd").bold() + " selective acknowledgement packets received<br>";
+  d += 'TCP receive window: ' + readNDTvar('CurRwinRcvd').bold() + ' current, ' + readNDTvar('MaxRwinRcvd').bold() + ' maximum<br>';
+  d += '<b>' + printNumberValue(printPacketLoss()) + '</b> % of packets lost during test<br>';
+  d += 'Round trip time: ' + readNDTvar('MinRTT').bold() + ' msec (minimum), ' + readNDTvar('MaxRTT').bold() + ' msec (maximum), <b>' + printNumberValue(Math.round(averageRoundTrip())) + '</b> msec (average)<br>';
+  d += 'Jitter: ' + printNumberValue(printJitter(true)) + '<br>';
+  d += readNDTvar('waitsec').bold() + ' seconds spend waiting following a timeout<br>';
+  d += 'TCP time-out counter: ' + readNDTvar('CurRTO').bold() + '<br>';
+  d += readNDTvar('SACKsRcvd').bold() + ' selective acknowledgement packets received<br>';
 
-  d += "<br>";
+  d += '<br>';
 
-  if (readNDTvar("mismatch") == "yes") {
-    d += "A duplex mismatch condition was detected.<br>".fontcolor("red").bold();
+  if (readNDTvar('mismatch') == 'yes') {
+    d += 'A duplex mismatch condition was detected.<br>'.fontcolor('red').bold();
   }
   else {
-    d += "No duplex mismatch condition was detected.<br>".fontcolor("green");
+    d += 'No duplex mismatch condition was detected.<br>'.fontcolor('green');
   }
 
-  if (readNDTvar("bad_cable") == "yes") {
-    d += "The test detected a cable fault.<br>".fontcolor("red").bold();
+  if (readNDTvar('bad_cable') == 'yes') {
+    d += 'The test detected a cable fault.<br>'.fontcolor('red').bold();
   }
   else {
-    d += "The test did not detect a cable fault.<br>".fontcolor("green");
+    d += 'The test did not detect a cable fault.<br>'.fontcolor('green');
   }
 
-  if (readNDTvar("congestion") == "yes") {
-    d += "Network congestion may be limiting the connection.<br>".fontcolor("red").bold();
-  }
-  else {
-    d += "No network congestion was detected.<br>".fontcolor("green");
-  }
-
-  /*if (testNDT().get_natStatus() == "yes") {
-    d += "A network address translation appliance was detected.<br>";
+  if (readNDTvar('congestion') == 'yes') {
+    d += 'Network congestion may be limiting the connection.<br>'.fontcolor('red').bold();
   }
   else {
-    d += "No network addess translation appliance was detected.<br>";
-  }*/
+    d += 'No network congestion was detected.<br>'.fontcolor('green');
+  }
 
-  d += "<br>";
+  d += '<br>';
 
-  d += printNumberValue(readNDTvar("cwndtime")).bold() + " % of the time was not spent in a receiver limited or sender limited state.<br>";
-  d += printNumberValue(readNDTvar("rwintime")).bold() + " % of the time the connection is limited by the client machine's receive buffer.<br>";
-  d += "Optimal receive buffer: " + printNumberValue(readNDTvar("optimalRcvrBuffer")).bold() + " bytes<br>";
-  d += "Bottleneck link: " + readNDTvar("accessTech").bold() + "<br>";
-  d += readNDTvar("DupAcksIn").bold() + " duplicate ACKs set<br>";
+  d += printNumberValue(readNDTvar('cwndtime')).bold() + ' % of the time was not spent in a receiver limited or sender limited state.<br>';
+  d += printNumberValue(readNDTvar('rwintime')).bold() + ' % of the time the connection is limited by the client machine\'s receive buffer.<br>';
+  d += 'Optimal receive buffer: ' + printNumberValue(readNDTvar('optimalRcvrBuffer')).bold() + ' bytes<br>';
+  d += 'Bottleneck link: ' + readNDTvar('accessTech').bold() + '<br>';
+  d += readNDTvar('DupAcksIn').bold() + ' duplicate ACKs set<br>';
 
   return d;
 }
@@ -560,33 +559,33 @@ function testDetails() {
 // BACKEND METHODS
 function useJavaAsBackend() {
   $('#warning-websocket').hide();
-  $("#rtt").show();  
-  $("#rttValue").show();  
+  $('#rtt').show();
+  $('#rttValue').show();
 
-  $('.warning-environment').innerHTML = "";
+  $('.warning-environment').innerHTML = '';
 
   use_websocket_client = false;
 
-  $('#websocketButton').removeClass("active");
-  $('#javaButton').addClass("active");
+  $('#websocketButton').removeClass('active');
+  $('#javaButton').addClass('active');
 }
 
 function useWebsocketAsBackend() {
-  $("#rtt").hide();  
-  $("#rttValue").hide();  
+  $('#rtt').hide();
+  $('#rttValue').hide();
   $('#warning-websocket').show();
 
   use_websocket_client = true;
 
-  $('#javaButton').removeClass("active");
-  $('#websocketButton').addClass("active");
+  $('#javaButton').removeClass('active');
+  $('#websocketButton').addClass('active');
 }
 
 function createBackend() {
   $('#backendContainer').empty();
 
   if (use_websocket_client) {
-    websocket_client = new NDTWrapper();
+    websocket_client = new NDTWrapper(window.ndtServer);
   }
   else {
     var app = document.createElement('applet');
@@ -603,7 +602,9 @@ function createBackend() {
 // UTILITIES
 
 function debug(message) {
-  if (allowDebug && window.console) console.debug(message);
+  if (typeof allowDebug !== 'undefined') {
+    if (allowDebug && window.console) console.debug(message);
+  }
 }
 
 function isPluginLoaded() {
@@ -623,32 +624,50 @@ function checkInstalledPlugins() {
   $('#warning-websocket').hide();
 
   hasJava = true;
-  if (deployJava.getJREs() == '') {
-    hasJava = false;
+  if (typeof deployJava !== 'undefined') {
+    if (deployJava.getJREs() == '') {
+      hasJava = false;
+    }
   }
-
   hasWebsockets = false;
   try {
-    ndt_js = new NDTjs();
+    var ndt_js = new NDTjs();
     if (ndt_js.checkBrowserSupport()) {
-      hasWebsockets = true; 
+      hasWebsockets = true;
     }
   } catch(e) {
     hasWebsockets = false;
   }
 
   if (!hasWebsockets) {
-    document.getElementById('websocketButton').disabled = true;
+    $('#websocketButton').attr('disabled', true);
   }
 
   if (!hasJava) {
-    document.getElementById('javaButton').disabled = true;
+    $('#javaButton').attr('disabled', true);
   }
- 
-  if (hasJava) { 
-    useJavaAsBackend();
-  }
-  else if (hasWebsockets) {
+
+  if (hasWebsockets) {
     useWebsocketAsBackend();
   }
+  else if (hasJava) {
+    useJavaAsBackend();
+  }
 }
+
+// Attempts to determine the absolute path of a script, minus the name of the
+// script itself.
+function getScriptPath() {
+  var scripts = document.getElementsByTagName('SCRIPT');
+  var fileRegex = new RegExp('\/ndt-wrapper\.js$');
+  var path = '';
+  if (scripts && scripts.length > 0) {
+    for(var i in scripts) {
+      if(scripts[i].src && scripts[i].src.match(fileRegex)) {
+        path = scripts[i].src.replace(fileRegex, '');
+        break;
+      }
+    }
+  }
+  return path.substring(location.origin.length);
+};
