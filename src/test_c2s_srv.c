@@ -215,8 +215,9 @@ void packet_trace_emergency_shutdown(int *mon_pipe) {
  * @returns true if the fd is readable, false otherwise
  */
 int wait_for_readable_fd(int fd) {
-  fd_set rfd = {0};
+  fd_set rfd;
   struct timeval sel_tv = {0};
+  FD_ZERO(&rfd);
   FD_SET(fd, &rfd);
   sel_tv.tv_sec = 1;  // Wait for up to 1 second
   return (1 == select(fd + 1, &rfd, NULL, NULL, &sel_tv));
