@@ -166,6 +166,11 @@ static int global_extended_tests_allowed = 1;
 // When we support multiple clients, grow the queue by a constant factor
 #define QUEUE_SIZE_MULTIPLIER 4
 
+// We use watchdog timers to ensure that no clients ever hang on to server
+// resources for too long. This value ensures that no individual test (eg S2C
+// or SFW or C2S) will ever be allowed to take more than a minute.
+#define MAX_TEST_TIME 60
+
 static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"debug", 0, 0, 'd'},
                                        {"help", 0, 0, 'h'},
@@ -764,9 +769,9 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     log_println(1, " > META test");
   }
 
-  /*  alarm(15); */
   // Run scheduled test. Log error code if necessary
   log_println(6, "Starting middlebox test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_mid(ctl, agent, testopt, conn_options, &s2c2spd)) != 0) {
     if (ret < 0)
       log_println(6, "Middlebox test failed with rc=%d", ret);
@@ -775,15 +780,15 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     return ret;
   }
 
-  /*  alarm(20); */
   log_println(6, "Starting simple firewall test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_sfw_srv(ctl, agent, testopt, conn_options)) != 0) {
     if (ret < 0)
       log_println(6, "SFW test failed with rc=%d", ret);
   }
 
-  /*  alarm(25); */
   log_println(6, "Starting c2s throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd, set_buff,
                       window, autotune, device, &options, record_reverse,
                       count_vars, spds, &spd_index, ssl_context,
@@ -796,6 +801,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended c2s throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
                       record_reverse, count_vars, spds, &spd_index,
@@ -807,8 +813,8 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     return ret;
   }
 
-  /*  alarm(25); */
   log_println(6, "Starting s2c throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context, &s2c_ThroughputSnapshots, 0)) != 0) {
@@ -820,6 +826,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended s2c throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context,
@@ -832,6 +839,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting META test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_meta_srv(ctl, agent, testopt, conn_options, &options)) != 0) {
     if (ret != 0) {
       log_println(6, "META test failed with rc=%d", ret);
