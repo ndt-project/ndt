@@ -664,7 +664,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
   struct tcp_vars vars[MAX_STREAMS];
-  struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
+  struct throughputSnapshot *s2c_ThroughputSnapshots = NULL, *c2s_ThroughputSnapshots = NULL;
 
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
   // link speed. Transmitted but unused at client end , which has a similar
@@ -708,9 +708,9 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   double timesec;         // Total test time in microseconds
   double packetloss_s2c;  // Packet loss as calculated from S->c tests.
   double RTOidle;         // Proportion of idle time spent waiting for packets
-  double s2cspd;          // average throughput as calculated by S->C test
-  double c2sspd;          // average throughput as calculated by C->S test
-  double s2c2spd;         // average throughput as calculated by midbox test
+  double s2cspd = 0;      // average throughput as calculated by S->C test
+  double c2sspd = 0;      // average throughput as calculated by C->S test
+  double s2c2spd = 0;     // average throughput as calculated by midbox test
   double realthruput;     // total send throughput in S->C
   double aspd = 0;
   float runave[4];
@@ -1635,6 +1635,7 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   I2AddrNodeName(cli_I2Addr, rmt_host, &rmt_host_strlen);
   log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", cli_I2Addr,
               rmt_host, ctlsockfd);
+  I2AddrFree(cli_I2Addr);
   protolog_procstatus(getpid(), getCurrentTest(), CONNECT_TYPE, PROCESS_STARTED,
                       ctlsockfd);
 
