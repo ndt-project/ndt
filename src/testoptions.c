@@ -132,8 +132,8 @@ snapWorker(void* arg) {
   while (1) {
     pthread_mutex_lock(&mainmutex);
     if (workerLoop) {
-      pthread_mutex_unlock(&mainmutex);
       pthread_cond_broadcast(&maincond);
+      pthread_mutex_unlock(&mainmutex);
       break;
     }
     pthread_mutex_unlock(&mainmutex);
@@ -277,7 +277,7 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
 
-  assert(ctl.socket != -1);
+  assert(ctl->socket != -1);
   assert(options);
 
   memset(options->client_version, 0, sizeof(options->client_version));
