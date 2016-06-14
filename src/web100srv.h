@@ -143,8 +143,6 @@ typedef struct portpair {
 // Structure defining NDT child process
 typedef struct ndtchild_s {
   int pid;  // process id
-  char addr[64];  // IP Address
-  char host[256];  // Hostname
   time_t stime;  // estimated start time of test
   time_t qtime;  // time when queued
   int running;  // Was this told to start running tests?
