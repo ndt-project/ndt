@@ -506,11 +506,17 @@ int initialize_websocket_connection(Connection* conn, unsigned int skip_bytes,
   char key[BASE64_SHA_DIGEST_LENGTH] = {0};
   int err;
   err = read_websocket_header(conn, skip_bytes, expected_protocol, key);
-  if (err != 0) return err;
+  if (err != 0) {
+    log_println(4, "error reading websocket header");
+    return err;
+  }
   // We have received a well-formed header. We should respond with a
   // well-formed response of our own.
   err = write_websocket_header(conn, expected_protocol, key);
-  if (err != 0) return err;
+  if (err != 0) {
+    log_println(4, "error writing websocket header");
+    return err;
+  }
   return 0;
 }
 

@@ -551,6 +551,40 @@ int recv_any_msg(Connection* conn, int* type, void* msg, int* len,
 }
 
 /**
+ * Translates a numerical SSL error into a string.
+ * @param ssl_err the SSL error
+ * @return a char* with a string explaining the error code
+ */
+const char* ssl_error_str(int ssl_err) {
+  switch (ssl_err) {
+    case SSL_ERROR_NONE:
+      return "No error occurred. Why was this called?";
+    case SSL_ERROR_ZERO_RETURN:
+      return "SSL_ERROR_ZERO_RETURN";
+    case SSL_ERROR_WANT_READ:
+      return "SSL_ERROR_WANT_READ (socket was not readable)";
+    case SSL_ERROR_WANT_WRITE:
+      return "SSL_ERROR_WANT_WRITE (socket was not writeable)";
+    case SSL_ERROR_WANT_CONNECT:
+      return "SSL_ERROR_WANT_CONNECT";
+    case SSL_ERROR_WANT_ACCEPT:
+      return "SSL_ERROR_WANT_ACCEPT";
+    case SSL_ERROR_WANT_X509_LOOKUP:
+      return "SSL_ERROR_WANT_X509_LOOKUP";
+    //case SSL_ERROR_WANT_ASYNC:
+      //return "SSL_ERROR_WANT_ASYNC";
+    //case SSL_ERROR_WANT_ASYNC_JOB:
+      //return "SSL_ERROR_WANT_ASYNC_JOB";
+    case SSL_ERROR_SYSCALL:
+      return "SSL_ERROR_SYSCALL";
+    case SSL_ERROR_SSL:
+      return "SSL_ERROR_SSL";
+    default:
+      return "UKNOWN_SSL_ERROR (this should never happen)";
+  }
+}
+
+/**
  * Try a single write to a socket.
  * @param socketfd The socket
  * @param buf The data
@@ -593,6 +627,8 @@ int write_ssl(SSL* ssl, const char* buf, int amount) {
     // 0 represents fatal errors for SSL_write
     log_println(6, "write_ssl() Error! SSL_write() failed unrecoverably pid=%d",
                 getpid());
+    ssl_error = SSL_get_error(ssl, n);
+    log_println(6, "SSL error: %s (%d)", ssl_error_str(ssl_error), ssl_error);
     return -1;
   } else if (n < 0) {
     // Possibly a recoverable error
@@ -603,6 +639,7 @@ int write_ssl(SSL* ssl, const char* buf, int amount) {
     } else {
       log_println(6, "write_ssl() Error! SSL_write() failed with err=%d pid=%d",
                   ssl_error, getpid());
+      log_println(6, "SSL error: %s (%d)", ssl_error_str(ssl_error), ssl_error);
       return -1;
     }
   } else {
@@ -648,7 +685,6 @@ int writen_any(Connection* conn, const void* buf, int amount) {
 
 size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
   int received = 0;
-  char error_string[120] = {0};
   int ssl_err;
 
   received = SSL_read(ssl, buf, amount);
@@ -660,8 +696,8 @@ size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
         return 0;
       }
     }
-    ERR_error_string_n(ssl_err, error_string, sizeof(error_string));
-    log_println(2, "SSL_read failed due to %s (%d)\n", error_string, ssl_err);
+    log_println(2, "SSL_read failed due to %s (%d)\n", ssl_error_str(ssl_err),
+                ssl_err);
     return -1;
   }
   return received;
@@ -754,8 +790,7 @@ void close_connection(Connection *conn) {
  * @return 0 or an error code
  */
 int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
-  char ssl_error[255];
-  unsigned long ssl_err;
+  int ssl_err;
   conn->ssl = SSL_new(ctx);
   if (conn->ssl == NULL) {
     log_println(4, "SSL_new failed");
@@ -767,8 +802,8 @@ int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
   }
   if ((ssl_err = SSL_accept(conn->ssl)) != 1) {
     ssl_err = SSL_get_error(conn->ssl, ssl_err);
-    ERR_error_string_n(ssl_err, ssl_error, sizeof(ssl_error));
-    log_println(4, "SSL_accept failed (%s)", ssl_error);
+    log_println(4, "SSL_accept failed: %s (%d)", ssl_error_str(ssl_err),
+                ssl_err);
     return EIO;
   }
   return 0;

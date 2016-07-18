@@ -227,6 +227,7 @@ int recv_msg_plus_websocket(Connection* ctl, TestOptions* test_options,
   int64_t err;
   int received_length;
   if (readn_any(ctl, header, sizeof(header)) != sizeof(header)) {
+    log_println(3, "Failed to read %d bytes", sizeof(header));
     return EIO;
   }
   if (strncmp(header, "GET", 3) == 0) {
@@ -290,10 +291,12 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
   if (recv_msg_plus_websocket(ctl, options, &msgType, msgValue, &msgLen)) {
     send_msg_any(ctl, MSG_ERROR, invalid_test_suite,
                  strlen(invalid_test_suite));
+    log_println(2, "recv_msg_plus_websocket failed");
     return (-1);
   }
   if (msgLen == -1) {
     snprintf(buff, buff_strlen, "Client timeout");
+    log_println(2, "Client timed out");
     return (-4);
   }
 
