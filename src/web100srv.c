@@ -1991,6 +1991,28 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
     report_SSL_error("SSL_CTX_check_private_key",
                      "Private key and certificate do not match");
   }
+  // In a server that forks, caching requires IPC. We avoid it for simplicity.
+  SSL_CTX_set_session_cache_mode(ssl_context, SSL_SESS_CACHE_OFF);
+  // Work around every client bug that OpenSSL knows about:
+  SSL_CTX_set_options(ssl_context, SSL_OP_ALL);
+  SSL_CTX_set_options(ssl_context, SSL_OP_TLS_ROLLBACK_BUG);
+  SSL_CTX_set_options(ssl_context, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+  SSL_CTX_set_options(ssl_context, SSL_OP_NO_TICKET);
+  SSL_CTX_set_options(ssl_context, SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+  // Don't ask the client to verify themselves
+  SSL_CTX_set_verify(ssl_context, SSL_VERIFY_NONE, NULL);
+  // Note that some of these settings potentially decrease security if the
+  // client takes advantage of them. This is fine, as NDT's data stream
+  // contains only random characters. NDT's SSL support is in there to allow
+  // wss:// clients to run speed tests from secure webpages, because most
+  // browser security policies prevent secure pages from opening insecure
+  // websocket connections. The intent is less to secure the random number
+  // stream from prying eyes, and more to simply make NDT tests available to
+  // secure webpages. As long as the connection is "secure" according to the
+  // client, then the NDT server is happy. Clients that want to use the
+  // latest-and-greatest versions of TLS will be supported in that more-secure
+  // mode, and clients which only support old and/or busted versions of SSL can
+  // still use the service. Everyone wins.
   return ssl_context;
 }
 
