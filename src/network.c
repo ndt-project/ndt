@@ -585,7 +585,7 @@ const char* ssl_error_str(int ssl_err) {
 }
 
 /**
- * Returns whether the SSL error was recoverable.
+ * Returns whether the SSL error is recoverable.
  */
 int is_recoverable(int ssl_error, int ssl_errno) {
   switch (ssl_errno) {
@@ -833,9 +833,9 @@ int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
     ssl_err = 0;
     ERR_clear_error();
     ssl_ret = SSL_accept(conn->ssl);
+    ssl_errno = errno;
     if (ssl_ret != 1) {
       ssl_err = SSL_get_error(conn->ssl, ssl_ret);
-      ssl_errno = errno;
       if (!is_recoverable(ssl_err, ssl_errno)) {
         log_println(4, "SSL_accept failed: %s (%d, errno=%d)",
                     ssl_error_str(ssl_err), ssl_err, ssl_errno);
