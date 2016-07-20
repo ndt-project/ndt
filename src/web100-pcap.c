@@ -899,7 +899,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr_storage sock_addr[], int sock
 
   /*  device = pcap_lookupdev(errbuf); */
   if (device == NULL) {
-    fprintf(stderr, "pcap_lookupdev failed: %s\n", errbuf);
+    fprintf(stderr, "pcap_lookupdev failed\n");
   }
 
   log_println(1, "Opening network interface '%s' for packet-pair timing",
