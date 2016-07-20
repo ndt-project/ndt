@@ -98,14 +98,34 @@ pid_t start_server(int port, char **extra_args) {
   return server_pid;
 }
 
+// Check whether a server port can be opened.
+int port_is_in_use(int port) {
+  int socket_fd;
+  struct sockaddr_in server_address;
+  int available = 0;
+  // Open the socket
+  socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+  ASSERT(socket_fd >= 0, "Couldn't create a socket to check the port");
+  // Bind to the port
+  server_address.sin_family = AF_INET;
+  server_address.sin_addr.s_addr = INADDR_ANY;
+  server_address.sin_port = htons(port);
+  available = (bind(socket_fd, (struct sockaddr*)&server_address, sizeof(server_address)) == 0);
+  // Close the socket
+  close(socket_fd);
+  return !available;
+}
+
 // Choose random non-conflicting ports on which to run the server.
 void choose_random_ports(int *port, int *tls_port) {
   srandom(time(NULL));
-  *port = (random() % 30000) + 1024;
+  do {
+    *port = (random() % 30000) + 1024;
+  } while (port_is_in_use(*port));
   if (tls_port != NULL) {
     do {
       *tls_port = (random() % 30000) + 1024;
-    } while (*tls_port == *port);
+    } while (*tls_port == *port || port_is_in_use(*tls_port));
   }
 }
 

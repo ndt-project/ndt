@@ -166,6 +166,11 @@ static int global_extended_tests_allowed = 1;
 // When we support multiple clients, grow the queue by a constant factor
 #define QUEUE_SIZE_MULTIPLIER 4
 
+// We use watchdog timers to ensure that no clients ever hang on to server
+// resources for too long. This value ensures that no individual test (eg S2C
+// or SFW or C2S) will ever be allowed to take more than a minute.
+#define MAX_TEST_TIME 60
+
 static struct option long_options[] = {{"adminview", 0, 0, 'a'},
                                        {"debug", 0, 0, 'd'},
                                        {"help", 0, 0, 'h'},
@@ -659,7 +664,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   // int n;  // temporary iterator variable --// commented out -> calc_linkspeed
   struct tcp_vars vars[MAX_STREAMS];
-  struct throughputSnapshot *s2c_ThroughputSnapshots, *c2s_ThroughputSnapshots;
+  struct throughputSnapshot *s2c_ThroughputSnapshots = NULL, *c2s_ThroughputSnapshots = NULL;
 
   int link = CANNOT_DETERMINE_LINK;  // local temporary variable indicative of
   // link speed. Transmitted but unused at client end , which has a similar
@@ -703,9 +708,9 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   double timesec;         // Total test time in microseconds
   double packetloss_s2c;  // Packet loss as calculated from S->c tests.
   double RTOidle;         // Proportion of idle time spent waiting for packets
-  double s2cspd;          // average throughput as calculated by S->C test
-  double c2sspd;          // average throughput as calculated by C->S test
-  double s2c2spd;         // average throughput as calculated by midbox test
+  double s2cspd = 0;      // average throughput as calculated by S->C test
+  double c2sspd = 0;      // average throughput as calculated by C->S test
+  double s2c2spd = 0;     // average throughput as calculated by midbox test
   double realthruput;     // total send throughput in S->C
   double aspd = 0;
   float runave[4];
@@ -764,9 +769,9 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     log_println(1, " > META test");
   }
 
-  /*  alarm(15); */
   // Run scheduled test. Log error code if necessary
   log_println(6, "Starting middlebox test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_mid(ctl, agent, testopt, conn_options, &s2c2spd)) != 0) {
     if (ret < 0)
       log_println(6, "Middlebox test failed with rc=%d", ret);
@@ -775,15 +780,15 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     return ret;
   }
 
-  /*  alarm(20); */
   log_println(6, "Starting simple firewall test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_sfw_srv(ctl, agent, testopt, conn_options)) != 0) {
     if (ret < 0)
       log_println(6, "SFW test failed with rc=%d", ret);
   }
 
-  /*  alarm(25); */
   log_println(6, "Starting c2s throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd, set_buff,
                       window, autotune, device, &options, record_reverse,
                       count_vars, spds, &spd_index, ssl_context,
@@ -796,6 +801,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended c2s throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
                       record_reverse, count_vars, spds, &spd_index,
@@ -807,8 +813,8 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
     return ret;
   }
 
-  /*  alarm(25); */
   log_println(6, "Starting s2c throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context, &s2c_ThroughputSnapshots, 0)) != 0) {
@@ -820,6 +826,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended s2c throughput test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context,
@@ -832,6 +839,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting META test");
+  alarm(MAX_TEST_TIME);  // Kick the watchdog.
   if ((ret = test_meta_srv(ctl, agent, testopt, conn_options, &options)) != 0) {
     if (ret != 0) {
       log_println(6, "META test failed with rc=%d", ret);
@@ -1595,70 +1603,80 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   size_t rmt_host_strlen;
   ndtchild *new_child = NULL;
   int accept_errno;
-  // Accept the connection, initialize variables, fire up the new child.
-  cli_addr_len = sizeof(cli_addr);
-  
+  int pipe_success;
+  // Fire up the new child, accept the connection, initialize variables.
+  // Set up communication channel to the new child
   do {
-    accept_errno = 0;
+    pipe_success = pipe(child_pipe);
+  } while (pipe_success == -1 && errno == EINTR);
+  if (pipe_success == -1) {
+    log_println(0, "CHILD COULD NOT SPAWN: pipe() failed errno=%d", errno);
+    // Accept the incoming connection to prevent listenfd from queueing
     ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
-    if (ctlsockfd < 0) {
-      accept_errno = errno;
-      log_println(1, "accept() on ctlsockfd failed");
-      log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
-      if (accept_errno != EINTR) return NULL;
-    }
-  } while (accept_errno == EINTR);
-  if (cli_addr_len > sizeof(meta.c_addr)) {
-    log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
-    return NULL;
-  }
-  // Copy connection data into global variables for the run_test() function.
-  // Get meta test details copied into results.
-  memcpy(&meta.c_addr, &cli_addr, cli_addr_len);
-  meta.family = ((struct sockaddr *)&cli_addr)->sa_family;
-
-  memset(rmt_addr, 0, sizeof(rmt_addr));
-  addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
-
-  // Get addr details based on socket info available.
-  cli_I2Addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
-  rmt_host_strlen = sizeof(rmt_host);
-  memset(rmt_host, 0, rmt_host_strlen);
-  I2AddrNodeName(cli_I2Addr, rmt_host, &rmt_host_strlen);
-  log_println(4, "New connection received from 0x%x [%s] sockfd=%d.", cli_I2Addr,
-              rmt_host, ctlsockfd);
-  protolog_procstatus(getpid(), getCurrentTest(), CONNECT_TYPE, PROCESS_STARTED,
-                      ctlsockfd);
-
-  // Set up connection channel to the new child
-  if (pipe(child_pipe) == -1) {
-    log_println(6, "pipe() failed errno=%d", errno);
     close(ctlsockfd);
     return NULL;
   }
-
-  // At this point we have received a connection from a client, meaning that
-  // a test is being requested.  At this point we should apply any policy or
-  // AAA functions to the incoming connection.  If we don't like the client,
-  // we can refuse the connection and loop back to the begining.  There
-  // would need to be some additional logic installed if this AAA test
-  // relied on more than the client's IP address.  The client would also
-  // require modification to allow more credentials to be created/passed
-  // between the user and this application.
 
   child_pid = fork();
   if (child_pid == -1) {
     // An error occurred, log it and return.
-    log_println(0, "fork() failed, errno = %d (%s)", errno, strerror(errno));
+    log_println(0, "CHILD COULD NOT SPAWN: fork() failed, errno = %d (%s)",
+                errno, strerror(errno));
+    // Accept the incoming connection to prevent listenfd from queueing
+    ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+    close(ctlsockfd);
     close(child_pipe[0]);
     close(child_pipe[1]);
-    close(ctlsockfd);
     return NULL;
   } else if (child_pid == 0) {
     // This is the child. Clean up and close the resources the child does not
     // need, then call the child_process routine which will initialize the
     // connection and then wait for the go/queue/nogo signals from the parent
     // process.
+    cli_addr_len = sizeof(cli_addr);
+  
+    do {
+      accept_errno = 0;
+      ctlsockfd = accept(listenfd, (struct sockaddr *)&cli_addr, &cli_addr_len);
+      if (ctlsockfd < 0) {
+        accept_errno = errno;
+        log_println(1, "accept() on ctlsockfd failed");
+        log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
+        if (accept_errno != EINTR) return NULL;
+      }
+    } while (accept_errno == EINTR);
+    if (cli_addr_len > sizeof(meta.c_addr)) {
+      log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
+      return NULL;
+    }
+    // Copy connection data into global variables for the run_test() function.
+    // Get meta test details copied into results.
+    memcpy(&meta.c_addr, &cli_addr, cli_addr_len);
+    meta.family = ((struct sockaddr *)&cli_addr)->sa_family;
+  
+    memset(rmt_addr, 0, sizeof(rmt_addr));
+    addr2a(&cli_addr, rmt_addr, sizeof(rmt_addr));
+
+    // Get addr details based on socket info available.
+    cli_I2Addr = I2AddrBySockFD(get_errhandle(), ctlsockfd, False);
+    rmt_host_strlen = sizeof(rmt_host);
+    memset(rmt_host, 0, rmt_host_strlen);
+    I2AddrNodeName(cli_I2Addr, rmt_host, &rmt_host_strlen);
+    log_println(4, "New connection received from 0x%x [%s] sockfd=%d.",
+                cli_I2Addr, rmt_host, ctlsockfd);
+    I2AddrFree(cli_I2Addr);
+    protolog_procstatus(getpid(), getCurrentTest(), CONNECT_TYPE, PROCESS_STARTED,
+                        ctlsockfd);
+
+    // At this point we have received a connection from a client, meaning that
+    // a test is being requested.  At this point we should apply any policy or
+    // AAA functions to the incoming connection.  If we don't like the client,
+    // we can refuse the connection and loop back to the begining.  There
+    // would need to be some additional logic installed if this AAA test
+    // relied on more than the client's IP address.  The client would also
+    // require modification to allow more credentials to be created/passed
+    // between the user and this application.
+
     log_println(4, "Child thinks pipe() returned fd0=%d, fd1=%d for pid=%d",
                 child_pipe[0], child_pipe[1], child_pid);
     close(listenfd);
@@ -1676,7 +1694,6 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
 
   // Close the open resources that should only be used by the child.
   close(child_pipe[0]);
-  close(ctlsockfd);
 
   // Initialize the members of new_child
   new_child = (ndtchild *)calloc(1, sizeof(ndtchild));
@@ -1688,8 +1705,6 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
   }
   new_child->pid = child_pid;
   new_child->pipe = child_pipe[1];
-  strlcpy(new_child->addr, rmt_addr, sizeof(new_child->addr));
-  strlcpy(new_child->host, rmt_host, sizeof(new_child->host));
   new_child->qtime = time(0);
   new_child->running = 0;
   new_child->next = NULL;

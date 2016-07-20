@@ -132,8 +132,8 @@ snapWorker(void* arg) {
   while (1) {
     pthread_mutex_lock(&mainmutex);
     if (workerLoop) {
-      pthread_mutex_unlock(&mainmutex);
       pthread_cond_broadcast(&maincond);
+      pthread_mutex_unlock(&mainmutex);
       break;
     }
     pthread_mutex_unlock(&mainmutex);
@@ -227,6 +227,7 @@ int recv_msg_plus_websocket(Connection* ctl, TestOptions* test_options,
   int64_t err;
   int received_length;
   if (readn_any(ctl, header, sizeof(header)) != sizeof(header)) {
+    log_println(3, "Failed to read %d bytes", sizeof(header));
     return EIO;
   }
   if (strncmp(header, "GET", 3) == 0) {
@@ -277,7 +278,7 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
   // char remhostarr[256], protologlocalarr[256];
   // char *remhost_ptr = get_remotehost();
 
-  assert(ctl.socket != -1);
+  assert(ctl->socket != -1);
   assert(options);
 
   memset(options->client_version, 0, sizeof(options->client_version));
@@ -290,10 +291,12 @@ int initialize_tests(Connection *ctl, TestOptions *options, char *buff,
   if (recv_msg_plus_websocket(ctl, options, &msgType, msgValue, &msgLen)) {
     send_msg_any(ctl, MSG_ERROR, invalid_test_suite,
                  strlen(invalid_test_suite));
+    log_println(2, "recv_msg_plus_websocket failed");
     return (-1);
   }
   if (msgLen == -1) {
     snprintf(buff, buff_strlen, "Client timeout");
+    log_println(2, "Client timed out");
     return (-4);
   }
 

@@ -108,7 +108,7 @@ endif
 web100srv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
                     network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
                     protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c \
-                    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c jsonutils.c websocket.c
+                    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c testutils.c jsonutils.c websocket.c
 web100srv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100srv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 web100srv_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 $(OPENSSL_INCLUDES)
@@ -130,8 +130,8 @@ web100_websocket_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 web100_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c unit_testing.c \
                                  heuristics.c jsonutils.c logging.c mrange.c ndt_odbc.c ndtptestconstants.c \
                                  network.c protocol.c runningtest.c strlutils.c test_c2s_srv.c test_meta_srv.c \
-                                 test_mid_srv.c test_s2c_srv.c test_sfw_srv.c utils.c web100-pcap.c web100-util.c \
-                                 web100srv.c websocket.c
+                                 test_mid_srv.c test_s2c_srv.c test_sfw_srv.c testutils.c utils.c web100-pcap.c \
+                                 web100-util.c web100srv.c websocket.c
 web100_testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web100_testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 web100_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB100 -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
@@ -140,7 +140,7 @@ web100_testoptions_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 web10gsrv_SOURCES = web100srv.c web100-util.c web100-pcap.c web100-admin.c runningtest.c \
 		    network.c usage.c utils.c mrange.c logging.c testoptions.c ndtptestconstants.c \
 		    protocol.c test_sfw_srv.c test_meta_srv.c ndt_odbc.c strlutils.c heuristics.c \
-		    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c web10g-util.c jsonutils.c websocket.c
+		    test_c2s_srv.c test_s2c_srv.c test_mid_srv.c testutils.c web10g-util.c jsonutils.c websocket.c
 web10gsrv_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web10gsrv_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 web10gsrv_CPPFLAGS = '-DBASEDIR="$(ndtdir)"' $(OPENSSL_INCLUDES)
@@ -156,8 +156,8 @@ web10g_websocket_unit_tests_DEPENDENCIES = $(I2UTILLIBDEPS)
 web10g_testoptions_unit_tests_SOURCES = testoptions_unit_tests.c testoptions.c unit_testing.c \
                                  heuristics.c jsonutils.c logging.c mrange.c ndt_odbc.c ndtptestconstants.c \
                                  network.c protocol.c runningtest.c strlutils.c test_c2s_srv.c test_meta_srv.c \
-                                 test_mid_srv.c test_s2c_srv.c test_sfw_srv.c utils.c web100-pcap.c web100-util.c \
-                                 web100srv.c web10g-util.c websocket.c usage.c web100-admin.c
+                                 test_mid_srv.c test_s2c_srv.c test_sfw_srv.c testutils.c utils.c web100-pcap.c \
+                                 web100-util.c web100srv.c web10g-util.c websocket.c usage.c web100-admin.c
 web10g_testoptions_unit_tests_LDFLAGS = $(NDTLDFLAGS) $(I2UTILLDFLAGS)
 web10g_testoptions_unit_tests_LDADD = $(NDTLIBS) $(I2UTILLIBS) $(I2UTILLIBDEPS) -lpthread $(ZLIB) $(JSONLIB) $(OPENSSL_LDFLAGS) $(OPENSSL_LIBS)
 web10g_testoptions_unit_tests_CPPFLAGS ='-DBASEDIR="$(ndtdir)"' -DFORCE_WEB10G -DUSE_WEB100SRV_ONLY_AS_LIBRARY -Wall -Wno-unused-variable -Wno-unused-function $(OPENSSL_INCLUDES)
@@ -189,5 +189,5 @@ $(I2UTILLIBDEPS):
 
 EXTRA_DIST = clt_tests.h logging.h mrange.h network.h protocol.h testoptions.h test_sfw.h test_meta.h \
              troute.h tr-tree.h usage.h utils.h varinfo.h web100-admin.h web100srv.h ndt_odbc.h runningtest.h ndtptestconstants.h \
-             heuristics.h strlutils.h test_results_clt.h tests_srv.h jsonutils.h unit_testing.h websocket.h third_party/safe_iop.h
+             heuristics.h strlutils.h test_results_clt.h tests_srv.h testutils.h jsonutils.h unit_testing.h websocket.h third_party/safe_iop.h
 

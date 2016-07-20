@@ -15,6 +15,7 @@
 #include "ndtptestconstants.h"
 #include "utils.h"
 #include "testoptions.h"
+#include "testutils.h"
 #include "runningtest.h"
 #include "logging.h"
 #include "protocol.h"
@@ -23,7 +24,7 @@
 #include "jsonutils.h"
 #include "websocket.h"
 
-/** 
+/**
  * Use read or SSL_read in their raw forms. We want this to go as fast
  * as possible and we do not care about the contents of buff.
  * @param conn The Connection to use
@@ -239,6 +240,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   tcp_stat_group *group = NULL;
   /* The pipe that will return packet pair results */
   int mon_pipe[2];
+  int packet_trace_running = 0;
   pid_t c2s_childpid = 0;       // child process pids
   int msgretvalue, read_error;  // used during the "read"/"write" process
   int i;                  // used as loop iterator
@@ -246,6 +248,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   int retvalue = 0;
   int streamsNum = 1;
   int activeStreams = 1;
+  int local_errno;
 
   struct sockaddr_storage cli_addr[MAX_STREAMS];
   Connection c2s_conns[MAX_STREAMS];
@@ -516,20 +519,27 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       }
     }
 
-    // Get data collected from packet tracing into the C2S "ndttrace" file
-    memset(tmpstr, 0, 256);
-    for (i = 0; i < 5; i++) {
-      msgretvalue = read(mon_pipe[0], tmpstr, 128);
-      if ((msgretvalue == -1) && (errno == EINTR))
-        continue;
-      break;
-    }
+    packet_trace_running = wait_for_readable_fd(mon_pipe[0]);
 
-    if (strlen(tmpstr) > 5)
-      memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
-    // name of nettrace file passed back from pcap child
-    log_println(3, "--tracefile after packet_trace %s",
-                meta.c2s_ndttrace);
+    if (packet_trace_running) {
+      // Get data collected from packet tracing into the C2S "ndttrace" file
+      memset(tmpstr, 0, 256);
+      for (i = 0; i < 5; i++) {
+        msgretvalue = read(mon_pipe[0], tmpstr, 128);
+        if ((msgretvalue == -1) && (errno == EINTR))
+          continue;
+        break;
+      }
+
+      if (strlen(tmpstr) > 5)
+        memcpy(meta.c2s_ndttrace, tmpstr, strlen(tmpstr));
+      // name of nettrace file passed back from pcap child
+      log_println(3, "--tracefile after packet_trace %s",
+                  meta.c2s_ndttrace);
+    } else {
+      log_println(0, "Packet trace was unable to be created");
+      packet_trace_emergency_shutdown(mon_pipe);
+    }
   }
 
   log_println(5, "C2S test Parent thinks pipe() returned fd0=%d, fd1=%d",
@@ -661,28 +671,25 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
   close_all_connections(c2s_conns, streamsNum);
   close(testOptions->c2ssockfd);
 
-  // Next, send speed-chk a flag to retrieve the data it collected.
-  // Skip this step if speed-chk isn't running.
-  if (getuid() == 0) {
+  if (packet_trace_running) {
     log_println(1, "Signal USR1(%d) sent to child [%d]", SIGUSR1,
                 c2s_childpid);
     testOptions->child1 = c2s_childpid;
     kill(c2s_childpid, SIGUSR1);
-    FD_ZERO(&rfd);
-    FD_SET(mon_pipe[0], &rfd);
-    sel_tv.tv_sec = 1;
-    sel_tv.tv_usec = 100000;
     i = 0;
 
     for (;;) {
-      msgretvalue = select(mon_pipe[0] + 1, &rfd, NULL, NULL,
-                           &sel_tv);
-      if ((msgretvalue == -1) && (errno == EINTR))
-        continue;
-      if (((msgretvalue == -1) && (errno != EINTR))
-          || (msgretvalue == 0)) {
+      FD_ZERO(&rfd);
+      FD_SET(mon_pipe[0], &rfd);
+      sel_tv.tv_sec = 1;
+      sel_tv.tv_usec = 100000;
+      msgretvalue = select(mon_pipe[0] + 1, &rfd, NULL, NULL, &sel_tv);
+      if (msgretvalue <= 0) {
+        local_errno = (msgretvalue == -1) ? errno : 0;
+        if (local_errno == EINTR) continue;
+        // Either a timeout or an error that wasn't EINTR...
         log_println(4, "Failed to read pkt-pair data from C2S flow, "
-                    "retcode=%d, reason=%d", msgretvalue, errno);
+                    "retcode=%d, reason=%d", msgretvalue, local_errno);
         snprintf(spds[(*spd_index)++],
                  sizeof(spds[*spd_index]),
                  " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
@@ -690,12 +697,11 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                  sizeof(spds[*spd_index]),
                  " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 0.0 0 0 0 0 0 -1");
         break;
-      }
-      /* There is something to read, so get it from the pktpair child.  If an interrupt occurs,
-       * just skip the read and go on
-       * RAC 2/8/10
-       */
-      if (msgretvalue > 0) {
+      } else {
+        /* There is something to read, so get it from the pktpair child.  If an
+         * interrupt occurs, just skip the read and go on
+         * RAC 2/8/10
+         */
         if ((msgretvalue = read(mon_pipe[0], spds[*spd_index],
                                 sizeof(spds[*spd_index]))) < 0) {
           snprintf(
@@ -706,11 +712,7 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         log_println(1, "%d bytes read '%s' from C2S monitor pipe",
                     msgretvalue, spds[*spd_index]);
         (*spd_index)++;
-        if (i++ == 1)
-          break;
-        sel_tv.tv_sec = 1;
-        sel_tv.tv_usec = 100000;
-        continue;
+        if (i++ == 1) break;
       }
     }
   }
@@ -720,8 +722,12 @@ int test_c2s(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                         testOptions->connection_flags, JSON_SINGLE_VALUE);
 
   //  Close opened resources for packet capture
-  if (getuid() == 0) {
+  if (packet_trace_running) {
+    // TODO: Determine whether this shutdown can be performed in a non-blocking
+    // manner, and if so then refactor packet_trace_emergency_shutdown to have
+    // better error handling and use that refactored and renamed function here.
     stop_packet_trace(mon_pipe);
+    packet_trace_running = 0;
   }
 
   // log end of C->S test
