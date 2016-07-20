@@ -1633,6 +1633,10 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
     // need, then call the child_process routine which will initialize the
     // connection and then wait for the go/queue/nogo signals from the parent
     // process.
+
+    // The child should have a watchdog timer.  Start it first thing, so that
+    // no client can screw things up too badly.
+    alarm(300);
     cli_addr_len = sizeof(cli_addr);
   
     do {
@@ -1642,12 +1646,16 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
         accept_errno = errno;
         log_println(1, "accept() on ctlsockfd failed");
         log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
-        if (accept_errno != EINTR) return NULL;
+        if (accept_errno != EINTR) {
+          log_println(1, "accept() failed unrecoverably. Child terminating.");
+          exit(-1);
+        }
       }
     } while (accept_errno == EINTR);
     if (cli_addr_len > sizeof(meta.c_addr)) {
       log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
-      return NULL;
+      log_println(0, "Child terminating.");
+      exit(-1);
     }
     // Copy connection data into global variables for the run_test() function.
     // Get meta test details copied into results.
