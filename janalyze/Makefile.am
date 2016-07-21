@@ -17,8 +17,9 @@
 GCJLINK = $(GCJLD)
 CLASSPATH_ENV =
 NDTGCJFLAGS = -cp external:src/edu/internet2/ndt -d bin -sourcepath src
-GCJFLAGS =
+AM_GCJFLAGS =
 TEMPDIRS = bin dist
+AUTOMAKE_OPTIONS = no-exeext
 
 ndtdir = $(prefix)/ndt
 
@@ -52,7 +53,7 @@ create-packageDirs:
 install-JAnalyzeJAVA: classJAnalyze.stamp create-packageDirs
 	@$(NORMAL_INSTALL)
 	test -z "$(JAnalyzedir)" || $(mkdir_p) "$(DESTDIR)$(JAnalyzedir)"	
-	@test -z "$(JAnalyze_JAVA/bin/edu/internet2/ndt)" || for p in *.class; do \
+	@test -z "$(JAnalyze_JAVA)/bin/edu/internet2/ndt" || for p in *.class; do \
 		echo " $(INSTALL_DATA) '$$p' '$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt/$$p'"; \
 		$(INSTALL_DATA) "$$p" "$(DESTDIR)$(JAnalyzedir)/edu/internet2/ndt/$$p"; \
 	done

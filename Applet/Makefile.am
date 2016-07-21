@@ -21,6 +21,7 @@ jsonlib = lib/json-simple-1.1.1.jar
 NDTGCJFLAGS = -d bin -sourcepath src -cp $(jsonlib)
 NDTJARSIGNERFLAG = -keystore
 TEMPDIRS = bin dist
+AUTOMAKE_OPTIONS = no-exeext
 
 ndtdir = $(prefix)/ndt
 jsonlibdir = $(ndtdir)/lib
