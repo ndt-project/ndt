@@ -571,10 +571,14 @@ const char* ssl_error_str(int ssl_err) {
       return "SSL_ERROR_WANT_ACCEPT";
     case SSL_ERROR_WANT_X509_LOOKUP:
       return "SSL_ERROR_WANT_X509_LOOKUP";
-    //case SSL_ERROR_WANT_ASYNC:
-      //return "SSL_ERROR_WANT_ASYNC";
-    //case SSL_ERROR_WANT_ASYNC_JOB:
-      //return "SSL_ERROR_WANT_ASYNC_JOB";
+#ifdef SSL_ERROR_WANT_ASYNC
+    case SSL_ERROR_WANT_ASYNC:
+      return "SSL_ERROR_WANT_ASYNC";
+#endif
+#ifdef SSL_ERROR_WANT_ASYNC_JOB
+    case SSL_ERROR_WANT_ASYNC_JOB:
+      return "SSL_ERROR_WANT_ASYNC_JOB";
+#endif
     case SSL_ERROR_SYSCALL:
       return "SSL_ERROR_SYSCALL";
     case SSL_ERROR_SSL:
@@ -585,9 +589,12 @@ const char* ssl_error_str(int ssl_err) {
 }
 
 /**
- * Returns whether the SSL error is recoverable.
+ * Returns whether an SSL error is recoverable.
+ * @param ssl_error the value from SSL_get_error
+ * @param ssl_errno the value of errno after the offending SSL read or write
+ * @return true if retrying might work, false otherwise
  */
-int is_recoverable(int ssl_error, int ssl_errno) {
+int is_recoverable_ssl_error(int ssl_error, int ssl_errno) {
   switch (ssl_error) {
     case SSL_ERROR_WANT_WRITE:
       return 1;
@@ -653,7 +660,7 @@ int write_ssl(SSL* ssl, const char* buf, int amount) {
     // Possibly a recoverable error
     ssl_error = SSL_get_error(ssl, n);
     // The only recoverable errors
-    if (is_recoverable(ssl_error, ssl_errno)) {
+    if (is_recoverable_ssl_error(ssl_error, ssl_errno)) {
       log_println(6, "SSL_write had a recoverable ssl error %s (%d, errno=%d)",
                   ssl_error_str(ssl_error), ssl_error, ssl_errno);
       return 0;
@@ -714,8 +721,7 @@ size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
   ssl_errno = errno;
   if (received <= 0) {
     ssl_err = SSL_get_error(ssl, received);
-    // received < 0 represents a possibly recoverable error
-    if (received < 0 && is_recoverable(ssl_err, ssl_errno)) {
+    if (is_recoverable_ssl_error(ssl_err, ssl_errno)) {
       log_println(6, "SSL_read had a recoverable ssl error %s (%d, errno=%d)",
                   ssl_error_str(ssl_err), ssl_err, ssl_errno);
       return 0;
@@ -836,7 +842,7 @@ int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
     ssl_errno = errno;
     if (ssl_ret != 1) {
       ssl_err = SSL_get_error(conn->ssl, ssl_ret);
-      if (!is_recoverable(ssl_err, ssl_errno)) {
+      if (!is_recoverable_ssl_error(ssl_err, ssl_errno)) {
         log_println(4, "SSL_accept failed: %s (%d, errno=%d)",
                     ssl_error_str(ssl_err), ssl_err, ssl_errno);
         return EIO;

@@ -10,6 +10,8 @@
 #include <syslog.h>
 #include <pthread.h>
 #include <sys/times.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 #include "tests_srv.h"
 #include "strlutils.h"
 #include "ndtptestconstants.h"
@@ -35,13 +37,26 @@
  */
 int raw_read(Connection *conn, char* buff, size_t buff_size,
              ssize_t *bytes_read) {
+  int ssl_error;
+  int ssl_errno;
   if (conn->ssl == NULL) {
     *bytes_read = read(conn->socket, buff, buff_size);
     if (*bytes_read <= -1) return errno;
   } else {
     // TODO: Keep track of the number of SSL renegotiations that occur
+    ERR_clear_error();
     *bytes_read = SSL_read(conn->ssl, buff, buff_size);
-    if (*bytes_read <= -1) return SSL_get_error(conn->ssl, *bytes_read);
+    ssl_errno = errno;
+    if (*bytes_read <= 0) {
+      ssl_error = SSL_get_error(conn->ssl, *bytes_read);
+      if (is_recoverable_ssl_error(ssl_error, ssl_errno)) {
+        return 0;
+      } else {
+        log_println(1, "Unrecoverable SSL_read error in C2S: %s (%d, errno=%d)",
+                    ssl_error_str(ssl_error), ssl_error, ssl_errno);
+        return EIO;
+      }
+    }
   }
   return 0;
 }
