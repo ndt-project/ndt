@@ -52,7 +52,7 @@ int raw_read(Connection *conn, char* buff, size_t buff_size,
       if (is_recoverable_ssl_error(ssl_error, ssl_errno)) {
         return 0;
       } else {
-        log_println(1, "Unrecoverable SSL error in C2S test: %s (%d, errno=%d)",
+        log_println(1, "Unrecoverable SSL_read error in C2S: %s (%d, errno=%d)",
                     ssl_error_str(ssl_error), ssl_error, ssl_errno);
         return EIO;
       }
