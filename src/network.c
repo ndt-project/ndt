@@ -588,7 +588,7 @@ const char* ssl_error_str(int ssl_err) {
  * Returns whether the SSL error is recoverable.
  */
 int is_recoverable(int ssl_error, int ssl_errno) {
-  switch (ssl_errno) {
+  switch (ssl_error) {
     case SSL_ERROR_WANT_WRITE:
       return 1;
     case SSL_ERROR_WANT_READ:
