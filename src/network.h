@@ -42,6 +42,7 @@ size_t readn_any(Connection* conn, void* buf, size_t amount);
 int KillHung(void);
 
 int setup_SSL_connection(Connection *conn, SSL_CTX *ctx);
+int is_recoverable_ssl_error(int ssl_error, int ssl_errno);
 
 void shutdown_connection(Connection *conn);
 void close_connection(Connection *conn);

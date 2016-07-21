@@ -35,13 +35,24 @@
  */
 int raw_read(Connection *conn, char* buff, size_t buff_size,
              ssize_t *bytes_read) {
+  int ssl_error;
+  int ssl_errno;
   if (conn->ssl == NULL) {
     *bytes_read = read(conn->socket, buff, buff_size);
     if (*bytes_read <= -1) return errno;
   } else {
     // TODO: Keep track of the number of SSL renegotiations that occur
     *bytes_read = SSL_read(conn->ssl, buff, buff_size);
-    if (*bytes_read <= -1) return SSL_get_error(conn->ssl, *bytes_read);
+    if (*bytes_read <= 0) {
+      ssl_errno = errno;
+      ssl_error = SSL_get_error(conn->ssl, *bytes_read);
+      if (is_recoverable_ssl_error(ssl_error, ssl_errno)) {
+        return 0;
+      } else {
+        log_println(1, "Unrecoverable SSL error in C2S test");
+        return EIO;
+      }
+    }
   }
   return 0;
 }
