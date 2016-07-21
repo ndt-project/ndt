@@ -1633,6 +1633,10 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
     // need, then call the child_process routine which will initialize the
     // connection and then wait for the go/queue/nogo signals from the parent
     // process.
+
+    // The child should have a watchdog timer.  Start it first thing, so that
+    // no client can screw things up too badly.
+    alarm(300);
     cli_addr_len = sizeof(cli_addr);
   
     do {
@@ -1642,12 +1646,16 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
         accept_errno = errno;
         log_println(1, "accept() on ctlsockfd failed");
         log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
-        if (accept_errno != EINTR) return NULL;
+        if (accept_errno != EINTR) {
+          log_println(1, "accept() failed unrecoverably. Child terminating.");
+          exit(-1);
+        }
       }
     } while (accept_errno == EINTR);
     if (cli_addr_len > sizeof(meta.c_addr)) {
       log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
-      return NULL;
+      log_println(0, "Child terminating.");
+      exit(-1);
     }
     // Copy connection data into global variables for the run_test() function.
     // Get meta test details copied into results.
@@ -1991,6 +1999,28 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
     report_SSL_error("SSL_CTX_check_private_key",
                      "Private key and certificate do not match");
   }
+  // In a server that forks, caching requires IPC. We avoid it for simplicity.
+  SSL_CTX_set_session_cache_mode(ssl_context, SSL_SESS_CACHE_OFF);
+  // Work around every client bug that OpenSSL knows about:
+  SSL_CTX_set_options(ssl_context, SSL_OP_ALL);
+  SSL_CTX_set_options(ssl_context, SSL_OP_TLS_ROLLBACK_BUG);
+  SSL_CTX_set_options(ssl_context, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
+  SSL_CTX_set_options(ssl_context, SSL_OP_NO_TICKET);
+  SSL_CTX_set_options(ssl_context, SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
+  // Don't ask the client to verify themselves
+  SSL_CTX_set_verify(ssl_context, SSL_VERIFY_NONE, NULL);
+  // Note that some of these settings potentially decrease security if the
+  // client takes advantage of them. This is fine, as NDT's data stream
+  // contains only random characters. NDT's SSL support is in there to allow
+  // wss:// clients to run speed tests from secure webpages, because most
+  // browser security policies prevent secure pages from opening insecure
+  // websocket connections. The intent is less to secure the random number
+  // stream from prying eyes, and more to simply make NDT tests available to
+  // secure webpages. As long as the connection is "secure" according to the
+  // client, then the NDT server is happy. Clients that want to use the
+  // latest-and-greatest versions of TLS will be supported in that more-secure
+  // mode, and clients which only support old and/or busted versions of SSL can
+  // still use the service. Everyone wins.
   return ssl_context;
 }
 

@@ -571,16 +571,39 @@ const char* ssl_error_str(int ssl_err) {
       return "SSL_ERROR_WANT_ACCEPT";
     case SSL_ERROR_WANT_X509_LOOKUP:
       return "SSL_ERROR_WANT_X509_LOOKUP";
-    //case SSL_ERROR_WANT_ASYNC:
-      //return "SSL_ERROR_WANT_ASYNC";
-    //case SSL_ERROR_WANT_ASYNC_JOB:
-      //return "SSL_ERROR_WANT_ASYNC_JOB";
+#ifdef SSL_ERROR_WANT_ASYNC
+    case SSL_ERROR_WANT_ASYNC:
+      return "SSL_ERROR_WANT_ASYNC";
+#endif
+#ifdef SSL_ERROR_WANT_ASYNC_JOB
+    case SSL_ERROR_WANT_ASYNC_JOB:
+      return "SSL_ERROR_WANT_ASYNC_JOB";
+#endif
     case SSL_ERROR_SYSCALL:
       return "SSL_ERROR_SYSCALL";
     case SSL_ERROR_SSL:
       return "SSL_ERROR_SSL";
     default:
       return "UKNOWN_SSL_ERROR (this should never happen)";
+  }
+}
+
+/**
+ * Returns whether an SSL error is recoverable.
+ * @param ssl_error the value from SSL_get_error
+ * @param ssl_errno the value of errno after the offending SSL read or write
+ * @return true if retrying might work, false otherwise
+ */
+int is_recoverable_ssl_error(int ssl_error, int ssl_errno) {
+  switch (ssl_error) {
+    case SSL_ERROR_WANT_WRITE:
+      return 1;
+    case SSL_ERROR_WANT_READ:
+      return 1;
+    case SSL_ERROR_SYSCALL:
+      return (ssl_errno == EINTR) || (ssl_errno == EAGAIN);
+    default:
+      return 0;
   }
 }
 
@@ -621,25 +644,31 @@ int write_raw(int socketfd, const char* buf, int amount) {
  *         error.
  */
 int write_ssl(SSL* ssl, const char* buf, int amount) {
-  int n, ssl_error;
+  int n, ssl_error, ssl_errno;
+  ERR_clear_error();
   n = SSL_write(ssl, buf, amount);
+  ssl_errno = errno;
   if (n == 0) {
     // 0 represents fatal errors for SSL_write
     log_println(6, "write_ssl() Error! SSL_write() failed unrecoverably pid=%d",
                 getpid());
     ssl_error = SSL_get_error(ssl, n);
-    log_println(6, "SSL error: %s (%d)", ssl_error_str(ssl_error), ssl_error);
+    log_println(6, "SSL error: %s (%d, errno=%d)", ssl_error_str(ssl_error),
+                ssl_error, ssl_errno);
     return -1;
   } else if (n < 0) {
     // Possibly a recoverable error
     ssl_error = SSL_get_error(ssl, n);
     // The only recoverable errors
-    if (ssl_error == SSL_ERROR_WANT_READ || ssl_error == SSL_ERROR_WANT_WRITE) {
+    if (is_recoverable_ssl_error(ssl_error, ssl_errno)) {
+      log_println(6, "SSL_write had a recoverable ssl error %s (%d, errno=%d)",
+                  ssl_error_str(ssl_error), ssl_error, ssl_errno);
       return 0;
     } else {
       log_println(6, "write_ssl() Error! SSL_write() failed with err=%d pid=%d",
                   ssl_error, getpid());
-      log_println(6, "SSL error: %s (%d)", ssl_error_str(ssl_error), ssl_error);
+      log_println(6, "SSL error: %s (%d, errno=%d)", ssl_error_str(ssl_error),
+                  ssl_error, ssl_errno);
       return -1;
     }
   } else {
@@ -685,20 +714,22 @@ int writen_any(Connection* conn, const void* buf, int amount) {
 
 size_t readn_ssl(SSL *ssl, void *buf, size_t amount) {
   int received = 0;
-  int ssl_err;
+  int ssl_err, ssl_errno;
 
+  ERR_clear_error();
   received = SSL_read(ssl, buf, amount);
+  ssl_errno = errno;
   if (received <= 0) {
     ssl_err = SSL_get_error(ssl, received);
-    // received < 0 represents a possibly recoverable error
-    if (received < 0) {
-      if (ssl_err == SSL_ERROR_WANT_READ || ssl_err == SSL_ERROR_WANT_WRITE) {
-        return 0;
-      }
+    if (is_recoverable_ssl_error(ssl_err, ssl_errno)) {
+      log_println(6, "SSL_read had a recoverable ssl error %s (%d, errno=%d)",
+                  ssl_error_str(ssl_err), ssl_err, ssl_errno);
+      return 0;
+    } else {
+      log_println(2, "SSL_read failed due to %s (%d, errno=%d)\n",
+                  ssl_error_str(ssl_err), ssl_err, ssl_errno);
+      return -1;
     }
-    log_println(2, "SSL_read failed due to %s (%d)\n", ssl_error_str(ssl_err),
-                ssl_err);
-    return -1;
   }
   return received;
 }
@@ -791,20 +822,32 @@ void close_connection(Connection *conn) {
  */
 int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
   int ssl_err;
+  int ssl_ret;
+  int ssl_errno;
+  ERR_clear_error();
   conn->ssl = SSL_new(ctx);
   if (conn->ssl == NULL) {
     log_println(4, "SSL_new failed");
     return ENOMEM;
   }
+  ERR_clear_error();
   if (SSL_set_fd(conn->ssl, conn->socket) == 0) {
     log_println(4, "SSL_set_fd failed");
     return EIO;
   }
-  if ((ssl_err = SSL_accept(conn->ssl)) != 1) {
-    ssl_err = SSL_get_error(conn->ssl, ssl_err);
-    log_println(4, "SSL_accept failed: %s (%d)", ssl_error_str(ssl_err),
-                ssl_err);
-    return EIO;
-  }
+  do {
+    ssl_err = 0;
+    ERR_clear_error();
+    ssl_ret = SSL_accept(conn->ssl);
+    ssl_errno = errno;
+    if (ssl_ret != 1) {
+      ssl_err = SSL_get_error(conn->ssl, ssl_ret);
+      if (!is_recoverable_ssl_error(ssl_err, ssl_errno)) {
+        log_println(4, "SSL_accept failed: %s (%d, errno=%d)",
+                    ssl_error_str(ssl_err), ssl_err, ssl_errno);
+        return EIO;
+      }
+    }
+  } while (ssl_ret != 1);
   return 0;
 }
