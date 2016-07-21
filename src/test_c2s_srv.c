@@ -42,6 +42,7 @@ int raw_read(Connection *conn, char* buff, size_t buff_size,
     if (*bytes_read <= -1) return errno;
   } else {
     // TODO: Keep track of the number of SSL renegotiations that occur
+    ERR_clear_error();
     *bytes_read = SSL_read(conn->ssl, buff, buff_size);
     if (*bytes_read <= 0) {
       ssl_errno = errno;
