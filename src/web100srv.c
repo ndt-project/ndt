@@ -2003,10 +2003,6 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
   SSL_CTX_set_session_cache_mode(ssl_context, SSL_SESS_CACHE_OFF);
   // Work around every client bug that OpenSSL knows about:
   SSL_CTX_set_options(ssl_context, SSL_OP_ALL);
-  SSL_CTX_set_options(ssl_context, SSL_OP_TLS_ROLLBACK_BUG);
-  SSL_CTX_set_options(ssl_context, SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION);
-  SSL_CTX_set_options(ssl_context, SSL_OP_NO_TICKET);
-  SSL_CTX_set_options(ssl_context, SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION);
   // Don't ask the client to verify themselves
   SSL_CTX_set_verify(ssl_context, SSL_VERIFY_NONE, NULL);
   // Note that some of these settings potentially decrease security if the
