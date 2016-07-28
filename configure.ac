@@ -225,7 +225,7 @@ OLD_CFLAGS="$CFLAGS"
 CFLAGS="$CFLAGS $I2UTILINCS"
 LDFLAGS="$LDFLAGS $I2UTILLDFLAGS"
 
-AC_SEARCH_LIBS([I2AddrByNode],I2util, HAVE_I2UTIL_LIBS=1,HAVE_I2UTIL_LIBS=0)
+AC_CHECK_LIB([I2util], [I2AddrByNode], HAVE_I2UTIL_LIBS=1, HAVE_I2UTIL_LIBS=0)
 AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], HAVE_I2UTIL_HEADERS=1,HAVE_I2UTIL_HEADERS=0)
 
 LDFLAGS="$OLD_LDFLAGS"
@@ -235,7 +235,7 @@ if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
 	# now, check for sub-build/sub-configure
 	if test -d I2util/I2util; then
 		# clear the cache
-		AS_UNSET([ac_cv_search_I2AddrByNode])
+		AS_UNSET([ac_cv_lib_I2util_I2AddrByNode])
 		AS_UNSET([ac_cv_header_I2util_util_h])
 		AS_UNSET([ac_cv_header_I2util_conf_h])
 		AC_CONFIG_SUBDIRS(I2util)
@@ -256,7 +256,7 @@ if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
         CFLAGS="$CFLAGS $I2UTILINCS"
         LDFLAGS="$LDFLAGS $I2UTILLDFLAGS"
 
-        AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
+        AC_CHECK_LIB([I2util], [I2AddrByNode], [:], AC_MSG_ERROR([Couldn't find I2util library]))
         AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
 
 	LDFLAGS="$OLD_LDFLAGS"
