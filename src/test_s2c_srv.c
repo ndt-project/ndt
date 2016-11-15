@@ -315,6 +315,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
       xmitsfd[stream].socket = accept(testOptions->s2csockfd, (struct sockaddr *) &cli_addr[stream], &clilen);
       if (xmitsfd[stream].socket > 0) {
         log_println(6, "accept(%d/%d) for %d completed", stream, streamsNum, testOptions->child0);
+        set_socket_timeout_or_die(xmitsfd[stream].socket);
         if (testOptions->connection_flags & TLS_SUPPORT) {
           errno = setup_SSL_connection(&xmitsfd[stream], ctx);
           if (errno != 0) return -errno;
@@ -373,6 +374,7 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
           if ((s2c_childpid = fork()) == 0) {
             // Don't capture more than 12 seconds of packet traces:
             //   10 second test + 2 seconds of slop
+            // Causes a call to cleanup() if allowed to run for too long.
             alarm(testDuration + 2);
             close(testOptions->s2csockfd);
             for (i = 0; i < streamsNum; i++) {
@@ -498,10 +500,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         log_println(6,
                     "S2C test - Test-start message failed for pid=%d",
                     s2c_childpid);
-      // ignore the alarm signal
-      memset(&new, 0, sizeof(new));
-      new.sa_handler = catch_s2c_alrm;
-      sigaction(SIGALRM, &new, &old);
 
       // capture current values (i.e take snap shot) of web_100 variables
       // Write snap logs if option is enabled. update meta log to point to
@@ -525,7 +523,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
                               streams[i].conn, group);
         }
       }
-      /* alarm(20); */
       tmptime = secs();  // current time
       tx_duration = tmptime + testDuration;  // set timeout to test duration s in future
 
@@ -597,8 +594,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
         }
       }
 
-      /* alarm(10); */
-      sigaction(SIGALRM, &old, NULL);
       sndqueue = sndq_len(xmitsfd[0].socket);
 
       // finalize the midbox test ; disabling socket used for throughput test
@@ -725,9 +720,6 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
 
       log_println(1, "%6.0f kbps inbound pid-%d", x2cspd, s2c_childpid);
     }
-    /* reset alarm() again, this 10 sec test should finish before this signal
-     * is generated.  */
-    /* alarm(30); */
     // Get web100 variables from snapshot taken earlier and send to client
     log_println(6, "S2C-Send web100 data vars to client pid=%d",
                 s2c_childpid);

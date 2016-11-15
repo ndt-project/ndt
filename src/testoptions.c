@@ -96,18 +96,6 @@ void findCwndPeaks(tcp_stat_agent* agent, CwndPeaks* peaks,
   prevCWNDval = CurCwnd;
 }
 
-/**
- * Print the appropriate message when the SIGALRM is caught.
- * @param signo The signal number (shuld be SIGALRM)
- */
-
-void catch_s2c_alrm(int signo) {
-  if (signo == SIGALRM) {
-    log_println(1, "SIGALRM was caught");
-    return;
-  }
-  log_println(0, "Unknown (%d) signal was caught", signo);
-}
 
 /**
  * Write the snap logs with fixed time intervals in a separate

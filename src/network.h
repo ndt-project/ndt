@@ -48,4 +48,6 @@ const char* ssl_error_str(int ssl_error);
 void shutdown_connection(Connection *conn);
 void close_connection(Connection *conn);
 
+void set_socket_timeout_or_die(int sockfd);
+
 #endif  // SRC_NETWORK_H_

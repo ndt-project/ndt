@@ -989,7 +989,7 @@ void init_pkttrace(I2Addr srcAddr, struct sockaddr_storage sock_addr[], int sock
     }
   }
 
-  /* kill process off if parent doesn't send a signal. */
+  /* kill process off via cleanup() if parent doesn't send a signal. */
   alarm(50 + expectedTestTime);
 
   if (pcap_loop(pd, cnt, printer, pcap_userdata) < 0) {

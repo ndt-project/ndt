@@ -851,3 +851,24 @@ int setup_SSL_connection(Connection *conn, SSL_CTX *ctx) {
   } while (ssl_ret != 1);
   return 0;
 }
+
+/**
+ * Sets 5 minute read and write timeouts on the passed-in socket.  Calls exit()
+ * if setsockopt fails for any reason.
+ * @param sockfd the socket to modify
+ */
+void set_socket_timeout_or_die(int sockfd) {
+  struct timeval timeout;
+  timeout.tv_sec = 300;
+  timeout.tv_usec = 0;
+  if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+                 sizeof(timeout)) < 0) {
+    log_println(1, "Could not setsockopt to set SO_RCVTIMEO");
+    exit(-1);
+  }
+  if (setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout,
+                 sizeof(timeout)) < 0) {
+    log_println(1, "Could not setsockopt to set SO_SNDTIMEO");
+    exit(-1);
+  }
+}

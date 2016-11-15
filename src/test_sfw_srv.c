@@ -58,7 +58,7 @@ test_osfw_srv(void* vptr) {
   TestOptions* options = (TestOptions*)vptr;
   Connection conn = {-1, NULL};
 
-  // ignore the alarm signal
+  // Ignore the alarm signal so we can use alarm() as the test timer.
   memset(&new, 0, sizeof(new));
   new.sa_handler = catch_alrm;
   sigaction(SIGALRM, &new, &old);
@@ -72,7 +72,9 @@ test_osfw_srv(void* vptr) {
   }
 
   alarm(0);
+  // Reset the watchdog timer so that cleanup() can get called.
   sigaction(SIGALRM, &old, NULL);
+  alarm(30);
 
   // signal sleeping threads to wake up
   pthread_mutex_lock(&mainmutex);
