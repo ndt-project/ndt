@@ -42,8 +42,12 @@ size_t readn_any(Connection* conn, void* buf, size_t amount);
 int KillHung(void);
 
 int setup_SSL_connection(Connection *conn, SSL_CTX *ctx);
+int is_recoverable_ssl_error(int ssl_error, int ssl_errno);
+const char* ssl_error_str(int ssl_error);
 
 void shutdown_connection(Connection *conn);
 void close_connection(Connection *conn);
+
+void set_socket_timeout_or_die(int sockfd);
 
 #endif  // SRC_NETWORK_H_

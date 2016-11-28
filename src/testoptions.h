@@ -62,8 +62,6 @@ typedef struct snapArgs {
 int initialize_tests(Connection* ctl, TestOptions* testOptions,
                      char* test_suite, size_t test_suite_strlen);
 
-void catch_s2c_alrm(int signo);
-
 int test_sfw_srv(Connection* ctl, tcp_stat_agent* agent, TestOptions* options,
                  int conn_options);
 int test_meta_srv(Connection* ctl, tcp_stat_agent* agent,

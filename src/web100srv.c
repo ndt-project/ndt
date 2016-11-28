@@ -334,6 +334,19 @@ void cleanup(int signo) {
       break;
 
     case SIGALRM:
+      // Receipt of SIGALRM means that the watchdog timer has gone off. We
+      // assume that this process is stuck in a hung state, and should
+      // therefore be killed. Given how TCP closes, it is inevitable that some
+      // tests will end up in a half-closed state but the server doesn't know
+      // (the FIN gets lost in flight, or the client disappears off the network
+      // because it was a cellphone that went underground, etc), so it is not
+      // true that every receipt of SIGALRM represents a bug.  Every receipt of
+      // SIGALRM does mean, however, that the process should be killed.
+      //
+      // Any code that installs an alternate handler of SIGALRM should be
+      // examined closely, as it could cause hung-forever child processes by
+      // preventing the watchdog from barking. Currently the only such code is
+      // in test_sfw.c
       switch (getCurrentTest()) {
         case TEST_MID:
           sigsafe_debug_log(6, signo, "Received SIGALRM signal [Middlebox test]");
@@ -771,7 +784,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
 
   // Run scheduled test. Log error code if necessary
   log_println(6, "Starting middlebox test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_mid(ctl, agent, testopt, conn_options, &s2c2spd)) != 0) {
     if (ret < 0)
       log_println(6, "Middlebox test failed with rc=%d", ret);
@@ -781,14 +794,14 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting simple firewall test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_sfw_srv(ctl, agent, testopt, conn_options)) != 0) {
     if (ret < 0)
       log_println(6, "SFW test failed with rc=%d", ret);
   }
 
   log_println(6, "Starting c2s throughput test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd, set_buff,
                       window, autotune, device, &options, record_reverse,
                       count_vars, spds, &spd_index, ssl_context,
@@ -801,7 +814,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended c2s throughput test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_c2s(ctl, agent, testopt, conn_options, &c2sspd,
                       set_buff, window, autotune, device, &options,
                       record_reverse, count_vars, spds, &spd_index,
@@ -814,7 +827,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting s2c throughput test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context, &s2c_ThroughputSnapshots, 0)) != 0) {
@@ -826,7 +839,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting extended s2c throughput test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_s2c(ctl, agent, testopt, conn_options, &s2cspd,
                       set_buff, window, autotune, device, &options, spds,
                       &spd_index, count_vars, &peaks, ssl_context,
@@ -839,7 +852,7 @@ int run_test(tcp_stat_agent *agent, Connection *ctl, TestOptions *testopt,
   }
 
   log_println(6, "Starting META test");
-  alarm(MAX_TEST_TIME);  // Kick the watchdog.
+  alarm(MAX_TEST_TIME);  // Kick the watchdog to prevent calls to cleanup.
   if ((ret = test_meta_srv(ctl, agent, testopt, conn_options, &options)) != 0) {
     if (ret != 0) {
       log_println(6, "META test failed with rc=%d", ret);
@@ -1368,14 +1381,15 @@ void process_parent_message(int parent_message, Connection *ctl,
     case SRV_QUEUE_SERVER_BUSY_60s:
       // The SRV_QUEUE_SERVER_BUSY_60s message is not emitted by any
       // codepaths in the server.  This message is likely obsolete.
-      // Set the watchdog alarm for 60 seconds, plus some slop.
+      // Set the watchdog alarm for 60 seconds, plus some slop, to prevent
+      // spurious calls to cleanup().
       alarm(120);
       break;
     default:
       // If the message was not one of the magic values, then it is a number
       // of minutes to wait until the test starts.  Set the watchdog alarm
       // for that many minutes, plus a little bit extra to avoid race
-      // conditions.
+      // conditions and prevent spurious calls to cleanup().
       alarm((parent_message + 1) * 60);
       break;
   }
@@ -1383,13 +1397,15 @@ void process_parent_message(int parent_message, Connection *ctl,
 
 /**
  * The code run by the child process. This function never returns, it only
- * calls exit().  It also has an alarm() timer which by default prevents any
- * client from living for more than 5 minutes.  The parent is in control, and
- * will send this child a signal when it gets to the head of the testing queue
- * (and will also send other status messages that are relayed by the client).
- * Only the child process can communicate to the client (OpenSSL connections
- * can only be used by one process), so we pass along any queueing messages we
- * get from the parent.
+ * calls exit().  It also has an alarm() timer which functions as a watchdog,
+ * and all communication sockets should have socket timeouts set.
+ *
+ * The parent process is in control, and will send this child a message on the
+ * parent_pipe when the child gets to the head of the testing queue (and will
+ * also send other status messages that are relayed by the child to the
+ * client).  Only the child process can communicate to the client (OpenSSL
+ * connections can only be used by one process), so the child should pass along
+ * any queueing messages received from the parent.
  */
 void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   FILE *fp;
@@ -1403,11 +1419,9 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
   tcp_stat_agent *agent;
   Connection ctl = {-1, NULL};
   ctl.socket = ctlsockfd;
-  // this is the child process, it handles the connection with the client and
-  // runs the actual tests.
-  // First, start the watchdog timer
-  alarm(300);
 
+  // Start the watchdog timer. Receiving SIGALRM will call cleanup(SIGALRM).
+  alarm(alarm_time);
   // Set up the connection with the client (with optional SSL and websockets)
   if (ssl_context != NULL) {
     if (setup_SSL_connection(&ctl, ssl_context) != 0) {
@@ -1509,12 +1523,12 @@ void child_process(int parent_pipe, SSL_CTX *ssl_context, int ctlsockfd) {
     testopt.s2cextopt = TOPT_ENABLED;
     alarm_time += options.s2c_duration / 1000.0;
   }
-  // die in 120 seconds, but only if a test doesn't get started
+  // Die in 120 seconds via cleanup() but only if a test doesn't get started.
   alarm(alarm_time);
   // reset alarm() before every test
   log_println(6,
-              "setting master alarm() to 120 seconds, tests must start "
-              "(complete?) before this timer expires");
+              "setting master alarm() to %d seconds, tests must start "
+              "(complete?) before this timer expires", alarm_time);
 
   // run tests based on options
   if (strncmp(test_suite, "Invalid", 7) != 0) {
@@ -1633,6 +1647,11 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
     // need, then call the child_process routine which will initialize the
     // connection and then wait for the go/queue/nogo signals from the parent
     // process.
+
+    // The child should have a watchdog timer.  Start it first thing, so that
+    // no client can livelock or deadlock for too long without causing a call
+    // to cleanup().
+    alarm(300);
     cli_addr_len = sizeof(cli_addr);
   
     do {
@@ -1642,13 +1661,18 @@ ndtchild *spawn_new_child(int listenfd, SSL_CTX *ssl_context) {
         accept_errno = errno;
         log_println(1, "accept() on ctlsockfd failed");
         log_println(1, "Error was: %s (%d)", strerror(accept_errno), accept_errno);
-        if (accept_errno != EINTR) return NULL;
+        if (accept_errno != EINTR) {
+          log_println(1, "accept() failed unrecoverably. Child terminating.");
+          exit(-1);
+        }
       }
     } while (accept_errno == EINTR);
     if (cli_addr_len > sizeof(meta.c_addr)) {
       log_println(0, "cli_addr_len > sizeof(meta.c_addr). Should never happen");
-      return NULL;
+      log_println(0, "Child terminating.");
+      exit(-1);
     }
+    set_socket_timeout_or_die(ctlsockfd);
     // Copy connection data into global variables for the run_test() function.
     // Get meta test details copied into results.
     memcpy(&meta.c_addr, &cli_addr, cli_addr_len);
@@ -1878,6 +1902,12 @@ void perform_queue_maintenance(ndtchild **head) {
 
   // Walk the list of clients, sending the GO signal to clients that have
   // reached the front part of the queue.
+  //
+  // TODO: Keep track of how long each child has been running, and forcibly
+  // terminate any long-running children on the assumption that those children
+  // are deadlocked and will never exit on their own.  This would complement
+  // the child watchdog and provide another layer of defense against buggy test
+  // code.
   queue_position = 0;
   for (current = *head; current != NULL; current = current->next) {
     if (!current->running) {
@@ -1991,6 +2021,24 @@ SSL_CTX *setup_SSL(const char *certificate_file, const char *private_key_file) {
     report_SSL_error("SSL_CTX_check_private_key",
                      "Private key and certificate do not match");
   }
+  // In a server that forks, caching requires IPC. We avoid it for simplicity.
+  SSL_CTX_set_session_cache_mode(ssl_context, SSL_SESS_CACHE_OFF);
+  // Work around every client bug that OpenSSL knows about:
+  SSL_CTX_set_options(ssl_context, SSL_OP_ALL);
+  // Don't ask the client to verify themselves
+  SSL_CTX_set_verify(ssl_context, SSL_VERIFY_NONE, NULL);
+  // Note that some of these settings potentially decrease security if the
+  // client takes advantage of them. This is fine, as NDT's data stream
+  // contains only random characters. NDT's SSL support is in there to allow
+  // wss:// clients to run speed tests from secure webpages, because most
+  // browser security policies prevent secure pages from opening insecure
+  // websocket connections. The intent is less to secure the random number
+  // stream from prying eyes, and more to simply make NDT tests available to
+  // secure webpages. As long as the connection is "secure" according to the
+  // client, then the NDT server is happy. Clients that want to use the
+  // latest-and-greatest versions of TLS will be supported in that more-secure
+  // mode, and clients which only support old and/or busted versions of SSL can
+  // still use the service. Everyone wins.
   return ssl_context;
 }
 
