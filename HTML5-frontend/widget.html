@@ -12,7 +12,6 @@
     <script type="text/javascript" src="script.js"></script>
     <script type="text/javascript" src="ndt-browser-client.js"></script>
     <script type="text/javascript" src="ndt-wrapper.js"></script>
-    <script type="text/javascript" src="http://www.java.com/js/deployJava.js"></script>
     <script type="text/javascript">
     var simulate = false;
     var allowDebug = false;
@@ -27,25 +26,14 @@
 
     <p>The Network Diagnostic Tool (NDT) provides a sophisticated speed and diagnostic test. An NDT test reports more than just the upload and download speeds &mdash; it also attempts to determine what, if any, problems limited these speeds, differentiating between computer configuration and network infrastructure problems. While the diagnostic messages are most useful for expert users, they can also help novice users by allowing them to provide detailed trouble reports to their network&nbsp;administrator.</p>
 
-    <p>NDT can make use of either a Java plugin, or WebSockets to perform the test. Make sure that the method you choose is supported by your browser</p>
-    <div id="warning-environment">
-    </div>
-
-    <div id="warning-plugin">
-        <p>Selected plugin was not loaded properly. Make sure that you have proper plugin installed, and that it is not being blocked by your browser.</p>
-    </div>
-
-    <div id="warning-websocket">
-        <p>The WebSocket client currently in beta. Due to the nature of WebSocket support in various web browsers, the results may be notedly lower than those obtained with the Java plugin.</p>
-    </div>
-
-    <div>
-      <button id="javaButton" class="backendButton button" onclick="useJavaAsBackend()" type="button">Java</button>
-      <button id="websocketButton" class="backendButton button" onclick="useWebsocketAsBackend()" type="button">WebSockets<sup><small>Beta</small></sup></button>
-    </div>
+    <p>This NDT test uses <a href="https://en.wikipedia.org/wiki/WebSocket">WebSockets</a>. Most modern browsers should support running this test. If you are experiencing problems, make sure that your browser has javascript enabled and supports WebSockets.</p> 
 
     <div is="learn_more">
       <a href="http://software.internet2.edu/ndt/">Learn more about NDT</a> &ndash; <a href="http://www.measurementlab.net/">Learn more about Measurement Lab</a>
+    </div>
+
+    <div id="no-websocket">
+      <p>Your browser does not appear to support WebSockets. Please check your browser configuration or try a different browser.</p>
     </div>
 
     </div>
@@ -53,7 +41,7 @@
       Initializing...
     </div>
     <div class="controls">
-      <a href="#test" class="start button">Start Test</a>
+      <a href="#test" id="startButton" class="start button">Start Test</a>
     </div>
   </div>
   <div id="test" class="page">
