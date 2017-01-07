@@ -924,6 +924,12 @@ int main(int argc, char *argv[]) {
   } else
     ptr = strtok_r(buff, " ", &strtokbuf);
 
+  /*
+   * Server may support less test types that we support. Hence, collect
+   * into this var _only_ the test types that were run successfully.
+   */
+  unsigned char run_tests = 0;
+
   // Run all tests requested, based on the ID.
   while (ptr) {
     if (check_int(ptr, &testId)) {
@@ -935,39 +941,45 @@ int main(int argc, char *argv[]) {
         if (test_mid_clt(ctlSocket, tests, host, conn_options, buf_size,
                          mid_resultstr, jsonSupport)) {
           log_println(0, "Middlebox test FAILED!");
-          tests &= (~TEST_MID);
+        } else {
+          run_tests |= TEST_MID;
         }
         break;
       case TEST_C2S:
         if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, &c2s_ThroughputSnapshots, jsonSupport, 0)) {
           log_println(0, "C2S throughput test FAILED!");
-          tests &= (~TEST_C2S);
+        } else {
+          run_tests |= TEST_C2S;
         }
         break;
       case TEST_C2S_EXT:
         if (test_c2s_clt(ctlSocket, tests, host, conn_options, buf_size, &c2s_ThroughputSnapshots, jsonSupport, 1)) {
           log_println(0, "Extended S2C throughput test FAILED!");
-          tests &= (~TEST_C2S_EXT);
+        } else {
+          run_tests |= TEST_C2S_EXT;
         }
         break;
       case TEST_S2C:
         if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
                          resultstr, &s2c_ThroughputSnapshots, jsonSupport, 0)) {
           log_println(0, "S2C throughput test FAILED!");
-          tests &= (~TEST_S2C);
+        } else {
+          run_tests |= TEST_S2C;
         }
         break;
       case TEST_S2C_EXT:
         if (test_s2c_clt(ctlSocket, tests, host, conn_options, buf_size,
                          resultstr, &s2c_ThroughputSnapshots, jsonSupport, 1)) {
           log_println(0, "Extended S2C throughput test FAILED!");
-          tests &= (~TEST_S2C_EXT);
+        } else {
+          run_tests |= TEST_S2C_EXT;
         }
         break;
       case TEST_SFW:
         if (test_sfw_clt(ctlSocket, tests, host, conn_options, jsonSupport)) {
           log_println(0, "Simple firewall test FAILED!");
-          tests &= (~TEST_SFW);
+        } else {
+          run_tests |= TEST_SFW;
         }
         break;
       case TEST_META:
@@ -977,7 +989,8 @@ int main(int argc, char *argv[]) {
 
         if (test_meta_clt(ctlSocket, tests, host, conn_options, client_app_id, jsonSupport)) {
           log_println(0, "META test FAILED!");
-          tests &= (~TEST_META);
+        } else {
+          run_tests |= TEST_META;
         }
         break;
       default:
@@ -986,6 +999,9 @@ int main(int argc, char *argv[]) {
     }
     ptr = strtok_r(NULL, " ", &strtokbuf);
   }
+
+  /* Make sure we only process tests that were run */
+  tests = run_tests;
 
   /* get the final results from server.
    *
