@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <assert.h>
+#include <web100.h>
 
 #include "logging.h"
 #include "network.h"
@@ -821,7 +822,7 @@ int tcp_stat_get_data(tcp_stat_snap** snap, Connection* testsock, int streamsNum
  *
  *
  */
-int web100_rtt(int sock, web100_agent* agent, web100_connection* cn) {
+static int web100_rtt(int sock, web100_agent* agent, web100_connection* cn) {
   web100_var* var;
   char buf[32];
   web100_group* group;
@@ -938,8 +939,8 @@ int tcp_stat_autotune(int sock, tcp_stat_agent* agent, tcp_stat_connection cn) {
  * 					35 - cannot read value of RcvWinScale web100 variable.
  *
  */
-int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
-                     int autotune) {
+static int tcp_stat_setbuff(int sock, tcp_stat_agent* agent, tcp_stat_connection cn,
+                            int autotune) {
   web100_var* var;
   char buf[32];
   web100_group* group;
@@ -1108,7 +1109,7 @@ void tcp_stat_logvars_to_file(char* webVarsValuesLog, int connNum, struct tcp_va
   fclose(file);
 }
 
-tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {
+static tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {
   int i;
   tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
   for (i = 1; i < connNum; ++i) {
@@ -1117,7 +1118,7 @@ tcp_stat_var agg_vars_sum(int connNum, int varId, struct tcp_vars* vars) {
   return varValue;
 }
 
-tcp_stat_var agg_vars_max(int connNum, int varId, struct tcp_vars* vars) {
+static tcp_stat_var agg_vars_max(int connNum, int varId, struct tcp_vars* vars) {
   int i;
   tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
   for (i = 1; i < connNum; ++i) {
@@ -1128,7 +1129,7 @@ tcp_stat_var agg_vars_max(int connNum, int varId, struct tcp_vars* vars) {
   return varValue;
 }
 
-tcp_stat_var agg_vars_min(int connNum, int varId, struct tcp_vars* vars) {
+static tcp_stat_var agg_vars_min(int connNum, int varId, struct tcp_vars* vars) {
   int i;
   tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
   for (i = 1; i < connNum; ++i) {
@@ -1139,7 +1140,7 @@ tcp_stat_var agg_vars_min(int connNum, int varId, struct tcp_vars* vars) {
   return varValue;
 }
 
-tcp_stat_var agg_vars_avg(int connNum, int varId, struct tcp_vars* vars) {
+static tcp_stat_var agg_vars_avg(int connNum, int varId, struct tcp_vars* vars) {
   int i;
   tcp_stat_var varValue = *&((tcp_stat_var *)&vars[0])[varId];
   for (i = 1; i < connNum; ++i) {
@@ -1326,7 +1327,7 @@ int CwndDecrease(char* logname, u_int32_t *dec_cnt,
  * @param nwords integer length (in bytes) of the header
  * @return unsigned short checksum
  */
-unsigned short csum(unsigned short *buff, int nwords) {
+static unsigned short csum(unsigned short *buff, int nwords) {
   /* generate a TCP/IP checksum for our packet */
 
   register int sum = 0;
