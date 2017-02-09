@@ -1,0 +1,30 @@
+# Build NDT and run unit tests.
+# * Uses builder image from docker.io/measurementlab/ndt-builder.
+# * Mounts ~/ndt as the build directory.
+# * Executes unit tests within travis after build.  (In development)
+
+dist: trusty
+language: ruby
+
+services:
+  - docker
+
+before_install:
+
+cache:
+  directories:
+
+before_cache:
+
+before_script:
+
+script:
+# Build and run tests.
+  - docker pull measurementlab/ndt-builder:latest
+  - cd ${TRAVIS_BUILD_DIR}; 
+  - mkdir ndt
+  - docker run -v ${TRAVIS_BUILD_DIR}/ndt:/root/builder measurementlab/ndt-builder
+  - ls -l ${TRAVIS_BUILD_DIR}/ndt
+
+# TODO - execute unit tests that do not require web100.
+# TODO - collect coverage stats and export to coveralls.
