@@ -1,0 +1,15 @@
+# Build NDT and run unit tests.
+# * Uses docker build-tools container
+# * Executes unit tests within travis after build.
+
+dist: trusty
+language: ruby
+services:
+- docker
+
+script:
+- docker pull gcr.io/mlab-pub/github-m-lab-builder:latest
+# Run basic unit tests that don't require web100
+- docker run gcr.io/mlab-pub/github-m-lab-builder /root/ndt_build_and_test.sh
+
+# TODO - collect coverage stats and export to coveralls.
