@@ -149,15 +149,12 @@ void testResults(char tests, char *testresult_str, char* host) {
   }
 
   sysvar = strtok(testresult_str, " ");
-  sysval = strtok(NULL, "\n");
-  i = atoi(sysval);
-  save_int_values(sysvar, i);
-
   for (;;) {
-    sysvar = strtok(NULL, " ");
     if (sysvar == NULL)
       break;
     sysval = strtok(NULL, "\n");
+    if (sysval == NULL)
+      break;
     if (strchr(sysval, '.') == NULL) {
       i = atoi(sysval);
       save_int_values(sysvar, i);
@@ -167,6 +164,7 @@ void testResults(char tests, char *testresult_str, char* host) {
       save_dbl_values(sysvar, &j);
       log_println(7, "Stored %0.2f (%s) in %s", j, sysval, sysvar);
     }
+    sysvar = strtok(NULL, " ");
   }
 
   // CountRTT = 615596;
