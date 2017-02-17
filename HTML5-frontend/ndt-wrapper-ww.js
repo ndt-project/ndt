@@ -59,7 +59,13 @@ function startNDT(hostname, port, protocol, path, update_interval) {
         'cmd': 'onerror',
         'error_message': error_message
       });
-    }
+    },
+    'onlog': function(message) {
+      self.postMessage({
+        'cmd': 'onlog',
+        'message': message,
+      });
+    },
   };
 
   var client = new NDTjs(hostname, port, protocol, path, callbacks,

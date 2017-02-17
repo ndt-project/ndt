@@ -31,6 +31,7 @@ function NDTjs(server, serverPort, serverProtocol, serverPath, callbacks,
       'onprogress': function () { return false; },
       'onfinish': function () { return false; },
       'onerror': function () { return false; },
+	  'onlog': function () { return false; },
     };
   } else {
     this.callbacks = callbacks;
@@ -76,6 +77,7 @@ NDTjs.prototype.logger = function (logMessage, debugging) {
   debugging = debugging || false;
   if (debugging === true) {
     console.log(logMessage);
+	this.callbacks.onlog(logMessage);
   }
 };
 
@@ -198,9 +200,79 @@ NDTjs.prototype.TestFailureException = function (message) {
  */
 NDTjs.prototype.createWebsocket = function (serverProtocol, serverAddress,
                                             serverPort, urlPath, protocol) {
-  var createdWebsocket = new WebSocket(serverProtocol + '://' +
-                                       serverAddress + ':' + serverPort +
-                                       urlPath, protocol);
+  var that = this;
+  var ws_str = serverProtocol + '://' +
+	  serverAddress + ':' + serverPort +
+	  urlPath;
+  var createdWebsocket = new WebSocket(ws_str, protocol);
+  // did we succeed? If not, call onerror
+  createdWebsocket.onerror = function (event) {
+    that.callbacks.onerror( 'Error in '+protocol+' websocket '+ws_str ) ;
+  };
+  // if we succeeded log it
+  createdWebsocket.onopen = function (event) {
+    that.logger( 'websocket '+protocol+' opened: '+ws_str ) ;
+  };
+  // http://stackoverflow.com/questions/18803971/websocket-onerror-how-to-read-error-description
+  // and http://tools.ietf.org/html/rfc6455#section-7.4.1
+  createdWebsocket.onclose = function (event) {
+    var message;
+    if ( ( event.code == 1006 ) && ( ( protocol == 'c2s' ) || ( protocol == 's2c' ) ) ) {
+            // it is observed that even in successful measurements the c2s and s2c
+            // connections terminate with 1006. So we shoulnd't throw an error in that
+            // specific case. If the control socket is alive, everything is probably ok
+            return;
+    }
+    switch ( event.code ) {
+      case 1000:
+              message = 'normal closure';
+              return; // everything is normal
+              break;
+      case 1001:
+              message = 'endpoint went away';
+              break;
+      case 1002:
+              message = 'endpoint terminated the connection due to a protocol error';
+              break;
+      case 1003:
+              message = 'unacceptable type of data by endpoint';
+              break;
+      case 1004:
+              message = 'reserved';
+              break;
+      case 1005:
+              message = 'no status code was actually present';
+              break;
+      case 1006:
+              message = 'connection closed abnormally, e.g. without sending or receiving a Close control frame';
+              break;
+      case 1007:
+              message = 'endpoint received data inconsistent with message type';
+              break;
+      case 1008:
+              message = 'endpoint received data that violate its policy or otherwise data that it didn\'t like';
+              break;
+      case 1009:
+              message = 'endpoint received a message too big to process';
+              break;
+      case 1010:
+              message = 'endpoint terminated the connection because server didn\'t support extension';
+              break;
+      case 1011:
+              message = 'server encountered an unexpected condition';
+              break;
+      case 1015:
+              message = 'TLS handshake failure';
+              break;
+      default:
+              message = 'reason '+event.code+' unknown';
+    }
+	var err_str = 'error '+event.code+' ('+message+') (reason:'+event.reason+
+		          ' clean: '+event.wasClean+') on '+protocol+' websocket '+
+                  ws_str+'. See http://tools.ietf.org/html/rfc6455#section-7.4.1';
+	console.log(err_str);
+    throw that.TestFailureException(err_str);
+  };
   createdWebsocket.binaryType = 'arraybuffer';
   return createdWebsocket;
 };
