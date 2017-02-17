@@ -16,6 +16,7 @@
 
 NDTMXMLCFLAGS = -o dist/FlashClt.swf -load-config+=ndt-flash-config.xml
 TEMPDIRS = dist
+AUTOMAKE_OPTIONS = no-exeext
 
 ndtdir = $(prefix)/ndt
 

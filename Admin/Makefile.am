@@ -19,6 +19,7 @@ GCJLINK = $(GCJLD)
 NDTGCJFLAGS = -d bin -sourcepath src
 CLASSPATH_ENV = 
 TEMPDIRS = bin
+AUTOMAKE_OPTIONS = no-exeext
 
 noinst_PROGRAMS	= Admin.class
 

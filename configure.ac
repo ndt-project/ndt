@@ -31,6 +31,7 @@
 # AC_PREREQ(2.57)
 AC_INIT([NDT],[4.0.0.1],[ndt-user@internet2.edu])
 AC_CONFIG_AUX_DIR(config)
+AC_CONFIG_MACRO_DIR(config)
 # AM_INIT_AUTOMAKE(NDT, v1.0, [no-define])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/analyze.c])
@@ -222,9 +223,9 @@ OLD_LDFLAGS="$LDFLAGS"
 OLD_CFLAGS="$CFLAGS"
 
 CFLAGS="$CFLAGS $I2UTILINCS"
-LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
+LDFLAGS="$LDFLAGS $I2UTILLDFLAGS"
 
-AC_SEARCH_LIBS([I2AddrByNode],I2util, HAVE_I2UTIL_LIBS=1,HAVE_I2UTIL_LIBS=0)
+AC_CHECK_LIB([I2util], [I2AddrByNode], HAVE_I2UTIL_LIBS=1, HAVE_I2UTIL_LIBS=0)
 AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], HAVE_I2UTIL_HEADERS=1,HAVE_I2UTIL_HEADERS=0)
 
 LDFLAGS="$OLD_LDFLAGS"
@@ -233,9 +234,13 @@ CFLAGS="$OLD_CFLAGS"
 if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
 	# now, check for sub-build/sub-configure
 	if test -d I2util/I2util; then
+		# clear the cache
+		AS_UNSET([ac_cv_lib_I2util_I2AddrByNode])
+		AS_UNSET([ac_cv_header_I2util_util_h])
+		AS_UNSET([ac_cv_header_I2util_conf_h])
 		AC_CONFIG_SUBDIRS(I2util)
 		TOP_BUILD_DIRS="I2util $TOP_BUILD_DIRS"
-		I2util_dir='${top_srcdir}/I2util'
+		I2util_dir="`pwd`/I2util"
 		I2UTILINCS="-I$I2util_dir $I2UTILINCS"
 		I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
 		I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
@@ -249,15 +254,13 @@ if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
 	OLD_CFLAGS="$CFLAGS"
 
         CFLAGS="$CFLAGS $I2UTILINCS"
-        LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
+        LDFLAGS="$LDFLAGS $I2UTILLDFLAGS"
 
-        AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
+        AC_CHECK_LIB([I2util], [I2AddrByNode], [:], AC_MSG_ERROR([Couldn't find I2util library]))
         AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
 
 	LDFLAGS="$OLD_LDFLAGS"
 	CFLAGS="$OLD_CFLAGS"
-
-	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 fi
 
 I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
@@ -422,6 +425,7 @@ AC_C_CONST
 AC_HEADER_TIME
 
 # Checks for library functions.
+m4_pattern_forbid([^AX_])
 AX_CHECK_OPENSSL(AM_CONDITIONAL(HAVE_SSL, true), AM_CONDITIONAL(HAVE_SSL, false))
 
 AC_FUNC_ERROR_AT_LINE

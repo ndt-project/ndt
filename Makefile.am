@@ -16,6 +16,8 @@
 #	Description:	toplevel build for bwctl
 #
 
+ACLOCAL_AMFLAGS = -I config
+
 SUBDIRS = @TOP_BUILD_DIRS@ src conf doc HTML5-frontend
 
 if INCLUDE_APPLET

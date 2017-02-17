@@ -1,0 +1,16 @@
+.deps/
+/aclocal.m4
+/autom4te.cache/
+/config.h.in
+/config.h
+/config.log
+/config.status
+/configure
+/config/test-driver
+/stamp-h1
+/HTML5-frontend/jquery-1.4.4.min.js
+*.stamp
+Makefile
+Makefile.in
+bin/
+dist/
