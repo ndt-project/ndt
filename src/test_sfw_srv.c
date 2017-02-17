@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <pthread.h>
+#include <web100.h>
 
 #include "test_sfw.h"
 #include "logging.h"

@@ -32,13 +32,21 @@ char* get_logfile();
 
 I2ErrHandle get_errhandle();
 
-// TODO: audit all the calls to log_print and log_println to maxmise ease of
+// TODO: audit all the calls to log_print and log_println to maximise ease of
 //       grepping through logs and eliminate the possibility of loglines that
 //       don't start with the timestamp/pid/level/file/line prefix.
 #define log_print log_println
 void log_println_impl(int lvl, const char* file, int line, const char* format, ...);
 #define log_println(lvl, ...) \
     log_println_impl((lvl), __FILE__, __LINE__, __VA_ARGS__)
+
+#define log_first_n(lvl, n, ...) { \
+    static int LOG_COUNT&&__LINE__ = n; \
+    if (LOG_COUNT&&__LINE__ > 0) { \
+      LOG_COUNT&&__LINE__--; \
+      log_println_impl((lvl), __FILE__, __LINE__, __VA_ARGS__); \
+    }}
+
 
 void log_free(void);
 void set_timestamp();
