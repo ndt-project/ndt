@@ -28,7 +28,7 @@ endif
 
 bin_PROGRAMS =
 sbin_PROGRAMS = $(ADD_FAKEWWW)
-noinst_PROGRAMS = 
+noinst_PROGRAMS =
 TESTS =
 
 if HAVE_WEB100
@@ -60,7 +60,6 @@ if HAVE_PCAP_H
 if HAVE_SSL
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
-TESTS += web100srv_unit_tests
 endif
 endif
 endif
