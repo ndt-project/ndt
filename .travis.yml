@@ -8,6 +8,7 @@ services:
 - docker
 
 script:
+
 # Temporarily use the git repo dev branch, instead of the google container registry.
 # TODO - update this once the GCR builder is up to date.
 - docker build -t build https://github.com/m-lab/builder.git#dev
@@ -18,3 +19,4 @@ script:
 #- docker run gcr.io/mlab-pub/github-m-lab-builder /root/ndt_build_and_test.sh
 
 # TODO - collect coverage stats and export to coveralls.
+
