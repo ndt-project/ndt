@@ -11,6 +11,8 @@
 #include <pthread.h>
 #include <sys/times.h>
 #include <ctype.h>
+#include <web100.h>
+
 #include "tests_srv.h"
 #include "strlutils.h"
 #include "ndtptestconstants.h"

@@ -9,6 +9,7 @@
 #include <string.h>
 // #include <ctype.h>
 #include <pthread.h>
+#include <web100.h>
 
 #include "testoptions.h"
 #include "network.h"
