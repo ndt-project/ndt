@@ -60,7 +60,6 @@ if HAVE_PCAP_H
 if HAVE_SSL
 if HAVE_JANSSON
 sbin_PROGRAMS += web100srv
-TESTS += web100srv_unit_tests
 endif
 endif
 endif
