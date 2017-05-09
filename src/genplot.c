@@ -27,6 +27,7 @@
 #include <sys/errno.h>
 #include <getopt.h>
 #include <sys/types.h>
+#include <web100.h>
 
 #include "web100srv.h"
 #include "usage.h"

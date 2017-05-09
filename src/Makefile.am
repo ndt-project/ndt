@@ -28,7 +28,7 @@ endif
 
 bin_PROGRAMS =
 sbin_PROGRAMS = $(ADD_FAKEWWW)
-noinst_PROGRAMS = 
+noinst_PROGRAMS =
 TESTS =
 
 if HAVE_WEB100
