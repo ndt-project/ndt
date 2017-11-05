@@ -9,10 +9,19 @@ services:
 
 script:
 
-# Temporarily use the git repo dev branch, instead of the google container registry.
-# TODO - update this once the GCR builder is up to date.
-- docker build -t build https://github.com/m-lab/builder.git#dev
-- docker run build /root/ndt_build_and_test.sh dev
+# Checkout ndt-support repo and replace the ndt submodule with the current ndt
+# $TRAVIS_BUILD_DIR and $TRAVIS_COMMIT.
+- git clone --recursive https://github.com/m-lab/ndt-support.git
+- cd ndt-support
+- git config --file=.gitmodules submodule.ndt.url $TRAVIS_BUILD_DIR
+- ( cd ndt && git checkout $TRAVIS_COMMIT )
+- git commit -a -m 'Local commit of changes so "git submodule update" works'
+
+# Build using the canonical build image and local ndt-support.
+- docker run -it -w /root/building
+    -v `pwd`:/root/building measurementlab/builder:production-1.0
+    bash -c "DISABLE_APPLET_SIGNING=1 ./package/slicebuild.sh iupui_ndt"
+- ls -lR build/slicebase-*
 
 #- docker pull gcr.io/mlab-pub/github-m-lab-builder:latest
 # Run basic unit tests that don't require web100
