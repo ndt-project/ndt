@@ -13,10 +13,11 @@ script:
 # $TRAVIS_BUILD_DIR and $TRAVIS_COMMIT.
 - set -e
 - TEST_COMMIT=$( git rev-parse HEAD )
-- git clone --recursive https://github.com/m-lab/ndt-support.git
+- git clone https://github.com/m-lab/ndt-support.git
 - cd ndt-support
 - git config --file=.gitmodules submodule.ndt.url $TRAVIS_BUILD_DIR
 - git submodule sync
+- git submodule update --init --recursive
 - ( cd ndt && git checkout $TEST_COMMIT )
 - git commit -a -m 'Local commit of changes so "git submodule update" works'
 
