@@ -12,11 +12,18 @@ script:
 # Checkout ndt-support repo and replace the ndt submodule with the current ndt
 # $TRAVIS_BUILD_DIR and $TRAVIS_COMMIT.
 - set -e
+# Clone ndt-support without cloning submodules.
 - git clone https://github.com/m-lab/ndt-support.git
 - cd ndt-support
+# Change the ndt-support submodule coniguration for ndt to point to the
+# $TRAVIS_BUILD_DIR (e.g. the current state of m-lab/ndt being tested by travis).
 - git config --file=.gitmodules submodule.ndt.url $TRAVIS_BUILD_DIR
+# Sync and update the new ndt-support submodule configuration, which clones all
+# submodules (now pulling ndt-support/ndt from $TRAVIS_BUILD_DIR).
 - git submodule sync
 - git submodule update --init --recursive
+# Checkout the current $TRAVIS_COMMIT and set the ndt-support submodule to
+# point to this commit.
 - ( cd ndt && git checkout $TRAVIS_COMMIT )
 - git commit -a -m 'Local commit of changes so "git submodule update" works'
 
