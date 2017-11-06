@@ -22,7 +22,7 @@ script:
 # submodules (now pulling ndt-support/ndt from $TRAVIS_BUILD_DIR).
 - git submodule sync
 - git submodule update --init --recursive
-# Checkout the current $TRAVIS_COMMIT and set the ndt-support submodule to
+# Checkout the current $TRAVIS_COMMIT and set the ndt-support/ndt submodule to
 # point to this commit.
 - ( cd ndt && git checkout $TRAVIS_COMMIT )
 - git commit -a -m 'Local commit of changes so "git submodule update" works'
