@@ -15,7 +15,7 @@ script:
 # Clone ndt-support without cloning submodules.
 - git clone https://github.com/m-lab/ndt-support.git
 - cd ndt-support
-# Change the ndt-support submodule coniguration for ndt to point to the
+# Change the ndt-support submodule configuration for ndt to point to the
 # $TRAVIS_BUILD_DIR (e.g. the current state of m-lab/ndt being tested by travis).
 - git config --file=.gitmodules submodule.ndt.url $TRAVIS_BUILD_DIR
 # Sync and update the new ndt-support submodule configuration, which clones all
