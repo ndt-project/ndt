@@ -22,7 +22,8 @@ var argv = require('minimist')(process.argv.slice(2),
                                             'port': 3001,
                                             'protocol': 'ws',
                                             'tests': (2 | 4 | 32),
-                                            'acceptinvalidcerts': false},
+                                            'acceptinvalidcerts': false,
+                                            'queueingtest': false},
                                 'string': ['server'],
                                 'boolean': [ 'quiet', 'debug']}),
     COMM_FAILURE = 0,
@@ -45,6 +46,7 @@ var argv = require('minimist')(process.argv.slice(2),
     server = argv['server'],
     port = argv['port'],
     tests = argv['tests'],
+    queueingtest = argv['queueingtest'],
     url_protocol = argv['protocol'],
     debug = !!(argv.debug),
     quiet = !!(argv.quiet),
@@ -347,9 +349,23 @@ function ndt_coordinator(sock) {
                     die("server terminated test with SRV_QUEUE 9977");
                 } else {
                     log(DEBUG, "There will be a", body.msg, "minute wait for the test to start");
+                    // If the user passed the flag --queueingtest, then all we do
+                    // is check to see if the server is queueing then exit. The
+                    // server always replies with at least one SRV_QUEUE
+                    // message, so we only care if the wait is more than 0.
+                    if (argv['queueingtest'] && body.msg > 0) {
+                        die("Received SRV_QUEUE with wait time. Server is queueing.");
+                    }
                 }
-                log(DEBUG, "Got SRV_QUEUE.    Ignoring and waiting for MSG_LOGIN");
+                log(DEBUG, "Got SRV_QUEUE. Ignoring and waiting for MSG_LOGIN");
             } else if (type === MSG_LOGIN) {
+                // If the user passed the flag --queueingtest, then all we do
+                // is check to see if the server is queueing. If it's not, we
+                // print a debug message and exit gracefully.
+                if (argv['queueingtest']) {
+                    log(DEBUG, "Received MSG_LOGIN. Server is not queueing.");
+                    process.exit(0);
+                }
                 if (body.msg[0] !== "v") { die("Bad msg '%s'", body.msg); }
                 state = "WAIT_FOR_TEST_IDS";
             } else {
