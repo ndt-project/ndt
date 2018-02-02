@@ -354,7 +354,8 @@ function ndt_coordinator(sock) {
                     // server always replies with at least one SRV_QUEUE
                     // message, so we only care if the wait is more than 0.
                     if (argv['queueingtest'] && body.msg > 0) {
-                        die("Received SRV_QUEUE with wait time. Server is queueing.");
+                        log(DEBUG, "Received SRV_QUEUE with wait time. Server is queueing.");
+                        process.exit(5);
                     }
                 }
                 log(DEBUG, "Got SRV_QUEUE. Ignoring and waiting for MSG_LOGIN");
