@@ -8,8 +8,9 @@ $(function(){
     setTimeout(initializeTest, 1000);
     return;
   }
-  checkInstalledPlugins();
-  initializeTest();
+  if ( checkInstalledPlugins() ) {
+    initializeTest();
+  }
 });
 
 // CONSTANTS
@@ -25,7 +26,6 @@ var PHASE_RESULTS   = 5;
 
 
 // STATUS VARIABLES
-var use_websocket_client = false;
 var websocket_client = null;
 var currentPhase = PHASE_LOADING;
 var currentPage = 'welcome';
@@ -66,13 +66,11 @@ function startTest(evt) {
   evt.stopPropagation();
   evt.preventDefault();
   createBackend();
-  if (!isPluginLoaded()) {
-    $('#warning-plugin').show();
-    return;
+  try {
+    testStatus();
+  } catch(e) {
+    return false;
   }
-  $('#warning-plugin').hide();
-  $('#javaButton').attr('disabled', true);
-  $('#websocketButton').attr('disabled', true);
   showPage('test', resetGauges);
   $('#rttValue').html('');
   if (simulate) return simulateTest();
@@ -218,7 +216,6 @@ function setPhase(phase) {
       $('#jitter').html(printJitter(false));
       $('#test-details').html(testDetails());
       $('#test-advanced').append(testDiagnosis());
-      $('#javaButton').attr('disabled', false);
 
       showPage('results');
       break;
@@ -348,7 +345,7 @@ function updateGaugeValue() {
   }
 }
 
-// TESTING JAVA/WEBSOCKET CLIENT
+// TESTING WEBSOCKET CLIENT
 
 function testNDT() {
   if (websocket_client) {
@@ -556,47 +553,9 @@ function testDetails() {
   return d;
 }
 
-// BACKEND METHODS
-function useJavaAsBackend() {
-  $('#warning-websocket').hide();
-  $('#rtt').show();
-  $('#rttValue').show();
-
-  $('.warning-environment').innerHTML = '';
-
-  use_websocket_client = false;
-
-  $('#websocketButton').removeClass('active');
-  $('#javaButton').addClass('active');
-}
-
-function useWebsocketAsBackend() {
-  $('#rtt').hide();
-  $('#rttValue').hide();
-  $('#warning-websocket').show();
-
-  use_websocket_client = true;
-
-  $('#javaButton').removeClass('active');
-  $('#websocketButton').addClass('active');
-}
-
 function createBackend() {
   $('#backendContainer').empty();
-
-  if (use_websocket_client) {
-    websocket_client = new NDTWrapper(window.ndtServer);
-  }
-  else {
-    var app = document.createElement('applet');
-    app.id = 'NDT';
-    app.name = 'NDT';
-    app.archive = 'Tcpbw100.jar';
-    app.code = 'edu.internet2.ndt.Tcpbw100.class';
-    app.width = '600';
-    app.height = '10';
-    $('#backendContainer').append(app);
-  }
+  websocket_client = new NDTWrapper(window.ndtServer);
 }
 
 // UTILITIES
@@ -607,29 +566,9 @@ function debug(message) {
   }
 }
 
-function isPluginLoaded() {
-  try {
-    testStatus();
-    return true;
-  } catch(e) {
-    return false;
-  }
-}
 
 function checkInstalledPlugins() {
-  var hasJava = false;
   var hasWebsockets = false;
-
-  $('#warning-plugin').hide();
-  $('#warning-websocket').hide();
-
-  hasJava = true;
-  if (typeof deployJava !== 'undefined') {
-    if (deployJava.getJREs() == '') {
-      hasJava = false;
-    }
-  }
-  hasWebsockets = false;
   try {
     var ndt_js = new NDTjs();
     if (ndt_js.checkBrowserSupport()) {
@@ -638,21 +577,14 @@ function checkInstalledPlugins() {
   } catch(e) {
     hasWebsockets = false;
   }
-
-  if (!hasWebsockets) {
-    $('#websocketButton').attr('disabled', true);
-  }
-
-  if (!hasJava) {
-    $('#javaButton').attr('disabled', true);
-  }
-
   if (hasWebsockets) {
-    useWebsocketAsBackend();
+    $('#rtt').hide();
+    $('#rttValue').hide();
   }
-  else if (hasJava) {
-    useJavaAsBackend();
+  else {
+    $('#no-websocket').show()
   }
+  return hasWebsockets;
 }
 
 // Attempts to determine the absolute path of a script, minus the name of the

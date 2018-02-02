@@ -191,76 +191,31 @@ else
 fi
 
 
+#
+# configure I2util
+#
 AC_ARG_WITH(I2util,
 		AC_HELP_STRING([--with-I2util=<dir>],
 				[defaults to building I2util under NDT if exists]),
 		with_I2util=$withval, with_I2util=yes)		
 
-#
-# find I2util
-#
 I2UTILLDFLAGS=""
 I2UTILLIBS=""
 I2UTILLIBDEPS=""
 I2UTILLIBMAKE=""
 I2UTILINCS=""
 
-if test -n "$with_I2util" && test "$with_I2util" != "yes"; then
-	I2util_dir=${with_I2util}
-	case $I2util_dir in
-		/*) ;; # already an absolute path
-		*) I2util_dir="`pwd`/$I2util_dir" ;;
-	esac
-	I2util_include_dir=`dirname $with_I2util`/include
-	I2UTILINCS="-I$I2util_include_dir $I2UTILINCS"
-	I2UTILLDFLAGS="-L$I2util_dir $I2UTILLDFLAGS"
-	I2UTILLIBDEPS="$I2util_dir/libI2util.a"
+if test -d I2util/I2util; then
+	AC_CONFIG_SUBDIRS(I2util)
+	TOP_BUILD_DIRS="I2util $TOP_BUILD_DIRS"
+	I2util_dir='${top_srcdir}/I2util'
+	I2UTILINCS="-I$I2util_dir $I2UTILINCS"
+	I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
+	I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
+	I2UTILLIBMAKE="cd $I2util_dir; make"
+else
+	AC_MSG_FAILURE([I2util required to build NDT])
 fi
-
-# Save the old CFLAGS and LDFLAGS
-OLD_LDFLAGS="$LDFLAGS"
-OLD_CFLAGS="$CFLAGS"
-
-CFLAGS="$CFLAGS $I2UTILINCS"
-LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
-
-AC_SEARCH_LIBS([I2AddrByNode],I2util, HAVE_I2UTIL_LIBS=1,HAVE_I2UTIL_LIBS=0)
-AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], HAVE_I2UTIL_HEADERS=1,HAVE_I2UTIL_HEADERS=0)
-
-LDFLAGS="$OLD_LDFLAGS"
-CFLAGS="$OLD_CFLAGS"
-
-if test "$HAVE_I2UTIL_HEADERS" != "1" || test "$HAVE_I2UTIL_LIBS" != "1"; then
-	# now, check for sub-build/sub-configure
-	if test -d I2util/I2util; then
-		AC_CONFIG_SUBDIRS(I2util)
-		TOP_BUILD_DIRS="I2util $TOP_BUILD_DIRS"
-		I2util_dir='${top_srcdir}/I2util'
-		I2UTILINCS="-I$I2util_dir $I2UTILINCS"
-		I2UTILLDFLAGS="-L$I2util_dir/I2util $I2UTILLDFLAGS"
-		I2UTILLIBDEPS="$I2util_dir/I2util/libI2util.a"
-		I2UTILLIBMAKE="cd $I2util_dir; make"
-	else
-		AC_MSG_FAILURE([I2util required to build NDT])
-	fi
-
-        # Save the old CFLAGS and LDFLAGS
-	OLD_LDFLAGS="$LDFLAGS"
-	OLD_CFLAGS="$CFLAGS"
-
-        CFLAGS="$CFLAGS $I2UTILINCS"
-        LDFLAGS="$CFLAGS $I2UTILLDFLAGS"
-
-        AC_SEARCH_LIBS([I2AddrByNode],I2util, ,AC_MSG_ERROR([Couldn't find I2util library]))
-        AC_CHECK_HEADERS([I2util/util.h I2util/conf.h], ,AC_MSG_ERROR([Couldn't find I2util header files]), [AC_INCLUDES_DEFAULT])
-
-	LDFLAGS="$OLD_LDFLAGS"
-	CFLAGS="$OLD_CFLAGS"
-
-	I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
-fi
-
-I2UTILLIBS="$I2UTILLDFLAGS -lI2util"
 
 AC_SUBST(I2UTILLDFLAGS)
 AC_SUBST(I2UTILLIBS)
