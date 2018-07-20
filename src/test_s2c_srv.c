@@ -780,9 +780,18 @@ int test_s2c(Connection *ctl, tcp_stat_agent *agent, TestOptions *testOptions,
     buff[msgLen] = 0;
     if (testOptions->connection_flags & JSON_SUPPORT) {
       jsonMsgValue = json_read_map_value(buff, DEFAULT_KEY);
-      strlcpy(buff, jsonMsgValue, sizeof(buff));
-      msgLen = strlen(buff);
-      free(jsonMsgValue);
+      if ( jsonMsgValue != NULL ) {
+        strlcpy(buff, jsonMsgValue, sizeof(buff));
+        msgLen = strlen(buff);
+        free(jsonMsgValue);
+      } else {
+        /* The client has sent a malformed message, that is now corrupt. We do
+         * not report an error to the client because some integrations respond
+         * to errors with a retry. Instead, we continue using an invalid value
+         * for s2cspd. */
+        buff[0] = 0;
+        strcpy(buff, "-1");
+      }
     }
     if (msgLen <= 0) {
       log_println(0, "Improper message");
