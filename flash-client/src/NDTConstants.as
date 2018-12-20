@@ -14,7 +14,7 @@
 
 package  {
   public class NDTConstants {
-    public static const MLAB_SITE:String = "http://www.measurementlab.net";
+    public static const MLAB_SITE:String = "https://www.measurementlab.net";
 
     public static const CLIENT_VERSION:String = CONFIG::clientVersion;
     public static const EXPECTED_SERVER_VERSION:String = CONFIG::serverVersion;
@@ -250,4 +250,3 @@ package  {
         + "to obtain precise measurements.";
   }
 }
-
